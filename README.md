@@ -99,9 +99,5 @@ alumnisystem/
 
 For support, please contact the development team or create an issue in the repository.
 
-## License
-
-This project is licensed under the MIT License - see the LICENSE file for details.
-
 ---
 Developed for Negros Oriental State University © 2024
