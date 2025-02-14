@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Welcome to NORSU Alumni{% endblock title %}
+
+{% block page_header %}
+{% if user.is_authenticated and not user.is_superuser %}
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'core:home' %}">
+                                <i class="fas fa-home"></i>
+                            </a>
+                        </li>
+                        <li class="breadcrumb-item active">Home</li>
+                    </ol>
+                </nav>
+                <h1 class="page-title">Welcome, {{ user.get_full_name }}</h1>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Hero Section Styles */
+    .hero-section {
+        position: relative;
+        min-height: calc(100vh - 76px);
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.95)), 
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        display: flex;
+        align-items: center;
+        color: white;
+        padding: 4rem 0;
+    }
+
+    .hero-content {
+        max-width: 800px;
+        margin: 0 auto;
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .hero-title {
+        font-size: 3.5rem;
+        font-weight: 700;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.8s ease forwards;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        font-weight: 400;
+        margin-bottom: 2rem;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.8s ease 0.2s forwards;
+    }
+
+    .hero-buttons {
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.8s ease 0.4s forwards;
+    }
+
+    .hero-btn {
+        padding: 1rem 2.5rem;
+        font-size: 1.1rem;
+        font-weight: 500;
+        border-radius: 50px;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        transition: all 0.3s ease;
+        margin: 0.5rem;
+    }
+
+    .hero-btn-primary {
+        background-color: #fff;
+        color: var(--primary-color);
+        border: 2px solid #fff;
+    }
+
+    .hero-btn-primary:hover {
+        background-color: transparent;
+        color: #fff;
+    }
+
+    .hero-btn-outline {
+        background-color: transparent;
+        color: #fff;
+        border: 2px solid #fff;
+    }
+
+    .hero-btn-outline:hover {
+        background-color: #fff;
+        color: var(--primary-color);
+    }
+
+    /* Features Section */
+    .features-section {
+        padding: 6rem 0;
+        background-color: #f8f9fa;
+    }
+
+    .feature-card {
+        text-align: center;
+        padding: 2rem;
+        border-radius: 1rem;
+        background-color: white;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    .feature-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 15px 40px rgba(0,0,0,0.1);
+    }
+
+    .feature-icon {
+        width: 80px;
+        height: 80px;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1.5rem;
+    }
+
+    .feature-icon i {
+        font-size: 2rem;
+        color: white;
+    }
+
+    .feature-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--primary-color);
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Responsive Styles */
+    @media (max-width: 768px) {
+        .hero-title {
+            font-size: 2.5rem;
+        }
+
+        .hero-subtitle {
+            font-size: 1.1rem;
+        }
+
+        .hero-btn {
+            padding: 0.8rem 2rem;
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+{% if not user.is_authenticated %}
+<!-- Hero Section -->
+<section class="hero-section">
+    <div class="container">
+        <div class="hero-content">
+            <h1 class="hero-title">Welcome to NORSU Alumni Network</h1>
+            <p class="hero-subtitle">Connect with fellow alumni, stay updated with university news, and explore career opportunities.</p>
+            <div class="hero-buttons">
+                {% if not user.is_authenticated %}
+                    <a href="{% url 'account_login' %}" class="btn hero-btn hero-btn-primary">Login</a>
+                    <a href="{% url 'account_signup' %}" class="btn hero-btn hero-btn-outline">Register</a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Features Section -->
+<section class="features-section">
+    <div class="container">
+        <div class="row g-4">
+            <div class="col-md-6">
+                <div class="feature-card" style="animation: fadeInUp 0.8s ease 0.2s forwards">
+                    <div class="feature-icon">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <h3 class="feature-title">Careers</h3>
+                    <p>Discover job opportunities and advance your professional journey.</p>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="feature-card" style="animation: fadeInUp 0.8s ease 0.4s forwards">
+                    <div class="feature-icon">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <h3 class="feature-title">Events</h3>
+                    <p>Stay updated with alumni events, reunions, and university activities.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+{% endblock content %} 
+
+
+
+

@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block head_title %}{% trans "Complete Your Profile" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .post-reg-section {
+        min-height: calc(100vh - 76px);
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.95)), 
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        display: flex;
+        align-items: center;
+        padding: 4rem 0;
+    }
+
+    .post-reg-card {
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 1rem;
+        box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+        backdrop-filter: blur(10px);
+        padding: 2.5rem;
+        max-width: 600px;
+        margin: 0 auto;
+        opacity: 0;
+        transform: translateY(20px);
+        animation: fadeInUp 0.8s ease forwards;
+    }
+
+    .post-reg-logo {
+        width: 120px;
+        height: 120px;
+        object-fit: contain;
+        margin: 0 auto 1.5rem;
+        display: block;
+    }
+
+    .post-reg-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .post-reg-title {
+        color: var(--primary-color);
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+
+    .post-reg-subtitle {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .form-control {
+        border: 2px solid #e1e5ee;
+        border-radius: 0.5rem;
+        padding: 0.75rem 1.25rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+    }
+
+    .btn-submit {
+        width: 100%;
+        padding: 0.75rem;
+        font-size: 1rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        margin-top: 1rem;
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+        border: none;
+        color: white;
+    }
+
+    .btn-submit:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(43, 60, 107, 0.3);
+    }
+
+    @keyframes fadeInUp {
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    @media (max-width: 576px) {
+        .post-reg-card {
+            margin: 1rem;
+            padding: 1.5rem;
+        }
+
+        .post-reg-title {
+            font-size: 1.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<section class="post-reg-section">
+    <div class="container">
+        <div class="post-reg-card">
+            <img src="{% static 'images/logo.png' %}" alt="NORSU Logo" class="post-reg-logo">
+            
+            <div class="post-reg-header">
+                <h1 class="post-reg-title">Complete Your Profile</h1>
+                <p class="post-reg-subtitle">Please provide your academic information to complete your registration</p>
+            </div>
+
+            <form method="post" class="post-reg-form">
+                {% csrf_token %}
+                {{ form|crispy }}
+                <button type="submit" class="btn btn-submit">Complete Registration</button>
+            </form>
+        </div>
+    </div>
+</section>
+{% endblock %} 
+
+

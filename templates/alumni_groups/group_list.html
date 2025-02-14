@@ -1,0 +1,1164 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alumni Groups - NORSU Alumni{% endblock %}
+
+{% block page_title %}Alumni Groups{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Alumni Groups</li>
+{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/css/autoComplete.min.css">
+<style>
+    /* Core Design System */
+    :root {
+        /* Brand Colors */
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.5rem;
+        --space-6: 2rem;
+        --space-8: 3rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 300ms ease;
+    }
+
+    /* Layout */
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: var(--space-8) var(--space-4);
+        display: flex;
+        justify-content: center;
+    }
+
+    .content-container {
+        width: 100%;
+        max-width: 1200px;
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: var(--space-8);
+        align-items: flex-start;
+    }
+
+    /* Filter Panel */
+    .filter-panel {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        padding: var(--space-5);
+        position: sticky;
+        top: calc(76px + var(--space-8));
+        height: fit-content;
+        width: 280px;
+    }
+
+    .filter-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-5);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .filter-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .filter-title i {
+        color: var(--brand-primary);
+        font-size: 1.1rem;
+    }
+
+    .filter-reset {
+        color: var(--brand-accent);
+        font-size: 0.875rem;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-md);
+        background: var(--ui-background);
+        transition: all var(--transition-fast);
+    }
+
+    .filter-reset:hover {
+        background: var(--brand-accent);
+        color: var(--text-light);
+    }
+
+    .filter-section {
+        margin-bottom: var(--space-5);
+    }
+
+    .filter-section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-3);
+    }
+
+    /* Search Input */
+    .search-input {
+        width: 100%;
+        padding: var(--space-3) var(--space-4);
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        font-size: 1rem;
+        transition: var(--transition-normal);
+        background: var(--ui-surface);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--brand-accent);
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+    }
+
+    /* Year Range */
+    .year-range {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+    }
+
+    /* Category List */
+    .category-list {
+        max-height: 200px;
+        overflow-y: auto;
+        padding-right: var(--space-3);
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-3);
+        cursor: pointer;
+        border-radius: var(--radius-sm);
+        transition: background-color var(--transition-fast);
+        background: var(--ui-surface);
+    }
+
+    .category-item:hover {
+        background: var(--ui-hover);
+    }
+
+    .category-checkbox {
+        appearance: none;
+        width: 20px;
+        height: 20px;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        position: relative;
+        transition: background-color var(--transition-fast),
+                    border-color var(--transition-fast);
+        background: var(--ui-surface);
+    }
+
+    .category-checkbox:checked {
+        background: var(--brand-primary);
+        border-color: var(--brand-primary);
+    }
+
+    .category-checkbox:checked::after {
+        content: '✓';
+        position: absolute;
+        color: var(--text-light);
+        font-size: 14px;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+    }
+
+    .category-label {
+        font-size: 1rem;
+        color: var(--text-primary);
+        user-select: none;
+    }
+
+    /* Main Content */
+    .main-content {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-8);
+        padding-top: 0;
+    }
+
+    /* Content Header */
+    .content-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-5);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .content-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .content-title i {
+        color: var(--brand-primary);
+        font-size: 1.5rem;
+    }
+
+    .header-actions {
+        display: flex;
+        gap: var(--space-4);
+        align-items: center;
+        justify-content: flex-end;
+    }
+
+    .btn-create {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        transition: all var(--transition-fast);
+        border: none;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-create:hover {
+        background: var(--brand-accent);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-create i {
+        font-size: 0.875rem;
+    }
+
+    /* Cards Container */
+    .cards-container {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        padding: var(--space-5);
+        margin: 0;
+        width: 100%;
+    }
+
+    .cards-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--space-5);
+        padding-bottom: var(--space-4);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .cards-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .cards-count {
+        background: var(--ui-background);
+        padding: var(--space-1) var(--space-2);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    /* Group Grid */
+    .group-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: var(--space-5);
+    }
+
+    .group-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        overflow: hidden;
+        transition: transform var(--transition-normal),
+                    box-shadow var(--transition-normal);
+        position: relative;
+    }
+
+    .group-card:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .card-cover {
+        height: 150px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+    }
+
+    .card-cover::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 50%;
+        background: linear-gradient(to top, rgba(0, 0, 0, 0.5), transparent);
+    }
+
+    .group-type-badge {
+        position: absolute;
+        top: var(--space-3);
+        right: var(--space-3);
+        padding: var(--space-1) var(--space-2);
+        background: var(--ui-surface);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 1;
+    }
+
+    .card-content {
+        padding: var(--space-5);
+    }
+
+    .group-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 var(--space-3);
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .group-meta {
+        display: flex;
+        gap: var(--space-3);
+        margin-bottom: var(--space-4);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-1);
+    }
+
+    .group-description {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: var(--space-5);
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: var(--space-4);
+        background: var(--ui-background);
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .member-count {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .member-avatars {
+        display: flex;
+        margin-left: var(--space-2);
+    }
+
+    .member-avatar {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        border: 2px solid var(--ui-surface);
+        margin-left: -8px;
+    }
+
+    .action-group {
+        display: flex;
+        gap: var(--space-2);
+    }
+
+    .btn {
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.95rem;
+        transition: background-color var(--transition-normal),
+                    color var(--transition-normal),
+                    transform var(--transition-normal);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        text-decoration: none;
+    }
+
+    .btn-primary {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-accent);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--ui-hover);
+    }
+
+    /* Pagination */
+    .pagination-container {
+        display: flex;
+        justify-content: center;
+        margin-top: var(--space-8);
+        padding: var(--space-5);
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+    }
+
+    .pagination {
+        display: flex;
+        gap: var(--space-2);
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .page-item {
+        display: inline-block;
+    }
+
+    .page-link {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        border-radius: var(--radius-md);
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: background-color var(--transition-fast),
+                    color var(--transition-fast);
+    }
+
+    .page-link:hover {
+        background: var(--ui-hover);
+        color: var(--text-primary);
+    }
+
+    .page-item.active .page-link {
+        background: var(--brand-primary);
+        color: var(--text-light);
+    }
+
+    .page-item.disabled .page-link {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1200px) {
+        .content-container {
+            max-width: 900px;
+        }
+    }
+
+    @media (max-width: 1024px) {
+        .content-container {
+            grid-template-columns: 1fr;
+            max-width: 700px;
+            gap: var(--space-5);
+        }
+
+        .filter-panel {
+            position: static;
+            width: 100%;
+            margin-bottom: var(--space-5);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-container {
+            padding: var(--space-4);
+        }
+        
+        .content-container {
+            max-width: 100%;
+        }
+
+        .content-header {
+            flex-direction: column;
+            gap: var(--space-4);
+            align-items: flex-start;
+            padding: var(--space-4);
+        }
+
+        .header-actions {
+            width: 100%;
+            justify-content: space-between;
+        }
+
+        .btn-create {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .group-grid {
+            grid-template-columns: 1fr;
+            gap: var(--space-4);
+        }
+
+        .card-footer {
+            flex-direction: column;
+            gap: var(--space-3);
+            align-items: flex-start;
+        }
+
+        .action-group {
+            width: 100%;
+        }
+
+        .btn {
+            flex: 1;
+            justify-content: center;
+        }
+
+        .cards-container {
+            padding: var(--space-4);
+        }
+
+        .cards-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--space-3);
+        }
+    }
+
+    /* Accessibility Improvements */
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            transition: none !important;
+        }
+    }
+
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    /* Focus Styles */
+    :focus-visible {
+        outline: 3px solid var(--brand-accent);
+        outline-offset: 2px;
+    }
+
+    /* High Contrast Mode */
+    @media (forced-colors: active) {
+        .btn-primary {
+            border: 2px solid ButtonText;
+        }
+    }
+
+    .empty-state {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        padding: var(--space-8);
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        border: 2px dashed var(--ui-border);
+        margin: var(--space-8) auto;
+        width: 100%;
+        grid-column: 1 / -1;
+    }
+
+    .empty-state-icon {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: var(--space-4);
+    }
+
+    .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-3);
+    }
+
+    .empty-state-description {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        max-width: 400px;
+        margin-bottom: var(--space-6);
+    }
+
+    .empty-state-action {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-6);
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        font-weight: 500;
+        transition: all var(--transition-normal);
+    }
+
+    .empty-state-action:hover {
+        background: var(--brand-accent);
+        transform: translateY(-1px);
+    }
+
+    @media (max-width: 768px) {
+        .empty-state {
+            padding: var(--space-6);
+            margin: var(--space-4) auto;
+        }
+
+        .empty-state-icon {
+            font-size: 3rem;
+        }
+
+        .empty-state-title {
+            font-size: 1.25rem;
+        }
+
+        .empty-state-description {
+            font-size: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="content-container">
+        <!-- Filter Panel -->
+        <aside class="filter-panel">
+            <div class="filter-header">
+                <h2 class="filter-title">
+                    <i class="fas fa-filter"></i>
+                    Filters
+                </h2>
+                <a href="?clear=1" class="filter-reset">
+                    <i class="fas fa-undo-alt"></i>
+                    Reset
+                </a>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-section-title">Search</h3>
+                <input type="text" 
+                       class="search-input" 
+                       placeholder="Search groups..."
+                       aria-label="Search groups"
+                       value="{{ request.GET.search|default:'' }}">
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-section-title">Batch Years</h3>
+                <div class="year-range">
+                    <input type="number" 
+                           class="search-input" 
+                           placeholder="Start Year"
+                           min="1900"
+                           max="{{ current_year }}"
+                           value="{{ request.GET.batch_start|default:'' }}">
+                    <input type="number" 
+                           class="search-input" 
+                           placeholder="End Year"
+                           min="1900"
+                           max="{{ current_year }}"
+                           value="{{ request.GET.batch_end|default:'' }}">
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-section-title">Courses</h3>
+                <div class="category-list">
+                    {% for course in courses %}
+                    <div class="category-item">
+                        <input type="checkbox" 
+                               class="category-checkbox" 
+                               id="course_{{ course|slugify }}"
+                               name="course"
+                               value="{{ course }}"
+                               {% if course in request.GET.course %}checked{% endif %}>
+                        <label class="category-label" for="course_{{ course|slugify }}">
+                            {{ course }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-section-title">Regions</h3>
+                <div class="category-list">
+                    {% for region in regions %}
+                    <div class="category-item">
+                        <input type="checkbox" 
+                               class="category-checkbox" 
+                               id="region_{{ region|slugify }}"
+                               name="region"
+                               value="{{ region }}"
+                               {% if region in request.GET.region %}checked{% endif %}>
+                        <label class="category-label" for="region_{{ region|slugify }}">
+                            {{ region }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <div class="filter-section">
+                <h3 class="filter-section-title">Group Type</h3>
+                <div class="category-list">
+                    {% for type, label in group_types %}
+                    <div class="category-item">
+                        <input type="checkbox" 
+                               class="category-checkbox" 
+                               id="type_{{ type|lower }}"
+                               name="type"
+                               value="{{ type }}"
+                               {% if type in request.GET.type %}checked{% endif %}>
+                        <label class="category-label" for="type_{{ type|lower }}">
+                            {{ label }}
+                        </label>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Grid View -->
+            <div class="cards-container">
+                <div class="content-header">
+                    <h1 class="content-title">
+                        <i class="fas fa-users"></i>
+                        Alumni Groups
+                    </h1>
+                    <div class="header-actions">
+                        {% if user.is_staff %}
+                        <a href="{% url 'alumni_groups:group_create' %}" class="btn-create">
+                            <i class="fas fa-plus"></i>
+                            Create Group
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="cards-header">
+                    <h2 class="cards-title">
+                        <i class="fas fa-th-large"></i>
+                        Showing Results
+                        <span class="cards-count">{{ groups.count }} groups</span>
+                    </h2>
+                </div>
+
+                <div class="group-grid">
+                    {% for group in groups %}
+                    <article class="group-card">
+                        <div class="card-cover" style="background-image: url('{% if group.cover_image %}{{ group.cover_image.url }}{% else %}/static/images/default-cover.jpg{% endif %}');">
+                            <span class="group-type-badge">{{ group.get_group_type_display }}</span>
+                        </div>
+                        <div class="card-content">
+                            <h2 class="group-title">{{ group.name }}</h2>
+                            <div class="group-meta">
+                                <span class="meta-item">
+                                    <i class="fas fa-graduation-cap"></i>
+                                    {{ group.batch_start_year }}-{{ group.batch_end_year }}
+                                </span>
+                                <span class="meta-item">
+                                    <i class="fas fa-book"></i>
+                                    {{ group.course }}
+                                </span>
+                            </div>
+                            <p class="group-description">{{ group.description }}</p>
+                        </div>
+                        <div class="card-footer">
+                            <div class="member-count">
+                                <i class="fas fa-users"></i>
+                                {{ group.member_count }} members
+                                <div class="member-avatars">
+                                    {% for member in group.memberships.all|slice:":3" %}
+                                    <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                         alt="{{ member.user.get_full_name }}"
+                                         class="member-avatar">
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            <div class="action-group">
+                                <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="btn btn-secondary">
+                                    <i class="fas fa-info-circle"></i>
+                                    Details
+                                </a>
+                                {% if group.id not in user_memberships %}
+                                <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:group_join' group.slug %}{% endif %}" class="btn btn-primary">
+                                    <i class="fas fa-user-plus"></i>
+                                    Join
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </article>
+                    {% empty %}
+                    <div class="empty-state">
+                        <i class="fas fa-users empty-state-icon"></i>
+                        <h3 class="empty-state-title">No Alumni Groups Found</h3>
+                        <p class="empty-state-description">
+                            {% if request.GET %}
+                                No groups match your current filters. Try adjusting your search criteria.
+                            {% else %}
+                                There are no alumni groups available at the moment.
+                            {% endif %}
+                        </p>
+                        {% if user.is_staff and not request.GET %}
+                            <a href="{% url 'alumni_groups:group_create' %}" class="empty-state-action">
+                                <i class="fas fa-plus"></i>
+                                Create First Group
+                            </a>
+                        {% endif %}
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+            <nav class="pagination-container" aria-label="Group navigation">
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First page">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous page">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next page">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last page">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </main>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/@tarekraafat/autocomplete.js@10.2.7/dist/autoComplete.min.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Cache DOM elements
+    const searchInput = document.querySelector('.search-input');
+    const yearStartInput = document.querySelector('input[placeholder="Start Year"]');
+    const yearEndInput = document.querySelector('input[placeholder="End Year"]');
+    const courseCheckboxes = document.querySelectorAll('input[name="course"]');
+    const regionCheckboxes = document.querySelectorAll('input[name="region"]');
+    const typeCheckboxes = document.querySelectorAll('input[name="type"]');
+    const groupCards = document.querySelectorAll('.group-card');
+
+    // Initialize filter state
+    let filters = {
+        search: '',
+        years: {
+            start: '',
+            end: ''
+        },
+        courses: new Set(),
+        regions: new Set(),
+        types: new Set()
+    };
+
+    // Search functionality with debounce
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    // Update filters and apply them
+    function updateFilters() {
+        filters.search = searchInput.value.toLowerCase();
+        filters.years.start = yearStartInput.value;
+        filters.years.end = yearEndInput.value;
+        
+        filters.courses.clear();
+        courseCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) filters.courses.add(checkbox.value.toLowerCase());
+        });
+
+        filters.regions.clear();
+        regionCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) filters.regions.add(checkbox.value.toLowerCase());
+        });
+
+        filters.types.clear();
+        typeCheckboxes.forEach(checkbox => {
+            if (checkbox.checked) filters.types.add(checkbox.value.toLowerCase());
+        });
+
+        applyFilters();
+    }
+
+    // Apply all filters to group cards
+    function applyFilters() {
+        groupCards.forEach(card => {
+            const name = card.querySelector('.group-title').textContent.toLowerCase();
+            const description = card.querySelector('.group-description').textContent.toLowerCase();
+            const course = card.querySelector('.meta-item:nth-child(2)').textContent.toLowerCase();
+            const region = card.querySelector('.meta-item:nth-child(1)').textContent.toLowerCase();
+            const type = card.querySelector('.group-type-badge').textContent.toLowerCase();
+            const batchYears = card.querySelector('.meta-item:nth-child(1)').textContent.match(/\d{4}/g) || [];
+            const startYear = batchYears[0] ? parseInt(batchYears[0]) : 0;
+            const endYear = batchYears[1] ? parseInt(batchYears[1]) : 0;
+
+            // Check if card matches all active filters
+            const matchesSearch = !filters.search || 
+                name.includes(filters.search) || 
+                description.includes(filters.search);
+
+            const matchesYears = (!filters.years.start || startYear >= parseInt(filters.years.start)) &&
+                               (!filters.years.end || endYear <= parseInt(filters.years.end));
+
+            const matchesCourse = filters.courses.size === 0 || 
+                                Array.from(filters.courses).some(c => course.includes(c));
+
+            const matchesRegion = filters.regions.size === 0 || 
+                                Array.from(filters.regions).some(r => region.includes(r));
+
+            const matchesType = filters.types.size === 0 || 
+                              Array.from(filters.types).some(t => type.includes(t));
+
+            // Show/hide card based on all filters
+            if (matchesSearch && matchesYears && matchesCourse && matchesRegion && matchesType) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+
+        updateEmptyState();
+    }
+
+    // Update empty state message
+    function updateEmptyState() {
+        const visibleCards = Array.from(document.querySelectorAll('.group-card')).filter(card => 
+            card.style.display !== 'none'
+        ).length;
+        const groupGrid = document.querySelector('.group-grid');
+        let emptyState = document.querySelector('.empty-state');
+
+        if (visibleCards === 0) {
+            if (!emptyState) {
+                emptyState = document.createElement('div');
+                emptyState.className = 'empty-state';
+                emptyState.innerHTML = `
+                    <i class="fas fa-search empty-state-icon"></i>
+                    <h3 class="empty-state-title">No Groups Found</h3>
+                    <p class="empty-state-description">
+                        No groups match your current filters. Try adjusting your search criteria.
+                    </p>
+                `;
+                groupGrid.appendChild(emptyState);
+            }
+            // Update cards count
+            const cardsCount = document.querySelector('.cards-count');
+            if (cardsCount) {
+                cardsCount.textContent = '0 groups';
+            }
+        } else {
+            if (emptyState) {
+                emptyState.remove();
+            }
+            // Update cards count with visible cards
+            const cardsCount = document.querySelector('.cards-count');
+            if (cardsCount) {
+                cardsCount.textContent = `${visibleCards} groups`;
+            }
+        }
+    }
+
+    // Reset all filters
+    function resetFilters() {
+        searchInput.value = '';
+        yearStartInput.value = '';
+        yearEndInput.value = '';
+        
+        courseCheckboxes.forEach(checkbox => checkbox.checked = false);
+        regionCheckboxes.forEach(checkbox => checkbox.checked = false);
+        typeCheckboxes.forEach(checkbox => checkbox.checked = false);
+
+        filters = {
+            search: '',
+            years: { start: '', end: '' },
+            courses: new Set(),
+            regions: new Set(),
+            types: new Set()
+        };
+
+        applyFilters();
+    }
+
+    // Event listeners
+    searchInput.addEventListener('input', debounce(updateFilters, 300));
+    yearStartInput.addEventListener('input', debounce(updateFilters, 300));
+    yearEndInput.addEventListener('input', debounce(updateFilters, 300));
+
+    courseCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFilters);
+    });
+
+    regionCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFilters);
+    });
+
+    typeCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', updateFilters);
+    });
+
+    // Reset button functionality
+    const resetButton = document.querySelector('.filter-reset');
+    if (resetButton) {
+        resetButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            resetFilters();
+        });
+    }
+
+    // Initialize filters on page load
+    updateFilters();
+});
+</script>
+{% endblock %} 

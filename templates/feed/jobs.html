@@ -1,0 +1,33 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>{{ page_title }}</h2>
+    
+    <div class="row mt-4">
+        {% for job in jobs %}
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-body">
+                    <h5 class="card-title">{{ job.title }}</h5>
+                    <h6 class="card-subtitle mb-2 text-muted">{{ job.company }}</h6>
+                    <p class="card-text">
+                        <i class="fas fa-map-marker-alt"></i> {{ job.location }}<br>
+                        {% if job.description %}
+                        <small class="text-muted">{{ job.description|truncatewords:30 }}</small>
+                        {% endif %}
+                    </p>
+                    <a href="{{ job.url }}" target="_blank" class="btn btn-primary">View Job Details</a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No job opportunities available at the moment. Please check back later.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %} 

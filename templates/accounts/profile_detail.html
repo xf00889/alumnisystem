@@ -1,0 +1,1448 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load static %}
+{% load profile_filters %}
+{% load crispy_forms_tags %}
+
+{% block title %}My Profile - NORSU Alumni{% endblock %}
+
+{% block page_title %}My Profile{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Profile</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Core Theme Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-light: #3d5296;
+        --primary-dark: #1a2544;
+        --secondary-color: #6c757d;
+        --success-color: #28a745;
+        --danger-color: #dc3545;
+        --warning-color: #ffc107;
+        --info-color: #17a2b8;
+        --text-primary: #2c3e50;
+        --text-secondary: #6c757d;
+        --text-light: #f8f9fa;
+        --border-radius: 15px;
+        --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        --transition: all 0.3s ease;
+        --card-border-radius: 16px;
+        --profile-card-shadow: rgba(17, 12, 46, 0.1) 0px 10px 30px;
+        --hover-transition: all 0.3s ease;
+        --icon-btn-size: 32px;
+        --icon-size: 14px;
+        --danger-hover: #dc3545;
+        --primary-hover: #3d5296;
+    }
+
+    /* Profile Header */
+    .profile-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        padding: 6rem 0 10rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-header::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20" fill="none"/><circle cx="3" cy="3" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+    }
+
+    .profile-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 180px;
+        background: white;
+        clip-path: ellipse(65% 65% at 50% 100%);
+    }
+
+    .profile-avatar-wrapper {
+        position: relative;
+        width: 180px;
+        height: 180px;
+        margin: 0 auto;
+    }
+
+    .profile-avatar {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        border: 6px solid white;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+        object-fit: cover;
+        background: white;
+    }
+
+    .profile-name {
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin: var(--spacing-unit) 0;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    /* Content Layout */
+    .profile-content {
+        margin-top: -5rem;
+        position: relative;
+        z-index: 1;
+        padding-bottom: 4rem;
+    }
+
+    /* Profile Card Enhancements */
+    .profile-card {
+        background: white;
+        border-radius: var(--card-border-radius);
+        padding: 1.75rem;
+        box-shadow: var(--profile-card-shadow);
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.75rem;
+        transition: var(--hover-transition);
+    }
+
+    .profile-card:hover {
+        box-shadow: rgba(17, 12, 46, 0.15) 0px 15px 35px;
+        transform: translateY(-2px);
+    }
+
+    /* Card Headers and Titles */
+    .profile-card h5.section-title,
+    .profile-card h5.card-title {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        position: relative;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid rgba(43, 60, 107, 0.1);
+    }
+
+    .profile-card h5.section-title i,
+    .profile-card h5.card-title i {
+        color: var(--primary-light);
+        font-size: 1.2em;
+        opacity: 0.9;
+    }
+
+    /* Timeline Enhancements */
+    .timeline-content {
+        background: #ffffff;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: rgba(0, 0, 0, 0.04) 0px 4px 16px;
+        border: 1px solid rgba(0, 0, 0, 0.05);
+        transition: var(--hover-transition);
+    }
+
+    .timeline-content:hover {
+        box-shadow: rgba(0, 0, 0, 0.08) 0px 8px 24px;
+        transform: translateY(-2px);
+    }
+
+    .timeline-item h6 {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Button Enhancements */
+    .profile-card .btn-group-sm > .btn {
+        padding: 0.4rem 0.8rem;
+        font-size: 0.85rem;
+        border-radius: 8px;
+        transition: var(--hover-transition);
+    }
+
+    .profile-card .btn-outline-primary {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .profile-card .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    .profile-card .btn-outline-danger {
+        border-color: var(--danger-color);
+        color: var(--danger-color);
+    }
+
+    .profile-card .btn-outline-danger:hover {
+        background-color: var(--danger-color);
+        color: white;
+        transform: translateY(-1px);
+    }
+
+    /* List Group Enhancements */
+    .profile-card .list-group-item {
+        padding: 1rem 0;
+        border-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .profile-card .list-group-item small {
+        color: var(--text-secondary);
+        font-size: 0.85rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        margin-bottom: 0.25rem;
+    }
+
+    .profile-card .list-group-item:last-child {
+        border-bottom: none;
+    }
+
+    /* Personal Info Styling */
+    .info-list li {
+        display: flex;
+        align-items: center;
+        margin-bottom: calc(var(--spacing-unit) * 0.8);
+        color: var(--text-primary);
+    }
+
+    .info-list i {
+        width: 24px;
+        color: var(--primary-color);
+        margin-right: var(--spacing-unit);
+    }
+
+    /* Social Links */
+    .social-links {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .social-link {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        transition: var(--transition);
+    }
+
+    .social-link:hover {
+        transform: translateY(-3px) rotate(8deg);
+    }
+
+    .social-link.linkedin {
+        background: linear-gradient(135deg, #0077b5, #00a0dc);
+    }
+
+    .social-link.facebook {
+        background: linear-gradient(135deg, #1877f2, #3b5998);
+    }
+
+    .social-link.twitter {
+        background: linear-gradient(135deg, #1da1f2, #00acee);
+    }
+
+    .social-link.instagram {
+        background: #e4405f;
+    }
+
+    .social-link i {
+        font-size: 1.2rem;
+    }
+
+    /* Skills Section */
+    .skills-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+        gap: calc(var(--spacing-unit) * 0.8);
+    }
+
+    /* Skills Enhancement */
+    .skill-badge {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 0.75rem;
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    }
+
+    .skill-name {
+        font-weight: 600;
+        font-size: 0.9rem;
+    }
+
+    .skill-level {
+        height: 6px;
+        background: rgba(255, 255, 255, 0.5);
+        border-radius: 3px;
+        overflow: hidden;
+        margin-top: 0.5rem;
+    }
+
+    .skill-level-fill {
+        height: 100%;
+        background: linear-gradient(to right, var(--primary-color), var(--primary-light));
+        border-radius: 3px;
+        transition: width 0.5s ease;
+    }
+
+    /* Timeline Items */
+    .timeline {
+        position: relative;
+        padding-left: 1.5rem;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+        border-left: 2px solid rgba(0,0,0,0.1);
+        padding-left: 1.5rem;
+    }
+
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 0;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid #2b3c6b;
+        box-shadow: 0 0 0 4px rgba(43, 60, 107, 0.1);
+    }
+
+    .timeline-header {
+        margin-bottom: calc(var(--spacing-unit) * 0.5);
+    }
+
+    .timeline-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.2rem;
+    }
+
+    .timeline-subtitle {
+        font-size: 1rem;
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+
+    .timeline-date {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    /* Document Items */
+    .document-item {
+        background: #f8f9fa;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    }
+
+    .document-item:last-child {
+        margin-bottom: 0;
+    }
+
+    .document-icon {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+    }
+
+    .document-info {
+        flex-grow: 1;
+    }
+
+    .document-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.2rem;
+    }
+
+    .document-meta {
+        font-size: 0.9rem;
+        color: var(--text-secondary);
+    }
+
+    .document-actions {
+        margin-left: auto;
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Empty States */
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        background: #f8f9fa;
+        border-radius: 8px;
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    }
+
+    .empty-state i {
+        font-size: 2rem;
+        color: #6c757d;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 1rem;
+    }
+
+    /* Edit Button */
+    .btn-edit {
+        background: var(--primary-color);
+        color: white;
+        border-radius: 50px;
+        padding: 1rem 2.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-edit:hover {
+        background: var(--primary-dark);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(43, 60, 107, 0.3);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .profile-header {
+            padding: 4rem 0 8rem;
+        }
+
+        .profile-avatar-wrapper {
+            width: 150px;
+            height: 150px;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+        }
+
+        .skills-grid {
+            grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+        }
+    }
+
+    /* Modal Enhancements */
+    .modal-content {
+        border-radius: var(--border-radius);
+        border: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+        color: white;
+        border-radius: var(--border-radius) var(--border-radius) 0 0;
+        padding: 1.5rem;
+    }
+
+    .modal-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+    }
+
+    .modal-body {
+        padding: 2rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid rgba(0, 0, 0, 0.05);
+        padding: 1rem 2rem;
+    }
+
+    .btn-close {
+        color: white;
+        opacity: 0.8;
+        transition: var(--transition);
+    }
+
+    .btn-close:hover {
+        opacity: 1;
+        transform: rotate(90deg);
+    }
+
+    /* Form Controls Enhancement */
+    .form-control {
+        border-radius: 10px;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        padding: 0.75rem 1rem;
+        transition: var(--transition);
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+    }
+
+    /* Button Groups */
+    .btn-group-sm > .btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    /* Social Links */
+    .social-links .btn {
+        width: 32px;
+        height: 32px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px, rgba(0, 0, 0, 0.08) 0px 0px 0px 1px;
+    }
+
+    /* List Groups */
+    .list-group-flush .list-group-item {
+        padding: 1rem 0;
+        border-color: rgba(0, 0, 0, 0.05);
+    }
+
+    .list-group-item:last-child {
+        border-bottom: 0;
+    }
+
+    /* Card Headers */
+    .card-title {
+        color: #2c3e50;
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0;
+    }
+
+    /* Badges */
+    .badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+        box-shadow: rgba(0, 0, 0, 0.05) 0px 6px 24px 0px;
+    }
+
+    /* Action Buttons Enhancement */
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .btn-icon {
+        width: var(--icon-btn-size);
+        height: var(--icon-btn-size);
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 8px;
+        transition: all 0.2s ease-in-out;
+        background: white;
+        border: 1px solid rgba(0, 0, 0, 0.1);
+        color: var(--text-secondary);
+    }
+
+    .btn-icon i {
+        font-size: var(--icon-size);
+        transition: transform 0.2s ease;
+    }
+
+    .btn-icon:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    .btn-icon.edit-btn {
+        color: var(--primary-color);
+        border-color: rgba(45, 60, 107, 0.2);
+    }
+
+    .btn-icon.edit-btn:hover {
+        background: var(--primary-hover);
+        color: white;
+        border-color: var(--primary-hover);
+    }
+
+    .btn-icon.delete-btn {
+        color: var(--danger-color);
+        border-color: rgba(220, 53, 69, 0.2);
+    }
+
+    .btn-icon.delete-btn:hover {
+        background: var(--danger-hover);
+        color: white;
+        border-color: var(--danger-hover);
+    }
+
+    .btn-icon:hover i {
+        transform: scale(1.1);
+    }
+
+    .btn-icon:active {
+        transform: translateY(0);
+        box-shadow: none;
+    }
+
+    /* Update existing button groups */
+    .profile-card .btn-group-sm {
+        gap: 0.5rem;
+    }
+
+    .profile-card .btn-group-sm > .btn {
+        border-radius: 8px !important;
+        margin: 0;
+        position: relative;
+    }
+
+    /* Loading States and Spinners */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1000;
+        border-radius: inherit;
+    }
+
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid var(--primary-light);
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 0.8s linear infinite;
+    }
+
+    .loading-spinner.small {
+        width: 20px;
+        height: 20px;
+        border-width: 2px;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+        opacity: 0.8;
+    }
+
+    .btn-loading .btn-text {
+        visibility: hidden;
+    }
+
+    .btn-loading::after {
+        content: '';
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: calc(50% - 8px);
+        left: calc(50% - 8px);
+        border: 2px solid #fff;
+        border-radius: 50%;
+        border-top-color: transparent;
+        animation: spin 0.8s linear infinite;
+    }
+
+    /* Update modal styles */
+    .modal-content {
+        position: relative;
+    }
+
+    .modal-loading {
+        position: relative;
+        min-height: 200px;
+    }
+
+    /* Update form styles */
+    .form-container {
+        position: relative;
+        min-height: 100px;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 3rem;
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 1.5rem;
+    }
+
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -3rem;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .timeline-content {
+        position: relative;
+        padding: 1rem;
+        background: var(--bs-light);
+        border-radius: 0.5rem;
+    }
+
+    .timeline-content::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 1rem;
+        width: 1rem;
+        height: 1rem;
+        background: var(--bs-light);
+        transform: rotate(45deg);
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: calc(3rem - 1px);
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: var(--bs-border-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Profile Header Card - Compact Version -->
+    <div class="profile-card mb-4">
+        <div class="row g-0 align-items-center">
+            <div class="col-auto">
+                {% if profile.avatar %}
+                    <img src="{{ profile.avatar.url }}" alt="Profile Avatar" class="rounded-circle" style="width: 100px; height: 100px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-light d-flex align-items-center justify-content-center" style="width: 100px; height: 100px;">
+                        <i class="fas fa-user fa-2x text-secondary"></i>
+                    </div>
+                {% endif %}
+            </div>
+            <div class="col ps-4">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h3 class="mb-1">{{ profile.user.get_full_name }}</h3>
+                        <p class="text-muted mb-2">{{ profile.user.email }}</p>
+                    </div>
+                    <div>
+                        <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit Profile
+                        </a>
+                        <div class="social-links mt-2">
+                            {% if profile.linkedin_profile %}
+                                <a href="{{ profile.linkedin_profile }}" class="btn btn-sm btn-outline-primary" target="_blank">
+                                    <i class="fab fa-linkedin-in"></i>
+                                </a>
+                            {% endif %}
+                            {% if profile.facebook_profile %}
+                                <a href="{{ profile.facebook_profile }}" class="btn btn-sm btn-outline-primary ms-1" target="_blank">
+                                    <i class="fab fa-facebook-f"></i>
+                                </a>
+                            {% endif %}
+                            {% if profile.twitter_profile %}
+                                <a href="{{ profile.twitter_profile }}" class="btn btn-sm btn-outline-primary ms-1" target="_blank">
+                                    <i class="fab fa-twitter"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% if profile.bio %}
+                    <p class="small text-muted mb-0">{{ profile.bio|truncatewords:30 }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="row g-4">
+        <!-- Left Column - Essential Information -->
+        <div class="col-lg-4">
+            <!-- Personal Information -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-user"></i> Personal Information
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#editPersonalInfoModal">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="text-muted small mb-1">Email</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-envelope text-primary me-2"></i>
+                            <a href="mailto:{{ profile.user.email }}" class="text-decoration-none">{{ profile.user.email }}</a>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small mb-1">Phone</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-phone text-primary me-2"></i>
+                            {% if profile.phone_number %}
+                            <a href="tel:{{ profile.phone_number }}" class="text-decoration-none">{{ profile.phone_number }}</a>
+                            {% else %}
+                            <span class="text-muted">Not provided</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small mb-1">Date of Birth</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-calendar text-primary me-2"></i>
+                            {{ profile.birth_date|date:"F d, Y" }}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="text-muted small mb-1">Gender</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-venus-mars text-primary me-2"></i>
+                            {{ profile.get_gender_display }}
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <label class="text-muted small mb-1">Address</label>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                            {{ profile.address }}, {{ profile.city }}, {{ profile.state }}, {{ profile.country.name }}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Skills Section -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-star"></i> Skills
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addSkillModal">
+                        <i class="fas fa-plus"></i> Add Skill
+                    </button>
+                </div>
+                {% if skill_list %}
+                    {% regroup skill_list by get_skill_type_display as skill_list_grouped %}
+                    {% for skill_type in skill_list_grouped %}
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-2">{{ skill_type.grouper }}</small>
+                            {% for skill in skill_type.list %}
+                                <div class="skill-badge mb-2 p-2 bg-light rounded">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <span class="small">{{ skill.name }}</span>
+                                        <span class="badge bg-primary">{{ skill.get_proficiency_level_display }}</span>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small mb-0">No skills added yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Documents Section -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-file-alt"></i> Documents
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addDocumentModal">
+                        <i class="fas fa-plus"></i> Add Document
+                    </button>
+                </div>
+                {% if profile.documents.all %}
+                    <div class="list-group list-group-flush">
+                    {% for document in profile.documents.all %}
+                        <div class="list-group-item px-0">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div>
+                                    <span class="d-block">{{ document.title }}</span>
+                                    <small class="text-muted">{{ document.get_document_type_display }}</small>
+                                </div>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{{ document.file.url }}" class="btn-icon edit-btn" target="_blank">
+                                        <i class="fas fa-download"></i>
+                                    </a>
+                                    <form action="{% url 'accounts:document_delete' document.pk %}" method="post" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn-icon delete-btn">
+                                            <i class="fas fa-trash-alt"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">No documents uploaded yet</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Right Column - Experience & Education -->
+        <div class="col-lg-8">
+            <!-- Education Section -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-graduation-cap"></i> Education
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addEducationModal">
+                        <i class="fas fa-plus"></i> Add Education
+                    </button>
+                </div>
+                
+                {% if education_list %}
+                    <div class="timeline">
+                        {% for education in education_list %}
+                            <div class="timeline-item">
+                                <div class="timeline-marker bg-primary">
+                                    {% if education.is_primary %}
+                                        <i class="fas fa-star text-white"></i>
+                                    {% else %}
+                                        <i class="fas fa-graduation-cap text-white"></i>
+                                    {% endif %}
+                                </div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ education.program }}</h6>
+                                            <p class="text-muted mb-1">{{ education.school }}</p>
+                                            {% if education.major %}
+                                                <p class="text-muted small mb-1">Major in {{ education.major }}</p>
+                                            {% endif %}
+                                            <p class="text-muted small mb-1">Graduated {{ education.graduation_year }}</p>
+                                            {% if education.achievements %}
+                                                <p class="text-muted small mb-0">{{ education.achievements }}</p>
+                                            {% endif %}
+                                        </div>
+                                        {% if not education.is_primary %}
+                                            <div class="ms-3">
+                                                <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#editEducationModal{{ education.id }}">
+                                                    <i class="fas fa-edit"></i>
+                                                </button>
+                                                <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                        data-bs-toggle="modal" 
+                                                        data-bs-target="#deleteEducationModal{{ education.id }}">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted mb-0">No education history added yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Experience Section -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-briefcase"></i> Experience
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addExperienceModal">
+                        <i class="fas fa-plus"></i> Add Experience
+                    </button>
+                </div>
+                {% if experience_list %}
+                    <div class="timeline">
+                        {% for experience in experience_list %}
+                            <div class="timeline-item">
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">{{ experience.position }}</h6>
+                                    <p class="text-muted small mb-1">{{ experience.company }} - {{ experience.location }}</p>
+                                    <p class="text-muted small mb-1">
+                                        {{ experience.start_date|date:"M Y" }} - 
+                                        {% if experience.is_current %}Present{% else %}{{ experience.end_date|date:"M Y" }}{% endif %}
+                                    </p>
+                                    {% if experience.description %}<p class="small mb-0">{{ experience.description }}</p>{% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">No work experience added yet</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modals -->
+<!-- Add Skill Modal -->
+<div class="modal fade" id="addSkillModal" tabindex="-1" aria-labelledby="skillModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="skillModalLabel">Add Skill</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="skillForm" method="post" action="{% url 'accounts:update_skills' %}" class="needs-validation">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="id_name" class="form-label">Skill Name</label>
+                        <input type="text" name="name" id="id_name" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_skill_type" class="form-label">Skill Type</label>
+                        <select name="skill_type" id="id_skill_type" class="form-select" required>
+                            <option value="">Select skill type</option>
+                            <option value="TECH">Technical</option>
+                            <option value="SOFT">Soft Skills</option>
+                            <option value="LANG">Language</option>
+                            <option value="CERT">Certification</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_proficiency_level" class="form-label">Proficiency Level</label>
+                        <select name="proficiency_level" id="id_proficiency_level" class="form-select" required>
+                            <option value="">Select proficiency level</option>
+                            <option value="1">Beginner</option>
+                            <option value="2">Elementary</option>
+                            <option value="3">Intermediate</option>
+                            <option value="4">Advanced</option>
+                            <option value="5">Expert</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="skillForm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Education Modal -->
+<div class="modal fade" id="addEducationModal" tabindex="-1" aria-labelledby="educationModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="educationModalLabel">Add Education</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="educationForm" method="post" action="{% url 'accounts:update_education' %}" class="needs-validation">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="id_institution" class="form-label">Institution</label>
+                        <input type="text" name="institution" id="id_institution" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_degree" class="form-label">Degree</label>
+                        <input type="text" name="degree" id="id_degree" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_field_of_study" class="form-label">Field of Study</label>
+                        <input type="text" name="field_of_study" id="id_field_of_study" class="form-control" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="id_start_date" class="form-label">Start Date</label>
+                                <input type="date" name="start_date" id="id_start_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="id_end_date" class="form-label">End Date</label>
+                                <input type="date" name="end_date" id="id_end_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_current" id="id_is_current" class="form-check-input">
+                            <label for="id_is_current" class="form-check-label">Currently Studying</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea name="description" id="id_description" class="form-control" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="educationForm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Experience Modal -->
+<div class="modal fade" id="addExperienceModal" tabindex="-1" aria-labelledby="experienceModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="experienceModalLabel">Add Experience</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="experienceForm" method="post" action="{% url 'accounts:update_experience' %}" class="needs-validation">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="id_company" class="form-label">Company</label>
+                        <input type="text" name="company" id="id_company" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_position" class="form-label">Position</label>
+                        <input type="text" name="position" id="id_position" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_location" class="form-label">Location</label>
+                        <input type="text" name="location" id="id_location" class="form-control">
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="id_start_date" class="form-label">Start Date</label>
+                                <input type="date" name="start_date" id="id_start_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="id_end_date" class="form-label">End Date</label>
+                                <input type="date" name="end_date" id="id_end_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_current" id="id_is_current" class="form-check-input">
+                            <label for="id_is_current" class="form-check-label">Currently Working Here</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_description" class="form-label">Description</label>
+                        <textarea name="description" id="id_description" class="form-control" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="experienceForm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Document Modal -->
+<div class="modal fade" id="addDocumentModal" tabindex="-1" aria-labelledby="documentModalLabel" aria-modal="true" role="dialog">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="documentModalLabel">Add Document</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="documentForm" method="post" action="{% url 'accounts:update_documents' %}" class="needs-validation" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="id_title" class="form-label">Document Title</label>
+                        <input type="text" name="title" id="id_title" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_document_type" class="form-label">Document Type</label>
+                        <select name="document_type" id="id_document_type" class="form-select" required>
+                            <option value="">Select document type</option>
+                            <option value="certificate">Certificate</option>
+                            <option value="transcript">Transcript</option>
+                            <option value="resume">Resume/CV</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="id_file" class="form-label">File</label>
+                        <input type="file" name="file" id="id_file" class="form-control" required>
+                        <div class="form-text">Maximum file size: 5MB. Supported formats: PDF, DOC, DOCX</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="documentForm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Education Modal -->
+<div class="modal fade" id="editEducationModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Edit Education</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+                <div class="modal-body">
+                <form id="editEducationForm" method="post" class="needs-validation">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="edit_institution" class="form-label">Institution</label>
+                        <input type="text" name="institution" id="edit_institution" class="form-control" required>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="edit_degree" class="form-label">Degree</label>
+                        <input type="text" name="degree" id="edit_degree" class="form-control" required>
+                </div>
+
+                    <div class="form-group mb-3">
+                        <label for="edit_field_of_study" class="form-label">Field of Study</label>
+                        <input type="text" name="field_of_study" id="edit_field_of_study" class="form-control" required>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="edit_start_date" class="form-label">Start Date</label>
+                                <input type="date" name="start_date" id="edit_start_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="edit_end_date" class="form-label">End Date</label>
+                                <input type="date" name="end_date" id="edit_end_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_current" id="edit_is_current" class="form-check-input">
+                            <label for="edit_is_current" class="form-check-label">Currently Studying</label>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="edit_description" class="form-label">Description</label>
+                        <textarea name="description" id="edit_description" class="form-control" rows="3"></textarea>
+                </div>
+            </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="editEducationForm">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle form submissions
+    const forms = ['skillForm', 'educationForm', 'experienceForm', 'documentForm', 'editEducationForm'];
+    
+    forms.forEach(formId => {
+        const form = document.getElementById(formId);
+        if (!form) return;
+
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show loading state
+            const submitButton = form.querySelector('button[type="submit"]');
+            const originalText = submitButton.innerHTML;
+            submitButton.disabled = true;
+            submitButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+            // Get the modal if form is in a modal
+            const modal = form.closest('.modal');
+            
+            // Create and submit the form data
+            const formData = new FormData(form);
+            fetch(form.action, {
+                method: 'POST',
+                body: formData,
+                    headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    // Close modal if it exists
+                    if (modal) {
+                        const modalInstance = bootstrap.Modal.getInstance(modal);
+                        modalInstance.hide();
+                    }
+                    
+                    // Show success toast
+                    const toastContainer = document.createElement('div');
+                    toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                    toastContainer.style.zIndex = '1056';
+                    
+                    const toastElement = document.createElement('div');
+                    toastElement.className = 'toast align-items-center text-white bg-success border-0';
+                    toastElement.setAttribute('role', 'alert');
+                    toastElement.setAttribute('aria-live', 'assertive');
+                    toastElement.setAttribute('aria-atomic', 'true');
+                    
+                    toastElement.innerHTML = `
+                        <div class="d-flex">
+                            <div class="toast-body">
+                                <i class="fas fa-check-circle me-2"></i> Successfully saved!
+                            </div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    `;
+                    
+                    toastContainer.appendChild(toastElement);
+                    document.body.appendChild(toastContainer);
+                    
+                    const successToast = new bootstrap.Toast(toastElement, {
+                        animation: true,
+                        autohide: true,
+                        delay: 3000
+                    });
+                    successToast.show();
+                    
+                    // Reset form and button state
+                    form.reset();
+                    submitButton.disabled = false;
+                    submitButton.innerHTML = originalText;
+                } else {
+                    throw new Error('Form submission failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Reset button state
+                submitButton.disabled = false;
+                submitButton.innerHTML = originalText;
+                
+                // Show error toast
+                const toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                toastContainer.style.zIndex = '1056';
+                
+                const toastElement = document.createElement('div');
+                toastElement.className = 'toast align-items-center text-white bg-danger border-0';
+                toastElement.setAttribute('role', 'alert');
+                toastElement.setAttribute('aria-live', 'assertive');
+                toastElement.setAttribute('aria-atomic', 'true');
+                
+                toastElement.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-exclamation-circle me-2"></i> Error saving changes. Please try again.
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                                    </div>
+                                `;
+                                
+                toastContainer.appendChild(toastElement);
+                document.body.appendChild(toastContainer);
+                
+                const errorToast = new bootstrap.Toast(toastElement, {
+                    animation: true,
+                    autohide: true,
+                    delay: 5000
+                });
+                errorToast.show();
+            });
+        });
+    });
+
+    // Handle education edit button clicks
+    document.querySelectorAll('.edit-education').forEach(button => {
+        button.addEventListener('click', function() {
+            const id = this.dataset.id;
+            const form = document.getElementById('editEducationForm');
+
+            // Set form action URL
+            form.action = `/accounts/profile/update/education/${id}/`;
+
+            // Populate form fields
+            document.getElementById('edit_institution').value = this.dataset.institution || '';
+            document.getElementById('edit_degree').value = this.dataset.degree || '';
+            document.getElementById('edit_field_of_study').value = this.dataset.field_of_study || '';
+            document.getElementById('edit_start_date').value = this.dataset.start_date || '';
+            document.getElementById('edit_end_date').value = this.dataset.end_date || '';
+            document.getElementById('edit_is_current').checked = this.dataset.is_current === 'true';
+            document.getElementById('edit_description').value = this.dataset.description || '';
+        });
+    });
+
+    // Handle checkbox for currently studying/working
+    document.querySelectorAll('#id_is_current, #edit_is_current').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const endDateInput = this.closest('form').querySelector('[name="end_date"]');
+            if (this.checked) {
+                endDateInput.value = '';
+                endDateInput.disabled = true;
+            } else {
+                endDateInput.disabled = false;
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

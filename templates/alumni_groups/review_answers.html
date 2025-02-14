@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Review Answers - {{ membership.user.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Mobile-first styles */
+    .review-container {
+        padding: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .review-container {
+            padding: 2rem;
+        }
+    }
+
+    .applicant-info {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        text-align: center;
+        padding: 1rem;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .applicant-info {
+            flex-direction: row;
+            text-align: left;
+            padding: 1.5rem;
+        }
+    }
+
+    .applicant-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-bottom: 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .applicant-avatar {
+            margin-bottom: 0;
+            margin-right: 1.5rem;
+        }
+    }
+
+    .applicant-details {
+        flex: 1;
+    }
+
+    .answer-card {
+        background-color: #fff;
+        border: 1px solid #e9ecef;
+        border-radius: 0.5rem;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .answer-header {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    .answer-content {
+        padding: 1rem;
+    }
+
+    .answer-text {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        white-space: pre-wrap;
+    }
+
+    .evaluation-options {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .evaluation-options {
+            flex-direction: row;
+            gap: 1rem;
+        }
+    }
+
+    .evaluation-option {
+        flex: 1;
+        padding: 0.75rem;
+        border: 1px solid #dee2e6;
+        border-radius: 0.375rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .evaluation-option:hover {
+        background-color: #f8f9fa;
+    }
+
+    .evaluation-option input {
+        margin-right: 0.5rem;
+    }
+
+    .form-actions {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    @media (min-width: 768px) {
+        .form-actions {
+            flex-direction: row;
+            justify-content: space-between;
+        }
+    }
+
+    .action-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    @media (min-width: 768px) {
+        .action-buttons {
+            flex-direction: row;
+            gap: 1rem;
+        }
+    }
+
+    .btn {
+        width: 100%;
+    }
+
+    @media (min-width: 768px) {
+        .btn {
+            width: auto;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="review-container">
+    <div class="row justify-content-center">
+        <div class="col-12 col-md-10 col-lg-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Review Join Request</h5>
+                </div>
+                
+                <div class="card-body">
+                    <div class="applicant-info">
+                        <img src="{% if membership.user.profile.avatar %}{{ membership.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                             alt="{{ membership.user.get_full_name }}"
+                             class="applicant-avatar">
+                        <div class="applicant-details">
+                            <h5 class="mb-1">{{ membership.user.get_full_name }}</h5>
+                            <p class="text-muted mb-0">{{ membership.user.email }}</p>
+                        </div>
+                    </div>
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <h6 class="mb-3">Security Question Answers</h6>
+                        {% for answer in answers %}
+                            <div class="answer-card">
+                                <div class="answer-header">
+                                    <h6 class="mb-2">{{ answer.question.question }}</h6>
+                                    {% if answer.question.is_required %}
+                                        <span class="badge bg-danger">Required</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">Optional</span>
+                                    {% endif %}
+                                </div>
+                                <div class="answer-content">
+                                    <div class="answer-text">{{ answer.answer }}</div>
+                                    <div class="evaluation-options">
+                                        <label class="evaluation-option">
+                                            <input type="radio" name="answer_{{ answer.id }}" 
+                                                   value="correct" required>
+                                            <i class="fas fa-check text-success"></i>
+                                            Correct
+                                        </label>
+                                        <label class="evaluation-option">
+                                            <input type="radio" name="answer_{{ answer.id }}" 
+                                                   value="incorrect" required>
+                                            <i class="fas fa-times text-danger"></i>
+                                            Incorrect
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+
+                        <div class="form-actions">
+                            <a href="{% url 'alumni_groups:manage_members' group.slug %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Back to Members
+                            </a>
+                            <div class="action-buttons">
+                                <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                                <button type="submit" name="action" value="approve" class="btn btn-success">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,408 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Events{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Events</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-light: #ffffff;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-lg: 0.5rem;
+    }
+
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: 2rem 0;
+    }
+
+    .event-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+
+    .event-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--brand-primary);
+    }
+
+    .event-image {
+        height: 200px;
+        object-fit: cover;
+        width: 100%;
+    }
+
+    .event-content {
+        padding: 1.5rem;
+    }
+
+    .event-title {
+        color: var(--brand-primary);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        text-decoration: none;
+    }
+
+    .event-title:hover {
+        color: var(--brand-accent);
+    }
+
+    .event-meta {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .event-meta i {
+        color: var(--brand-primary);
+    }
+
+    .event-description {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+        line-height: 1.6;
+    }
+
+    .event-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .nav-pills .nav-link {
+        color: var(--text-secondary);
+        border-radius: var(--radius-lg);
+        padding: 0.5rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .nav-pills .nav-link:hover {
+        background: var(--ui-hover);
+        color: var(--brand-primary);
+    }
+
+    .nav-pills .nav-link.active {
+        background: var(--brand-primary);
+        color: var(--text-light);
+    }
+
+    .upcoming-events-widget {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        overflow: hidden;
+    }
+
+    .widget-header {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        padding: 1rem 1.5rem;
+        font-weight: 600;
+    }
+
+    .widget-content {
+        padding: 1rem;
+    }
+
+    .upcoming-event-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+    }
+
+    .upcoming-event-item:last-child {
+        border-bottom: none;
+    }
+
+    .upcoming-event-item:hover {
+        background: var(--ui-hover);
+    }
+
+    .badge {
+        padding: 0.5em 1em;
+        border-radius: 2em;
+        font-weight: 500;
+    }
+
+    .badge.bg-success {
+        background: #48bb78 !important;
+    }
+
+    .badge.bg-warning {
+        background: #ecc94b !important;
+        color: #744210;
+    }
+
+    .badge.bg-info {
+        background: #4299e1 !important;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--brand-primary);
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
+    .pagination {
+        margin-top: 2rem;
+    }
+
+    .page-link {
+        color: var(--brand-primary);
+        border-radius: 0.5rem;
+        margin: 0 0.25rem;
+        transition: all 0.3s ease;
+    }
+
+    .page-link:hover {
+        background: var(--ui-hover);
+        color: var(--brand-primary);
+        border-color: var(--ui-border);
+    }
+
+    .page-item.active .page-link {
+        background: var(--brand-primary);
+        border-color: var(--brand-primary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">Events</h1>
+            {% if user.is_staff %}
+            <a href="{% url 'events:event_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle"></i> Create Event
+            </a>
+            {% endif %}
+        </div>
+
+        <div class="row">
+            <!-- Main Events List -->
+            <div class="col-lg-8">
+                <div class="card shadow-sm">
+                    <div class="card-header bg-white">
+                        <ul class="nav nav-pills card-header-pills">
+                            <li class="nav-item">
+                                <a class="nav-link {% if not request.GET.status %}active{% endif %}" 
+                                   href="{% url 'events:event_list' %}">
+                                   <i class="fas fa-list"></i> All Events
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.GET.status == 'published' %}active{% endif %}" 
+                                   href="{% url 'events:event_list' %}?status=published">
+                                   <i class="fas fa-check-circle"></i> Published
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link {% if request.GET.status == 'draft' %}active{% endif %}" 
+                                   href="{% url 'events:event_list' %}?status=draft">
+                                   <i class="fas fa-pencil-alt"></i> Draft
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="card-body p-4">
+                        {% if events %}
+                            {% for event in events %}
+                                <div class="event-card">
+                                    {% if event.image %}
+                                    <img src="{{ event.image.url }}" class="event-image" alt="{{ event.title }}">
+                                    {% endif %}
+                                    <div class="event-content">
+                                        <div class="d-flex justify-content-between align-items-start mb-3">
+                                            <a href="{% url 'events:event_detail' event.pk %}" class="event-title">
+                                                {{ event.title }}
+                                            </a>
+                                            <span class="badge {% if event.status == 'published' %}bg-success{% elif event.status == 'draft' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ event.status|title }}
+                                            </span>
+                                        </div>
+                                        <div class="event-meta">
+                                            <span>
+                                                <i class="fas fa-calendar"></i>
+                                                {{ event.start_date|date:"F j, Y" }}
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-clock"></i>
+                                                {{ event.start_date|date:"g:i A" }}
+                                            </span>
+                                            <span>
+                                                <i class="fas fa-map-marker-alt"></i>
+                                                {% if event.is_virtual %}
+                                                    Virtual Event
+                                                {% else %}
+                                                    {{ event.location }}
+                                                {% endif %}
+                                            </span>
+                                        </div>
+                                        <div class="event-description">
+                                            {{ event.description|truncatewords:30|safe }}
+                                        </div>
+                                        <div class="event-footer">
+                                            <div class="btn-group">
+                                                <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-outline-primary">
+                                                    <i class="fas fa-external-link-alt"></i> View Details
+                                                </a>
+                                                {% if user.is_staff %}
+                                                <a href="{% url 'events:event_update' event.pk %}" class="btn btn-outline-secondary">
+                                                    <i class="fas fa-edit"></i> Edit
+                                                </a>
+                                                {% endif %}
+                                            </div>
+                                            <div class="d-flex align-items-center">
+                                                <i class="fas fa-users text-secondary me-2"></i>
+                                                <span class="text-secondary">{{ event.rsvp_count }} RSVPs</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endfor %}
+                            
+                            {% if is_paginated %}
+                            <nav aria-label="Page navigation">
+                                <ul class="pagination justify-content-center">
+                                    {% if page_obj.has_previous %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                            <i class="fas fa-chevron-left"></i>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                    
+                                    {% for num in page_obj.paginator.page_range %}
+                                        {% if page_obj.number == num %}
+                                        <li class="page-item active">
+                                            <span class="page-link">{{ num }}</span>
+                                        </li>
+                                        {% else %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                        {% endif %}
+                                    {% endfor %}
+                                    
+                                    {% if page_obj.has_next %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                            <i class="fas fa-chevron-right"></i>
+                                        </a>
+                                    </li>
+                                    {% endif %}
+                                </ul>
+                            </nav>
+                            {% endif %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-times"></i>
+                                <p class="mb-0">No events found</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Sidebar -->
+            <div class="col-lg-4">
+                <!-- Upcoming Events Widget -->
+                <div class="upcoming-events-widget mb-4">
+                    <div class="widget-header">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Upcoming Events
+                    </div>
+                    <div class="widget-content">
+                        {% if upcoming_events %}
+                            {% for event in upcoming_events %}
+                                <div class="upcoming-event-item">
+                                    <a href="{% url 'events:event_detail' event.pk %}" class="text-decoration-none">
+                                        <h6 class="mb-1 text-primary">{{ event.title }}</h6>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">
+                                                <i class="fas fa-calendar-day me-1"></i>
+                                                {{ event.start_date|naturalday }}
+                                            </small>
+                                            {% if event.is_virtual %}
+                                                <span class="badge bg-info">Virtual</span>
+                                            {% endif %}
+                                        </div>
+                                        <small class="text-muted d-block mt-1">
+                                            <i class="fas fa-map-marker-alt me-1"></i>
+                                            {% if event.is_virtual %}Virtual{% else %}{{ event.location }}{% endif %}
+                                        </small>
+                                    </a>
+                                </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-state">
+                                <i class="fas fa-calendar-alt"></i>
+                                <p class="mb-0">No upcoming events</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                <div class="upcoming-events-widget">
+                    <div class="widget-header">
+                        <i class="fas fa-link me-2"></i>
+                        Quick Links
+                    </div>
+                    <div class="widget-content">
+                        <div class="list-group list-group-flush">
+                            <a href="{% url 'events:my_events' %}" class="list-group-item list-group-item-action">
+                                <i class="fas fa-calendar-check me-2"></i>
+                                My Events
+                            </a>
+                            {% if user.is_staff %}
+                            <a href="{% url 'events:event_create' %}" class="list-group-item list-group-item-action">
+                                <i class="fas fa-plus-circle me-2"></i>
+                                Create New Event
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

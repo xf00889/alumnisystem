@@ -1,0 +1,149 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}My Events{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'events:event_list' %}">Events</a></li>
+            <li class="breadcrumb-item active" aria-current="page">My Events</li>
+        </ol>
+    </nav>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <!-- Upcoming Events -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h2 class="h4 mb-0">Upcoming Events</h2>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_events %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Event</th>
+                                        <th>Date & Time</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event in upcoming_events %}
+                                    <tr>
+                                        <td>
+                                            <a href="{% url 'events:event_detail' event.pk %}" class="text-decoration-none">
+                                                {{ event.title }}
+                                            </a>
+                                            {% if event.is_virtual %}
+                                                <span class="badge bg-info ms-2">Virtual</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ event.start_date|date:"M j, Y" }}<br>
+                                            <small class="text-muted">{{ event.start_date|date:"g:i A" }}</small>
+                                        </td>
+                                        <td>
+                                            {% if event.is_virtual %}
+                                                Virtual Event
+                                                {% if event.virtual_link %}
+                                                <a href="{{ event.virtual_link }}" target="_blank" class="ms-2">
+                                                    <i class="bi bi-link-45deg"></i>
+                                                </a>
+                                                {% endif %}
+                                            {% else %}
+                                                {{ event.location }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge {% if event.status == 'published' %}bg-success{% elif event.status == 'draft' %}bg-warning{% else %}bg-secondary{% endif %}">
+                                                {{ event.status|title }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-sm btn-outline-primary">
+                                                View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted mb-0">You have no upcoming events.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Past Events -->
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h2 class="h4 mb-0">Past Events</h2>
+                </div>
+                <div class="card-body">
+                    {% if past_events %}
+                        <div class="table-responsive">
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Event</th>
+                                        <th>Date & Time</th>
+                                        <th>Location</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for event in past_events %}
+                                    <tr class="text-muted">
+                                        <td>
+                                            <a href="{% url 'events:event_detail' event.pk %}" class="text-decoration-none text-muted">
+                                                {{ event.title }}
+                                            </a>
+                                            {% if event.is_virtual %}
+                                                <span class="badge bg-info ms-2">Virtual</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {{ event.start_date|date:"M j, Y" }}<br>
+                                            <small>{{ event.start_date|date:"g:i A" }}</small>
+                                        </td>
+                                        <td>
+                                            {% if event.is_virtual %}
+                                                Virtual Event
+                                            {% else %}
+                                                {{ event.location }}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-secondary">Completed</span>
+                                        </td>
+                                        <td>
+                                            <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-sm btn-outline-secondary">
+                                                View Details
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <p class="text-muted mb-0">You have no past events.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

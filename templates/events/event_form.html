@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'events:event_list' %}">Events</a></li>
+<li class="breadcrumb-item active">{% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'events:event_list' %}">Events</a></li>
+            <li class="breadcrumb-item active" aria-current="page">
+                {% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}
+            </li>
+        </ol>
+    </nav>
+
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h1 class="h3 mb-0">
+                        {% if form.instance.pk %}
+                            Edit Event: {{ form.instance.title }}
+                        {% else %}
+                            Create New Event
+                        {% endif %}
+                    </h1>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" novalidate>
+                        {% csrf_token %}
+                        
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                {{ form.title|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.start_date|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.end_date|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                {{ form.description|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.location|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.max_participants|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.is_virtual|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.virtual_link|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                {{ form.status|as_crispy_field }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                {{ form.image|as_crispy_field }}
+                            </div>
+                        </div>
+
+                        <div class="row">
+                            <div class="col-md-12 mb-3">
+                                <div class="card">
+                                    <div class="card-header">
+                                        <h5 class="mb-0">Notify Groups</h5>
+                                    </div>
+                                    <div class="card-body">
+                                        {{ form.notified_groups|as_crispy_field }}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Back to Events
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="bi bi-save"></i> 
+                                {% if form.instance.pk %}Save Changes{% else %}Create Event{% endif %}
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const isVirtualCheckbox = document.getElementById('id_is_virtual');
+        const virtualLinkField = document.getElementById('div_id_virtual_link');
+        const locationField = document.getElementById('div_id_location');
+
+        function toggleVirtualFields() {
+            if (isVirtualCheckbox.checked) {
+                virtualLinkField.style.display = 'block';
+                locationField.style.display = 'none';
+            } else {
+                virtualLinkField.style.display = 'none';
+                locationField.style.display = 'block';
+            }
+        }
+
+        isVirtualCheckbox.addEventListener('change', toggleVirtualFields);
+        toggleVirtualFields(); // Initial state
+    });
+</script>
+{% endblock %}
+
+{% endblock %} 

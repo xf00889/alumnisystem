@@ -1,0 +1,939 @@
+{% extends "base.html" %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+
+{% block title %}Edit Profile{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Core variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --text-primary: #2c3e50;
+        --text-secondary: #6c757d;
+        --border-radius: 20px;
+        --spacing-unit: 1rem;
+    }
+
+    /* Profile Edit Header */
+    .profile-edit {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        padding: 4rem 0 8rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .profile-edit::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20" fill="none"/><circle cx="3" cy="3" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
+    }
+
+    .profile-edit::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        height: 180px;
+        background: white;
+        clip-path: ellipse(65% 65% at 50% 100%);
+    }
+
+    .edit-title {
+        color: white;
+        font-size: 2.5rem;
+        font-weight: 800;
+        margin-bottom: 1.5rem;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        position: relative;
+        z-index: 1;
+    }
+
+    .edit-subtitle {
+        color: rgba(255,255,255,0.8);
+        font-size: 1.2rem;
+        position: relative;
+        z-index: 1;
+    }
+
+    /* Content Layout */
+    .edit-content {
+        margin-top: -5rem;
+        position: relative;
+        z-index: 2;
+        padding-bottom: 4rem;
+    }
+
+    .edit-card {
+        background: white;
+        border-radius: var(--border-radius);
+        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+        padding: calc(var(--spacing-unit) * 2);
+        margin-bottom: calc(var(--spacing-unit) * 2);
+        border: 1px solid rgba(0,0,0,0.05);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .edit-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+    }
+
+    .edit-card h3 {
+        color: var(--primary-color);
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: calc(var(--spacing-unit) * 1.5);
+        padding-bottom: var(--spacing-unit);
+        border-bottom: 2px solid rgba(43, 60, 107, 0.1);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .edit-card h3 i {
+        color: var(--primary-color);
+        opacity: 0.8;
+    }
+
+    /* Form Styling */
+    .formset-item {
+        background: rgba(43, 60, 107, 0.02);
+        border: 1px solid rgba(43, 60, 107, 0.1);
+        border-radius: 15px;
+        padding: calc(var(--spacing-unit) * 1.5);
+        margin-bottom: calc(var(--spacing-unit) * 1.2);
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .formset-item:hover {
+        background: rgba(43, 60, 107, 0.03);
+        border-color: rgba(43, 60, 107, 0.2);
+    }
+
+    .formset-item .delete-row {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+    }
+
+    .formset-item .delete-row .form-check {
+        padding: 0;
+        margin: 0;
+    }
+
+    .formset-item .delete-row .form-check-label {
+        display: none;
+    }
+
+    .formset-item .delete-row .form-check-input {
+        display: none;
+    }
+
+    .formset-item .delete-row::after {
+        content: '\f2ed';
+        font-family: 'Font Awesome 5 Free';
+        font-weight: 900;
+        color: var(--text-secondary);
+        font-size: 1.2rem;
+        cursor: pointer;
+        transition: color 0.3s ease;
+    }
+
+    .formset-item .delete-row:hover::after {
+        color: #dc3545;
+    }
+
+    .add-form {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: calc(var(--spacing-unit) * 1.2);
+        border: 2px dashed rgba(43, 60, 107, 0.2);
+        border-radius: 15px;
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        font-weight: 600;
+        gap: 0.5rem;
+    }
+
+    .add-form:hover {
+        background: rgba(43, 60, 107, 0.05);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .add-form i {
+        font-size: 1.2rem;
+    }
+
+    /* Avatar Upload Section */
+    .avatar-upload-section {
+        text-align: center;
+    }
+
+    .current-avatar {
+        width: 150px;
+        height: 150px;
+        margin: 0 auto;
+        position: relative;
+        border-radius: 50%;
+        overflow: hidden;
+        background-color: #f8f9fa;
+        border: 3px solid #4e73df;
+    }
+
+    .avatar-preview {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .no-avatar {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #e9ecef;
+    }
+
+    .no-avatar i {
+        font-size: 4rem;
+        color: #adb5bd;
+    }
+
+    .avatar-controls {
+        margin-top: 1rem;
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    #id_avatar {
+        display: none;
+    }
+
+    /* Optional Section Styling */
+    .optional-section {
+        position: relative;
+        padding-top: 1rem;
+    }
+
+    .optional-badge {
+        position: absolute;
+        top: -12px;
+        right: -12px;
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        z-index: 1;
+    }
+
+    .document-upload {
+        position: relative;
+        border: 2px dashed rgba(43, 60, 107, 0.2);
+        border-radius: 15px;
+        padding: calc(var(--spacing-unit) * 2);
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .document-upload:hover {
+        border-color: var(--primary-color);
+        background: rgba(43, 60, 107, 0.02);
+    }
+
+    .document-upload i {
+        font-size: 3rem;
+        color: var(--primary-color);
+        margin-bottom: calc(var(--spacing-unit) * 1.2);
+        opacity: 0.8;
+    }
+
+    .document-upload p {
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+    }
+
+    /* Form Controls */
+    .form-control {
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,0.1);
+        padding: 0.8rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+    }
+
+    .form-select {
+        border-radius: 10px;
+        border: 1px solid rgba(0,0,0,0.1);
+        padding: 0.8rem 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+    }
+
+    textarea.form-control {
+        min-height: 120px;
+    }
+
+    /* Action Buttons */
+    .btn-save {
+        background: var(--primary-color);
+        color: white;
+        border-radius: 50px;
+        padding: 1rem 2.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 4px 15px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-save:hover {
+        background: var(--primary-dark);
+        color: white;
+        transform: translateY(-3px);
+        box-shadow: 0 6px 20px rgba(43, 60, 107, 0.3);
+    }
+
+    .btn-cancel {
+        background: transparent;
+        color: var(--primary-color);
+        border: 2px solid var(--primary-color);
+        border-radius: 50px;
+        padding: 1rem 2.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cancel:hover {
+        background: rgba(43, 60, 107, 0.05);
+        transform: translateY(-3px);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .profile-edit {
+            padding: 3rem 0 6rem;
+        }
+
+        .edit-title {
+            font-size: 2rem;
+        }
+
+        .edit-subtitle {
+            font-size: 1rem;
+        }
+
+        .edit-card {
+            padding: var(--spacing-unit);
+        }
+
+        .formset-item {
+            padding: var(--spacing-unit);
+        }
+    }
+
+    /* Loading States */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: none;
+        justify-content: center;
+        align-items: center;
+        z-index: 9999;
+    }
+
+    .loading-overlay.active {
+        display: flex;
+    }
+
+    .loading-spinner {
+        text-align: center;
+    }
+
+    .loading-spinner i {
+        color: var(--primary-color);
+        font-size: 3rem;
+        animation: spin 1s linear infinite;
+    }
+
+    .loading-text {
+        margin-top: 1rem;
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    .btn-save:disabled {
+        background: var(--text-secondary);
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .upload-progress {
+        display: none;
+        margin-top: 1rem;
+    }
+
+    .upload-progress.active {
+        display: block;
+    }
+
+    .document-section {
+        background: rgba(43, 60, 107, 0.02);
+        border-radius: 15px;
+        padding: 1.5rem;
+    }
+
+    .document-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .document-section .document-upload {
+        background: white;
+        border: 2px dashed rgba(43, 60, 107, 0.2);
+        margin: 0;
+    }
+
+    .document-section:hover .document-upload {
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <i class="fas fa-circle-notch"></i>
+        <div class="loading-text">Saving changes...</div>
+    </div>
+</div>
+
+<section class="profile-edit">
+    <div class="container text-center">
+        <h1 class="edit-title">Edit Your Profile</h1>
+        <p class="edit-subtitle">Update your information to stay connected with the alumni community</p>
+    </div>
+</section>
+
+<div class="edit-content">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <form method="post" enctype="multipart/form-data" id="profileForm" novalidate>
+                    {% csrf_token %}
+                    
+                    {% if form.errors %}
+                    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Please correct the following errors:</h5>
+                        <ul class="mb-0">
+                            {% for field, errors in form.errors.items %}
+                                {% for error in errors %}
+                                    <li>{{ field|title }}: {{ error }}</li>
+                                {% endfor %}
+                            {% endfor %}
+                        </ul>
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                    {% endif %}
+
+                    <!-- Personal Information -->
+                    <div class="edit-card">
+                        <h3><i class="fas fa-user"></i> Personal Information</h3>
+                        
+                        <!-- Avatar Upload Section -->
+                        <div class="avatar-upload-section mb-4">
+                            <div class="current-avatar mb-3">
+                                {% if profile_form.instance.avatar %}
+                                    <img src="{{ profile_form.instance.avatar.url }}" alt="Current Avatar" class="avatar-preview" id="avatarPreview">
+                                {% else %}
+                                    <div class="no-avatar" id="avatarPreview">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="avatar-controls">
+                                <label for="id_avatar" class="btn btn-primary me-2">
+                                    <i class="fas fa-camera me-2"></i>Change Picture
+                                </label>
+                                {% if profile_form.instance.avatar %}
+                                    <button type="button" class="btn btn-outline-danger" id="removeAvatar">
+                                        <i class="fas fa-trash-alt me-2"></i>Remove
+                                    </button>
+                                {% endif %}
+                                <input type="hidden" name="remove_avatar" id="removeAvatarInput" value="false">
+                            </div>
+                            
+                            <!-- Hidden file input -->
+                            <div style="display: none;">
+                                {{ profile_form.avatar }}
+                            </div>
+                        </div>
+
+                        {{ user_form|crispy }}
+                        {{ profile_form|crispy }}
+                    </div>
+
+                    <!-- Education -->
+                    <div class="edit-card">
+                        <h3><i class="fas fa-graduation-cap"></i> Education</h3>
+                        {{ education_formset.management_form }}
+                        <div id="education-forms">
+                            {% for form in education_formset %}
+                                <div class="formset-item">
+                                    {{ form|crispy }}
+                                    {% if form.instance.pk %}
+                                        <div class="delete-row">
+                                            {{ form.DELETE|crispy }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <a href="#" class="add-form" id="add-education">
+                            <i class="fas fa-plus-circle"></i> Add Education
+                        </a>
+                    </div>
+
+                    <!-- Experience -->
+                    <div class="edit-card">
+                        <h3><i class="fas fa-briefcase"></i> Experience</h3>
+                        {{ experience_formset.management_form }}
+                        <div id="experience-forms">
+                            {% for form in experience_formset %}
+                                <div class="formset-item">
+                                    {{ form|crispy }}
+                                    {% if form.instance.pk %}
+                                        <div class="delete-row">
+                                            {{ form.DELETE|crispy }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <a href="#" class="add-form" id="add-experience">
+                            <i class="fas fa-plus-circle"></i> Add Experience
+                        </a>
+                    </div>
+
+                    <!-- Skills -->
+                    <div class="edit-card">
+                        <h3><i class="fas fa-star"></i> Skills</h3>
+                        {{ skill_formset.management_form }}
+                        <div id="skill-forms">
+                            {% for form in skill_formset %}
+                                <div class="formset-item">
+                                    {{ form|crispy }}
+                                    {% if form.instance.pk %}
+                                        <div class="delete-row">
+                                            {{ form.DELETE|crispy }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            {% endfor %}
+                        </div>
+                        <a href="#" class="add-form" id="add-skill">
+                            <i class="fas fa-plus-circle"></i> Add Skill
+                        </a>
+                    </div>
+
+                    <!-- Documents (Optional) -->
+                    <div class="edit-card optional-section">
+                        <span class="optional-badge">Optional</span>
+                        <h3><i class="fas fa-file-alt"></i> Documents</h3>
+                        
+                        <!-- Academic Transcript -->
+                        <div class="document-section mb-4">
+                            <h4 class="document-title">
+                                <i class="fas fa-graduation-cap text-primary"></i>
+                                Academic Transcript
+                            </h4>
+                            <div class="document-upload">
+                                <i class="fas fa-file-alt"></i>
+                                <p>Upload your academic transcript</p>
+                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                {{ transcript_form|crispy }}
+                            </div>
+                        </div>
+
+                        <!-- Certificates -->
+                        <div class="document-section mb-4">
+                            <h4 class="document-title">
+                                <i class="fas fa-certificate text-primary"></i>
+                                Certificates
+                            </h4>
+                            <div class="document-upload">
+                                <i class="fas fa-file-certificate"></i>
+                                <p>Upload your certificates</p>
+                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                {{ certificate_form|crispy }}
+                            </div>
+                        </div>
+
+                        <!-- Diploma -->
+                        <div class="document-section mb-4">
+                            <h4 class="document-title">
+                                <i class="fas fa-scroll text-primary"></i>
+                                Diploma
+                            </h4>
+                            <div class="document-upload">
+                                <i class="fas fa-file-alt"></i>
+                                <p>Upload your diploma</p>
+                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                {{ diploma_form|crispy }}
+                            </div>
+                        </div>
+
+                        <!-- Resume/CV -->
+                        <div class="document-section">
+                            <h4 class="document-title">
+                                <i class="fas fa-file-user text-primary"></i>
+                                Resume/CV
+                            </h4>
+                            <div class="document-upload">
+                                <i class="fas fa-file-alt"></i>
+                                <p>Upload your resume or CV</p>
+                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                {{ resume_form|crispy }}
+                            </div>
+                        </div>
+
+                        <div class="upload-progress">
+                            <div class="progress">
+                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                            </div>
+                            <small class="text-muted mt-1 d-block">Uploading file...</small>
+                        </div>
+                    </div>
+
+                    <!-- Submit Buttons -->
+                    <div class="text-center mb-5">
+                        <button type="submit" class="btn btn-save me-3" id="saveButton">
+                            <i class="fas fa-save me-2"></i> Save Changes
+                        </button>
+                        <a href="{% url 'accounts:profile_detail' %}" class="btn btn-cancel" id="cancelButton">
+                            <i class="fas fa-times me-2"></i> Cancel
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block extra_js %}
+<script>
+    // Function to handle dynamic formsets
+    function initFormset(addButtonId, formsetPrefix) {
+        const addButton = document.getElementById(addButtonId);
+        const totalForms = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
+        const container = document.getElementById(`${formsetPrefix}-forms`);
+        
+        addButton.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            const formCount = parseInt(totalForms.value);
+            const newForm = container.querySelector('.formset-item').cloneNode(true);
+            
+            // Update form index
+            newForm.innerHTML = newForm.innerHTML.replaceAll(
+                new RegExp(`${formsetPrefix}-\\d+`, 'g'),
+                `${formsetPrefix}-${formCount}`
+            );
+            
+            // Clear form values
+            newForm.querySelectorAll('input:not([type=hidden])').forEach(input => input.value = '');
+            newForm.querySelectorAll('textarea').forEach(textarea => textarea.value = '');
+            newForm.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
+            
+            // Add animation class
+            newForm.style.opacity = '0';
+            newForm.style.transform = 'translateY(20px)';
+            
+            // Insert new form
+            container.appendChild(newForm);
+            
+            // Trigger animation
+            setTimeout(() => {
+                newForm.style.transition = 'all 0.3s ease';
+                newForm.style.opacity = '1';
+                newForm.style.transform = 'translateY(0)';
+            }, 50);
+            
+            // Update total forms count
+            totalForms.value = formCount + 1;
+        });
+
+        // Handle delete row clicks
+        document.addEventListener('click', function(e) {
+            if (e.target.closest('.delete-row')) {
+                const deleteRow = e.target.closest('.delete-row');
+                const formsetItem = deleteRow.closest('.formset-item');
+                const checkbox = deleteRow.querySelector('input[type="checkbox"]');
+                
+                if (checkbox) {
+                    checkbox.checked = true;
+                    formsetItem.style.transition = 'all 0.3s ease';
+                    formsetItem.style.opacity = '0';
+                    formsetItem.style.transform = 'translateY(-20px)';
+                    setTimeout(() => {
+                        formsetItem.style.height = '0';
+                        formsetItem.style.margin = '0';
+                        formsetItem.style.padding = '0';
+                        formsetItem.style.overflow = 'hidden';
+                    }, 300);
+                }
+            }
+        });
+    }
+
+    // Initialize formsets
+    document.addEventListener('DOMContentLoaded', function() {
+        initFormset('add-education', 'education');
+        initFormset('add-experience', 'experience');
+        initFormset('add-skill', 'skill');
+
+        const form = document.getElementById('profileForm');
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const saveButton = document.getElementById('saveButton');
+        const cancelButton = document.getElementById('cancelButton');
+        const fileInputs = document.querySelectorAll('input[type="file"]');
+        const progressBar = document.querySelector('.progress-bar');
+        const uploadProgress = document.querySelector('.upload-progress');
+
+        // Handle file inputs
+        fileInputs.forEach(input => {
+            input.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const maxSize = 5 * 1024 * 1024; // 5MB
+                    if (file.size > maxSize) {
+                        alert('File size must be less than 5MB');
+                        input.value = '';
+                        return;
+                    }
+                }
+            });
+        });
+
+        // Remove existing error messages when form is submitted
+        function clearErrors() {
+            form.querySelectorAll('.alert').forEach(alert => alert.remove());
+        }
+
+        // Display error messages
+        function displayErrors(errors) {
+            clearErrors();
+            
+            const errorHtml = `
+                <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                    <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Please correct the following errors:</h5>
+                    <ul class="mb-0">
+                        ${Object.entries(errors).map(([field, error]) => `<li>${field}: ${error}</li>`).join('')}
+                    </ul>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            form.insertAdjacentHTML('afterbegin', errorHtml);
+            
+            // Scroll to error message
+            window.scrollTo({
+                top: form.offsetTop - 100,
+                behavior: 'smooth'
+            });
+        }
+
+        // Form submission
+        form.addEventListener('submit', async function(e) {
+            e.preventDefault();
+            clearErrors();
+            
+            // Validate form
+            if (!form.checkValidity()) {
+                form.reportValidity();
+                return;
+            }
+
+            try {
+                // Show loading state
+                loadingOverlay.classList.add('active');
+                saveButton.disabled = true;
+                cancelButton.style.pointerEvents = 'none';
+
+                // Create FormData
+                const formData = new FormData(form);
+
+                // Handle file uploads with progress
+                if (formData.has('file')) {
+                    uploadProgress.classList.add('active');
+                }
+
+                // Submit form
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                let data;
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    data = await response.json();
+                } else {
+                    const text = await response.text();
+                    console.error('Server response:', text);
+                    throw new Error('Server returned an invalid response format');
+                }
+
+                if (!response.ok) {
+                    if (data.errors) {
+                        displayErrors(data.errors);
+                    } else {
+                        throw new Error(data.message || 'An error occurred while saving your changes.');
+                    }
+                    return;
+                }
+
+                if (data.status === 'success') {
+                    // Handle success
+                    window.location.href = "{% url 'accounts:profile_detail' %}";
+                } else {
+                    // Handle validation errors
+                    displayErrors(data.errors || {'Error': data.message});
+                }
+
+            } catch (error) {
+                console.error('Error:', error);
+                // Handle error
+                displayErrors({'Error': error.message});
+            } finally {
+                loadingOverlay.classList.remove('active');
+                saveButton.disabled = false;
+                cancelButton.style.pointerEvents = 'auto';
+                uploadProgress.classList.remove('active');
+            }
+        });
+
+        // Avatar preview functionality
+        const avatarInput = document.getElementById('id_avatar');
+        const avatarPreview = document.getElementById('avatarPreview');
+        const removeAvatarBtn = document.getElementById('removeAvatar');
+        const removeAvatarInput = document.getElementById('removeAvatarInput');
+
+        // Handle file selection
+        avatarInput.addEventListener('change', function(e) {
+            const file = this.files[0];
+            if (file) {
+                // Validate file type
+                if (!file.type.startsWith('image/')) {
+                    alert('Please select an image file');
+                    this.value = '';
+                    return;
+                }
+
+                // Validate file size (5MB)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('File size should not exceed 5MB');
+                    this.value = '';
+                    return;
+                }
+
+                // Create preview
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    if (avatarPreview.tagName === 'IMG') {
+                        avatarPreview.src = e.target.result;
+                    } else {
+                        // Replace div.no-avatar with img
+                        const img = document.createElement('img');
+                        img.src = e.target.result;
+                        img.className = 'avatar-preview';
+                        img.id = 'avatarPreview';
+                        avatarPreview.parentNode.replaceChild(img, avatarPreview);
+                    }
+                    removeAvatarInput.value = 'false';
+                    // Show remove button if it doesn't exist
+                    if (!document.getElementById('removeAvatar')) {
+                        const removeBtn = document.createElement('button');
+                        removeBtn.type = 'button';
+                        removeBtn.className = 'btn btn-outline-danger';
+                        removeBtn.id = 'removeAvatar';
+                        removeBtn.innerHTML = '<i class="fas fa-trash-alt me-2"></i>Remove';
+                        document.querySelector('.avatar-controls').appendChild(removeBtn);
+                        setupRemoveButton(removeBtn);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Handle avatar removal
+        function setupRemoveButton(btn) {
+            btn.addEventListener('click', function() {
+                if (confirm('Are you sure you want to remove your profile picture?')) {
+                    // Clear file input
+                    avatarInput.value = '';
+                    
+                    // Set remove flag
+                    removeAvatarInput.value = 'true';
+                    
+                    // Replace img with no-avatar div
+                    const noAvatar = document.createElement('div');
+                    noAvatar.className = 'no-avatar';
+                    noAvatar.id = 'avatarPreview';
+                    noAvatar.innerHTML = '<i class="fas fa-user"></i>';
+                    
+                    const currentPreview = document.getElementById('avatarPreview');
+                    currentPreview.parentNode.replaceChild(noAvatar, currentPreview);
+                    
+                    // Remove the remove button
+                    btn.remove();
+                }
+            });
+        }
+
+        // Setup remove button if it exists
+        if (removeAvatarBtn) {
+            setupRemoveButton(removeAvatarBtn);
+        }
+    });
+</script>
+{% endblock %}
+{% endblock %} 

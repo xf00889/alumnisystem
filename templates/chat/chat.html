@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages{% endblock %}
+
+{% block messages %}{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block breadcrumb %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .chat-container {
+        height: calc(100vh - 100px);
+        margin-top: 20px;
+    }
+    .conversation-list {
+        height: 100%;
+        overflow-y: auto;
+        border-right: 1px solid #dee2e6;
+    }
+    .chat-messages {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+    .message-list {
+        flex-grow: 1;
+        overflow-y: auto;
+        padding: 20px;
+    }
+    .message-input {
+        padding: 20px;
+        border-top: 1px solid #dee2e6;
+    }
+    .conversation-item {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    .conversation-item:hover {
+        background-color: #f8f9fa;
+    }
+    .conversation-item.active {
+        background-color: #e9ecef;
+    }
+    .conversation-item .title {
+        font-weight: 500;
+        margin-bottom: 5px;
+    }
+    .conversation-item .last-message {
+        color: #6c757d;
+        font-size: 0.9em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .message-bubble {
+        max-width: 70%;
+        padding: 10px 15px;
+        border-radius: 15px;
+        margin-bottom: 10px;
+        position: relative;
+    }
+    .message-bubble.sent {
+        background-color: #007bff;
+        color: white;
+        margin-left: auto;
+    }
+    .message-bubble.received {
+        background-color: #f1f3f5;
+        margin-right: auto;
+    }
+    .message-time {
+        font-size: 0.75em;
+        margin-top: 5px;
+        opacity: 0.8;
+    }
+    .search-results {
+        position: absolute;
+        width: 100%;
+        background: white;
+        border: 1px solid #dee2e6;
+        border-radius: 4px;
+        z-index: 1000;
+        max-height: 300px;
+        overflow-y: auto;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .search-item {
+        padding: 10px 15px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: background-color 0.2s;
+    }
+    .search-item:hover {
+        background-color: #f8f9fa;
+    }
+    .search-item-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    .search-item-info {
+        flex-grow: 1;
+    }
+    .search-item-name {
+        font-weight: 500;
+        margin-bottom: 3px;
+    }
+    .search-item-details {
+        font-size: 0.85em;
+        color: #6c757d;
+    }
+    .search-item-badge {
+        font-size: 0.75em;
+        padding: 2px 6px;
+        border-radius: 10px;
+        background-color: #dc3545;
+        color: white;
+    }
+    .selected-users {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+    }
+    .selected-user {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 4px 8px;
+        background-color: #e9ecef;
+        border-radius: 15px;
+        font-size: 0.9em;
+    }
+    .selected-user img {
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+    }
+    .selected-user .remove {
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    .selected-user .remove:hover {
+        opacity: 1;
+    }
+    .empty-state {
+        text-align: center;
+        color: #6c757d;
+        padding: 40px 20px;
+    }
+    .empty-state i {
+        font-size: 3em;
+        margin-bottom: 15px;
+        opacity: 0.5;
+    }
+    .typing-indicator {
+        font-size: 0.9em;
+        color: #6c757d;
+        padding: 5px 15px;
+    }
+    .error-message {
+        color: #dc3545;
+        padding: 10px;
+        margin: 10px 0;
+        border-radius: 4px;
+        background-color: #f8d7da;
+        border: 1px solid #f5c6cb;
+    }
+    .users-list {
+        height: 100%;
+        overflow-y: auto;
+        border-left: 1px solid #dee2e6;
+    }
+    
+    .user-item {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+    
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .user-info {
+        flex-grow: 1;
+    }
+    
+    .user-name {
+        font-weight: 500;
+        margin-bottom: 3px;
+    }
+    
+    .user-details {
+        font-size: 0.85em;
+        color: #6c757d;
+    }
+    
+    .user-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .filter-bar {
+        padding: 15px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .nav-pills .nav-link {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 0.9em;
+    }
+    
+    .nav-pills .nav-link.active {
+        background-color: #007bff;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid chat-container">
+    <div class="row h-100">
+        <!-- Conversation List -->
+        <div class="col-md-3 conversation-list">
+            <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
+                <h5 class="mb-0">Messages</h5>
+                <a href="{% url 'chat:new_conversation' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> New Chat
+                </a>
+            </div>
+            <div id="conversationList">
+                {% if conversations %}
+                    {% for conversation in conversations %}
+                        <a href="{% url 'chat:chat' %}?conversation={{ conversation.id }}" 
+                           class="conversation-item {% if current_conversation.id == conversation.id %}active{% endif %}">
+                            <div class="title">
+                                {% if conversation.is_group_chat %}
+                                    {{ conversation.name }}
+                                {% else %}
+                                    {% with other_user=conversation.get_other_participant user=request.user %}
+                                        {{ other_user.get_full_name|default:other_user.username }}
+                                    {% endwith %}
+                                {% endif %}
+                            </div>
+                            <div class="last-message">
+                                {% if conversation.last_message %}
+                                    {{ conversation.last_message.content }}
+                                {% else %}
+                                    No messages yet
+                                {% endif %}
+                            </div>
+                            {% if conversation.unread_count > 0 %}
+                                <span class="badge bg-primary">{{ conversation.unread_count }}</span>
+                            {% endif %}
+                        </a>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-comments"></i>
+                        <p>No conversations yet</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Chat Messages -->
+        <div class="col-md-6 chat-messages">
+            {% if current_conversation %}
+                <div class="message-list">
+                    {% if chat_messages %}
+                        {% for message in chat_messages %}
+                            <div class="message-bubble {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                                <div class="message-content">{{ message.content }}</div>
+                                <div class="message-time">{{ message.timestamp|time:"H:i" }}</div>
+                            </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="fas fa-comments"></i>
+                            <p>No messages yet</p>
+                        </div>
+                    {% endif %}
+                </div>
+                <div class="message-input">
+                    <form method="post" action="{% url 'chat:send_message' current_conversation.id %}">
+                        {% csrf_token %}
+                        <div class="input-group">
+                            <input type="text" name="content" class="form-control" placeholder="Type a message..." required>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-comments"></i>
+                    <p>Select a conversation or start a new one</p>
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Users List -->
+        <div class="col-md-3 users-list">
+            <div class="filter-bar">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">Users</h5>
+                    <form method="get" class="input-group input-group-sm" style="width: 150px;">
+                        <input type="text" name="q" class="form-control" placeholder="Filter users..." 
+                               value="{{ request.GET.q }}">
+                        <button type="submit" class="btn btn-outline-secondary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </form>
+                </div>
+                <ul class="nav nav-pills nav-fill">
+                    <li class="nav-item">
+                        <a class="nav-link {% if not request.GET.filter or request.GET.filter == 'all' %}active{% endif %}" 
+                           href="?filter=all{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">All</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.GET.filter == 'alumni' %}active{% endif %}" 
+                           href="?filter=alumni{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Alumni</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link {% if request.GET.filter == 'online' %}active{% endif %}" 
+                           href="?filter=online{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">Online</a>
+                    </li>
+                </ul>
+            </div>
+            <div id="usersList">
+                {% if users %}
+                    {% for user in users %}
+                        <div class="user-item">
+                            {% if user.profile.avatar %}
+                                <img src="{{ user.profile.avatar.url }}" alt="" class="user-avatar">
+                            {% else %}
+                                <i class="fas fa-user-circle fa-2x text-secondary"></i>
+                            {% endif %}
+                            <div class="user-info">
+                                <div class="user-name">
+                                    {{ user.get_full_name|default:user.username }}
+                                    {% if user.is_active %}
+                                        <span class="badge bg-success ms-1">Online</span>
+                                    {% else %}
+                                        <span class="badge bg-secondary ms-1">Offline</span>
+                                    {% endif %}
+                                </div>
+                                <div class="user-details">
+                                    {% if user.alumni %}
+                                        {{ user.alumni.course }}
+                                        {% if user.alumni.college %} • {{ user.alumni.get_college_display }}{% endif %}
+                                        {% if user.alumni.graduation_year %} • Batch {{ user.alumni.graduation_year }}{% endif %}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="user-actions">
+                                {% if user.has_chat %}
+                                    <a href="{% url 'chat:open_conversation' user.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-comments"></i>
+                                    </a>
+                                {% else %}
+                                    <form method="post" action="{% url 'chat:start_conversation' user.id %}">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-sm btn-primary">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </button>
+                                    </form>
+                                {% endif %}
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-users"></i>
+                        <p>No users found</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

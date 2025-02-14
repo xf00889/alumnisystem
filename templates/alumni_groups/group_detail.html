@@ -1,0 +1,1051 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ group.name }} - Alumni Group{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'alumni_groups:group_list' %}">Alumni Groups</a>
+</li>
+<li class="breadcrumb-item active">{{ group.name }}</li>
+{% endblock %}
+
+{% block page_title %}{{ group.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Core Design System */
+    :root {
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-light: #ffffff;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-lg: 0.5rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.5rem;
+        --space-6: 2rem;
+    }
+
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: var(--space-6) 0;
+    }
+
+    .main-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 0 var(--space-6);
+    }
+
+    .group-header {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+        margin-bottom: var(--space-6);
+        border: 1px solid var(--ui-border);
+    }
+
+    .cover-image {
+        height: 300px;
+        background-size: cover;
+        background-position: center;
+        position: relative;
+        display: flex;
+        align-items: flex-end;
+        background-color: #2b3c6b;
+    }
+
+    .cover-overlay {
+        position: relative;
+        z-index: 2;
+        width: 100%;
+        padding: var(--space-6);
+        color: var(--text-light);
+    }
+
+    .group-title {
+        font-size: 2.5rem;
+        font-weight: 700;
+        margin: 0 0 var(--space-4);
+    }
+
+    .group-meta {
+        display: flex;
+        gap: var(--space-4);
+        font-size: 1rem;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        background: rgba(255, 255, 255, 0.15);
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-lg);
+    }
+
+    .meta-item i {
+        font-size: 1.1rem;
+    }
+
+    .header-actions {
+        position: absolute;
+        top: var(--space-6);
+        right: var(--space-6);
+        display: flex;
+        gap: var(--space-4);
+        z-index: 3;
+    }
+
+    /* Tab Navigation Styles */
+    .nav-tabs {
+        border-bottom: none;
+        margin-bottom: 0;
+        background: var(--brand-primary);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: 1rem 1rem 0;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        color: rgba(255, 255, 255, 0.7);
+        font-weight: 500;
+        padding: var(--space-3) var(--space-4);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        margin-right: var(--space-2);
+        position: relative;
+        transition: all 0.3s ease;
+    }
+
+    .nav-tabs .nav-link:hover {
+        border: none;
+        color: var(--text-light);
+        background: rgba(255, 255, 255, 0.1);
+    }
+
+    .nav-tabs .nav-link.active {
+        color: var(--text-light);
+        background: rgba(255, 255, 255, 0.15);
+        border-bottom: none;
+        margin-bottom: 0;
+        font-weight: 600;
+    }
+
+    .nav-tabs .nav-link i {
+        margin-right: var(--space-2);
+    }
+
+    /* Tab Content Styles */
+    .tab-content {
+        background: var(--ui-surface);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        padding: var(--space-4);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        border-top: none;
+    }
+
+    .tab-pane {
+        padding: var(--space-5);
+        display: none;
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .tab-pane.active {
+        display: block;
+    }
+
+    .tab-pane.show {
+        opacity: 1;
+    }
+
+    /* Content Wrapper */
+    .content-wrapper {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+    }
+
+    /* About Tab Styles */
+    .about-content {
+        color: var(--text-secondary);
+        line-height: 1.8;
+        font-size: 1.1rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    /* Member Card Styles */
+    .members-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: var(--space-5);
+        padding: var(--space-4);
+    }
+
+    .member-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: var(--space-4);
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .member-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--brand-primary);
+        background: var(--ui-background);
+    }
+
+    .member-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--brand-primary);
+    }
+
+    .member-info {
+        flex: 1;
+    }
+
+    .member-name {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 0.25rem;
+    }
+
+    .member-role {
+        font-size: 0.9rem;
+        color: var(--brand-primary);
+        font-weight: 500;
+    }
+
+    /* Events List Styles */
+    .events-list {
+        display: grid;
+        gap: var(--space-5);
+        padding: var(--space-4);
+    }
+
+    .event-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: var(--space-5);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .event-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--brand-primary);
+        background: var(--ui-background);
+    }
+
+    .event-card h4 {
+        color: var(--brand-primary);
+        font-size: 1.25rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .event-meta {
+        color: var(--text-secondary);
+        font-size: 0.95rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .event-description {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        margin-bottom: 1rem;
+    }
+
+    /* Forum/Chat Styles */
+    .chat-container {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+        padding: var(--space-5);
+    }
+
+    .message {
+        display: flex;
+        gap: var(--space-4);
+        margin-bottom: var(--space-4);
+        max-width: 80%;
+    }
+
+    .message.sent {
+        margin-left: auto;
+        flex-direction: row-reverse;
+    }
+
+    .message-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--brand-primary);
+    }
+
+    .message-content {
+        background: var(--ui-background);
+        padding: var(--space-4);
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .message-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .message-author {
+        font-weight: 600;
+        color: var(--brand-primary);
+    }
+
+    .message-time {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+    }
+
+    .message-text {
+        color: var(--text-primary);
+        line-height: 1.5;
+        margin: 0;
+    }
+
+    .message.sent .message-content {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border-color: var(--brand-primary);
+    }
+
+    .message.sent .message-text,
+    .message.sent .message-time,
+    .message.sent .message-author {
+        color: var(--text-light);
+    }
+
+    .chat-input {
+        padding: var(--space-4);
+        border-top: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+    }
+
+    .chat-form {
+        display: flex;
+        gap: var(--space-3);
+    }
+
+    .chat-textarea {
+        flex: 1;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        padding: var(--space-3);
+        resize: none;
+        min-height: 60px;
+        transition: border-color 0.3s ease;
+    }
+
+    .chat-textarea:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+    }
+
+    .send-button {
+        align-self: flex-end;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-lg);
+        background: var(--brand-primary);
+        color: white;
+        border: none;
+        transition: all 0.3s ease;
+    }
+
+    .send-button:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .members-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .message {
+            max-width: 100%;
+        }
+
+        .group-meta {
+            flex-wrap: wrap;
+        }
+
+        .header-actions {
+            position: relative;
+            top: auto;
+            right: auto;
+            margin-top: var(--space-4);
+        }
+    }
+
+    /* Empty State Styles */
+    .empty-state {
+        text-align: center;
+        padding: var(--space-6);
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--brand-primary);
+        margin-bottom: var(--space-4);
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="main-container">
+        <!-- Group Header -->
+        <div class="group-header">
+            <div class="cover-image" style="background-image: url('{% if group.cover_image %}{{ group.cover_image.url }}{% else %}/static/images/default-cover.jpg{% endif %}');">
+                <div class="cover-overlay">
+                    <h1 class="group-title">{{ group.name }}</h1>
+                    <div class="group-meta">
+                        <span class="meta-item">
+                            <i class="fas fa-graduation-cap"></i>
+                            {{ group.batch_start_year }}-{{ group.batch_end_year }}
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-book"></i>
+                            {{ group.course }}
+                        </span>
+                        <span class="meta-item">
+                            <i class="fas fa-users"></i>
+                            {{ group.member_count }} members
+                        </span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    {% if user.is_staff or membership.role == 'ADMIN' %}
+                        <a href="{% url 'alumni_groups:group_edit' group.slug %}" class="btn btn-primary">
+                            <i class="fas fa-edit"></i> Edit Group
+                        </a>
+                        <a href="{% url 'alumni_groups:manage_members' group.slug %}" class="btn btn-primary">
+                            <i class="fas fa-users-cog"></i> Manage Members
+                        </a>
+                        <a href="{% url 'alumni_groups:manage_security_questions' group.slug %}" class="btn btn-primary">
+                            <i class="fas fa-shield-alt"></i> Security Questions
+                        </a>
+                    {% elif membership and membership.status == 'PENDING' %}
+                        <div class="alert alert-warning mb-0">
+                            <i class="fas fa-clock"></i> Your join request is pending approval
+                        </div>
+                    {% elif not membership %}
+                        <a href="{% url 'alumni_groups:join_group' group.slug %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus"></i> Join Group
+                        </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Join Request Alert -->
+        {% if membership and membership.status == 'PENDING' %}
+        <div class="alert alert-warning mb-4">
+            <h5 class="alert-heading"><i class="fas fa-clock"></i> Pending Join Request</h5>
+            <p class="mb-0">Your request to join this group is currently under review. You will be notified once the administrators have made a decision.</p>
+        </div>
+        {% endif %}
+
+        <!-- Tab Content -->
+        <div class="content-wrapper">
+            <!-- Tabs Navigation -->
+            <ul class="nav nav-tabs" id="groupTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="about-tab" data-bs-toggle="tab" data-bs-target="#about" type="button" role="tab" aria-controls="about" aria-selected="true">
+                        <i class="fas fa-info-circle"></i> About
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="members-tab" data-bs-toggle="tab" data-bs-target="#members" type="button" role="tab" aria-controls="members" aria-selected="false">
+                        <i class="fas fa-users"></i> Members
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="events-tab" data-bs-toggle="tab" data-bs-target="#events" type="button" role="tab" aria-controls="events" aria-selected="false">
+                        <i class="fas fa-calendar-alt"></i> Events
+                    </button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="forum-tab" data-bs-toggle="tab" data-bs-target="#forum" type="button" role="tab" aria-controls="forum" aria-selected="false">
+                        <i class="fas fa-comments"></i> Forum
+                    </button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="groupTabsContent">
+                <!-- About Tab -->
+                <div class="tab-pane fade show active" id="about" role="tabpanel" aria-labelledby="about-tab">
+                    <div class="about-content">
+                        {{ group.description|safe }}
+                    </div>
+                </div>
+
+                <!-- Members Tab -->
+                <div class="tab-pane fade" id="members" role="tabpanel" aria-labelledby="members-tab">
+                    {% if is_admin %}
+                    <div class="members-section mb-4">
+                        <ul class="nav nav-pills mb-3" id="membershipTabs" role="tablist">
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link active" id="active-members-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#active-members" type="button" role="tab">
+                                    Active Members ({{ active_members.count }})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="pending-members-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#pending-members" type="button" role="tab">
+                                    Pending Members ({{ pending_members.count }})
+                                </button>
+                            </li>
+                            <li class="nav-item" role="presentation">
+                                <button class="nav-link" id="removed-members-tab" data-bs-toggle="pill" 
+                                        data-bs-target="#removed-members" type="button" role="tab">
+                                    Removed Members ({{ removed_members.count }})
+                                </button>
+                            </li>
+                        </ul>
+                        
+                        <div class="tab-content" id="membershipTabsContent">
+                            <!-- Active Members -->
+                            <div class="tab-pane fade show active" id="active-members" role="tabpanel">
+                                <div class="members-grid">
+                                    {% for member in active_members %}
+                                    <div class="member-card" data-membership-id="{{ member.id }}">
+                                        <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                             alt="{{ member.user.get_full_name }}"
+                                             class="member-avatar">
+                                        <div class="member-info">
+                                            <h3 class="member-name">{{ member.user.get_full_name }}</h3>
+                                            <span class="member-role">{{ member.get_role_display }}</span>
+                                            <div class="member-actions mt-2">
+                                                <button class="btn btn-sm btn-outline-primary manage-member-btn" 
+                                                        data-membership-id="{{ member.id }}">
+                                                    <i class="fas fa-cog"></i> Manage
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center py-5 empty-state">
+                                        <i class="fas fa-users"></i>
+                                        <p class="text-muted">No active members</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Pending Members -->
+                            <div class="tab-pane fade" id="pending-members" role="tabpanel">
+                                <div class="members-grid">
+                                    {% for member in pending_members %}
+                                    <div class="member-card" data-membership-id="{{ member.id }}">
+                                        <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                             alt="{{ member.user.get_full_name }}"
+                                             class="member-avatar">
+                                        <div class="member-info">
+                                            <h3 class="member-name">{{ member.user.get_full_name }}</h3>
+                                            <p class="text-muted mb-2">{{ member.user.email }}</p>
+                                            <div class="d-flex gap-2">
+                                                <button class="btn btn-sm btn-success approve-member" 
+                                                        data-membership-id="{{ member.id }}">
+                                                    <i class="fas fa-check"></i> Approve
+                                                </button>
+                                                <button class="btn btn-sm btn-danger reject-member" 
+                                                        data-membership-id="{{ member.id }}">
+                                                    <i class="fas fa-times"></i> Reject
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center py-5 empty-state">
+                                        <i class="fas fa-user-clock"></i>
+                                        <p class="text-muted">No pending members</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            
+                            <!-- Removed Members -->
+                            <div class="tab-pane fade" id="removed-members" role="tabpanel">
+                                <div class="members-grid">
+                                    {% for member in removed_members %}
+                                    <div class="member-card" data-membership-id="{{ member.id }}">
+                                        <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                             alt="{{ member.user.get_full_name }}"
+                                             class="member-avatar">
+                                        <div class="member-info">
+                                            <h3 class="member-name">{{ member.user.get_full_name }}</h3>
+                                            <p class="text-muted mb-0">Removed on: {{ member.updated_at|date:"F j, Y" }}</p>
+                                        </div>
+                                    </div>
+                                    {% empty %}
+                                    <div class="text-center py-5 empty-state">
+                                        <i class="fas fa-user-slash"></i>
+                                        <p class="text-muted">No removed members</p>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    {% else %}
+                    <div class="members-grid">
+                        {% for member in active_members %}
+                        <div class="member-card">
+                            <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                 alt="{{ member.user.get_full_name }}"
+                                 class="member-avatar">
+                            <div class="member-info">
+                                <h3 class="member-name">{{ member.user.get_full_name }}</h3>
+                                <span class="member-role">{{ member.get_role_display }}</span>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5 empty-state">
+                            <i class="fas fa-users"></i>
+                            <p class="text-muted">No members yet</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- Events Tab -->
+                <div class="tab-pane fade" id="events" role="tabpanel" aria-labelledby="events-tab">
+                    <div class="events-list">
+                        {% for event in group.notified_events.all %}
+                        <div class="event-card">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div>
+                                    <h4>{{ event.title }}</h4>
+                                    <div class="event-meta">
+                                        <span>
+                                            <i class="fas fa-calendar"></i>
+                                            {{ event.start_date|date:"F j, Y" }}
+                                        </span>
+                                        {% if event.is_virtual %}
+                                        <span class="badge bg-info">
+                                            <i class="fas fa-video"></i> Virtual
+                                        </span>
+                                        {% else %}
+                                        <span>
+                                            <i class="fas fa-map-marker-alt"></i>
+                                            {{ event.location }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    <div class="event-description">
+                                        {{ event.description|truncatewords:30|safe }}
+                                    </div>
+                                    <a href="{% url 'events:event_detail' event.pk %}" class="btn btn-outline-primary">
+                                        <i class="fas fa-external-link-alt"></i> View Details
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                        {% empty %}
+                        <div class="text-center py-5 empty-state">
+                            <i class="fas fa-calendar-times"></i>
+                            <p class="text-muted">No events scheduled for this group.</p>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+
+                <!-- Forum Tab -->
+                <div class="tab-pane fade" id="forum" role="tabpanel" aria-labelledby="forum-tab">
+                    <div class="chat-container">
+                        <div class="chat-messages" id="chatMessages">
+                            {% for message in group_messages %}
+                            <div class="message {% if message.user == user %}sent{% endif %}">
+                                <img src="{% if message.user.profile.avatar %}{{ message.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                     alt="{{ message.user.get_full_name }}"
+                                     class="message-avatar">
+                                <div class="message-content">
+                                    <div class="message-header">
+                                        <span class="message-author">{{ message.user.get_full_name }}</span>
+                                        <span class="message-time">{{ message.created_at|timesince }} ago</span>
+                                    </div>
+                                    <p class="message-text">{{ message.content }}</p>
+                                </div>
+                            </div>
+                            {% empty %}
+                            <div class="text-center py-5 empty-state">
+                                <i class="fas fa-comments"></i>
+                                <p class="text-muted">No messages yet. Start the conversation!</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        {% if membership and membership.status == 'APPROVED' %}
+                        <div class="chat-input">
+                            <form class="chat-form" id="chatForm" method="post" action="{% url 'alumni_groups:send_message' group.slug %}">
+                                {% csrf_token %}
+                                <textarea class="chat-textarea" 
+                                         name="message" 
+                                         placeholder="Type your message..."
+                                         required></textarea>
+                                <button type="submit" class="btn btn-primary send-button">
+                                    <i class="fas fa-paper-plane"></i>
+                                    Send
+                                </button>
+                            </form>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Member Management Modal -->
+<div class="modal fade" id="memberManageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Manage Member</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="member-info-container mb-4">
+                    <div class="d-flex align-items-center gap-3 mb-3">
+                        <img src="" alt="" class="member-avatar" id="modalMemberAvatar" style="width: 64px; height: 64px; border-radius: 50%;">
+                        <div>
+                            <h4 id="modalMemberName" class="mb-1"></h4>
+                            <p id="modalMemberEmail" class="text-muted mb-0"></p>
+                        </div>
+                    </div>
+                    <div class="member-status-badge mb-3">
+                        <span id="modalMemberStatus" class="badge"></span>
+                    </div>
+                </div>
+                
+                <div class="security-questions-section mb-4">
+                    <h6 class="mb-3">Security Questions & Answers</h6>
+                    <div id="securityQuestionsContainer">
+                        <!-- Security questions will be populated here -->
+                    </div>
+                </div>
+
+                <div class="member-actions">
+                    <div class="d-flex gap-2 justify-content-end">
+                        <button type="button" class="btn btn-success" id="approveButton">
+                            <i class="fas fa-check"></i> Approve
+                        </button>
+                        <button type="button" class="btn btn-danger" id="rejectButton">
+                            <i class="fas fa-times"></i> Reject
+                        </button>
+                        <button type="button" class="btn btn-warning" id="removeButton">
+                            <i class="fas fa-user-minus"></i> Remove
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Answer Modal -->
+<div class="modal fade" id="securityAnswerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Security Answer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="securityAnswerContent"></div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block page_specific_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Bootstrap tabs
+        var triggerTabList = [].slice.call(document.querySelectorAll('#groupTabs button'))
+        triggerTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        })
+
+        // Initialize member management tabs
+        var memberTabList = [].slice.call(document.querySelectorAll('#membershipTabs button'))
+        memberTabList.forEach(function (triggerEl) {
+            var tabTrigger = new bootstrap.Tab(triggerEl)
+            triggerEl.addEventListener('click', function (event) {
+                event.preventDefault()
+                tabTrigger.show()
+            })
+        })
+
+        // Initialize modals
+        const memberManageModal = new bootstrap.Modal(document.getElementById('memberManageModal'));
+        
+        // Member management functions
+        async function loadMemberDetails(membershipId) {
+            try {
+                const response = await fetch(`/alumni-groups/api/member/${membershipId}/`);
+                const data = await response.json();
+                
+                // Update modal content
+                document.getElementById('modalMemberName').textContent = data.name;
+                document.getElementById('modalMemberEmail').textContent = data.email;
+                document.getElementById('modalMemberAvatar').src = data.avatar_url || '/static/images/default-avatar.jpg';
+                
+                const statusBadge = document.getElementById('modalMemberStatus');
+                statusBadge.textContent = data.status;
+                statusBadge.className = `badge bg-${data.status === 'APPROVED' ? 'success' : 
+                                        data.status === 'PENDING' ? 'warning' : 'danger'}`;
+                
+                // Update security questions
+                const container = document.getElementById('securityQuestionsContainer');
+                container.innerHTML = data.security_questions.map(q => `
+                    <div class="security-question-item mb-3">
+                        <p class="fw-bold mb-1">${q.question}</p>
+                        <p class="mb-1">${q.answer}</p>
+                        ${q.is_correct !== null ? `
+                            <span class="badge bg-${q.is_correct ? 'success' : 'danger'}">
+                                ${q.is_correct ? 'Correct' : 'Incorrect'}
+                            </span>
+                        ` : ''}
+                    </div>
+                `).join('');
+                
+                // Show/hide action buttons based on status
+                document.getElementById('approveButton').style.display = data.status === 'PENDING' ? 'block' : 'none';
+                document.getElementById('rejectButton').style.display = data.status === 'PENDING' ? 'block' : 'none';
+                document.getElementById('removeButton').style.display = data.status === 'APPROVED' ? 'block' : 'none';
+                
+                // Set membership ID for action buttons
+                ['approveButton', 'rejectButton', 'removeButton'].forEach(id => {
+                    document.getElementById(id).dataset.membershipId = membershipId;
+                });
+                
+                memberManageModal.show();
+            } catch (error) {
+                console.error('Error loading member details:', error);
+                alert('Failed to load member details');
+            }
+        }
+        
+        // Handle member actions
+        async function updateMemberStatus(membershipId, action) {
+            try {
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                const response = await fetch(`/alumni-groups/api/member/${membershipId}/status/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': csrfToken
+                    },
+                    body: JSON.stringify({ action })
+                });
+                
+                const data = await response.json();
+                
+                if (!response.ok) {
+                    throw new Error(data.error || 'Failed to update member status');
+                }
+                
+                // Show success message
+                alert(data.message || 'Member status updated successfully');
+                
+                // Refresh the page to show updated member list
+                window.location.reload();
+            } catch (error) {
+                console.error('Error:', error);
+                alert(error.message || 'Failed to update member status');
+            }
+
+        }
+        
+        // Event listeners for member actions
+        document.querySelectorAll('.approve-member').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const membershipId = this.dataset.membershipId;
+                if (confirm('Are you sure you want to approve this member?')) {
+                    updateMemberStatus(membershipId, 'approve');
+                }
+            });
+        });
+        
+        document.querySelectorAll('.reject-member').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const membershipId = this.dataset.membershipId;
+                if (confirm('Are you sure you want to reject this member?')) {
+                    updateMemberStatus(membershipId, 'reject');
+                }
+            });
+        });
+        
+        // Add event listeners for modal action buttons
+        document.getElementById('approveButton')?.addEventListener('click', function() {
+            const membershipId = this.dataset.membershipId;
+            if (confirm('Are you sure you want to approve this member?')) {
+                updateMemberStatus(membershipId, 'approve');
+            }
+        });
+        
+        document.getElementById('rejectButton')?.addEventListener('click', function() {
+            const membershipId = this.dataset.membershipId;
+            if (confirm('Are you sure you want to reject this member?')) {
+                updateMemberStatus(membershipId, 'reject');
+            }
+        });
+        
+        document.getElementById('removeButton')?.addEventListener('click', function() {
+            const membershipId = this.dataset.membershipId;
+            if (confirm('Are you sure you want to remove this member?')) {
+                updateMemberStatus(membershipId, 'remove');
+            }
+        });
+
+        // Chat functionality
+        const chatMessages = document.getElementById('chatMessages');
+        const chatForm = document.getElementById('chatForm');
+        
+        // Scroll to bottom of chat
+        function scrollToBottom() {
+            if (chatMessages) {
+            chatMessages.scrollTop = chatMessages.scrollHeight;
+            }
+        }
+        
+        // Initial scroll to bottom
+        scrollToBottom();
+
+        // Function to update messages
+        async function updateMessages() {
+            if (!chatMessages) return;
+            
+            try {
+                const response = await fetch(`{% url 'alumni_groups:get_messages' group.slug %}`);
+                if (!response.ok) throw new Error('Failed to fetch messages');
+                
+                const messagesHtml = await response.text();
+                
+                // Only update if there are changes
+                if (chatMessages.innerHTML.trim() !== messagesHtml.trim()) {
+                    chatMessages.innerHTML = messagesHtml;
+                    scrollToBottom();
+                }
+            } catch (error) {
+                console.error('Error refreshing messages:', error);
+            }
+        }
+        
+        // Handle chat form submission
+        if (chatForm) {
+            chatForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const messageInput = this.querySelector('textarea');
+                const originalMessage = messageInput.value;
+
+                try {
+                    const response = await fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        // Clear textarea
+                        messageInput.value = '';
+                        
+                        // Update messages immediately
+                        await updateMessages();
+                    } else {
+                        // If failed, restore the message
+                        messageInput.value = originalMessage;
+                        console.error('Failed to send message');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    // If error, restore the message
+                    messageInput.value = originalMessage;
+                }
+            });
+        }
+        
+        // Auto-refresh messages every 3 seconds
+        if (chatMessages) {
+        setInterval(updateMessages, 3000);
+        }
+
+        // Handle tab changes
+        const forumTab = document.getElementById('forum-tab');
+        if (forumTab) {
+        forumTab.addEventListener('shown.bs.tab', function (e) {
+            scrollToBottom();
+        });
+        }
+    });
+</script>
+{% endblock %}

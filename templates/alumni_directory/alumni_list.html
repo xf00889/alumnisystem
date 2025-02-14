@@ -1,0 +1,925 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alumni Directory{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+<li class="breadcrumb-item active">Alumni Directory</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_title %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h3 mb-0">Alumni Directory</h1>
+        <p class="text-muted mb-0">
+            <i class="fas fa-users me-1"></i>
+            {{ total_registered }} registered alumni
+        </p>
+    </div>
+    <div class="d-flex gap-2">
+        <button class="btn btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">
+            <i class="fas fa-sliders-h me-2"></i>
+            Filters
+            {% if selected_filters.search or selected_filters.graduation_year or selected_filters.course or selected_filters.province or selected_filters.employment_status %}
+            <span class="badge bg-primary ms-2">{{ selected_filters|length }}</span>
+            {% endif %}
+        </button>
+        <button class="btn btn-success export-btn" id="exportBtn">
+            <i class="fas fa-file-export me-2"></i>
+            Export to Excel
+        </button>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_css %}
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+<link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+<style>
+    /* Search Bar */
+    .search-container {
+        position: relative;
+        margin-bottom: 2rem;
+        max-width: 600px;
+        margin-left: auto;
+        margin-right: auto;
+    }
+
+    .search-input {
+        padding-left: 3rem;
+        padding-right: 3rem;
+        height: 3.5rem;
+        font-size: 1.1rem;
+        border-radius: 1.75rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus {
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .search-icon {
+        position: absolute;
+        left: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--bs-primary);
+        font-size: 1.2rem;
+    }
+
+    .clear-search {
+        position: absolute;
+        right: 1.25rem;
+        top: 50%;
+        transform: translateY(-50%);
+        background: none;
+        border: none;
+        color: var(--bs-secondary);
+        padding: 0;
+        cursor: pointer;
+        opacity: 0.7;
+        transition: opacity 0.2s ease;
+    }
+
+    .clear-search:hover {
+        opacity: 1;
+    }
+
+    /* Filter Section */
+    .filters-section {
+        background: var(--bs-light);
+        border-radius: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 2rem;
+        transition: all 0.3s ease;
+    }
+
+    .filters-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--bs-border-color);
+        background: white;
+        border-radius: 1rem 1rem 0 0;
+    }
+
+    .filters-body {
+        padding: 1.5rem;
+    }
+
+    .filter-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .filter-group:last-child {
+        margin-bottom: 0;
+    }
+
+    .filter-label {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+        color: var(--bs-gray-700);
+        font-weight: 500;
+    }
+
+    .filter-label i {
+        color: var(--bs-primary);
+        width: 20px;
+        text-align: center;
+    }
+
+    .filter-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .filter-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 2rem;
+        transition: all 0.2s ease;
+    }
+
+    .filter-chip.chip-college { background: #e3f2fd; color: #1976d2; border: 1px solid #bbdefb; }
+    .filter-chip.chip-campus { background: #e8f5e9; color: #2e7d32; border: 1px solid #c8e6c9; }
+    .filter-chip.chip-year { background: #fff3e0; color: #f57c00; border: 1px solid #ffe0b2; }
+    .filter-chip.chip-status { background: #f3e5f5; color: #7b1fa2; border: 1px solid #e1bee7; }
+    .filter-chip.chip-search { background: #e0f2f1; color: #00796b; border: 1px solid #b2dfdb; }
+
+    /* Summary Stats */
+    .stats-container {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border-radius: 1rem;
+        padding: 1.5rem;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin: 0 auto 1rem;
+        border-radius: 1rem;
+        font-size: 1.5rem;
+    }
+
+    .stat-primary {
+        background: var(--bs-primary-bg-subtle);
+        color: var(--bs-primary);
+    }
+
+    .stat-success {
+        background: var(--bs-success-bg-subtle);
+        color: var(--bs-success);
+    }
+
+    .stat-info {
+        background: var(--bs-info-bg-subtle);
+        color: var(--bs-info);
+    }
+
+    .stat-warning {
+        background: var(--bs-warning-bg-subtle);
+        color: var(--bs-warning);
+    }
+
+    .stat-value {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: var(--bs-secondary);
+        font-size: 0.875rem;
+    }
+
+    /* Select2 Customization */
+    .select2-container--bootstrap-5 .select2-selection {
+        border-radius: 0.5rem;
+        border-color: var(--bs-border-color);
+        min-height: 3rem;
+        padding: 0.5rem;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice {
+        background: var(--bs-primary-bg-subtle);
+        color: var(--bs-primary);
+        border: 1px solid var(--bs-primary-border-subtle);
+        border-radius: 1rem;
+        padding: 0.25rem 0.75rem;
+    }
+
+    .select2-container--bootstrap-5 .select2-selection--multiple .select2-selection__choice__remove {
+        color: var(--bs-primary);
+        margin-right: 0.5rem;
+    }
+
+    /* Alumni Grid */
+    .alumni-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .alumni-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        overflow: hidden;
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        border: 1px solid var(--bs-border-color);
+    }
+
+    .alumni-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.1);
+    }
+
+    .alumni-header {
+        background: var(--bs-primary);
+        color: white;
+        padding: 1.5rem;
+        position: relative;
+    }
+
+    .alumni-avatar {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        border: 4px solid white;
+        position: absolute;
+        bottom: -45px;
+        left: 1.5rem;
+        background: white;
+        object-fit: cover;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .alumni-name {
+        margin-left: 110px;
+        font-size: 1.2rem;
+        font-weight: 600;
+        text-shadow: 0 1px 2px rgba(0,0,0,0.1);
+    }
+
+    .alumni-content {
+        padding: 2.5rem 1.5rem 1.5rem;
+        flex-grow: 1;
+    }
+
+    .alumni-info {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .alumni-info li {
+        display: flex;
+        align-items: flex-start;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        color: var(--bs-secondary);
+        font-size: 0.95rem;
+    }
+
+    .alumni-info i {
+        width: 20px;
+        color: var(--bs-primary);
+        font-size: 1rem;
+        margin-top: 0.25rem;
+    }
+
+    .alumni-actions {
+        padding: 1rem 1.5rem;
+        border-top: 1px solid var(--bs-border-color);
+        text-align: right;
+        background: var(--bs-light);
+    }
+
+    .alumni-actions .btn {
+        transition: all 0.3s ease;
+    }
+
+    .alumni-actions .btn:hover {
+        transform: translateY(-2px);
+    }
+
+    /* Loading State */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255,255,255,0.9);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 1050;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        backdrop-filter: blur(4px);
+    }
+
+    .loading-overlay.active {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .loading-content {
+        text-align: center;
+        background: white;
+        padding: 2rem;
+        border-radius: 1rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .loading-spinner {
+        width: 3rem;
+        height: 3rem;
+        margin-bottom: 1rem;
+        color: var(--bs-primary);
+    }
+
+    /* Pagination */
+    .pagination {
+        justify-content: center;
+        margin-top: 2rem;
+        gap: 0.25rem;
+    }
+
+    .pagination .page-link {
+        border-radius: 0.5rem;
+        transition: all 0.3s ease;
+        padding: 0.5rem 1rem;
+    }
+
+    .pagination .page-link:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .pagination .page-item.active .page-link {
+        background: var(--bs-primary);
+        border-color: var(--bs-primary);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .search-container {
+            margin-bottom: 1.5rem;
+        }
+
+        .search-input {
+            height: 3rem;
+            font-size: 1rem;
+        }
+
+        .filters-section {
+            margin-bottom: 1.5rem;
+        }
+
+        .filters-header,
+        .filters-body {
+            padding: 1rem;
+        }
+
+        .filter-group {
+            margin-bottom: 1rem;
+        }
+
+        .alumni-grid {
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 1rem;
+        }
+
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.25rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .alumni-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .stats-container {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    /* College/Course Tags */
+    .course-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .tag-cas { background: #e3f2fd; color: #1976d2; }
+    .tag-caff { background: #e8f5e9; color: #2e7d32; }
+    .tag-cba { background: #fff3e0; color: #f57c00; }
+    .tag-ccje { background: #fce4ec; color: #c2185b; }
+    .tag-cea { background: #f3e5f5; color: #7b1fa2; }
+    .tag-cit { background: #e0f2f1; color: #00796b; }
+    .tag-cnpahs { background: #f1f8e9; color: #558b2f; }
+    .tag-cte { background: #e8eaf6; color: #3f51b5; }
+    .tag-cthm { background: #fff8e1; color: #ffa000; }
+
+    /* Campus Tags */
+    .campus-tag {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.35rem 0.75rem;
+        border-radius: 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .campus-main { background: #e3f2fd; color: #1976d2; }
+    .campus-bais { background: #e8f5e9; color: #2e7d32; }
+    .campus-guihulngan { background: #fff3e0; color: #f57c00; }
+    .campus-mabinay { background: #fce4ec; color: #c2185b; }
+    .campus-bayawan { background: #f3e5f5; color: #7b1fa2; }
+    .campus-siaton { background: #e0f2f1; color: #00796b; }
+    .campus-pamplona { background: #f1f8e9; color: #558b2f; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Search Bar -->
+<div class="search-container">
+    <i class="fas fa-search search-icon"></i>
+    <input type="text" 
+           class="form-control search-input" 
+           id="searchInput"
+           placeholder="Search alumni by name, course, or location..."
+           value="{{ selected_filters.search }}"
+           autocomplete="off">
+    <button type="button" class="clear-search" style="display: none;">
+        <i class="fas fa-times"></i>
+    </button>
+</div>
+
+<!-- Stats Summary -->
+<div class="stats-container">
+    <div class="stat-card">
+        <div class="stat-icon stat-primary">
+            <i class="fas fa-users"></i>
+        </div>
+        <div class="stat-value">{{ total_registered }}</div>
+        <div class="stat-label">Total Alumni</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-success">
+            <i class="fas fa-graduation-cap"></i>
+        </div>
+        <div class="stat-value">{{ graduation_years|length }}</div>
+        <div class="stat-label">Graduation Years</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-info">
+            <i class="fas fa-book"></i>
+        </div>
+        <div class="stat-value">{{ courses|length }}</div>
+        <div class="stat-label">Courses</div>
+    </div>
+    <div class="stat-card">
+        <div class="stat-icon stat-warning">
+            <i class="fas fa-map-marker-alt"></i>
+        </div>
+        <div class="stat-value">{{ provinces|length }}</div>
+        <div class="stat-label">Provinces</div>
+    </div>
+            </div>
+
+<!-- Filters Section -->
+<div class="filters-section collapse" id="filterCollapse">
+    <div class="filters-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-filter me-2"></i>
+                Filter Alumni
+            </h5>
+            <button type="button" class="btn btn-link text-secondary p-0" id="clearFilters">
+                <i class="fas fa-times me-1"></i>
+                Clear All
+            </button>
+        </div>
+    </div>
+    <div class="filters-body">
+        <form id="filterForm" method="get" class="needs-validation" novalidate>
+            <div class="row g-4">
+                <div class="col-md-6 col-lg-3">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-university"></i>
+                            College
+                        </label>
+                        <select class="form-select" name="college" multiple>
+                            <option value="CAS">College of Arts and Sciences (CAS)</option>
+                            <option value="CAFF">College of Agriculture, Forestry and Fishery (CAFF)</option>
+                            <option value="CBA">College of Business Administration (CBA)</option>
+                            <option value="CCJE">College of Criminal Justice Education (CCJE)</option>
+                            <option value="CEA">College of Engineering and Architecture (CEA)</option>
+                            <option value="CIT">College of Industrial Technology (CIT)</option>
+                            <option value="CNPAHS">College of Nursing, Pharmacy and Allied Health Sciences (CNPAHS)</option>
+                            <option value="CTE">College of Teacher Education (CTE)</option>
+                            <option value="CTHM">College of Tourism and Hospitality Management (CTHM)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Campus
+                        </label>
+                        <select class="form-select" name="campus" multiple>
+                            <option value="MAIN">Main Campus I & II (Dumaguete)</option>
+                            <option value="BAIS">Bais Campus I & II</option>
+                            <option value="GUI">Guihulngan Campus</option>
+                            <option value="MAB">Mabinay Campus</option>
+                            <option value="BSC">Bayawan-Sta. Catalina Campus</option>
+                            <option value="SIA">Siaton Campus</option>
+                            <option value="PAM">Pamplona Campus</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-graduation-cap"></i>
+                            Graduation Year
+                        </label>
+                        <select class="form-select" name="graduation_year" multiple>
+                            {% for year in graduation_years %}
+                            <option value="{{ year }}" 
+                                    {% if year|stringformat:"i" in selected_filters.graduation_year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="filter-group">
+                        <label class="filter-label">
+                            <i class="fas fa-briefcase"></i>
+                            Employment Status
+                        </label>
+                        <select class="form-select" name="employment_status" multiple>
+                            <option value="EMPLOYED_FULL">Employed Full-Time</option>
+                            <option value="EMPLOYED_PART">Employed Part-Time</option>
+                            <option value="SELF_EMPLOYED">Self-Employed</option>
+                            <option value="UNEMPLOYED">Unemployed</option>
+                            <option value="STUDENT">Further Studies</option>
+                            <option value="RETIRED">Retired</option>
+                            <option value="INTERN">Internship/OJT</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Active Filters -->
+            {% if selected_filters.search or selected_filters.college or selected_filters.campus or selected_filters.graduation_year or selected_filters.employment_status %}
+            <div class="filter-chips mt-4">
+                {% if selected_filters.search %}
+                <span class="filter-chip chip-search">
+                    <i class="fas fa-search"></i>
+                    "{{ selected_filters.search }}"
+                    <button type="button" class="remove-filter" data-filter="search">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>
+                {% endif %}
+
+                {% for college in selected_filters.college %}
+                <span class="filter-chip chip-college">
+                    <i class="fas fa-university"></i>
+                    {{ college }}
+                    <button type="button" class="remove-filter" data-filter="college" data-value="{{ college }}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>
+                {% endfor %}
+
+                {% for campus in selected_filters.campus %}
+                <span class="filter-chip chip-campus">
+                    <i class="fas fa-map-marker-alt"></i>
+                    {{ campus }}
+                    <button type="button" class="remove-filter" data-filter="campus" data-value="{{ campus }}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>
+                {% endfor %}
+
+                {% for year in selected_filters.graduation_year %}
+                <span class="filter-chip chip-year">
+                    <i class="fas fa-graduation-cap"></i>
+                    {{ year }}
+                    <button type="button" class="remove-filter" data-filter="graduation_year" data-value="{{ year }}">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </span>
+                {% endfor %}
+
+                {% for status in selected_filters.employment_status %}
+                <span class="filter-chip chip-status">
+                    <i class="fas fa-briefcase"></i>
+                    {{ status }}
+                    <button type="button" class="remove-filter" data-filter="employment_status" data-value="{{ status }}">
+                        <i class="fas fa-times"></i>
+                </button>
+                </span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <div class="d-flex justify-content-end mt-4">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-check me-2"></i>
+                    Apply Filters
+                </button>
+            </div>
+        </form>
+        </div>
+</div>
+
+<div id="alumniList">
+    {% include 'alumni_directory/partials/alumni_list.html' %}
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay">
+    <div class="loading-content">
+        <div class="spinner-border text-primary loading-spinner" role="status">
+        <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="text-muted mb-0">Loading alumni data...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize Select2
+        $('select').select2({
+            theme: 'bootstrap-5',
+            width: '100%',
+            placeholder: 'Select options...',
+            allowClear: true
+        });
+
+        const searchInput = document.getElementById('searchInput');
+        const clearSearchBtn = document.querySelector('.clear-search');
+        const filterForm = document.getElementById('filterForm');
+        const alumniList = document.getElementById('alumniList');
+        const loadingOverlay = document.querySelector('.loading-overlay');
+        const clearFiltersBtn = document.getElementById('clearFilters');
+
+        // Search input handling
+        if (searchInput && clearSearchBtn) {
+            searchInput.addEventListener('input', function() {
+                clearSearchBtn.style.display = this.value ? 'block' : 'none';
+                
+                // Add search value to form and submit after delay
+                if (filterForm) {
+                    clearTimeout(this.searchTimeout);
+                    this.searchTimeout = setTimeout(() => {
+                        const searchField = filterForm.querySelector('input[name="search"]');
+                        if (!searchField) {
+                            const input = document.createElement('input');
+                            input.type = 'hidden';
+                            input.name = 'search';
+                            filterForm.appendChild(input);
+                        }
+                        searchField.value = this.value;
+                        filterForm.dispatchEvent(new Event('submit'));
+                    }, 500);
+                }
+            });
+
+            clearSearchBtn.addEventListener('click', function() {
+                searchInput.value = '';
+                this.style.display = 'none';
+                if (filterForm) {
+                    const searchField = filterForm.querySelector('input[name="search"]');
+                    if (searchField) {
+                        searchField.value = '';
+                    }
+                    filterForm.dispatchEvent(new Event('submit'));
+                }
+            });
+
+            // Set initial clear button state
+            clearSearchBtn.style.display = searchInput.value ? 'block' : 'none';
+        }
+
+        // Filter chip removal
+        document.addEventListener('click', function(e) {
+            const removeBtn = e.target.closest('.remove-filter');
+            if (!removeBtn || !filterForm) return;
+
+            const filter = removeBtn.dataset.filter;
+            const value = removeBtn.dataset.value;
+
+            if (filter === 'search') {
+                if (searchInput) {
+                    searchInput.value = '';
+                    clearSearchBtn.style.display = 'none';
+                }
+                    } else {
+                const select = filterForm.querySelector(`select[name="${filter}"]`);
+                if (select) {
+                    const option = Array.from(select.options).find(opt => opt.value === value);
+                    if (option) {
+                        option.selected = false;
+                    }
+                    $(select).trigger('change');
+                }
+            }
+
+            filterForm.dispatchEvent(new Event('submit'));
+        });
+
+        // Handle filter form submission
+        if (filterForm) {
+            filterForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
+                const formData = new FormData(this);
+                
+                // Add search input value
+                if (searchInput && searchInput.value) {
+                    formData.set('search', searchInput.value);
+                }
+
+                showLoading();
+
+                try {
+                    const response = await fetch(`${window.location.pathname}?${new URLSearchParams(formData)}`, {
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Accept': 'text/html'
+                        }
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('Failed to load alumni data');
+                    }
+
+                    const html = await response.text();
+                    if (alumniList) {
+                        alumniList.innerHTML = html;
+                    }
+
+                    // Update URL
+                    const url = new URL(window.location);
+                    url.search = new URLSearchParams(formData).toString();
+                    window.history.pushState({}, '', url);
+
+                    // Update filter collapse state
+                    const filterCollapse = document.getElementById('filterCollapse');
+                    if (filterCollapse && formData.has('search')) {
+                        bootstrap.Collapse.getOrCreateInstance(filterCollapse).show();
+                    }
+
+            } catch (error) {
+                console.error('Error:', error);
+                    showError(error.message);
+                } finally {
+                    hideLoading();
+                }
+            });
+        }
+
+        // Clear all filters
+        if (clearFiltersBtn && filterForm) {
+            clearFiltersBtn.addEventListener('click', function() {
+                filterForm.reset();
+                $('select').val(null).trigger('change');
+                
+                if (searchInput) {
+                    searchInput.value = '';
+                    clearSearchBtn.style.display = 'none';
+                }
+
+                const url = new URL(window.location);
+                url.search = '';
+                window.history.pushState({}, '', url);
+
+                filterForm.dispatchEvent(new Event('submit'));
+            });
+        }
+
+        // Loading state management
+        function showLoading() {
+            if (loadingOverlay) {
+                loadingOverlay.classList.add('active');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideLoading() {
+            if (loadingOverlay) {
+                loadingOverlay.classList.remove('active');
+                document.body.style.overflow = '';
+            }
+        }
+
+        // Error message display
+        function showError(message) {
+            const alert = document.createElement('div');
+            alert.className = 'alert alert-danger alert-dismissible fade show';
+            alert.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.querySelector('.search-container').insertAdjacentElement('beforebegin', alert);
+            setTimeout(() => alert.remove(), 5000);
+        }
+
+        // Handle browser navigation
+        window.addEventListener('popstate', function() {
+            if (!filterForm) return;
+
+            const url = new URL(window.location);
+            const params = new URLSearchParams(url.search);
+
+            // Reset form
+            filterForm.reset();
+            $('select').val(null).trigger('change');
+
+            // Update form values
+            for (const [key, value] of params.entries()) {
+                if (key === 'search' && searchInput) {
+                    searchInput.value = value;
+                    clearSearchBtn.style.display = value ? 'block' : 'none';
+                } else {
+                    const input = filterForm.querySelector(`[name="${key}"]`);
+                    if (input) {
+                        if (input.tagName === 'SELECT') {
+                            $(input).val(value.split(',')).trigger('change');
+                        } else {
+                            input.value = value;
+                        }
+                    }
+                }
+            }
+
+            filterForm.dispatchEvent(new Event('submit'));
+        });
+    });
+</script>
+{% endblock %} 

@@ -1,0 +1,16 @@
+{% for message in group_messages %}
+<div class="message">
+    <img src="{% if message.user.profile.avatar %}{{ message.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+         alt="{{ message.user.get_full_name }}"
+         class="message-avatar">
+    <div class="message-content">
+        <div class="message-header">
+            <span class="message-author">{{ message.user.get_full_name }}</span>
+            <span class="message-time">{{ message.created_at|timesince }} ago</span>
+        </div>
+        <p class="message-text">{{ message.content }}</p>
+    </div>
+</div>
+{% empty %}
+<p class="text-center text-muted">No messages yet. Start the conversation!</p>
+{% endfor %} 

@@ -1,0 +1,1235 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load cache %}
+
+{% block title %}Announcements - NORSU Alumni{% endblock %}
+
+{% block page_title %}Announcements{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Announcements</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Core Design System */
+    :root {
+        /* Brand Colors */
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.5rem;
+        --space-6: 2rem;
+        --space-8: 3rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+    }
+
+    /* Page Layout */
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    .container {
+        max-width: 1400px;
+        margin: 0 auto;
+        padding-left: var(--space-4);
+        padding-right: var(--space-4);
+    }
+
+    .content-container {
+        display: grid;
+        grid-template-columns: minmax(250px, 300px) 1fr;
+        gap: clamp(var(--space-4), 3vw, var(--space-6));
+    }
+
+    .main-content .card {
+        background: var(--ui-surface);
+        border: none;
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .main-content .card-body {
+        padding: var(--space-4);
+    }
+
+    /* Enhanced Filter Panel */
+    .filter-panel {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        position: sticky;
+        top: calc(76px + var(--space-4));
+        height: fit-content;
+        transition: transform var(--transition-normal), 
+                    opacity var(--transition-normal);
+    }
+
+    .filter-header {
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        border-bottom: 1px solid var(--ui-border);
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .filter-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .filter-body {
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .filter-section {
+        margin-bottom: 0;
+    }
+
+    .filter-section:not(:last-child) {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: var(--space-4);
+    }
+
+    .section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: var(--space-3);
+    }
+
+    /* Enhanced Search Input */
+    .search-wrapper {
+        position: relative;
+        width: 100%;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: var(--space-3);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        pointer-events: none;
+        font-size: 0.9rem;
+        width: 16px;
+        height: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: var(--space-3) var(--space-4);
+        padding-left: calc(var(--space-3) * 2 + 16px);
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: var(--transition-normal);
+        font-size: clamp(0.875rem, 2vw, 1rem);
+    }
+
+    .search-input:hover {
+        border-color: var(--brand-accent);
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--brand-primary);
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+    }
+
+    /* Enhanced Category List */
+    .category-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-2);
+        max-height: 300px;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--brand-primary) var(--ui-border);
+    }
+
+    .category-list::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .category-list::-webkit-scrollbar-track {
+        background: var(--ui-border);
+        border-radius: var(--radius-sm);
+    }
+
+    .category-list::-webkit-scrollbar-thumb {
+        background-color: var(--brand-primary);
+        border-radius: var(--radius-sm);
+    }
+
+    .category-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .category-checkbox {
+        width: 1.125rem;
+        height: 1.125rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        appearance: none;
+        cursor: pointer;
+        transition: var(--transition-normal);
+    }
+
+    .category-checkbox:checked {
+        background-color: var(--brand-primary);
+        border-color: var(--brand-primary);
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='white'%3E%3Cpath fill-rule='evenodd' d='M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z' clip-rule='evenodd'/%3E%3C/svg%3E");
+    }
+
+    .category-label {
+        font-size: 0.95rem;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    /* Enhanced Announcement Cards */
+    .announcement-list {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-4);
+    }
+
+    .announcement-card {
+        border: 1px solid var(--ui-border);
+        transition: transform var(--transition-normal),
+                    box-shadow var(--transition-normal);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+    }
+
+    .announcement-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .announcement-header {
+        background: var(--brand-primary);
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .announcement-title-wrapper {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: var(--space-3);
+        flex-wrap: wrap;
+    }
+
+    .announcement-title {
+        color: var(--text-light);
+        font-size: clamp(1rem, 2.5vw, 1.25rem);
+        font-weight: 600;
+        margin: 0;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .priority-badge {
+        position: static;
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-md);
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        white-space: nowrap;
+    }
+
+    .priority-URGENT {
+        background: var(--feedback-error);
+        color: var(--text-light);
+    }
+
+    .priority-HIGH {
+        background: var(--feedback-warning);
+        color: var(--text-primary);
+    }
+
+    .priority-MEDIUM {
+        background: var(--feedback-info);
+        color: var(--text-light);
+    }
+
+    .priority-LOW {
+        background: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .announcement-meta {
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3) var(--space-4);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+    }
+
+    .meta-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        white-space: nowrap;
+    }
+
+    .announcement-body {
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        flex: 1;
+    }
+
+    .announcement-content {
+        color: var(--text-primary);
+        line-height: 1.6;
+        font-size: clamp(0.875rem, 2vw, 1rem);
+    }
+
+    .announcement-actions {
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        background: var(--ui-background);
+        border-top: 1px solid var(--ui-border);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .action-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    /* Enhanced Buttons */
+    .btn {
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: clamp(0.875rem, 1.5vw, 0.95rem);
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        transition: all var(--transition-normal);
+        white-space: nowrap;
+        min-height: 2.5rem;
+    }
+
+    .btn-primary {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-accent);
+    }
+
+    .btn-secondary {
+        background: var(--ui-background);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--ui-hover);
+    }
+
+    .btn-warning {
+        background: var(--feedback-warning);
+        color: var(--text-primary);
+        border: none;
+    }
+
+    .btn-warning:hover {
+        background: #dd7a24;
+    }
+
+    .btn-danger {
+        background: var(--feedback-error);
+        color: var(--text-light);
+        border: none;
+    }
+
+    .btn-danger:hover {
+        background: #c53030;
+    }
+
+    /* Enhanced Pagination */
+    .pagination-container {
+        margin-top: clamp(var(--space-4), 4vw, var(--space-6));
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        overflow-x: auto;
+        padding: var(--space-2) 0;
+    }
+
+    .pagination {
+        display: flex;
+        gap: var(--space-2);
+        flex-wrap: nowrap;
+    }
+
+    .page-item {
+        display: flex;
+    }
+
+    .page-link {
+        width: 2.5rem;
+        height: 2.5rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: var(--radius-md);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+        transition: var(--transition-normal);
+    }
+
+    .page-link:hover {
+        background: var(--ui-hover);
+        border-color: var(--brand-accent);
+    }
+
+    .page-item.active .page-link {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border-color: var(--brand-primary);
+    }
+
+    /* Enhanced Responsive Design */
+    @media (max-width: 1024px) {
+        .content-container {
+            grid-template-columns: 1fr;
+            gap: var(--space-4);
+        }
+
+        .filter-panel {
+            position: relative;
+            top: 0;
+            margin-bottom: var(--space-4);
+        }
+
+        .container {
+            padding-left: var(--space-3);
+            padding-right: var(--space-3);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .page-container {
+            padding: var(--space-3);
+        }
+
+        .announcement-card {
+            margin-bottom: var(--space-3);
+        }
+
+        .announcement-header {
+            padding: var(--space-3);
+        }
+
+        .announcement-title-wrapper {
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .announcement-title {
+            font-size: 1.1rem;
+            min-width: 100%;
+        }
+
+        .priority-badge {
+            align-self: flex-start;
+        }
+
+        .announcement-meta {
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .meta-group {
+            flex-wrap: wrap;
+            gap: var(--space-2);
+        }
+
+        .announcement-actions {
+            flex-direction: column;
+            gap: var(--space-3);
+            padding: var(--space-3);
+        }
+
+        .action-group {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .action-group .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .filter-panel {
+            border-radius: var(--radius-md);
+        }
+
+        .filter-body {
+            padding: var(--space-3);
+        }
+
+        .filter-section {
+            margin-bottom: var(--space-3);
+        }
+
+        .search-wrapper {
+            display: flex;
+            align-items: center;
+        }
+
+        .search-icon {
+            font-size: 0.85rem;
+            width: 14px;
+            height: 14px;
+            left: var(--space-2);
+        }
+
+        .search-input {
+            padding: var(--space-3);
+            padding-left: calc(var(--space-2) * 2 + 14px);
+            font-size: 16px; /* Prevent zoom on iOS */
+        }
+
+        .category-list {
+            max-height: none;
+            padding-bottom: var(--space-2);
+        }
+
+        .pagination {
+            overflow-x: auto;
+            padding-bottom: var(--space-2);
+            justify-content: flex-start;
+            gap: var(--space-1);
+        }
+
+        .page-link {
+            min-width: 2.5rem;
+            height: 2.5rem;
+            font-size: 0.9rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .page-container {
+            padding: var(--space-2);
+        }
+
+        .container {
+            padding-left: var(--space-2);
+            padding-right: var(--space-2);
+        }
+
+        .announcement-content {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .meta-item {
+            font-size: 0.85rem;
+        }
+
+        .btn {
+            padding: var(--space-2) var(--space-3);
+            font-size: 0.9rem;
+        }
+
+        .filter-header {
+            padding: var(--space-3);
+        }
+
+        .filter-title {
+            font-size: 1rem;
+        }
+
+        .section-title {
+            font-size: 0.8rem;
+        }
+
+        .category-label {
+            font-size: 0.9rem;
+        }
+
+        /* Enhance touch targets */
+        .category-checkbox {
+            width: 1.25rem;
+            height: 1.25rem;
+        }
+
+        .category-item {
+            padding: var(--space-2) 0;
+        }
+
+        /* Improve modal responsiveness */
+        .modal-dialog {
+            margin: var(--space-2);
+        }
+
+        .modal-header {
+            padding: var(--space-3);
+        }
+
+        .modal-body {
+            padding: var(--space-3);
+        }
+
+        .modal-footer {
+            padding: var(--space-3);
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .modal-footer .btn {
+            width: 100%;
+        }
+
+        .search-icon {
+            font-size: 0.8rem;
+            width: 12px;
+            height: 12px;
+        }
+
+        .search-input {
+            padding: var(--space-2);
+            padding-left: calc(var(--space-2) * 2 + 12px);
+        }
+    }
+
+    /* Touch Device Optimizations */
+    @media (hover: none) {
+        .btn:active {
+            transform: scale(0.98);
+        }
+
+        .announcement-card:active {
+            transform: none;
+        }
+
+        .search-input {
+            -webkit-appearance: none;
+            border-radius: var(--radius-md);
+        }
+
+        /* Improve scroll behavior */
+        .category-list {
+            -webkit-overflow-scrolling: touch;
+        }
+
+        /* Enhance touch feedback */
+        .category-item:active {
+            background-color: var(--ui-hover);
+        }
+    }
+
+    /* Dark Mode Support */
+    @media (prefers-color-scheme: dark) {
+        .search-input {
+            background-color: var(--ui-surface);
+        }
+    }
+
+    /* Accessibility Improvements */
+    @media (prefers-reduced-motion: reduce) {
+        * {
+            animation: none !important;
+            transition: none !important;
+        }
+    }
+
+    /* Print Media Optimization */
+    @media print {
+        .filter-panel,
+        .action-group,
+        .pagination-container {
+            display: none !important;
+        }
+
+        .announcement-card {
+            break-inside: avoid;
+            border: 1px solid #000;
+        }
+    }
+
+    /* Update the form container to ensure proper spacing */
+    .filter-panel form {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .filter-actions {
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        background: var(--ui-background);
+        border-top: 1px solid var(--ui-border);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    }
+
+    .filter-actions .btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 2.75rem;
+    }
+
+    /* Modal Styles */
+    .modal-content {
+        background: var(--ui-surface);
+        border: none;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border-bottom: none;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        padding: var(--space-4);
+    }
+
+    .modal-title {
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+    }
+
+    .modal-header .close {
+        color: var(--text-light);
+        opacity: 0.8;
+        text-shadow: none;
+        transition: var(--transition-normal);
+    }
+
+    .modal-header .close:hover {
+        opacity: 1;
+    }
+
+    .modal-body {
+        padding: var(--space-5);
+        color: var(--text-primary);
+    }
+
+    .modal-body p {
+        margin: 0;
+        line-height: 1.6;
+    }
+
+    .modal-body p:not(:last-child) {
+        margin-bottom: var(--space-3);
+    }
+
+    .modal-body .announcement-title {
+        color: var(--brand-primary);
+        font-size: 1.1rem;
+    }
+
+    .modal-footer {
+        border-top: 1px solid var(--ui-border);
+        padding: var(--space-4);
+        gap: var(--space-3);
+    }
+
+    .modal-backdrop.show {
+        opacity: 0.5;
+    }
+
+    /* Modal Animation */
+    .modal.fade .modal-dialog {
+        transform: scale(0.95);
+        transition: transform var(--transition-normal);
+    }
+
+    .modal.show .modal-dialog {
+        transform: scale(1);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <!-- Add CSRF Token -->
+    {% csrf_token %}
+    
+    <!-- Delete Confirmation Modal -->
+    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteModalLabel">Delete Announcement</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Are you sure you want to delete the announcement:</p>
+                    <p class="announcement-title font-weight-bold"></p>
+                    <p>This action cannot be undone.</p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-danger" id="confirmDelete">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="container py-4">
+        <div class="content-container">
+            <div class="filter-panel">
+                <div class="filter-header">
+                    <i class="fas fa-filter"></i>
+                    <h2 class="filter-title">Filters</h2>
+                </div>
+                <form method="get">
+                    <div class="filter-body">
+                        <div class="filter-section">
+                            <h3 class="section-title">Search</h3>
+                            <div class="search-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input type="text" class="search-input" name="q" 
+                                       value="{{ request.GET.q }}" placeholder="Search announcements...">
+                            </div>
+                        </div>
+
+                        <div class="filter-section">
+                            <h3 class="section-title">Categories</h3>
+                            <div class="category-list">
+                                {% for category in categories %}
+                                <div class="category-item">
+                                    <input type="checkbox" class="category-checkbox" name="category" 
+                                           value="{{ category.id }}" id="cat_{{ category.id }}"
+                                           {% if category.id|stringformat:"i" in request.GET.category|default:"" %}checked{% endif %}>
+                                    <label class="category-label" for="cat_{{ category.id }}">
+                                        {{ category.name }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="filter-actions">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                            Apply Filters
+                        </button>
+                        <a href="{% url 'announcements:announcement-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-undo"></i>
+                            Clear All
+                        </a>
+                    </div>
+                </form>
+            </div>
+
+            <div class="main-content">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        {% if user.is_staff %}
+                        <div class="action-group mb-4">
+                            <a href="{% url 'announcements:announcement-create' %}" class="btn btn-primary">
+                                <i class="fas fa-plus"></i>
+                                New Announcement
+                            </a>
+                        </div>
+                        {% endif %}
+
+                        <div class="announcement-list">
+                            {% if announcements %}
+                                {% for announcement in announcements %}
+                                {% cache 300 'announcement_card' announcement.pk announcement.last_modified %}
+                                <div class="announcement-card">
+                                    <div class="announcement-header">
+                                        <div class="announcement-title-wrapper">
+                                            <h3 class="announcement-title">{{ announcement.title }}</h3>
+                                            <span class="priority-badge priority-{{ announcement.priority_level }}">
+                                                <i class="fas {% if announcement.priority_level == 'URGENT' %}fa-exclamation-triangle
+                                                           {% elif announcement.priority_level == 'HIGH' %}fa-arrow-up
+                                                           {% elif announcement.priority_level == 'MEDIUM' %}fa-dot-circle
+                                                           {% else %}fa-arrow-down{% endif %}"></i>
+                                                {{ announcement.get_priority_level_display }}
+                                            </span>
+                                        </div>
+
+                                        <div class="announcement-meta">
+                                            <div class="meta-group">
+                                                <div class="meta-item">
+                                                    <i class="fas fa-users"></i>
+                                                    <span>{{ announcement.get_target_audience_display }}</span>
+                                                </div>
+                                                {% if announcement.category %}
+                                                <div class="meta-item">
+                                                    <i class="fas fa-tag"></i>
+                                                    <span>{{ announcement.category.name }}</span>
+                                                </div>
+                                                {% endif %}
+                                            </div>
+                                            <div class="meta-group">
+                                                <div class="meta-item">
+                                                    <i class="far fa-calendar-alt"></i>
+                                                    <span>{{ announcement.date_posted|date:"F d, Y" }}</span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="announcement-body">
+                                        <div class="announcement-content">
+                                            {{ announcement.content|striptags|truncatewords:50 }}
+                                        </div>
+                                    </div>
+
+                                    <div class="announcement-actions">
+                                        <div class="meta-item">
+                                            <i class="fas fa-eye"></i>
+                                            <span>{{ announcement.views_count }} views</span>
+                                        </div>
+                                        <div class="action-group">
+                                            <a href="{% url 'announcements:announcement-detail' announcement.pk %}" 
+                                               class="btn btn-primary">
+                                                <i class="fas fa-book-reader"></i>
+                                                <span>Read More</span>
+                                            </a>
+                                            {% if user.is_staff %}
+                                            <a href="{% url 'announcements:announcement-update' announcement.pk %}" 
+                                               class="btn btn-warning">
+                                                <i class="fas fa-edit"></i>
+                                                <span>Edit</span>
+                                            </a>
+                                            <button type="button" 
+                                                    class="btn btn-danger delete-announcement" 
+                                                    data-announcement-id="{{ announcement.pk }}"
+                                                    data-announcement-title="{{ announcement.title }}">
+                                                <i class="fas fa-trash"></i>
+                                                <span>Delete</span>
+                                            </button>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endcache %}
+                                {% endfor %}
+
+                                {% if is_paginated %}
+                                <div class="pagination-container">
+                                    <ul class="pagination">
+                                        {% if page_obj.has_previous %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}">
+                                                <i class="fas fa-chevron-left"></i>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+
+                                        {% for num in page_obj.paginator.page_range %}
+                                        <li class="page-item {% if page_obj.number == num %}active{% endif %}">
+                                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                                        </li>
+                                        {% endfor %}
+
+                                        {% if page_obj.has_next %}
+                                        <li class="page-item">
+                                            <a class="page-link" href="?page={{ page_obj.next_page_number }}">
+                                                <i class="fas fa-chevron-right"></i>
+                                            </a>
+                                        </li>
+                                        {% endif %}
+                                    </ul>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                            <div class="announcement-card">
+                                <div class="announcement-body" style="text-align: center; padding: var(--space-8);">
+                                    <i class="fas fa-info-circle fa-2x" style="color: var(--text-muted); margin-bottom: var(--space-3);"></i>
+                                    <p style="color: var(--text-secondary); margin: 0;">No announcements found.</p>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Utility function for debouncing
+    function debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        // Cache DOM elements
+        const deleteModal = document.getElementById('deleteModal');
+        const confirmDeleteBtn = document.getElementById('confirmDelete');
+        const searchInput = document.querySelector('.search-input');
+        const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
+        const filterForm = document.querySelector('.filter-panel form');
+        const resultsContainer = document.querySelector('.announcement-list');
+        let announcementToDelete = null;
+        let currentModal = null;
+
+        // Function to update results count
+        function updateResultsCount(count) {
+            const countDisplay = document.querySelector('.results-count');
+            if (countDisplay) {
+                countDisplay.textContent = `${count} announcement${count !== 1 ? 's' : ''}`;
+            }
+        }
+
+        // Function to perform AJAX search
+        function performSearch() {
+            const query = searchInput.value;
+            const selectedCategories = Array.from(categoryCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            // Show loading state
+            resultsContainer.innerHTML = '<div class="announcement-card"><div class="announcement-body" style="text-align: center; padding: var(--space-8);"><i class="fas fa-spinner fa-spin fa-2x" style="color: var(--text-muted); margin-bottom: var(--space-3);"></i><p style="color: var(--text-secondary); margin: 0;">Loading results...</p></div></div>';
+            
+            // Build the URL with parameters
+            const params = new URLSearchParams();
+            if (query) params.append('q', query);
+            selectedCategories.forEach(cat => params.append('category', cat));
+            
+            // Update URL without reload
+            const newUrl = `${window.location.pathname}?${params.toString()}`;
+            window.history.pushState({}, '', newUrl);
+            
+            // Perform the search
+            fetch(`/announcements/search/?${params.toString()}`)
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(data => {
+                            throw new Error(data.message || 'Error loading results');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.status === 'success') {
+                        resultsContainer.innerHTML = data.html;
+                        updateResultsCount(data.count);
+                        // Reinitialize delete buttons after content update
+                        initializeDeleteButtons();
+                    } else {
+                        throw new Error(data.message || 'Error loading results');
+                    }
+                })
+                .catch(error => {
+                    resultsContainer.innerHTML = `
+                        <div class="announcement-card">
+                            <div class="announcement-body" style="text-align: center; padding: var(--space-8);">
+                                <i class="fas fa-exclamation-circle fa-2x" style="color: var(--feedback-error); margin-bottom: var(--space-3);"></i>
+                                <p style="color: var(--text-secondary); margin: 0;">${error.message}</p>
+                            </div>
+                        </div>`;
+                });
+        }
+
+        // Initialize delete buttons
+        function initializeDeleteButtons() {
+            document.querySelectorAll('.delete-announcement').forEach(button => {
+                button.addEventListener('click', function() {
+                    const announcementId = this.dataset.announcementId;
+                    const announcementTitle = this.dataset.announcementTitle;
+                    
+                    announcementToDelete = announcementId;
+                    deleteModal.querySelector('.announcement-title').textContent = announcementTitle;
+                    
+                    currentModal = new bootstrap.Modal(deleteModal);
+                    currentModal.show();
+                });
+            });
+        }
+
+        // Debounce the search function
+        const debouncedSearch = debounce(performSearch, 300);
+
+        // Add event listeners
+        searchInput.addEventListener('input', debouncedSearch);
+        categoryCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', debouncedSearch);
+        });
+
+        // Form submit handler
+        filterForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            performSearch();
+        });
+
+        // Clear filters button handler
+        const clearFiltersBtn = document.querySelector('.btn-secondary[href*="announcement-list"]');
+        if (clearFiltersBtn) {
+            clearFiltersBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                searchInput.value = '';
+                categoryCheckboxes.forEach(cb => cb.checked = false);
+                performSearch();
+            });
+        }
+
+        // Initialize delete buttons on page load
+        initializeDeleteButtons();
+
+        // Handle confirmation button click for delete
+        confirmDeleteBtn.addEventListener('click', function() {
+            if (!announcementToDelete) return;
+
+            // Show loading state
+            this.disabled = true;
+            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+            // Send delete request
+            fetch(`/announcements/${announcementToDelete}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    if (currentModal) {
+                        currentModal.hide();
+                    }
+                    // Refresh the search results
+                    performSearch();
+                } else {
+                    throw new Error(data.message || 'Error deleting announcement');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'alert alert-danger mt-3 mb-0';
+                errorDiv.textContent = error.message || 'There was an error deleting the announcement. Please try again.';
+                deleteModal.querySelector('.modal-body').appendChild(errorDiv);
+            })
+            .finally(() => {
+                this.disabled = false;
+                this.innerHTML = '<i class="fas fa-trash"></i> Delete';
+                announcementToDelete = null;
+            });
+        });
+
+        // Clean up error messages when modal is hidden
+        deleteModal.addEventListener('hidden.bs.modal', function () {
+            const errorDiv = this.querySelector('.alert-danger');
+            if (errorDiv) {
+                errorDiv.remove();
+            }
+        });
+
+        // Handle browser back/forward buttons
+        window.addEventListener('popstate', function() {
+            const params = new URLSearchParams(window.location.search);
+            searchInput.value = params.get('q') || '';
+            const selectedCategories = params.getAll('category');
+            categoryCheckboxes.forEach(cb => {
+                cb.checked = selectedCategories.includes(cb.value);
+            });
+            performSearch();
+        });
+    });
+</script>
+{% endblock %} 

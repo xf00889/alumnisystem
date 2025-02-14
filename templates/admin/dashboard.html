@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Admin Dashboard - NORSU Alumni{% endblock %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Dashboard</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-light: #ffffff;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-lg: 0.5rem;
+    }
+
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: 2rem 0;
+    }
+
+    .stats-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+    }
+
+    .stats-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stats-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 1rem;
+    }
+
+    .stats-icon i {
+        font-size: 1.5rem;
+        color: var(--text-light);
+    }
+
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--brand-primary);
+    }
+
+    .stats-label {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 0;
+    }
+
+    .stats-trend {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .stats-trend.positive {
+        color: #48bb78;
+    }
+
+    .stats-trend.negative {
+        color: #e53e3e;
+    }
+
+    .quick-actions {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+    }
+
+    .quick-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: var(--radius-lg);
+        background: var(--ui-hover);
+        color: var(--brand-primary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        margin-bottom: 0.75rem;
+    }
+
+    .quick-action-btn:hover {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        transform: translateX(5px);
+    }
+
+    .recent-activity {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        height: 100%;
+    }
+
+    .activity-item {
+        display: flex;
+        align-items: start;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+
+    .activity-icon {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    .activity-content {
+        flex-grow: 1;
+    }
+
+    .activity-title {
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        color: var(--text-primary);
+    }
+
+    .activity-time {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+    }
+
+    .chart-container {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        height: 100%;
+    }
+
+    .chart-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .chart-legend {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .legend-color {
+        width: 12px;
+        height: 12px;
+        border-radius: 2px;
+    }
+
+    .employment-stats {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+
+    .employment-stat {
+        text-align: center;
+        padding: 1rem;
+        background: var(--ui-hover);
+        border-radius: var(--radius-lg);
+    }
+
+    .employment-number {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--brand-primary);
+    }
+
+    .employment-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">Analytics Dashboard</h1>
+            <div class="btn-group">
+                <a href="{% url 'admin:index' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-cogs me-2"></i>Admin Panel
+                </a>
+                <button class="btn btn-outline-secondary" id="dateRangeBtn">
+                    <i class="fas fa-calendar me-2"></i>
+                    <span>Last 7 Days</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="row g-4 mb-4">
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon" style="background-color: #4e73df;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="stats-number">{{ total_users }}</div>
+                    <p class="stats-label">Total Alumni</p>
+                    <div class="stats-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>{{ user_growth_rate }}% this month</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon" style="background-color: #1cc88a;">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="stats-number">{{ employment_rate }}%</div>
+                    <p class="stats-label">Employment Rate</p>
+                    <div class="stats-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>{{ employment_growth }}% vs last month</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon" style="background-color: #f6c23e;">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                    <div class="stats-number">{{ event_participation_rate }}%</div>
+                    <p class="stats-label">Event Participation</p>
+                    <div class="stats-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>{{ participation_growth }}% increase</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stats-card">
+                    <div class="stats-icon" style="background-color: #e74a3b;">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div class="stats-number">{{ active_groups }}</div>
+                    <p class="stats-label">Active Groups</p>
+                    <div class="stats-trend positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>{{ group_growth }}% growth</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row mb-4">
+            <!-- Employment Distribution -->
+            <div class="col-md-8">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 class="mb-0">Employment Distribution</h4>
+                        <div class="btn-group">
+                            <button class="btn btn-sm btn-outline-secondary active">All</button>
+                            <button class="btn btn-sm btn-outline-secondary">By Department</button>
+                            <button class="btn btn-sm btn-outline-secondary">By Year</button>
+                        </div>
+                    </div>
+                    <canvas id="employmentChart" height="300"></canvas>
+                    <div class="employment-stats">
+                        <div class="employment-stat">
+                            <div class="employment-number">{{ employed_count }}</div>
+                            <div class="employment-label">Employed Alumni</div>
+                        </div>
+                        <div class="employment-stat">
+                            <div class="employment-number">{{ unemployed_count }}</div>
+                            <div class="employment-label">Seeking Opportunities</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Distribution -->
+            <div class="col-md-4">
+                <div class="chart-container">
+                    <h4 class="mb-3">Alumni by Department</h4>
+                    <canvas id="departmentChart"></canvas>
+                    <div class="chart-legend" id="departmentLegend"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Event Analytics -->
+            <div class="col-md-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 class="mb-0">Event Participation Trends</h4>
+                        <select class="form-select form-select-sm" style="width: auto;">
+                            <option>Last 6 Months</option>
+                            <option>Last Year</option>
+                            <option>All Time</option>
+                        </select>
+                    </div>
+                    <canvas id="eventParticipationChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Group Activity -->
+            <div class="col-md-6 mb-4">
+                <div class="chart-container">
+                    <div class="chart-header">
+                        <h4 class="mb-0">Most Active Groups</h4>
+                        <select class="form-select form-select-sm" style="width: auto;">
+                            <option>By Members</option>
+                            <option>By Activity</option>
+                            <option>By Events</option>
+                        </select>
+                    </div>
+                    <canvas id="groupActivityChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Quick Actions -->
+            <div class="col-md-4 mb-4">
+                <div class="quick-actions">
+                    <h4 class="mb-3">Quick Actions</h4>
+                    <a href="{% url 'admin:auth_user_add' %}" class="quick-action-btn">
+                        <i class="fas fa-user-plus"></i>
+                        <span>Add New Alumni</span>
+                    </a>
+                    <a href="{% url 'alumni_groups:group_create' %}" class="quick-action-btn">
+                        <i class="fas fa-users"></i>
+                        <span>Create Alumni Group</span>
+                    </a>
+                    <a href="{% url 'announcements:announcement-create' %}" class="quick-action-btn">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Post Announcement</span>
+                    </a>
+                    <a href="{% url 'events:event_create' %}" class="quick-action-btn">
+                        <i class="fas fa-calendar-plus"></i>
+                        <span>Schedule Event</span>
+                    </a>
+                    <a href="{% url 'admin:auth_group_changelist' %}" class="quick-action-btn">
+                        <i class="fas fa-user-shield"></i>
+                        <span>Manage Permissions</span>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Recent Activity -->
+            <div class="col-md-8 mb-4">
+                <div class="recent-activity">
+                    <h4 class="mb-3">Recent Activity</h4>
+                    {% for activity in recent_activities %}
+                    <div class="activity-item">
+                        <div class="activity-icon" style="background-color: {{ activity.color }};">
+                            <i class="fas {{ activity.icon }} text-white"></i>
+                        </div>
+                        <div class="activity-content">
+                            <div class="activity-title">{{ activity.title }}</div>
+                            <div class="activity-time">{{ activity.timestamp|naturaltime }}</div>
+                        </div>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted">No recent activities</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // Employment Distribution Chart
+    const employmentCtx = document.getElementById('employmentChart').getContext('2d');
+    new Chart(employmentCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ employment_labels|safe }},
+            datasets: [{
+                label: 'Employed',
+                data: {{ employment_data.employed }},
+                backgroundColor: '#4e73df',
+                borderRadius: 6
+            }, {
+                label: 'Seeking Opportunities',
+                data: {{ employment_data.unemployed }},
+                backgroundColor: '#e74a3b',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: true,
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Department Distribution Chart
+    const departmentCtx = document.getElementById('departmentChart').getContext('2d');
+    new Chart(departmentCtx, {
+        type: 'doughnut',
+        data: {
+            labels: {{ department_labels|safe }},
+            datasets: [{
+                data: {{ department_data }},
+                backgroundColor: [
+                    '#4e73df', '#1cc88a', '#f6c23e', '#e74a3b',
+                    '#36b9cc', '#858796', '#5a5c69', '#2c9faf'
+                ],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    display: false
+                }
+            },
+            cutout: '70%'
+        }
+    });
+
+    // Event Participation Chart
+    const participationCtx = document.getElementById('eventParticipationChart').getContext('2d');
+    new Chart(participationCtx, {
+        type: 'line',
+        data: {
+            labels: {{ event_participation_labels|safe }},
+            datasets: [{
+                label: 'Participation Rate',
+                data: {{ event_participation_data }},
+                borderColor: '#1cc88a',
+                tension: 0.4,
+                fill: true,
+                backgroundColor: 'rgba(28, 200, 138, 0.1)'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: true,
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Group Activity Chart
+    const groupActivityCtx = document.getElementById('groupActivityChart').getContext('2d');
+    new Chart(groupActivityCtx, {
+        type: 'bar',
+        data: {
+            labels: {{ group_activity_labels|safe }},
+            datasets: [{
+                label: 'Active Members',
+                data: {{ group_activity_data }},
+                backgroundColor: '#4e73df',
+                borderRadius: 6
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'top',
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        display: true,
+                        drawBorder: false
+                    }
+                },
+                x: {
+                    grid: {
+                        display: false
+                    }
+                }
+            }
+        }
+    });
+
+    // Create department legend
+    const departmentLegend = document.getElementById('departmentLegend');
+    const departments = {{ department_labels|safe }};
+    const colors = ['#4e73df', '#1cc88a', '#f6c23e', '#e74a3b', '#36b9cc', '#858796', '#5a5c69', '#2c9faf'];
+    
+    departments.forEach((dept, index) => {
+        const legendItem = document.createElement('div');
+        legendItem.className = 'legend-item';
+        legendItem.innerHTML = `
+            <div class="legend-color" style="background-color: ${colors[index]}"></div>
+            <span>${dept}</span>
+        `;
+        departmentLegend.appendChild(legendItem);
+    });
+</script>
+{% endblock %} 

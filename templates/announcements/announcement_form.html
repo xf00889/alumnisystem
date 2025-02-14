@@ -1,0 +1,266 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+{% load static %}
+
+{% block title %}
+    {% if form.instance.pk %}Edit{% else %}New{% endif %} Announcement
+{% endblock %}
+
+{% block page_title %}
+    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'announcements:announcement-list' %}">Announcements</a></li>
+<li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Core Design System */
+    :root {
+        /* Brand Colors */
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.5rem;
+        --space-6: 2rem;
+        --space-8: 3rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+    }
+
+    /* Layout */
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: var(--space-4);
+    }
+
+    .form-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: var(--space-2);
+    }
+
+    /* Form Card */
+    .main-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+        overflow: hidden;
+    }
+
+    .card-header {
+        background: var(--brand-primary);
+        padding: var(--space-4);
+        color: var(--text-light);
+    }
+
+    .card-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .card-subtitle {
+        opacity: 0.9;
+        font-size: 0.95rem;
+        margin-top: var(--space-2);
+    }
+
+    .card-body {
+        padding: var(--space-6);
+    }
+
+    /* Form Elements */
+    .form-group {
+        margin-bottom: var(--space-4);
+    }
+
+    .form-label {
+        font-weight: 600;
+        margin-bottom: var(--space-2);
+        color: var(--text-primary);
+    }
+
+    .form-control {
+        width: 100%;
+        padding: var(--space-3);
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        transition: var(--transition-normal);
+    }
+
+    .form-control:focus {
+        border-color: var(--brand-accent);
+        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
+        outline: none;
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--space-3);
+        margin-top: var(--space-6);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .btn {
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        cursor: pointer;
+        transition: var(--transition-normal);
+    }
+
+    .btn-primary {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border: none;
+    }
+
+    .btn-primary:hover {
+        background: var(--brand-accent);
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--ui-hover);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .page-container {
+            padding: var(--space-2);
+        }
+
+        .card-body {
+            padding: var(--space-4);
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="form-container">
+        <div class="main-card">
+            <div class="card-header">
+                <h1 class="card-title">
+                    <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %}"></i>
+                    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement
+                </h1>
+                <p class="card-subtitle">Share important updates with the alumni community</p>
+            </div>
+
+            <div class="card-body">
+                <form method="post" id="announcementForm" novalidate>
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        {{ form.title|as_crispy_field }}
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.category|as_crispy_field }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.priority_level|as_crispy_field }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                {{ form.target_audience|as_crispy_field }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        {{ form.content|as_crispy_field }}
+                    </div>
+
+                    {% if form.instance.pk %}
+                    <div class="form-group">
+                        {{ form.is_active|as_crispy_field }}
+                    </div>
+                    {% endif %}
+
+                    <div class="form-actions">
+                        <a href="{% url 'announcements:announcement-list' %}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas {% if form.instance.pk %}fa-save{% else %}fa-paper-plane{% endif %}"></i>
+                            {% if form.instance.pk %}Update{% else %}Publish{% endif %} Announcement
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

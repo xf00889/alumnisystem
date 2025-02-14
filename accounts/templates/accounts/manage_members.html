@@ -1,0 +1,234 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Manage Members - {{ group.name }}</h2>
+
+    <!-- Tabs -->
+    <ul class="nav nav-tabs" id="memberTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="active-tab" data-bs-toggle="tab" data-bs-target="#active" type="button" role="tab">
+                Active Members
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="pending-tab" data-bs-toggle="tab" data-bs-target="#pending" type="button" role="tab">
+                Pending Members
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="removed-tab" data-bs-toggle="tab" data-bs-target="#removed" type="button" role="tab">
+                Removed Members
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="memberTabsContent">
+        <!-- Active Members Tab -->
+        <div class="tab-pane fade show active" id="active" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Security Answer</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in active_members %}
+                        <tr data-membership-id="{{ membership.id }}">
+                            <td>{{ membership.user.get_full_name }}</td>
+                            <td>{{ membership.user.email }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info view-security-answer" 
+                                        data-membership-id="{{ membership.id }}">
+                                    View Answer
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-danger remove-member" 
+                                        data-membership-id="{{ membership.id }}">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No active members</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Pending Members Tab -->
+        <div class="tab-pane fade" id="pending" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Security Answer</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in pending_members %}
+                        <tr data-membership-id="{{ membership.id }}">
+                            <td>{{ membership.user.get_full_name }}</td>
+                            <td>{{ membership.user.email }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info view-security-answer" 
+                                        data-membership-id="{{ membership.id }}">
+                                    View Answer
+                                </button>
+                            </td>
+                            <td>
+                                <button class="btn btn-sm btn-success accept-member" 
+                                        data-membership-id="{{ membership.id }}">
+                                    Accept
+                                </button>
+                                <button class="btn btn-sm btn-danger remove-member" 
+                                        data-membership-id="{{ membership.id }}">
+                                    Remove
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="4" class="text-center">No pending members</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Removed Members Tab -->
+        <div class="tab-pane fade" id="removed" role="tabpanel">
+            <div class="table-responsive">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Name</th>
+                            <th>Email</th>
+                            <th>Security Answer</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for membership in removed_members %}
+                        <tr>
+                            <td>{{ membership.user.get_full_name }}</td>
+                            <td>{{ membership.user.email }}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info view-security-answer" 
+                                        data-membership-id="{{ membership.id }}">
+                                    View Answer
+                                </button>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="3" class="text-center">No removed members</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Security Answer Modal -->
+<div class="modal fade" id="securityAnswerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Security Answer</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="securityAnswerText"></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% csrf_token %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+    const securityAnswerModal = new bootstrap.Modal(document.getElementById('securityAnswerModal'));
+
+    // View Security Answer
+    document.querySelectorAll('.view-security-answer').forEach(button => {
+        button.addEventListener('click', async function() {
+            const membershipId = this.dataset.membershipId;
+            try {
+                const response = await fetch(`/accounts/member/${membershipId}/security-answer/`);
+                const data = await response.json();
+                document.getElementById('securityAnswerText').textContent = data.answer;
+                securityAnswerModal.show();
+            } catch (error) {
+                console.error('Error:', error);
+                alert('Failed to load security answer');
+            }
+        });
+    });
+
+    // Handle Member Actions (Accept/Remove)
+    async function updateMemberStatus(membershipId, action) {
+        try {
+            const response = await fetch(`/accounts/member/${membershipId}/update-status/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: `action=${action}`
+            });
+
+            if (!response.ok) throw new Error('Network response was not ok');
+            
+            const data = await response.json();
+            if (data.status === 'success') {
+                // Remove the row from the current tab
+                const row = document.querySelector(`tr[data-membership-id="${membershipId}"]`);
+                row.remove();
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Failed to update member status');
+        }
+    }
+
+    // Accept Member
+    document.querySelectorAll('.accept-member').forEach(button => {
+        button.addEventListener('click', function() {
+            updateMemberStatus(this.dataset.membershipId, 'accept');
+        });
+    });
+
+    // Remove Member
+    document.querySelectorAll('.remove-member').forEach(button => {
+        button.addEventListener('click', function() {
+            if (confirm('Are you sure you want to remove this member?')) {
+                updateMemberStatus(this.dataset.membershipId, 'remove');
+            }
+        });
+    });
+});
+</script>
+{% endblock %} 

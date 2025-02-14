@@ -1,0 +1,140 @@
+{% load static %}
+
+{% if alumni %}
+<div class="alumni-grid">
+    {% for alumnus in alumni %}
+    <div class="alumni-card">
+        <div class="alumni-header">
+            <img src="{% if alumnus.user.profile.avatar and alumnus.user.profile.avatar.url %}{{ alumnus.user.profile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
+                 alt="{{ alumnus.full_name }}"
+                 class="alumni-avatar">
+            <h3 class="alumni-name">{{ alumnus.full_name }}</h3>
+            <p class="text-white-50 mb-0" style="margin-left: 110px;">
+                <i class="fas fa-id-card me-1"></i>
+                {{ alumnus.user.username }}
+            </p>
+        </div>
+        <div class="alumni-content">
+            <ul class="alumni-info">
+                <li>
+                    <i class="fas fa-graduation-cap"></i>
+                    <div>
+                        <div>{{ alumnus.course }}</div>
+                        <small class="text-muted">Class of {{ alumnus.graduation_year }}</small>
+                    </div>
+                </li>
+                <li>
+                    <i class="fas fa-map-marker-alt"></i>
+                    <div>
+                        <div>{{ alumnus.city }}, {{ alumnus.province }}</div>
+                        <small class="text-muted">{{ alumnus.country.name }}</small>
+                    </div>
+                </li>
+                <li>
+                    <i class="fas fa-briefcase"></i>
+                    <div>
+                        <div>{{ alumnus.get_employment_status_display }}</div>
+                        {% if alumnus.current_company %}
+                        <small class="text-muted">{{ alumnus.job_title }} at {{ alumnus.current_company }}</small>
+                        {% endif %}
+                    </div>
+                </li>
+                {% if alumnus.skills %}
+                <li>
+                    <i class="fas fa-star"></i>
+                    <div class="d-flex flex-wrap gap-1">
+                        {% with skills=alumnus.skills.split|slice:":3" %}
+                        {% for skill in skills %}
+                        <span class="badge bg-primary-subtle text-primary">{{ skill.strip }}</span>
+                        {% endfor %}
+                        {% if alumnus.skills.split|length > 3 %}
+                        <span class="badge bg-secondary-subtle text-secondary">+{{ alumnus.skills.split|length|add:"-3" }}</span>
+                        {% endif %}
+                        {% endwith %}
+                    </div>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        <div class="alumni-actions">
+            <a href="{% url 'alumni_directory:alumni_detail' alumnus.id %}" 
+               class="btn btn-primary view-details-btn">
+                <i class="fas fa-eye me-1"></i>
+                View Details
+            </a>
+            {% if alumnus.linkedin_profile %}
+            <a href="{{ alumnus.linkedin_profile }}" 
+               target="_blank"
+               class="btn btn-outline-primary">
+                <i class="fab fa-linkedin"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Pagination -->
+{% if alumni.has_other_pages %}
+<nav aria-label="Alumni directory pagination">
+    <ul class="pagination">
+        {% if alumni.has_previous %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="?page={{ alumni.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               aria-label="Previous">
+                <i class="fas fa-chevron-left"></i>
+                <span class="d-none d-sm-inline ms-1">Previous</span>
+            </a>
+        </li>
+        {% endif %}
+
+        {% for num in alumni.paginator.page_range %}
+        {% if alumni.number == num %}
+        <li class="page-item active">
+            <span class="page-link">{{ num }}</span>
+        </li>
+        {% elif num > alumni.number|add:'-3' and num < alumni.number|add:'3' %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">
+                {{ num }}
+            </a>
+        </li>
+        {% endif %}
+        {% endfor %}
+
+        {% if alumni.has_next %}
+        <li class="page-item">
+            <a class="page-link" 
+               href="?page={{ alumni.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" 
+               aria-label="Next">
+                <span class="d-none d-sm-inline me-1">Next</span>
+                <i class="fas fa-chevron-right"></i>
+            </a>
+        </li>
+        {% endif %}
+    </ul>
+</nav>
+{% endif %}
+{% else %}
+<div class="text-center py-5">
+    <div class="mb-4">
+        <i class="fas fa-search fa-3x text-muted"></i>
+    </div>
+    <h4 class="text-muted mb-3">No alumni found</h4>
+    <p class="text-muted mb-4">
+        {% if selected_filters.search or selected_filters.graduation_year or selected_filters.course or selected_filters.province or selected_filters.employment_status %}
+        Try adjusting your filters or search terms
+        {% else %}
+        There are no alumni registered in the directory yet
+        {% endif %}
+    </p>
+    <button type="button" 
+            class="btn btn-primary" 
+            id="clearFilters">
+        <i class="fas fa-times me-2"></i>
+        Clear All Filters
+    </button>
+</div>
+{% endif %} 
