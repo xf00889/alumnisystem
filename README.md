@@ -1,101 +1,107 @@
-# alumniweb
+# NORSU Alumni Web Portal
 
+> ⚠️ **Note:** This project is currently under development.
 
-A Cursor-powered AI development environment with advanced agentic capabilities.
+A comprehensive web platform for Negros Oriental State University (NORSU) alumni to connect, network, and stay engaged with their alma mater.
 
+## Features
 
-## Quick Start
+- **Alumni Directory**: Search and connect with fellow alumni
+- **Alumni Groups**: Create and join groups based on batch, course, or interests
+- **Events Management**: Post and participate in alumni events and gatherings
+- **Chat System**: Real-time communication between alumni
+- **Announcements**: Stay updated with university and alumni news
+- **Profile Management**: Showcase educational and professional achievements
 
-1. Activate the virtual environment:
+## Technology Stack
+
+- **Backend**: Django 4.2
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Database**: SQLite (Development) / PostgreSQL (Production)
+- **Real-time Communication**: Django Channels
+- **Authentication**: Django Authentication System
+
+## Installation
+
+1. Clone the repository:
    ```bash
-   # On Windows
+   git clone https://github.com/xf00889/alumnisystem.git
+   cd alumnisystem
+   ```
+
+2. Create and activate virtual environment:
+   ```bash
+   python -m venv venv
+   
+   # Windows
    venv\Scripts\activate
    
-   # On macOS/Linux
+   # Linux/Mac
    source venv/bin/activate
    ```
 
-2. Configure your environment:
-   - Copy `.env.example` to `.env` if you haven't already
-   - Add your API keys in `.env` (optional)
+3. Install dependencies:
+   ```bash
+   pip install -r requirements.txt
+   ```
 
-## Available Tools
+4. Set up environment variables:
+   ```bash
+   cp .env.example .env
+   # Edit .env with your configuration
+   ```
 
-Your project includes several powerful tools in the `tools/` directory:
+5. Run migrations:
+   ```bash
+   python manage.py migrate
+   ```
 
-### LLM Integration
-```python
-from tools.llm_api import query_llm
+6. Create superuser:
+   ```bash
+   python manage.py createsuperuser
+   ```
 
-# Use LLM for assistance
-response = query_llm(
-    "Your question here",
-    provider="anthropic"  # Options: openai, anthropic, azure_openai, deepseek, gemini
-)
-print(response)
+7. Run the development server:
+   ```bash
+   python manage.py runserver
+   ```
+
+## Project Structure
+
+```
+alumnisystem/
+├── accounts/          # User authentication and profiles
+├── alumni_directory/  # Alumni listing and search
+├── alumni_groups/     # Group management
+├── announcements/     # News and updates
+├── chat/             # Real-time messaging
+├── events/           # Event management
+├── core/             # Core functionality
+└── templates/        # HTML templates
 ```
 
-### Web Scraping
-```python
-from tools.web_scraper import scrape_urls
+## Contributing
 
-# Scrape web content
-results = scrape_urls(["https://example.com"], max_concurrent=3)
-```
+1. Fork the repository
+2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-### Search Engine
-```python
-from tools.search_engine import search
+## Security
 
-# Search the web
-results = search("your search keywords")
-```
+- Protected user data and privacy
+- Secure authentication system
+- Regular security updates
+- Input validation and sanitization
 
+## Support
 
-### Screenshot Verification
-```python
-from tools.screenshot_utils import take_screenshot_sync
-from tools.llm_api import query_llm
-
-# Take and analyze screenshots
-screenshot_path = take_screenshot_sync('https://example.com', 'screenshot.png')
-analysis = query_llm(
-    "Describe this webpage",
-    provider="openai",
-    image_path=screenshot_path
-)
-```
-
-Note: When you first use the screenshot verification feature, Playwright browsers will be installed automatically.
-
-
-## AI Assistant Configuration
-
-
-This project uses `.cursorrules` to configure the AI assistant. The assistant can:
-- Help with coding tasks
-- Verify screenshots
-- Perform web searches
-- Analyze images and code
-
-
-## Environment Variables
-
-Configure these in your `.env` file:
-
-- `LLM_API_KEY`: Your LLM API key (optional)
-- `AZURE_OPENAI_API_KEY`: Azure OpenAI API key (optional)
-- `AZURE_OPENAI_ENDPOINT`: Azure OpenAI endpoint (optional)
-- `AZURE_OPENAI_MODEL_DEPLOYMENT`: Azure OpenAI model deployment name (optional)
-
-Note: Basic functionality works without API keys. Advanced features (like multimodal analysis) require appropriate API keys.
-
-## Development Tools
-
-- `.devcontainer/`: VS Code development container configuration
-- `.vscode.example/`: Recommended VS Code settings
-- `.github/`: CI/CD workflows
+For support, please contact the development team or create an issue in the repository.
 
 ## License
 
-MIT License
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+---
+Developed for Negros Oriental State University © 2024
