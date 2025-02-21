@@ -19,6 +19,7 @@ urlpatterns = [
     
     # Security Questions Management
     path('<slug:slug>/security-questions/', views.manage_security_questions, name='manage_security_questions'),
+    path('<slug:slug>/settings/update/', views.update_group_settings, name='update_group_settings'),
     path('<slug:slug>/review-answers/<int:membership_id>/', views.review_membership_answers, name='review_membership_answers'),
     
     # API Endpoints
@@ -28,4 +29,11 @@ urlpatterns = [
     path('api/<slug:slug>/messages/get/', views.get_messages, name='get_messages'),
     path('api/member/<int:membership_id>/status/', views.update_member_status, name='update_member_status'),
     path('api/member/<int:membership_id>/security-answers/', views.get_security_answers, name='get_security_answers'),
+
+    # Feed URLs
+    path('group/<slug:slug>/post/create/', views.create_post, name='create_post'),
+    path('api/post/<int:post_id>/like/', views.like_post, name='like_post'),
+    path('api/post/<int:post_id>/comment/', views.add_comment, name='add_comment'),
+    path('api/post/<int:post_id>/comments/', views.get_post_comments, name='get_post_comments'),
+    path('api/post/<int:post_id>/approve/', views.approve_post, name='approve_post'),
 ] 

@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load crispy_forms_tags %}
+
+{% block title %}Update Feedback{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'feedback:manage_feedbacks' %}">Manage Feedbacks</a>
+</li>
+<li class="breadcrumb-item active">Update Feedback</li>
+{% endblock %}
+
+{% block page_title %}Update Feedback{% endblock %}
+
+{% block extra_css %}
+<style>
+    .feedback-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .feedback-content {
+        background-color: #f8f9fa;
+        padding: 1.5rem;
+        border-radius: 0.375rem;
+        margin-bottom: 2rem;
+    }
+    
+    .feedback-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .feedback-message {
+        background-color: white;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        margin-top: 1rem;
+    }
+    
+    .attachment-section {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid #dee2e6;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="feedback-container">
+    <div class="feedback-content">
+        <div class="feedback-meta">
+            <div class="meta-item">
+                <i class="fas fa-user text-muted"></i>
+                <span>{{ feedback.user.email|default:"Anonymous" }}</span>
+            </div>
+            <div class="meta-item">
+                <i class="fas fa-calendar text-muted"></i>
+                <span>{{ feedback.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <div class="meta-item">
+                <i class="fas fa-tag text-muted"></i>
+                <span class="badge bg-info">{{ feedback.get_category_display }}</span>
+            </div>
+            <div class="meta-item">
+                <i class="fas fa-flag text-muted"></i>
+                <span class="badge bg-{% if feedback.priority == 'urgent' %}danger{% elif feedback.priority == 'high' %}warning{% elif feedback.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                    {{ feedback.get_priority_display }}
+                </span>
+            </div>
+        </div>
+        
+        <h5 class="mb-3">{{ feedback.subject }}</h5>
+        
+        <div class="feedback-message">
+            {{ feedback.message|linebreaks }}
+        </div>
+        
+        {% if feedback.attachment %}
+            <div class="attachment-section">
+                <h6 class="fw-bold mb-2">Attachment</h6>
+                <a href="{{ feedback.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-paperclip me-1"></i>
+                    View Attachment
+                </a>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Update Status & Add Notes</h5>
+        </div>
+        <div class="card-body">
+            <form method="post" novalidate>
+                {% csrf_token %}
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        {{ form.status|as_crispy_field }}
+                    </div>
+                    <div class="col-md-6">
+                        {{ form.priority|as_crispy_field }}
+                    </div>
+                </div>
+                
+                {{ form.admin_notes|as_crispy_field }}
+                
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-save me-2"></i>Save Changes
+                    </button>
+                    <a href="{% url 'feedback:manage_feedbacks' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %} 

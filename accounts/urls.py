@@ -4,7 +4,7 @@ from . import views
 app_name = 'accounts'
 
 urlpatterns = [
-    path('', views.ProfileDetailView.as_view(), name='profile_detail'),
+    path('', views.profile_detail, name='profile_detail'),
     path('edit/', views.edit_personal_info, name='edit_profile'),
     path('update/', views.profile_update, name='profile_update'),
     path('update/personal-info/', views.update_personal_info, name='update_personal_info'),
@@ -22,4 +22,12 @@ urlpatterns = [
     path('group/<int:group_id>/manage-members/', views.manage_members, name='manage_members'),
     path('member/<int:membership_id>/update-status/', views.update_member_status, name='update_member_status'),
     path('member/<int:membership_id>/security-answer/', views.view_security_answer, name='view_security_answer'),
+    # Career Path URLs
+    path('career-path/add/', views.add_career_path, name='add_career_path'),
+    path('career-path/<int:pk>/edit/', views.edit_career_path, name='edit_career_path'),
+    path('career-path/<int:pk>/delete/', views.delete_career_path, name='delete_career_path'),
+    # Achievement URLs
+    path('achievement/add/', views.add_achievement, name='add_achievement'),
+    path('achievement/<int:pk>/edit/', views.edit_achievement, name='edit_achievement'),
+    path('achievement/<int:pk>/delete/', views.delete_achievement, name='delete_achievement'),
 ] 

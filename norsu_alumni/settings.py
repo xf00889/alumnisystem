@@ -27,7 +27,7 @@ SECRET_KEY = config('SECRET_KEY')
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True  # Force debug mode for development
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1']
+ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.134.71']
 
 
 # Application definition
@@ -47,7 +47,8 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'allauth',
     'allauth.account',
-    'allauth.socialaccount',
+    # 'allauth.socialaccount',  # Comment out or remove
+    # 'allauth.socialaccount.providers.facebook',  # Remove Facebook provider
     'phonenumber_field',
     'ckeditor',
     'ckeditor_uploader',
@@ -58,6 +59,7 @@ INSTALLED_APPS = [
     'taggit',
     'rest_framework',
     'channels',  # Add channels
+    'django_extensions',  # Add django_extensions
     
     # Local apps
     'accounts.apps.AccountsConfig',
@@ -67,6 +69,7 @@ INSTALLED_APPS = [
     'alumni_directory.apps.AlumniDirectoryConfig',
     'events.apps.EventsConfig',
     'chat.apps.ChatConfig',  # Add chat app
+    'feedback.apps.FeedbackConfig',  # Add feedback app
 ]
 
 MIDDLEWARE = [
@@ -172,6 +175,35 @@ AUTHENTICATION_BACKENDS = [
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
+# Skip the intermediate "Sign In Via Facebook" page
+SOCIALACCOUNT_LOGIN_ON_GET = True
+
+# Social Account Providers Configuration
+# SOCIALACCOUNT_PROVIDERS = {
+#     'facebook': {
+#         'METHOD': 'oauth2',
+#         'SCOPE': ['email', 'public_profile'],
+#         'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
+#         'INIT_PARAMS': {'cookie': True},
+#         'FIELDS': [
+#             'id',
+#             'email',
+#             'name',
+#             'first_name',
+#             'last_name',
+#             'verified',
+#             'locale',
+#             'timezone',
+#             'link',
+#             'gender',
+#             'updated_time',
+#         ],
+#         'EXCHANGE_TOKEN': True,
+#         'VERIFIED_EMAIL': False,
+#         'VERSION': 'v13.0',
+#     }
+# }
+
 SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
@@ -204,7 +236,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # Site URL for email links
-SITE_URL = 'http://localhost:8000'
+SITE_URL = 'https://127.0.0.1:8000'
 
 # Logging Configuration
 LOGGING = {
@@ -249,23 +281,22 @@ CACHE_MIDDLEWARE_SECONDS = 300
 CACHE_MIDDLEWARE_KEY_PREFIX = ''
 
 # Cookie Settings
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = True
+CSRF_COOKIE_SECURE = True
 SESSION_COOKIE_HTTPONLY = False
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
-    # Add your production domain here when deploying
+    'https://127.0.0.1:8000',
+    'https://localhost:8000',
 ]
 
 # Security Settings
 USE_X_FORWARDED_HOST = False
 USE_X_FORWARDED_PORT = False
-SECURE_PROXY_SSL_HEADER = None
-SECURE_SSL_REDIRECT = False
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SECURE_SSL_REDIRECT = True
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
@@ -332,13 +363,13 @@ CKEDITOR_CONFIGS = {
 }
 
 # Django AllAuth Settings
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
+ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
 
 # Site Settings
-SITE_URL = 'http://localhost:8000'
+SITE_URL = 'https://127.0.0.1:8000'
 CSRF_TRUSTED_ORIGINS = [
-    'http://localhost:8000',
-    'http://127.0.0.1:8000',
+    'https://127.0.0.1:8000',
+    'https://localhost:8000',
 ]
 
 # Email settings - force HTTP

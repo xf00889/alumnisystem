@@ -5,6 +5,7 @@ from rest_framework import viewsets, status, permissions
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.models import User
+from django.contrib import messages
 from .models import Conversation, Message, UserBlock
 from .serializers import (
     ConversationSerializer,
@@ -16,7 +17,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic import TemplateView, ListView, DetailView
 from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from alumni_directory.models import Alumni
 import logging
@@ -34,6 +35,8 @@ class ChatView(LoginRequiredMixin, TemplateView):
         # Get conversations
         conversations = Conversation.objects.filter(
             participants=self.request.user
+        ).prefetch_related(
+            'messages'
         ).annotate(
             latest_message_time=Max('messages__timestamp'),
             unread_count=Count(
@@ -44,8 +47,14 @@ class ChatView(LoginRequiredMixin, TemplateView):
             Coalesce('latest_message_time', 'created_at').desc()
         )
         
+        # Add last message to each conversation
+        for conversation in conversations:
+            conversation.last_message = conversation.messages.filter(
+                is_deleted=False
+            ).order_by('-timestamp').first()
+        
         # Get current conversation if specified
-        conversation_id = self.request.GET.get('conversation')
+        conversation_id = self.kwargs.get('conversation') or self.request.GET.get('conversation')
         current_conversation = None
         chat_messages = []
         if conversation_id:
@@ -139,7 +148,7 @@ def new_conversation(request):
             )
             conversation.participants.add(request.user, *participant_ids)
             
-            return redirect('chat:chat', conversation=conversation.id)
+            return redirect('chat:chat_with_id', conversation=conversation.id)
             
         except Exception as e:
             logger.error(f"Error creating conversation: {str(e)}")
@@ -175,7 +184,7 @@ def send_message(request, conversation_id):
             content=content
         )
     
-    return redirect('chat:chat', conversation=conversation.id)
+    return redirect('chat:chat_with_id', conversation=conversation.id)
 
 @login_required
 @require_POST
@@ -191,7 +200,7 @@ def start_conversation(request, user_id):
     ).first()
     
     if existing_chat:
-        return redirect('chat:chat', conversation=existing_chat.id)
+        return redirect('chat:chat_with_id', conversation=existing_chat.id)
     
     # Create new conversation
     conversation = Conversation.objects.create(
@@ -200,7 +209,7 @@ def start_conversation(request, user_id):
     )
     conversation.participants.add(request.user, other_user)
     
-    return redirect('chat:chat', conversation=conversation.id)
+    return redirect('chat:chat_with_id', conversation=conversation.id)
 
 @login_required
 def open_conversation(request, user_id):
@@ -221,7 +230,7 @@ def open_conversation(request, user_id):
         )
         conversation.participants.add(request.user, other_user)
     
-    return redirect('chat:chat', conversation=conversation.id)
+    return redirect('chat:chat_with_id', conversation=conversation.id)
 
 class ConversationViewSet(viewsets.ModelViewSet):
     serializer_class = ConversationSerializer
@@ -414,3 +423,135 @@ class UserBlockViewSet(viewsets.ModelViewSet):
         block = self.get_object()
         block.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+@login_required
+def search_users(request):
+    query = request.GET.get('q', '').strip()
+    
+    if len(query) < 2:
+        return JsonResponse([])
+    
+    # Get blocked users
+    blocked_users = set(UserBlock.objects.filter(
+        blocker=request.user
+    ).values_list('blocked_id', flat=True))
+    
+    # Base queryset
+    users = User.objects.exclude(
+        id__in=list(blocked_users) + [request.user.id]
+    ).select_related('alumni', 'profile')
+    
+    # Apply search
+    users = users.filter(
+        Q(username__icontains=query) |
+        Q(first_name__icontains=query) |
+        Q(last_name__icontains=query) |
+        Q(email__icontains=query) |
+        Q(alumni__course__icontains=query) |
+        Q(alumni__college__icontains=query) |
+        Q(alumni__campus__icontains=query) |
+        Q(alumni__graduation_year__icontains=query)
+    ).distinct()[:20]  # Limit to 20 results
+    
+    # Format results
+    results = []
+    for user in users:
+        user_data = {
+            'id': user.id,
+            'username': user.username,
+            'full_name': user.get_full_name() or user.username,
+            'profile_avatar': user.profile.avatar.url if user.profile.avatar else None,
+            'alumni_info': None
+        }
+        
+        if hasattr(user, 'alumni') and user.alumni:
+            alumni_info = [user.alumni.course]
+            if user.alumni.college:
+                alumni_info.append(user.alumni.get_college_display())
+            if user.alumni.graduation_year:
+                alumni_info.append(f"Batch {user.alumni.graduation_year}")
+            user_data['alumni_info'] = ' • '.join(alumni_info)
+        
+        results.append(user_data)
+    
+    return JsonResponse(results, safe=False)
+
+@login_required
+@require_POST
+def delete_message(request, message_id):
+    message = get_object_or_404(Message, id=message_id)
+    
+    # Check if user owns the message
+    if message.sender != request.user:
+        messages.error(request, "You don't have permission to delete this message.")
+        return redirect('chat:chat_with_id', conversation=message.conversation.id)
+    
+    conversation_id = message.conversation.id
+    message.soft_delete()  # Use soft delete to maintain conversation history
+    
+    messages.success(request, "Message deleted successfully.")
+    return redirect('chat:chat_with_id', conversation=conversation_id)
+
+@login_required
+@require_POST
+def delete_conversation(request, conversation_id):
+    conversation = get_object_or_404(Conversation, id=conversation_id)
+    
+    # Check if user is part of the conversation
+    if request.user not in conversation.participants.all():
+        messages.error(request, "You don't have permission to delete this conversation.")
+        return redirect('chat:chat')
+    
+    # Remove user from conversation participants
+    conversation.participants.remove(request.user)
+    
+    # If no participants left, delete the conversation
+    if conversation.participants.count() == 0:
+        conversation.delete()
+    
+    messages.success(request, "Conversation deleted successfully.")
+    return redirect('chat:chat')
+
+@login_required
+@require_POST
+def create_group(request):
+    try:
+        name = request.POST.get('name', '').strip()
+        member_ids = request.POST.get('member_ids', '').split(',')
+        photo = request.FILES.get('photo')
+        
+        if not name:
+            messages.error(request, 'Group name is required')
+            return redirect('chat:chat')
+        
+        if not member_ids or member_ids[0] == '':
+            messages.error(request, 'Please select at least one member')
+            return redirect('chat:chat')
+        
+        # Create group conversation
+        conversation = Conversation.objects.create(
+            name=name,
+            is_group_chat=True,
+            created_by=request.user,
+            photo=photo
+        )
+        
+        # Add creator and members
+        member_ids = [int(id) for id in member_ids if id]
+        users = User.objects.filter(id__in=member_ids)
+        conversation.participants.add(request.user, *users)
+        
+        # Create welcome message
+        Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            content=f'Group "{name}" created'
+        )
+        
+        messages.success(request, 'Group created successfully')
+        return redirect('chat:chat_with_id', conversation=conversation.id)
+        
+    except Exception as e:
+        logger.error(f"Error creating group: {str(e)}")
+        messages.error(request, 'An error occurred while creating the group')
+        return redirect('chat:chat')

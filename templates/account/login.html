@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 {% load i18n %}
-{% load account socialaccount %}
+{% load account %}
 {% load crispy_forms_tags %}
 {% load static %}
 
@@ -48,7 +48,7 @@
         color: var(--primary-color);
         font-size: 2rem;
         font-weight: 600;
-        margin-bottom: 1rem;
+        margin-bottom: 0.5rem;
     }
 
     .auth-subtitle {
@@ -96,6 +96,8 @@
     .auth-links {
         text-align: center;
         margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid #e1e5ee;
     }
 
     .auth-links a {
@@ -109,23 +111,21 @@
         color: var(--primary-dark);
     }
 
-    .divider {
-        display: flex;
-        align-items: center;
-        text-align: center;
-        margin: 1.5rem 0;
+    .terms-text {
+        font-size: 0.875rem;
         color: var(--text-secondary);
+        text-align: center;
+        margin-top: 1.5rem;
     }
 
-    .divider::before,
-    .divider::after {
-        content: '';
-        flex: 1;
-        border-bottom: 1px solid #e1e5ee;
+    .terms-text a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
     }
 
-    .divider span {
-        padding: 0 1rem;
+    .terms-text a:hover {
+        text-decoration: underline;
     }
 
     @keyframes fadeInUp {
@@ -156,7 +156,7 @@
             
             <div class="auth-header">
                 <h1 class="auth-title">Welcome Back</h1>
-                <p class="auth-subtitle">Sign in to continue to your account</p>
+                <p class="auth-subtitle">Sign in to your account</p>
             </div>
 
             <form class="login" method="POST" action="{% url 'account_login' %}">
@@ -168,19 +168,21 @@
                 <button class="btn btn-auth btn-auth-primary" type="submit">{% trans "Sign In" %}</button>
             </form>
 
-            <div class="divider">
-                <span>or</span>
-            </div>
-
             <div class="auth-links">
+                <p>
+                    <a href="{% url 'account_reset_password' %}">Forgot Password?</a>
+                </p>
                 <p>
                     Don't have an account? 
                     <a href="{{ signup_url }}">Sign up</a>
                 </p>
-                <p>
-                    <a href="{% url 'account_reset_password' %}">Forgot your password?</a>
-                </p>
             </div>
+
+            <p class="terms-text">
+                By signing in, you agree to our 
+                <a href="#">Terms of Service</a> and 
+                <a href="#">Privacy Policy</a>
+            </p>
         </div>
     </div>
 </section>

@@ -30,6 +30,7 @@ urlpatterns = [
     path('alumni-directory/', include('alumni_directory.urls', namespace='alumni_directory')),
     path('events/', include('events.urls', namespace='events')),  # Events app URLs
     path('chat/', include('chat.urls')),  # Add chat URLs
+    path('feedback/', include('feedback.urls', namespace='feedback')),  # Feedback app URLs
 ]
 
 if settings.DEBUG:

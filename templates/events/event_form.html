@@ -7,136 +7,582 @@
 {% endblock %}
 
 {% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'events:event_list' %}">Events</a></li>
+<li class="breadcrumb-item"><a href="{% url 'events:event_list' %}" class="text-decoration-none">Events</a></li>
 <li class="breadcrumb-item active">{% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}</li>
 {% endblock %}
 
+{% block page_title %}{% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}{% endblock %}
+
 {% block content %}
 <div class="container py-4">
-    <nav aria-label="breadcrumb" class="mb-4">
-        <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a href="{% url 'events:event_list' %}">Events</a></li>
-            <li class="breadcrumb-item active" aria-current="page">
-                {% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}
-            </li>
-        </ol>
-    </nav>
+    <!-- Page Header -->
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h1 class="h2 mb-1">
+                {% if form.instance.pk %}Edit Event{% else %}Create New Event{% endif %}
+            </h1>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-0">
+                    <li class="breadcrumb-item"><a href="{% url 'core:home' %}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'events:event_list' %}" class="text-decoration-none">Events</a></li>
+                    <li class="breadcrumb-item active">{% if form.instance.pk %}Edit Event{% else %}Create Event{% endif %}</li>
+                </ol>
+            </nav>
+        </div>
+        <a href="{% url 'events:event_list' %}" class="btn btn-outline-primary">
+            <i class="fas fa-arrow-left me-2"></i>Back to Events
+        </a>
+    </div>
 
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
-            <div class="card shadow-sm">
-                <div class="card-header">
-                    <h1 class="h3 mb-0">
-                        {% if form.instance.pk %}
-                            Edit Event: {{ form.instance.title }}
-                        {% else %}
-                            Create New Event
-                        {% endif %}
-                    </h1>
+    <!-- Form Card -->
+    <div class="card border-0 shadow-sm">
+        <div class="card-header bg-gradient-primary text-white py-3">
+            <div class="d-flex align-items-center">
+                <div class="header-icon bg-white bg-opacity-10 rounded-circle p-3 me-3">
+                    {% if form.instance.pk %}
+                        <i class="fas fa-edit fa-lg text-white"></i>
+                    {% else %}
+                        <i class="fas fa-plus-circle fa-lg text-white"></i>
+                    {% endif %}
                 </div>
-                <div class="card-body">
-                    <form method="post" enctype="multipart/form-data" novalidate>
-                        {% csrf_token %}
-                        
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                {{ form.title|as_crispy_field }}
-                            </div>
-                        </div>
+                <h3 class="card-title mb-0 fw-semibold">
+                    {% if form.instance.pk %}
+                        Edit: {{ form.instance.title }}
+                    {% else %}
+                        Create New Event
+                    {% endif %}
+                </h3>
+            </div>
+        </div>
+        
+        <div class="card-body p-4">
+            {% if form.errors %}
+            <div class="alert alert-danger alert-dismissible fade show mb-4" role="alert">
+                <div class="d-flex align-items-center">
+                    <div class="alert-icon bg-danger bg-opacity-10 rounded-circle p-3 me-3">
+                        <i class="fas fa-exclamation-circle fa-lg text-danger"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading mb-1">Please correct the following errors:</h5>
+                        <ul class="list-unstyled mb-0">
+                        {% for field, errors in form.errors.items %}
+                            {% for error in errors %}
+                                <li><i class="fas fa-times-circle me-2"></i>{{ field|title }}: {{ error }}</li>
+                            {% endfor %}
+                        {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            </div>
+            {% endif %}
 
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.start_date|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.end_date|as_crispy_field }}
-                            </div>
+            <form method="post" enctype="multipart/form-data" id="eventForm" novalidate>
+                {% csrf_token %}
+                
+                <!-- Basic Information -->
+                <div class="form-section mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon bg-primary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="fas fa-info-circle text-primary"></i>
                         </div>
-
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                {{ form.description|as_crispy_field }}
+                        <h4 class="section-title mb-0">Basic Information</h4>
+                    </div>
+                    <div class="section-content">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="{{ form.title.id_for_label }}" class="form-label">Title<span class="text-danger">*</span></label>
+                                    <input type="text" name="{{ form.title.name }}" 
+                                           id="{{ form.title.id_for_label }}" 
+                                           class="form-control {% if form.title.errors %}is-invalid{% endif %}"
+                                           value="{{ form.title.value|default:'' }}"
+                                           placeholder="Enter event title"
+                                           required>
+                                    {% if form.title.errors %}
+                                        <div class="invalid-feedback">{{ form.title.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
                             </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.location|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.max_participants|as_crispy_field }}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.is_virtual|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.virtual_link|as_crispy_field }}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                {{ form.status|as_crispy_field }}
-                            </div>
-                            <div class="col-md-6 mb-3">
-                                {{ form.image|as_crispy_field }}
-                            </div>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-12 mb-3">
-                                <div class="card">
-                                    <div class="card-header">
-                                        <h5 class="mb-0">Notify Groups</h5>
-                                    </div>
-                                    <div class="card-body">
-                                        {{ form.notified_groups|as_crispy_field }}
-                                    </div>
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label for="{{ form.description.id_for_label }}" class="form-label">Description<span class="text-danger">*</span></label>
+                                    <textarea name="{{ form.description.name }}" 
+                                              id="{{ form.description.id_for_label }}" 
+                                              class="form-control {% if form.description.errors %}is-invalid{% endif %}"
+                                              rows="6"
+                                              placeholder="Enter event description"
+                                              required>{{ form.description.value|default:'' }}</textarea>
+                                    {% if form.description.errors %}
+                                        <div class="invalid-feedback">{{ form.description.errors|join:", " }}</div>
+                                    {% endif %}
                                 </div>
                             </div>
                         </div>
-
-                        <div class="d-flex justify-content-between">
-                            <a href="{% url 'events:event_list' %}" class="btn btn-outline-secondary">
-                                <i class="bi bi-arrow-left"></i> Back to Events
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="bi bi-save"></i> 
-                                {% if form.instance.pk %}Save Changes{% else %}Create Event{% endif %}
-                            </button>
-                        </div>
-                    </form>
+                    </div>
                 </div>
-            </div>
+
+                <!-- Date and Time -->
+                <div class="form-section mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon bg-success bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="fas fa-calendar-alt text-success"></i>
+                        </div>
+                        <h4 class="section-title mb-0">Date and Time</h4>
+                    </div>
+                    <div class="section-content">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.start_date.id_for_label }}" class="form-label">Start Date & Time<span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="{{ form.start_date.name }}" 
+                                           id="{{ form.start_date.id_for_label }}" 
+                                           class="form-control {% if form.start_date.errors %}is-invalid{% endif %}"
+                                           value="{{ form.start_date.value|default:'' }}"
+                                           required>
+                                    {% if form.start_date.errors %}
+                                        <div class="invalid-feedback">{{ form.start_date.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.end_date.id_for_label }}" class="form-label">End Date & Time<span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="{{ form.end_date.name }}" 
+                                           id="{{ form.end_date.id_for_label }}" 
+                                           class="form-control {% if form.end_date.errors %}is-invalid{% endif %}"
+                                           value="{{ form.end_date.value|default:'' }}"
+                                           required>
+                                    {% if form.end_date.errors %}
+                                        <div class="invalid-feedback">{{ form.end_date.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Location Details -->
+                <div class="form-section mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon bg-info bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="fas fa-map-marker-alt text-info"></i>
+                        </div>
+                        <h4 class="section-title mb-0">Location Details</h4>
+                    </div>
+                    <div class="section-content">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <div class="form-check form-switch">
+                                        <input type="checkbox" name="{{ form.is_virtual.name }}" 
+                                               id="{{ form.is_virtual.id_for_label }}" 
+                                               class="form-check-input"
+                                               {% if form.is_virtual.value %}checked{% endif %}>
+                                        <label class="form-check-label" for="{{ form.is_virtual.id_for_label }}">Virtual Event</label>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.max_participants.id_for_label }}" class="form-label">Maximum Participants</label>
+                                    <input type="number" name="{{ form.max_participants.name }}" 
+                                           id="{{ form.max_participants.id_for_label }}" 
+                                           class="form-control {% if form.max_participants.errors %}is-invalid{% endif %}"
+                                           value="{{ form.max_participants.value|default:'' }}"
+                                           min="1"
+                                           placeholder="Enter maximum participants">
+                                    {% if form.max_participants.errors %}
+                                        <div class="invalid-feedback">{{ form.max_participants.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-12" id="locationField">
+                                <div class="form-group">
+                                    <label for="{{ form.location.id_for_label }}" class="form-label">Location<span class="text-danger">*</span></label>
+                                    <input type="text" name="{{ form.location.name }}" 
+                                           id="{{ form.location.id_for_label }}" 
+                                           class="form-control {% if form.location.errors %}is-invalid{% endif %}"
+                                           value="{{ form.location.value|default:'' }}"
+                                           placeholder="Enter event location">
+                                    {% if form.location.errors %}
+                                        <div class="invalid-feedback">{{ form.location.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-12" id="virtualLinkField" style="display: none;">
+                                <div class="form-group">
+                                    <label for="{{ form.virtual_link.id_for_label }}" class="form-label">Virtual Link<span class="text-danger">*</span></label>
+                                    <input type="url" name="{{ form.virtual_link.name }}" 
+                                           id="{{ form.virtual_link.id_for_label }}" 
+                                           class="form-control {% if form.virtual_link.errors %}is-invalid{% endif %}"
+                                           value="{{ form.virtual_link.value|default:'' }}"
+                                           placeholder="Enter meeting link">
+                                    {% if form.virtual_link.errors %}
+                                        <div class="invalid-feedback">{{ form.virtual_link.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Event Settings -->
+                <div class="form-section mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon bg-warning bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="fas fa-cog text-warning"></i>
+                        </div>
+                        <h4 class="section-title mb-0">Event Settings</h4>
+                    </div>
+                    <div class="section-content">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.status.id_for_label }}" class="form-label">Status<span class="text-danger">*</span></label>
+                                    <select name="{{ form.status.name }}" 
+                                            id="{{ form.status.id_for_label }}" 
+                                            class="form-select {% if form.status.errors %}is-invalid{% endif %}"
+                                            required>
+                                        {% for value, text in form.status.field.choices %}
+                                            <option value="{{ value }}" {% if form.status.value == value %}selected{% endif %}>{{ text }}</option>
+                                        {% endfor %}
+                                    </select>
+                                    {% if form.status.errors %}
+                                        <div class="invalid-feedback">{{ form.status.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="form-group">
+                                    <label for="{{ form.image.id_for_label }}" class="form-label">Event Image</label>
+                                    <input type="file" name="{{ form.image.name }}" 
+                                           id="{{ form.image.id_for_label }}" 
+                                           class="form-control {% if form.image.errors %}is-invalid{% endif %}"
+                                           accept="image/*">
+                                    {% if form.image.errors %}
+                                        <div class="invalid-feedback">{{ form.image.errors|join:", " }}</div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Notifications -->
+                <div class="form-section mb-4">
+                    <div class="section-header d-flex align-items-center mb-3">
+                        <div class="section-icon bg-secondary bg-opacity-10 rounded-circle p-2 me-3">
+                            <i class="fas fa-bell text-secondary"></i>
+                        </div>
+                        <h4 class="section-title mb-0">Notifications</h4>
+                    </div>
+                    <div class="section-content">
+                        <div class="form-group">
+                            <label class="form-label d-block mb-2">Notify Groups</label>
+                            <div class="row g-3">
+                                {% for group in form.notified_groups.field.queryset %}
+                                <div class="col-md-4">
+                                    <div class="form-check custom-checkbox">
+                                        <input type="checkbox" name="{{ form.notified_groups.name }}" 
+                                               value="{{ group.pk }}"
+                                               id="group_{{ group.pk }}"
+                                               class="form-check-input"
+                                               {% if group.pk in form.notified_groups.value %}checked{% endif %}>
+                                        <label class="form-check-label" for="group_{{ group.pk }}">
+                                            {{ group.name }}
+                                        </label>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Form Actions -->
+                <div class="form-actions d-flex justify-content-end gap-2 mt-4 pt-3 border-top">
+                    <a href="{% url 'events:event_list' %}" class="btn btn-light">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                    <button type="submit" class="btn btn-primary" id="submitBtn">
+                        <i class="fas fa-save me-2"></i>
+                        {% if form.instance.pk %}Save Changes{% else %}Create Event{% endif %}
+                    </button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-{% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        const isVirtualCheckbox = document.getElementById('id_is_virtual');
-        const virtualLinkField = document.getElementById('div_id_virtual_link');
-        const locationField = document.getElementById('div_id_location');
+<style>
+    /* Custom Variables */
+    :root {
+        --primary-color: #2B3C6B;
+        --primary-hover: #1e2a4d;
+        --secondary-color: #4a5568;
+        --success-color: #48bb78;
+        --danger-color: #e53e3e;
+        --warning-color: #ecc94b;
+        --background-color: #f8fafc;
+        --surface-color: #ffffff;
+        --border-color: #e2e8f0;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+    }
 
-        function toggleVirtualFields() {
-            if (isVirtualCheckbox.checked) {
-                virtualLinkField.style.display = 'block';
-                locationField.style.display = 'none';
-            } else {
-                virtualLinkField.style.display = 'none';
-                locationField.style.display = 'block';
-            }
+    /* General Styles */
+    body {
+        background-color: var(--background-color);
+    }
+
+    /* Card Styles */
+    .card {
+        border-radius: 1rem;
+        overflow: hidden;
+    }
+
+    .card-header {
+        border-bottom: none;
+    }
+
+    .bg-gradient-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+    }
+
+    .header-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Form Section Styles */
+    .form-section {
+        background: #ffffff;
+        border-radius: 0.75rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        border: 1px solid var(--border-color);
+    }
+
+    .section-header {
+        margin-bottom: 1.5rem;
+    }
+
+    .section-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .section-title {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .section-content {
+        padding: 0.5rem;
+    }
+
+    /* Form Control Styles */
+    .form-control, .form-select {
+        border-radius: 0.5rem;
+        border-color: var(--border-color);
+        padding: 0.75rem 1rem;
+        font-size: 0.95rem;
+        min-height: 46px;
+        transition: all 0.2s ease;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+    }
+
+    textarea.form-control {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+
+    /* Custom Checkbox Styles */
+    .custom-checkbox {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        transition: background-color 0.2s ease;
+    }
+
+    .custom-checkbox:hover {
+        background-color: var(--background-color);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .form-check-input:checked + .form-check-label {
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+
+    /* Button Styles */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+        height: 46px;
+        display: inline-flex;
+        align-items: center;
+        transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--primary-hover));
+        border: none;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(43, 60, 107, 0.15);
+    }
+
+    .btn-light {
+        background: #f8f9fa;
+        border: 1px solid var(--border-color);
+    }
+
+    .btn-light:hover {
+        background: #e9ecef;
+    }
+
+    /* Alert Styles */
+    .alert {
+        border-radius: 0.75rem;
+        border: none;
+    }
+
+    .alert-danger {
+        background-color: #fff5f5;
+        color: var(--danger-color);
+    }
+
+    .alert-icon {
+        width: 48px;
+        height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    /* Form Switch */
+    .form-switch {
+        padding-left: 3rem;
+    }
+
+    .form-switch .form-check-input {
+        width: 2.5rem;
+        height: 1.5rem;
+        margin-left: -3rem;
+    }
+
+    .form-switch .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .form-section {
+            padding: 1rem;
         }
 
-        isVirtualCheckbox.addEventListener('change', toggleVirtualFields);
-        toggleVirtualFields(); // Initial state
-    });
-</script>
-{% endblock %}
+        .section-content {
+            padding: 0.25rem;
+        }
 
+        .form-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+        }
+
+        .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .custom-checkbox {
+            padding: 0.5rem;
+        }
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('eventForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const isVirtualCheckbox = document.getElementById('id_is_virtual');
+    const virtualLinkField = document.getElementById('virtualLinkField');
+    const locationField = document.getElementById('locationField');
+    const startDateInput = document.getElementById('id_start_date');
+    const endDateInput = document.getElementById('id_end_date');
+
+    // Initialize date-time inputs with current time
+    if (startDateInput && !startDateInput.value) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        startDateInput.value = now.toISOString().slice(0,16);
+    }
+    
+    if (endDateInput && !endDateInput.value) {
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset() + 60);
+        endDateInput.value = now.toISOString().slice(0,16);
+    }
+
+    // Toggle virtual event fields
+    function toggleVirtualFields() {
+        if (isVirtualCheckbox.checked) {
+            virtualLinkField.style.display = 'block';
+            locationField.style.display = 'none';
+            document.getElementById('id_location').value = 'Virtual Event';
+        } else {
+            virtualLinkField.style.display = 'none';
+            locationField.style.display = 'block';
+            if (document.getElementById('id_location').value === 'Virtual Event') {
+                document.getElementById('id_location').value = '';
+            }
+        }
+    }
+
+    isVirtualCheckbox.addEventListener('change', toggleVirtualFields);
+    toggleVirtualFields();
+
+    // Form submission handling
+    form.addEventListener('submit', function(e) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+    });
+
+    // Initialize tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+</script>
 {% endblock %} 

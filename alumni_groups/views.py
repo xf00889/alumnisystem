@@ -11,7 +11,7 @@ from django.utils import timezone
 from .models import (
     AlumniGroup, GroupMembership, GroupEvent, GroupDiscussion,
     GroupDiscussionComment, GroupActivity, GroupFile, GroupAnalytics,
-    SecurityQuestion, SecurityQuestionAnswer, GroupMessage
+    SecurityQuestion, SecurityQuestionAnswer, GroupMessage, Post, Comment, PostLike
 )
 from .forms import (
     AlumniGroupForm, GroupEventForm, GroupDiscussionForm,
@@ -189,6 +189,12 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
             'uploaded_by'
         ).order_by('-uploaded_at')[:5]
         
+        # Get group posts
+        context['group_posts'] = group.posts.all() if context['membership'] and context['membership'].status == 'APPROVED' else []
+        
+        # Get group messages
+        context['group_messages'] = group.messages.all() if context['membership'] and context['membership'].status == 'APPROVED' else []
+        
         return context
 
 class GroupCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
@@ -336,13 +342,60 @@ def manage_members(request, slug):
         status__in=['REJECTED', 'BLOCKED']
     ).select_related('user', 'user__profile')
     
+    # Get posts by status
+    pending_posts = Post.objects.filter(
+        group=group,
+        status='PENDING'
+    ).select_related('author', 'author__profile')
+    
+    approved_posts = Post.objects.filter(
+        group=group,
+        status='APPROVED'
+    ).select_related('author', 'author__profile', 'approved_by')
+    
+    rejected_posts = Post.objects.filter(
+        group=group,
+        status='REJECTED'
+    ).select_related('author', 'author__profile', 'approved_by')
+    
     context = {
         'group': group,
         'active_members': active_members,
         'pending_members': pending_members,
         'removed_members': removed_members,
+        'pending_posts': pending_posts,
+        'approved_posts': approved_posts,
+        'rejected_posts': rejected_posts,
     }
     return render(request, 'alumni_groups/manage_members.html', context)
+
+@login_required
+def update_group_settings(request, slug):
+    group = get_object_or_404(AlumniGroup, slug=slug)
+    membership = get_object_or_404(
+        GroupMembership,
+        group=group,
+        user=request.user,
+        status='APPROVED',
+        role='ADMIN'
+    )
+    
+    if request.method == 'POST':
+        require_post_approval = request.POST.get('require_post_approval') == 'on'
+        group.require_post_approval = require_post_approval
+        group.save()
+        
+        messages.success(request, 'Group settings updated successfully.')
+        
+        # Record activity
+        GroupActivity.objects.create(
+            group=group,
+            user=request.user,
+            activity_type='UPDATE',
+            description=f'Group settings updated by {request.user.get_full_name()}'
+        )
+    
+    return redirect('alumni_groups:manage_members', slug=group.slug)
 
 @login_required
 def nearby_groups_api(request):
@@ -785,4 +838,140 @@ def remove_member(request, group_slug, member_id):
         
         messages.success(request, f'{membership_to_remove.user.get_full_name()} has been removed from the group.')
         
-    return redirect('alumni_groups:manage_members', group_slug=group_slug) 
+    return redirect('alumni_groups:manage_members', group_slug=group_slug)
+
+@login_required
+def group_detail(request, slug):
+    group = get_object_or_404(AlumniGroup, slug=slug)
+    membership = group.memberships.filter(user=request.user).first()
+    
+    context = {
+        'group': group,
+        'membership': membership,
+    }
+    
+    if membership and membership.status == 'APPROVED':
+        # Only show approved posts for regular members
+        if request.user.is_staff or membership.role == 'ADMIN':
+            context['group_posts'] = group.posts.select_related('author', 'author__profile').prefetch_related('likes')
+        else:
+            context['group_posts'] = group.posts.filter(status='APPROVED').select_related('author', 'author__profile').prefetch_related('likes')
+        
+        # Add is_liked annotation for each post
+        if context.get('group_posts'):
+            liked_posts = request.user.liked_posts.values_list('id', flat=True)
+            for post in context['group_posts']:
+                post.is_liked = post.id in liked_posts
+    
+    return render(request, 'alumni_groups/group_detail.html', context)
+
+@login_required
+def create_post(request, slug):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    group = get_object_or_404(AlumniGroup, slug=slug)
+    membership = group.memberships.filter(user=request.user, status='APPROVED').first()
+    
+    if not membership:
+        return JsonResponse({'error': 'You must be an approved member to post'}, status=403)
+    
+    content = request.POST.get('content')
+    if not content:
+        return JsonResponse({'error': 'Content is required'}, status=400)
+    
+    # Set initial status based on user role
+    initial_status = 'PENDING'
+    if request.user.is_staff or membership.role in ['ADMIN', 'MODERATOR']:
+        initial_status = 'APPROVED'
+    
+    # Create post with appropriate status
+    post = Post.objects.create(
+        group=group,
+        author=request.user,
+        content=content,
+        status=initial_status
+    )
+    
+    # If auto-approved, set the approval details
+    if initial_status == 'APPROVED':
+        post.approved_by = request.user
+        post.approved_at = timezone.now()
+        post.save()
+        
+    return JsonResponse({'success': True, 'post_id': post.id})
+
+@login_required
+def approve_post(request, post_id):
+    if request.method != 'POST':
+        return JsonResponse({'error': 'Method not allowed'}, status=405)
+    
+    post = get_object_or_404(Post, id=post_id)
+    membership = post.group.memberships.filter(user=request.user).first()
+    
+    if not (request.user.is_staff or (membership and membership.role == 'ADMIN')):
+        return JsonResponse({'error': 'You do not have permission to approve posts'}, status=403)
+    
+    action = request.POST.get('action')
+    if action not in ['approve', 'reject']:
+        return JsonResponse({'error': 'Invalid action'}, status=400)
+    
+    post.status = 'APPROVED' if action == 'approve' else 'REJECTED'
+    post.approved_by = request.user
+    post.approved_at = timezone.now()
+    post.save()
+    
+    return JsonResponse({
+        'success': True,
+        'status': post.get_status_display(),
+        'approved_by': post.approved_by.get_full_name(),
+        'approved_at': post.approved_at.isoformat()
+    })
+
+@login_required
+def like_post(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
+    
+    if request.method == 'POST':
+        like, created = PostLike.objects.get_or_create(post=post, user=request.user)
+        if not created:
+            like.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'likes_count': post.likes_count,
+            'is_liked': created
+        })
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def add_comment(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
+    
+    if request.method == 'POST':
+        content = request.POST.get('content')
+        if content:
+            comment = Comment.objects.create(
+                post=post,
+                author=request.user,
+                content=content
+            )
+            return JsonResponse({
+                'status': 'success',
+                'comment_id': comment.id
+            })
+    return JsonResponse({'status': 'error'}, status=400)
+
+@login_required
+def get_post_comments(request, post_id):
+    post = get_object_or_404(Post, id=post_id)
+    membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
+    
+    comments = post.comments.select_related('author').order_by('created_at')
+    comments_html = render_to_string('alumni_groups/comments_list.html', {
+        'comments': comments
+    }, request=request)
+    
+    return HttpResponse(comments_html) 

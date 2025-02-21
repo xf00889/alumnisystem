@@ -741,6 +741,165 @@
         width: 2px;
         background: var(--bs-border-color);
     }
+
+    /* Career Path Styles */
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: rgba(43, 60, 107, 0.1);
+    }
+
+    .timeline-item {
+        position: relative;
+        padding-bottom: 2rem;
+    }
+
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+
+    .timeline-item::before {
+        content: '';
+        position: absolute;
+        left: -2rem;
+        top: 0;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: #fff;
+        border: 2px solid var(--primary-color);
+        z-index: 1;
+    }
+
+    .timeline-content {
+        background: #fff;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        margin-left: 1rem;
+        position: relative;
+    }
+
+    .timeline-content::before {
+        content: '';
+        position: absolute;
+        left: -0.5rem;
+        top: 1rem;
+        width: 1rem;
+        height: 1rem;
+        background: #fff;
+        transform: rotate(45deg);
+        box-shadow: -2px 2px 4px rgba(0,0,0,0.05);
+    }
+
+    /* Achievements Styles */
+    .achievements-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .achievement-card {
+        background: #fff;
+        border-radius: var(--border-radius);
+        padding: 1.5rem;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition);
+    }
+
+    .achievement-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+    }
+
+    .achievement-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .achievement-icon {
+        width: 3rem;
+        height: 3rem;
+        background: rgba(43, 60, 107, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+
+    .achievement-info {
+        flex: 1;
+    }
+
+    .achievement-description {
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .achievement-links {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    .skills-gained {
+        margin-top: 1rem;
+        padding-top: 1rem;
+        border-top: 1px solid rgba(0,0,0,0.05);
+    }
+
+    /* Empty State Styles */
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: #f8f9fa;
+        border-radius: var(--border-radius);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #adb5bd;
+        margin-bottom: 1rem;
+    }
+
+    .empty-state p {
+        color: #6c757d;
+        margin: 0;
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .achievements-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .timeline {
+            padding-left: 1.5rem;
+        }
+
+        .timeline-item::before {
+            left: -1.5rem;
+        }
+
+        .timeline-content {
+            margin-left: 0.5rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -1010,6 +1169,151 @@
                     </div>
                 {% else %}
                     <p class="text-muted small mb-0">No work experience added yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Career Path Section -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-chart-line"></i> Career Path
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addCareerPathModal">
+                        <i class="fas fa-plus"></i> Add Career Path
+                    </button>
+                </div>
+                {% if career_paths %}
+                    <div class="timeline">
+                        {% for career in career_paths %}
+                            <div class="timeline-item">
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h6 class="mb-1">{{ career.position }}</h6>
+                                            <p class="text-muted small mb-1">{{ career.company }} - {{ career.location }}</p>
+                                            <p class="text-muted small mb-1">
+                                                {{ career.start_date|date:"M Y" }} - 
+                                                {% if career.is_current %}Present{% else %}{{ career.end_date|date:"M Y" }}{% endif %}
+                                            </p>
+                                            {% if career.promotion_type %}
+                                                <span class="badge bg-success">{{ career.get_promotion_type_display }}</span>
+                                            {% endif %}
+                                            {% if career.description %}<p class="small mb-2">{{ career.description }}</p>{% endif %}
+                                            {% if career.achievements %}
+                                                <div class="achievements-section">
+                                                    <h6 class="text-muted small mb-2">Key Achievements:</h6>
+                                                    <p class="small mb-2">{{ career.achievements }}</p>
+                                                </div>
+                                            {% endif %}
+                                            {% if career.skills_gained %}
+                                                <div class="skills-gained">
+                                                    <h6 class="text-muted small mb-2">Skills Gained:</h6>
+                                                    <div class="d-flex flex-wrap gap-1">
+                                                        {% for skill in career.skills_gained.split %}
+                                                            <span class="badge bg-light text-dark">{{ skill.strip }}</span>
+                                                        {% endfor %}
+                                                    </div>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="ms-3">
+                                            <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#editCareerPathModal{{ career.id }}">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                    data-bs-toggle="modal" 
+                                                    data-bs-target="#deleteCareerPathModal{{ career.id }}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">No career path information added yet</p>
+                {% endif %}
+            </div>
+
+            <!-- Achievements Section -->
+            <div class="profile-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="section-title mb-0">
+                        <i class="fas fa-trophy"></i> Achievements
+                    </h5>
+                    <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#addAchievementModal">
+                        <i class="fas fa-plus"></i> Add Achievement
+                    </button>
+                </div>
+                {% if achievements %}
+                    <div class="achievements-grid">
+                        {% for achievement in achievements %}
+                            <div class="achievement-card">
+                                <div class="achievement-header">
+                                    <div class="achievement-icon">
+                                        {% if achievement.achievement_type == 'AWARD' %}
+                                            <i class="fas fa-award"></i>
+                                        {% elif achievement.achievement_type == 'CERTIFICATION' %}
+                                            <i class="fas fa-certificate"></i>
+                                        {% elif achievement.achievement_type == 'PUBLICATION' %}
+                                            <i class="fas fa-book"></i>
+                                        {% elif achievement.achievement_type == 'PROJECT' %}
+                                            <i class="fas fa-project-diagram"></i>
+                                        {% elif achievement.achievement_type == 'RECOGNITION' %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="fas fa-trophy"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="achievement-info">
+                                        <h6 class="mb-1">{{ achievement.title }}</h6>
+                                        <p class="text-muted small mb-1">
+                                            {{ achievement.get_achievement_type_display }} - {{ achievement.date_achieved|date:"M Y" }}
+                                        </p>
+                                        {% if achievement.issuer %}
+                                            <p class="text-muted small mb-1">Issued by: {{ achievement.issuer }}</p>
+                                        {% endif %}
+                                    </div>
+                                    <div class="achievement-actions">
+                                        <button type="button" class="btn btn-sm btn-outline-primary me-1" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#editAchievementModal{{ achievement.id }}">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button type="button" class="btn btn-sm btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteAchievementModal{{ achievement.id }}">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                {% if achievement.description %}
+                                    <div class="achievement-description">
+                                        <p class="small mb-2">{{ achievement.description }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if achievement.url or achievement.attachment %}
+                                    <div class="achievement-links">
+                                        {% if achievement.url %}
+                                            <a href="{{ achievement.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-external-link-alt"></i> View
+                                            </a>
+                                        {% endif %}
+                                        {% if achievement.attachment %}
+                                            <a href="{{ achievement.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted small mb-0">No achievements added yet</p>
                 {% endif %}
             </div>
         </div>
@@ -1289,6 +1593,143 @@
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" class="btn btn-primary" form="editEducationForm">Save Changes</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Career Path Modal -->
+<div class="modal fade" id="addCareerPathModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Career Path</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="careerPathForm" method="post" action="{% url 'accounts:add_career_path' %}">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="company" class="form-label">Company</label>
+                        <input type="text" name="company" id="company" class="form-control" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="position" class="form-label">Position</label>
+                        <input type="text" name="position" id="position" class="form-control" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="location" class="form-label">Location</label>
+                        <input type="text" name="location" id="location" class="form-control">
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="start_date" class="form-label">Start Date</label>
+                                <input type="date" name="start_date" id="start_date" class="form-control" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="end_date" class="form-label">End Date</label>
+                                <input type="date" name="end_date" id="end_date" class="form-control">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <div class="form-check">
+                            <input type="checkbox" name="is_current" id="is_current" class="form-check-input">
+                            <label for="is_current" class="form-check-label">Current Position</label>
+                        </div>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="promotion_type" class="form-label">Type of Change</label>
+                        <select name="promotion_type" id="promotion_type" class="form-select">
+                            <option value="">Select type</option>
+                            <option value="PROMOTION">Promotion</option>
+                            <option value="LATERAL">Lateral Move</option>
+                            <option value="NEW_ROLE">New Role</option>
+                            <option value="COMPANY_CHANGE">Company Change</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="salary_range" class="form-label">Salary Range (Optional)</label>
+                        <input type="text" name="salary_range" id="salary_range" class="form-control">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="achievements" class="form-label">Key Achievements</label>
+                        <textarea name="achievements" id="achievements" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="skills_gained" class="form-label">Skills Gained</label>
+                        <input type="text" name="skills_gained" id="skills_gained" class="form-control" placeholder="Enter skills separated by commas">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="careerPathForm">Save</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Add Achievement Modal -->
+<div class="modal fade" id="addAchievementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add Achievement</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="achievementForm" method="post" action="{% url 'accounts:add_achievement' %}" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <div class="form-group mb-3">
+                        <label for="title" class="form-label">Achievement Title</label>
+                        <input type="text" name="title" id="title" class="form-control" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="achievement_type" class="form-label">Type</label>
+                        <select name="achievement_type" id="achievement_type" class="form-select" required>
+                            <option value="">Select type</option>
+                            <option value="AWARD">Award</option>
+                            <option value="CERTIFICATION">Certification</option>
+                            <option value="PUBLICATION">Publication</option>
+                            <option value="PROJECT">Project</option>
+                            <option value="RECOGNITION">Recognition</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="date_achieved" class="form-label">Date Achieved</label>
+                        <input type="date" name="date_achieved" id="date_achieved" class="form-control" required>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="issuer" class="form-label">Issuer/Organization</label>
+                        <input type="text" name="issuer" id="issuer" class="form-control">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea name="description" id="description" class="form-control" rows="3"></textarea>
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="url" class="form-label">URL (Optional)</label>
+                        <input type="url" name="url" id="url" class="form-control">
+                    </div>
+                    <div class="form-group mb-3">
+                        <label for="attachment" class="form-label">Attachment</label>
+                        <input type="file" name="attachment" id="attachment" class="form-control" accept=".pdf,.jpg,.jpeg,.png">
+                        <div class="form-text">Supported formats: PDF, JPG, PNG (Max size: 5MB)</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary" form="achievementForm">Save</button>
             </div>
         </div>
     </div>

@@ -1,0 +1,330 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Manage Feedbacks{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Manage Feedbacks</li>
+{% endblock %}
+
+{% block page_title %}Manage Feedbacks{% endblock %}
+
+{% block extra_css %}
+<style>
+    .card {
+        border: none;
+        border-radius: 0.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    .table th {
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        background-color: #f8f9fa;
+        border-bottom: 2px solid #dee2e6;
+    }
+
+    .table td {
+        vertical-align: middle;
+        font-size: 0.875rem;
+    }
+
+    .badge {
+        font-weight: 500;
+        padding: 0.5em 0.75em;
+        font-size: 0.75rem;
+    }
+
+    .feedback-row {
+        cursor: pointer;
+        transition: background-color 0.2s ease;
+    }
+
+    .feedback-row:hover {
+        background-color: rgba(0,0,0,0.02);
+    }
+
+    .feedback-row.table-active {
+        background-color: rgba(0,123,255,0.05);
+    }
+
+    .feedback-details {
+        background-color: #f8f9fa;
+    }
+
+    .feedback-details .bg-light {
+        background-color: #ffffff !important;
+        border: 1px solid #e9ecef;
+    }
+
+    .form-label {
+        font-weight: 500;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+        color: #495057;
+    }
+
+    .form-select, .form-control {
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+    }
+
+    .btn {
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-sm {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+    }
+
+    .pagination {
+        margin-bottom: 0;
+    }
+
+    .page-link {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        border-radius: 0.375rem;
+        margin: 0 0.25rem;
+    }
+
+    .alert {
+        border: none;
+        border-radius: 0.5rem;
+    }
+
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1rem;
+        }
+        
+        .table {
+            font-size: 0.875rem;
+        }
+        
+        .btn {
+            font-size: 0.875rem;
+            padding: 0.375rem 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Filters Card -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label">Status</label>
+                    <select name="status" class="form-select">
+                        <option value="">All Statuses</option>
+                        {% for status_code, status_label in status_choices %}
+                            <option value="{{ status_code }}" {% if current_filters.status == status_code %}selected{% endif %}>
+                                {{ status_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Category</label>
+                    <select name="category" class="form-select">
+                        <option value="">All Categories</option>
+                        {% for category_code, category_label in category_choices %}
+                            <option value="{{ category_code }}" {% if current_filters.category == category_code %}selected{% endif %}>
+                                {{ category_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Priority</label>
+                    <select name="priority" class="form-select">
+                        <option value="">All Priorities</option>
+                        {% for priority_code, priority_label in priority_choices %}
+                            <option value="{{ priority_code }}" {% if current_filters.priority == priority_code %}selected{% endif %}>
+                                {{ priority_label }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="col-md-3">
+                    <label class="form-label">Search</label>
+                    <div class="input-group">
+                        <input type="text" name="search" class="form-control" 
+                               value="{{ current_filters.search }}" placeholder="Search feedbacks...">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="col-12 mt-3">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-filter me-2"></i>Apply Filters
+                    </button>
+                    <a href="{% url 'feedback:manage_feedbacks' %}" class="btn btn-outline-secondary ms-2">
+                        <i class="fas fa-times me-2"></i>Clear Filters
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Feedbacks List -->
+    {% if feedbacks %}
+        <div class="card shadow-sm">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th>Subject</th>
+                            <th>User</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feedback in feedbacks %}
+                            <tr class="feedback-row" data-feedback-id="{{ feedback.pk }}">
+                                <td>{{ feedback.subject }}</td>
+                                <td>
+                                    {% if feedback.user %}
+                                        {{ feedback.user.email }}
+                                    {% else %}
+                                        <em>Anonymous</em>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ feedback.get_category_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if feedback.priority == 'urgent' %}danger{% elif feedback.priority == 'high' %}warning{% elif feedback.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                        {{ feedback.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if feedback.status == 'resolved' %}success{% elif feedback.status == 'in_progress' %}primary{% elif feedback.status == 'closed' %}secondary{% else %}warning{% endif %}">
+                                        {{ feedback.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ feedback.created_at|date:"M d, Y H:i" }}</td>
+                                <td>
+                                    <a href="{% url 'feedback:update_feedback' feedback.pk %}" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-edit me-1"></i>Update
+                                    </a>
+                                </td>
+                            </tr>
+                            <tr class="feedback-details d-none">
+                                <td colspan="7">
+                                    <div class="p-3 bg-light rounded">
+                                        <div class="mb-3">
+                                            <h6 class="fw-bold mb-2">Message:</h6>
+                                            <p class="mb-0">{{ feedback.message|linebreaks }}</p>
+                                        </div>
+                                        
+                                        {% if feedback.attachment %}
+                                            <div class="mb-3">
+                                                <h6 class="fw-bold mb-2">Attachment:</h6>
+                                                <a href="{{ feedback.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-paperclip me-1"></i>
+                                                    View Attachment
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if feedback.admin_notes %}
+                                            <div class="mb-0">
+                                                <h6 class="fw-bold mb-2">Admin Notes:</h6>
+                                                <p class="mb-0">{{ feedback.admin_notes|linebreaks }}</p>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if feedbacks.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if feedbacks.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ feedbacks.previous_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                    
+                    {% for num in feedbacks.paginator.page_range %}
+                        <li class="page-item {% if feedbacks.number == num %}active{% endif %}">
+                            <a class="page-link" href="?page={{ num }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}">
+                                {{ num }}
+                            </a>
+                        </li>
+                    {% endfor %}
+                    
+                    {% if feedbacks.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ feedbacks.next_page_number }}{% if current_filters.search %}&search={{ current_filters.search }}{% endif %}{% if current_filters.status %}&status={{ current_filters.status }}{% endif %}{% if current_filters.category %}&category={{ current_filters.category }}{% endif %}{% if current_filters.priority %}&priority={{ current_filters.priority }}{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            No feedbacks found matching your criteria.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle feedback details
+        const feedbackRows = document.querySelectorAll('.feedback-row');
+        feedbackRows.forEach(row => {
+            row.addEventListener('click', function(e) {
+                if (e.target.tagName.toLowerCase() === 'a' || 
+                    e.target.parentElement.tagName.toLowerCase() === 'a') {
+                    return; // Don't toggle if clicking a link
+                }
+                
+                const detailsRow = this.nextElementSibling;
+                detailsRow.classList.toggle('d-none');
+                
+                // Add/remove active state to the clicked row
+                this.classList.toggle('table-active');
+            });
+        });
+    });
+</script>
+{% endblock %} 

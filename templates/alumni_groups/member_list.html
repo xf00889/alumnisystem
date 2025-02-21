@@ -1,0 +1,101 @@
+{% if members %}
+<div class="table-responsive">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Member</th>
+                <th>Role</th>
+                <th>Joined</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for member in members %}
+            <tr>
+                <td>
+                    <div class="member-info">
+                        <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                             alt="{{ member.user.get_full_name }}"
+                             class="member-avatar">
+                        <div class="member-details">
+                            <div class="member-name">{{ member.user.get_full_name }}</div>
+                            <div class="member-email">{{ member.user.email }}</div>
+                        </div>
+                    </div>
+                </td>
+                <td>
+                    <span class="badge badge-role role-{{ member.role|lower }}">
+                        {{ member.get_role_display }}
+                    </span>
+                </td>
+                <td>
+                    {% if member.joined_at %}
+                        {{ member.joined_at|date:"M d, Y" }}
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td>
+                    <span class="badge bg-{{ member.status|lower }}">
+                        {{ member.get_status_display }}
+                    </span>
+                </td>
+                <td>
+                    <div class="member-actions">
+                        {% if member.status == 'PENDING' %}
+                            {% if group.has_security_questions %}
+                                <button type="button" 
+                                        class="btn btn-info btn-sm view-answers"
+                                        data-membership-id="{{ member.id }}">
+                                    <i class="fas fa-shield-alt"></i> View Answers
+                                </button>
+                            {% endif %}
+                            <button type="button" 
+                                    class="btn btn-success btn-sm member-action"
+                                    data-action="approve"
+                                    data-membership-id="{{ member.id }}">
+                                <i class="fas fa-check"></i> Approve
+                            </button>
+                            <button type="button" 
+                                    class="btn btn-danger btn-sm member-action"
+                                    data-action="reject"
+                                    data-membership-id="{{ member.id }}">
+                                <i class="fas fa-times"></i> Reject
+                            </button>
+                        {% elif member.status == 'APPROVED' %}
+                            {% if member.role != 'ADMIN' %}
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm member-action"
+                                        data-action="promote"
+                                        data-membership-id="{{ member.id }}">
+                                    <i class="fas fa-user-shield"></i> Make Admin
+                                </button>
+                                <button type="button" 
+                                        class="btn btn-danger btn-sm member-action"
+                                        data-action="remove"
+                                        data-membership-id="{{ member.id }}">
+                                    <i class="fas fa-user-minus"></i> Remove
+                                </button>
+                            {% endif %}
+                        {% elif member.status == 'REJECTED' or member.status == 'BLOCKED' %}
+                            <button type="button" 
+                                    class="btn btn-warning btn-sm member-action"
+                                    data-action="reinstate"
+                                    data-membership-id="{{ member.id }}">
+                                <i class="fas fa-user-plus"></i> Reinstate
+                            </button>
+                        {% endif %}
+                    </div>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state">
+    <i class="fas fa-users"></i>
+    <p>No members found in this category.</p>
+</div>
+{% endif %} 

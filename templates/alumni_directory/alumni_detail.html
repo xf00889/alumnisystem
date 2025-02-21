@@ -14,348 +14,356 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Profile Header -->
-    <div class="card mb-4">
-        <div class="card-body p-4">
-            <div class="row align-items-center">
-                <div class="col-auto">
-                    <div class="avatar-wrapper">
-                        {% if profile.avatar %}
-                            <img src="{{ profile.avatar.url }}" alt="{{ alumni.full_name }}" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        {% else %}
-                            <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                        {% endif %}
-                    </div>
-                </div>
-                <div class="col">
-                    <h1 class="h2 mb-1">{{ alumni.full_name }}</h1>
-                    <p class="text-muted mb-2">
-                        <i class="fas fa-graduation-cap me-2"></i>
-                        {{ alumni.course }} (Class of {{ alumni.graduation_year }})
-                    </p>
-                    <p class="mb-0">
-                        <i class="fas fa-map-marker-alt me-2"></i>
-                        {{ alumni.city }}, {{ alumni.province }}, {{ alumni.country.name }}
-                    </p>
-                </div>
-                <div class="col-auto">
-                    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-2"></i>
-                        Back to Directory
-                    </a>
-                </div>
+<div class="profile-header position-relative">
+    <a href="{% url 'alumni_directory:alumni_list' %}" class="back-button">
+        <i class="fas fa-arrow-left"></i>
+        Back to Directory
+    </a>
+    <div class="container text-center">
+        {% if profile.avatar %}
+            <img src="{{ profile.avatar.url }}" alt="{{ alumni.full_name }}" class="profile-avatar">
+        {% else %}
+            <div class="profile-avatar d-flex align-items-center justify-content-center bg-light">
+                <i class="fas fa-user fa-3x text-secondary"></i>
             </div>
+        {% endif %}
+        <h1 class="profile-name">{{ alumni.full_name }}</h1>
+        <div class="profile-course">{{ alumni.course }} (Class of {{ alumni.graduation_year }})</div>
+        <div class="profile-location mt-2">
+            <i class="fas fa-map-marker-alt"></i>
+            {{ alumni.city }}, {{ alumni.province }}, {{ alumni.country.name }}
         </div>
     </div>
+</div>
 
-    <!-- Profile Completion -->
-    <div class="card mb-4">
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="card-title mb-0">Profile Completion</h5>
-                {% if profile_completion.total < 100 %}
-                <button type="button" class="btn btn-sm btn-outline-primary" id="reminderBtn">
-                    <i class="fas fa-bell me-1"></i>
-                    Send Reminder
-                </button>
-                {% endif %}
-            </div>
-            <div class="progress mb-3" style="height: 8px;">
-                <div class="progress-bar {% if profile_completion.total >= 75 %}bg-success{% elif profile_completion.total >= 50 %}bg-warning{% else %}bg-danger{% endif %}" 
-                     role="progressbar" 
-                     style="width: {{ profile_completion.total }}%;" 
-                     aria-valuenow="{{ profile_completion.total }}" 
-                     aria-valuemin="0" 
-                     aria-valuemax="100">
-                </div>
-            </div>
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="progress-circle" style="--value: {{ profile_completion.total|floatformat:0 }}">
-                                <span class="h4 mb-0">{{ profile_completion.total|floatformat:0 }}%</span>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-0">Total Completion</h6>
-                            <small class="text-muted">Overall profile status</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="progress-circle" style="--value: {{ profile_completion.required|floatformat:0 }}">
-                                <span class="h4 mb-0">{{ profile_completion.required|floatformat:0 }}%</span>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-0">Required Fields</h6>
-                            <small class="text-muted">Essential information</small>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="d-flex align-items-center">
-                        <div class="flex-shrink-0">
-                            <div class="progress-circle" style="--value: {{ profile_completion.optional|floatformat:0 }}">
-                                <span class="h4 mb-0">{{ profile_completion.optional|floatformat:0 }}%</span>
-                            </div>
-                        </div>
-                        <div class="flex-grow-1 ms-3">
-                            <h6 class="mb-0">Optional Fields</h6>
-                            <small class="text-muted">Additional details</small>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="row g-4">
-        <!-- Main Content Column -->
+<div class="container">
+    <div class="row">
         <div class="col-lg-8">
             <!-- Personal Information -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-user me-2"></i>
-                        Personal Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Email</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-envelope text-primary me-2"></i>
-                                <a href="mailto:{{ alumni.email }}" class="text-decoration-none">{{ alumni.email }}</a>
-                            </div>
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-user"></i>
+                    Personal Information
+                </h2>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <div class="info-label">Email</div>
+                            <div class="info-value">{{ alumni.email }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Phone</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-phone text-primary me-2"></i>
-                                {% if alumni.phone_number %}
-                                <a href="tel:{{ alumni.phone_number }}" class="text-decoration-none">{{ alumni.phone_number }}</a>
-                                {% else %}
-                                <span class="text-muted">Not provided</span>
-                                {% endif %}
-                            </div>
+                        <div class="info-item">
+                            <div class="info-label">Date of Birth</div>
+                            <div class="info-value">{{ alumni.date_of_birth|date:"F j, Y" }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Date of Birth</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-calendar text-primary me-2"></i>
-                                {{ alumni.date_of_birth|date:"F d, Y" }}
-                            </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <div class="info-label">Phone</div>
+                            <div class="info-value">{{ alumni.phone_number|default:"Not provided" }}</div>
                         </div>
-                        <div class="col-md-6">
-                            <label class="text-muted small mb-1">Gender</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-venus-mars text-primary me-2"></i>
-                                {{ alumni.get_gender_display }}
-                            </div>
+                        <div class="info-item">
+                            <div class="info-label">Gender</div>
+                            <div class="info-value">{{ alumni.get_gender_display }}</div>
                         </div>
                     </div>
                 </div>
             </div>
 
             <!-- Professional Information -->
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-briefcase me-2"></i>
-                        Professional Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if not empty_sections.professional %}
-                    <div class="row g-3">
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-briefcase"></i>
+                    Professional Information
+                </h2>
+                {% if not empty_sections.professional %}
+                    <div class="row">
                         <div class="col-md-6">
-                            <label class="text-muted small mb-1">Employment Status</label>
-                            <div>
-                                <span class="badge bg-primary">{{ alumni.get_employment_status_display }}</span>
+                            <div class="info-item">
+                                <div class="info-label">Employment Status</div>
+                                <div class="info-value">{{ alumni.get_employment_status_display }}</div>
                             </div>
                         </div>
                         {% if alumni.current_company %}
                         <div class="col-md-6">
-                            <label class="text-muted small mb-1">Current Company</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-building text-primary me-2"></i>
-                                {{ alumni.current_company }}
+                            <div class="info-item">
+                                <div class="info-label">Current Company</div>
+                                <div class="info-value">{{ alumni.current_company }}</div>
                             </div>
                         </div>
                         {% endif %}
                         {% if alumni.job_title %}
                         <div class="col-md-6">
-                            <label class="text-muted small mb-1">Job Title</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-id-badge text-primary me-2"></i>
-                                {{ alumni.job_title }}
+                            <div class="info-item">
+                                <div class="info-label">Job Title</div>
+                                <div class="info-value">{{ alumni.job_title }}</div>
                             </div>
                         </div>
                         {% endif %}
                         {% if alumni.industry %}
                         <div class="col-md-6">
-                            <label class="text-muted small mb-1">Industry</label>
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-industry text-primary me-2"></i>
-                                {{ alumni.industry }}
+                            <div class="info-item">
+                                <div class="info-label">Industry</div>
+                                <div class="info-value">{{ alumni.industry }}</div>
                             </div>
                         </div>
                         {% endif %}
                     </div>
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
-                        <p class="text-muted mb-0">No professional information provided</p>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-briefcase"></i>
+                        <p>No professional information provided</p>
                     </div>
-                    {% endif %}
-                </div>
+                {% endif %}
+            </div>
+
+            <!-- Career Path -->
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-chart-line"></i>
+                    Career Path
+                </h2>
+                {% if alumni.career_paths.exists %}
+                    <div class="timeline">
+                        {% for career in alumni.career_paths.all %}
+                            <div class="timeline-item">
+                                <div class="timeline-content">
+                                    <h6 class="mb-1">{{ career.position }}</h6>
+                                    <p class="text-muted small mb-1">{{ career.company }} - {{ career.location }}</p>
+                                    <p class="text-muted small mb-1">
+                                        {{ career.start_date|date:"M Y" }} - 
+                                        {% if career.is_current %}Present{% else %}{{ career.end_date|date:"M Y" }}{% endif %}
+                                    </p>
+                                    {% if career.promotion_type %}
+                                        <span class="badge bg-success">{{ career.get_promotion_type_display }}</span>
+                                    {% endif %}
+                                    {% if career.description %}<p class="small mb-2">{{ career.description }}</p>{% endif %}
+                                    {% if career.achievements %}
+                                        <div class="achievements-section">
+                                            <h6 class="text-muted small mb-2">Key Achievements:</h6>
+                                            <p class="small mb-2">{{ career.achievements }}</p>
+                                        </div>
+                                    {% endif %}
+                                    {% if career.skills_gained %}
+                                        <div class="skills-gained">
+                                            <h6 class="text-muted small mb-2">Skills Gained:</h6>
+                                            <div class="d-flex flex-wrap gap-1">
+                                                {% for skill in career.skills_gained.split %}
+                                                    <span class="badge bg-light text-dark">{{ skill.strip }}</span>
+                                                {% endfor %}
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-chart-line"></i>
+                        <p>No career path information available</p>
+                    </div>
+                {% endif %}
+            </div>
+
+            <!-- Achievements -->
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-trophy"></i>
+                    Achievements
+                </h2>
+                {% if alumni.achievements_list.exists %}
+                    <div class="achievements-grid">
+                        {% for achievement in alumni.achievements_list.all %}
+                            <div class="achievement-card">
+                                <div class="achievement-header">
+                                    <div class="achievement-icon">
+                                        {% if achievement.achievement_type == 'AWARD' %}
+                                            <i class="fas fa-award"></i>
+                                        {% elif achievement.achievement_type == 'CERTIFICATION' %}
+                                            <i class="fas fa-certificate"></i>
+                                        {% elif achievement.achievement_type == 'PUBLICATION' %}
+                                            <i class="fas fa-book"></i>
+                                        {% elif achievement.achievement_type == 'PROJECT' %}
+                                            <i class="fas fa-project-diagram"></i>
+                                        {% elif achievement.achievement_type == 'RECOGNITION' %}
+                                            <i class="fas fa-star"></i>
+                                        {% else %}
+                                            <i class="fas fa-trophy"></i>
+                                        {% endif %}
+                                    </div>
+                                    <div class="achievement-info">
+                                        <h6 class="mb-1">{{ achievement.title }}</h6>
+                                        <p class="text-muted small mb-1">
+                                            {{ achievement.get_achievement_type_display }} - {{ achievement.date_achieved|date:"M Y" }}
+                                        </p>
+                                        {% if achievement.issuer %}
+                                            <p class="text-muted small mb-1">Issued by: {{ achievement.issuer }}</p>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                {% if achievement.description %}
+                                    <div class="achievement-description">
+                                        <p class="small mb-2">{{ achievement.description }}</p>
+                                    </div>
+                                {% endif %}
+                                {% if achievement.url or achievement.attachment %}
+                                    <div class="achievement-links">
+                                        {% if achievement.url %}
+                                            <a href="{{ achievement.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-external-link-alt"></i> View
+                                            </a>
+                                        {% endif %}
+                                        {% if achievement.attachment %}
+                                            <a href="{{ achievement.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-secondary">
+                                                <i class="fas fa-download"></i> Download
+                                            </a>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-trophy"></i>
+                        <p>No achievements available</p>
+                    </div>
+                {% endif %}
             </div>
 
             <!-- Skills and Interests -->
             {% if alumni.skills or alumni.interests %}
-            <div class="card mb-4">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-star me-2"></i>
-                        Skills & Interests
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="row g-4">
-                        {% if alumni.skills %}
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-3">Skills</h6>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for skill in alumni.skills.split %}
-                                <span class="badge bg-primary-subtle text-primary">{{ skill }}</span>
-                                {% endfor %}
-                            </div>
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-star"></i>
+                    Skills & Interests
+                </h2>
+                <div class="row">
+                    {% if alumni.skills %}
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <div class="info-label">Skills</div>
+                            <div class="info-value">{{ alumni.skills }}</div>
                         </div>
-                        {% endif %}
-                        {% if alumni.interests %}
-                        <div class="col-md-6">
-                            <h6 class="text-muted mb-3">Interests</h6>
-                            <div class="d-flex flex-wrap gap-2">
-                                {% for interest in alumni.interests.split %}
-                                <span class="badge bg-secondary-subtle text-secondary">{{ interest }}</span>
-                                {% endfor %}
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
+                    {% endif %}
+                    {% if alumni.interests %}
+                    <div class="col-md-6">
+                        <div class="info-item">
+                            <div class="info-label">Interests</div>
+                            <div class="info-value">{{ alumni.interests }}</div>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
+
+            <!-- Additional Information -->
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-info-circle"></i>
+                    Additional Information
+                </h2>
+                {% if not empty_sections.additional %}
+                    {% if alumni.bio %}
+                        <div class="info-item">
+                            <div class="info-label">Bio</div>
+                            <div class="info-value">{{ alumni.bio|linebreaks }}</div>
+                        </div>
+                    {% endif %}
+                    {% if alumni.achievements %}
+                        <div class="info-item">
+                            <div class="info-label">Achievements</div>
+                            <div class="info-value">{{ alumni.achievements|linebreaks }}</div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-info-circle"></i>
+                        <p>No additional information provided</p>
+                    </div>
+                {% endif %}
+            </div>
         </div>
 
-        <!-- Sidebar -->
         <div class="col-lg-4">
-            <!-- Documents -->
-            <div class="card mb-4">
-                <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-file-alt me-2"></i>
-                        Documents
-                    </h5>
-                    <div class="badge-group">
-                        <span class="badge bg-primary">{{ doc_stats.total }}</span>
-                        <span class="badge bg-success ms-1">{{ doc_stats.verified }}</span>
-                        <span class="badge bg-warning ms-1">{{ doc_stats.pending }}</span>
+            <!-- Profile Completion -->
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-chart-pie"></i>
+                    Profile Completion
+                    <button class="reminder-button" onclick="sendReminder()">
+                        <i class="fas fa-bell"></i>
+                        Send Reminder
+                    </button>
+                </h2>
+                <div class="row text-center">
+                    <div class="col-md-4">
+                        <div class="completion-circle total-completion">
+                            {{ profile_completion.total|floatformat:0 }}%
+                        </div>
+                        <div class="completion-label">Total Completion</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="completion-circle required-fields">
+                            {{ profile_completion.required|floatformat:0 }}%
+                        </div>
+                        <div class="completion-label">Required Fields</div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="completion-circle optional-fields">
+                            {{ profile_completion.optional|floatformat:0 }}%
+                        </div>
+                        <div class="completion-label">Optional Fields</div>
                     </div>
                 </div>
-                <div class="card-body">
-                    {% if doc_stats.total > 0 %}
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted">Total Documents</small>
-                            <span class="badge bg-primary">{{ doc_stats.total }}</span>
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-2">
-                            <small class="text-muted">Verified</small>
-                            <span class="badge bg-success">{{ doc_stats.verified }}</span>
-                        </div>
+            </div>
+
+            <!-- Documents -->
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-file-alt"></i>
+                    Documents
+                </h2>
+                {% if doc_stats.total > 0 %}
+                    <div class="info-item">
                         <div class="d-flex justify-content-between align-items-center">
-                            <small class="text-muted">Pending Verification</small>
-                            <span class="badge bg-warning">{{ doc_stats.pending }}</span>
+                            <div class="info-label">Total Documents</div>
+                            <span class="document-badge document-verified">{{ doc_stats.verified }}</span>
+                        </div>
+                    </div>
+                    <div class="info-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="info-label">Pending Verification</div>
+                            <span class="document-badge document-pending">{{ doc_stats.pending }}</span>
                         </div>
                     </div>
                     <hr>
                     {% for doc_type, docs in documents.items %}
                     {% if docs %}
-                    <div class="mb-3">
-                        <h6 class="text-muted mb-2">{{ doc_type|title }}</h6>
-                        <div class="list-group list-group-flush">
-                            {% for doc in docs %}
-                            <div class="list-group-item px-0">
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <div>
-                                        <h6 class="mb-1">{{ doc.title }}</h6>
-                                        <small class="text-muted">
-                                            {{ doc.file_size }} • {{ doc.uploaded_at|date:"M d, Y" }}
-                                        </small>
-                                    </div>
-                                    <div class="d-flex align-items-center">
-                                        {% if doc.is_verified %}
-                                        <span class="badge bg-success me-2">Verified</span>
-                                        {% else %}
-                                        <span class="badge bg-warning me-2">Pending</span>
-                                        {% endif %}
-                                        <a href="{% url 'alumni_directory:download_document' doc.id %}" 
-                                           class="btn btn-sm btn-primary">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                            {% endfor %}
+                    <div class="info-item">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="info-label">{{ doc_type|title }}</div>
+                            <span class="document-badge {% if doc.is_verified %}document-verified{% elif doc.is_rejected %}document-rejected{% else %}document-pending{% endif %}">
+                                {% if doc.is_verified %}
+                                    <i class="fas fa-check-circle me-1"></i>Verified
+                                {% elif doc.is_rejected %}
+                                    <i class="fas fa-times-circle me-1"></i>Rejected
+                                {% else %}
+                                    <i class="fas fa-clock me-1"></i>Pending
+                                {% endif %}
+                            </span>
                         </div>
                     </div>
                     {% endif %}
                     {% endfor %}
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-file fa-3x text-muted mb-3"></i>
-                        <p class="text-muted mb-0">No documents uploaded</p>
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-file-alt"></i>
+                        <p>No documents uploaded</p>
                     </div>
-                    {% endif %}
-                </div>
-            </div>
-
-            <!-- Additional Information -->
-            <div class="card">
-                <div class="card-header bg-light">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Additional Information
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if not empty_sections.additional %}
-                    {% if alumni.bio %}
-                    <div class="mb-4">
-                        <h6 class="text-muted mb-2">Bio</h6>
-                        <p class="mb-0">{{ alumni.bio|linebreaks }}</p>
-                    </div>
-                    {% endif %}
-                    {% if alumni.achievements %}
-                    <div>
-                        <h6 class="text-muted mb-2">Achievements</h6>
-                        <p class="mb-0">{{ alumni.achievements|linebreaks }}</p>
-                    </div>
-                    {% endif %}
-                    {% else %}
-                    <div class="text-center py-4">
-                        <i class="fas fa-info-circle fa-3x text-muted mb-3"></i>
-                        <p class="text-muted mb-0">No additional information provided</p>
-                    </div>
-                    {% endif %}
-                </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -399,78 +407,222 @@
 
 {% block extra_css %}
 <style>
-    /* Progress Circle */
-    .progress-circle {
-        --size: 60px;
-        --border: 6px;
-        width: var(--size);
-        height: var(--size);
+    .profile-header {
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.95));
+        padding: 3rem 0;
+        color: white;
+        margin-bottom: 2rem;
+    }
+
+    .profile-avatar {
+        width: 150px;
+        height: 150px;
+        border-radius: 50%;
+        border: 4px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .profile-avatar:hover {
+        transform: scale(1.05);
+    }
+
+    .profile-name {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin: 1rem 0 0.5rem;
+    }
+
+    .profile-course {
+        font-size: 1.2rem;
+        opacity: 0.9;
+    }
+
+    .profile-location {
+        font-size: 1rem;
+        opacity: 0.8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .profile-card {
+        background: white;
+        border-radius: 1rem;
+        box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .profile-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    }
+
+    .profile-section-title {
+        color: var(--primary-color);
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--primary-color);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .profile-section-title i {
+        opacity: 0.8;
+    }
+
+    .info-item {
+        margin-bottom: 1.25rem;
+    }
+
+    .info-label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        margin-bottom: 0.25rem;
+        font-weight: 500;
+    }
+
+    .info-value {
+        font-size: 1rem;
+        color: #2c3e50;
+    }
+
+    .completion-circle {
+        width: 120px;
+        height: 120px;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        position: relative;
+        font-size: 1.5rem;
         font-weight: 600;
-        font-size: 14px;
-        background: conic-gradient(var(--bs-primary) calc(var(--value) * 1%), #f0f0f0 0);
-        -webkit-mask: radial-gradient(white var(--size), transparent 0);
-        mask: radial-gradient(white var(--size), transparent 0);
+        margin: 0 auto 1rem;
+        position: relative;
     }
 
-    .progress-circle::before {
-        content: "";
-        position: absolute;
-        inset: var(--border);
-        border-radius: 50%;
-        background: white;
-    }
-
-    /* Card Styles */
-    .card {
-        border: 1px solid var(--bs-border-color);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        transition: all 0.3s ease;
-    }
-
-    .card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-    }
-
-    .card-header {
-        background: var(--bs-light);
-        border-bottom: 1px solid var(--bs-border-color);
-    }
-
-    /* Badge Styles */
-    .badge {
-        font-weight: 500;
-        padding: 0.5em 0.75em;
-    }
-
-    .badge-group .badge {
-        font-size: 0.75rem;
-    }
-
-    /* List Group */
-    .list-group-item {
-        transition: all 0.2s ease;
-    }
-
-    .list-group-item:hover {
-        background: var(--bs-light);
-    }
-
-    /* Document Download Button */
-    .btn-sm {
-        padding: 0.25rem 0.5rem;
+    .completion-label {
         font-size: 0.875rem;
+        color: #6c757d;
+        text-align: center;
     }
 
-    /* Responsive */
+    .total-completion {
+        background: linear-gradient(135deg, #4e73df 0%, #224abe 100%);
+        color: white;
+    }
+
+    .required-fields {
+        background: linear-gradient(135deg, #36b9cc 0%, #1a8a9c 100%);
+        color: white;
+    }
+
+    .optional-fields {
+        background: linear-gradient(135deg, #1cc88a 0%, #13855c 100%);
+        color: white;
+    }
+
+    .document-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        margin-right: 0.5rem;
+    }
+
+    .document-verified {
+        background-color: #e8f5e9;
+        color: #2e7d32;
+    }
+
+    .document-pending {
+        background-color: #fff3e0;
+        color: #ef6c00;
+    }
+
+    .document-rejected {
+        background-color: #ffebee;
+        color: #c62828;
+    }
+
+    .back-button {
+        position: absolute;
+        top: 1.5rem;
+        right: 1.5rem;
+        background-color: rgba(255, 255, 255, 0.1);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .back-button:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+        color: white;
+        transform: translateX(-2px);
+    }
+
+    .reminder-button {
+        background-color: #e3f2fd;
+        color: #1976d2;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 2rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-left: auto;
+    }
+
+    .reminder-button:hover {
+        background-color: #bbdefb;
+        transform: translateY(-1px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 2rem;
+        color: #6c757d;
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+
     @media (max-width: 768px) {
-        .progress-circle {
-            --size: 50px;
-            --border: 5px;
+        .profile-header {
+            padding: 2rem 0;
+        }
+
+        .profile-name {
+            font-size: 2rem;
+        }
+
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+        }
+
+        .completion-circle {
+            width: 100px;
+            height: 100px;
+            font-size: 1.25rem;
         }
     }
 </style>

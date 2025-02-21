@@ -1,0 +1,163 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}My Feedbacks{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">My Feedbacks</li>
+{% endblock %}
+
+{% block page_title %}My Feedbacks{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-comments me-2 text-primary" style="font-size: 1.5rem;"></i>
+            <h2 class="mb-0">My Feedbacks</h2>
+        </div>
+        <a href="{% url 'feedback:submit_feedback' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>
+            Submit New Feedback
+        </a>
+    </div>
+
+    {% if feedbacks %}
+        <div class="card shadow">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Subject</th>
+                            <th>Category</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Submitted</th>
+                            <th>Last Updated</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for feedback in feedbacks %}
+                            <tr class="feedback-row" style="cursor: pointer;">
+                                <td>{{ feedback.subject }}</td>
+                                <td>
+                                    <span class="badge bg-info">
+                                        {{ feedback.get_category_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if feedback.priority == 'urgent' %}danger{% elif feedback.priority == 'high' %}warning{% elif feedback.priority == 'medium' %}info{% else %}secondary{% endif %}">
+                                        {{ feedback.get_priority_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-{% if feedback.status == 'resolved' %}success{% elif feedback.status == 'in_progress' %}primary{% elif feedback.status == 'closed' %}secondary{% else %}warning{% endif %}">
+                                        {{ feedback.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>{{ feedback.created_at|naturaltime }}</td>
+                                <td>{{ feedback.updated_at|naturaltime }}</td>
+                            </tr>
+                            <tr class="feedback-details d-none">
+                                <td colspan="6" class="bg-light">
+                                    <div class="p-3">
+                                        <h6 class="mb-3 fw-bold">Message:</h6>
+                                        <p class="mb-3">{{ feedback.message|linebreaks }}</p>
+                                        
+                                        {% if feedback.attachment %}
+                                            <div class="mb-3">
+                                                <h6 class="fw-bold mb-2">Attachment:</h6>
+                                                <a href="{{ feedback.attachment.url }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-paperclip me-1"></i>
+                                                    View Attachment
+                                                </a>
+                                            </div>
+                                        {% endif %}
+                                        
+                                        {% if feedback.admin_notes and feedback.status != 'pending' %}
+                                            <div class="alert alert-info mb-0">
+                                                <h6 class="alert-heading fw-bold">Admin Response:</h6>
+                                                {{ feedback.admin_notes|linebreaks }}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                </td>
+                            </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        {% if feedbacks.has_other_pages %}
+            <nav class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if feedbacks.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ feedbacks.previous_page_number }}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                <i class="fas fa-chevron-left"></i>
+                            </span>
+                        </li>
+                    {% endif %}
+
+                    {% for num in feedbacks.paginator.page_range %}
+                        {% if feedbacks.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% else %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if feedbacks.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ feedbacks.next_page_number }}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="page-item disabled">
+                            <span class="page-link">
+                                <i class="fas fa-chevron-right"></i>
+                            </span>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        {% endif %}
+    {% else %}
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            You haven't submitted any feedback yet.
+        </div>
+    {% endif %}
+</div>
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Toggle feedback details on row click
+        const rows = document.querySelectorAll('.feedback-row');
+        rows.forEach(row => {
+            row.addEventListener('click', function() {
+                const details = this.nextElementSibling;
+                if (details && details.classList.contains('feedback-details')) {
+                    details.classList.toggle('d-none');
+                    this.classList.toggle('table-active');
+                }
+            });
+        });
+    });
+</script>
+{% endblock %}
+
+{% endblock %} 

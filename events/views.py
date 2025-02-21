@@ -5,7 +5,8 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.contrib import messages
 from django.urls import reverse_lazy
 from django.utils import timezone
-from django.db.models import Count
+from django.db.models import Count, Q
+from django.core.exceptions import ValidationError
 from .models import Event, EventRSVP
 from .forms import EventForm, EventRSVPForm
 from alumni_groups.models import AlumniGroup
@@ -14,22 +15,61 @@ class EventListView(LoginRequiredMixin, ListView):
     model = Event
     template_name = 'events/event_list.html'
     context_object_name = 'events'
-    paginate_by = 10
+    paginate_by = 12
     login_url = 'account_login'
 
     def get_queryset(self):
-        queryset = Event.objects.annotate(rsvp_count=Count('rsvps'))
+        queryset = Event.objects.select_related('created_by').prefetch_related('rsvps')
+        
+        # Get filter parameters
         status = self.request.GET.get('status')
+        search = self.request.GET.get('search')
+        
+        # Apply filters
         if status:
             queryset = queryset.filter(status=status)
-        return queryset.order_by('-start_date')
+        
+        if search:
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(description__icontains=search) |
+                Q(location__icontains=search)
+            )
+        
+        # Annotate with RSVP count
+        queryset = queryset.annotate(rsvp_count=Count('rsvps'))
+        
+        # Order by start date
+        return queryset.order_by('start_date')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['upcoming_events'] = Event.objects.filter(
-            start_date__gte=timezone.now(),
+        now = timezone.now()
+        
+        # Get upcoming events
+        upcoming_events = Event.objects.filter(
+            start_date__gte=now,
             status='published'
         ).order_by('start_date')[:5]
+        
+        # Get event statistics
+        total_events = Event.objects.count()
+        published_events = Event.objects.filter(status='published').count()
+        upcoming_count = upcoming_events.count()
+        past_events = Event.objects.filter(end_date__lt=now).count()
+        
+        context.update({
+            'upcoming_events': upcoming_events,
+            'total_events': total_events,
+            'published_events': published_events,
+            'upcoming_count': upcoming_count,
+            'past_events': past_events,
+            'total_participants': EventRSVP.objects.filter(status='yes').count(),
+            'virtual_events_count': Event.objects.filter(is_virtual=True).count(),
+            'search_query': self.request.GET.get('search', ''),
+            'current_status': self.request.GET.get('status', ''),
+        })
+        
         return context
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -57,39 +97,70 @@ class EventCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Event
     form_class = EventForm
     template_name = 'events/event_form.html'
-    success_url = reverse_lazy('events:event_list')
-
+    
     def test_func(self):
         return self.request.user.is_staff
-
+    
+    def get_success_url(self):
+        return reverse_lazy('events:event_detail', kwargs={'pk': self.object.pk})
+    
     def form_valid(self, form):
-        form.instance.created_by = self.request.user
-        response = super().form_valid(form)
-        
-        # Handle notifications for selected groups
-        notified_groups = form.cleaned_data.get('notified_groups', [])
-        if notified_groups:
-            self.object.notified_groups.set(notified_groups)
-            # Here you would add logic to send notifications to group members
+        try:
+            # Set the created_by field
+            form.instance.created_by = self.request.user
             
-        messages.success(self.request, 'Event created successfully!')
-        return response
+            # Save the form
+            response = super().form_valid(form)
+            
+            # Handle notifications for selected groups
+            notified_groups = form.cleaned_data.get('notified_groups', [])
+            if notified_groups:
+                self.object.notified_groups.set(notified_groups)
+            
+            # Show success message
+            messages.success(
+                self.request,
+                f'Event "{self.object.title}" has been created successfully!'
+            )
+            
+            return response
+            
+        except ValidationError as e:
+            messages.error(self.request, f'Validation error: {str(e)}')
+            return self.form_invalid(form)
+        except Exception as e:
+            messages.error(self.request, f'Error creating event: {str(e)}')
+            return self.form_invalid(form)
+    
+    def form_invalid(self, form):
+        messages.error(
+            self.request,
+            'Please correct the errors below.'
+        )
+        return super().form_invalid(form)
 
 class EventUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Event
     form_class = EventForm
     template_name = 'events/event_form.html'
-
+    
     def test_func(self):
         return self.request.user.is_staff
-
+    
     def get_success_url(self):
         return reverse_lazy('events:event_detail', kwargs={'pk': self.object.pk})
-
+    
     def form_valid(self, form):
-        response = super().form_valid(form)
-        messages.success(self.request, 'Event updated successfully!')
-        return response
+        try:
+            response = super().form_valid(form)
+            messages.success(
+                self.request,
+                f'Event "{self.object.title}" has been updated successfully!'
+            )
+            return response
+        except Exception as e:
+            messages.error(self.request, f'Error updating event: {str(e)}')
+            return self.form_invalid(form)
 
 class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Event

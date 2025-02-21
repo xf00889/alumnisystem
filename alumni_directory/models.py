@@ -34,13 +34,15 @@ class Alumni(models.Model):
     )
 
     CAMPUS_CHOICES = (
-        ('MAIN', 'Main Campus I & II (Dumaguete)'),
-        ('BAIS', 'Bais Campus I & II'),
-        ('GUI', 'Guihulngan Campus'),
-        ('MAB', 'Mabinay Campus'),
+        ('MAIN', 'Dumaguete Main Campus'),
+        ('NORTH', 'Dumaguete North Campus'),
+        ('BAIS1', 'Bais City Campus I'),
+        ('BAIS2', 'Bais City Campus II'),
         ('BSC', 'Bayawan-Sta. Catalina Campus'),
-        ('SIA', 'Siaton Campus'),
+        ('SIATON', 'Siaton Campus'),
+        ('GUI', 'Guihulngan Campus'),
         ('PAM', 'Pamplona Campus'),
+        ('MAB', 'Mabinay Campus'),
     )
 
     # Basic Information
@@ -66,6 +68,7 @@ class Alumni(models.Model):
     course = models.CharField(max_length=200)
     major = models.CharField(max_length=200, blank=True)
     honors = models.CharField(max_length=200, blank=True)
+    thesis_title = models.CharField(max_length=500, blank=True, null=True)
     
     # Professional Information
     current_company = models.CharField(max_length=200, blank=True)
@@ -165,3 +168,77 @@ class AlumniDocument(models.Model):
             return f"{size_bytes:.2f} TB"
         except:
             return "Unknown size"
+
+class CareerPath(models.Model):
+    PROMOTION_TYPE_CHOICES = (
+        ('PROMOTION', 'Promotion'),
+        ('LATERAL', 'Lateral Move'),
+        ('NEW_ROLE', 'New Role'),
+        ('COMPANY_CHANGE', 'Company Change'),
+    )
+
+    alumni = models.ForeignKey(Alumni, on_delete=models.CASCADE, related_name='career_paths')
+    company = models.CharField(max_length=255)
+    position = models.CharField(max_length=255)
+    start_date = models.DateField()
+    end_date = models.DateField(null=True, blank=True)
+    is_current = models.BooleanField(default=False)
+    description = models.TextField(blank=True)
+    achievements = models.TextField(blank=True)
+    promotion_type = models.CharField(max_length=20, choices=PROMOTION_TYPE_CHOICES, blank=True)
+    salary_range = models.CharField(max_length=100, blank=True)
+    location = models.CharField(max_length=255, blank=True)
+    skills_gained = models.TextField(blank=True, help_text="Comma-separated list of skills gained in this role")
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-start_date']
+        verbose_name = 'Career Path'
+        verbose_name_plural = 'Career Paths'
+
+    def __str__(self):
+        return f"{self.position} at {self.company}"
+
+    def save(self, *args, **kwargs):
+        if self.is_current:
+            self.end_date = None
+            # Set all other career paths for this alumni to not current
+            CareerPath.objects.filter(alumni=self.alumni).exclude(pk=self.pk).update(is_current=False)
+        super().save(*args, **kwargs)
+
+class Achievement(models.Model):
+    ACHIEVEMENT_TYPE_CHOICES = (
+        ('AWARD', 'Award'),
+        ('CERTIFICATION', 'Certification'),
+        ('PUBLICATION', 'Publication'),
+        ('PROJECT', 'Project'),
+        ('RECOGNITION', 'Recognition'),
+        ('OTHER', 'Other'),
+    )
+
+    alumni = models.ForeignKey(Alumni, on_delete=models.CASCADE, related_name='achievements_list')
+    title = models.CharField(max_length=255)
+    achievement_type = models.CharField(max_length=20, choices=ACHIEVEMENT_TYPE_CHOICES)
+    date_achieved = models.DateField()
+    description = models.TextField(blank=True)
+    issuer = models.CharField(max_length=255, blank=True)
+    url = models.URLField(blank=True)
+    attachment = models.FileField(
+        upload_to='achievements/%Y/%m/',
+        null=True,
+        blank=True,
+        validators=[FileExtensionValidator(allowed_extensions=['pdf', 'jpg', 'jpeg', 'png'])]
+    )
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ['-date_achieved']
+        verbose_name = 'Achievement'
+        verbose_name_plural = 'Achievements'
+
+    def __str__(self):
+        return self.title

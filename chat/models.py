@@ -8,6 +8,7 @@ class Conversation(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     is_group_chat = models.BooleanField(default=False)
     created_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='created_conversations')
+    photo = models.ImageField(upload_to='chat/group_photos/', null=True, blank=True)  # Add photo field
 
     class Meta:
         ordering = ['-created_at']

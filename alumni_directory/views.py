@@ -28,6 +28,11 @@ def alumni_list(request):
         courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
         provinces = Alumni.objects.values_list('province', flat=True).distinct().order_by('province')
         
+        # Get counts for statistics
+        graduation_years_count = graduation_years.count()
+        courses_count = courses.count()
+        provinces_count = provinces.count()
+        
         # Base queryset with efficient loading
         queryset = Alumni.objects.select_related('user').all()
         logger.info(f"Initial alumni queryset count: {queryset.count()}")
@@ -50,6 +55,16 @@ def alumni_list(request):
         if course:
             queryset = queryset.filter(course__in=course)
         
+        # College filter
+        college = request.GET.getlist('college')
+        if college:
+            queryset = queryset.filter(college__in=college)
+        
+        # Campus filter
+        campus = request.GET.getlist('campus')
+        if campus:
+            queryset = queryset.filter(campus__in=campus)
+        
         # Location filter
         province = request.GET.getlist('province')
         if province:
@@ -66,7 +81,7 @@ def alumni_list(request):
         except ValueError:
             page = 1
             
-        paginator = Paginator(queryset, 12)
+        paginator = Paginator(queryset, 24)
         try:
             alumni = paginator.page(page)
         except Exception as e:
@@ -77,23 +92,43 @@ def alumni_list(request):
         total_alumni = queryset.count()
         total_registered = Alumni.objects.count()
         
+        # Calculate total active filters
+        selected_filters_count = sum(
+            bool(filters) for filters in [
+                grad_year, course, college, campus, 
+                province, employment_status, search_query
+            ]
+        )
+        
+        # Check if any filter is active
+        any_filter_active = selected_filters_count > 0
+        
         logger.info(f"Filtered alumni count: {total_alumni}")
         
         context = {
-            'alumni': alumni,
+            'alumni_list': alumni,
             'graduation_years': graduation_years,
             'courses': courses,
             'provinces': provinces,
+            'colleges': Alumni.COLLEGE_CHOICES,
+            'campuses': Alumni.CAMPUS_CHOICES,
             'employment_statuses': Alumni.EMPLOYMENT_STATUS_CHOICES,
             'selected_filters': {
                 'graduation_year': grad_year,
                 'course': course,
+                'college': college,
+                'campus': campus,
                 'province': province,
                 'employment_status': employment_status,
                 'search': search_query,
             },
+            'selected_filters_count': selected_filters_count,
+            'any_filter_active': any_filter_active,
             'total_alumni': total_alumni,
-            'total_registered': total_registered
+            'total_registered': total_registered,
+            'graduation_years_count': graduation_years_count,
+            'courses_count': courses_count,
+            'provinces_count': provinces_count
         }
         
         template_name = 'alumni_directory/alumni_list.html'
