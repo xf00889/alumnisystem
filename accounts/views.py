@@ -7,7 +7,7 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.core.exceptions import ValidationError
 from .models import Profile, Education, Experience, Skill, Document
 from alumni_groups.models import AlumniGroup, GroupMembership
-from alumni_directory.models import Alumni
+from alumni_directory.models import Alumni, CareerPath, Achievement, AlumniDocument
 from .forms import (
     ProfileUpdateForm, 
     EducationFormSet, 
@@ -90,20 +90,36 @@ def post_registration(request):
         'title': 'Complete Registration',
     })
 
-class ProfileDetailView(LoginRequiredMixin, DetailView):
-    model = Profile
-    template_name = 'accounts/profile_detail.html'
-    context_object_name = 'profile'
-
-    def get_object(self, queryset=None):
-        return self.request.user.profile
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['education_list'] = self.object.education.all().order_by('-graduation_year')
-        context['experience_list'] = self.object.experience.all().order_by('-start_date')
-        context['skill_list'] = self.object.skills.all().order_by('-proficiency_level')
-        return context
+@login_required
+def profile_detail(request):
+    try:
+        profile = request.user.profile
+        education_list = profile.education.all().order_by('-graduation_year')
+        experience_list = profile.experience.all().order_by('-start_date')
+        skill_list = profile.skills.all().order_by('skill_type', 'name')
+        
+        # Get career paths and achievements
+        try:
+            alumni = request.user.alumni
+            career_paths = alumni.career_paths.all().order_by('-start_date')
+            achievements = alumni.achievements_list.all().order_by('-date_achieved')
+        except Alumni.DoesNotExist:
+            career_paths = []
+            achievements = []
+        
+        context = {
+            'profile': profile,
+            'education_list': education_list,
+            'experience_list': experience_list,
+            'skill_list': skill_list,
+            'career_paths': career_paths,
+            'achievements': achievements,
+        }
+        
+        return render(request, 'accounts/profile_detail.html', context)
+    except Exception as e:
+        messages.error(request, f'Error loading profile: {str(e)}')
+        return redirect('core:home')
 
 @login_required
 def profile_update(request):
@@ -185,13 +201,52 @@ def profile_update(request):
                         experience_formset.save()
                         skill_formset.save()
 
+                        # Update Alumni model
+                        try:
+                            alumni = request.user.alumni
+                            alumni.phone_number = profile.phone_number
+                            alumni.address = profile.address
+                            alumni.city = profile.city
+                            alumni.province = profile.state
+                            alumni.country = profile.country
+                            alumni.linkedin_profile = profile.linkedin_profile
+                            alumni.date_of_birth = profile.birth_date
+                            alumni.gender = profile.gender
+                            alumni.save()
+                        except Alumni.DoesNotExist:
+                            pass
+
                         # Handle document uploads
                         for form in [transcript_form, certificate_form, diploma_form, resume_form]:
                             if form.is_valid() and form.has_changed():
                                 if form.cleaned_data.get('file'):
+                                    # Save to Profile Document
                                     doc = form.save(commit=False)
                                     doc.profile = request.user.profile
                                     doc.save()
+
+                                    # Map document types between Profile and Alumni models
+                                    document_type_mapping = {
+                                        'TRANSCRIPT': 'TOR',
+                                        'CERTIFICATE': 'CERT',
+                                        'DIPLOMA': 'DIPLOMA',
+                                        'RESUME': 'RESUME',
+                                        'OTHER': 'OTHER'
+                                    }
+
+                                    # Save to Alumni Document
+                                    try:
+                                        alumni = request.user.alumni
+                                        AlumniDocument.objects.create(
+                                            alumni=alumni,
+                                            title=doc.title,
+                                            document_type=document_type_mapping.get(doc.document_type, 'OTHER'),
+                                            file=doc.file,
+                                            description=doc.description,
+                                            is_verified=False
+                                        )
+                                    except Alumni.DoesNotExist:
+                                        pass
 
                     return JsonResponse({'status': 'success'})
 
@@ -554,3 +609,158 @@ def view_security_answer(request, membership_id):
     return JsonResponse({
         'answer': membership.security_answer
     })
+
+@login_required
+@require_POST
+def add_career_path(request):
+    try:
+        alumni = request.user.alumni
+        data = request.POST.dict()
+        data['is_current'] = 'is_current' in data
+        
+        # Create the career path
+        career_path = CareerPath.objects.create(
+            alumni=alumni,
+            company=data['company'],
+            position=data['position'],
+            start_date=data['start_date'],
+            end_date=data.get('end_date') if not data['is_current'] else None,
+            is_current=data['is_current'],
+            description=data.get('description', ''),
+            achievements=data.get('achievements', ''),
+            promotion_type=data.get('promotion_type', ''),
+            salary_range=data.get('salary_range', ''),
+            location=data.get('location', ''),
+            skills_gained=data.get('skills_gained', '')
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Career path added successfully',
+            'id': career_path.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def edit_career_path(request, pk):
+    try:
+        career_path = get_object_or_404(CareerPath, pk=pk, alumni=request.user.alumni)
+        data = request.POST.dict()
+        data['is_current'] = 'is_current' in data
+        
+        # Update the career path
+        for field, value in data.items():
+            if field != 'csrfmiddlewaretoken':
+                if field == 'end_date' and data['is_current']:
+                    value = None
+                setattr(career_path, field, value)
+        
+        career_path.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Career path updated successfully'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def delete_career_path(request, pk):
+    try:
+        career_path = get_object_or_404(CareerPath, pk=pk, alumni=request.user.alumni)
+        career_path.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Career path deleted successfully'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def add_achievement(request):
+    try:
+        alumni = request.user.alumni
+        data = request.POST.dict()
+        file = request.FILES.get('attachment')
+        
+        # Create the achievement
+        achievement = Achievement.objects.create(
+            alumni=alumni,
+            title=data['title'],
+            achievement_type=data['achievement_type'],
+            date_achieved=data['date_achieved'],
+            description=data.get('description', ''),
+            issuer=data.get('issuer', ''),
+            url=data.get('url', ''),
+            attachment=file
+        )
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Achievement added successfully',
+            'id': achievement.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def edit_achievement(request, pk):
+    try:
+        achievement = get_object_or_404(Achievement, pk=pk, alumni=request.user.alumni)
+        data = request.POST.dict()
+        file = request.FILES.get('attachment')
+        
+        # Update the achievement
+        for field, value in data.items():
+            if field != 'csrfmiddlewaretoken':
+                setattr(achievement, field, value)
+        
+        if file:
+            achievement.attachment = file
+        
+        achievement.save()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Achievement updated successfully'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)
+
+@login_required
+@require_POST
+def delete_achievement(request, pk):
+    try:
+        achievement = get_object_or_404(Achievement, pk=pk, alumni=request.user.alumni)
+        achievement.delete()
+        
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Achievement deleted successfully'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'message': str(e)
+        }, status=400)

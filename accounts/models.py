@@ -17,6 +17,26 @@ class Profile(models.Model):
         ('N', 'Prefer not to say'),
     ]
 
+    EMPLOYMENT_STATUS_CHOICES = [
+        ('EMPLOYED_FULL', 'Employed Full-Time'),
+        ('EMPLOYED_PART', 'Employed Part-Time'),
+        ('SELF_EMPLOYED', 'Self-Employed'),
+        ('UNEMPLOYED', 'Unemployed'),
+        ('STUDENT', 'Further Studies'),
+        ('RETIRED', 'Retired'),
+        ('INTERN', 'Internship/OJT'),
+    ]
+
+    SALARY_RANGE_CHOICES = [
+        ('0-15K', 'Below ₱15,000'),
+        ('15K-30K', '₱15,000 - ₱30,000'),
+        ('30K-50K', '₱30,000 - ₱50,000'),
+        ('50K-80K', '₱50,000 - ₱80,000'),
+        ('80K-100K', '₱80,000 - ₱100,000'),
+        ('100K+', 'Above ₱100,000'),
+        ('PREFER_NOT', 'Prefer not to say'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     bio = models.TextField(max_length=500, blank=True)
@@ -31,6 +51,23 @@ class Profile(models.Model):
     linkedin_profile = models.URLField(max_length=255, blank=True)
     facebook_profile = models.URLField(max_length=255, blank=True)
     twitter_profile = models.URLField(max_length=255, blank=True)
+    
+    # Professional Information
+    current_position = models.CharField(max_length=200, blank=True)
+    current_employer = models.CharField(max_length=200, blank=True)
+    industry = models.CharField(max_length=200, blank=True)
+    employment_status = models.CharField(
+        max_length=20,
+        choices=EMPLOYMENT_STATUS_CHOICES,
+        default='UNEMPLOYED'
+    )
+    salary_range = models.CharField(
+        max_length=20,
+        choices=SALARY_RANGE_CHOICES,
+        default='PREFER_NOT',
+        blank=True
+    )
+    
     is_public = models.BooleanField(default=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -38,6 +75,19 @@ class Profile(models.Model):
 
     def __str__(self):
         return f"{self.user.get_full_name() or self.user.email}'s Profile"
+
+    def save(self, *args, **kwargs):
+        super().save(*args, **kwargs)
+        # Sync professional information with Alumni model
+        try:
+            alumni = self.user.alumni
+            alumni.job_title = self.current_position
+            alumni.current_company = self.current_employer
+            alumni.industry = self.industry
+            alumni.employment_status = self.employment_status
+            alumni.save()
+        except:
+            pass
 
     class Meta:
         verbose_name = _('Profile')
@@ -159,6 +209,7 @@ class Document(models.Model):
     document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+    is_verified = models.BooleanField(default=False)
 
     def __str__(self):
         return f"{self.title} ({self.get_document_type_display()})"

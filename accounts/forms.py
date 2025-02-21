@@ -278,36 +278,45 @@ class ProfileUpdateForm(forms.ModelForm):
     class Meta:
         model = Profile
         fields = [
-            'avatar', 'bio', 'birth_date', 'gender', 'phone_number',
-            'address', 'city', 'state', 'country', 'postal_code',
-            'linkedin_profile', 'facebook_profile', 'twitter_profile',
+            'avatar',
+            'bio',
+            'birth_date',
+            'gender',
+            'phone_number',
+            'address',
+            'city',
+            'state',
+            'country',
+            'postal_code',
+            'linkedin_profile',
+            'facebook_profile',
+            'twitter_profile',
+            'current_position',
+            'current_employer',
+            'industry',
+            'employment_status',
+            'salary_range',
             'is_public'
         ]
         widgets = {
-            'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
-            'gender': forms.Select(attrs={'class': 'form-control'}),
-            'phone_number': forms.TextInput(attrs={'class': 'form-control'}),
-            'address': forms.TextInput(attrs={'class': 'form-control'}),
-            'city': forms.TextInput(attrs={'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'class': 'form-control'}),
-            'postal_code': forms.TextInput(attrs={'class': 'form-control'}),
-            'linkedin_profile': forms.URLInput(attrs={'class': 'form-control'}),
-            'facebook_profile': forms.URLInput(attrs={'class': 'form-control'}),
-            'twitter_profile': forms.URLInput(attrs={'class': 'form-control'}),
-            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'})
+            'birth_date': forms.DateInput(attrs={'type': 'date'}),
+            'bio': forms.Textarea(attrs={'rows': 4}),
+            'address': forms.Textarea(attrs={'rows': 2}),
+            'current_position': forms.TextInput(attrs={'placeholder': 'e.g. Software Engineer'}),
+            'current_employer': forms.TextInput(attrs={'placeholder': 'e.g. Tech Company Inc.'}),
+            'industry': forms.TextInput(attrs={'placeholder': 'e.g. Information Technology'}),
+        }
+        labels = {
+            'current_position': 'Current Position',
+            'current_employer': 'Current Employer',
+            'industry': 'Industry',
+            'employment_status': 'Employment Status',
+            'salary_range': 'Salary Range',
         }
         help_texts = {
-            'birth_date': 'Your date of birth',
-            'gender': 'Select your gender',
-            'phone_number': 'Enter your contact number',
-            'address': 'Your street address',
-            'city': 'Your city',
-            'state': 'Your state/province',
-            'postal_code': 'Your postal/ZIP code',
-            'linkedin_profile': 'Your LinkedIn profile URL',
-            'facebook_profile': 'Your Facebook profile URL',
-            'twitter_profile': 'Your Twitter profile URL',
-            'is_public': 'Allow other alumni to view your profile'
+            'salary_range': 'This information will be kept private and used for statistical purposes only.',
+            'employment_status': 'Select your current employment status',
+            'industry': 'Enter the industry you currently work in',
         }
 
     def __init__(self, *args, **kwargs):
