@@ -332,9 +332,7 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-# LinkedIn API Configuration
-LINKEDIN_API_KEY = '77tv3vq5x7741r'  # Client ID
-LINKEDIN_API_SECRET = 'WPL_AP1.pue5kGHVINjPJdby.3C8JzA=='  # Client Secret
+
 
 # LinkedIn OAuth2 Settings
 LINKEDIN_OAUTH2_SETTINGS = {
