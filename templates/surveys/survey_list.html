@@ -1,0 +1,351 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Available Surveys{% endblock %}
+
+{% block extra_css %}
+<style>
+    .analytics-card {
+        border-radius: 10px;
+        padding: 1.25rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        margin-bottom: 1.5rem;
+        background-color: #fff;
+        border-left: 4px solid;
+    }
+    .analytics-card.primary {
+        border-left-color: #4e73df;
+    }
+    .analytics-card.success {
+        border-left-color: #1cc88a;
+    }
+    .analytics-card.info {
+        border-left-color: #36b9cc;
+    }
+    .analytics-card.warning {
+        border-left-color: #f6c23e;
+    }
+    .analytics-metric {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0;
+    }
+    .analytics-title {
+        font-size: 0.8rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #888;
+        margin-bottom: 0.5rem;
+    }
+    .analytics-icon {
+        font-size: 2rem;
+        opacity: 0.3;
+    }
+    .chart-container {
+        height: 200px;
+        position: relative;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="h2 mb-4">Alumni Surveys</h1>
+            
+            <!-- Analytics Dashboard - Visible only to staff -->
+            {% if user.is_staff %}
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Survey Participation Analytics
+                    </h5>
+                    <button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#analyticsDashboard" aria-expanded="false">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div class="collapse show" id="analyticsDashboard">
+                    <div class="card-body">
+                        <!-- Summary Metrics -->
+                        <div class="row mb-4">
+                            <div class="col-md-3">
+                                <div class="analytics-card primary">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="analytics-title">Total Alumni</div>
+                                            <div class="analytics-metric">{{ total_alumni }}</div>
+                                        </div>
+                                        <div class="analytics-icon text-primary">
+                                            <i class="fas fa-users"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="analytics-card success">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="analytics-title">Participating Alumni</div>
+                                            <div class="analytics-metric">{{ alumni_with_responses }}</div>
+                                        </div>
+                                        <div class="analytics-icon text-success">
+                                            <i class="fas fa-user-check"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="analytics-card info">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="analytics-title">Participation Rate</div>
+                                            <div class="analytics-metric">{{ participation_percentage }}%</div>
+                                        </div>
+                                        <div class="analytics-icon text-info">
+                                            <i class="fas fa-percentage"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3">
+                                <div class="analytics-card warning">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <div>
+                                            <div class="analytics-title">Active Surveys</div>
+                                            <div class="analytics-metric">{{ surveys|length }}</div>
+                                        </div>
+                                        <div class="analytics-icon text-warning">
+                                            <i class="fas fa-poll"></i>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Detailed Analytics -->
+                        <div class="row">
+                            <!-- Response by College -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Responses by College</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="collegeChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- Response by Batch -->
+                            <div class="col-md-6 mb-4">
+                                <div class="card h-100">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Responses by Batch (Year)</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="chart-container">
+                                            <canvas id="batchChart"></canvas>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Survey Response Rates -->
+                        <div class="row">
+                            <div class="col-12">
+                                <div class="card">
+                                    <div class="card-header bg-light">
+                                        <h6 class="mb-0">Survey Response Rates</h6>
+                                    </div>
+                                    <div class="card-body">
+                                        <div class="table-responsive">
+                                            <table class="table table-sm table-hover">
+                                                <thead>
+                                                    <tr>
+                                                        <th>Survey</th>
+                                                        <th class="text-center">Responses</th>
+                                                        <th class="text-center">Response Rate</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    {% for survey_item in survey_data %}
+                                                    <tr>
+                                                        <td>{{ survey_item.title }}</td>
+                                                        <td class="text-center">{{ survey_item.responses_count }}</td>
+                                                        <td class="text-center">
+                                                            <div class="progress" style="height: 8px;">
+                                                                <div class="progress-bar bg-success" role="progressbar" style="width: {{ survey_item.response_rate }}%"></div>
+                                                            </div>
+                                                            <small class="text-muted">{{ survey_item.response_rate }}%</small>
+                                                        </td>
+                                                    </tr>
+                                                    {% endfor %}
+                                                </tbody>
+                                            </table>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="row">
+                {% for survey in surveys %}
+                <div class="col-md-6 col-lg-4 mb-4">
+                    <div class="card h-100 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ survey.title }}</h5>
+                            <p class="card-text text-muted">
+                                {{ survey.description|truncatechars:100 }}
+                            </p>
+                            <div class="d-flex justify-content-between align-items-center mt-3">
+                                <small class="text-muted">
+                                    Available until {{ survey.end_date|date:"M d, Y" }}
+                                </small>
+                                {% if survey.id in responded_surveys %}
+                                <span class="badge bg-success">Completed</span>
+                                {% else %}
+                                <a href="{% url 'surveys:survey_take' survey.id %}" class="btn btn-primary btn-sm">
+                                    Take Survey
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% empty %}
+                <div class="col-12">
+                    <div class="alert alert-info" role="alert">
+                        <h4 class="alert-heading">No Active Surveys</h4>
+                        <p>There are currently no active surveys available. Please check back later.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-5">
+                <h3 class="h4 mb-3">Why Your Feedback Matters</h3>
+                <div class="row">
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card h-100 border-0 bg-light">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-chalkboard-teacher fa-3x text-primary"></i>
+                                </div>
+                                <h5 class="card-title text-center">Improve Education</h5>
+                                <p class="card-text">Your feedback helps your alma mater enhance curriculum and teaching methods.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <div class="card h-100 border-0 bg-light">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-network-wired fa-3x text-primary"></i>
+                                </div>
+                                <h5 class="card-title text-center">Strengthen Network</h5>
+                                <p class="card-text">Help us build better resources and programs for the entire alumni community.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card h-100 border-0 bg-light">
+                            <div class="card-body">
+                                <div class="text-center mb-3">
+                                    <i class="fas fa-chart-line fa-3x text-primary"></i>
+                                </div>
+                                <h5 class="card-title text-center">Track Progress</h5>
+                                <p class="card-text">Your career insights help us track employment trends and alumni success.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // College Chart
+        const collegeCtx = document.getElementById('collegeChart').getContext('2d');
+        new Chart(collegeCtx, {
+            type: 'pie',
+            data: {
+                labels: [
+                    {% for item in college_data %}
+                        '{{ item.college_name }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [
+                        {% for item in college_data %}
+                            {{ item.count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+                        '#5a5c69', '#6610f2', '#fd7e14', '#20c9a6', '#858796'
+                    ],
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12
+                        }
+                    }
+                }
+            }
+        });
+
+        // Batch Chart
+        const batchCtx = document.getElementById('batchChart').getContext('2d');
+        new Chart(batchCtx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    {% for item in batch_data %}
+                        '{{ item.alumni__graduation_year }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Responses',
+                    data: [
+                        {% for item in batch_data %}
+                            {{ item.count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: '#4e73df',
+                    borderColor: '#4e73df',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0
+                        }
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %} 

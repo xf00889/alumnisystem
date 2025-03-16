@@ -1,0 +1,2909 @@
+﻿{% extends "base.html" %}
+{% load static %}
+{% load mentorship_extras %}
+
+{% block title %}Mentee Dashboard{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/mentorship.css' %}">
+<style>
+    /* Dashboard Layout */
+    .dashboard-container {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Gradient Backgrounds */
+    .bg-gradient-primary {
+        background: linear-gradient(45deg, #4e73df 0%, #224abe 100%);
+    }
+
+    .bg-gradient-success {
+        background: linear-gradient(45deg, #1cc88a 0%, #13855c 100%);
+    }
+
+    .bg-gradient-info {
+        background: linear-gradient(45deg, #36b9cc 0%, #258391 100%);
+    }
+
+    .bg-gradient-warning {
+        background: linear-gradient(45deg, #f6c23e 0%, #dda20a 100%);
+    }
+    
+    /* Card Enhancements */
+    .card {
+        border: none;
+        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
+        transition: transform 0.2s ease-in-out;
+    }
+    
+    .card:hover {
+        transform: translateY(-3px);
+    }
+
+    /* Stats Card Icons */
+    .stats-icon {
+        width: 3rem;
+        height: 3rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+
+    /* Mentorship Item Styles */
+    .mentorship-item {
+        border: none;
+        margin-bottom: 1rem;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    }
+
+    .mentorship-item .accordion-button {
+        padding: 1rem;
+        background: #fff;
+        border: none;
+    }
+
+    .mentorship-item .accordion-button:not(.collapsed) {
+        background: #f8f9fa;
+        color: #4e73df;
+    }
+
+    .mentorship-title {
+        font-weight: 600;
+        color: #5a5c69;
+    }
+
+    /* Progress Bars */
+    .progress {
+        height: 1rem;
+        border-radius: 0.5rem;
+        background-color: #eaecf4;
+    }
+    
+    .progress-bar {
+        border-radius: 0.5rem;
+    }
+
+    /* Timeline Styles */
+    .timeline-visualization {
+        padding: 1.5rem;
+        background: #f8f9fa;
+        border-radius: 0.5rem;
+    }
+
+    /* Buttons */
+    .btn {
+        padding: 0.375rem 1rem;
+        font-weight: 500;
+        border-radius: 0.5rem;
+    }
+    
+    .btn-primary {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+    
+    .btn-primary:hover {
+        background-color: #2e59d9;
+        border-color: #2653d4;
+    }
+    
+    /* Badges */
+    .badge {
+        padding: 0.5em 0.75em;
+        font-weight: 500;
+        border-radius: 0.5rem;
+    }
+
+    /* Form Elements */
+    .form-check-input:checked {
+        background-color: #4e73df;
+        border-color: #4e73df;
+    }
+    
+    /* Responsive Adjustments */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 1rem;
+        }
+
+        .card {
+            margin-bottom: 1rem;
+        }
+    }
+    
+    /* Enhanced Timeline Visualization Styles */
+    .enhanced-timeline-container {
+        height: 120px;
+        padding: 15px 30px; /* Increased horizontal padding */
+        position: relative;
+        margin: 30px 0;
+        overflow: visible;
+    }
+
+    .enhanced-timeline-line {
+        position: absolute;
+        height: 6px;
+        background-color: #e9ecef;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        left: 0;
+        right: 0;
+        border-radius: 3px;
+    }
+
+    .enhanced-timeline-progress-fill {
+        position: absolute;
+        height: 6px;
+        background: linear-gradient(90deg, #4e73df 0%, #36b9cc 100%);
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 2;
+        left: 0;
+        width: 0%;
+        transition: width 1s ease;
+        border-radius: 3px;
+        box-shadow: 0 0 10px rgba(78, 115, 223, 0.5);
+    }
+
+    .enhanced-milestone-marker-wrapper {
+        position: absolute;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 3;
+        cursor: pointer;
+    }
+
+    .enhanced-milestone-marker {
+        width: 30px;
+        height: 30px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        color: white;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        position: relative;
+    }
+
+    .enhanced-milestone-marker.not-started {
+        background-color: #6c757d;
+        border: 2px solid #fff;
+    }
+
+    .enhanced-milestone-marker.in-progress {
+        background-color: #f6c23e;
+        border: 2px solid #fff;
+    }
+
+    .enhanced-milestone-marker.completed {
+        background-color: #1cc88a;
+        border: 2px solid #fff;
+    }
+
+    .enhanced-milestone-marker:hover {
+        transform: scale(1.2);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    }
+
+    .enhanced-milestone-labels {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        margin-top: 10px;
+    }
+
+    .enhanced-milestone-label {
+        position: absolute;
+        transform: translateX(-50%);
+        font-size: 0.8rem;
+        color: #495057;
+        text-align: center;
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .enhanced-milestone-tooltip {
+        position: absolute;
+        bottom: 45px;
+        left: 50%;
+        transform: translateX(-50%) scale(0.9);
+        background-color: white;
+        color: #333;
+        padding: 0;
+        border-radius: 8px;
+        font-size: 0.85rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: all 0.3s ease;
+        z-index: 1000;
+        width: 220px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        pointer-events: none;
+        border: 1px solid rgba(0,0,0,0.1);
+        /* Ensure tooltip doesn't go off-screen */
+        max-width: 90vw;
+    }
+
+    /* Adjust tooltip position for edge milestones */
+    .enhanced-milestone-marker-wrapper:first-child .enhanced-milestone-tooltip {
+        transform: translateX(-20%) scale(0.9);
+    }
+    
+    .enhanced-milestone-marker-wrapper:first-child:hover .enhanced-milestone-tooltip {
+        transform: translateX(-20%) scale(1);
+    }
+    
+    .enhanced-milestone-marker-wrapper:last-child .enhanced-milestone-tooltip {
+        transform: translateX(-80%) scale(0.9);
+    }
+    
+    .enhanced-milestone-marker-wrapper:last-child:hover .enhanced-milestone-tooltip {
+        transform: translateX(-80%) scale(1);
+    }
+
+    .enhanced-milestone-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -8px;
+        border-width: 8px;
+        border-style: solid;
+        border-color: white transparent transparent transparent;
+    }
+    
+    /* Adjust arrow position for edge milestones */
+    .enhanced-milestone-marker-wrapper:first-child .enhanced-milestone-tooltip::after {
+        left: 20%;
+    }
+    
+    .enhanced-milestone-marker-wrapper:last-child .enhanced-milestone-tooltip::after {
+        left: 80%;
+    }
+
+    .enhanced-milestone-marker-wrapper:hover .enhanced-milestone-tooltip {
+        opacity: 1;
+        visibility: visible;
+        transform: translateX(-50%) scale(1);
+    }
+
+    .tooltip-header {
+        padding: 8px 12px;
+        border-bottom: 1px solid rgba(0,0,0,0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background-color: #f8f9fa;
+        border-radius: 8px 8px 0 0;
+    }
+
+    .tooltip-title {
+        font-weight: bold;
+        color: #495057;
+    }
+
+    .tooltip-status {
+        font-size: 0.75rem;
+        padding: 2px 6px;
+        border-radius: 12px;
+        font-weight: bold;
+    }
+
+    .tooltip-status.not-started {
+        background-color: #e9ecef;
+        color: #495057;
+    }
+
+    .tooltip-status.in-progress {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+
+    .tooltip-status.completed {
+        background-color: #d4edda;
+        color: #155724;
+    }
+
+    .tooltip-body {
+        padding: 10px 12px;
+        line-height: 1.4;
+    }
+
+    .enhanced-current-position-marker {
+        position: absolute;
+        top: 0;
+        transform: translateX(-50%);
+        color: #e74a3b;
+        font-size: 1.5rem;
+        z-index: 4;
+        filter: drop-shadow(0 2px 3px rgba(0,0,0,0.3));
+        animation: bounce 2s infinite;
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateX(-50%) translateY(0);
+        }
+        40% {
+            transform: translateX(-50%) translateY(-10px);
+        }
+        60% {
+            transform: translateX(-50%) translateY(-5px);
+        }
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .enhanced-timeline-container {
+            height: 150px;
+            margin: 40px 0;
+            padding: 15px 20px;
+        }
+        
+        .enhanced-milestone-label {
+            font-size: 0.7rem;
+        }
+        
+        .enhanced-milestone-tooltip {
+            width: 180px;
+        }
+    }
+
+    .timeline-visual-container {
+        height: 150px;
+        background-color: #f8f9fa;
+        border-radius: 8px;
+        padding: 15px 30px; /* Increased horizontal padding */
+        position: relative;
+        overflow: visible;
+        margin: 15px 0 45px; /* Increased bottom margin to accommodate labels */
+        border: 1px solid rgba(0,0,0,0.05);
+        box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    }
+
+    /* Progress Bar Styles */
+    .progress {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        overflow: visible;
+    }
+
+    .progress:hover {
+        box-shadow: 0 0 10px rgba(0,123,255,0.5);
+    }
+
+    .progress-bar {
+        position: relative;
+    }
+
+    /* Progress Tooltip */
+    .progress-tooltip {
+        position: absolute;
+        top: -40px;
+        right: 0;
+        background-color: #343a40;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        z-index: 1000;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+
+    .progress-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #343a40 transparent transparent transparent;
+    }
+
+    .progress:hover .progress-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    /* Progress Details Modal Styles */
+    .progress-lg {
+        height: 25px !important;
+        border-radius: 15px;
+        overflow: hidden;
+    }
+
+    .progress-lg .progress-bar {
+        line-height: 25px;
+        font-weight: bold;
+    }
+
+    .progress-stat-card {
+        transition: all 0.3s ease;
+        border: 1px solid #dee2e6;
+    }
+
+    .progress-stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: bold;
+    }
+    
+    .milestone-marker {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border-radius: 50%;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        transition: all 0.3s ease;
+        z-index: 2;
+    }
+
+    .milestone-marker.not-started {
+        background-color: #6c757d;
+        border: 2px solid #fff;
+    }
+
+    .milestone-marker.in-progress {
+        background-color: #ffc107;
+        border: 2px solid #fff;
+    }
+    
+    .milestone-marker.completed {
+        background-color: #28a745;
+        border: 2px solid #fff;
+    }
+
+    .milestone-marker:hover {
+        transform: translateY(-50%) scale(1.2);
+        box-shadow: 0 0 10px rgba(0,0,0,0.3);
+    }
+
+    .milestone-line {
+        position: absolute;
+        height: 4px;
+        background-color: #dee2e6;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        left: 0;
+        right: 0;
+    }
+
+    .milestone-progress-fill {
+        position: absolute;
+        height: 4px;
+        background: linear-gradient(90deg, #4481eb 0%, #04befe 100%);
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        left: 0;
+        width: 0%;
+        transition: width 1s ease;
+    }
+
+    .milestone-tooltip {
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        background-color: #343a40;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 4px;
+        font-size: 0.8rem;
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity 0.3s, visibility 0.3s;
+        z-index: 1000;
+        white-space: nowrap;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        pointer-events: none;
+    }
+
+    .milestone-tooltip::after {
+        content: '';
+        position: absolute;
+        top: 100%;
+        left: 50%;
+        margin-left: -5px;
+        border-width: 5px;
+        border-style: solid;
+        border-color: #343a40 transparent transparent transparent;
+    }
+
+    .milestone-marker:hover .milestone-tooltip {
+        opacity: 1;
+        visibility: visible;
+    }
+
+    .timeline-status-badge {
+        display: inline-block;
+        padding: 0.25em 0.6em;
+        font-size: 0.75em;
+        font-weight: 700;
+        line-height: 1;
+        text-align: center;
+        white-space: nowrap;
+        vertical-align: baseline;
+        border-radius: 0.25rem;
+    }
+
+    .timeline-status-badge.not-started {
+        background-color: #6c757d;
+        color: white;
+    }
+
+    .timeline-status-badge.in-progress {
+        background-color: #ffc107;
+        color: #212529;
+    }
+
+    .timeline-status-badge.completed {
+        background-color: #28a745;
+        color: white;
+    }
+
+    /* Loading indicator styles */
+    .loading-spinner-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 38px; /* Standard height of a form-select element */
+        background-color: rgba(255, 255, 255, 0.8);
+        border-radius: 0.25rem;
+    }
+
+    /* Success and error highlight styles for form elements */
+    .border-success {
+        border-color: #28a745 !important;
+        box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+
+    .border-danger {
+        border-color: #dc3545 !important;
+        box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <!-- Toast for notifications -->
+    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-header">
+                <strong class="me-auto">Notification</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+            </div>
+            <div class="toast-body" id="toastBody">
+                <!-- Toast message will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Rest of the content -->
+    <div class="row">
+{% csrf_token %}
+    <!-- Dashboard Header -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="d-flex align-items-center">
+                {% if user.profile.avatar %}
+                    <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                {% else %}
+                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                        <i class="fas fa-user fa-2x"></i>
+                </div>
+                {% endif %}
+                <div>
+                    <h2 class="mb-0">Welcome back, {{ user.get_full_name }}</h2>
+                    <p class="text-muted mb-0">
+                        <i class="fas fa-map-marker-alt me-1"></i> {{ user.profile.location|default:"Location not set" }}
+                        {% if user.profile.current_position %}
+                            <span class="mx-2">|</span>
+                            <i class="fas fa-briefcase me-1"></i> {{ user.profile.current_position }}
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+            <a href="{% url 'mentorship:mentor_search' %}" class="btn btn-primary me-2">
+                <i class="fas fa-search me-1"></i> Find a Mentor
+            </a>
+            <a href="{% url 'accounts:profile_detail' user.username %}" class="btn btn-outline-primary">
+                <i class="fas fa-user-edit me-1"></i> My Profile
+            </a>
+        </div>
+        </div>
+
+    <!-- Main Dashboard Content -->
+        <div class="row">
+        <!-- Left Column (8 cols) -->
+            <div class="col-md-8">
+            <!-- Active Mentorships -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">My Active Mentorships</h5>
+                </div>
+                <div class="card-body">
+                {% if active_mentorships %}
+                    <div class="active-mentorships">
+                    <div class="accordion" id="mentorshipAccordion">
+                    {% for mentorship in active_mentorships %}
+                            <div class="accordion-item mentorship-item" data-mentorship-id="{{ mentorship.id }}">
+                            <h2 class="accordion-header">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mentorship-{{ mentorship.id }}" aria-expanded="false" aria-controls="mentorship-{{ mentorship.id }}">
+                                        <div class="d-flex flex-column flex-md-row align-items-md-center w-100">
+                                            <div class="mentorship-title me-md-2">{{ mentorship.mentor.user.get_full_name }}</div>
+                                            <div class="d-flex flex-column flex-md-row align-items-md-center">
+                                                <small class="text-muted me-md-3">
+                                                    <i class="fas fa-envelope me-1"></i>{{ mentorship.mentor.user.email }}
+                                                </small>
+                                                <small class="text-muted me-md-3">
+                                                    <i class="fas fa-calendar-alt me-1"></i>{{ mentorship.start_date|date:"M d, Y" }}
+                                                </small>
+                                                <span class="badge bg-primary ms-md-auto">{{ mentorship.get_status_display }}</span>
+                                            </div>
+                                        </div>
+                                </button>
+                            </h2>
+                                <div id="mentorship-{{ mentorship.id }}" class="accordion-collapse collapse" data-bs-parent="#mentorshipAccordion">
+                                    <div class="accordion-body">
+                                    {% if mentorship.timeline_milestones %}
+                                    <div>
+                                        <h6>Progress Timeline</h6>
+                                            <div class="progress mb-2" style="height: 20px; cursor: pointer;" onclick="showProgressDetails('{{ mentorship.id }}')">
+                                                <div class="progress-bar bg-success progress-bar-mentorship-{{ mentorship.id }}" 
+                                                     role="progressbar"
+                                                         aria-valuemin="0" 
+                                                     aria-valuemax="100"
+                                                     data-percentage="{{ mentorship.progress_percentage }}">
+                                                        {{ mentorship.progress_percentage }}%
+                                            </div>
+                                                                        </div>
+                                                
+                                        <!-- Step-based Progress Tracker removed as requested -->
+                                                
+                                            <div class="d-flex mt-3">
+                                                <button class="btn btn-sm btn-primary me-2" onclick="showProgressDetails('{{ mentorship.id }}')">
+                                                    <i class="fas fa-chart-line me-1"></i> View Progress
+                                                </button>
+                                            <!-- Remove Update Progress button for mentees -->
+                                            
+                                                <div class="dropdown ms-2">
+                                                <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="mentorshipActionDropdown{{ mentorship.id }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                                    <i class="fas fa-cog me-1"></i> Actions
+                                                    </button>
+                                                <ul class="dropdown-menu" aria-labelledby="mentorshipActionDropdown{{ mentorship.id }}">
+                                                        {% if mentorship.status == 'PAUSED' %}
+                                                        <li><a class="dropdown-item" href="#" onclick="updateMentorshipStatus('{{ mentorship.id }}', 'APPROVED')"><i class="fas fa-play me-2"></i> Resume Mentorship</a></li>
+                                                        {% else %}
+                                                        <li><a class="dropdown-item" href="#" onclick="updateMentorshipStatus('{{ mentorship.id }}', 'PAUSED')"><i class="fas fa-pause me-2"></i> Pause Mentorship</a></li>
+                                                                        {% endif %}
+                                                    </ul>
+                                                                    </div>
+                                                                </div>
+                                            
+                                            <!-- Hidden timeline text for data storage -->
+                                            <pre class="mb-0 small timeline-text" style="display: none;">{{ mentorship.timeline_milestones }}</pre>
+                                                            </div>
+                                                        {% else %}
+                                    <div>
+                                        <h6>No Timeline Set</h6>
+                                        <p class="text-muted">Your mentor hasn't set a timeline yet. You can ask them to set one to track your progress.</p>
+                                        </div>
+                {% endif %}
+                                    
+                                    <div class="mt-3">
+                                        <!-- Replace Schedule Meeting button with View Meetings button -->
+                                        <button class="btn btn-sm btn-outline-primary" onclick="viewMeetings('{{ mentorship.id }}')">
+                                            <i class="fas fa-calendar me-1"></i> View Meetings
+                                        </button>
+                                        <button class="btn btn-sm btn-info" onclick="sendMessage('{{ mentorship.id }}')">
+                                            <i class="fas fa-envelope me-1"></i> Send Message
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                    </div>
+                    {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-user-friends fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">You don't have any active mentorships yet.</p>
+                        <a href="{% url 'mentorship:mentor_search' %}" class="btn btn-primary">Find a Mentor</a>
+                    </div>
+                {% endif %}
+                        </div>
+                    </div>
+                    
+            <!-- Pending Requests -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Pending Requests</h5>
+                        </div>
+                <div class="card-body">
+                {% if pending_requests %}
+                    <div class="list-group">
+                    {% for request in pending_requests %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center flex-wrap">
+                            <div>
+                                <h6 class="mb-1">{{ request.mentor.user.get_full_name }}</h6>
+                                <p class="mb-1 text-muted small">
+                                    <i class="fas fa-graduation-cap me-1"></i> {{ request.skills_seeking|truncatechars:75 }}
+                                </p>
+                                <small class="text-muted">Sent {{ request.created_at|timesince }} ago</small>
+                        </div>
+                            <div class="mt-2 mt-md-0">
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                <button class="btn btn-sm btn-outline-danger ms-2" onclick="cancelRequest('{{ request.id }}')">
+                                    Cancel Request
+                                </button>
+                            </div>
+                        </div>
+                    {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No pending requests</p>
+                {% endif %}
+                </div>
+            </div>
+            
+            <!-- Completed Mentorships -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Completed Mentorships</h5>
+                </div>
+                <div class="card-body">
+                {% if completed_mentorships %}
+                    <div class="list-group">
+                    {% for mentorship in completed_mentorships %}
+                        <div class="list-group-item">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <h6 class="mb-1">{{ mentorship.mentor.user.get_full_name }}</h6>
+                                <span class="badge bg-success">Completed</span>
+                            </div>
+                            <p class="mb-1 text-muted small">
+                                <i class="fas fa-calendar-check me-1"></i> {{ mentorship.start_date|date:"M d, Y" }} - {{ mentorship.end_date|date:"M d, Y" }}
+                            </p>
+                            {% if not mentorship.feedback %}
+                            <div class="mt-2">
+                                <button class="btn btn-sm btn-outline-primary" onclick="provideFeedback('{{ mentorship.id }}')">
+                                    <i class="fas fa-star me-1"></i> Provide Feedback
+                                </button>
+                            </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No completed mentorships</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+        <!-- Right Column (4 cols) -->
+    <div class="col-md-4">
+        <!-- Upcoming Meetings -->
+        <div class="card mb-4">
+                <div class="card-header">
+                <h5 class="mb-0">Upcoming Meetings</h5>
+            </div>
+            <div class="card-body">
+                {% if upcoming_meetings %}
+                    <div class="list-group">
+                    {% for meeting in upcoming_meetings %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                    <h6 class="mb-1">{{ meeting.title }}</h6>
+                                <small class="text-{{ meeting.status|lower }}">{{ meeting.get_status_display }}</small>
+                                </div>
+                            <p class="mb-1">
+                                <i class="fas fa-calendar-day me-1"></i> {{ meeting.meeting_date|date:"D, M d, Y" }}
+                                <br>
+                                <i class="fas fa-clock me-1"></i> {{ meeting.meeting_date|date:"g:i A" }}
+                                <br>
+                                <i class="fas fa-user me-1"></i> {{ meeting.mentorship.mentor.user.get_full_name }}
+                            </p>
+                            {% if meeting.meeting_link %}
+                            <a href="{{ meeting.meeting_link }}" target="_blank" class="btn btn-primary mt-2 w-100">
+                                <i class="fas fa-video me-1"></i> Join Meeting
+                            </a>
+                            <div class="form-text small mt-1 text-center">
+                                Click to join the video call with your mentor
+                            </div>
+                            {% else %}
+                            <div class="alert alert-warning mt-2 p-2 small">
+                                <i class="fas fa-exclamation-triangle me-1"></i> No meeting link added
+                            </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No upcoming meetings</p>
+                {% endif %}
+            </div>
+        </div>
+
+            <!-- Recent Messages -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Messages</h5>
+                </div>
+                <div class="card-body">
+                    {% if recent_messages %}
+                    <div class="list-group">
+                        {% for message in recent_messages %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ message.sender.get_full_name }}</h6>
+                                <small>{{ message.created_at|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1">{{ message.content|truncatechars:100 }}</p>
+                            <small>For mentorship with {{ message.mentorship.mentor.user.get_full_name }}</small>
+                        </div>
+                        {% endfor %}
+                    </div>
+                    {% else %}
+                    <p class="text-muted">No recent messages</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Progress Updates -->
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">Recent Progress Updates</h5>
+                        </div>
+                <div class="card-body">
+                    {% if progress_updates %}
+                    <div class="list-group">
+                        {% for update in progress_updates %}
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ update.title }}</h6>
+                                <small>{{ update.created_at|timesince }} ago</small>
+                            </div>
+                            <p class="mb-1">{{ update.description|truncatechars:100 }}</p>
+                            <small>By {% if update.created_by == user %}you{% else %}{{ update.created_by.get_full_name }}{% endif %}</small>
+                    </div>
+                    {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted">No recent progress updates</p>
+                {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</div>
+
+<!-- JavaScript for Interactions -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize all progress bars
+    initializeProgressBars();
+    
+    // Initialize all modals
+    console.log('Initializing modals');
+    
+    // List of all modal IDs
+    const modalIds = [
+        'meetingModal',
+        'sendMessageModal',
+        'progressDetailsModal',
+        'viewMeetingsModal'
+    ];
+    
+    // Initialize each modal
+    modalIds.forEach(id => {
+        const modalElement = document.getElementById(id);
+        if (modalElement) {
+            console.log(`Initializing modal: ${id}`);
+            // Just create the instance, don't show it yet
+            new bootstrap.Modal(modalElement);
+        } else {
+            console.warn(`Modal element not found: ${id}`);
+        }
+    });
+    
+    // Initialize progress bars for skills
+    document.querySelectorAll('.progress-bar-skill').forEach(function(progressBar) {
+        const proficiency = progressBar.dataset.skillProficiency;
+        const percentage = (proficiency / 5) * 100;
+        progressBar.style.width = percentage + '%';
+    });
+    
+    // Initialize progress bars for mentorships
+    document.querySelectorAll('[data-percentage]').forEach(function(progressBar) {
+        const percentage = progressBar.dataset.percentage;
+        progressBar.style.width = percentage + '%';
+    });
+    
+    // Step-based progress trackers initialization removed as requested
+});
+
+// Function to parse timeline text into milestone objects
+function parseTimelineText(timelineText) {
+    if (!timelineText) return [];
+    
+    const lines = timelineText.split('\n');
+    let milestones = [];
+    let inAdditionalNotes = false;
+    
+    lines.forEach(line => {
+        line = line.trim();
+        if (!line) return;
+        
+        if (line.startsWith('Additional Notes:')) {
+            inAdditionalNotes = true;
+            return;
+        }
+        
+        if (inAdditionalNotes) {
+            return;
+        }
+        
+        const weekDayMatch = line.match(/^Week\/Day\s+([^:]+):\s*(.+)$/);
+        if (weekDayMatch) {
+            const period = weekDayMatch[1];
+            const description = weekDayMatch[2];
+            
+            // Extract status if available
+            let status = 'NOT_STARTED';
+            const statusMatch = description.match(/(.+)\s+\[([A-Z_]+)\]$/);
+            const cleanDescription = statusMatch ? statusMatch[1].trim() : description;
+            if (statusMatch) {
+                status = statusMatch[2];
+            }
+            
+            milestones.push({
+                period: period,
+                description: cleanDescription,
+                status: status
+            });
+        }
+    });
+    
+    return milestones;
+}
+
+// Function to view meetings (read-only)
+function viewMeetings(mentorshipId) {
+    // Fetch meetings for this mentorship
+    fetch(`/mentorship/api/meetings/?mentorship=${mentorshipId}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Error ${response.status}: ${response.statusText}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            // Create modal content
+            let modalContent = `
+                <div class="modal-header bg-primary text-white">
+                    <h5 class="modal-title">Upcoming Meetings</h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">`;
+            
+            if (data.results && data.results.length > 0) {
+                modalContent += `<div class="list-group">`;
+                data.results.forEach(meeting => {
+                    const meetingDate = new Date(meeting.meeting_date);
+                    modalContent += `
+                        <div class="list-group-item">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">${meeting.title}</h6>
+                                <small>${meeting.status}</small>
+                            </div>
+                            <p class="mb-1">
+                                <i class="fas fa-calendar-day me-1"></i> ${meetingDate.toLocaleDateString()}
+                                <br>
+                                <i class="fas fa-clock me-1"></i> ${meetingDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                                <br>
+                                <i class="fas fa-info-circle me-1"></i> ${meeting.agenda || 'No agenda provided'}
+                            </p>
+                            ${meeting.meeting_link ? 
+                                `<a href="${meeting.meeting_link}" target="_blank" class="btn btn-sm btn-outline-primary mt-2">
+                                    <i class="fas fa-video me-1"></i> Join Meeting
+                                </a>` : ''}
+                        </div>`;
+                });
+                modalContent += `</div>`;
+            } else {
+                modalContent += `<p class="text-muted">No upcoming meetings scheduled.</p>
+                    <p>Please ask your mentor to schedule a meeting.</p>`;
+            }
+            
+            modalContent += `
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>`;
+            
+            // Create modal
+            const modalEl = document.createElement('div');
+            modalEl.className = 'modal fade';
+            modalEl.id = 'viewMeetingsModal';
+            modalEl.setAttribute('tabindex', '-1');
+            modalEl.setAttribute('aria-labelledby', 'viewMeetingsModalLabel');
+            modalEl.setAttribute('aria-hidden', 'true');
+            
+            modalEl.innerHTML = `
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        ${modalContent}
+                    </div>
+                </div>`;
+            
+            // Remove existing modal if any
+            const existingModal = document.getElementById('viewMeetingsModal');
+            if (existingModal) {
+                existingModal.remove();
+            }
+            
+            // Add to DOM and show
+            document.body.appendChild(modalEl);
+            const modal = new bootstrap.Modal(modalEl);
+            modal.show();
+        })
+        .catch(error => {
+            console.error('Error fetching meetings:', error);
+            showToast('error', `Failed to load meetings: ${error.message}`);
+        });
+}
+
+// Function to show progress details
+function showProgressDetails(mentorshipId) {
+    const timelineText = document.querySelector(`#mentorship-${mentorshipId} .timeline-text`);
+    
+    if (!timelineText || !timelineText.textContent.trim()) {
+        showToast('error', 'No timeline data available');
+        return;
+    }
+    
+    const milestones = parseTimelineText(timelineText.textContent);
+    
+    if (!milestones || milestones.length === 0) {
+        showToast('error', 'No milestones found in timeline');
+        return;
+    }
+    
+    // Count statistics
+    const completedCount = milestones.filter(m => m.status === 'COMPLETED').length;
+    const inProgressCount = milestones.filter(m => m.status === 'IN_PROGRESS').length;
+    const notStartedCount = milestones.filter(m => m.status === 'NOT_STARTED').length;
+    const progressPercentage = Math.round((completedCount / milestones.length) * 100);
+    
+    // Create milestone table rows
+    let milestoneRows = '';
+    milestones.forEach((milestone, index) => {
+        const statusClass = getStatusBadgeClass(milestone.status);
+        const statusText = getStatusText(milestone.status);
+        
+        milestoneRows += `
+            <tr>
+                <td>${index + 1}</td>
+                <td>${milestone.period}</td>
+                <td>${milestone.description}</td>
+                <td><span class="badge ${statusClass}">${statusText}</span></td>
+            </tr>
+        `;
+    });
+    
+    let modalContent = `
+        <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title">Progress Details</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+        <div class="modal-body">
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <div class="card progress-stat-card">
+                        <div class="card-body p-3 text-center">
+                            <h6 class="card-title">Overall Progress</h6>
+                            <div class="stat-value text-primary">${progressPercentage}%</div>
+                            <div class="progress progress-lg mt-2">
+                                <div class="progress-bar bg-primary" role="progressbar" style="width: ${progressPercentage}%" 
+                                     aria-valuenow="${progressPercentage}" aria-valuemin="0" aria-valuemax="100">
+                                    ${progressPercentage}%
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="card progress-stat-card">
+                        <div class="card-body p-3">
+                            <h6 class="card-title text-center mb-3">Milestone Status</h6>
+                            <div class="d-flex justify-content-between text-center">
+                                <div>
+                                    <div class="stat-value text-success">${completedCount}</div>
+                                    <div class="small text-muted">Completed</div>
+                                </div>
+                                <div>
+                                    <div class="stat-value text-warning">${inProgressCount}</div>
+                                    <div class="small text-muted">In Progress</div>
+                                </div>
+                                <div>
+                                    <div class="stat-value text-secondary">${notStartedCount}</div>
+                                    <div class="small text-muted">Not Started</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <h6 class="mb-3">Timeline Milestones</h6>
+            <div class="table-responsive">
+                <table class="table table-striped table-hover">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Week/Day</th>
+                            <th>Description</th>
+                            <th>Status</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${milestoneRows}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+    `;
+    
+    // Create modal
+    const modalEl = document.createElement('div');
+    modalEl.className = 'modal fade';
+    modalEl.id = 'progressDetailsModal';
+    modalEl.setAttribute('tabindex', '-1');
+    modalEl.setAttribute('aria-labelledby', 'progressDetailsModalLabel');
+    modalEl.setAttribute('aria-hidden', 'true');
+    
+    modalEl.innerHTML = `
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                ${modalContent}
+            </div>
+        </div>`;
+    
+    // Remove existing modal if any
+    const existingModal = document.getElementById('progressDetailsModal');
+    if (existingModal) {
+        existingModal.remove();
+    }
+    
+    // Add to DOM and show
+    document.body.appendChild(modalEl);
+    const modal = new bootstrap.Modal(modalEl);
+    modal.show();
+}
+
+// Helper function to get status badge class
+function getStatusBadgeClass(status) {
+    switch(status) {
+        case 'COMPLETED':
+            return 'bg-success';
+        case 'IN_PROGRESS':
+            return 'bg-warning text-dark';
+        case 'NOT_STARTED':
+        default:
+            return 'bg-secondary';
+    }
+}
+
+// Helper function to get status text
+function getStatusText(status) {
+    switch(status) {
+        case 'COMPLETED':
+            return 'Completed';
+        case 'IN_PROGRESS':
+            return 'In Progress';
+        case 'NOT_STARTED':
+        default:
+            return 'Not Started';
+    }
+}
+
+// ... existing code ...
+</script>
+
+<!-- Timeline Modal -->
+<div class="modal fade" id="timelineModal" tabindex="-1" aria-labelledby="timelineModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="timelineModalLabel">
+                    <i class="fas fa-calendar-alt me-2"></i>Set Mentorship Timeline
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <form id="timelineForm">
+                    <input type="hidden" id="mentorshipIdForTimeline">
+                    
+                    <div class="row mb-4">
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-calendar-check me-2 text-primary"></i>Timeline Period
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <label for="expectedEndDate" class="form-label">Expected End Date</label>
+                                    <div class="input-group mb-3">
+                                        <span class="input-group-text bg-primary text-white">
+                                            <i class="fas fa-flag-checkered"></i>
+                                        </span>
+                                        <input type="date" class="form-control form-control-lg" id="expectedEndDate" required onchange="calculateMentoringDays()">
+                                    </div>
+                                    <div class="form-text">Set the target date for completing this mentorship</div>
+                                    <div id="mentoringDaysInfo" class="mt-3 alert alert-info d-flex align-items-center">
+                                        <i class="fas fa-info-circle me-3 fs-4"></i>
+                                        <span id="totalDaysText" class="fw-bold"></span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="col-md-6">
+                            <div class="card shadow-sm border-0 h-100">
+                                <div class="card-header bg-light">
+                                    <h6 class="mb-0">
+                                        <i class="fas fa-clipboard-list me-2 text-primary"></i>Predefined Templates
+                                    </h6>
+                                </div>
+                                <div class="card-body">
+                                    <label for="templateSelector" class="form-label">Select a Template</label>
+                                    <div class="input-group mb-3">
+                                        <select class="form-select form-select-lg" id="templateSelector">
+                                            <option value="" selected>Select a template (optional)</option>
+                                            <option value="technical-8-week">8-Week Technical Mentorship</option>
+                                            <option value="career-12-week">12-Week Career Development</option>
+                                            <option value="research-project">Research Project Mentorship</option>
+                                            <option value="startup-mentoring">Startup Mentoring</option>
+                                            <option value="leadership-development">Leadership Development</option>
+                                        </select>
+                                        <button class="btn btn-primary px-4" type="button" id="applyTemplateBtn">
+                                            <i class="fas fa-check me-2"></i>Apply
+                                        </button>
+                                    </div>
+                                    <div class="form-text">Choose a template to automatically populate milestones based on best practices</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm border-0 mb-4">
+                        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+                            <h6 class="mb-0">
+                                <i class="fas fa-map-marker-alt me-2 text-primary"></i>Timeline Milestones
+                            </h6>
+                            <button type="button" class="btn btn-primary btn-sm" id="add-milestone-btn">
+                                <i class="fas fa-plus me-1"></i> Add Milestone
+                            </button>
+                        </div>
+                        <div class="card-body">
+                            <div id="timeline-alert" class="alert alert-danger d-none">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                <span id="timeline-alert-message"></span>
+                            </div>
+                            
+                            <div id="milestones-container">
+                                <!-- Milestone entries will be dynamically added here -->
+                            </div>
+                            
+                            <!-- Hidden template for new milestone rows -->
+                            <table id="milestone-template-table" style="display: none;">
+                                <tbody>
+                                    <tr class="milestone-row row mb-3 pb-3 border-bottom align-items-center">
+                                        <td class="col-md-2">
+                                            <label class="form-label d-md-none">Week/Day:</label>
+                                            <input type="text" class="form-control milestone-period" placeholder="1-2" required>
+                                        </td>
+                                        <td class="col-md-3">
+                                            <label class="form-label d-md-none">Date:</label>
+                                            <div class="input-group">
+                                                <input type="date" class="form-control milestone-date" onchange="validateMilestoneDate(this)">
+                                                <span class="input-group-text date-toggle" onclick="toggleDateDisplay(this)">
+                                                    <i class="fas fa-calendar-alt"></i>
+                                                </span>
+                                            </div>
+                                        </td>
+                                        <td class="col-md-6">
+                                            <label class="form-label d-md-none">Description:</label>
+                                            <input type="text" class="form-control milestone-description" placeholder="Milestone description" required>
+                                        </td>
+                                        <td class="col-md-1 text-center">
+                                            <button type="button" class="btn btn-outline-danger remove-milestone-btn mt-md-0 mt-2">
+                                                <i class="fas fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                    
+                    <div class="card shadow-sm border-0 mb-3">
+                        <div class="card-header bg-light">
+                            <h6 class="mb-0">
+                                <i class="fas fa-sticky-note me-2 text-primary"></i>Additional Notes
+                            </h6>
+                        </div>
+                        <div class="card-body">
+                            <textarea class="form-control" id="timelineMilestones" rows="3" placeholder="Any additional notes or details about the timeline"></textarea>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light justify-content-between">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary btn-lg px-4" id="saveTimeline" onclick="submitTimeline()">
+                    <i class="fas fa-save me-2"></i>Save Timeline
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+// Update the initializeMilestoneButtons function to work with the new table layout
+function initializeMilestoneButtons() {
+    const addMilestoneBtn = document.getElementById('add-milestone-btn');
+    if (addMilestoneBtn) {
+        addMilestoneBtn.addEventListener('click', function() {
+            const milestonesContainer = document.getElementById('milestones-container');
+            const templateTable = document.getElementById('milestone-template-table');
+            
+            if (templateTable) {
+                const templateRow = templateTable.querySelector('tr').cloneNode(true);
+                
+                // Add to the table
+                milestonesContainer.appendChild(templateRow);
+                
+                // Add event listener to the remove button
+                const removeBtn = templateRow.querySelector('.remove-milestone-btn');
+                if (removeBtn) {
+                    removeBtn.addEventListener('click', function() {
+                        const milestoneEntry = this.closest('.milestone-entry');
+                        if (milestoneEntry && milestoneEntry.parentNode) {
+                            // Check if this is the last milestone entry
+                            const allEntries = milestonesContainer.querySelectorAll('.milestone-entry');
+                            if (allEntries.length === 1) {
+                                // If it's the last one, just clear the inputs instead of removing
+                                const periodInput = milestoneEntry.querySelector('.milestone-period');
+                                const descriptionInput = milestoneEntry.querySelector('.milestone-description');
+                                const dateInput = milestoneEntry.querySelector('.milestone-date');
+                                
+                                if (periodInput) periodInput.value = '';
+                                if (descriptionInput) descriptionInput.value = '';
+                                if (dateInput) {
+                                    dateInput.value = '';
+                                    dateInput.classList.remove('is-invalid');
+                                }
+                            } else {
+                                // Otherwise remove it
+                                milestoneEntry.parentNode.removeChild(milestoneEntry);
+                            }
+                            
+                            // Re-validate after changes
+                            validateAllMilestoneDates();
+                        }
+                    });
+                }
+            } else {
+                console.error("Template table not found");
+            }
+        });
+    }
+    
+    // Add event listeners to existing remove buttons
+    document.querySelectorAll('.remove-milestone-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const milestoneEntry = this.closest('.milestone-entry');
+            const milestonesContainer = document.getElementById('milestones-container');
+            
+            if (milestoneEntry && milestoneEntry.parentNode) {
+                // Check if this is the last milestone entry
+                const allEntries = milestonesContainer.querySelectorAll('.milestone-entry');
+                if (allEntries.length === 1) {
+                    // If it's the last one, just clear the inputs instead of removing
+                    const periodInput = milestoneEntry.querySelector('.milestone-period');
+                    const descriptionInput = milestoneEntry.querySelector('.milestone-description');
+                    const dateInput = milestoneEntry.querySelector('.milestone-date');
+                    
+                    if (periodInput) periodInput.value = '';
+                    if (descriptionInput) descriptionInput.value = '';
+                    if (dateInput) {
+                        dateInput.value = '';
+                        dateInput.classList.remove('is-invalid');
+                    }
+                } else {
+                    // Otherwise remove it
+                    milestoneEntry.parentNode.removeChild(milestoneEntry);
+                }
+                
+                // Re-validate after changes
+                validateAllMilestoneDates();
+            }
+        });
+    });
+}
+
+// Function to apply a milestone template - updated for table layout
+function applyMilestoneTemplate(templateId) {
+    const template = milestoneTemplates[templateId];
+    if (!template) {
+        showToast('error', 'Template not found');
+        return;
+    }
+    
+    // Get end date to calculate milestone dates
+    const expectedEndDateInput = document.getElementById('expectedEndDate');
+    if (!expectedEndDateInput || !expectedEndDateInput.value) {
+        // If end date is not set, set it automatically based on template
+        setExpectedEndDateFromTemplate(templateId);
+        
+        if (!expectedEndDateInput.value) {
+            showToast('warning', 'Could not set expected end date');
+            return;
+        }
+    }
+    
+    // Clear existing milestones
+    const milestonesContainer = document.getElementById('milestones-container');
+    milestonesContainer.innerHTML = '';
+    
+    // Calculate dates based on the timeline span
+    // Start from TOMORROW instead of today
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1); // Add 1 day to get tomorrow
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(expectedEndDateInput.value);
+    endDate.setHours(0, 0, 0, 0);
+    
+    // Calculate total duration in days
+    const totalDuration = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+    
+    // Get the template's original duration
+    const templateDuration = getTemplateDuration(templateId) - 7; // Subtract the buffer we added
+    
+    // Apply template milestones
+    template.forEach((milestone, index) => {
+        // Calculate adjusted day offset based on the actual timeline duration
+        let adjustedDayOffset;
+        
+        if (templateDuration <= 0) {
+            // Fallback: Distribute evenly if template duration is invalid
+            adjustedDayOffset = Math.floor((totalDuration * index) / (template.length - 1));
+        } else {
+            // Scale the day offset proportionally to fit the actual timeline
+            const scaleFactor = totalDuration / templateDuration;
+            adjustedDayOffset = Math.floor(milestone.days * scaleFactor);
+        }
+        
+        // Calculate milestone date
+        const milestoneDate = new Date(startDate);
+        milestoneDate.setDate(milestoneDate.getDate() + adjustedDayOffset);
+        
+        // Make sure the date doesn't exceed the end date
+        const finalDate = milestoneDate > endDate ? endDate : milestoneDate;
+        
+        // Format date for the input
+        const formattedDate = finalDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Create new milestone entry - for the table layout
+        const newRow = document.createElement('tr');
+        newRow.className = 'milestone-entry';
+        newRow.innerHTML = `
+            <td style="width: 12%">
+                <input type="text" class="form-control form-control-sm milestone-period" placeholder="1-2" required value="${milestone.period}">
+            </td>
+            <td style="width: 18%">
+                <div class="input-group">
+                    <input type="date" class="form-control form-control-sm milestone-date" onchange="validateMilestoneDate(this)" value="${formattedDate}">
+                    <span class="input-group-text date-toggle" onclick="toggleDateDisplay(this)">
+                        <i class="fas fa-calendar-alt"></i>
+                    </span>
+                </div>
+            </td>
+            <td style="width: 60%">
+                <input type="text" class="form-control form-control-sm milestone-description" placeholder="Milestone description" required value="${milestone.description}">
+            </td>
+            <td style="width: 10%; text-align: center;">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-milestone-btn">
+                    <i class="fas fa-times"></i>
+                </button>
+            </td>
+        `;
+        milestonesContainer.appendChild(newRow);
+        
+        // Add event listener to the remove button
+        const removeBtn = newRow.querySelector('.remove-milestone-btn');
+        removeBtn.addEventListener('click', function() {
+            if (milestonesContainer.querySelectorAll('.milestone-entry').length > 1) {
+                milestonesContainer.removeChild(newRow);
+            } else {
+                // Clear inputs if it's the last one
+                const periodInput = newRow.querySelector('.milestone-period');
+                const descriptionInput = newRow.querySelector('.milestone-description');
+                const dateInput = newRow.querySelector('.milestone-date');
+                
+                if (periodInput) periodInput.value = '';
+                if (descriptionInput) descriptionInput.value = '';
+                if (dateInput) {
+                    dateInput.value = '';
+                    dateInput.classList.remove('is-invalid');
+                }
+            }
+            validateAllMilestoneDates();
+        });
+    });
+    
+    // Validate all milestone dates
+    validateAllMilestoneDates();
+    
+    showToast('success', `Applied ${template.length} milestones from template`);
+}
+
+// Ensure mentoringDaysInfo is visible by default
+document.addEventListener('DOMContentLoaded', function() {
+    // Update modal visibility handling
+    const timelineModal = document.getElementById('timelineModal');
+    if (timelineModal) {
+        timelineModal.addEventListener('shown.bs.modal', function() {
+            // Make info visible by default
+            const mentoringDaysInfo = document.getElementById('mentoringDaysInfo');
+            if (mentoringDaysInfo) {
+                mentoringDaysInfo.classList.remove('d-none');
+                // Set initial text if no date is selected
+                if (!document.getElementById('expectedEndDate').value) {
+                    document.getElementById('totalDaysText').textContent = 'Select an end date to see mentoring duration';
+                }
+            }
+            
+            // Calculate and show mentoring days if end date is already set
+            calculateMentoringDays();
+            
+            // Validate all milestone dates
+            setTimeout(validateAllMilestoneDates, 100);
+        });
+    }
+});
+</script>
+
+<!-- Meeting Modal -->
+<div class="modal fade" id="meetingModal" tabindex="-1" aria-labelledby="meetingModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="meetingModalLabel">Schedule Meeting</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="meetingForm">
+                    <input type="hidden" id="mentorshipIdForMeeting">
+                    
+                    <div class="mb-3">
+                        <label for="meetingTitle" class="form-label">Meeting Title</label>
+                        <input type="text" class="form-control" id="meetingTitle" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="meetingDate" class="form-label">Date & Time</label>
+                        <input type="datetime-local" class="form-control" id="meetingDate" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="meetingLink" class="form-label"><i class="fas fa-video me-1"></i> Meeting Link</label>
+                        <input type="url" class="form-control" id="meetingLink" placeholder="https://meet.google.com/... or https://zoom.us/..." required>
+                        <div class="form-text">
+                            Add a video call link (Zoom, Google Meet, etc.) that mentees can click to join the meeting directly.
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="meetingDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="meetingDescription" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitMeeting()">Schedule</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Message Modal -->
+<div class="modal fade" id="messageModal" tabindex="-1" aria-labelledby="messageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="messageModalLabel">Send Message</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="messageForm">
+                    <input type="hidden" id="mentorshipIdForMessage">
+                    
+                    <div class="mb-3">
+                        <label for="messageContent" class="form-label">Message</label>
+                        <textarea class="form-control" id="messageContent" rows="5" required></textarea>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="messageAttachment" class="form-label">Attachment (optional)</label>
+                        <input type="file" class="form-control" id="messageAttachment">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitMessage()">Send</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Modal -->
+<div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="progressModalLabel">Update Progress</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="progressForm">
+                    <input type="hidden" id="mentorshipIdForProgress">
+                    
+                    <div class="mb-3">
+                        <label for="progressTitle" class="form-label">Progress Title</label>
+                        <input type="text" class="form-control" id="progressTitle" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="progressDescription" class="form-label">Description</label>
+                        <textarea class="form-control" id="progressDescription" rows="3" required></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="submitProgress()">Save Progress</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Styles -->
+<style>
+.toast-container {
+    z-index: 9999; /* Increased from 1050 to ensure it's always on top */
+}
+
+.toast {
+    min-width: 250px;
+}
+
+.toast-success {
+    background-color: #d4edda;
+    border-color: #c3e6cb;
+    color: #155724;
+}
+
+.toast-error {
+    background-color: #f8d7da;
+    border-color: #f5c6cb;
+    color: #721c24;
+}
+
+.toast-success .toast-header {
+    background-color: #c3e6cb;
+    color: #155724;
+}
+
+.toast-error .toast-header {
+    background-color: #f5c6cb;
+    color: #721c24;
+}
+
+/* Loading indicator styles */
+.loading-spinner-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 38px; /* Standard height of a form-select element */
+    background-color: rgba(255, 255, 255, 0.8);
+    border-radius: 0.25rem;
+}
+
+/* Success and error highlight styles for form elements */
+.border-success {
+    border-color: #28a745 !important;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25) !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.border-danger {
+    border-color: #dc3545 !important;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+</style>
+
+<!-- Timeline Status Modal -->
+<div class="modal fade timeline-status-modal" id="timelineStatusModal" tabindex="-1" aria-labelledby="timelineStatusModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="timelineStatusModalLabel">Update Timeline Status</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="timelineStatusForm">
+                    <input type="hidden" id="mentorshipIdForStatus">
+                    
+                    <div id="milestone-status-container">
+                        <!-- Milestone status items will be loaded here -->
+                        <div class="text-center py-3 text-muted" id="no-milestones-message">
+                            <i class="fas fa-info-circle me-2"></i>No milestones found. Please set up a timeline first.
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveTimelineStatus()">Save Status</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Details Modal -->
+<div class="modal fade" id="progressDetailsModal" tabindex="-1" aria-labelledby="progressDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="progressDetailsModalLabel">Mentorship Progress Details</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-4">
+                    <div class="col-md-12">
+                        <div class="progress-details-container">
+                            <div class="progress-overview mb-3">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0">Overall Progress</h6>
+                                    <span class="progress-percentage-display fs-4 fw-bold text-primary">0%</span>
+                                </div>
+                                <div class="progress progress-lg" style="height: 25px;">
+                                    <div class="progress-bar progress-bar-animated progress-bar-striped bg-primary" 
+                                         role="progressbar" style="width: 0%;" 
+                                         aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+                                </div>
+                            </div>
+                            
+                            <div class="progress-stats row text-center mb-4">
+                                <div class="col-md-3">
+                                    <div class="progress-stat-card bg-light p-3 rounded">
+                                        <div class="stat-icon mb-2"><i class="fas fa-calendar-check text-success"></i></div>
+                                        <div class="stat-value" id="completed-milestones">0</div>
+                                        <div class="stat-label">Completed</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="progress-stat-card bg-light p-3 rounded">
+                                        <div class="stat-icon mb-2"><i class="fas fa-spinner text-warning"></i></div>
+                                        <div class="stat-value" id="in-progress-milestones">0</div>
+                                        <div class="stat-label">In Progress</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="progress-stat-card bg-light p-3 rounded">
+                                        <div class="stat-icon mb-2"><i class="fas fa-hourglass-start text-secondary"></i></div>
+                                        <div class="stat-value" id="not-started-milestones">0</div>
+                                        <div class="stat-label">Not Started</div>
+                                    </div>
+                                </div>
+                                <div class="col-md-3">
+                                    <div class="progress-stat-card bg-light p-3 rounded">
+                                        <div class="stat-icon mb-2"><i class="fas fa-tasks text-primary"></i></div>
+                                        <div class="stat-value" id="total-milestones">0</div>
+                                        <div class="stat-label">Total Milestones</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="timeline-visualization mb-4">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Timeline Visualization</h6>
+                                    <span class="badge bg-primary" id="timeline-progress-badge">0%</span>
+                                </div>
+                                <p class="text-muted small mb-3">Track your mentorship progress through milestones. Click on any milestone for details.</p>
+                                <div class="timeline-visual-container" id="timeline-visual-container">
+                                    <!-- Timeline visualization will be rendered here -->
+                                </div>
+                            </div>
+                            
+                            <div class="milestone-list">
+                                <h6>Milestones</h6>
+                                <div class="table-responsive">
+                                    <table class="table table-hover">
+                                        <thead>
+                                            <tr>
+                                                <th>Period</th>
+                                                <th>Description</th>
+                                                <th>Status</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="milestone-table-body">
+                                            <!-- Milestone rows will be added here -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Update Overall Progress section and Quick Note feature removed as requested -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+                <!-- Update Progress and Update Milestones buttons removed as requested -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Progress Bar Tooltip/Popover Styles -->
+<style>
+/* Progress Bar Styles */
+.progress {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    overflow: visible;
+}
+
+.progress:hover {
+    box-shadow: 0 0 10px rgba(0,123,255,0.5);
+}
+
+.progress-bar {
+    position: relative;
+}
+
+/* Progress Tooltip */
+.progress-tooltip {
+    position: absolute;
+    top: -40px;
+    right: 0;
+    background-color: #343a40;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+}
+
+.progress-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #343a40 transparent transparent transparent;
+}
+
+.progress:hover .progress-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Progress Details Modal Styles */
+.progress-lg {
+    height: 25px !important;
+    border-radius: 15px;
+    overflow: hidden;
+}
+
+.progress-lg .progress-bar {
+    line-height: 25px;
+    font-weight: bold;
+}
+
+.progress-stat-card {
+    transition: all 0.3s ease;
+    border: 1px solid #dee2e6;
+}
+
+.progress-stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+}
+
+.stat-value {
+    font-size: 1.8rem;
+    font-weight: bold;
+}
+
+.timeline-visual-container {
+    height: 150px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 15px 30px; /* Increased horizontal padding */
+    position: relative;
+    overflow: visible;
+    margin: 15px 0 45px; /* Increased bottom margin to accommodate labels */
+    border: 1px solid rgba(0,0,0,0.05);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+
+.milestone-marker {
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    z-index: 2;
+}
+
+.milestone-marker.not-started {
+    background-color: #6c757d;
+    border: 2px solid #fff;
+}
+
+.milestone-marker.in-progress {
+    background-color: #ffc107;
+    border: 2px solid #fff;
+}
+
+.milestone-marker.completed {
+    background-color: #28a745;
+    border: 2px solid #fff;
+}
+
+.milestone-marker:hover {
+    transform: translateY(-50%) scale(1.2);
+    box-shadow: 0 0 10px rgba(0,0,0,0.3);
+}
+
+.milestone-line {
+    position: absolute;
+    height: 4px;
+    background-color: #dee2e6;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    left: 0;
+    right: 0;
+}
+
+.milestone-progress-fill {
+    position: absolute;
+    height: 4px;
+    background: linear-gradient(90deg, #4481eb 0%, #04befe 100%);
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 1;
+    left: 0;
+    width: 0%;
+    transition: width 1s ease;
+}
+
+.milestone-tooltip {
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: #343a40;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
+    z-index: 1000;
+    white-space: nowrap;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    pointer-events: none;
+}
+
+.milestone-tooltip::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #343a40 transparent transparent transparent;
+}
+
+.milestone-marker:hover .milestone-tooltip {
+    opacity: 1;
+    visibility: visible;
+}
+
+.timeline-status-badge {
+    display: inline-block;
+    padding: 0.25em 0.6em;
+    font-size: 0.75em;
+    font-weight: 700;
+    line-height: 1;
+    text-align: center;
+    white-space: nowrap;
+    vertical-align: baseline;
+    border-radius: 0.25rem;
+}
+
+.timeline-status-badge.not-started {
+    background-color: #6c757d;
+    color: white;
+}
+
+.timeline-status-badge.in-progress {
+    background-color: #ffc107;
+    color: #212529;
+}
+
+.timeline-status-badge.completed {
+    background-color: #28a745;
+    color: white;
+}
+</style>
+
+<!-- Schedule Meeting Modal - Replaced with View Meetings functionality -->
+<!-- The scheduleMeeting function has been removed and replaced with viewMeetings -->
+<!-- The modal is now dynamically created in the viewMeetings function -->
+
+<!-- Send Message Modal -->
+<div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-info text-white">
+                <h5 class="modal-title" id="sendMessageModalLabel">Send Message</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="sendMessageForm" action="{% url 'mentorship:send_message' %}" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <input type="hidden" id="messageRecipientId" name="recipient_id">
+                    <div class="mb-3">
+                        <label for="messageSubject" class="form-label">Subject</label>
+                        <input type="text" class="form-control" id="messageSubject" name="subject" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="messageContent" class="form-label">Message</label>
+                        <textarea class="form-control" id="messageContent" name="content" rows="5" required></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-info text-white">Send Message</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
+<!-- Template Handling Script -->
+<script>
+// Define predefined milestone templates
+const milestoneTemplates = {
+    'technical-8-week': [
+        { period: '1', description: 'Introduction and skills assessment', days: 0 },
+        { period: '2', description: 'Core concept review and learning path setup', days: 7 },
+        { period: '3-4', description: 'Hands-on practice with fundamental skills', days: 14 },
+        { period: '5', description: 'Mid-point assessment and progress review', days: 28 },
+        { period: '6-7', description: 'Advanced topics and project implementation', days: 35 },
+        { period: '8', description: 'Final review and future development planning', days: 49 }
+    ],
+    'career-12-week': [
+        { period: '1', description: 'Career goals assessment and planning', days: 0 },
+        { period: '2-3', description: 'Resume and portfolio enhancement', days: 7 },
+        { period: '4-5', description: 'Personal branding and networking strategies', days: 21 },
+        { period: '6', description: 'Mid-point review and strategy adjustment', days: 35 },
+        { period: '7-8', description: 'Interview preparation and practice', days: 42 },
+        { period: '9-10', description: 'Job search strategies and application process', days: 56 },
+        { period: '11-12', description: 'Final assessment and long-term career planning', days: 70 }
+    ],
+    'research-project': [
+        { period: '1', description: 'Research question definition and literature review', days: 0 },
+        { period: '2', description: 'Methodology selection and planning', days: 7 },
+        { period: '3-4', description: 'Data collection preparation', days: 14 },
+        { period: '5-6', description: 'Data collection implementation', days: 28 },
+        { period: '7-8', description: 'Data analysis', days: 42 },
+        { period: '9', description: 'Results interpretation', days: 56 },
+        { period: '10', description: 'Report/paper writing', days: 63 },
+        { period: '11-12', description: 'Presentation preparation and delivery', days: 70 }
+    ],
+    'startup-mentoring': [
+        { period: '1', description: 'Business idea validation and market research', days: 0 },
+        { period: '2', description: 'Target audience and customer persona development', days: 7 },
+        { period: '3', description: 'Business model canvas creation', days: 14 },
+        { period: '4-5', description: 'MVP (Minimum Viable Product) planning', days: 21 },
+        { period: '6-7', description: 'MVP development and testing', days: 35 },
+        { period: '8', description: 'Initial marketing strategy', days: 49 },
+        { period: '9-10', description: 'Funding options and pitch deck preparation', days: 56 },
+        { period: '11-12', description: 'Launch strategy and growth planning', days: 70 }
+    ],
+    'leadership-development': [
+        { period: '1', description: 'Leadership style assessment and strengths identification', days: 0 },
+        { period: '2-3', description: 'Communication and interpersonal skills development', days: 7 },
+        { period: '4', description: 'Team management and delegation strategies', days: 21 },
+        { period: '5-6', description: 'Conflict resolution and problem solving', days: 28 },
+        { period: '7', description: 'Emotional intelligence in leadership', days: 42 },
+        { period: '8-9', description: 'Strategic thinking and decision making', days: 49 },
+        { period: '10-11', description: 'Change management and organizational development', days: 63 },
+        { period: '12', description: 'Personal leadership vision and ongoing growth plan', days: 77 }
+    ]
+};
+
+// Function to get template duration in days
+function getTemplateDuration(templateId) {
+    const template = milestoneTemplates[templateId];
+    if (!template || template.length === 0) return 0;
+    
+    // Find the milestone with the highest day value
+    let maxDays = 0;
+    template.forEach(milestone => {
+        if (milestone.days > maxDays) {
+            maxDays = milestone.days;
+        }
+    });
+    
+    // Add 7 days buffer to the end for final wrap-up
+    return maxDays + 7;
+}
+
+// Function to set the expected end date based on template
+function setExpectedEndDateFromTemplate(templateId) {
+    const duration = getTemplateDuration(templateId);
+    if (duration <= 0) return;
+    
+    const expectedEndDateInput = document.getElementById('expectedEndDate');
+    if (!expectedEndDateInput) return;
+    
+    // Calculate end date as today + duration days
+    const endDate = new Date();
+    endDate.setDate(endDate.getDate() + duration);
+    
+    // Format the date for the input field (YYYY-MM-DD)
+    const formattedDate = endDate.toISOString().split('T')[0];
+    expectedEndDateInput.value = formattedDate;
+    
+    // Update the mentoring days display
+    calculateMentoringDays();
+}
+
+// Function to apply a milestone template
+function applyMilestoneTemplate(templateId) {
+    const template = milestoneTemplates[templateId];
+    if (!template) {
+        showToast('error', 'Template not found');
+        return;
+    }
+    
+    // Get end date to calculate milestone dates
+    const expectedEndDateInput = document.getElementById('expectedEndDate');
+    if (!expectedEndDateInput || !expectedEndDateInput.value) {
+        // If end date is not set, set it automatically based on template
+        setExpectedEndDateFromTemplate(templateId);
+        
+        if (!expectedEndDateInput.value) {
+            showToast('warning', 'Could not set expected end date');
+            return;
+        }
+    }
+    
+    // Clear existing milestones
+    const milestonesContainer = document.getElementById('milestones-container');
+    milestonesContainer.innerHTML = '';
+    
+    // Calculate dates based on the timeline span
+    // Start from TOMORROW instead of today
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1); // Add 1 day to get tomorrow
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(expectedEndDateInput.value);
+    endDate.setHours(0, 0, 0, 0);
+    
+    // Calculate total duration in days
+    const totalDuration = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+    
+    // Get the template's original duration
+    const templateDuration = getTemplateDuration(templateId) - 7; // Subtract the buffer we added
+    
+    // Apply template milestones
+    template.forEach((milestone, index) => {
+        // Calculate adjusted day offset based on the actual timeline duration
+        let adjustedDayOffset;
+        
+        if (templateDuration <= 0) {
+            // Fallback: Distribute evenly if template duration is invalid
+            adjustedDayOffset = Math.floor((totalDuration * index) / (template.length - 1));
+        } else {
+            // Scale the day offset proportionally to fit the actual timeline
+            const scaleFactor = totalDuration / templateDuration;
+            adjustedDayOffset = Math.floor(milestone.days * scaleFactor);
+        }
+        
+        // Calculate milestone date
+        const milestoneDate = new Date(startDate);
+        milestoneDate.setDate(milestoneDate.getDate() + adjustedDayOffset);
+        
+        // Make sure the date doesn't exceed the end date
+        const finalDate = milestoneDate > endDate ? endDate : milestoneDate;
+        
+        // Format date for the input
+        const formattedDate = finalDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Create new milestone entry
+        const newMilestone = document.createElement('div');
+        newMilestone.className = 'milestone-entry mb-3';
+        newMilestone.innerHTML = `
+            <div class="row g-2">
+                <div class="col">
+                    <div class="input-group">
+                        <span class="input-group-text">Week/Day</span>
+                        <input type="text" class="form-control milestone-period" placeholder="1-2" required value="${milestone.period}">
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="input-group">
+                        <input type="date" class="form-control milestone-date" onchange="validateMilestoneDate(this)" value="${formattedDate}">
+                        <span class="input-group-text date-toggle" onclick="toggleDateDisplay(this)">
+                            <i class="fas fa-calendar-alt"></i>
+                        </span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <input type="text" class="form-control milestone-description" placeholder="Introduction and goal setting" required value="${milestone.description}">
+                </div>
+                <div class="col-md-1 text-center">
+                    <button type="button" class="btn btn-outline-danger remove-milestone-btn">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            </div>
+        `;
+        milestonesContainer.appendChild(newMilestone);
+        
+        // Add event listener to the remove button
+        const removeBtn = newMilestone.querySelector('.remove-milestone-btn');
+        removeBtn.addEventListener('click', function() {
+            if (milestonesContainer.querySelectorAll('.milestone-entry').length > 1) {
+                milestonesContainer.removeChild(newMilestone);
+            } else {
+                // Clear inputs if it's the last one
+                const periodInput = newMilestone.querySelector('.milestone-period');
+                const descriptionInput = newMilestone.querySelector('.milestone-description');
+                const dateInput = newMilestone.querySelector('.milestone-date');
+                
+                if (periodInput) periodInput.value = '';
+                if (descriptionInput) descriptionInput.value = '';
+                if (dateInput) {
+                    dateInput.value = '';
+                    dateInput.classList.remove('is-invalid');
+                }
+            }
+            validateAllMilestoneDates();
+        });
+    });
+    
+    // Validate all milestone dates
+    validateAllMilestoneDates();
+    
+    showToast('success', `Applied ${template.length} milestones from template`);
+}
+
+// Add initialization for the template apply button
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize template selector to update expected end date on change
+    const templateSelector = document.getElementById('templateSelector');
+    if (templateSelector) {
+        templateSelector.addEventListener('change', function() {
+            if (this.value) {
+                setExpectedEndDateFromTemplate(this.value);
+            }
+        });
+    }
+    
+    // Initialize apply template button
+    const applyTemplateBtn = document.getElementById('applyTemplateBtn');
+    if (applyTemplateBtn) {
+        applyTemplateBtn.addEventListener('click', function() {
+            const templateSelector = document.getElementById('templateSelector');
+            if (templateSelector && templateSelector.value) {
+                applyMilestoneTemplate(templateSelector.value);
+            } else {
+                showToast('warning', 'Please select a template first');
+            }
+        });
+    }
+});
+</script>
+
+<!-- Find the script section for timeline handling and add these functions -->
+<script>
+// Function to add a new milestone
+function addNewMilestone() {
+    const milestonesContainer = document.getElementById('milestones-container');
+    
+    const milestoneRow = document.createElement('div');
+    milestoneRow.className = 'milestone-row row mb-3 pb-3 border-bottom align-items-center';
+    
+    milestoneRow.innerHTML = `
+        <div class="col-md-2">
+            <label class="form-label d-md-none">Week/Day:</label>
+            <input type="text" class="form-control milestone-period" placeholder="1-2" required>
+        </div>
+        <div class="col-md-3">
+            <label class="form-label d-md-none">Date:</label>
+            <div class="input-group">
+                <input type="date" class="form-control milestone-date" onchange="validateMilestoneDate(this)">
+                <span class="input-group-text date-toggle" onclick="toggleDateDisplay(this)">
+                    <i class="fas fa-calendar-alt"></i>
+                </span>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <label class="form-label d-md-none">Description:</label>
+            <input type="text" class="form-control milestone-description" placeholder="Milestone description" required>
+        </div>
+        <div class="col-md-1 text-center">
+            <button type="button" class="btn btn-outline-danger remove-milestone-btn mt-md-0 mt-2">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    `;
+    
+    milestonesContainer.appendChild(milestoneRow);
+    
+    const removeBtn = milestoneRow.querySelector('.remove-milestone-btn');
+    removeBtn.addEventListener('click', function() {
+        removeMilestone(milestoneRow);
+    });
+}
+
+// Function to remove a milestone
+function removeMilestone(milestoneRow) {
+    if (!milestoneRow) return;
+    
+    const milestonesContainer = document.getElementById('milestones-container');
+    const allRows = milestonesContainer.querySelectorAll('.milestone-row');
+    
+    if (allRows.length <= 1) {
+        // If it's the last row, just clear the inputs instead of removing
+        const periodInput = milestoneRow.querySelector('.milestone-period');
+        const descriptionInput = milestoneRow.querySelector('.milestone-description');
+        const dateInput = milestoneRow.querySelector('.milestone-date');
+        
+        if (periodInput) periodInput.value = '';
+        if (descriptionInput) descriptionInput.value = '';
+        if (dateInput) {
+            dateInput.value = '';
+            dateInput.classList.remove('is-invalid');
+        }
+    } else {
+        // Otherwise remove the row
+        milestonesContainer.removeChild(milestoneRow);
+    }
+    
+    // Re-validate after changes
+    validateAllMilestoneDates();
+}
+
+// Initialize milestone buttons
+document.addEventListener('DOMContentLoaded', function() {
+    const timelineModal = document.getElementById('timelineModal');
+    if (timelineModal) {
+        timelineModal.addEventListener('shown.bs.modal', function() {
+            // Initialize the add milestone button
+            const addMilestoneBtn = document.getElementById('add-milestone-btn');
+            if (addMilestoneBtn) {
+                // Remove any existing event listeners
+                const newBtn = addMilestoneBtn.cloneNode(true);
+                addMilestoneBtn.parentNode.replaceChild(newBtn, addMilestoneBtn);
+                
+                // Add new event listener
+                newBtn.addEventListener('click', addNewMilestone);
+            }
+            
+            // Initialize existing remove buttons
+            document.querySelectorAll('.remove-milestone-btn').forEach(button => {
+                const newBtn = button.cloneNode(true);
+                button.parentNode.replaceChild(newBtn, button);
+                newBtn.addEventListener('click', function() {
+                    removeMilestone(this.closest('.milestone-row'));
+                });
+            });
+        });
+    }
+});
+
+// Update the applyMilestoneTemplate function to use the new structure
+const originalApplyMilestoneTemplate = applyMilestoneTemplate;
+applyMilestoneTemplate = function(templateId) {
+    const template = milestoneTemplates[templateId];
+    if (!template) {
+        showToast('error', 'Template not found');
+        return;
+    }
+    
+    // Get end date to calculate milestone dates
+    const expectedEndDateInput = document.getElementById('expectedEndDate');
+    if (!expectedEndDateInput || !expectedEndDateInput.value) {
+        // If end date is not set, set it automatically based on template
+        setExpectedEndDateFromTemplate(templateId);
+        
+        if (!expectedEndDateInput.value) {
+            showToast('warning', 'Could not set expected end date');
+            return;
+        }
+    }
+    
+    // Clear existing milestones
+    const milestonesContainer = document.getElementById('milestones-container');
+    milestonesContainer.innerHTML = '';
+    
+    // Calculate dates based on the timeline span
+    // Start from TOMORROW instead of today
+    const startDate = new Date();
+    startDate.setDate(startDate.getDate() + 1); // Add 1 day to get tomorrow
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(expectedEndDateInput.value);
+    endDate.setHours(0, 0, 0, 0);
+    
+    // Calculate total duration in days
+    const totalDuration = Math.floor((endDate - startDate) / (1000 * 60 * 60 * 24));
+    
+    // Get the template's original duration
+    const templateDuration = getTemplateDuration(templateId) - 7; // Subtract the buffer we added
+    
+    // Apply template milestones
+    template.forEach((milestone, index) => {
+        // Calculate adjusted day offset based on the actual timeline duration
+        let adjustedDayOffset;
+        
+        if (templateDuration <= 0) {
+            // Fallback: Distribute evenly if template duration is invalid
+            adjustedDayOffset = Math.floor((totalDuration * index) / (template.length - 1));
+        } else {
+            // Scale the day offset proportionally to fit the actual timeline
+            const scaleFactor = totalDuration / templateDuration;
+            adjustedDayOffset = Math.floor(milestone.days * scaleFactor);
+        }
+        
+        // Calculate milestone date
+        const milestoneDate = new Date(startDate);
+        milestoneDate.setDate(milestoneDate.getDate() + adjustedDayOffset);
+        
+        // Make sure the date doesn't exceed the end date
+        const finalDate = milestoneDate > endDate ? endDate : milestoneDate;
+        
+        // Format date for the input
+        const formattedDate = finalDate.toISOString().split('T')[0]; // YYYY-MM-DD format
+        
+        // Create new milestone row
+        const milestoneRow = document.createElement('div');
+        milestoneRow.className = 'milestone-row row mb-3 pb-3 border-bottom align-items-center';
+        
+        milestoneRow.innerHTML = `
+            <div class="col-md-2">
+                <label class="form-label d-md-none">Week/Day:</label>
+                <input type="text" class="form-control milestone-period" placeholder="1-2" value="${milestone.period}" required>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label d-md-none">Date:</label>
+                <div class="input-group">
+                    <input type="date" class="form-control milestone-date" value="${formattedDate}" onchange="validateMilestoneDate(this)">
+                    <span class="input-group-text date-toggle" onclick="toggleDateDisplay(this)">
+                        <i class="fas fa-calendar-alt"></i>
+                    </span>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label d-md-none">Description:</label>
+                <input type="text" class="form-control milestone-description" placeholder="Milestone description" value="${milestone.description}" required>
+            </div>
+            <div class="col-md-1 text-center">
+                <button type="button" class="btn btn-outline-danger remove-milestone-btn mt-md-0 mt-2">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        `;
+        
+        milestonesContainer.appendChild(milestoneRow);
+        
+        // Add event listener to the remove button
+        const removeBtn = milestoneRow.querySelector('.remove-milestone-btn');
+        removeBtn.addEventListener('click', function() {
+            removeMilestone(milestoneRow);
+        });
+    });
+    
+    // Validate all milestone dates
+    validateAllMilestoneDates();
+    
+    showToast('success', `Applied ${template.length} milestones from template`);
+};
+
+// Function to submit the timeline - update to use the new structure
+const originalSubmitTimeline = submitTimeline;
+submitTimeline = function() {
+    // Check if the original function exists and call it if it does
+    if (typeof originalSubmitTimeline === 'function') {
+        // Check if we need to modify the data collection logic
+        try {
+            // Get all milestone entries
+            const milestonesContainer = document.getElementById('milestones-container');
+            const milestoneRows = milestonesContainer.querySelectorAll('.milestone-row');
+            
+            if (milestoneRows.length > 0) {
+                // We have the new structure, so we'll override the data collection
+                const expectedEndDateInput = document.getElementById('expectedEndDate');
+                const mentorshipIdInput = document.getElementById('mentorshipIdForTimeline');
+                const notesTextarea = document.getElementById('timelineMilestones');
+                
+                // Verify required fields
+                if (!expectedEndDateInput || !expectedEndDateInput.value) {
+                    showToast('error', 'Please set an expected end date');
+                    return;
+                }
+                
+                // Collect milestone data
+                const milestones = [];
+                let hasEmptyFields = false;
+                
+                milestoneRows.forEach(row => {
+                    const periodInput = row.querySelector('.milestone-period');
+                    const dateInput = row.querySelector('.milestone-date');
+                    const descriptionInput = row.querySelector('.milestone-description');
+                    
+                    // Check if required fields are filled
+                    if (!periodInput.value.trim() || !descriptionInput.value.trim()) {
+                        hasEmptyFields = true;
+                        return;
+                    }
+                    
+                    milestones.push({
+                        period: periodInput.value.trim(),
+                        date: dateInput.value || '',
+                        description: descriptionInput.value.trim()
+                    });
+                });
+                
+                if (hasEmptyFields) {
+                    showToast('error', 'Please fill in all required milestone fields');
+                    return;
+                }
+                
+                if (milestones.length === 0) {
+                    showToast('error', 'Please add at least one milestone');
+                    return;
+                }
+                
+                // Validate milestone dates
+                if (!validateAllMilestoneDates()) {
+                    return;
+                }
+                
+                // Show loading state
+                const saveButton = document.getElementById('saveTimeline');
+                if (saveButton) {
+                    saveButton.disabled = true;
+                    saveButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Saving...';
+                }
+                
+                // Send the data to the server
+                fetch('/mentorship/set-timeline/', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': getCookie('csrftoken')
+                    },
+                    body: JSON.stringify({
+                        mentorship_id: mentorshipIdInput ? mentorshipIdInput.value : '',
+                        expected_end_date: expectedEndDateInput.value,
+                        milestones: milestones,
+                        notes: notesTextarea ? notesTextarea.value : ''
+                    })
+                })
+                .then(response => {
+                    // First check if the response is ok
+                    if (!response.ok) {
+                        // Try to get status code info to provide better error messages
+                        const errorMsg = `Server error: ${response.status} ${response.statusText}`;
+                        console.error(errorMsg);
+                        throw new Error(errorMsg);
+                    }
+                    
+                    // Check content type to avoid JSON parse errors
+                    const contentType = response.headers.get('content-type');
+                    if (!contentType || !contentType.includes('application/json')) {
+                        console.error('Response is not JSON. Content-Type:', contentType);
+                        throw new Error('Server returned an invalid response format');
+                    }
+                    
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        showToast('success', 'Timeline saved successfully');
+                        // Close the modal
+                        const closeBtn = document.querySelector('#timelineModal .btn-close');
+                        if (closeBtn) closeBtn.click();
+                        // Refresh the page
+                        setTimeout(() => window.location.reload(), 1000);
+                    } else {
+                        showToast('error', data.error || 'Failed to save timeline');
+                        if (saveButton) {
+                            saveButton.disabled = false;
+                            saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showToast('error', `An error occurred while saving: ${error.message || 'Unknown error'}`);
+                    if (saveButton) {
+                        saveButton.disabled = false;
+                        saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
+                    }
+                });
+                
+                // We've handled submission with the new structure
+                return;
+            }
+        } catch (e) {
+            console.error('Error detecting milestone structure:', e);
+        }
+        
+        // Fall back to the original function if we couldn't handle it with the new structure
+        return originalSubmitTimeline();
+    }
+    
+    // If original function doesn't exist, show an error
+    showToast('error', 'Timeline submission function not found');
+};
+</script>
+
+<script>
+// Helper function to get status text
+function getStatusText(status) {
+    switch(status) {
+        case 'COMPLETED':
+            return 'Completed';
+        case 'IN_PROGRESS':
+            return 'In Progress';
+        case 'NOT_STARTED':
+        default:
+            return 'Not Started';
+    }
+}
+
+// Function to show toast notifications
+function showToast(type, message) {
+    const toastElement = document.getElementById('toast');
+    const toastBody = document.getElementById('toastBody');
+    
+    // Set toast content based on type
+    if (type === 'success') {
+        toastBody.innerHTML = `<i class="fas fa-check-circle me-2 text-success"></i>${message}`;
+    } else if (type === 'error') {
+        toastBody.innerHTML = `<i class="fas fa-exclamation-circle me-2 text-danger"></i>${message}`;
+    } else if (type === 'warning') {
+        toastBody.innerHTML = `<i class="fas fa-exclamation-triangle me-2 text-warning"></i>${message}`;
+    } else {
+        toastBody.innerHTML = `<i class="fas fa-info-circle me-2 text-info"></i>${message}`;
+    }
+    
+    // Show the toast
+    const toast = new bootstrap.Toast(toastElement);
+    toast.show();
+}
+
+// Submit meeting form function
+function submitMeeting(event) {
+    event.preventDefault();
+    
+    try {
+        // Get form elements directly
+        const mentorshipId = document.getElementById('mentorshipIdForMeeting').value;
+        const meetingTitle = document.getElementById('meetingTitle').value.trim();
+        const meetingDate = document.getElementById('meetingDate').value.trim();
+        const meetingLink = document.getElementById('meetingLink').value.trim();
+        const meetingDescription = document.getElementById('meetingDescription')?.value.trim() || '';
+        
+        // Validate required fields
+        const missingFields = [];
+        
+        if (!mentorshipId) {
+            console.error('Mentorship ID is missing');
+            missingFields.push('Mentorship ID');
+        }
+        
+        if (!meetingTitle) {
+            console.error('Meeting Title is missing');
+            missingFields.push('Meeting Title');
+        }
+        
+        if (!meetingDate) {
+            console.error('Date & Time is missing');
+            missingFields.push('Date & Time');
+        }
+        
+        if (!meetingLink) {
+            missingFields.push('Meeting Link');
+            console.error('Meeting Link is missing');
+        }
+        
+        if (missingFields.length > 0) {
+            const errorMessage = `Please fill out the following required fields: ${missingFields.join(', ')}`;
+            showToast('error', errorMessage);
+            return;
+        }
+        
+        // Validate that the meeting link is valid
+        if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
+            showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+            return;
+        }
+        
+        // Create the request data
+        const requestData = {
+            mentorship: mentorshipId,
+            title: meetingTitle,
+            meeting_date: meetingDate,
+            meeting_link: meetingLink,
+            description: meetingDescription,
+            status: 'SCHEDULED'
+        };
+        
+        console.log('Sending request data:', requestData);
+        
+        // Send the request
+        fetch('/mentorship/api/meetings/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': getCookie('csrftoken'),
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestData)
+        })
+        .then(response => {
+            console.log('Response status:', response.status);
+            
+            if (!response.ok) {
+                return response.text().then(text => {
+                    try {
+                        const errorData = JSON.parse(text);
+                        throw new Error(errorData.detail || 'Failed to schedule meeting');
+                    } catch (e) {
+                        throw new Error('Failed to schedule meeting');
+                    }
+                });
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('Success response:', data);
+            
+            // Close the modal
+            var meetingModal = document.getElementById('meetingModal');
+            var modal = bootstrap.Modal.getInstance(meetingModal);
+            if (modal) modal.hide();
+            
+            showToast('success', 'Meeting scheduled successfully with the link provided');
+            setTimeout(() => location.reload(), 1500);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showToast('error', error.message || 'Failed to schedule meeting. Please try again.');
+        });
+    } catch (error) {
+        console.error('Exception in submitMeeting:', error);
+        showToast('error', 'An unexpected error occurred. Please try again.');
+    }
+}
+
+// Function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+</script>
+
+</div> <!-- Close container -->
+{% endblock %} 

@@ -1,0 +1,182 @@
+{% extends "admin/base_site.html" %}
+{% load i18n static admin_urls %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" type="text/css" href="{% static "admin/css/changelists.css" %}">
+<style>
+    .mentor-list-container {
+        margin: 20px;
+    }
+    
+    .mentor-list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 20px;
+    }
+    
+    .mentor-list-title {
+        font-size: 24px;
+        font-weight: bold;
+        color: #2b3c6b;
+    }
+    
+    .mentor-list-actions {
+        display: flex;
+        gap: 10px;
+    }
+    
+    .mentor-list-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-bottom: 20px;
+    }
+    
+    .mentor-list-table th {
+        background-color: #f8f9fa;
+        padding: 12px;
+        text-align: left;
+        font-weight: bold;
+        border-bottom: 2px solid #dee2e6;
+    }
+    
+    .mentor-list-table td {
+        padding: 12px;
+        border-bottom: 1px solid #dee2e6;
+    }
+    
+    .mentor-list-table tr:hover {
+        background-color: #f8f9fa;
+    }
+    
+    .status-badge {
+        display: inline-block;
+        padding: 5px 10px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: bold;
+        text-align: center;
+    }
+    
+    .status-available {
+        background-color: #d4edda;
+        color: #155724;
+    }
+    
+    .status-limited {
+        background-color: #fff3cd;
+        color: #856404;
+    }
+    
+    .status-unavailable {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+    
+    .verified-badge {
+        background-color: #cce5ff;
+        color: #004085;
+    }
+    
+    .not-verified-badge {
+        background-color: #f8d7da;
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% trans 'Home' %}</a>
+    &rsaquo; {{ title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div id="content-main">
+    <div class="module" id="changelist">
+        <div class="mentor-list-header">
+            <div class="mentor-list-title">
+                <i class="fas fa-chalkboard-teacher"></i> Mentor List
+            </div>
+            <div class="mentor-list-actions">
+                {% if has_add_permission %}
+                <a href="{% url 'admin:accounts_mentor_add' %}" class="addlink">
+                    {% trans 'Add Mentor' %}
+                </a>
+                {% endif %}
+                <a href="{% url 'admin:accounts_mentor_changelist' %}" class="viewlink">
+                    {% trans 'Manage Mentors' %}
+                </a>
+            </div>
+        </div>
+        
+        <!-- Sorting options -->
+        <div class="actions">
+            <form method="get">
+                <label for="sort">{% trans 'Sort by:' %}</label>
+                <select name="sort" id="sort" onchange="this.form.submit()">
+                    <option value="name" {% if sort_by == 'name' %}selected{% endif %}>{% trans 'Name' %}</option>
+                    <option value="availability" {% if sort_by == 'availability' %}selected{% endif %}>{% trans 'Availability' %}</option>
+                    <option value="mentees" {% if sort_by == 'mentees' %}selected{% endif %}>{% trans 'Number of Mentees' %}</option>
+                    <option value="verification" {% if sort_by == 'verification' %}selected{% endif %}>{% trans 'Verification Status' %}</option>
+                </select>
+                <button type="submit" class="button">{% trans 'Go' %}</button>
+            </form>
+        </div>
+        
+        {% if mentors %}
+        <div class="results">
+            <table class="mentor-list-table">
+                <thead>
+                    <tr>
+                        <th>{% trans 'Name' %}</th>
+                        <th>{% trans 'Email' %}</th>
+                        <th>{% trans 'Expertise Areas' %}</th>
+                        <th>{% trans 'Availability' %}</th>
+                        <th>{% trans 'Mentees' %}</th>
+                        <th>{% trans 'Verification' %}</th>
+                        <th>{% trans 'Actions' %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mentor in mentors %}
+                    <tr>
+                        <td>{{ mentor.user.get_full_name }}</td>
+                        <td>{{ mentor.user.email }}</td>
+                        <td>
+                            {% for area in mentor.expertise_areas.split %}
+                            <span class="status-badge" style="background-color: #e2e3e5; color: #383d41;">{{ area }}</span>
+                            {% endfor %}
+                        </td>
+                        <td>
+                            <span class="status-badge 
+                                {% if mentor.availability_status == 'AVAILABLE' %}status-available
+                                {% elif mentor.availability_status == 'LIMITED' %}status-limited
+                                {% else %}status-unavailable{% endif %}">
+                                {{ mentor.get_availability_status_display }}
+                            </span>
+                        </td>
+                        <td>{{ mentor.current_mentees }} / {{ mentor.max_mentees }}</td>
+                        <td>
+                            <span class="status-badge {% if mentor.is_verified %}verified-badge{% else %}not-verified-badge{% endif %}">
+                                {% if mentor.is_verified %}Verified{% else %}Not Verified{% endif %}
+                            </span>
+                        </td>
+                        <td>
+                            <a href="{% url 'admin:accounts_mentor_change' mentor.id %}" class="changelink">
+                                {% trans 'Edit' %}
+                            </a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p>{% trans 'No mentors found.' %}</p>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

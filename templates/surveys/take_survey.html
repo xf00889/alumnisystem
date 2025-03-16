@@ -1,0 +1,432 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ survey.title }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .rating {
+        display: flex;
+        flex-direction: row-reverse;
+        justify-content: flex-end;
+    }
+    .rating input {
+        display: none;
+    }
+    .rating label {
+        cursor: pointer;
+        width: 40px;
+        height: 40px;
+        font-size: 1.5rem;
+        color: #ddd;
+        padding: 0 0.1em;
+        transition: color 0.3s;
+    }
+    .rating label:hover,
+    .rating label:hover ~ label,
+    .rating input:checked ~ label {
+        color: #ffb400;
+    }
+    
+    .question-card {
+        margin-bottom: 2rem;
+        border: 1px solid #eee;
+        border-radius: 10px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+    }
+    
+    .required-marker {
+        color: #dc3545;
+        margin-left: 3px;
+    }
+    
+    /* Rating Scale Styles */
+    .rating-scale {
+        width: 100%;
+    }
+    .rating-option {
+        flex: 1;
+        text-align: center;
+        padding: 0 3px;
+    }
+    .rating-option input {
+        display: block;
+        margin: 0 auto 5px;
+    }
+    .rating-option label {
+        font-size: 0.8rem;
+        display: block;
+        line-height: 1.2;
+    }
+    
+    /* 1-10 Rating Scale */
+    .rating-scale .d-flex {
+        flex-wrap: wrap;
+    }
+    
+    /* Make rating scales responsive on small screens */
+    @media (max-width: 767px) {
+        .rating-scale .d-flex {
+            flex-direction: column;
+        }
+        .rating-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .rating-option:last-child {
+            border-bottom: none;
+        }
+        .rating-option input {
+            margin: 0 10px 0 0;
+        }
+        .rating-option label {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+    }
+    
+    /* Likert Scale Styles */
+    .likert-scale {
+        margin: 1rem 0;
+    }
+    .likert-option {
+        flex: 1;
+        text-align: center;
+        padding: 0 5px;
+    }
+    .likert-option input {
+        display: block;
+        margin: 0 auto 5px;
+    }
+    .likert-option label {
+        font-size: 0.8rem;
+        display: block;
+        line-height: 1.2;
+    }
+    
+    /* Make Likert scale responsive on small screens */
+    @media (max-width: 767px) {
+        .likert-scale .d-flex {
+            flex-direction: column;
+        }
+        .likert-option {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px;
+            padding: 5px 0;
+            border-bottom: 1px solid #eee;
+        }
+        .likert-option:last-child {
+            border-bottom: none;
+        }
+        .likert-option input {
+            margin: 0 10px 0 0;
+        }
+        .likert-option label {
+            margin: 0;
+            font-size: 0.9rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h1 class="h2">{{ survey.title }}</h1>
+                <a href="{% url 'surveys:survey_list_public' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-arrow-left me-1"></i> Back to Surveys
+                </a>
+            </div>
+            
+            <div class="card mb-4 shadow-sm">
+                <div class="card-body">
+                    <p>{{ survey.description }}</p>
+                    <div class="d-flex justify-content-between text-muted small">
+                        <span>Available until: {{ survey.end_date|date:"F d, Y" }}</span>
+                        <span>Questions: {{ questions.count }}</span>
+                    </div>
+                </div>
+            </div>
+            
+            {% if already_responded %}
+                <div class="alert alert-success">
+                    <h4 class="alert-heading">Thank You!</h4>
+                    <p>You have already completed this survey. We appreciate your participation.</p>
+                </div>
+            {% else %}
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% for question in questions %}
+                    <div class="question-card p-4" id="question-{{ question.id }}">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">
+                                {{ forloop.counter }}. {{ question.question_text }}
+                                {% if question.is_required %}
+                                <span class="required-marker">*</span>
+                                {% endif %}
+                            </label>
+                            
+                            {% if question.question_type == 'text' %}
+                                <textarea class="form-control" name="question_{{ question.id }}" rows="3" {% if question.is_required %}required{% endif %}></textarea>
+                            
+                            {% elif question.question_type == 'multiple_choice' %}
+                                <div class="mt-2">
+                                    {% for option in question.options.all %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="{{ option.id }}" id="option-{{ option.id }}" {% if question.is_required %}required{% endif %}>
+                                            <label class="form-check-label" for="option-{{ option.id }}">
+                                                {{ option.option_text }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            
+                            {% elif question.question_type == 'checkbox' %}
+                                <div class="mt-2">
+                                    {% for option in question.options.all %}
+                                        <div class="form-check">
+                                            <input class="form-check-input" type="checkbox" name="question_{{ question.id }}_{{ option.id }}" value="1" id="option-{{ option.id }}">
+                                            <label class="form-check-label" for="option-{{ option.id }}">
+                                                {{ option.option_text }}
+                                            </label>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            
+                            {% elif question.question_type == 'rating' %}
+                                {% if question.scale_type == '1-10' %}
+                                    <div class="rating-scale mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            {% for i in "12345678910"|make_list %}
+                                                <div class="rating-option text-center">
+                                                    <input type="radio" id="rating{{ i }}-{{ question.id }}" name="question_{{ question.id }}" value="{{ i }}" {% if question.is_required %}required{% endif %}>
+                                                    <label for="rating{{ i }}-{{ question.id }}">{{ i }}</label>
+                                                </div>
+                                            {% endfor %}
+                                        </div>
+                                        <div class="d-flex justify-content-between text-muted small mt-1">
+                                            <span>Poor</span>
+                                            <span>Excellent</span>
+                                        </div>
+                                    </div>
+                                {% elif question.scale_type == 'frequency' %}
+                                    <div class="rating-scale mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                <label for="rating1-{{ question.id }}">Never</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                <label for="rating2-{{ question.id }}">Rarely</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                <label for="rating3-{{ question.id }}">Sometimes</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                <label for="rating4-{{ question.id }}">Often</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                <label for="rating5-{{ question.id }}">Always</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% elif question.scale_type == 'agreement' %}
+                                    <div class="rating-scale mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                <label for="rating1-{{ question.id }}">Strongly Disagree</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                <label for="rating2-{{ question.id }}">Disagree</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                <label for="rating3-{{ question.id }}">Neutral</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                <label for="rating4-{{ question.id }}">Agree</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                <label for="rating5-{{ question.id }}">Strongly Agree</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% elif question.scale_type == 'satisfaction' %}
+                                    <div class="rating-scale mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                <label for="rating1-{{ question.id }}">Very Unsatisfied</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                <label for="rating2-{{ question.id }}">Unsatisfied</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                <label for="rating3-{{ question.id }}">Neutral</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                <label for="rating4-{{ question.id }}">Satisfied</label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                <label for="rating5-{{ question.id }}">Very Satisfied</label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                {% else %}
+                                    <!-- Default 5-star rating -->
+                                    <div class="rating mt-2" id="rating-{{ question.id }}">
+                                        <input type="radio" id="star5-{{ question.id }}" name="question_{{ question.id }}" value="5" {% if question.is_required %}required{% endif %}/>
+                                        <label for="star5-{{ question.id }}" title="5 stars"><i class="fas fa-star"></i></label>
+                                        <input type="radio" id="star4-{{ question.id }}" name="question_{{ question.id }}" value="4" />
+                                        <label for="star4-{{ question.id }}" title="4 stars"><i class="fas fa-star"></i></label>
+                                        <input type="radio" id="star3-{{ question.id }}" name="question_{{ question.id }}" value="3" />
+                                        <label for="star3-{{ question.id }}" title="3 stars"><i class="fas fa-star"></i></label>
+                                        <input type="radio" id="star2-{{ question.id }}" name="question_{{ question.id }}" value="2" />
+                                        <label for="star2-{{ question.id }}" title="2 stars"><i class="fas fa-star"></i></label>
+                                        <input type="radio" id="star1-{{ question.id }}" name="question_{{ question.id }}" value="1" />
+                                        <label for="star1-{{ question.id }}" title="1 star"><i class="fas fa-star"></i></label>
+                                    </div>
+                                    <div class="d-flex justify-content-between text-muted small mt-1">
+                                        <span>Poor</span>
+                                        <span>Excellent</span>
+                                    </div>
+                                {% endif %}
+                            
+                            {% elif question.question_type == 'likert' %}
+                                <div class="mt-2">
+                                    {% if question.scale_type == 'agreement' or not question.scale_type %}
+                                        <div class="likert-scale">
+                                            <div class="d-flex justify-content-between text-center">
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                    <label for="likert1-{{ question.id }}">Strongly Disagree</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                    <label for="likert2-{{ question.id }}">Disagree</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                    <label for="likert3-{{ question.id }}">Neutral</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                    <label for="likert4-{{ question.id }}">Agree</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                    <label for="likert5-{{ question.id }}">Strongly Agree</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% elif question.scale_type == 'satisfaction' %}
+                                        <div class="likert-scale">
+                                            <div class="d-flex justify-content-between text-center">
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                    <label for="likert1-{{ question.id }}">Very Unsatisfied</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                    <label for="likert2-{{ question.id }}">Unsatisfied</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                    <label for="likert3-{{ question.id }}">Neutral</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                    <label for="likert4-{{ question.id }}">Satisfied</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                    <label for="likert5-{{ question.id }}">Very Satisfied</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% elif question.scale_type == 'frequency' %}
+                                        <div class="likert-scale">
+                                            <div class="d-flex justify-content-between text-center">
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                    <label for="likert1-{{ question.id }}">Never</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                    <label for="likert2-{{ question.id }}">Rarely</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                    <label for="likert3-{{ question.id }}">Sometimes</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                    <label for="likert4-{{ question.id }}">Often</label>
+                                                </div>
+                                                <div class="likert-option">
+                                                    <input type="radio" id="likert5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                    <label for="likert5-{{ question.id }}">Always</label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            
+                            {% elif question.question_type == 'date' %}
+                                <input type="date" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                
+                            {% elif question.question_type == 'time' %}
+                                <input type="time" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                
+                            {% elif question.question_type == 'file' %}
+                                <input type="file" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                
+                            {% elif question.question_type == 'email' %}
+                                <input type="email" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                
+                            {% elif question.question_type == 'number' %}
+                                <input type="number" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                
+                            {% elif question.question_type == 'phone' %}
+                                <input type="tel" class="form-control" name="question_{{ question.id }}" placeholder="e.g. +63 912 345 6789" {% if question.is_required %}required{% endif %}>
+                                
+                            {% elif question.question_type == 'url' %}
+                                <input type="url" class="form-control" name="question_{{ question.id }}" placeholder="https://example.com" {% if question.is_required %}required{% endif %}>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                    
+                    <div class="d-flex justify-content-between mt-4">
+                        <a href="{% url 'surveys:survey_list_public' %}" class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            Submit Survey
+                        </button>
+                    </div>
+                </form>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -5,7 +5,10 @@ from django.views.generic import DetailView, UpdateView
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.exceptions import ValidationError
-from .models import Profile, Education, Experience, Skill, Document
+from .models import (
+    Profile, Education, Experience, Skill, Document, SkillMatch,
+    MentorApplication, Mentor
+)
 from alumni_groups.models import AlumniGroup, GroupMembership
 from alumni_directory.models import Alumni, CareerPath, Achievement, AlumniDocument
 from .forms import (
@@ -22,13 +25,24 @@ from .forms import (
     EducationForm,
     ExperienceForm,
     SkillForm,
-    DocumentUploadForm
+    DocumentUploadForm,
+    MentorApplicationForm
 )
 from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.contrib import messages
 from django.views.decorators.http import require_POST
+from rest_framework import viewsets, permissions, status, filters
+from rest_framework.decorators import action
+from rest_framework.response import Response
+from django.utils import timezone
+from .serializers import (
+    SkillSerializer, ProfileSkillsSerializer, SkillMatchSerializer,
+    SkillMatchCalculationSerializer
+)
+from django.contrib.auth.decorators import user_passes_test
+from .decorators import paginate
 
 @login_required
 def post_registration(request):
@@ -91,16 +105,22 @@ def post_registration(request):
     })
 
 @login_required
-def profile_detail(request):
+def profile_detail(request, username=None):
     try:
-        profile = request.user.profile
+        # If username is provided, get that user's profile, otherwise get the logged-in user's profile
+        if username:
+            user = get_object_or_404(User, username=username)
+            profile = user.profile
+        else:
+            profile = request.user.profile
+            
         education_list = profile.education.all().order_by('-graduation_year')
         experience_list = profile.experience.all().order_by('-start_date')
         skill_list = profile.skills.all().order_by('skill_type', 'name')
         
         # Get career paths and achievements
         try:
-            alumni = request.user.alumni
+            alumni = profile.user.alumni
             career_paths = alumni.career_paths.all().order_by('-start_date')
             achievements = alumni.achievements_list.all().order_by('-date_achieved')
         except Alumni.DoesNotExist:
@@ -114,6 +134,7 @@ def profile_detail(request):
             'skill_list': skill_list,
             'career_paths': career_paths,
             'achievements': achievements,
+            'is_own_profile': request.user == profile.user,
         }
         
         return render(request, 'accounts/profile_detail.html', context)
@@ -764,3 +785,269 @@ def delete_achievement(request, pk):
             'status': 'error',
             'message': str(e)
         }, status=400)
+
+class IsOwnerOrReadOnly(permissions.BasePermission):
+    def has_object_permission(self, request, view, obj):
+        if request.method in permissions.SAFE_METHODS:
+            return True
+        return obj.profile.user == request.user
+
+class SkillViewSet(viewsets.ModelViewSet):
+    serializer_class = SkillSerializer
+    permission_classes = [permissions.IsAuthenticated, IsOwnerOrReadOnly]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['name', 'skill_type']
+
+    def get_queryset(self):
+        return Skill.objects.filter(profile__user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(profile=self.request.user.profile)
+
+class ProfileSkillsViewSet(viewsets.ReadOnlyModelViewSet):
+    serializer_class = ProfileSkillsSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return Profile.objects.filter(
+            Q(user=self.request.user) | Q(is_public=True)
+        ).prefetch_related('skills')
+
+class SkillMatchViewSet(viewsets.ModelViewSet):
+    serializer_class = SkillMatchSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return SkillMatch.objects.filter(profile__user=self.request.user)
+
+    @action(detail=False, methods=['post'])
+    def calculate_match(self, request):
+        serializer = SkillMatchCalculationSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        job = serializer.validated_data['job']
+        profile = serializer.validated_data['profile']
+
+        # Get required skills from job posting
+        required_skills = set(
+            skill.strip().lower()
+            for skill in job.skills_required.split(',')
+            if skill.strip()
+        )
+
+        # Get user's skills
+        user_skills = {
+            skill.name.lower(): {
+                'proficiency': skill.proficiency_level,
+                'years': skill.years_of_experience,
+                'is_primary': skill.is_primary
+            }
+            for skill in profile.skills.all()
+        }
+
+        # Calculate matches
+        matched_skills = {}
+        missing_skills = []
+        total_weight = 0
+        match_score = 0
+
+        for skill in required_skills:
+            if skill in user_skills:
+                weight = 1.0
+                if user_skills[skill]['is_primary']:
+                    weight *= 1.2
+                weight *= min(user_skills[skill]['years'] * 0.1 + 1, 2.0)
+                weight *= user_skills[skill]['proficiency'] * 0.2
+
+                matched_skills[skill] = {
+                    'weight': weight,
+                    'proficiency': user_skills[skill]['proficiency'],
+                    'years': user_skills[skill]['years']
+                }
+                match_score += weight
+                total_weight += 1
+            else:
+                missing_skills.append(skill)
+
+        # Normalize score to percentage
+        if total_weight > 0:
+            match_score = (match_score / total_weight) * 100
+        else:
+            match_score = 0
+
+        # Create or update SkillMatch
+        skill_match, created = SkillMatch.objects.update_or_create(
+            job=job,
+            profile=profile,
+            defaults={
+                'match_score': match_score,
+                'matched_skills': matched_skills,
+                'missing_skills': missing_skills,
+                'is_notified': False,
+                'is_viewed': False
+            }
+        )
+
+        return Response(SkillMatchSerializer(skill_match).data)
+
+    @action(detail=True, methods=['post'])
+    def mark_viewed(self, request, pk=None):
+        match = self.get_object()
+        match.is_viewed = True
+        match.save()
+        return Response(SkillMatchSerializer(match).data)
+
+    @action(detail=True, methods=['post'])
+    def mark_applied(self, request, pk=None):
+        match = self.get_object()
+        match.is_applied = True
+        match.save()
+        return Response(SkillMatchSerializer(match).data)
+
+@login_required
+def skill_matching(request):
+    """
+    View for skill matching and job recommendations
+    """
+    return render(request, 'accounts/skill_matching.html')
+
+@login_required
+def apply_mentor(request):
+    """View for submitting mentor applications"""
+    # Check if user already has a pending or approved application
+    try:
+        existing_application = request.user.mentor_application
+        if existing_application.status == 'PENDING':
+            messages.info(request, 'You already have a pending mentor application.')
+            return redirect('accounts:mentor_application_status')
+        elif existing_application.status == 'APPROVED':
+            messages.info(request, 'You are already an approved mentor.')
+            return redirect('mentorship:mentor_dashboard')
+    except MentorApplication.DoesNotExist:
+        pass
+
+    if request.method == 'POST':
+        form = MentorApplicationForm(request.POST, request.FILES)
+        if form.is_valid():
+            application = form.save(commit=False)
+            application.user = request.user
+            application.save()
+            
+            messages.success(request, 'Your mentor application has been submitted successfully. We will review it shortly.')
+            return redirect('accounts:mentor_application_status')
+    else:
+        form = MentorApplicationForm()
+    
+    return render(request, 'accounts/mentor_application_form.html', {'form': form})
+
+@login_required
+def mentor_application_status(request):
+    """View for checking mentor application status"""
+    try:
+        application = request.user.mentor_application
+        return render(request, 'accounts/mentor_application_status.html', {
+            'application': application
+        })
+    except MentorApplication.DoesNotExist:
+        messages.error(request, 'No mentor application found.')
+        return redirect('accounts:apply_mentor')
+
+@user_passes_test(lambda u: u.is_staff)
+@paginate(items_per_page=10)
+def review_mentor_applications(request):
+    """Admin view for reviewing mentor applications"""
+    applications = MentorApplication.objects.filter(status='PENDING').select_related('user')
+    return render(request, 'accounts/review_mentor_applications.html', {
+        'applications': applications
+    })
+
+@user_passes_test(lambda u: u.is_staff)
+def review_mentor_application(request, application_id):
+    """Admin view for reviewing a specific mentor application"""
+    try:
+        application = MentorApplication.objects.get(id=application_id)
+    except MentorApplication.DoesNotExist:
+        messages.error(request, 'Application not found.')
+        return redirect('accounts:review_mentor_applications')
+    
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        review_notes = request.POST.get('review_notes', '')
+        
+        application.review_notes = review_notes
+        application.review_date = timezone.now()
+        application.reviewed_by = request.user
+        
+        if action == 'approve':
+            application.status = 'APPROVED'
+            # Create or update Mentor profile
+            mentor, created = Mentor.objects.get_or_create(user=application.user)
+            mentor.expertise_areas = application.expertise_areas
+            mentor.is_verified = True
+            mentor.verification_date = timezone.now()
+            mentor.verified_by = request.user
+            mentor.save()
+            
+            messages.success(request, f'Mentor application for {application.user.get_full_name()} has been approved.')
+        elif action == 'reject':
+            application.status = 'REJECTED'
+            messages.success(request, f'Mentor application for {application.user.get_full_name()} has been rejected.')
+        
+        application.save()
+        
+        # Send notification to user
+        # TODO: Implement notification system
+        
+        return redirect('accounts:review_mentor_applications')
+    
+    # Handle GET request
+    return render(request, 'accounts/review_mentor_applications.html', {
+        'applications': [application]
+    })
+
+@login_required
+def admin_mentor_list(request):
+    """
+    Custom view to display a list of mentors for administrators
+    """
+    # Check if the user is a superuser
+    if not request.user.is_superuser:
+        messages.error(request, "You don't have permission to access this page.")
+        return redirect('core:home')
+        
+    # Get all mentors
+    mentors = Mentor.objects.all().select_related('user')
+    
+    # Add sorting options
+    sort_by = request.GET.get('sort', 'name')
+    if sort_by == 'name':
+        mentors = mentors.order_by('user__first_name', 'user__last_name')
+    elif sort_by == 'availability':
+        mentors = mentors.order_by('availability_status')
+    elif sort_by == 'mentees':
+        mentors = mentors.order_by('-current_mentees')
+    elif sort_by == 'verification':
+        mentors = mentors.order_by('-is_verified')
+    else:
+        mentors = mentors.order_by('user__first_name', 'user__last_name')
+    
+    # Get mentorship statistics
+    total_mentors = mentors.count()
+    active_mentors = mentors.filter(is_active=True, accepting_mentees=True).count()
+    verified_mentors = mentors.filter(is_verified=True).count()
+    total_mentees = sum(mentor.current_mentees for mentor in mentors)
+    
+    # Get pending applications count
+    pending_applications = MentorApplication.objects.filter(status='PENDING').count()
+    
+    context = {
+        'mentors': mentors,
+        'total_mentors': total_mentors,
+        'active_mentors': active_mentors,
+        'verified_mentors': verified_mentors,
+        'total_mentees': total_mentees,
+        'pending_applications': pending_applications,
+        'sort_by': sort_by,
+    }
+    return render(request, 'accounts/admin_mentor_list.html', context)

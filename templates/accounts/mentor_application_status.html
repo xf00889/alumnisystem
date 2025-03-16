@@ -1,0 +1,130 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Mentor Application Status{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow">
+                <div class="card-header bg-primary text-white">
+                    <h3 class="card-title mb-0">
+                        <i class="fas fa-clipboard-check me-2"></i>
+                        Application Status
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div class="application-status">
+                        {% if application.status == 'PENDING' %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-clock me-2"></i>
+                            Your application is currently under review.
+                        </div>
+                        {% elif application.status == 'APPROVED' %}
+                        <div class="alert alert-success">
+                            <i class="fas fa-check-circle me-2"></i>
+                            Congratulations! Your application has been approved.
+                        </div>
+                        {% else %}
+                        <div class="alert alert-danger">
+                            <i class="fas fa-times-circle me-2"></i>
+                            Your application has been rejected.
+                        </div>
+                        {% endif %}
+
+                        <div class="application-details mt-4">
+                            <h4 class="mb-3">Application Details</h4>
+                            
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Submitted On:</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ application.application_date|date:"F j, Y, g:i a" }}
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Areas of Expertise:</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {% for area in application.expertise_areas.split %}
+                                    <span class="badge bg-primary me-1">{{ area }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Years of Experience:</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ application.years_of_experience }} years
+                                </div>
+                            </div>
+
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Documents:</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    <div class="mb-2">
+                                        <i class="fas fa-file-pdf me-2"></i>
+                                        <a href="{{ application.certifications.url }}" target="_blank">View Certifications</a>
+                                    </div>
+                                    <div>
+                                        <i class="fas fa-file-pdf me-2"></i>
+                                        <a href="{{ application.training_documents.url }}" target="_blank">View Training Documents</a>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {% if application.status != 'PENDING' and application.review_date %}
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Reviewed On:</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ application.review_date|date:"F j, Y, g:i a" }}
+                                </div>
+                            </div>
+                            {% endif %}
+
+                            {% if application.status == 'REJECTED' and application.review_notes %}
+                            <div class="row mb-3">
+                                <div class="col-md-4">
+                                    <strong>Review Notes:</strong>
+                                </div>
+                                <div class="col-md-8">
+                                    {{ application.review_notes }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-4">
+                            {% if application.status == 'APPROVED' %}
+                            <a href="{% url 'mentorship:mentor_dashboard' %}" class="btn btn-primary">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>
+                                Go to Mentor Dashboard
+                            </a>
+                            {% elif application.status == 'REJECTED' %}
+                            <a href="{% url 'accounts:apply_mentor' %}" class="btn btn-primary">
+                                <i class="fas fa-redo me-2"></i>
+                                Submit New Application
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'accounts:profile_detail' %}" class="btn btn-outline-secondary ms-2">
+                                <i class="fas fa-user me-2"></i>
+                                Back to Profile
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

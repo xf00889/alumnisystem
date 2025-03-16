@@ -12,6 +12,7 @@ from django.http import Http404
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
+from accounts.decorators import paginate
 
 logger = logging.getLogger(__name__)
 
@@ -21,6 +22,7 @@ def is_admin(user):
     return user.is_authenticated and user.is_staff
 
 @user_passes_test(is_admin)
+@paginate(items_per_page=12)  # Show 12 alumni per page
 def alumni_list(request):
     try:
         # Get all unique values for filters
@@ -75,38 +77,21 @@ def alumni_list(request):
         if employment_status:
             queryset = queryset.filter(employment_status__in=employment_status)
         
-        # Pagination
-        try:
-            page = int(request.GET.get('page', 1))
-        except ValueError:
-            page = 1
-            
-        paginator = Paginator(queryset, 24)
-        try:
-            alumni = paginator.page(page)
-        except Exception as e:
-            alumni = paginator.page(1)
-            logger.warning(f"Pagination error: {str(e)}. Defaulting to first page.")
-        
-        # Get total counts for summary
-        total_alumni = queryset.count()
-        total_registered = Alumni.objects.count()
-        
-        # Calculate total active filters
+        # Count selected filters
         selected_filters_count = sum(
-            bool(filters) for filters in [
+            bool(x) for x in [
                 grad_year, course, college, campus, 
                 province, employment_status, search_query
             ]
         )
-        
-        # Check if any filter is active
         any_filter_active = selected_filters_count > 0
         
-        logger.info(f"Filtered alumni count: {total_alumni}")
+        # Get total counts
+        total_alumni = Alumni.objects.count()
+        total_registered = queryset.count()
         
         context = {
-            'alumni_list': alumni,
+            'alumni_list': queryset,  # The decorator will paginate this
             'graduation_years': graduation_years,
             'courses': courses,
             'provinces': provinces,
@@ -155,7 +140,10 @@ def alumni_detail(request, pk):
                 'user',
                 'user__profile'
             ).prefetch_related(
-                'documents'
+                'documents',
+                'career_paths',
+                'achievements_list',
+                'user__profile__experience'
             ),
             pk=pk
         )
@@ -231,6 +219,8 @@ def alumni_detail(request, pk):
             'doc_stats': doc_stats,
             'profile_completion': profile_completion,
             'document_types': AlumniDocument.DOCUMENT_TYPES,
+            'career_paths': alumni.career_paths.all().order_by('-start_date'),
+            'achievements': alumni.achievements_list.all().order_by('-date_achieved'),
             'empty_sections': {
                 'personal': not any([alumni.phone_number, alumni.alternate_email, alumni.linkedin_profile]),
                 'location': not any([alumni.province, alumni.city, alumni.address]),
@@ -240,8 +230,21 @@ def alumni_detail(request, pk):
                 'interests': not alumni.interests,
                 'documents': not doc_stats['total'],
                 'additional': not any([alumni.bio, alumni.achievements])
-            }
+            },
+            'experiences': alumni.user.profile.experience.all().order_by('-start_date'),
         }
+        
+        # Debug logging for experiences
+        logger.info(f"Alumni ID: {pk}, Experiences count: {alumni.user.profile.experience.count()}")
+        for exp in alumni.user.profile.experience.all():
+            logger.info(f"Experience: {exp.position} at {exp.company}")
+            
+        # Debug logging for profile avatar
+        if hasattr(alumni.user, 'profile') and alumni.user.profile.avatar:
+            logger.info(f"Avatar URL: {alumni.user.profile.avatar.url}")
+            logger.info(f"Avatar path: {alumni.user.profile.avatar.path}")
+        else:
+            logger.info(f"No avatar found for alumni ID: {pk}")
 
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({

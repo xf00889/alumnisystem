@@ -45,10 +45,16 @@ class Alumni(models.Model):
         ('MAB', 'Mabinay Campus'),
     )
 
+    MENTORSHIP_STATUS_CHOICES = (
+        ('NOT_MENTOR', 'Not a Mentor'),
+        ('PENDING', 'Pending Mentor Approval'),
+        ('VERIFIED', 'Verified Mentor'),
+    )
+
     # Basic Information
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    date_of_birth = models.DateField()
+    date_of_birth = models.DateField(null=True, blank=True)
     
     # Contact Information
     phone_number = PhoneNumberField(blank=True)
@@ -93,6 +99,14 @@ class Alumni(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
     is_verified = models.BooleanField(default=False)
     is_featured = models.BooleanField(default=False)
+
+    # Mentorship Information
+    mentorship_status = models.CharField(
+        max_length=20,
+        choices=MENTORSHIP_STATUS_CHOICES,
+        default='NOT_MENTOR',
+        help_text="Current status in the mentorship program"
+    )
     
     class Meta:
         verbose_name_plural = "Alumni"
@@ -101,6 +115,7 @@ class Alumni(models.Model):
             models.Index(fields=['graduation_year', 'course']),
             models.Index(fields=['province', 'city']),
             models.Index(fields=['college', 'campus']),
+            models.Index(fields=['mentorship_status']),
         ]
 
     def __str__(self):
@@ -125,6 +140,14 @@ class Alumni(models.Model):
     @property
     def campus_display(self):
         return dict(self.CAMPUS_CHOICES).get(self.campus, '')
+
+    @property
+    def is_mentor(self):
+        return self.mentorship_status == 'VERIFIED'
+
+    @property
+    def has_pending_mentor_application(self):
+        return self.mentorship_status == 'PENDING'
 
 class AlumniDocument(models.Model):
     DOCUMENT_TYPES = (

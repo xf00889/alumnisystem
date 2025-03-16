@@ -22,12 +22,19 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = config('SECRET_KEY')
+SECRET_KEY = config('SECRET_KEY', default='django-insecure-5$o7#0#k6l3z$u9s&2xd#n@f&=x#8q$j#z7$x#0#k6l3z$u9s')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True  # Force debug mode for development
+DEBUG = config('DEBUG', default=True, cast=bool)
 
-ALLOWED_HOSTS = ['localhost', '127.0.0.1','192.168.134.71']
+# Get the base ALLOWED_HOSTS from config
+ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.134.71,*,10.0.1.18', cast=Csv())
+
+# Ensure 192.168.1.6 is always included
+if '192.168.1.6' not in ALLOWED_HOSTS_BASE:
+    ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6']
+else:
+    ALLOWED_HOSTS = ALLOWED_HOSTS_BASE
 
 
 # Application definition
@@ -70,10 +77,13 @@ INSTALLED_APPS = [
     'events.apps.EventsConfig',
     'chat.apps.ChatConfig',  # Add chat app
     'feedback.apps.FeedbackConfig',  # Add feedback app
+    'location_tracking.apps.LocationTrackingConfig',  # Add location tracking app
+    'jobs.apps.JobsConfig',  # Add jobs app
+    'mentorship.apps.MentorshipConfig',  # Add mentorship app
+    'surveys.apps.SurveysConfig',  # Add surveys app
 ]
 
 MIDDLEWARE = [
-    'core.middleware.ForceHTTPMiddleware',  # Force HTTP for development
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -236,7 +246,17 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # Site URL for email links
-SITE_URL = 'https://127.0.0.1:8000'
+SITE_URL = 'http://127.0.0.1:8000'
+CSRF_TRUSTED_ORIGINS = [
+    'http://127.0.0.1:8000',
+    'http://localhost:8000',
+    'http://127.0.0.1:8005',
+    'http://localhost:8005',
+    'http://127.0.0.1:8080',
+    'http://localhost:8080',
+    'http://192.168.11.214:8005',
+    'http://192.168.1.6:8005',  # Added for external access
+]
 
 # Logging Configuration
 LOGGING = {
@@ -281,22 +301,18 @@ CACHE_MIDDLEWARE_SECONDS = 300
 CACHE_MIDDLEWARE_KEY_PREFIX = ''
 
 # Cookie Settings
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
+SESSION_COOKIE_SECURE = False
+CSRF_COOKIE_SECURE = False
 SESSION_COOKIE_HTTPONLY = False
 CSRF_COOKIE_HTTPONLY = False
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
-CSRF_TRUSTED_ORIGINS = [
-    'https://127.0.0.1:8000',
-    'https://localhost:8000',
-]
 
 # Security Settings
 USE_X_FORWARDED_HOST = False
 USE_X_FORWARDED_PORT = False
-SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
-SECURE_SSL_REDIRECT = True
+SECURE_PROXY_SSL_HEADER = None
+SECURE_SSL_REDIRECT = False
 SECURE_HSTS_SECONDS = 0
 SECURE_HSTS_INCLUDE_SUBDOMAINS = False
 SECURE_HSTS_PRELOAD = False
@@ -361,16 +377,6 @@ CKEDITOR_CONFIGS = {
         'width': '100%',
     },
 }
-
-# Django AllAuth Settings
-ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
-
-# Site Settings
-SITE_URL = 'https://127.0.0.1:8000'
-CSRF_TRUSTED_ORIGINS = [
-    'https://127.0.0.1:8000',
-    'https://localhost:8000',
-]
 
 # Email settings - force HTTP
 DEFAULT_HTTP_PROTOCOL = 'http'

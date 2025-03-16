@@ -121,6 +121,10 @@ class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
         content = escape(normalize_newlines(form.instance.content))
         form.instance.content = content.replace('\n', '<br>')
         form.instance.author = self.request.user
+        
+        # No need to modify category handling as the form will properly set
+        # the category based on the selected predefined option
+        
         response = super().form_valid(form)
         # Send email notification
         if send_announcement_notification(self.object):
@@ -151,6 +155,10 @@ class AnnouncementUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
         # Normalize newlines and escape content, then convert newlines to <br>
         content = escape(normalize_newlines(form.instance.content))
         form.instance.content = content.replace('\n', '<br>')
+        
+        # No need to modify category handling as the form will properly set
+        # the category based on the selected predefined option
+        
         return super().form_valid(form)
 
 @method_decorator([

@@ -1,0 +1,449 @@
+{% load jobs_extras %}
+<div class="application-details">
+    <!-- Header with Applicant Info -->
+    <div class="applicant-header mb-4">
+        <div class="d-flex align-items-center gap-3 mb-3">
+            {% if application.applicant.profile.avatar %}
+            <img src="{{ application.applicant.profile.avatar.url }}" 
+                 class="rounded-circle" width="48" height="48" style="object-fit: cover;">
+            {% else %}
+            <div class="avatar-placeholder">
+                <i class="fas fa-user"></i>
+            </div>
+            {% endif %}
+            <div>
+                <h4 class="applicant-name mb-0">{{ application.applicant.get_full_name }}</h4>
+                <div class="applicant-email">
+                    {{ application.applicant.email }}
+                    <button class="btn btn-link btn-sm text-primary p-0 ms-2" onclick="showEmailModal('{{ application.applicant.get_full_name }}', '{{ application.applicant.email }}', '{{ application.job.job_title }}')">
+                        <i class="fas fa-envelope"></i> Send Email
+                    </button>
+                </div>
+            </div>
+        </div>
+        <div class="contact-info">
+            {% if application.applicant.profile.phone_number %}
+            <div class="info-item">
+                <i class="fas fa-phone text-muted"></i>
+                {{ application.applicant.profile.phone_number }}
+            </div>
+            {% endif %}
+            <div class="info-item">
+                <i class="fas fa-clock text-muted"></i>
+                Applied {{ application.application_date|timesince }} ago
+            </div>
+            <div class="info-item">
+                <i class="fas fa-history text-muted"></i>
+                Last updated: {{ application.last_updated|timesince }} ago
+            </div>
+        </div>
+    </div>
+
+    <!-- Status Dropdown -->
+    <div class="status-section mb-4">
+        <select class="form-select status-select" 
+                data-application-id="{{ application.id }}"
+                data-original-value="{{ application.status }}">
+            {% for status_code, status_label in status_choices %}
+            <option value="{{ status_code }}" 
+                    {% if application.status == status_code %}selected{% endif %}>
+                {{ status_label }}
+            </option>
+            {% endfor %}
+        </select>
+    </div>
+
+    <!-- Main Content -->
+    <div class="content-section">
+        <!-- Cover Letter -->
+        {% if application.cover_letter %}
+        <div class="section mb-4">
+            <div class="section-header">
+                <i class="fas fa-envelope-open-text text-primary"></i>
+                Cover Letter
+            </div>
+            <div class="section-content">
+                {{ application.cover_letter|linebreaks }}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Documents -->
+        <div class="section mb-4">
+            <div class="section-header">
+                <i class="fas fa-file-alt text-info"></i>
+                Documents
+            </div>
+            <div class="section-content">
+                <div class="documents-grid">
+                    <!-- Resume -->
+                    <div class="document-card">
+                        <div class="document-icon">
+                            <i class="fas fa-file-alt"></i>
+                        </div>
+                        <div class="document-info">
+                            <div class="document-title">Resume</div>
+                            <div class="document-filename">{{ application.resume.name|filename }}</div>
+                        </div>
+                        <a href="{{ application.resume.url }}" class="btn-download" target="_blank">
+                            <i class="fas fa-download"></i>
+                            Download
+                        </a>
+                    </div>
+
+                    <!-- Additional Documents -->
+                    {% if application.additional_documents %}
+                    <div class="document-card">
+                        <div class="document-icon">
+                            <i class="fas fa-file-archive"></i>
+                        </div>
+                        <div class="document-info">
+                            <div class="document-title">Additional Documents</div>
+                            <div class="document-filename">{{ application.additional_documents.name|filename }}</div>
+                        </div>
+                        <a href="{{ application.additional_documents.url }}" class="btn-download" target="_blank">
+                            <i class="fas fa-download"></i>
+                            Download
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Notes -->
+        <div class="section">
+            <div class="section-header d-flex justify-content-between align-items-center">
+                <div>
+                    <i class="fas fa-sticky-note text-warning"></i>
+                    Notes
+                </div>
+                <button type="button" class="btn-add-note" onclick="addNote('{{ application.id }}')">
+                    <i class="fas fa-plus"></i>
+                    Add Note
+                </button>
+            </div>
+            <div class="section-content">
+                {% if application.notes %}
+                <div class="notes-content">{{ application.notes }}</div>
+                {% else %}
+                <div class="no-notes">
+                    <i class="fas fa-info-circle"></i>
+                    No notes added yet.
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Email Modal -->
+<div class="modal fade" id="emailModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Email to Applicant</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="emailForm" method="POST" action="{% url 'jobs:send_application_email' application.id %}">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label class="form-label">To</label>
+                        <input type="text" class="form-control" id="emailTo" readonly>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Subject</label>
+                        <input type="text" class="form-control" name="subject" id="emailSubject">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Message</label>
+                        <textarea class="form-control" name="message" id="emailMessage" rows="6"></textarea>
+                    </div>
+                    <div class="text-end">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Send Email</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+let showEmailModal;
+
+document.addEventListener('DOMContentLoaded', function() {
+    showEmailModal = function(applicantName, applicantEmail, jobTitle) {
+        document.getElementById('emailTo').value = applicantEmail;
+        document.getElementById('emailSubject').value = `Re: Application for ${jobTitle}`;
+        
+        const emailModal = new bootstrap.Modal(document.getElementById('emailModal'));
+        emailModal.show();
+    };
+
+    // Handle email form submission
+    const emailForm = document.getElementById('emailForm');
+    if (emailForm) {
+        emailForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const csrfToken = getCookie('csrftoken');
+            
+            fetch(this.action, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                credentials: 'same-origin',
+                body: JSON.stringify({
+                    subject: formData.get('subject'),
+                    message: formData.get('message')
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.success) {
+                    // Close the modal
+                    bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
+                    // Show success message
+                    alert('Email sent successfully!');
+                    // Refresh the notes section
+                    if (typeof viewApplication === 'function') {
+                        viewApplication({{ application.id }});
+                    }
+                } else {
+                    alert('Error sending email: ' + (data.error || 'Unknown error'));
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Error sending email. Please try again.');
+            });
+        });
+    }
+});
+
+// Make showEmailModal available globally
+window.showEmailModal = showEmailModal;
+</script>
+
+<style>
+.application-details {
+    padding: 24px;
+    color: #1a1a1a;
+}
+
+.applicant-header {
+    margin-bottom: 32px;
+}
+
+.avatar-placeholder {
+    width: 48px;
+    height: 48px;
+    background: #e9ecef;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #6c757d;
+}
+
+.applicant-name {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #1a1a1a;
+}
+
+.applicant-email {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.contact-info {
+    display: flex;
+    gap: 24px;
+    margin-top: 16px;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.info-item i {
+    font-size: 0.8rem;
+}
+
+.status-section {
+    margin-bottom: 32px;
+}
+
+.status-select {
+    max-width: 200px;
+    border-radius: 6px;
+    border: 1px solid #dee2e6;
+    padding: 8px 12px;
+    font-size: 0.9rem;
+}
+
+.section {
+    margin-bottom: 32px;
+}
+
+.section-header {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.section-content {
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 16px;
+}
+
+.documents-grid {
+    display: grid;
+    gap: 16px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.document-card {
+    background: white;
+    border-radius: 6px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    transition: all 0.2s;
+}
+
+.document-card:hover {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.document-icon {
+    width: 40px;
+    height: 40px;
+    background: #e9ecef;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #495057;
+}
+
+.document-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.document-title {
+    font-weight: 500;
+    margin-bottom: 4px;
+}
+
+.document-filename {
+    color: #666;
+    font-size: 0.85rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.btn-download {
+    padding: 6px 12px;
+    background: #0d6efd;
+    color: white;
+    border-radius: 6px;
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s;
+}
+
+.btn-download:hover {
+    background: #0b5ed7;
+    color: white;
+}
+
+.btn-add-note {
+    padding: 6px 12px;
+    background: #0d6efd;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    transition: background-color 0.2s;
+}
+
+.btn-add-note:hover {
+    background: #0b5ed7;
+}
+
+.notes-content {
+    white-space: pre-wrap;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #1a1a1a;
+}
+
+.no-notes {
+    color: #666;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 0.9rem;
+}
+
+.btn-link {
+    text-decoration: none;
+}
+
+.btn-link:hover {
+    text-decoration: underline;
+}
+
+#emailModal .form-control[readonly] {
+    background-color: #f8f9fa;
+}
+
+#emailMessage {
+    resize: vertical;
+}
+</style> 

@@ -1,10 +1,12 @@
 from django.urls import path
 from . import views
+from .admin import admin_mentor_list
 
 app_name = 'accounts'
 
 urlpatterns = [
-    path('', views.profile_detail, name='profile_detail'),
+    path('profile/', views.profile_detail, name='profile_detail'),
+    path('profile/<str:username>/', views.profile_detail, name='profile_detail'),
     path('edit/', views.edit_personal_info, name='edit_profile'),
     path('update/', views.profile_update, name='profile_update'),
     path('update/personal-info/', views.update_personal_info, name='update_personal_info'),
@@ -30,4 +32,12 @@ urlpatterns = [
     path('achievement/add/', views.add_achievement, name='add_achievement'),
     path('achievement/<int:pk>/edit/', views.edit_achievement, name='edit_achievement'),
     path('achievement/<int:pk>/delete/', views.delete_achievement, name='delete_achievement'),
+    # Mentor Application
+    path('apply-mentor/', views.apply_mentor, name='apply_mentor'),
+    path('mentor-application-status/', views.mentor_application_status, name='mentor_application_status'),
+    path('review-mentor-applications/', views.review_mentor_applications, name='review_mentor_applications'),
+    path('review-mentor-application/<int:application_id>/', views.review_mentor_application, name='review_mentor_application'),
+    
+    # Admin Views
+    path('admin/mentor-list/', views.admin_mentor_list, name='admin_mentor_list'),
 ] 

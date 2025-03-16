@@ -1,0 +1,386 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Apply for {{ job.job_title }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'jobs:job_list' %}">Job Board</a></li>
+<li class="breadcrumb-item"><a href="{% url 'jobs:job_detail' job.slug %}">{{ job.job_title }}</a></li>
+<li class="breadcrumb-item active">Apply</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+    --linkedin-blue: #0a66c2;
+    --linkedin-blue-hover: #004182;
+    --linkedin-border: #e0e0e0;
+    --linkedin-bg: #f3f2f0;
+    --linkedin-text: #000000;
+    --linkedin-secondary-text: #666666;
+    --linkedin-surface: #ffffff;
+    --linkedin-hover: #f3f6f8;
+    --linkedin-shadow: rgba(0, 0, 0, 0.08);
+}
+
+.application-wrapper {
+    background-color: var(--linkedin-bg);
+    min-height: calc(100vh - 60px);
+    margin-top: -1.5rem;
+    padding: 2rem 0;
+}
+
+.card {
+    border: none;
+    box-shadow: 0 0 0 1px var(--linkedin-border);
+    border-radius: 8px;
+    margin-bottom: 1.5rem;
+    background: var(--linkedin-surface);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0 0 1px var(--linkedin-border), 0 4px 12px var(--linkedin-shadow);
+}
+
+.job-summary-card {
+    padding: 24px;
+}
+
+.job-summary-title {
+    color: var(--linkedin-text);
+    font-size: 24px;
+    line-height: 30px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.job-summary-details {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin-bottom: 8px;
+}
+
+.job-summary-item {
+    display: flex;
+    align-items: center;
+    padding: 6px 12px;
+    background: var(--linkedin-hover);
+    border-radius: 4px;
+    color: var(--linkedin-text);
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.job-summary-item i {
+    color: var(--linkedin-secondary-text);
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.application-form {
+    padding: 0 24px;
+}
+
+.form-section {
+    margin-bottom: 24px;
+    padding-bottom: 24px;
+    border-bottom: 1px solid var(--linkedin-border);
+}
+
+.form-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+}
+
+.section-title {
+    color: var(--linkedin-text);
+    font-size: 20px;
+    line-height: 24px;
+    font-weight: 600;
+    margin-bottom: 16px;
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--linkedin-text);
+    margin-bottom: 4px;
+    font-size: 14px;
+    line-height: 20px;
+}
+
+.form-control {
+    border: 1px solid var(--linkedin-border);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--linkedin-text);
+    height: auto;
+    transition: all 0.2s ease;
+}
+
+.form-control:hover:not(:focus) {
+    border-color: var(--linkedin-text);
+}
+
+.form-control:focus {
+    border-color: var(--linkedin-blue);
+    box-shadow: 0 0 0 1px var(--linkedin-blue);
+    outline: none;
+}
+
+textarea.form-control {
+    min-height: 160px;
+    resize: vertical;
+}
+
+.file-upload-wrapper {
+    margin-bottom: 16px;
+}
+
+.file-upload-wrapper .form-control {
+    padding: 12px;
+    cursor: pointer;
+    background-color: var(--linkedin-hover);
+}
+
+.file-upload-info {
+    margin-top: 8px;
+    padding: 12px;
+    background-color: var(--linkedin-hover);
+    border-radius: 4px;
+    font-size: 14px;
+    line-height: 20px;
+    color: var(--linkedin-secondary-text);
+}
+
+.file-upload-info i {
+    color: var(--linkedin-blue);
+    margin-right: 8px;
+}
+
+.required-label {
+    color: #cc1016;
+    margin-left: 4px;
+    font-weight: 500;
+}
+
+.help-text {
+    color: var(--linkedin-secondary-text);
+    font-size: 14px;
+    line-height: 20px;
+    margin-top: 4px;
+}
+
+.form-actions {
+    position: sticky;
+    bottom: 0;
+    background: var(--linkedin-surface);
+    padding: 16px 24px;
+    border-top: 1px solid var(--linkedin-border);
+    border-radius: 0 0 8px 8px;
+    margin: 24px -24px -24px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 120px;
+    padding: 10px 24px;
+    font-size: 16px;
+    font-weight: 600;
+    border-radius: 16px;
+    transition: all 0.2s ease;
+}
+
+.btn-primary {
+    background-color: var(--linkedin-blue);
+    border-color: var(--linkedin-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--linkedin-blue-hover);
+    border-color: var(--linkedin-blue-hover);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.btn-outline-secondary {
+    background-color: transparent;
+    border: 1px solid var(--linkedin-border);
+    color: var(--linkedin-text);
+}
+
+.btn-outline-secondary:hover {
+    background-color: var(--linkedin-hover);
+    border-color: var(--linkedin-text);
+    color: var(--linkedin-text);
+}
+
+.btn i {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+@media (max-width: 768px) {
+    .application-wrapper {
+        padding: 16px;
+    }
+    
+    .job-summary-card {
+        padding: 16px;
+    }
+    
+    .job-summary-title {
+        font-size: 20px;
+        line-height: 26px;
+    }
+    
+    .job-summary-details {
+        gap: 12px;
+    }
+    
+    .application-form {
+        padding: 0 16px;
+    }
+    
+    .form-actions {
+        padding: 16px;
+        margin: 16px -16px -16px;
+        flex-direction: column-reverse;
+    }
+    
+    .btn {
+        width: 100%;
+        margin: 0;
+    }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="application-wrapper">
+    <div class="container-fluid">
+        <!-- Job Summary Card -->
+        <div class="card">
+            <div class="job-summary-card">
+                <h1 class="job-summary-title">{{ job.job_title }}</h1>
+                <div class="job-summary-details">
+                    <div class="job-summary-item">
+                        <i class="fas fa-building"></i>
+                        <span>{{ job.company_name }}</span>
+                    </div>
+                    <div class="job-summary-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ job.location }}</span>
+                    </div>
+                    <div class="job-summary-item">
+                        <i class="fas fa-briefcase"></i>
+                        <span>{{ job.get_job_type_display }}</span>
+                    </div>
+                    {% if job.salary_range %}
+                    <div class="job-summary-item">
+                        <i class="fas fa-money-bill-wave"></i>
+                        <span>{{ job.salary_range }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Application Form -->
+        <div class="card">
+            <div class="card-body p-4">
+                <form method="post" enctype="multipart/form-data" class="application-form">
+                    {% csrf_token %}
+                    
+                    <div class="row g-4">
+                        <!-- Left Form Column -->
+                        <div class="col-lg-6">
+                            <div class="form-section">
+                                <h3 class="section-title">Cover Letter</h3>
+                                {{ form.cover_letter|as_crispy_field }}
+                            </div>
+
+                            <div class="form-section">
+                                <h3 class="section-title">Resume</h3>
+                                <div class="file-upload-wrapper">
+                                    {{ form.resume|as_crispy_field }}
+                                    <div class="file-upload-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Maximum file size: 5MB. Accepted formats: PDF, DOC, DOCX
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Right Form Column -->
+                        <div class="col-lg-6">
+                            {% if job.required_documents.all %}
+                            <div class="form-section">
+                                <h3 class="section-title">Required Documents</h3>
+                                {% for doc in job.required_documents.all %}
+                                <div class="mb-4">
+                                    <label for="document_{{ doc.id }}" class="form-label">
+                                        {{ doc.name }}
+                                        {% if doc.is_required %}
+                                        <span class="required-label">*</span>
+                                        {% endif %}
+                                    </label>
+                                    <div class="file-upload-wrapper">
+                                        <input type="file" 
+                                               name="document_{{ doc.id }}" 
+                                               id="document_{{ doc.id }}" 
+                                               class="form-control"
+                                               {% if doc.is_required %}required{% endif %}
+                                               accept="{{ doc.file_types }}">
+                                        {% if doc.description %}
+                                        <div class="help-text">{{ doc.description }}</div>
+                                        {% endif %}
+                                        <div class="file-upload-info">
+                                            <i class="fas fa-info-circle"></i>
+                                            Maximum file size: {{ doc.max_file_size|filesizeformat }}. 
+                                            Accepted formats: {{ doc.file_types }}
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+
+                            <div class="form-section">
+                                <h3 class="section-title">Additional Documents</h3>
+                                <div class="file-upload-wrapper">
+                                    {{ form.additional_documents|as_crispy_field }}
+                                    <div class="file-upload-info">
+                                        <i class="fas fa-info-circle"></i>
+                                        Maximum file size: 10MB. You can upload additional supporting documents here.
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Form Actions -->
+                    <div class="form-actions">
+                        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>Submit Application
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

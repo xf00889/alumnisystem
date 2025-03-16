@@ -1,0 +1,52 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Leave Group - {{ group.name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'alumni_groups:group_list' %}">Alumni Groups</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'alumni_groups:group_detail' group.slug %}">{{ group.name }}</a>
+</li>
+<li class="breadcrumb-item active">Leave Group</li>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <h2 class="text-center mb-4">Leave Group</h2>
+                    
+                    <div class="alert alert-warning mb-4">
+                        <h5 class="alert-heading"><i class="fas fa-exclamation-triangle"></i> Confirmation Required</h5>
+                        <p>Are you sure you want to leave <strong>{{ group.name }}</strong>?</p>
+                        <hr>
+                        <p class="mb-0">You can request to join again later if you change your mind.</p>
+                    </div>
+
+                    <form method="post" action="{% url 'alumni_groups:group_leave' group.slug %}">
+                        {% csrf_token %}
+                        <div class="mb-4">
+                            <label for="reason" class="form-label">Reason for leaving (optional)</label>
+                            <textarea name="reason" id="reason" class="form-control" rows="3" placeholder="Please let us know why you're leaving..."></textarea>
+                        </div>
+                        
+                        <div class="d-flex justify-content-center gap-3">
+                            <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="btn btn-secondary">
+                                <i class="fas fa-times"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-danger">
+                                <i class="fas fa-sign-out-alt"></i> Leave Group
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

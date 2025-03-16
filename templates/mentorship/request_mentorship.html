@@ -1,0 +1,147 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Request Mentorship - {{ mentor.user.get_full_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+    .mentor-info {
+        background-color: #f8f9fa;
+        border-radius: 10px;
+        padding: 20px;
+        margin-bottom: 20px;
+    }
+    
+    .mentor-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .mentor-name {
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin-bottom: 5px;
+    }
+    
+    .mentor-expertise {
+        margin-bottom: 15px;
+    }
+    
+    .expertise-badge {
+        background-color: #e9ecef;
+        color: #495057;
+        padding: 5px 10px;
+        border-radius: 20px;
+        margin-right: 5px;
+        margin-bottom: 5px;
+        display: inline-block;
+    }
+    
+    .form-section {
+        background-color: #fff;
+        border-radius: 10px;
+        padding: 30px;
+        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+    }
+    
+    .form-title {
+        margin-bottom: 20px;
+        color: #343a40;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row">
+        <div class="col-md-4">
+            <div class="mentor-info">
+                <div class="text-center mb-4">
+                    {% if mentor.user.profile.avatar %}
+                        <img src="{{ mentor.user.profile.avatar.url }}" alt="{{ mentor.user.get_full_name }}" class="mentor-avatar">
+                    {% else %}
+                        <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="mentor-avatar">
+                    {% endif %}
+                </div>
+                
+                <div class="mentor-name text-center">{{ mentor.user.get_full_name }}</div>
+                
+                <div class="text-center text-muted mb-3">
+                    {{ mentor.user.profile.current_position }}
+                    {% if mentor.user.profile.current_employer %}
+                        at {{ mentor.user.profile.current_employer }}
+                    {% endif %}
+                </div>
+                
+                <div class="mentor-expertise">
+                    <h6>Areas of Expertise:</h6>
+                    <div>
+                        {% for area in mentor.expertise_areas.split|slice:":5" %}
+                            <span class="expertise-badge">{{ area }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <h6>Mentoring Experience:</h6>
+                    <p>{{ mentor.mentoring_experience|truncatewords:50 }}</p>
+                </div>
+                
+                <div>
+                    <h6>Expectations:</h6>
+                    <p>{{ mentor.expectations|truncatewords:50 }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-8">
+            <div class="form-section">
+                <h2 class="form-title">Request Mentorship</h2>
+                
+                <div class="alert alert-info mb-4">
+                    <i class="fas fa-info-circle me-2"></i> Your mentorship request will be submitted for review by the mentor. You'll receive a notification when they respond to your request.
+                </div>
+                
+                {% if messages %}
+                    <div class="messages">
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }}">
+                                {{ message }}
+                            </div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-4">
+                        <label for="skills_seeking" class="form-label">Skills/Knowledge Areas You're Seeking Help With*</label>
+                        <textarea id="skills_seeking" name="skills_seeking" class="form-control" rows="3" required></textarea>
+                        <div class="form-text">List specific skills, technologies, or knowledge areas you'd like guidance on.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="goals" class="form-label">Your Mentorship Goals*</label>
+                        <textarea id="goals" name="goals" class="form-control" rows="3" required></textarea>
+                        <div class="form-text">What do you hope to achieve through this mentorship? Be specific about your goals.</div>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="message" class="form-label">Introduction Message*</label>
+                        <textarea id="message" name="message" class="form-control" rows="5" required></textarea>
+                        <div class="form-text">Introduce yourself and explain why you chose this mentor specifically.</div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'alumni_directory:alumni_detail' pk=mentor.user.id %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
+                        <button type="submit" class="btn btn-primary">Submit Request for Approval</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

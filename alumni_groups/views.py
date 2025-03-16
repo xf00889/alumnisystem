@@ -263,12 +263,21 @@ class GroupUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
 def join_group(request, slug):
     group = get_object_or_404(AlumniGroup, slug=slug)
     
-    # Check if user is already a member
-    if GroupMembership.objects.filter(group=group, user=request.user).exists():
-        messages.warning(request, 'You are already a member of this group.')
-        return redirect('alumni_groups:group_detail', slug=slug)
+    # Check if user has an existing membership
+    existing_membership = GroupMembership.objects.filter(group=group, user=request.user).first()
     
-    # Create membership
+    if existing_membership:
+        if existing_membership.status == 'APPROVED':
+            messages.warning(request, 'You are already a member of this group.')
+            return redirect('alumni_groups:group_detail', slug=slug)
+        elif existing_membership.status in ['REJECTED', 'BLOCKED']:
+            # Allow rejected or blocked users to try joining again
+            existing_membership.delete()
+        elif existing_membership.status == 'PENDING':
+            messages.warning(request, 'Your join request is already pending approval.')
+            return redirect('alumni_groups:group_detail', slug=slug)
+    
+    # Create new membership
     status = 'PENDING' if group.requires_approval else 'APPROVED'
     GroupMembership.objects.create(
         group=group,
@@ -281,7 +290,7 @@ def join_group(request, slug):
         group=group,
         user=request.user,
         activity_type='JOIN',
-        description=f'{request.user.get_full_name()} joined the group'
+        description=f'{request.user.get_full_name()} requested to join the group'
     )
     
     message = ('Your request to join has been submitted and is pending approval.'
@@ -291,7 +300,7 @@ def join_group(request, slug):
     return redirect('alumni_groups:group_detail', slug=slug)
 
 @login_required
-def leave_group(request, slug):
+def get_leave_group(request, slug):
     group = get_object_or_404(AlumniGroup, slug=slug)
     membership = get_object_or_404(GroupMembership, group=group, user=request.user)
     
@@ -299,16 +308,35 @@ def leave_group(request, slug):
         messages.error(request, 'You cannot leave the group as you are the only admin.')
         return redirect('alumni_groups:group_detail', slug=slug)
     
-    membership.delete()
+    return render(request, 'alumni_groups/leave_group_form.html', {'group': group})
+
+@login_required
+def leave_group(request, slug):
+    group = get_object_or_404(AlumniGroup, slug=slug)
+    membership = get_object_or_404(GroupMembership, group=group, user=request.user)
     
-    # Record activity
+    if request.method == 'GET':
+        return redirect('alumni_groups:get_leave_group', slug=slug)
+    
+    if membership.role == 'ADMIN' and group.memberships.filter(role='ADMIN').count() == 1:
+        messages.error(request, 'You cannot leave the group as you are the only admin.')
+        return redirect('alumni_groups:group_detail', slug=slug)
+    
+    reason = request.POST.get('reason', '')
+    
+    # Record activity with reason if provided
+    activity_description = f'{request.user.get_full_name()} left the group'
+    if reason:
+        activity_description += f' (Reason: {reason})'
+    
     GroupActivity.objects.create(
         group=group,
         user=request.user,
         activity_type='LEAVE',
-        description=f'{request.user.get_full_name()} left the group'
+        description=activity_description
     )
     
+    membership.delete()
     messages.success(request, 'You have successfully left the group.')
     return redirect('alumni_groups:group_list')
 
@@ -844,6 +872,10 @@ def remove_member(request, group_slug, member_id):
 def group_detail(request, slug):
     group = get_object_or_404(AlumniGroup, slug=slug)
     membership = group.memberships.filter(user=request.user).first()
+    
+    # Redirect users with pending membership to waiting approval page
+    if membership and membership.status == 'PENDING':
+        return render(request, 'alumni_groups/waiting_approval.html', {'group': group})
     
     context = {
         'group': group,

@@ -1,6 +1,15 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
 from django.conf import settings
+from .models.contact import Address, ContactInfo
+from .models.engagement import UserEngagement, EngagementScore
+
+__all__ = [
+    'Address',
+    'ContactInfo',
+    'UserEngagement',
+    'EngagementScore'
+]
 
 class TimeStampedModel(models.Model):
     """

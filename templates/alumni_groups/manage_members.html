@@ -587,13 +587,13 @@ document.addEventListener('DOMContentLoaded', function() {
             const action = this.dataset.action;
 
             try {
+                const formData = new FormData();
+                formData.append('action', action);
+                formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
+
                 const response = await fetch(`/alumni-groups/api/post/${postId}/approve/`, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                    },
-                    body: JSON.stringify({ action })
+                    body: formData
                 });
 
                 if (response.ok) {
@@ -604,7 +604,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Refresh the page to update counts and lists
                     window.location.reload();
                 } else {
-                    alert('Failed to process the post. Please try again.');
+                    const errorData = await response.json();
+                    alert(errorData.error || 'Failed to process post. Please try again.');
                 }
             } catch (error) {
                 console.error('Error:', error);

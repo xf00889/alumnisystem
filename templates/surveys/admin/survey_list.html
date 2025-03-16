@@ -1,0 +1,498 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Survey Management & Analytics{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Dashboard Layout */
+    .dashboard-container {
+        padding: 2rem 0;
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 60px);
+    }
+    
+    /* Analytics Cards */
+    .analytics-card {
+        border-radius: 15px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 1.5rem;
+        background-color: #fff;
+        border-left: 5px solid;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .analytics-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+    }
+    .analytics-card.primary { border-left-color: #4e73df; }
+    .analytics-card.success { border-left-color: #1cc88a; }
+    .analytics-card.info { border-left-color: #36b9cc; }
+    .analytics-card.warning { border-left-color: #f6c23e; }
+    
+    .analytics-metric {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.25rem;
+        color: #2c3e50;
+    }
+    .analytics-title {
+        font-size: 0.85rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #6c757d;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.5px;
+    }
+    .analytics-icon {
+        font-size: 2.5rem;
+        opacity: 0.15;
+        color: #2c3e50;
+    }
+    
+    /* Chart Containers */
+    .chart-container {
+        height: 300px;
+        position: relative;
+        margin: 1rem 0;
+    }
+    .chart-card {
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        margin-bottom: 2rem;
+        transition: transform 0.2s ease;
+    }
+    .chart-card:hover {
+        transform: translateY(-2px);
+    }
+    .chart-card .card-header {
+        background: transparent;
+        border-bottom: 1px solid rgba(0,0,0,0.05);
+        padding: 1.25rem;
+    }
+    .chart-card .card-header h5 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: #2c3e50;
+    }
+    
+    /* Section Headers */
+    .section-heading {
+        color: #2c3e50;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin: 2rem 0 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e9ecef;
+        position: relative;
+    }
+    .section-heading::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 50px;
+        height: 2px;
+        background: #4e73df;
+    }
+    
+    /* Tables */
+    .table-container {
+        background: #fff;
+        border-radius: 15px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        overflow: hidden;
+    }
+    .table {
+        margin-bottom: 0;
+    }
+    .table thead th {
+        background: #f8f9fa;
+        border-bottom: 2px solid #e9ecef;
+        color: #2c3e50;
+        font-weight: 600;
+        text-transform: uppercase;
+        font-size: 0.85rem;
+        letter-spacing: 0.5px;
+    }
+    .table td {
+        vertical-align: middle;
+        color: #2c3e50;
+    }
+    
+    /* Status Badges */
+    .badge {
+        padding: 0.5em 1em;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+    }
+    .badge.bg-success { background-color: #1cc88a !important; }
+    .badge.bg-secondary { background-color: #858796 !important; }
+    .badge.bg-danger { background-color: #e74a3b !important; }
+    
+    /* Progress Bars */
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: #edf2f7;
+        margin: 0.5rem 0;
+    }
+    .progress-bar {
+        border-radius: 4px;
+        background-color: #1cc88a;
+    }
+    
+    /* Action Buttons */
+    .btn-group .btn {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+    }
+    .btn-group .btn i {
+        margin-right: 0.25rem;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .analytics-card {
+            margin-bottom: 1rem;
+        }
+        .chart-container {
+            height: 250px;
+        }
+        .table-responsive {
+            border-radius: 15px;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="container">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1 class="h2 mb-0">Survey Management & Analytics</h1>
+            <a href="{% url 'surveys:survey_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-2"></i>Create New Survey
+            </a>
+        </div>
+
+        <!-- Analytics Overview -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-3">
+                <div class="analytics-card primary">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="analytics-title">Total Alumni</div>
+                            <div class="analytics-metric">{{ total_alumni }}</div>
+                            <div class="text-muted small">Registered in system</div>
+                        </div>
+                        <div class="analytics-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="analytics-card success">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="analytics-title">Participating Alumni</div>
+                            <div class="analytics-metric">{{ alumni_with_responses }}</div>
+                            <div class="text-muted small">Active participants</div>
+                        </div>
+                        <div class="analytics-icon">
+                            <i class="fas fa-user-check"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="analytics-card info">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="analytics-title">Participation Rate</div>
+                            <div class="analytics-metric">{{ participation_percentage }}%</div>
+                            <div class="text-muted small">Overall engagement</div>
+                        </div>
+                        <div class="analytics-icon">
+                            <i class="fas fa-percentage"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="analytics-card warning">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <div class="analytics-title">Active Surveys</div>
+                            <div class="analytics-metric">{{ active_surveys }}</div>
+                            <div class="text-muted small">Currently running</div>
+                        </div>
+                        <div class="analytics-icon">
+                            <i class="fas fa-poll"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Response Demographics -->
+        <h4 class="section-heading">Response Demographics</h4>
+        <div class="row">
+            <div class="col-md-6 mb-4">
+                <div class="chart-card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-university me-2"></i>Responses by College</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="collegeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6 mb-4">
+                <div class="chart-card h-100">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Responses by Batch</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="chart-container">
+                            <canvas id="batchChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Survey Management -->
+        <h4 class="section-heading">Survey Management</h4>
+        <div class="table-container mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Survey Title</th>
+                            <th>Status</th>
+                            <th>Created</th>
+                            <th>Period</th>
+                            <th class="text-center">Responses</th>
+                            <th class="text-end">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for survey in surveys %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
+                                    {{ survey.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if survey.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% elif survey.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Closed</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ survey.created_at|date:"M d, Y" }}</td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
+                                </small>
+                            </td>
+                            <td class="text-center">{{ survey.responses.count }}</td>
+                            <td>
+                                <div class="btn-group float-end">
+                                    <a href="{% url 'surveys:survey_detail' survey.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                    <a href="{% url 'surveys:survey_update' survey.id %}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-edit"></i>
+                                    </a>
+                                    <a href="{% url 'surveys:survey_delete' survey.id %}" class="btn btn-sm btn-outline-danger">
+                                        <i class="fas fa-trash"></i>
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted mb-3">No surveys have been created yet</div>
+                                <a href="{% url 'surveys:survey_create' %}" class="btn btn-primary">
+                                    <i class="fas fa-plus me-2"></i>Create your first survey
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Response Metrics -->
+        <h4 class="section-heading">Response Metrics</h4>
+        <div class="table-container mb-4">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Survey</th>
+                            <th>Status</th>
+                            <th>Period</th>
+                            <th class="text-center">Responses</th>
+                            <th class="text-center">Response Rate</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for survey in survey_data %}
+                        <tr>
+                            <td>
+                                <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
+                                    {{ survey.title }}
+                                </a>
+                            </td>
+                            <td>
+                                {% if survey.status == 'draft' %}
+                                    <span class="badge bg-secondary">Draft</span>
+                                {% elif survey.status == 'active' %}
+                                    <span class="badge bg-success">Active</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Closed</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small class="text-muted">
+                                    {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
+                                </small>
+                            </td>
+                            <td class="text-center">{{ survey.responses_count }}</td>
+                            <td>
+                                <div class="d-flex align-items-center justify-content-center">
+                                    <div class="progress flex-grow-1 mx-2" style="max-width: 150px;">
+                                        <div class="progress-bar" role="progressbar" style="width: {{ survey.response_rate }}%"></div>
+                                    </div>
+                                    <span class="text-muted small" style="width: 45px;">{{ survey.response_rate }}%</span>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% block page_specific_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // College Chart
+        const collegeCtx = document.getElementById('collegeChart').getContext('2d');
+        new Chart(collegeCtx, {
+            type: 'doughnut',
+            data: {
+                labels: [
+                    {% for item in college_data %}
+                        '{{ item.college_name }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    data: [
+                        {% for item in college_data %}
+                            {{ item.count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: [
+                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
+                        '#5a5c69', '#6610f2', '#fd7e14', '#20c9a6', '#858796'
+                    ],
+                    borderWidth: 2,
+                    borderColor: '#ffffff'
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                cutout: '65%',
+                plugins: {
+                    legend: {
+                        position: 'right',
+                        labels: {
+                            boxWidth: 12,
+                            padding: 15,
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                }
+            }
+        });
+
+        // Batch Chart
+        const batchCtx = document.getElementById('batchChart').getContext('2d');
+        new Chart(batchCtx, {
+            type: 'bar',
+            data: {
+                labels: [
+                    {% for item in batch_data %}
+                        '{{ item.alumni__graduation_year }}',
+                    {% endfor %}
+                ],
+                datasets: [{
+                    label: 'Alumni Responses',
+                    data: [
+                        {% for item in batch_data %}
+                            {{ item.count }},
+                        {% endfor %}
+                    ],
+                    backgroundColor: '#4e73df',
+                    borderColor: '#4e73df',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            precision: 0,
+                            font: {
+                                size: 11
+                            }
+                        },
+                        grid: {
+                            display: true,
+                            drawBorder: false
+                        }
+                    },
+                    x: {
+                        grid: {
+                            display: false
+                        },
+                        ticks: {
+                            font: {
+                                size: 11
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: false
+                    }
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}
+{% endblock %} 

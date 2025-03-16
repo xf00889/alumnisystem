@@ -12,9 +12,10 @@ urlpatterns = [
     # Group Detail and Management
     path('<slug:slug>/', views.GroupDetailView.as_view(), name='group_detail'),
     path('<slug:slug>/edit/', views.GroupUpdateView.as_view(), name='group_edit'),
-    path('<slug:slug>/join/', views.join_group, name='group_join'),
+    path('<slug:slug>/join/', views.join_group, name='join_group'),
     path('<slug:slug>/join-with-questions/', views.join_group_with_questions, name='join_group_with_questions'),
     path('<slug:slug>/leave/', views.leave_group, name='group_leave'),
+    path('<slug:slug>/leave/confirm/', views.get_leave_group, name='get_leave_group'),
     path('<slug:slug>/manage-members/', views.manage_members, name='manage_members'),
     
     # Security Questions Management

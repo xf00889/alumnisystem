@@ -1,6 +1,9 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import Profile, Education, Experience, Skill, Document
+from .models import (
+    Profile, Education, Experience, Skill, Document,
+    MentorApplication, Mentor
+)
 from django.contrib.auth.models import User
 from alumni_directory.models import Alumni
 import datetime
@@ -528,4 +531,69 @@ SkillFormSet = inlineformset_factory(
     can_delete=True,
     validate_min=False,
     fields=['name', 'skill_type', 'proficiency_level']
-) 
+)
+
+class MentorApplicationForm(forms.ModelForm):
+    expertise_areas = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 3,
+            'placeholder': 'Enter your areas of expertise (comma-separated)'
+        }),
+        help_text='List your areas of expertise, separated by commas'
+    )
+    
+    years_of_experience = forms.IntegerField(
+        min_value=0,
+        widget=forms.NumberInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Years of professional experience'
+        })
+    )
+    
+    certifications = forms.FileField(
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'application/pdf'
+        }),
+        help_text='Upload your certifications in PDF format'
+    )
+    
+    training_documents = forms.FileField(
+        widget=forms.FileInput(attrs={
+            'class': 'form-control',
+            'accept': 'application/pdf'
+        }),
+        help_text='Upload your training documents in PDF format'
+    )
+    
+    competency_summary = forms.CharField(
+        widget=forms.Textarea(attrs={
+            'class': 'form-control',
+            'rows': 5,
+            'placeholder': 'Describe your expertise and competencies'
+        }),
+        help_text='Provide a detailed summary of your expertise and how you can help mentees'
+    )
+    
+    class Meta:
+        model = MentorApplication
+        fields = ['expertise_areas', 'years_of_experience', 'certifications', 'training_documents', 'competency_summary']
+        
+    def clean_certifications(self):
+        certifications = self.cleaned_data.get('certifications')
+        if certifications:
+            if not certifications.name.lower().endswith('.pdf'):
+                raise forms.ValidationError('Only PDF files are allowed for certifications.')
+            if certifications.size > 5 * 1024 * 1024:  # 5MB limit
+                raise forms.ValidationError('File size must be under 5MB.')
+        return certifications
+    
+    def clean_training_documents(self):
+        training_docs = self.cleaned_data.get('training_documents')
+        if training_docs:
+            if not training_docs.name.lower().endswith('.pdf'):
+                raise forms.ValidationError('Only PDF files are allowed for training documents.')
+            if training_docs.size > 5 * 1024 * 1024:  # 5MB limit
+                raise forms.ValidationError('File size must be under 5MB.')
+        return training_docs 

@@ -924,9 +924,11 @@
                         <p class="text-muted mb-2">{{ profile.user.email }}</p>
                     </div>
                     <div>
+                        {% if is_own_profile %}
                         <a href="{% url 'accounts:edit_profile' %}" class="btn btn-primary">
                             <i class="fas fa-edit"></i> Edit Profile
                         </a>
+                        {% endif %}
                         <div class="social-links mt-2">
                             {% if profile.linkedin_profile %}
                                 <a href="{{ profile.linkedin_profile }}" class="btn btn-sm btn-outline-primary" target="_blank">
@@ -1315,6 +1317,51 @@
                 {% else %}
                     <p class="text-muted small mb-0">No achievements added yet</p>
                 {% endif %}
+            </div>
+
+            <!-- Mentorship Section -->
+            <div class="profile-card">
+                <h2 class="profile-section-title">
+                    <i class="fas fa-chalkboard-teacher"></i>
+                    Mentorship
+                </h2>
+                <div class="row">
+                    <div class="col-12">
+                        {% if profile.user.alumni.mentorship_status == 'VERIFIED' %}
+                            <div class="alert alert-success">
+                                <i class="fas fa-check-circle me-2"></i>
+                                You are a verified mentor. 
+                                {% if profile.user.mentor_profile.accepting_mentees %}
+                                    You are currently accepting new mentees.
+                                {% else %}
+                                    You have reached your maximum number of mentees.
+                                {% endif %}
+                            </div>
+                            <a href="{% url 'mentorship:mentor_dashboard' %}" class="btn btn-primary">
+                                <i class="fas fa-chalkboard-teacher me-2"></i>
+                                Go to Mentor Dashboard
+                            </a>
+                        {% elif profile.user.alumni.mentorship_status == 'PENDING' %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-clock me-2"></i>
+                                Your mentor application is currently under review.
+                            </div>
+                            <a href="{% url 'accounts:mentor_application_status' %}" class="btn btn-primary">
+                                <i class="fas fa-clipboard-check me-2"></i>
+                                Check Application Status
+                            </a>
+                        {% else %}
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                Share your expertise by becoming a mentor! Help guide fellow alumni and students in their career journey.
+                            </div>
+                            <a href="{% url 'accounts:apply_mentor' %}" class="btn btn-primary">
+                                <i class="fas fa-user-plus me-2"></i>
+                                Apply to be a Mentor
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>

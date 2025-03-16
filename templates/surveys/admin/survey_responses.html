@@ -1,0 +1,256 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load survey_filters %}
+
+{% block title %}{{ survey.title }} - Survey Responses{% endblock %}
+
+{% block extra_css %}
+<style>
+    .response-card {
+        border-radius: 10px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        margin-bottom: 1.5rem;
+        transition: transform 0.2s ease;
+    }
+    .response-card:hover {
+        transform: translateY(-2px);
+    }
+    .stats-card {
+        background: #fff;
+        border-radius: 10px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    .stats-number {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+    .stats-label {
+        color: #6c757d;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    .question-stat {
+        border-left: 4px solid #4e73df;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        background: #f8f9fa;
+        border-radius: 0 5px 5px 0;
+    }
+    .chart-container {
+        height: 200px;
+        margin: 1rem 0;
+    }
+    .response-meta {
+        font-size: 0.875rem;
+        color: #6c757d;
+    }
+    .answer-item {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid #e9ecef;
+    }
+    .answer-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+        padding-bottom: 0;
+    }
+    .answer-question {
+        font-weight: 600;
+        color: #2c3e50;
+        margin-bottom: 0.25rem;
+    }
+    .answer-value {
+        color: #495057;
+    }
+    .rating-value {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        background: #e9ecef;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'surveys:survey_list' %}">Surveys</a>
+</li>
+<li class="breadcrumb-item">
+    <a href="{% url 'surveys:survey_detail' survey.id %}">{{ survey.title }}</a>
+</li>
+<li class="breadcrumb-item active">Responses</li>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h1 class="h2 mb-0">Survey Responses</h1>
+        <div>
+            <a href="{% url 'surveys:survey_detail' survey.id %}" class="btn btn-outline-secondary">
+                <i class="fas fa-arrow-left me-2"></i>Back to Survey
+            </a>
+            <button class="btn btn-primary ms-2" onclick="window.print()">
+                <i class="fas fa-download me-2"></i>Export Responses
+            </button>
+        </div>
+    </div>
+
+    <!-- Response Statistics -->
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <div class="stats-card">
+                <div class="stats-number">{{ response_stats.total_responses }}</div>
+                <div class="stats-label">Total Responses</div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="stats-card">
+                <div class="stats-number">{{ response_stats.response_rate }}%</div>
+                <div class="stats-label">Response Rate</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Question Statistics -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Question Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for stat in questions_stats %}
+                    <div class="question-stat">
+                        <h6 class="mb-2">{{ stat.question }}</h6>
+                        <div class="small text-muted mb-2">
+                            Type: {{ stat.type|title }}
+                        </div>
+                        
+                        {% if stat.type in 'multiple_choice,checkbox' and stat.option_distribution %}
+                            <div class="chart-container">
+                                <canvas id="chart-question-{{ forloop.counter }}"></canvas>
+                            </div>
+                        {% elif stat.type == 'rating' %}
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span>Average Rating:</span>
+                                    <span class="rating-value">{{ stat.rating_avg }}/5</span>
+                                </div>
+                                <div class="progress mt-2" style="height: 8px;">
+                                    <div class="progress-bar bg-primary" role="progressbar" 
+                                         style="width: {{ stat.rating_avg|multiply:20 }}%"></div>
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <div class="mt-2 small">
+                            Total Answers: {{ stat.total_answers }}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Individual Responses -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-comments me-2"></i>Individual Responses
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% for response in responses %}
+                    <div class="response-card p-3 bg-light">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <h6 class="mb-0">{{ response.alumni_name }}</h6>
+                                <div class="response-meta">
+                                    Submitted: {{ response.submitted_at|date:"M d, Y H:i" }}
+                                </div>
+                            </div>
+                            <span class="badge bg-success">Complete</span>
+                        </div>
+                        
+                        <div class="bg-white p-3 rounded">
+                            {% for answer in response.answers %}
+                            <div class="answer-item">
+                                <div class="answer-question">{{ answer.question }}</div>
+                                <div class="answer-value">
+                                    {% if answer.question_type == 'rating' %}
+                                        <span class="rating-value">{{ answer.value }}/5</span>
+                                    {% else %}
+                                        {{ answer.value|default:"No answer provided" }}
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-5">
+                        <div class="text-muted">No responses recorded yet</div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    {% for stat in questions_stats %}
+        {% if stat.type in 'multiple_choice,checkbox' and stat.option_distribution %}
+            new Chart(document.getElementById('chart-question-{{ forloop.counter }}').getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [
+                        {% for option in stat.option_distribution %}
+                            '{{ option.selected_option__option_text }}',
+                        {% endfor %}
+                    ],
+                    datasets: [{
+                        data: [
+                            {% for option in stat.option_distribution %}
+                                {{ option.count }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: [
+                            '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b',
+                            '#5a5c69', '#6610f2', '#fd7e14', '#20c9a6', '#858796'
+                        ],
+                        borderWidth: 1,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                font: { size: 10 }
+                            }
+                        }
+                    }
+                }
+            });
+        {% endif %}
+    {% endfor %}
+});
+</script>
+{% endblock %} 

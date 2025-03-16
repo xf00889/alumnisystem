@@ -18,7 +18,7 @@
 <div class="page-content">
     <div class="container">
         <!-- Search and Filter Section -->
-        <div class="search-filter-section">
+        <div class="search-filter-section mb-4">
             <form id="filterForm" method="get" class="needs-validation" novalidate>
                 <div class="row g-3 align-items-center">
                     <div class="col-lg-8">
@@ -27,24 +27,24 @@
                             <input type="search" 
                                    name="search" 
                                    class="form-control search-input" 
-                                   placeholder="Search alumni..."
+                                   placeholder="Search alumni by name, course, or location..."
                                    value="{{ selected_filters.search }}"
                                    aria-label="Search alumni">
-    </div>
+                        </div>
                     </div>
                     <div class="col-lg-4 text-lg-end">
                         <div class="filter-buttons">
-                            <button type="button" class="btn btn-outline-primary" data-bs-toggle="modal" data-bs-target="#filterModal">
+                            <button type="button" class="btn btn-outline-primary filter-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
                                 <i class="fas fa-filter me-2" aria-hidden="true"></i>Filters
                                 <span class="filter-count badge bg-primary" {% if not selected_filters_count %}style="display: none;"{% endif %}>
                                     {{ selected_filters_count }}
                                 </span>
                             </button>
                             {% if any_filter_active %}
-                            <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-link text-danger">
+                            <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-link text-danger clear-btn">
                                 <i class="fas fa-times me-1" aria-hidden="true"></i>Clear All
                             </a>
-            {% endif %}
+                            {% endif %}
                         </div>
                     </div>
                 </div>
@@ -58,8 +58,10 @@
                     <div class="stat-icon">
                         <i class="fas fa-users"></i>
                     </div>
-                    <div class="stat-value">{{ total_alumni }}</div>
-                    <div class="stat-label">Total Alumni</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ total_alumni }}</div>
+                        <div class="stat-label">Total Alumni</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6">
@@ -67,8 +69,10 @@
                     <div class="stat-icon">
                         <i class="fas fa-graduation-cap"></i>
                     </div>
-                    <div class="stat-value">{{ graduation_years_count }}</div>
-                    <div class="stat-label">Graduation Years</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ graduation_years_count }}</div>
+                        <div class="stat-label">Graduation Years</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6">
@@ -76,8 +80,10 @@
                     <div class="stat-icon">
                         <i class="fas fa-book"></i>
                     </div>
-                    <div class="stat-value">{{ courses_count }}</div>
-                    <div class="stat-label">Courses</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ courses_count }}</div>
+                        <div class="stat-label">Courses</div>
+                    </div>
                 </div>
             </div>
             <div class="col-md-3 col-sm-6">
@@ -85,8 +91,10 @@
                     <div class="stat-icon">
                         <i class="fas fa-map-marker-alt"></i>
                     </div>
-                    <div class="stat-value">{{ provinces_count }}</div>
-                    <div class="stat-label">Provinces</div>
+                    <div class="stat-content">
+                        <div class="stat-value">{{ provinces_count }}</div>
+                        <div class="stat-label">Provinces</div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -100,7 +108,7 @@
                     <span class="filter-text">Year: {{ year }}</span>
                     <button type="button" class="btn-remove-filter" onclick="removeFilter('graduation_year', '{{ year }}')" aria-label="Remove year filter {{ year }}">
                         <i class="fas fa-times" aria-hidden="true"></i>
-        </button>
+                    </button>
                 </span>
                 {% endfor %}
                 {% for college_name in selected_filters.college %}
@@ -108,7 +116,7 @@
                     <span class="filter-text">College: {{ college_name }}</span>
                     <button type="button" class="btn-remove-filter" onclick="removeFilter('college', '{{ college_name }}')" aria-label="Remove college filter {{ college_name }}">
                         <i class="fas fa-times" aria-hidden="true"></i>
-        </button>
+                    </button>
                 </span>
                 {% endfor %}
                 {% for campus_name in selected_filters.campus %}
@@ -135,8 +143,8 @@
                     </button>
                 </span>
                 {% endfor %}
-    </div>
-</div>
+            </div>
+        </div>
         {% endif %}
 
         <!-- Alumni List Container -->
@@ -146,107 +154,74 @@
                 {% for alumni in alumni_list %}
                 <div class="col-xl-3 col-lg-4 col-md-6">
                     <article class="alumni-card" role="article" aria-labelledby="alumni-name-{{ alumni.id }}">
-                        <div class="alumni-info">
-                            <div class="text-center">
-                                <div class="avatar-wrapper">
-                                    {% if alumni.user.profile.avatar %}
-                                        <img src="{{ alumni.user.profile.avatar.url }}" 
-                                             alt="Profile photo of {{ alumni.full_name }}"
-                                             class="alumni-avatar">
-                                    {% else %}
-                                        <div class="avatar-placeholder" aria-hidden="true">
-                                            <i class="fas fa-user"></i>
-                                        </div>
-                                    {% endif %}
-                                </div>
-                                <h3 class="alumni-name" id="alumni-name-{{ alumni.id }}">{{ alumni.full_name }}</h3>
-                                <p class="alumni-username">@{{ alumni.user.username }}</p>
-                            </div>
-                            
-                            <div class="alumni-details">
-                                <div class="info-row" title="Course">
-                                    <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                                    <span>{{ alumni.course }}</span>
-                                </div>
-                                <div class="info-row" title="Graduation Year">
-                                    <i class="fas fa-calendar" aria-hidden="true"></i>
-                                    <span>Class of {{ alumni.graduation_year }}</span>
-                                </div>
-                                <div class="info-row" title="Location">
-                                    <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                                    <span>{{ alumni.city }}, {{ alumni.province }}</span>
-                                </div>
-                                {% if alumni.current_job_title %}
-                                <div class="info-row" title="Current Position">
-                                    <i class="fas fa-briefcase" aria-hidden="true"></i>
-                                    <span>{{ alumni.current_job_title }}</span>
+                        <div class="alumni-header">
+                            <div class="alumni-avatar-wrapper">
+                                <img src="{% if alumni.user.profile.avatar %}{{ alumni.user.profile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
+                                     alt="{{ alumni.full_name }}"
+                                     class="alumni-avatar">
+                                {% if alumni.mentorship_status == 'VERIFIED' %}
+                                <div class="mentor-badge" title="Verified Mentor">
+                                    <i class="fas fa-chalkboard-teacher"></i>
                                 </div>
                                 {% endif %}
                             </div>
-                            
-                            <div class="card-actions">
-                                <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" 
-                                   class="btn btn-primary btn-view-profile"
-                                   aria-label="View {{ alumni.full_name }}'s full profile">
-                                    <i class="fas fa-user me-2" aria-hidden="true"></i>View Profile
-                                </a>
+                            <div class="alumni-title">
+                                <h3 class="alumni-name" id="alumni-name-{{ alumni.id }}">
+                                    {{ alumni.full_name }}
+                                    {% if alumni.mentorship_status == 'VERIFIED' %}
+                                    <span class="badge bg-success ms-2">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Mentor
+                                    </span>
+                                    {% endif %}
+                                </h3>
+                                <p class="text-muted mb-0">
+                                    <i class="fas fa-id-card me-1"></i>
+                                    {{ alumni.user.username }}
+                                </p>
                             </div>
+                        </div>
+                        
+                        <div class="alumni-details">
+                            <div class="info-row" title="Course">
+                                <i class="fas fa-graduation-cap" aria-hidden="true"></i>
+                                <span>{{ alumni.course }}</span>
+                            </div>
+                            <div class="info-row" title="Graduation Year">
+                                <i class="fas fa-calendar" aria-hidden="true"></i>
+                                <span>Class of {{ alumni.graduation_year }}</span>
+                            </div>
+                            <div class="info-row" title="Location">
+                                <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
+                                <span>{{ alumni.city }}, {{ alumni.province }}</span>
+                            </div>
+                            {% if alumni.current_job_title %}
+                            <div class="info-row" title="Current Position">
+                                <i class="fas fa-briefcase" aria-hidden="true"></i>
+                                <span>{{ alumni.current_job_title }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="card-actions">
+                            <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" 
+                               class="btn btn-primary btn-view-profile"
+                               aria-label="View {{ alumni.full_name }}'s full profile">
+                                <i class="fas fa-user me-2" aria-hidden="true"></i>View Profile
+                            </a>
                         </div>
                     </article>
                 </div>
                 {% endfor %}
             </div>
 
-            <!-- Pagination -->
-            {% if is_paginated %}
-            <nav aria-label="Alumni directory pages" class="mt-4">
-                <ul class="pagination justify-content-center">
-                    {% if page_obj.has_previous %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page=1{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" aria-label="First page">
-                            <i class="fas fa-angle-double-left" aria-hidden="true"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" aria-label="Previous page">
-                            <i class="fas fa-angle-left" aria-hidden="true"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-
-                    {% for num in page_obj.paginator.page_range %}
-                    {% if num == page_obj.number %}
-                    <li class="page-item active" aria-current="page">
-                        <span class="page-link">{{ num }}</span>
-                    </li>
-                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
-                    </li>
-                    {% endif %}
-                    {% endfor %}
-
-                    {% if page_obj.has_next %}
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" aria-label="Next page">
-                            <i class="fas fa-angle-right" aria-hidden="true"></i>
-                        </a>
-                    </li>
-                    <li class="page-item">
-                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}" aria-label="Last page">
-                            <i class="fas fa-angle-double-right" aria-hidden="true"></i>
-                        </a>
-                    </li>
-                    {% endif %}
-                </ul>
-            </nav>
-            {% endif %}
+            {% include 'components/pagination.html' %}
 
             {% else %}
             <div class="empty-state" role="status">
                 <i class="fas fa-users" aria-hidden="true"></i>
                 <h2>No Alumni Found</h2>
-                <p>There are no alumni records available at the moment.</p>
+                <p>There are no alumni records matching your search criteria.</p>
             </div>
             {% endif %}
         </div>
@@ -281,11 +256,10 @@
                             <button type="button" 
                                     class="btn btn-link text-danger p-0" 
                                     onclick="clearAllFilters()"
-                                    aria-label="Clear all filters">
+                                    title="Clear all filters">
                                 <i class="fas fa-times me-1"></i>Clear All
                             </button>
                         </div>
-                        <div class="filter-tags mt-2" id="modalActiveTags"></div>
                     </div>
 
                     <!-- Filter Groups -->
@@ -679,1051 +653,330 @@
     </div>
 </div>
 
+{% endblock %}
+
+{% block extra_css %}
 <style>
-/* Page-specific styles */
-.page-content {
-    --page-bg: #f5f7fa;
-    --card-bg: #ffffff;
-    --primary-color: #2B3C6B;
-    --primary-hover: #1e2a4d;
-    --text-primary: #2d3748;
-    --text-secondary: #718096;
-    --border-color: #e2e8f0;
-    --shadow-sm: 0 1px 3px rgba(0,0,0,0.1);
-    --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
-    --shadow-lg: 0 10px 15px rgba(0,0,0,0.15);
-    --radius-sm: 6px;
-    --radius-md: 8px;
-    --radius-lg: 12px;
-    background-color: var(--page-bg);
-    min-height: 100vh;
-    padding: 2rem 0;
-}
+    /* Page Layout */
+    .page-content {
+        padding: 2rem 0;
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 60px);
+    }
 
-/* Search and Filter Section */
-.search-filter-section {
-    background: linear-gradient(145deg, var(--card-bg), #f8fafc);
-    border-radius: var(--radius-lg);
-    padding: 1.5rem;
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border-color);
+    /* Search and Filter Section */
+    .search-filter-section {
+        background: white;
+        padding: 1.5rem;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
         margin-bottom: 2rem;
-    transition: transform 0.3s ease;
-}
+    }
 
-.search-filter-section:hover {
-    transform: translateY(-2px);
-}
-
-.search-box {
-    position: relative;
-    background: var(--page-bg);
-    border-radius: var(--radius-md);
-        transition: all 0.3s ease;
-    box-shadow: inset 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.search-box:focus-within {
-    box-shadow: 0 0 0 2px var(--primary-color), inset 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.search-input {
-    height: 48px;
-    padding-left: 3rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--radius-md);
-    font-size: 1rem;
-    transition: all 0.3s ease;
+    .search-box {
+        position: relative;
     }
 
     .search-icon {
         position: absolute;
-    left: 1rem;
+        left: 1rem;
         top: 50%;
         transform: translateY(-50%);
-    color: var(--primary-color);
-    font-size: 1.1rem;
-    opacity: 0.7;
-}
+        color: #6c757d;
+    }
 
-.filter-buttons {
-    display: flex;
-    gap: 0.75rem;
-    align-items: center;
-}
+    .search-input {
+        padding-left: 2.5rem;
+        height: 48px;
+        border-radius: 8px;
+        border: 1px solid #dee2e6;
+        font-size: 1rem;
+        transition: all 0.2s ease;
+    }
 
-.filter-buttons .btn-outline-primary {
-    padding: 0.75rem 1.25rem;
-    border-width: 2px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-}
+    .search-input:focus {
+        border-color: #3498db;
+        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
+    }
 
-.filter-buttons .btn-outline-primary:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
+    .filter-btn {
+        height: 48px;
+        border-radius: 8px;
+        padding: 0 1.5rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
 
-/* Statistics Section */
-.stat-card {
-    background: linear-gradient(145deg, var(--card-bg), #f8fafc);
-    border-radius: var(--radius-lg);
-    padding: 1.75rem;
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--border-color);
-    transition: all 0.3s ease;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
+    .filter-btn:hover {
+        background-color: #3498db;
+        color: white;
+        border-color: #3498db;
+    }
 
-.stat-card::before {
-    content: '';
-        position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 4px;
-    background: linear-gradient(to right, var(--primary-color), var(--primary-hover));
-        opacity: 0.7;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.stat-icon {
-    font-size: 2rem;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-    opacity: 0.85;
-    transition: transform 0.3s ease;
-}
-
-.stat-card:hover .stat-icon {
-    transform: scale(1.1);
-}
-
-.stat-value {
-    font-size: 2.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
-    margin-bottom: 0.5rem;
-    background: linear-gradient(45deg, var(--primary-color), var(--primary-hover));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.stat-label {
-    color: var(--text-secondary);
-    font-size: 0.95rem;
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-/* Active Filters */
-.active-filters {
-    background: linear-gradient(145deg, var(--card-bg), #f8fafc);
-    border-radius: var(--radius-lg);
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
-    border: 1px solid var(--border-color);
-    box-shadow: var(--shadow-lg);
-}
-
-.active-filters .filter-tag {
-    background: var(--page-bg);
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    border: 1px solid var(--border-color);
-    margin: 0.35rem;
-    display: inline-flex;
+    /* Statistics Cards */
+    .stat-card {
+        background: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
         align-items: center;
-        gap: 0.5rem;
-    transition: all 0.3s ease;
-    box-shadow: var(--shadow-sm);
-}
+        gap: 1.5rem;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
 
-.active-filters .filter-tag:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-    border-color: var(--primary-color);
-}
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
+    }
 
-.active-filters .filter-text {
-    color: var(--text-primary);
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        background: linear-gradient(135deg, #3498db, #2980b9);
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5rem;
+    }
+
+    .stat-content {
+        flex: 1;
+    }
+
+    .stat-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #2c3e50;
+        line-height: 1.2;
+        margin-bottom: 0.25rem;
+    }
+
+    .stat-label {
+        color: #6c757d;
+        font-size: 0.875rem;
         font-weight: 500;
     }
 
-.btn-remove-filter {
-    background: none;
-    border: none;
-    color: var(--text-secondary);
-    padding: 0;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-        width: 20px;
-    height: 20px;
-    border-radius: 50%;
-}
-
-.btn-remove-filter:hover {
-    color: #dc3545;
-    background-color: rgba(220, 53, 69, 0.1);
-}
-
-/* Alumni Grid */
-.alumni-list-container {
-    background: var(--card-bg);
-    border-radius: var(--radius-lg);
-    padding: 1rem;
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-}
-
-.alumni-card {
-    background: var(--card-bg);
-    border-radius: var(--radius-md);
-    box-shadow: var(--shadow-sm);
-    border: 1px solid var(--border-color);
-    transition: transform 0.2s ease;
-    height: 100%;
-}
-
-.alumni-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--shadow-md);
-}
-
-.alumni-info {
-    padding: 0.75rem;
-}
-
-.avatar-wrapper {
-    width: 60px;
-    height: 60px;
-    margin: 0 auto;
-    border-radius: 50%;
-    overflow: hidden;
-    border: 2px solid var(--primary-color);
-}
-
-.alumni-name {
-    font-size: 1rem;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0.5rem 0 0.25rem;
-}
-
-.alumni-username {
-    color: var(--text-secondary);
-    font-size: 0.75rem;
-    margin-bottom: 0.75rem;
-}
-
-.alumni-details {
-    margin-bottom: 0.75rem;
-    font-size: 0.85rem;
-}
-
-.info-row {
-    display: flex;
+    /* Active Filters */
+    .filter-tag {
+        display: inline-flex;
         align-items: center;
+        background: white;
+        padding: 0.5rem 1rem;
+        border-radius: 30px;
+        border: 1px solid #dee2e6;
+        font-size: 0.875rem;
+        color: #2c3e50;
         gap: 0.5rem;
-    margin-bottom: 0.4rem;
-    color: var(--text-secondary);
-}
-
-.info-row i {
-    color: var(--primary-color);
-    width: 12px;
-    font-size: 0.85rem;
-}
-
-.card-actions {
-    padding-top: 0.5rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.btn-view-profile {
-    font-size: 0.85rem;
-    padding: 0.4rem;
-}
-
-/* Pagination */
-.pagination {
-    margin-top: 2rem;
-}
-
-.page-link {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.9rem;
-    border-radius: var(--radius-sm);
-    margin: 0 0.25rem;
-}
-
-/* Empty State */
-.empty-state {
-    padding: 3rem 1.5rem;
-    text-align: center;
-    color: var(--text-secondary);
-}
-
-.empty-state i {
-    font-size: 2.5rem;
-    margin-bottom: 1rem;
-    color: var(--primary-color);
-    opacity: 0.5;
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .page-content {
-        padding: 1rem 0;
-    }
-    
-    .search-filter-section {
-        padding: 1rem;
+        transition: all 0.2s ease;
     }
 
-    .stat-card {
-        padding: 1rem;
+    .filter-tag:hover {
+        border-color: #3498db;
+        box-shadow: 0 2px 4px rgba(52, 152, 219, 0.1);
     }
-    
-    .alumni-list-container {
-        padding: 0.75rem;
+
+    .btn-remove-filter {
+        background: none;
+        border: none;
+        color: #6c757d;
+        padding: 0;
+        cursor: pointer;
+        transition: color 0.2s ease;
     }
-    
-    .alumni-info {
-        padding: 0.5rem;
+
+    .btn-remove-filter:hover {
+        color: #dc3545;
     }
-    
-    .avatar-wrapper {
-        width: 50px;
-        height: 50px;
-    }
-}
 
-/* Existing modal styles below */
-:root {
-    --primary-color: #2B3C6B;
-    --primary-hover: #1e2a4d;
-    --secondary-color: #6c757d;
-    --danger-color: #dc3545;
-    --success-color: #28a745;
-    --warning-color: #ffc107;
-    --info-color: #17a2b8;
-    --light-color: #f8f9fa;
-    --dark-color: #343a40;
-    --border-color: #dee2e6;
-    --border-radius: 8px;
-    --box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
-/* Search and Filter Section */
-.search-filter-section {
-    background-color: #fff;
-    border-radius: var(--border-radius);
-        padding: 1.5rem;
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-}
-
-.search-box {
-    position: relative;
-}
-
-.search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--secondary-color);
-    z-index: 2;
-}
-
-.search-input {
-    padding-left: 2.5rem;
-    height: 48px;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-    transition: all 0.2s ease;
-}
-
-.search-input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
-}
-
-.filter-buttons {
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    justify-content: flex-end;
-}
-
-.filter-buttons .btn-outline-primary {
-    position: relative;
-    padding-right: 2.5rem;
-}
-
-.filter-count.badge {
-    position: absolute;
-    top: -8px;
-    right: -8px;
-    min-width: 20px;
-    height: 20px;
-    padding: 0 6px;
-    font-size: 0.75rem;
-    border-radius: 10px;
-}
-
-/* Statistics Section */
-.stat-card {
-    background-color: #fff;
-    border-radius: var(--border-radius);
-    padding: 1.5rem;
-    text-align: center;
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-    transition: transform 0.2s ease;
-}
-
-.stat-card:hover {
-    transform: translateY(-5px);
-}
-
-.stat-icon {
-    font-size: 2rem;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-}
-
-.stat-value {
-    font-size: 2rem;
-    font-weight: 600;
-    color: var(--dark-color);
-    margin-bottom: 0.5rem;
-}
-
-.stat-label {
-    color: var(--secondary-color);
-    font-size: 0.875rem;
-}
-
-/* Alumni Grid */
+    /* Alumni Cards */
     .alumni-card {
-    background-color: #fff;
-    border-radius: var(--border-radius);
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-    transition: transform 0.2s ease;
+        background: white;
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
         height: 100%;
-    overflow: hidden;
+        display: flex;
+        flex-direction: column;
     }
 
     .alumni-card:hover {
-    transform: translateY(-5px);
+        transform: translateY(-5px);
+        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
     }
 
-.alumni-info {
+    .alumni-header {
         padding: 1.5rem;
-}
+        text-align: center;
+        border-bottom: 1px solid #f8f9fa;
+    }
 
-.avatar-wrapper {
-    width: 120px;
-    height: 120px;
-    margin: 0 auto;
+    .alumni-avatar-wrapper {
+        position: relative;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+
+    .alumni-avatar {
+        width: 120px;
+        height: 120px;
         border-radius: 50%;
-    overflow: hidden;
-    border: 3px solid var(--primary-color);
-}
-
-.alumni-avatar {
-    width: 100%;
-    height: 100%;
         object-fit: cover;
-}
+        border: 4px solid white;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        transition: transform 0.2s ease;
+    }
 
-.avatar-placeholder {
-    width: 100%;
-    height: 100%;
-    background-color: var(--light-color);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 3rem;
-    color: var(--secondary-color);
+    .alumni-card:hover .alumni-avatar {
+        transform: scale(1.05);
+    }
+
+    .mentor-badge {
+        position: absolute;
+        bottom: 0;
+        right: 0;
+        width: 32px;
+        height: 32px;
+        background: #3498db;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        border: 3px solid white;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
     }
 
     .alumni-name {
-    font-size: 1.25rem;
+        font-size: 1.25rem;
         font-weight: 600;
-    color: var(--dark-color);
-    margin: 1rem 0 0.5rem;
-}
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
 
-.alumni-username {
-    color: var(--secondary-color);
-    font-size: 0.875rem;
-    margin-bottom: 1.5rem;
-}
+    .alumni-details {
+        padding: 1.5rem;
+        flex: 1;
+    }
 
-.alumni-details {
-    margin-bottom: 1.5rem;
-}
-
-.info-row {
+    .info-row {
         display: flex;
-    align-items: center;
+        align-items: center;
         gap: 0.75rem;
-        margin-bottom: 0.75rem;
-    color: var(--dark-color);
-}
-
-.info-row i {
-    color: var(--primary-color);
-    width: 16px;
-}
-
-.card-actions {
-    padding-top: 1rem;
-    border-top: 1px solid var(--border-color);
-}
-
-.btn-view-profile {
-    width: 100%;
-    padding: 0.75rem;
-}
-
-/* Empty State */
-.empty-state {
-    text-align: center;
-    padding: 3rem 1.5rem;
-    color: var(--secondary-color);
-}
-
-.empty-state i {
-    font-size: 3rem;
-    margin-bottom: 1rem;
-}
-
-.empty-state h2 {
-    font-size: 1.5rem;
-    margin-bottom: 0.5rem;
-}
-
-/* Active Filters */
-.active-filters {
-    background-color: var(--light-color);
-    border-radius: var(--border-radius);
-    padding: 1rem;
-    margin-bottom: 1.5rem;
-}
-
-.filter-tag {
-    display: inline-flex;
-    align-items: center;
-    background-color: white;
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 0.25rem 0.75rem;
-    margin: 0.25rem;
-    font-size: 0.875rem;
-}
-
-.filter-text {
-    margin-right: 0.5rem;
-}
-
-.btn-remove-filter {
-    background: none;
-    border: none;
-    color: var(--secondary-color);
-    padding: 0;
-    cursor: pointer;
-    transition: color 0.2s;
-}
-
-.btn-remove-filter:hover {
-    color: var(--danger-color);
-}
-
-/* Filter Modal */
-.modal-content {
-    border: none;
-    border-radius: var(--border-radius);
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    background: linear-gradient(to bottom, var(--light-color) 0%, #fff 100%);
-}
-
-.modal-header {
-    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
-    color: white;
-    border-top-left-radius: var(--border-radius);
-    border-top-right-radius: var(--border-radius);
-    padding: 1.5rem;
-    border-bottom: none;
-}
-
-.modal-title {
-    font-size: 1.5rem;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-}
-
-.modal-title i {
-    font-size: 1.25rem;
-}
-
-.btn-close {
-    background-color: rgba(255,255,255,0.2);
-    padding: 0.75rem;
-    border-radius: 50%;
-    transition: all 0.2s ease;
-}
-
-.btn-close:hover {
-    background-color: rgba(255,255,255,0.3);
-    transform: rotate(90deg);
-}
-
-.modal-body {
-    padding: 1.5rem;
-    max-height: 70vh;
-    overflow-y: auto;
-}
-
-.filter-summary {
-    background-color: var(--light-color);
-    border-radius: var(--border-radius);
-    padding: 1.25rem;
-    margin-bottom: 2rem;
-    border: 1px solid var(--border-color);
-}
-
-.filter-count-text {
-    font-size: 1.1rem;
-    color: var(--dark-color);
-}
-
-.filter-count-text strong {
-    color: var(--primary-color);
-}
-
-.filter-tags {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.filter-tag {
-    background-color: white;
-    border: 1px solid var(--border-color);
-    border-radius: 20px;
-    padding: 0.5rem 1rem;
-    font-size: 0.9rem;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.filter-tag:hover {
-    border-color: var(--primary-color);
-    transform: translateY(-1px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.filter-group {
-    background: white;
-    border-radius: var(--border-radius);
-    border: 1px solid var(--border-color);
-    height: 100%;
-    transition: all 0.2s ease;
-    overflow: hidden;
-}
-
-.filter-group:hover {
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-    border-color: var(--primary-color);
-}
-
-.filter-header {
-    background-color: var(--light-color);
-    display: flex;
-    justify-content: space-between;
-        align-items: center;
-    padding: 1.25rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.filter-label {
-    font-weight: 600;
-    color: var(--primary-color);
-    margin: 0;
-    display: flex;
-        align-items: center;
-    gap: 0.75rem;
-    font-size: 1.1rem;
-}
-
-.filter-label i {
-    font-size: 1rem;
-    opacity: 0.8;
-}
-
-.filter-content {
-    padding: 1.25rem;
-}
-
-.filter-search {
-    position: relative;
-    margin-bottom: 1rem;
-}
-
-.search-wrapper {
-    position: relative;
-}
-
-.search-wrapper .search-icon {
-    position: absolute;
-    left: 1rem;
-    top: 50%;
-    transform: translateY(-50%);
-    color: var(--secondary-color);
-    font-size: 0.9rem;
-}
-
-.search-wrapper .btn-clear-search {
-    position: absolute;
-    right: 0.75rem;
-    top: 50%;
-    transform: translateY(-50%);
-    background: none;
-    border: none;
-    color: var(--secondary-color);
-    padding: 0.25rem;
-    cursor: pointer;
-    opacity: 0.7;
-    transition: opacity 0.2s ease;
-}
-
-.search-wrapper .btn-clear-search:hover {
-    opacity: 1;
-}
-
-.filter-search input {
-    width: 100%;
-    padding: 0.75rem 2.5rem;
-    border: 1px solid var(--border-color);
-    border-radius: var(--border-radius);
-    font-size: 0.95rem;
-    transition: all 0.2s ease;
-}
-
-.filter-search input:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
-}
-
-.filter-options {
-    max-height: none;
-    padding: 1rem;
-}
-
-.filter-options::-webkit-scrollbar {
-    width: 8px;
-}
-
-.filter-options::-webkit-scrollbar-track {
-    background: var(--light-color);
-    border-radius: 4px;
-}
-
-.filter-options::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 4px;
-    opacity: 0.8;
-}
-
-.filter-options::-webkit-scrollbar-thumb:hover {
-    opacity: 1;
-}
-
-.form-check {
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    min-height: 1.5rem;
-}
-
-.form-check:hover {
-    background-color: var(--light-color);
-}
-
-.form-check-input {
-    position: relative;
-    margin: 0.25rem 0.5rem 0 0;
-    flex-shrink: 0;
-}
-
-.form-check-label {
-    margin-bottom: 0;
-    cursor: pointer;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    user-select: none;
-}
-
-.form-check-input:checked + .form-check-label {
-    color: var(--primary-color);
-    font-weight: 500;
-}
-
-.filter-subgroup {
-    margin-bottom: 1.5rem;
-    padding: 0 1rem;
-}
-
-.filter-subheader {
-    font-weight: 600;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    background-color: var(--light-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-}
-
-.modal-footer {
-    padding: 1rem 1.5rem;
-    background-color: var(--light-color);
-    border-top: 1px solid var(--border-color);
-}
-
-#applyFiltersBtn {
-    min-width: 140px;
-    padding: 0.75rem 1.5rem;
-}
-
-/* Modal Animation */
-.modal.fade .modal-dialog {
-    transform: scale(0.95) translateY(-30px);
-    transition: transform 0.2s ease-out;
-}
-
-.modal.show .modal-dialog {
-    transform: scale(1) translateY(0);
-}
-
-/* Responsive Adjustments */
-@media (max-width: 768px) {
-    .modal-dialog {
-        max-width: 95%;
-        margin: 1rem auto;
+        margin-bottom: 1rem;
+        color: #6c757d;
     }
-    
-    .modal-body {
-        padding: 1rem;
-    }
-    
-    .filter-subgroup {
-        padding: 0 0.5rem;
-    }
-}
 
-/* High Contrast & Reduced Motion */
-@media (prefers-contrast: high) {
+    .info-row:last-child {
+        margin-bottom: 0;
+    }
+
+    .info-row i {
+        color: #3498db;
+        width: 16px;
+    }
+
+    .card-actions {
+        padding: 1.5rem;
+        border-top: 1px solid #f8f9fa;
+    }
+
+    .btn-view-profile {
+        width: 100%;
+        padding: 0.75rem;
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.2s ease;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: #3498db;
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h2 {
+        font-size: 1.5rem;
+        color: #2c3e50;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state p {
+        color: #6c757d;
+        margin-bottom: 0;
+    }
+
+    /* Filter Modal */
+    .modal-content {
+        border-radius: 12px;
+        border: none;
+    }
+
     .modal-header {
-        background: var(--primary-color);
+        background: #f8f9fa;
+        border-bottom: 1px solid #dee2e6;
+        padding: 1.25rem 1.5rem;
     }
-    
-    .filter-tag {
-        border: 2px solid currentColor;
+
+    .modal-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2c3e50;
     }
-}
 
-@media (prefers-reduced-motion: reduce) {
-    .modal.fade .modal-dialog,
-    .btn-close,
-    .filter-tag,
-    .filter-group,
-    .form-check,
-    #applyFiltersBtn {
-        transition: none;
-    }
-}
-
-/* Alumni List Container */
-.alumni-list-container {
-    background-color: #fff;
-    border-radius: var(--border-radius);
-    padding: 2rem;
-    box-shadow: var(--box-shadow);
-    border: 1px solid var(--border-color);
-}
-
-/* Modal Styles */
-.modal-dialog {
-    max-width: 700px;
-}
-
-.modal-body {
-    padding: 1.5rem;
-    max-height: 70vh;
-    overflow-y: auto;
-}
-
-.filter-options {
-    max-height: none;
-    padding: 1rem;
-}
-
-.filter-group {
-    margin-bottom: 1.5rem;
-}
-
-.filter-subgroup {
-    margin-bottom: 1.5rem;
-    padding: 0 1rem;
-}
-
-.filter-subheader {
-    font-weight: 600;
-    color: var(--primary-color);
-    margin-bottom: 1rem;
-    padding: 0.5rem;
-    background-color: var(--light-color);
-    border-radius: var(--radius-sm);
-    font-size: 0.9rem;
-}
-
-.form-check {
-    position: relative;
-    display: flex;
-    align-items: flex-start;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    min-height: 1.5rem;
-}
-
-.form-check-input {
-    position: relative;
-    margin: 0.25rem 0.5rem 0 0;
-    flex-shrink: 0;
-}
-
-.form-check-label {
-    margin-bottom: 0;
-    cursor: pointer;
-    font-size: 0.95rem;
-    line-height: 1.5;
-    user-select: none;
-}
-
-/* Improve scrollbar styling */
-.modal-body::-webkit-scrollbar {
-    width: 8px;
-}
-
-.modal-body::-webkit-scrollbar-track {
-    background: var(--light-color);
-    border-radius: 4px;
-}
-
-.modal-body::-webkit-scrollbar-thumb {
-    background: var(--primary-color);
-    border-radius: 4px;
-    opacity: 0.8;
-}
-
-.modal-body::-webkit-scrollbar-thumb:hover {
-    opacity: 1;
-}
-
-/* Modal footer improvements */
-.modal-footer {
-    padding: 1rem 1.5rem;
-    background-color: var(--light-color);
-    border-top: 1px solid var(--border-color);
-}
-
-#applyFiltersBtn {
-    min-width: 140px;
-    padding: 0.75rem 1.5rem;
-}
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-    .modal-dialog {
-        max-width: 95%;
-        margin: 1rem auto;
-    }
-    
     .modal-body {
-        padding: 1rem;
+        padding: 1.5rem;
     }
-    
-    .filter-subgroup {
-        padding: 0 0.5rem;
-    }
-}
-</style>
 
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-    // Initialize Bootstrap modal
-    const filterModal = document.getElementById('filterModal');
-    const bsFilterModal = new bootstrap.Modal(filterModal);
-    
-    // Get form elements
-    const filterForm = document.getElementById('filterForm');
-    const filterModalForm = document.getElementById('filterModalForm');
-    const searchInput = filterForm.querySelector('input[name="search"]');
-    
-    // Function to apply filters
-    function applyFilters(e) {
-        e.preventDefault();
-        
-        // Create FormData from both forms
-        const mainFormData = new FormData(filterForm);
-        const modalFormData = new FormData(filterModalForm);
-        
-        // Combine form data
-        const params = new URLSearchParams();
-        
-        // Add search query if exists
-        const searchQuery = searchInput.value.trim();
-        if (searchQuery) {
-            params.append('search', searchQuery);
-        }
-        
-        // Add filter values from modal form
-        const filterTypes = ['college', 'campus', 'course', 'graduation_year', 'employment_status'];
-        filterTypes.forEach(type => {
-            const checkedBoxes = filterModalForm.querySelectorAll(`input[name="${type}"]:checked`);
-            checkedBoxes.forEach(box => {
-                params.append(type, box.value);
-            });
-        });
-        
-        // Redirect to alumni list with new filters
-        const url = '{% url "alumni_directory:alumni_list" %}?' + params.toString();
-        window.location.href = url;
+    .filter-summary {
+        background: #f8f9fa;
+        padding: 1rem;
+        border-radius: 8px;
     }
-    });
+
+    /* Responsive Adjustments */
+    @media (max-width: 767.98px) {
+        .stat-card {
+            padding: 1rem;
+        }
+
+        .stat-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1.25rem;
+        }
+
+        .stat-value {
+            font-size: 1.5rem;
+        }
+
+        .alumni-avatar {
+            width: 100px;
+            height: 100px;
+        }
+
+        .alumni-name {
+            font-size: 1.125rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Your existing JavaScript code here
 </script>
 {% endblock %} 

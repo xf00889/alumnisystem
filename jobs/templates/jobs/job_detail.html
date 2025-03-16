@@ -1,0 +1,608 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load jobs_extras %}
+
+{% block title %}{{ job.job_title }} at {{ job.company_name }}{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+<li class="breadcrumb-item"><a href="{% url 'jobs:job_list' %}">Job Board</a></li>
+<li class="breadcrumb-item active">{{ job.job_title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-5">
+    <div class="container">
+        <!-- Page Heading -->
+        <div class="row mb-5">
+            <div class="col-12">
+                <div class="d-sm-flex align-items-center justify-content-between">
+                    <div class="mb-4 mb-sm-0">
+                        <h1 class="h3 mb-2 text-gray-900 fw-bold">{{ job.job_title }}</h1>
+                        <p class="mb-0 text-gray-600">{{ job.company_name }}</p>
+                    </div>
+                    
+                    <div class="d-none d-sm-inline-block">
+                        <button class="btn btn-outline-primary fw-medium" onclick="shareJob()">
+                            <i class="fas fa-share-alt me-2"></i>Share Position
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <div class="col-xl-8 col-lg-7">
+                <!-- Job Details Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-body p-4">
+                        <!-- Company Header -->
+                        <div class="d-flex align-items-center mb-5">
+                            <div class="company-logo bg-light rounded-3 p-3 me-3">
+                                <i class="fas fa-building text-primary fa-2x"></i>
+                            </div>
+                            
+                            <div>
+                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                                    {% if job.is_featured %}
+                                    <span class="badge bg-primary-soft text-primary fw-medium">
+                                        <i class="fas fa-star me-1"></i>Featured
+                                    </span>
+                                    {% endif %}
+                                    
+                                    <span class="badge bg-{% if job.source_type == 'INTERNAL' %}success-soft text-success{% else %}info-soft text-info{% endif %} fw-medium">
+                                        {{ job.get_source_type_display }}
+                                    </span>
+                                    
+                                    <span class="badge bg-gray-soft text-gray-600 fw-medium">
+                                        <i class="fas fa-clock me-1"></i>{{ job.posted_date|timesince }} ago
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Job Overview -->
+                        <div class="job-overview bg-light rounded-3 p-4 mb-5">
+                            <div class="row g-4">
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="icon-circle bg-primary-soft">
+                                                <i class="fas fa-map-marker-alt text-primary"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-1 text-gray-900 fw-bold">Location</h6>
+                                            <p class="mb-0 text-gray-600">{{ job.location }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="icon-circle bg-success-soft">
+                                                <i class="fas fa-briefcase text-success"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-1 text-gray-900 fw-bold">Job Type</h6>
+                                            <p class="mb-0 text-gray-600">{{ job.get_job_type_display }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {% if job.salary_range %}
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="icon-circle bg-warning-soft">
+                                                <i class="fas fa-money-bill-wave text-warning"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-1 text-gray-900 fw-bold">Salary Range</h6>
+                                            <p class="mb-0 text-gray-600">{{ job.salary_range }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endif %}
+                                
+                                <div class="col-md-6">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="icon-circle bg-info-soft">
+                                                <i class="fas fa-calendar-alt text-info"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="mb-1 text-gray-900 fw-bold">Posted Date</h6>
+                                            <p class="mb-0 text-gray-600">{{ job.posted_date|date:"F j, Y" }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Job Description -->
+                        <div class="job-description mb-0">
+                            <h3 class="h5 text-gray-900 fw-bold mb-4">
+                                <i class="fas fa-align-left text-primary me-2"></i>Job Description
+                            </h3>
+                            <div class="description-content text-gray-600">
+                                {{ job.job_description|linebreaks }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-xl-4 col-lg-5">
+                <!-- Application Status Card -->
+                <div class="card border-0 shadow-sm rounded-3 mb-4">
+                    <div class="card-body p-4">
+                        <div class="d-flex justify-content-between align-items-center mb-4">
+                            <h5 class="text-gray-900 fw-bold mb-0">Application Status</h5>
+                            
+                            {% if user.is_staff or user|is_hr_or_admin %}
+                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewApplicantsModal">
+                                <i class="fas fa-users me-2"></i>View Applicants
+                            </button>
+                            {% endif %}
+                        </div>
+                        
+                        {% if job.accepts_internal_applications %}
+                            {% if user.is_authenticated %}
+                                {% if user_application %}
+                                <div class="alert bg-info-soft border-0 rounded-3 mb-0">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="alert-icon bg-info text-white rounded-circle">
+                                                <i class="fas fa-info"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="alert-heading text-gray-900 fw-bold mb-1">Application Submitted</h6>
+                                            <p class="mb-0 text-gray-600">Current Status:<br>
+                                            <strong class="text-info">{{ user_application.get_status_display }}</strong></p>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="text-center">
+                                    <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-lg w-100 fw-medium">
+                                        <i class="fas fa-paper-plane me-2"></i>Apply Now
+                                    </a>
+                                </div>
+                                {% endif %}
+                            {% else %}
+                                <div class="alert bg-warning-soft border-0 rounded-3 mb-0">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="alert-icon bg-warning text-white rounded-circle">
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="alert-heading text-gray-900 fw-bold mb-1">Authentication Required</h6>
+                                            <p class="mb-0 text-gray-600">Please <a href="{% url 'account_login' %}" class="text-primary fw-medium">log in</a> to apply for this position.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% else %}
+                            {% if job.application_link %}
+                                <div class="text-center">
+                                    <a href="{{ job.application_link }}" class="btn btn-primary btn-lg w-100 fw-medium" target="_blank" rel="noopener noreferrer">
+                                        <i class="fas fa-external-link-alt me-2"></i>Apply on External Site
+                                    </a>
+                                    <small class="text-gray-500 d-block mt-3">
+                                        <i class="fas fa-info-circle me-1"></i>You will be redirected to an external website
+                                    </small>
+                                </div>
+                            {% else %}
+                                <div class="alert bg-info-soft border-0 rounded-3 mb-0">
+                                    <div class="d-flex">
+                                        <div class="flex-shrink-0">
+                                            <div class="alert-icon bg-info text-white rounded-circle">
+                                                <i class="fas fa-info"></i>
+                                            </div>
+                                        </div>
+                                        <div class="flex-grow-1 ms-3">
+                                            <h6 class="alert-heading text-gray-900 fw-bold mb-1">Application Instructions</h6>
+                                            <p class="mb-0 text-gray-600">Please contact the organization directly to apply for this position.</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Posted By Card -->
+                {% if job.posted_by %}
+                <div class="card border-0 shadow-sm rounded-3">
+                    <div class="card-body p-4">
+                        <h5 class="text-gray-900 fw-bold mb-4">Posted By</h5>
+                        <div class="d-flex align-items-center">
+                            <div class="flex-shrink-0">
+                                <div class="avatar-circle bg-primary-soft rounded-circle">
+                                    <i class="fas fa-user text-primary"></i>
+                                </div>
+                            </div>
+                            <div class="flex-grow-1 ms-3">
+                                <h6 class="mb-1 text-gray-900 fw-bold">{{ job.posted_by.get_full_name|default:job.posted_by.username }}</h6>
+                                <p class="mb-0 text-gray-600">Staff Member</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+:root {
+    --linkedin-blue: #0a66c2;
+    --linkedin-blue-hover: #004182;
+}
+
+.icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+}
+
+.avatar-circle {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.company-logo {
+    width: 72px;
+    height: 72px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.alert-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+}
+
+.bg-primary-soft {
+    background-color: rgba(10, 102, 194, 0.1);
+}
+
+.bg-success-soft {
+    background-color: rgba(25, 135, 84, 0.1);
+}
+
+.bg-info-soft {
+    background-color: rgba(13, 202, 240, 0.1);
+}
+
+.bg-warning-soft {
+    background-color: rgba(246, 194, 62, 0.1);
+}
+
+.bg-gray-soft {
+    background-color: rgba(108, 117, 125, 0.1);
+}
+
+.text-gray-500 {
+    color: #6c757d !important;
+}
+
+.text-gray-600 {
+    color: #5a6169 !important;
+}
+
+.text-gray-900 {
+    color: #212529 !important;
+}
+
+.fw-medium {
+    font-weight: 500 !important;
+}
+
+.btn-primary {
+    background-color: var(--linkedin-blue);
+    border-color: var(--linkedin-blue);
+}
+
+.btn-primary:hover {
+    background-color: var(--linkedin-blue-hover);
+    border-color: var(--linkedin-blue-hover);
+}
+
+.btn-outline-primary {
+    color: var(--linkedin-blue);
+    border-color: var(--linkedin-blue);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--linkedin-blue);
+    border-color: var(--linkedin-blue);
+}
+
+.text-primary {
+    color: var(--linkedin-blue) !important;
+}
+
+.description-content {
+    font-size: 1rem;
+    line-height: 1.6;
+}
+
+.job-overview {
+    background-color: rgba(0, 0, 0, 0.02);
+}
+</style>
+
+{% block extra_js %}
+<script>
+function shareJob() {
+    if (navigator.share) {
+        navigator.share({
+            title: '{{ job.job_title }} at {{ job.company_name }}',
+            text: 'Check out this job opportunity: {{ job.job_title }} at {{ job.company_name }}',
+            url: window.location.href
+        })
+        .catch(console.error);
+    } else {
+        // Fallback for browsers that don't support Web Share API
+        const dummy = document.createElement('input');
+        document.body.appendChild(dummy);
+        dummy.value = window.location.href;
+        dummy.select();
+        document.execCommand('copy');
+        document.body.removeChild(dummy);
+        
+        // Show toast notification
+        const toast = document.createElement('div');
+        toast.className = 'position-fixed bottom-0 end-0 p-3';
+        toast.style.zIndex = '5';
+        toast.innerHTML = `
+            <div class="toast align-items-center text-white bg-success border-0 rounded-3" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check-circle me-2"></i>Link copied to clipboard!
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(toast);
+        const toastEl = new bootstrap.Toast(toast.querySelector('.toast'));
+        toastEl.show();
+        
+        setTimeout(() => {
+            toast.remove();
+        }, 3000);
+    }
+}
+
+// Function to view application details
+function viewApplication(applicationId) {
+    // Create or get the modal
+    let modal = document.getElementById('applicationDetailsModal');
+    
+    if (!modal) {
+        // Create modal if it doesn't exist
+        modal = document.createElement('div');
+        modal.className = 'modal fade';
+        modal.id = 'applicationDetailsModal';
+        modal.setAttribute('tabindex', '-1');
+        modal.setAttribute('aria-hidden', 'true');
+        modal.innerHTML = `
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Application Details</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2">Loading application details...</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        document.body.appendChild(modal);
+    }
+    
+    // Get the modal body for content insertion
+    const modalBody = modal.querySelector('.modal-body');
+    
+    // Show the modal
+    const modalInstance = new bootstrap.Modal(modal);
+    modalInstance.show();
+    
+    // Fetch application details
+    fetch(`/jobs/applications/${applicationId}/details/`, {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'Accept': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.html) {
+            modalBody.innerHTML = data.html;
+            
+            // Initialize any JavaScript functionality in the inserted content
+            const scripts = modalBody.querySelectorAll('script');
+            scripts.forEach(script => {
+                const newScript = document.createElement('script');
+                Array.from(script.attributes).forEach(attr => {
+                    newScript.setAttribute(attr.name, attr.value);
+                });
+                newScript.textContent = script.textContent;
+                script.parentNode.replaceChild(newScript, script);
+            });
+        } else {
+            modalBody.innerHTML = '<div class="alert alert-danger">Error loading application details</div>';
+        }
+    })
+    .catch(error => {
+        console.error('Error fetching application details:', error);
+        modalBody.innerHTML = `
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                Error loading application details: ${error.message}
+            </div>
+        `;
+    });
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Add event listeners to view application buttons
+    document.querySelectorAll('.view-application-btn').forEach(btn => {
+        btn.addEventListener('click', function(e) {
+            e.preventDefault();
+            const applicationId = this.getAttribute('data-application-id');
+            viewApplication(applicationId);
+        });
+    });
+});
+</script>
+{% endblock %}
+
+<!-- View Applicants Modal -->
+<div class="modal fade" id="viewApplicantsModal" tabindex="-1" aria-labelledby="viewApplicantsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="viewApplicantsModalLabel">
+                    <i class="fas fa-users me-2"></i>Applicants for {{ job.job_title }}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                {% if applicants %}
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>Name</th>
+                                <th>Email</th>
+                                <th>Applied On</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for application in applicants %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div class="flex-shrink-0">
+                                            <div class="avatar-circle bg-primary-soft rounded-circle">
+                                                <i class="fas fa-user text-primary"></i>
+                                            </div>
+                                        </div>
+                                        <div class="ms-3">
+                                            <h6 class="mb-0 fw-bold">{{ application.applicant.get_full_name }}</h6>
+                                            <span class="text-muted small">{{ application.applicant.profile.profile_title|default:"Alumni" }}</span>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>{{ application.applicant.email }}</td>
+                                <td>{{ application.application_date|date:"M d, Y" }}</td>
+                                <td>
+                                    <span class="badge bg-{{ application.status|status_color }} text-white">
+                                        {{ application.get_status_display }}
+                                    </span>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary view-application-btn" data-application-id="{{ application.id }}">
+                                            <i class="fas fa-eye"></i>
+                                        </button>
+                                        <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                            <i class="fas fa-ellipsis-v"></i>
+                                        </button>
+                                        <ul class="dropdown-menu dropdown-menu-end">
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'jobs:update_application_status' application.id %}?status=REVIEWING">
+                                                    <i class="fas fa-search me-2 text-info"></i>Mark as Reviewing
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'jobs:update_application_status' application.id %}?status=SHORTLISTED">
+                                                    <i class="fas fa-check-circle me-2 text-success"></i>Shortlist
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'jobs:update_application_status' application.id %}?status=REJECTED">
+                                                    <i class="fas fa-times-circle me-2 text-danger"></i>Reject
+                                                </a>
+                                            </li>
+                                            <li><hr class="dropdown-divider"></li>
+                                            <li>
+                                                <a class="dropdown-item" href="{% url 'accounts:profile_detail' application.applicant.username %}">
+                                                    <i class="fas fa-user me-2"></i>View Profile
+                                                </a>
+                                            </li>
+                                            <li>
+                                                <a class="dropdown-item" href="mailto:{{ application.applicant.email }}">
+                                                    <i class="fas fa-envelope me-2"></i>Contact Applicant
+                                                </a>
+                                            </li>
+                                        </ul>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <div class="text-center py-5">
+                    <div class="mb-3">
+                        <i class="fas fa-users-slash fa-3x text-muted"></i>
+                    </div>
+                    <h4 class="text-muted">No Applications Yet</h4>
+                    <p class="text-muted">This job posting hasn't received any applications yet.</p>
+                </div>
+                {% endif %}
+            </div>
+            <div class="modal-footer">
+                {% if applicants %}
+                <a href="{% url 'jobs:export_applicants' job.id %}" class="btn btn-success">
+                    <i class="fas fa-file-excel me-2"></i>Export to Excel
+                </a>
+                {% endif %}
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

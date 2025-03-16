@@ -1,0 +1,449 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load jobs_extras %}
+
+{% block title %}Job Board - Find Your Next Career Opportunity{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/job_listing.css' %}">
+<link rel="stylesheet" href="{% static 'css/skill_matching.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Job Board</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="job-board-wrapper">
+    <div class="container">
+        <div class="row mb-4">
+            <div class="col-lg-9">
+                <h1 class="h3 mb-2 fw-bold">Job Board</h1>
+                <p class="text-muted mb-0">Discover your next career opportunity</p>
+            </div>
+            <div class="col-lg-3 text-lg-end d-flex align-items-center justify-content-lg-end">
+                {% if perms.jobs.add_jobposting or user|is_hr_or_admin %}
+                <a href="{% url 'jobs:manage_jobs' %}" class="btn btn-outline-primary me-2">
+                    <i class="fas fa-tasks me-2"></i>Manage Jobs
+                </a>
+                <a href="{% url 'jobs:post_job' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Post a Job
+                </a>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Skill-Based View Toggle for authenticated users -->
+        {% if user.is_authenticated %}
+        <div class="row mb-3">
+            <div class="col-12">
+                <a href="?skill_based={% if skill_based_view %}false{% else %}true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}" 
+                   class="btn {% if skill_based_view %}btn-primary{% else %}btn-outline-primary{% endif %} view-toggle-btn">
+                    <i class="fas {% if skill_based_view %}fa-check-circle{% else %}fa-circle{% endif %} me-2"></i>
+                    {% if skill_based_view %}
+                    Skill-Based View (Active)
+                    {% else %}
+                    Enable Skill-Based View
+                    {% endif %}
+                </a>
+                <p class="text-muted small mb-0">
+                    {% if skill_based_view %}
+                    Jobs are matched to your profile skills. Update your skills profile for better matching.
+                    {% else %}
+                    Switch to skill-based view to see jobs that match your skills profile.
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+
+        <div class="row">
+            <!-- Filters Sidebar -->
+            <div class="col-lg-3 mb-4">
+                <div class="card filter-card border-0 shadow-sm rounded-lg">
+                    <div class="card-body p-4">
+                        <h5 class="fw-bold mb-4">
+                            <i class="fas fa-filter text-primary me-2"></i>Filters
+                        </h5>
+                        
+                        <form method="get" class="job-filters">
+                            <!-- Preserve skill-based view parameter -->
+                            {% if skill_based_view %}
+                            <input type="hidden" name="skill_based" value="true">
+                            {% endif %}
+                            
+                            <!-- Search -->
+                            <div class="mb-4">
+                                <label class="form-label fw-medium">Search</label>
+                                <div class="search-input-wrapper">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <input type="text" 
+                                           name="q" 
+                                           class="form-control search-input" 
+                                           placeholder="Search jobs..."
+                                           value="{{ current_query|default:'' }}">
+                                </div>
+                            </div>
+
+                            <!-- Job Type -->
+                            <div class="mb-4">
+                                <label class="form-label fw-medium">Job Type</label>
+                                <select name="job_type" class="form-select custom-select">
+                                    <option value="">All Types</option>
+                                    {% for type_code, type_label in job_types %}
+                                    <option value="{{ type_code }}" {% if current_job_type == type_code %}selected{% endif %}>
+                                        {{ type_label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Source Type -->
+                            <div class="mb-4">
+                                <label class="form-label fw-medium">Source</label>
+                                <select name="source_type" class="form-select custom-select">
+                                    <option value="">All Sources</option>
+                                    {% for source_code, source_label in source_types %}
+                                    <option value="{{ source_code }}" {% if current_source_type == source_code %}selected{% endif %}>
+                                        {{ source_label }}
+                                    </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <!-- Sort By -->
+                            <div class="mb-4">
+                                <label class="form-label fw-medium">Sort By</label>
+                                <select name="sort" class="form-select custom-select">
+                                    {% if skill_based_view %}
+                                    <option value="match" selected>Best Match</option>
+                                    {% else %}
+                                    <option value="newest" {% if current_sort == 'newest' %}selected{% endif %}>Newest First</option>
+                                    <option value="oldest" {% if current_sort == 'oldest' %}selected{% endif %}>Oldest First</option>
+                                    {% endif %}
+                                </select>
+                            </div>
+
+                            <button type="submit" class="btn btn-primary w-100 apply-filters-btn">
+                                <i class="fas fa-filter me-2"></i>Apply Filters
+                            </button>
+                        </form>
+                        
+                        {% if skill_based_view and recommended_skills %}
+                        <div class="skill-recommendations">
+                            <h6 class="fw-bold mb-3">
+                                <i class="fas fa-lightbulb text-warning me-2"></i>Recommended Skills
+                            </h6>
+                            <p class="text-muted small mb-3">Adding these skills to your profile may improve your job matches:</p>
+                            
+                            <div class="recommendation-list">
+                                {% for skill in recommended_skills %}
+                                <div class="recommendation-item">
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span class="fw-medium">{{ skill.name|title }}</span>
+                                        <span class="small text-muted">{{ skill.frequency }} jobs</span>
+                                    </div>
+                                    {% if skill.related_jobs %}
+                                    <div class="small text-muted mt-1">
+                                        Needed for: {{ skill.related_jobs|join:", " }}
+                                    </div>
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                            
+                            <a href="{% url 'accounts:update_skills' %}" class="btn btn-sm btn-outline-primary w-100 mt-3">
+                                Update Your Skills
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Job Listings -->
+            <div class="col-lg-9">
+                {% if featured_jobs %}
+                <!-- Featured Jobs Section -->
+                <div class="mb-5">
+                    <h2 class="h5 fw-bold mb-4">
+                        <i class="fas fa-star text-warning me-2"></i>Featured Opportunities
+                    </h2>
+                    
+                    <div class="row g-4">
+                        {% for job in featured_jobs %}
+                        <div class="col-md-6">
+                            <div class="card featured-job-card h-100 border-0 shadow-sm rounded-lg" data-job-id="{{ job.id }}">
+                                <div class="card-body p-4">
+                                    <div class="d-flex align-items-center mb-3">
+                                        <div class="company-logo me-3">
+                                            <i class="fas fa-building"></i>
+                                        </div>
+                                        <div>
+                                            <h3 class="h6 fw-bold mb-1">
+                                                <a href="{% url 'jobs:job_detail' job.slug %}" class="job-title-link">
+                                                    {{ job.job_title }}
+                                                </a>
+                                            </h3>
+                                            <p class="text-muted small mb-0">{{ job.company_name }}</p>
+                                        </div>
+                                    </div>
+                                    
+                                    {% if skill_based_view and job.id in match_data %}
+                                    {% with match=match_data|get_item:job.id %}
+                                    <div class="mb-3">
+                                        <div class="progress">
+                                            <div class="progress-bar bg-success" style="width: {{ match.score }}%;"></div>
+                                        </div>
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <small class="text-muted">Skills Match</small>
+                                            {% if match.score >= 75 %}
+                                            <span class="match-score high">{{ match.score|floatformat:0 }}% Match</span>
+                                            {% elif match.score >= 50 %}
+                                            <span class="match-score medium">{{ match.score|floatformat:0 }}% Match</span>
+                                            {% else %}
+                                            <span class="match-score low">{{ match.score|floatformat:0 }}% Match</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    {% endwith %}
+                                    {% endif %}
+                                    
+                                    <div class="mb-3">
+                                        <div class="d-flex align-items-center text-muted small mb-2">
+                                            <i class="fas fa-map-marker-alt me-2"></i>
+                                            {{ job.location }}
+                                        </div>
+                                        <div class="d-flex align-items-center text-muted small">
+                                            <i class="fas fa-briefcase me-2"></i>
+                                            {{ job.get_job_type_display }}
+                                            {% if job.salary_range %}
+                                            <span class="mx-2">•</span>
+                                            <i class="fas fa-money-bill-wave me-2"></i>
+                                            {{ job.salary_range }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="d-flex align-items-center justify-content-between">
+                                        <span class="source-badge {% if job.source_type == 'INTERNAL' %}internal{% else %}external{% endif %}">
+                                            {{ job.get_source_type_display }}
+                                        </span>
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>{{ job.posted_date|timesince }} ago
+                                        </small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- All Jobs Section -->
+                <div>
+                    <div class="d-flex align-items-center justify-content-between mb-4">
+                        <h2 class="h5 fw-bold mb-0">
+                            <i class="fas fa-list text-primary me-2"></i>All Positions
+                            {% if skill_based_view %}
+                            <span class="badge bg-primary ms-2">Skill Matched</span>
+                            {% endif %}
+                        </h2>
+                        <span class="jobs-count-badge">
+                            {{ jobs.paginator.count }} jobs found
+                        </span>
+                    </div>
+
+                    {% if jobs %}
+                    <div class="job-list">
+                        {% for job in jobs %}
+                        <div class="job-card" data-job-id="{{ job.id }}">
+                            <div class="job-card-body">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div class="flex-grow-1">
+                                        <h3 class="h5 mb-1 job-title">
+                                            {{ job.job_title }}
+                                        </h3>
+                                        <p class="mb-2 company-name">{{ job.company_name }}</p>
+                                        
+                                        {% if skill_based_view and job.id in match_data %}
+                                        {% with match=match_data|get_item:job.id %}
+                                        <div class="mb-3">
+                                            <div class="progress">
+                                                <div class="progress-bar bg-success" style="width: {{ match.score }}%;"></div>
+                                            </div>
+                                            <div class="d-flex justify-content-between align-items-center">
+                                                <small class="text-muted">Skills Match</small>
+                                                {% if match.score >= 75 %}
+                                                <span class="match-score high">{{ match.score|floatformat:0 }}% Match</span>
+                                                {% elif match.score >= 50 %}
+                                                <span class="match-score medium">{{ match.score|floatformat:0 }}% Match</span>
+                                                {% else %}
+                                                <span class="match-score low">{{ match.score|floatformat:0 }}% Match</span>
+                                                {% endif %}
+                                            </div>
+                                            
+                                            {% if match.matched_skills %}
+                                            <div class="matched-skills">
+                                                <small class="text-muted d-block mb-1">Matching skills:</small>
+                                                <div>
+                                                    {% for skill_name, data in match.matched_skills.items %}
+                                                    <span class="skill-tag">{{ skill_name }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                            
+                                            {% if match.missing_skills %}
+                                            <div class="missing-skills-container">
+                                                <small class="text-muted d-block mb-1">Skills to develop:</small>
+                                                <div>
+                                                    {% for skill_name, data in match.missing_skills.items %}
+                                                    <span class="skill-tag">{{ skill_name }}</span>
+                                                    {% endfor %}
+                                                </div>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+                                        {% endwith %}
+                                        {% endif %}
+                                        
+                                        <div class="d-flex flex-wrap gap-2 mb-2">
+                                            <span class="job-detail-badge">
+                                                <i class="fas fa-map-marker-alt me-1"></i>{{ job.location }}
+                                            </span>
+                                            <span class="job-detail-badge">
+                                                <i class="fas fa-briefcase me-1"></i>{{ job.get_job_type_display }}
+                                            </span>
+                                            {% if job.salary_range %}
+                                            <span class="job-detail-badge">
+                                                <i class="fas fa-money-bill-wave me-1"></i>{{ job.salary_range }}
+                                            </span>
+                                            {% endif %}
+                                            <span class="source-badge-sm {% if job.source_type == 'INTERNAL' %}internal{% else %}external{% endif %}">
+                                                {{ job.get_source_type_display }}
+                                            </span>
+                                        </div>
+                                        <small class="text-muted posted-time">
+                                            <i class="fas fa-clock me-1"></i>Posted {{ job.posted_date|timesince }} ago
+                                        </small>
+                                    </div>
+                                    <div class="d-flex gap-2 align-items-start ms-3 job-actions">
+                                        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-sm details-btn">
+                                            <i class="fas fa-info-circle me-1"></i>Details
+                                        </a>
+                                        {% if job.accepts_internal_applications %}
+                                        <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-sm apply-btn">
+                                            <i class="fas fa-paper-plane me-1"></i>Apply
+                                        </a>
+                                        {% endif %}
+                                        <button class="btn btn-outline-secondary btn-sm share-btn" 
+                                                data-job-title="{{ job.job_title }}"
+                                                data-job-url="{{ request.scheme }}://{{ request.get_host }}{% url 'jobs:job_detail' job.slug %}"
+                                                data-bs-toggle="tooltip" 
+                                                title="Share this job">
+                                            <i class="fas fa-share-alt"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    {% if jobs.has_other_pages %}
+                    <nav aria-label="Job pagination" class="mt-5">
+                        <ul class="pagination justify-content-center">
+                            {% if jobs.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ jobs.previous_page_number }}{% if skill_based_view %}&skill_based=true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">
+                                    <i class="fas fa-chevron-left"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+
+                            {% for num in jobs.paginator.page_range %}
+                            <li class="page-item {% if jobs.number == num %}active{% endif %}">
+                                <a class="page-link" href="?page={{ num }}{% if skill_based_view %}&skill_based=true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">
+                                    {{ num }}
+                                </a>
+                            </li>
+                            {% endfor %}
+
+                            {% if jobs.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ jobs.next_page_number }}{% if skill_based_view %}&skill_based=true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}">
+                                    <i class="fas fa-chevron-right"></i>
+                                </a>
+                            </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                    {% endif %}
+                    
+                    {% else %}
+                    <div class="empty-state">
+                        <div class="empty-state-icon">
+                            <i class="fas fa-search"></i>
+                        </div>
+                        <h3 class="empty-state-title">No jobs found</h3>
+                        <p class="empty-state-text">
+                            We couldn't find any jobs matching your criteria. Try adjusting your filters or check back later for new opportunities.
+                        </p>
+                        <a href="{% url 'jobs:job_list' %}" class="btn btn-primary">
+                            <i class="fas fa-redo me-2"></i>Clear Filters
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Share Job Modal -->
+<div class="modal fade" id="shareJobModal" tabindex="-1" aria-labelledby="shareJobModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="shareJobModalLabel">Share Job</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-3">Share this job opportunity with your network:</p>
+                <div class="d-flex gap-3 justify-content-center mb-4">
+                    <a href="#" id="shareLinkedIn" class="btn btn-outline-primary" target="_blank">
+                        <i class="fab fa-linkedin me-2"></i>LinkedIn
+                    </a>
+                    <a href="#" id="shareTwitter" class="btn btn-outline-info" target="_blank">
+                        <i class="fab fa-twitter me-2"></i>Twitter
+                    </a>
+                    <a href="#" id="shareFacebook" class="btn btn-outline-primary" target="_blank">
+                        <i class="fab fa-facebook me-2"></i>Facebook
+                    </a>
+                </div>
+                <div class="mb-3">
+                    <label for="jobUrl" class="form-label">Job URL</label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="jobUrl" readonly>
+                        <button class="btn btn-outline-secondary" type="button" id="copyJobUrl">
+                            <i class="fas fa-copy"></i>
+                        </button>
+                    </div>
+                    <div class="form-text" id="copyMessage"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/job_listing.js' %}"></script>
+{% endblock %} 

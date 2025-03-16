@@ -43,11 +43,13 @@ class Conversation(models.Model):
 class Message(models.Model):
     conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='messages')
     sender = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='sent_messages')
-    content = models.TextField()
+    content = models.TextField(blank=True)  # Make content optional when sending files
+    file = models.FileField(upload_to='chat/files/', null=True, blank=True)  # Add file field
     timestamp = models.DateTimeField(auto_now_add=True)
     is_read = models.BooleanField(default=False)
     is_deleted = models.BooleanField(default=False)
     deleted_at = models.DateTimeField(null=True, blank=True)
+    is_system_message = models.BooleanField(default=False)  # Flag for system messages
 
     class Meta:
         ordering = ['timestamp']
@@ -67,3 +69,15 @@ class UserBlock(models.Model):
 
     def __str__(self):
         return f"{self.blocker.username} blocked {self.blocked.username}"
+
+class ConversationDeletion(models.Model):
+    """Tracks which conversations have been deleted by which users."""
+    conversation = models.ForeignKey(Conversation, on_delete=models.CASCADE, related_name='deletions')
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='deleted_conversations')
+    deleted_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        unique_together = ('conversation', 'user')
+        
+    def __str__(self):
+        return f"{self.user.username} deleted conversation {self.conversation.id} at {self.deleted_at}"

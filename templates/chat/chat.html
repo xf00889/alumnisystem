@@ -11,9 +11,25 @@
 
 {% block extra_css %}
 <style>
+    /* Import Google Fonts */
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600&display=swap');
+
+    /* Global Styles */
+    body {
+        font-family: 'Poppins', sans-serif;
+    }
+
     .chat-container {
         height: calc(100vh - 76px);
-        background-color: #f0f2f5;
+        background-color: #f8f9fa;
+        overflow: hidden;
+    }
+
+    .chat-messages {
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background: #fff;
     }
 
     /* Conversation List Styles */
@@ -21,69 +37,121 @@
         height: 100%;
         overflow-y: auto;
         background-color: #fff;
-        border-right: 1px solid #ddd;
+        border-right: 1px solid rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
     }
 
-    .conversation-item {
-        padding: 12px 16px;
-        border-bottom: 1px solid #eee;
-        cursor: pointer;
+    .list-group-item {
+        border: none;
+        padding: 16px;
+        margin-bottom: 1px;
         transition: all 0.2s ease;
-        text-decoration: none;
-        color: #1a1a1a;
+        border-radius: 0;
+    }
+
+    .list-group-item:hover {
+        background-color: #f8f9fa;
+    }
+
+    .list-group-item.active {
+        background-color: #e7f3ff;
+        color: inherit;
+        border-color: transparent;
+    }
+
+    .conversation-avatar {
+        width: 48px;
+        height: 48px;
+        flex-shrink: 0;
+        position: relative;
+        border-radius: 50%;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .conversation-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid #fff;
+    }
+
+    .avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        background-color: #e4e6eb;
         display: flex;
         align-items: center;
-        gap: 12px;
+        justify-content: center;
+        border: 2px solid #fff;
     }
 
-    .conversation-item:hover {
-        background-color: #f5f6f7;
+    .avatar-placeholder i {
+        font-size: 20px;
+        color: #65676b;
     }
 
-    .conversation-item.active {
-        background-color: #e7f3ff;
+    /* Online Status Indicator */
+    .online-indicator {
+        width: 12px;
+        height: 12px;
+        background-color: #31a24c;
+        border-radius: 50%;
+        position: absolute;
+        bottom: 2px;
+        right: 2px;
+        border: 2px solid #fff;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
     }
 
-    /* Chat Messages Section */
-    .chat-messages {
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        background-color: #fff;
+    /* Chat Header */
+    .chat-header {
+        padding: 15px;
+        border-bottom: 1px solid #e5e5e5;
+        background: #fff;
+        flex-shrink: 0;
     }
 
+    .chat-header .conversation-avatar {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Message List Container */
     .message-list {
-        flex-grow: 1;
+        flex: 1;
         overflow-y: auto;
         padding: 20px;
         display: flex;
         flex-direction: column;
-        gap: 8px;
-        background-color: #fff;
+        gap: 10px;
+        background: #fff;
+        height: calc(100% - 140px); /* Adjust for header and input */
     }
 
-    /* Message Bubbles with Avatar */
+    /* Message Groups */
     .message-group {
         display: flex;
         gap: 8px;
+        max-width: 70%;
         margin-bottom: 8px;
         align-items: flex-end;
-        max-width: 85%;
     }
 
     .message-group.sent {
-        flex-direction: row-reverse;
         margin-left: auto;
+        flex-direction: row-reverse;
     }
 
     .message-group.received {
         margin-right: auto;
     }
 
+    /* Message Avatar */
     .message-avatar {
         width: 28px;
         height: 28px;
-        border-radius: 50%;
         flex-shrink: 0;
     }
 
@@ -92,209 +160,633 @@
         height: 100%;
         border-radius: 50%;
         object-fit: cover;
+        border: 1px solid #e5e5e5;
     }
 
-    .message-avatar .avatar-placeholder {
+    .avatar-placeholder {
         width: 100%;
         height: 100%;
-        background-color: #e4e6eb;
         border-radius: 50%;
+        background-color: #e4e6eb;
         display: flex;
         align-items: center;
         justify-content: center;
+        border: 1px solid #e5e5e5;
     }
 
-    .message-avatar .avatar-placeholder i {
-        font-size: 14px;
+    .avatar-placeholder i {
+        font-size: 12px;
         color: #65676b;
     }
 
+    /* Message Content */
     .message-content {
         display: flex;
         flex-direction: column;
-        gap: 1px;
-        max-width: 100%;
+        gap: 2px;
     }
 
+    /* Message Bubbles */
     .message-bubble {
         padding: 8px 12px;
         border-radius: 18px;
-        position: relative;
+        font-size: 14px;
         line-height: 1.4;
-        font-size: 0.9375rem;
-        margin: 0;
-        word-wrap: break-word;
         max-width: 100%;
+        word-wrap: break-word;
+    }
+
+    /* System Message Styles */
+    .message-group.system-message {
+        max-width: 100%;
+        margin: 10px auto;
+        justify-content: center;
+    }
+
+    .message-bubble.system-message-bubble {
+        background-color: #f0f2f5;
+        color: #65676b;
+        border-radius: 12px;
+        padding: 6px 12px;
+        text-align: center;
+        font-size: 12px;
+        box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+    }
+
+    .system-message-text {
+        font-style: italic;
     }
 
     .message-bubble.sent {
         background-color: #0084ff;
-        color: #fff;
+        color: white;
         border-bottom-right-radius: 4px;
     }
 
     .message-bubble.received {
-        background-color: #e4e6eb;
+        background-color: #f0f2f5;
         color: #050505;
         border-bottom-left-radius: 4px;
     }
 
+    /* Message Time */
+    .message-time {
+        font-size: 11px;
+        color: #65676b;
+        margin-top: 2px;
+    }
+
+    /* Message Sender */
     .message-sender {
-        font-size: 0.75rem;
+        font-size: 12px;
         color: #65676b;
         margin-bottom: 2px;
-        padding-left: 12px;
     }
 
-    .message-time {
-        font-size: 0.6875rem;
-        margin-top: 2px;
-        opacity: 0.7;
+    /* Image Messages */
+    .message-bubble.image-message {
+        padding: 4px;
+        background: none;
+        max-width: 300px;
     }
 
-    .sent .message-time {
-        color: rgba(255, 255, 255, 0.9);
+    .message-image-container {
+        border-radius: 15px;
+        overflow: hidden;
+        position: relative;
+        background: #f0f2f5;
+        cursor: pointer;
     }
 
-    .received .message-time {
-        color: #65676b;
-    }
-
-    /* Conversation List Avatar */
-    .conversation-avatar {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        flex-shrink: 0;
-    }
-
-    .conversation-avatar img {
-        width: 100%;
-        height: 100%;
-        border-radius: 50%;
+    .message-image {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        max-height: 300px;
         object-fit: cover;
     }
 
-    .conversation-avatar .avatar-placeholder {
-        width: 100%;
-        height: 100%;
-        background-color: #e4e6eb;
-        border-radius: 50%;
+    /* Message Input */
+    .message-input {
+        padding: 15px;
+        background: #fff;
+        border-top: 1px solid #e5e5e5;
+        position: sticky;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        z-index: 100;
+    }
+
+    .message-input-container {
         display: flex;
         align-items: center;
-        justify-content: center;
-    }
-
-    .conversation-avatar .avatar-placeholder i {
-        font-size: 20px;
-        color: #65676b;
-    }
-
-    /* Message Input Area */
-    .message-input {
-        padding: 12px 16px;
-        background-color: #fff;
-        border-top: 1px solid #ddd;
-    }
-
-    .message-input form {
-        background-color: #f0f2f5;
+        gap: 10px;
+        background: #f0f2f5;
         border-radius: 20px;
-        padding: 6px;
+        padding: 8px 15px;
     }
 
     .message-input .form-control {
         border: none;
-        background: transparent;
-        padding: 8px 12px;
-        font-size: 0.9375rem;
+        background: none;
+        padding: 8px 0;
+        font-size: 14px;
+        flex: 1;
+        min-width: 0;
+    }
+
+    .message-input .form-control:focus {
+        outline: none;
         box-shadow: none;
     }
 
-    .message-input .btn {
-        width: 32px;
-        height: 32px;
-        padding: 0;
-        border-radius: 50%;
+    .message-input button {
+        background: none;
+        border: none;
+        color: #0084ff;
+        padding: 8px;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .message-input button:hover {
+        transform: scale(1.1);
+    }
+
+    /* Mobile Adjustments */
+    @media (max-width: 768px) {
+        .message-group {
+            max-width: 85%;
+        }
+        
+        .message-bubble.image-message {
+            max-width: 250px;
+        }
+        
+        .message-image {
+            max-height: 250px;
+        }
+    }
+
+    /* Image Modal Styles */
+    #imageViewModal .modal-content {
+        background-color: rgba(0, 0, 0, 0.9);
+    }
+
+    #imageViewModal .modal-header {
+        position: absolute;
+        top: 0;
+        right: 0;
+        z-index: 1050;
+        background: none;
+        border: none;
+        padding: 1rem;
+    }
+
+    #imageViewModal .btn-light {
+        background-color: rgba(255, 255, 255, 0.9);
+        border: none;
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: 20px;
+    }
+
+    #imageViewModal .btn-light:hover {
+        background-color: #fff;
+    }
+
+    #imageViewModal .modal-body {
+        min-height: 200px;
         display: flex;
         align-items: center;
         justify-content: center;
-        background-color: #0084ff;
-        border: none;
-        margin-right: 2px;
-        transition: background-color 0.2s ease;
     }
 
-    .message-input .btn:hover {
-        background-color: #0073e6;
+    #modalImage {
+        max-width: 100%;
+        height: auto;
+        object-fit: contain;
     }
 
-    .message-input .btn i {
-        font-size: 0.9375rem;
-        color: #fff;
+    /* Scrollbar Styling */
+    .message-list::-webkit-scrollbar {
+        width: 6px;
     }
 
-    /* Users List */
-    .users-list {
-        height: 100%;
-        overflow-y: auto;
-        background-color: white;
-        box-shadow: -2px 0 5px rgba(0,0,0,0.05);
+    .message-list::-webkit-scrollbar-track {
+        background: transparent;
     }
 
+    .message-list::-webkit-scrollbar-thumb {
+        background-color: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+
+    .message-list::-webkit-scrollbar-thumb:hover {
+        background-color: rgba(0, 0, 0, 0.3);
+    }
+
+    /* Typing Indicator */
+    .typing-indicator {
+        padding: 8px 16px;
+        font-size: 0.875rem;
+        color: #65676b;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .typing-indicator span {
+        display: inline-block;
+        width: 6px;
+        height: 6px;
+        background-color: #65676b;
+        border-radius: 50%;
+        animation: typing 1s infinite;
+    }
+
+    .typing-indicator span:nth-child(2) {
+        animation-delay: 0.2s;
+    }
+
+    .typing-indicator span:nth-child(3) {
+        animation-delay: 0.4s;
+    }
+
+    @keyframes typing {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(-4px); }
+    }
+
+    /* File Attachment Preview */
+    .attachment-preview {
+        margin-top: 8px;
+        padding: 8px;
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    .attachment-preview i {
+        font-size: 1.25rem;
+        color: #65676b;
+    }
+
+    /* Emoji Picker Trigger */
+    .emoji-trigger {
+        padding: 8px;
+        color: #65676b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .emoji-trigger:hover {
+        color: #0084ff;
+    }
+
+    /* File Upload Styles */
+    .file-upload-trigger {
+        padding: 8px;
+        color: #65676b;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .file-upload-trigger:hover {
+        color: #0084ff;
+    }
+
+    .file-preview {
+        position: absolute;
+        bottom: 100%;
+        left: 0;
+        right: 0;
+        padding: 10px 15px;
+        background: white;
+        border-top: 1px solid #e5e5e5;
+        display: none;
+    }
+
+    .file-preview.show {
+        display: block;
+    }
+
+    .file-preview-content {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        background: #f0f2f5;
+        border-radius: 8px;
+    }
+
+    .file-preview-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .file-preview-name {
+        font-size: 14px;
+        font-weight: 500;
+        margin-bottom: 2px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .file-preview-size {
+        font-size: 12px;
+        color: #65676b;
+    }
+
+    .file-preview-remove {
+        padding: 4px 8px;
+        color: #65676b;
+        cursor: pointer;
+    }
+
+    .file-preview-remove:hover {
+        color: #dc3545;
+    }
+
+    .file-upload-error {
+        color: #dc3545;
+        font-size: 12px;
+        margin-top: 4px;
+    }
+
+    /* Message Input Modifications */
+    .message-input {
+        position: relative;
+    }
+
+    .message-input-container {
+        position: relative;
+        z-index: 1;
+    }
+
+    .message-input-container.disabled {
+        opacity: 0.7;
+        pointer-events: none;
+    }
+
+    /* File Message Styles */
+    .message-bubble.file-message {
+        padding: 0;
+        overflow: hidden;
+        background: none;
+    }
+
+    .file-message-content {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 10px;
+        background: #f0f2f5;
+        border-radius: 12px;
+        margin: 4px 0;
+    }
+
+    .file-message-icon {
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: white;
+        border-radius: 8px;
+        color: #65676b;
+    }
+
+    .file-message-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .file-message-name {
+        font-weight: 500;
+        margin-bottom: 2px;
+        text-overflow: ellipsis;
+        overflow: hidden;
+        white-space: nowrap;
+    }
+
+    .file-message-size {
+        font-size: 12px;
+        color: #65676b;
+    }
+
+    .file-message-download {
+        padding: 6px 12px;
+        color: #0084ff;
+        font-weight: 500;
+        cursor: pointer;
+        border-radius: 6px;
+        transition: background-color 0.2s;
+    }
+
+    .file-message-download:hover {
+        background-color: rgba(0, 132, 255, 0.1);
+    }
+
+    /* Loading States */
+    .loading-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(255, 255, 255, 0.8);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 10;
+    }
+
+    .loading-overlay.show {
+        display: flex;
+    }
+
+    .loading-spinner {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px 16px;
+        background: white;
+        border-radius: 20px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    .loading-spinner .spinner-border {
+        width: 20px;
+        height: 20px;
+        border-width: 2px;
+    }
+
+    .loading-text {
+        font-size: 14px;
+        color: #65676b;
+    }
+
+    /* User List Styles */
     .user-item {
-        padding: 15px;
-        border-bottom: 1px solid #e9ecef;
-        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 15px;
+        border-bottom: 1px solid #eee;
+        cursor: pointer;
+        transition: background-color 0.2s;
     }
 
     .user-item:hover {
         background-color: #f8f9fa;
     }
 
-    /* Empty States */
-    .empty-state {
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-name {
+        font-weight: 500;
+        color: #2b3c6b;
+    }
+
+    .user-alumni-info {
+        font-size: 0.875rem;
+        color: #666;
+    }
+
+    .user-actions {
+        display: flex;
+        gap: 8px;
+    }
+
+    .btn-outline-primary {
+        color: #2b3c6b;
+        border-color: #2b3c6b;
+    }
+
+    .btn-outline-primary:hover {
+        background-color: #2b3c6b;
+        color: white;
+    }
+
+    /* Add styles for deleted conversation indicator */
+    .deleted-chat-indicator {
+        font-size: 0.75rem;
+        color: #666;
+        font-style: italic;
+        margin-top: 2px;
+    }
+
+    /* Chat container styles */
+    .chat-container {
+        height: calc(100vh - 56px);
+        background: #f0f2f5;
+    }
+
+    /* Search modal styles */
+    .search-modal .modal-content {
+        border-radius: 8px;
+        border: none;
+    }
+
+    .search-modal .modal-header {
+        border-bottom: 1px solid #e5e5e5;
+        padding: 15px 20px;
+    }
+
+    .search-modal .modal-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .search-modal .modal-body {
+        padding: 0;
+    }
+
+    .search-input-container {
+        padding: 15px 20px;
+        border-bottom: 1px solid #e5e5e5;
+    }
+
+    .search-input-container input {
+        width: 100%;
+        padding: 8px 12px;
+        border: 1px solid #ddd;
+        border-radius: 20px;
+        font-size: 0.9rem;
+    }
+
+    .search-results {
+        max-height: 400px;
+        overflow-y: auto;
+        padding: 10px 0;
+    }
+
+    .search-results .no-results {
+        padding: 20px;
         text-align: center;
-        color: #6c757d;
-        padding: 40px 20px;
-        animation: fadeIn 0.5s ease;
+        color: #65676b;
     }
 
-    .empty-state i {
-        font-size: 3em;
-        margin-bottom: 15px;
-        opacity: 0.5;
-        color: #0d6efd;
+    .search-results .loading {
+        padding: 20px;
+        text-align: center;
+        color: #65676b;
     }
 
-    /* Animations */
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
+    /* User item styles */
+    .user-item {
+        display: flex;
+        align-items: center;
+        padding: 10px 20px;
+        cursor: pointer;
+        transition: background-color 0.2s;
     }
 
-    /* Scrollbar Styling */
-    ::-webkit-scrollbar {
-        width: 8px;
+    .user-item:hover {
+        background-color: #f0f2f5;
     }
 
-    ::-webkit-scrollbar-track {
-        background: transparent;
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 12px;
     }
 
-    ::-webkit-scrollbar-thumb {
-        background: #bcc0c4;
-        border-radius: 4px;
+    .user-info {
+        flex-grow: 1;
     }
 
-    ::-webkit-scrollbar-thumb:hover {
-        background: #a8acb1;
+    .user-name {
+        font-weight: 500;
+        color: #050505;
+        margin-bottom: 2px;
+    }
+
+    .user-details {
+        font-size: 0.8rem;
+        color: #65676b;
     }
 </style>
 {% endblock %}
@@ -305,87 +797,71 @@
         <!-- Conversation List -->
         <div class="col-md-4 conversation-list">
             <div class="d-flex justify-content-between align-items-center p-3 border-bottom">
-                <h5 class="mb-0 fw-bold">Messages</h5>
+                <h5 class="mb-0">Messages</h5>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#newGroupModal">
-                        <i class="fas fa-users me-1"></i>New Group
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#newGroupModal">
+                        <i class="fas fa-users me-1"></i> New Group
                     </button>
-                    <button class="btn btn-primary btn-sm rounded-pill" data-bs-toggle="modal" data-bs-target="#newChatModal">
-                        <i class="fas fa-plus me-1"></i>New Chat
+                    <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#searchModal">
+                        <i class="fas fa-plus me-1"></i> New Chat
                     </button>
                 </div>
             </div>
             <div id="conversationList">
                 {% if conversations %}
-                    {% for conversation in conversations %}
+                    <div class="list-group">
+                        {% for conversation in conversations %}
                         <a href="{% url 'chat:chat_with_id' conversation=conversation.id %}" 
-                           class="conversation-item {% if current_conversation.id == conversation.id %}active{% endif %}">
-                            <div class="conversation-avatar">
-                                {% if conversation.is_group_chat %}
-                                    {% if conversation.photo %}
-                                        <img src="{{ conversation.photo.url }}" alt="{{ conversation.name }}" 
-                                             class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                           class="list-group-item list-group-item-action {% if current_conversation.id == conversation.id %}active{% endif %}">
+                            <div class="d-flex align-items-center gap-3">
+                                <!-- Avatar -->
+                                <div class="conversation-avatar">
+                                    {% if conversation.is_group_chat %}
+                                        {% if conversation.photo %}
+                                            <img src="{{ conversation.photo.url }}" alt="{{ conversation.name }}">
+                                        {% else %}
+                                            <div class="avatar-placeholder">
+                                                <i class="fas fa-users"></i>
+                                            </div>
+                                        {% endif %}
                                     {% else %}
-                                        <div class="avatar-placeholder">
-                                            <i class="fas fa-users"></i>
-                                        </div>
-                                    {% endif %}
-                                {% else %}
-                                    {% with other_user=conversation.get_other_participant user=request.user %}
-                                        {% if other_user.profile.avatar %}
-                                            <img src="{{ other_user.profile.avatar.url }}" alt="{{ other_user.get_full_name }}"
-                                                 class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                                        {% if conversation.other_user.profile.avatar %}
+                                            <img src="{{ conversation.other_user.profile.avatar.url }}" alt="{{ conversation.display_name }}">
+                                            {% if conversation.other_user.is_active %}
+                                                <div class="online-indicator"></div>
+                                            {% endif %}
                                         {% else %}
                                             <div class="avatar-placeholder">
                                                 <i class="fas fa-user"></i>
                                             </div>
                                         {% endif %}
-                                    {% endwith %}
-                                {% endif %}
-                            </div>
-                            <div class="flex-grow-1 min-width-0">
-                                <div class="fw-semibold text-truncate">
-                                    {% if conversation.is_group_chat %}
-                                        {{ conversation.name }}
-                                    {% else %}
-                                        {% with other_user=conversation.get_other_participant user=request.user %}
-                                            {{ other_user.get_full_name|default:other_user.username }}
-                                        {% endwith %}
                                     {% endif %}
                                 </div>
-                                <div class="text-muted small text-truncate">
+                                
+                                <!-- Conversation Info -->
+                                <div class="flex-grow-1 min-width-0">
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <h6 class="mb-1 text-truncate">{{ conversation.display_name }}</h6>
+                                        <div class="d-flex align-items-center">
+                                            <span class="badge bg-danger rounded-pill">{{ conversation.unread_count }}</span>
+                                        </div>
+                                    </div>
                                     {% if conversation.last_message %}
-                                        <span {% if conversation.unread_count > 0 %}class="fw-bold text-dark"{% endif %}>
+                                        <p class="mb-0 text-muted small text-truncate">
+                                            {% if conversation.last_message.sender == request.user %}
+                                                <span class="text-primary">You:</span>
+                                            {% elif conversation.is_group_chat %}
+                                                <span>{{ conversation.last_message.sender.get_full_name }}:</span>
+                                            {% endif %}
                                             {{ conversation.last_message.content }}
-                                        </span>
-                                    {% else %}
-                                        No messages yet
+                                        </p>
+                                        <small class="text-muted">{{ conversation.last_message.timestamp|timesince }} ago</small>
                                     {% endif %}
-                                </div>
-                            </div>
-                            <div class="d-flex align-items-center gap-2">
-                                {% if conversation.unread_count > 0 %}
-                                    <span class="badge rounded-pill bg-primary">{{ conversation.unread_count }}</span>
-                                {% endif %}
-                                <div class="dropdown">
-                                    <button class="btn btn-link btn-sm text-muted p-0" type="button" data-bs-toggle="dropdown">
-                                        <i class="fas fa-ellipsis-v"></i>
-                                    </button>
-                                    <ul class="dropdown-menu dropdown-menu-end">
-                                        <li>
-                                            <form method="post" action="{% url 'chat:delete_conversation' conversation.id %}" 
-                                                  onsubmit="return confirm('Are you sure you want to delete this conversation?');">
-                                                {% csrf_token %}
-                                                <button type="submit" class="dropdown-item text-danger">
-                                                    <i class="fas fa-trash-alt me-2"></i>Delete Conversation
-                                                </button>
-                                            </form>
-                                        </li>
-                                    </ul>
                                 </div>
                             </div>
                         </a>
-                    {% endfor %}
+                        {% endfor %}
+                    </div>
                 {% else %}
                     <div class="empty-state">
                         <i class="fas fa-comments"></i>
@@ -398,91 +874,127 @@
         <!-- Chat Messages -->
         <div class="col-md-8 chat-messages">
             {% if current_conversation %}
-                <div class="d-flex align-items-center p-3 border-bottom">
-                    {% if current_conversation.is_group_chat %}
-                        {% if current_conversation.photo %}
-                            <img src="{{ current_conversation.photo.url }}" alt="{{ current_conversation.name }}" 
-                                 class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
-                        {% else %}
-                            <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" 
-                                 style="width: 40px; height: 40px;">
-                                <i class="fas fa-users text-secondary"></i>
-                            </div>
-                        {% endif %}
-                        <div>
-                            <h6 class="mb-0 fw-bold">{{ current_conversation.name }}</h6>
-                            <small class="text-muted">{{ current_conversation.participants.count }} members</small>
-                        </div>
-                    {% else %}
-                        {% with other_user=current_conversation.get_other_participant user=request.user %}
-                            {% if other_user.profile.avatar %}
-                                <img src="{{ other_user.profile.avatar.url }}" alt="{{ other_user.get_full_name }}" 
-                                     class="rounded-circle me-3" style="width: 40px; height: 40px; object-fit: cover;">
+                <div class="chat-header">
+                    <div class="d-flex align-items-center gap-3">
+                        <!-- Avatar -->
+                        <div class="conversation-avatar">
+                            {% if current_conversation.is_group_chat %}
+                                {% if current_conversation.photo %}
+                                    <img src="{{ current_conversation.photo.url }}" alt="{{ current_conversation.name }}">
+                                {% else %}
+                                    <div class="avatar-placeholder">
+                                        <i class="fas fa-users"></i>
+                                    </div>
+                                {% endif %}
                             {% else %}
-                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" 
-                                     style="width: 40px; height: 40px;">
-                                    <i class="fas fa-user text-secondary"></i>
-                                </div>
+                                {% if current_conversation.other_user.profile.avatar %}
+                                    <img src="{{ current_conversation.other_user.profile.avatar.url }}" alt="{{ current_conversation.display_name }}">
+                                    {% if current_conversation.other_user.is_active %}
+                                        <div class="online-indicator"></div>
+                                    {% endif %}
+                                {% else %}
+                                    <div class="avatar-placeholder">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
                             {% endif %}
-                            <div>
-                                <h6 class="mb-0 fw-bold">{{ other_user.get_full_name|default:other_user.username }}</h6>
-                                {% if other_user.alumni %}
-                                    <small class="text-muted">
-                                        {{ other_user.alumni.course }}
-                                        {% if other_user.alumni.college %} • {{ other_user.alumni.get_college_display }}{% endif %}
-                                        {% if other_user.alumni.graduation_year %} • Batch {{ other_user.alumni.graduation_year }}{% endif %}
-                                    </small>
+                        </div>
+                        
+                        <!-- Conversation Info -->
+                        <div class="flex-grow-1">
+                            <h5 class="mb-0">{{ current_conversation.display_name }}</h5>
+                            {% if current_conversation.is_group_chat %}
+                                <small class="text-muted">{{ current_conversation.participants.count }} members</small>
+                            {% else %}
+                                {% if current_conversation.other_user.is_active %}
+                                    <small class="text-success">Active Now</small>
                                 {% endif %}
-                                {% if other_user.is_active %}
-                                    <span class="badge rounded-pill bg-success ms-2">Online</span>
-                                {% endif %}
-                            </div>
-                        {% endwith %}
-                    {% endif %}
+                            {% endif %}
+                        </div>
+                    </div>
                 </div>
-                <div class="message-list">
+                
+                <div class="message-list" id="messageList">
                     {% if chat_messages %}
                         {% for message in chat_messages %}
-                            <div class="message-group {% if message.sender == request.user %}sent{% else %}received{% endif %}">
-                                <div class="message-avatar">
-                                    {% if message.sender.profile.avatar %}
-                                        <img src="{{ message.sender.profile.avatar.url }}" alt="{{ message.sender.get_full_name }}">
-                                    {% else %}
-                                        <div class="avatar-placeholder">
-                                            <i class="fas fa-user"></i>
+                            {% if message.is_system_message %}
+                                <div class="message-group system-message">
+                                    <div class="message-bubble system-message-bubble">
+                                        <div class="message-content">
+                                            <div class="system-message-text">{{ message.content }}</div>
+                                            <div class="message-time">{{ message.timestamp|date:"g:i A" }}</div>
                                         </div>
-                                    {% endif %}
-                                </div>
-                                <div class="message-content">
-                                    {% if message.sender != request.user %}
-                                        <div class="message-sender">{{ message.sender.get_full_name|default:message.sender.username }}</div>
-                                    {% endif %}
-                                    <div class="message-bubble {% if message.sender == request.user %}sent{% else %}received{% endif %}">
-                                        <div class="d-flex justify-content-between align-items-start gap-2">
-                                            <div class="message-text">{{ message.content }}</div>
-                                            {% if message.sender == request.user %}
-                                                <div class="dropdown">
-                                                    <button class="btn btn-link btn-sm text-white p-0 opacity-75" type="button" data-bs-toggle="dropdown">
-                                                        <i class="fas fa-ellipsis-v"></i>
-                                                    </button>
-                                                    <ul class="dropdown-menu dropdown-menu-end">
-                                                        <li>
-                                                            <form method="post" action="{% url 'chat:delete_message' message.id %}"
-                                                                  onsubmit="return confirm('Are you sure you want to delete this message?');">
-                                                                {% csrf_token %}
-                                                                <button type="submit" class="dropdown-item text-danger">
-                                                                    <i class="fas fa-trash-alt me-2"></i>Delete Message
-                                                                </button>
-                                                            </form>
-                                                        </li>
-                                                    </ul>
-                                                </div>
-                                            {% endif %}
-                                        </div>
-                                        <div class="message-time">{{ message.timestamp|time:"g:i A" }}</div>
                                     </div>
                                 </div>
-                            </div>
+                            {% else %}
+                                <div class="message-group {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                                    <div class="message-avatar">
+                                        {% if message.sender.profile.avatar %}
+                                            <img src="{{ message.sender.profile.avatar.url }}" alt="{{ message.sender.get_full_name }}">
+                                        {% else %}
+                                            <div class="avatar-placeholder">
+                                                <i class="fas fa-user"></i>
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="message-content">
+                                        {% if message.sender != request.user %}
+                                            <div class="message-sender">{{ message.sender.get_full_name|default:message.sender.username }}</div>
+                                        {% endif %}
+                                        {% if message.file %}
+                                            <div class="message-bubble file-message">
+                                                {% if message.file.url|slice:"-4:" in ".jpg,.png,.gif,.webp" or message.file.url|slice:"-5:" == ".jpeg" %}
+                                                    <div class="message-image-container" onclick="openImageModal('{{ message.file.url }}')">
+                                                        <img src="{{ message.file.url }}" 
+                                                             alt="Shared image" 
+                                                             class="message-image"
+                                                             loading="lazy"
+                                                             onerror="handleImageError(this)">
+                                                    </div>
+                                                {% else %}
+                                                    <div class="file-message-content">
+                                                        <div class="file-message-icon">
+                                                            {% if message.file.url|slice:"-4:" == ".pdf" %}
+                                                                <i class="fas fa-file-pdf"></i>
+                                                            {% elif message.file.url|slice:"-4:" in ".doc,.docx" %}
+                                                                <i class="fas fa-file-word"></i>
+                                                            {% elif message.file.url|slice:"-4:" in ".xls,.xlsx" %}
+                                                                <i class="fas fa-file-excel"></i>
+                                                            {% else %}
+                                                                <i class="fas fa-file"></i>
+                                                            {% endif %}
+                                                        </div>
+                                                        <div class="file-message-info">
+                                                            <div class="file-message-name">{{ message.file.name }}</div>
+                                                            <div class="file-message-size">{{ message.file.size|filesizeformat }}</div>
+                                                        </div>
+                                                        <a href="{{ message.file.url }}" class="file-message-download" download>
+                                                            <i class="fas fa-download"></i>
+                                                        </a>
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% elif message.content|slice:":4" == "http" and message.content|slice:"-4:" in ".jpg,.png,.gif,.jpeg,.webp" %}
+                                            <div class="message-bubble image-message">
+                                                <div class="message-image-container" onclick="openImageModal('{{ message.content }}')">
+                                                    <img src="{{ message.content }}" 
+                                                         alt="Shared image" 
+                                                         class="message-image"
+                                                         loading="lazy"
+                                                         onerror="handleImageError(this)">
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div class="message-bubble {% if message.sender == request.user %}sent{% else %}received{% endif %}">
+                                                {{ message.content }}
+                                            </div>
+                                        {% endif %}
+                                        <div class="message-time">
+                                            {{ message.timestamp|time:"g:i A" }}
+                                        </div>
+                                    </div>
+                                </div>
+                            {% endif %}
                         {% endfor %}
                     {% else %}
                         <div class="empty-state">
@@ -491,16 +1003,46 @@
                         </div>
                     {% endif %}
                 </div>
+
                 <div class="message-input">
-                    <form method="post" action="{% url 'chat:send_message' current_conversation.id %}" class="mb-0">
-                        {% csrf_token %}
-                        <div class="input-group">
-                            <input type="text" name="content" class="form-control" placeholder="Type a message..." required
-                                   autocomplete="off">
-                            <button type="submit" class="btn">
-                                <i class="fas fa-paper-plane"></i>
-                            </button>
+                    <div class="loading-overlay" id="uploadOverlay">
+                        <div class="loading-spinner">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <span class="loading-text">Sending message...</span>
                         </div>
+                    </div>
+                    <div class="file-preview" id="filePreview">
+                        <div class="file-preview-content">
+                            <div class="file-preview-info">
+                                <div class="file-preview-name"></div>
+                                <div class="file-preview-size"></div>
+                            </div>
+                            <div class="file-preview-remove" onclick="removeFile()">
+                                <i class="fas fa-times"></i>
+                            </div>
+                        </div>
+                        <div class="file-upload-error"></div>
+                    </div>
+                    <form method="post" action="{% url 'chat:send_message' current_conversation.id %}" 
+                          class="message-input-container" 
+                          enctype="multipart/form-data"
+                          id="messageForm">
+                        {% csrf_token %}
+                        <div class="emoji-trigger">
+                            <i class="far fa-smile"></i>
+                        </div>
+                        <input type="text" name="content" class="form-control" 
+                               placeholder="Type a message..." autocomplete="off">
+                        <input type="file" id="fileInput" name="file" class="d-none" 
+                               accept="image/*,.pdf,.doc,.docx,.xls,.xlsx,.txt">
+                        <div class="file-upload-trigger" onclick="document.getElementById('fileInput').click()">
+                            <i class="fas fa-paperclip"></i>
+                        </div>
+                        <button type="submit" class="btn">
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
                     </form>
                 </div>
             {% else %}
@@ -513,34 +1055,73 @@
     </div>
 </div>
 
-<!-- New Chat Modal -->
-<div class="modal fade" id="newChatModal" tabindex="-1" aria-labelledby="newChatModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+<!-- Search Modal -->
+<div class="modal fade" id="searchModal" tabindex="-1" aria-labelledby="searchModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title" id="newChatModalLabel">Start New Conversation</h5>
+                <h5 class="modal-title">New Message</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <!-- Search Input -->
-                <div class="mb-3">
+                <form method="GET" action="{% url 'chat:chat' %}" class="mb-3">
                     <div class="input-group">
-                        <input type="text" id="userSearchInput" class="form-control" 
-                               placeholder="Search by name, course, or batch year..."
-                               autocomplete="off">
-                        <button class="btn btn-outline-secondary" type="button">
-                            <i class="fas fa-search"></i>
+                        <input type="text" 
+                               name="search" 
+                               class="form-control" 
+                               placeholder="Search people..." 
+                               value="{{ request.GET.search|default:'' }}"
+                               required
+                               minlength="2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search"></i> Search
                         </button>
                     </div>
-                </div>
+                </form>
 
-                <!-- User List -->
-                <div id="searchResults" class="user-list" style="max-height: 400px; overflow-y: auto;">
-                    <div class="text-center text-muted p-4">
-                        <i class="fas fa-search mb-2" style="font-size: 2rem;"></i>
-                        <p class="mb-0">Search for users to start a conversation</p>
+                {% if search_users %}
+                    <div class="list-group">
+                        {% for user in search_users %}
+                            <div class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ user.profile.avatar.url|default:'/static/images/default-avatar.png' }}" 
+                                         class="rounded-circle me-3" 
+                                         style="width: 48px; height: 48px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">{{ user.get_full_name|default:user.username }}</h6>
+                                        {% if user.alumni %}
+                                            <small class="text-muted">
+                                                {{ user.alumni.course }}
+                                                {% if user.alumni.graduation_year %} • Batch {{ user.alumni.graduation_year }}{% endif %}
+                                            </small>
+                                        {% endif %}
+                                    </div>
+                                    <form action="{% url 'chat:start_conversation' user.id %}" method="POST" class="ms-3">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            {% if user.has_chat %}
+                                                Open Chat
+                                            {% elif user.has_deleted_chat %}
+                                                Restore Chat
+                                            {% else %}
+                                                Message
+                                            {% endif %}
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        {% endfor %}
                     </div>
-                </div>
+                {% elif request.GET.search %}
+                    <div class="text-center p-4 text-muted">
+                        <p class="mb-0">No users found</p>
+                    </div>
+                {% else %}
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-search mb-2"></i>
+                        <p class="mb-0">Type to search for people</p>
+                    </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -617,278 +1198,153 @@
     </div>
 </div>
 
+<!-- Image View Modal -->
+<div class="modal fade" id="imageViewModal" tabindex="-1" aria-labelledby="imageViewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">
+                    <i class="fas fa-times"></i> Close
+                </button>
+            </div>
+            <div class="modal-body text-center p-0">
+                <img src="" class="img-fluid" id="modalImage" alt="Full size image" style="max-height: 85vh; width: auto;">
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}
+
 {% block extra_js %}
+{{ block.super }}
 <script>
+// Initialize image view modal
+const imageModal = new bootstrap.Modal(document.getElementById('imageViewModal'));
+const modalImage = document.getElementById('modalImage');
+
+function openImageModal(imageUrl) {
+    modalImage.src = imageUrl;
+    imageModal.show();
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const searchInput = document.getElementById('userSearchInput');
-    const searchResults = document.getElementById('searchResults');
+    const searchResults = document.getElementById('userSearchResults');
     let searchTimeout;
 
-    function createUserElement(user) {
-        return `
-            <div class="d-flex align-items-center p-3 border-bottom user-item">
-                ${user.profile_avatar ? 
-                    `<img src="${user.profile_avatar}" alt="${user.full_name}" 
-                          class="rounded-circle me-3" style="width: 48px; height: 48px; object-fit: cover;">` :
-                    `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" 
-                          style="width: 48px; height: 48px;">
-                        <i class="fas fa-user text-secondary"></i>
-                     </div>`
-                }
-                <div class="flex-grow-1 min-width-0">
-                    <div class="fw-semibold text-truncate">${user.full_name || user.username}</div>
-                    ${user.alumni_info ? 
-                        `<div class="text-muted small text-truncate">${user.alumni_info}</div>` : 
-                        ''}
-                </div>
-                <div class="ms-3">
-                    <form method="post" action="/chat/start/${user.id}/" class="d-inline">
-                        <input type="hidden" name="csrfmiddlewaretoken" value="${document.querySelector('[name=csrfmiddlewaretoken]').value}">
-                        <button type="submit" class="btn btn-sm btn-primary rounded-circle">
-                            <i class="fas fa-paper-plane"></i>
-                        </button>
-                    </form>
-                </div>
-            </div>
-        `;
-    }
+    if (searchInput && searchResults) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            const query = this.value.trim();
+            console.log('Search query:', query); // Debug log
 
-    function showLoadingState() {
-        searchResults.innerHTML = `
-            <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
-    }
-
-    function showEmptyState(message) {
-        searchResults.innerHTML = `
-            <div class="text-center text-muted p-4">
-                <i class="fas fa-user-slash mb-2" style="font-size: 2rem;"></i>
-                <p class="mb-0">${message}</p>
-            </div>
-        `;
-    }
-
-    function showInitialState() {
-        searchResults.innerHTML = `
-            <div class="text-center text-muted p-4">
-                <i class="fas fa-search mb-2" style="font-size: 2rem;"></i>
-                <p class="mb-0">Search for users to start a conversation</p>
-            </div>
-        `;
-    }
-
-    searchInput.addEventListener('input', function(e) {
-        const query = e.target.value.trim();
-        
-        clearTimeout(searchTimeout);
-        
-        if (query.length === 0) {
-            showInitialState();
-            return;
-        }
-        
-        if (query.length < 2) {
-            return;
-        }
-
-        showLoadingState();
-        
-        searchTimeout = setTimeout(() => {
-            fetch(`/chat/api/search-users/?q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length === 0) {
-                        showEmptyState('No users found');
-                        return;
-                    }
-                    
-                    searchResults.innerHTML = data.map(user => createUserElement(user)).join('');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showEmptyState('An error occurred while searching');
-                });
-        }, 300);
-    });
-
-    // Clear search when modal is hidden
-    const modal = document.getElementById('newChatModal');
-    modal.addEventListener('hidden.bs.modal', function () {
-        searchInput.value = '';
-        showInitialState();
-    });
-});
-</script>
-
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Group photo preview
-    const groupPhotoPreview = document.getElementById('groupPhotoPreview');
-    const groupPhotoInput = document.getElementById('groupPhoto');
-    const selectedMembers = document.getElementById('selectedMembers');
-    const selectedMemberIds = document.getElementById('selectedMemberIds');
-    const groupMemberSearch = document.getElementById('groupMemberSearch');
-    const groupSearchResults = document.getElementById('groupSearchResults');
-    let selectedUsers = new Set();
-    let searchTimeout;
-
-    // Group photo handling
-    groupPhotoPreview.addEventListener('click', () => groupPhotoInput.click());
-    
-    groupPhotoInput.addEventListener('change', function(e) {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                groupPhotoPreview.innerHTML = `
-                    <img src="${e.target.result}" class="rounded-circle" 
-                         style="width: 100px; height: 100px; object-fit: cover;">
-                `;
+            if (query.length === 0) {
+                searchResults.innerHTML = `
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-search mb-2"></i>
+                        <p class="mb-0">Type to search for people</p>
+                    </div>`;
+                return;
             }
-            reader.readAsDataURL(this.files[0]);
-        }
-    });
 
-    // Create user chip
-    function createUserChip(user) {
-        return `
-            <div class="user-chip d-inline-flex align-items-center bg-light rounded-pill px-3 py-1" 
-                 data-user-id="${user.id}">
-                <span class="me-2">${user.full_name}</span>
-                <button type="button" class="btn-close btn-close-sm" 
-                        onclick="removeSelectedUser(${user.id})"></button>
-            </div>
-        `;
-    }
+            if (query.length < 2) {
+                searchResults.innerHTML = `
+                    <div class="text-center p-4 text-muted">
+                        <p class="mb-0">Type at least 2 characters</p>
+                    </div>`;
+                return;
+            }
 
-    // Remove selected user
-    window.removeSelectedUser = function(userId) {
-        selectedUsers.delete(userId);
-        updateSelectedMembers();
-        document.querySelector(`.user-chip[data-user-id="${userId}"]`).remove();
-    }
+            searchTimeout = setTimeout(() => {
+                // Show loading state
+                searchResults.innerHTML = `
+                    <div class="text-center p-4">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>`;
 
-    // Update selected members input
-    function updateSelectedMembers() {
-        selectedMemberIds.value = Array.from(selectedUsers).join(',');
-    }
+                // Perform search
+                fetch(`/chat/search-users/?q=${encodeURIComponent(query)}`)
+                    .then(response => {
+                        console.log('Search response:', response); // Debug log
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log('Search results:', data); // Debug log
+                        
+                        if (!data || data.length === 0) {
+                            searchResults.innerHTML = `
+                                <div class="text-center p-4 text-muted">
+                                    <p class="mb-0">No users found</p>
+                                </div>`;
+                            return;
+                        }
 
-    // Group member search
-    groupMemberSearch.addEventListener('input', function(e) {
-        const query = e.target.value.trim();
-        
-        clearTimeout(searchTimeout);
-        
-        if (query.length === 0) {
-            showInitialGroupSearchState();
-            return;
-        }
-        
-        if (query.length < 2) return;
-
-        showLoadingState(groupSearchResults);
-        
-        searchTimeout = setTimeout(() => {
-            fetch(`/chat/api/search-users/?q=${encodeURIComponent(query)}`)
-                .then(response => response.json())
-                .then(data => {
-                    if (data.length === 0) {
-                        showEmptyState(groupSearchResults, 'No users found');
-                        return;
-                    }
-                    
-                    groupSearchResults.innerHTML = data
-                        .filter(user => !selectedUsers.has(user.id))
-                        .map(user => `
-                            <div class="d-flex align-items-center p-2 border-bottom user-item">
-                                ${user.profile_avatar ? 
-                                    `<img src="${user.profile_avatar}" alt="${user.full_name}" 
-                                          class="rounded-circle me-2" style="width: 32px; height: 32px; object-fit: cover;">` :
-                                    `<div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-2" 
-                                          style="width: 32px; height: 32px;">
-                                        <i class="fas fa-user text-secondary"></i>
-                                     </div>`
-                                }
-                                <div class="flex-grow-1">
-                                    <div class="fw-semibold">${user.full_name || user.username}</div>
-                                    ${user.alumni_info ? 
-                                        `<div class="text-muted small">${user.alumni_info}</div>` : 
-                                        ''}
+                        const resultsHtml = data.map(user => `
+                            <div class="list-group-item">
+                                <div class="d-flex align-items-center">
+                                    <img src="${user.profile_avatar || '/static/images/default-avatar.png'}" 
+                                         class="rounded-circle me-3" 
+                                         style="width: 48px; height: 48px; object-fit: cover;">
+                                    <div class="flex-grow-1">
+                                        <h6 class="mb-0">${user.full_name}</h6>
+                                        ${user.alumni_info ? `<small class="text-muted">${user.alumni_info}</small>` : ''}
+                                    </div>
+                                    <form action="/chat/start-conversation/${user.id}/" method="POST" class="ms-3">
+                                        <input type="hidden" name="csrfmiddlewaretoken" value="${getCookie('csrftoken')}">
+                                        <button type="submit" class="btn btn-primary btn-sm">
+                                            ${user.has_chat ? 'Open Chat' : (user.has_deleted_chat ? 'Restore Chat' : 'Message')}
+                                        </button>
+                                    </form>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary rounded-pill"
-                                        onclick="addGroupMember(${JSON.stringify(user).replace(/"/g, '&quot;')})">
-                                    Add
-                                </button>
                             </div>
                         `).join('');
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showEmptyState(groupSearchResults, 'An error occurred while searching');
-                });
-        }, 300);
-    });
 
-    // Add group member
-    window.addGroupMember = function(user) {
-        if (!selectedUsers.has(user.id)) {
-            selectedUsers.add(user.id);
-            const membersContainer = selectedMembers.querySelector('.d-flex');
-            membersContainer.insertAdjacentHTML('beforeend', createUserChip(user));
-            updateSelectedMembers();
+                        searchResults.innerHTML = resultsHtml;
+                    })
+                    .catch(error => {
+                        console.error('Search error:', error); // Debug log
+                        searchResults.innerHTML = `
+                            <div class="text-center p-4 text-danger">
+                                <p class="mb-0">An error occurred while searching</p>
+                            </div>`;
+                    });
+            }, 300);
+        });
+    }
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
         }
-        
-        // Remove user from search results
-        const userItem = groupSearchResults.querySelector(`.user-item:has(button[onclick*="${user.id}"])`);
-        if (userItem) userItem.remove();
-        
-        if (groupSearchResults.querySelectorAll('.user-item').length === 0) {
-            showEmptyState(groupSearchResults, 'No more users to add');
-        }
+        return cookieValue;
     }
 
-    function showInitialGroupSearchState() {
-        groupSearchResults.innerHTML = `
-            <div class="text-center text-muted p-4">
-                <i class="fas fa-search mb-2" style="font-size: 2rem;"></i>
-                <p class="mb-0">Search for users to add to the group</p>
-            </div>
-        `;
+    // Clear search when modal is closed
+    const searchModal = document.getElementById('searchModal');
+    if (searchModal) {
+        searchModal.addEventListener('hidden.bs.modal', function() {
+            if (searchInput) {
+                searchInput.value = '';
+                searchResults.innerHTML = `
+                    <div class="text-center p-4 text-muted">
+                        <i class="fas fa-search mb-2"></i>
+                        <p class="mb-0">Type to search for people</p>
+                    </div>`;
+            }
+        });
     }
-
-    function showLoadingState(element) {
-        element.innerHTML = `
-            <div class="text-center p-4">
-                <div class="spinner-border text-primary" role="status">
-                    <span class="visually-hidden">Loading...</span>
-                </div>
-            </div>
-        `;
-    }
-
-    function showEmptyState(element, message) {
-        element.innerHTML = `
-            <div class="text-center text-muted p-4">
-                <i class="fas fa-user-slash mb-2" style="font-size: 2rem;"></i>
-                <p class="mb-0">${message}</p>
-            </div>
-        `;
-    }
-
-    // Reset form when modal is hidden
-    const groupModal = document.getElementById('newGroupModal');
-    groupModal.addEventListener('hidden.bs.modal', function () {
-        document.getElementById('createGroupForm').reset();
-        groupPhotoPreview.innerHTML = '<i class="fas fa-camera text-secondary" style="font-size: 24px;"></i>';
-        selectedMembers.querySelector('.d-flex').innerHTML = '';
-        selectedUsers.clear();
-        updateSelectedMembers();
-        showInitialGroupSearchState();
-    });
 });
 </script>
-{% endblock %}
-{% endblock %} 
+{% endblock extra_js %}

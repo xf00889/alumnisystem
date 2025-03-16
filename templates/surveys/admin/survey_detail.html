@@ -1,0 +1,224 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ survey.title }} - Survey Details{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item">
+    <a href="{% url 'surveys:survey_list' %}">Surveys</a>
+</li>
+<li class="breadcrumb-item active">{{ survey.title }}</li>
+{% endblock %}
+
+{% block content %}
+<div class="page-container py-4">
+    <div class="row">
+        <!-- Survey Overview -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-clipboard-list me-2"></i>Survey Details
+                    </h5>
+                    <div>
+                        <span class="badge {% if survey.status == 'active' %}bg-success{% elif survey.status == 'draft' %}bg-secondary{% else %}bg-danger{% endif %}">
+                            {{ survey.get_status_display }}
+                        </span>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-4">
+                        <div class="col-md-8">
+                            <h4>{{ survey.title }}</h4>
+                            <p class="text-muted">{{ survey.description }}</p>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="text-muted small">
+                                <p><i class="far fa-calendar-alt me-2"></i>Created: {{ survey.created_at|date:"M d, Y" }}</p>
+                                <p><i class="fas fa-calendar-day me-2"></i>Start: {{ survey.start_date|date:"M d, Y H:i" }}</p>
+                                <p><i class="fas fa-calendar-check me-2"></i>End: {{ survey.end_date|date:"M d, Y H:i" }}</p>
+                                <p><i class="fas fa-user me-2"></i>Created by: {{ survey.created_by.get_full_name }}</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {% if survey.is_external %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-external-link-alt me-2"></i>
+                        This is an external survey. Responses are collected at:
+                        <a href="{{ survey.external_url }}" target="_blank" class="alert-link">{{ survey.external_url }}</a>
+                    </div>
+                    {% else %}
+                    <!-- Questions Section -->
+                    <div class="questions-section">
+                        <h6 class="mb-3">Survey Questions</h6>
+                        {% if questions %}
+                            {% for question in questions %}
+                            <div class="card mb-3">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="mb-0">Q{{ forloop.counter }}. {{ question.question_text }}</h6>
+                                        <span class="badge {% if question.is_required %}bg-danger{% else %}bg-secondary{% endif %}">
+                                            {% if question.is_required %}Required{% else %}Optional{% endif %}
+                                        </span>
+                                    </div>
+                                    
+                                    {% if question.help_text %}
+                                    <p class="text-muted small mb-2">{{ question.help_text }}</p>
+                                    {% endif %}
+                                    
+                                    <div class="question-details small">
+                                        <span class="badge bg-light text-dark me-2">
+                                            {{ question.get_question_type_display }}
+                                        </span>
+                                        
+                                        {% if question.question_type in 'rating,likert' and question.scale_type %}
+                                        <span class="badge bg-light text-dark">
+                                            Scale: {{ question.get_scale_type_display }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    {% if question.options.exists %}
+                                    <div class="mt-2">
+                                        <p class="small mb-1">Options:</p>
+                                        <ul class="list-unstyled ms-3 mb-0">
+                                            {% for option in question.options.all %}
+                                            <li class="small">
+                                                <i class="fas fa-circle-dot me-1"></i>
+                                                {{ option.option_text }}
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                        <div class="alert alert-warning">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            No questions have been added to this survey yet.
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+                <div class="card-footer bg-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <a href="{% url 'surveys:survey_list' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left me-1"></i>Back to List
+                            </a>
+                        </div>
+                        <div>
+                            {% if not survey.is_external %}
+                            <a href="{% url 'surveys:question_create' survey.id %}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-plus me-1"></i>Add Question
+                            </a>
+                            {% endif %}
+                            <a href="{% url 'surveys:survey_responses' survey.id %}" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-poll me-1"></i>View Responses
+                            </a>
+                            <a href="{% url 'surveys:survey_update' survey.id %}" class="btn btn-primary">
+                                <i class="fas fa-edit me-1"></i>Edit Survey
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Response Statistics -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar me-2"></i>Response Statistics
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="text-center mb-4">
+                        <h3 class="mb-0">{{ response_count }}</h3>
+                        <p class="text-muted mb-0">Total Responses</p>
+                    </div>
+                    
+                    {% if not survey.is_external %}
+                    <div class="d-grid">
+                        <a href="#" class="btn btn-outline-primary">
+                            <i class="fas fa-download me-1"></i>Export Responses
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Survey Status Card -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>Status Information
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <span class="status-indicator status-{{ survey.status }}"></span>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="mb-0">Current Status</h6>
+                                    <small class="text-muted">{{ survey.get_status_display }}</small>
+                                </div>
+                            </div>
+                        </li>
+                        <li class="mb-3">
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="far fa-clock text-muted"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="mb-0">Time Remaining</h6>
+                                    <small class="text-muted">
+                                        {% if survey.end_date|date:"U" < now|date:"U" %}
+                                            Ended
+                                        {% else %}
+                                            Ends in {{ survey.end_date|timeuntil }}
+                                        {% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </li>
+                        <li>
+                            <div class="d-flex align-items-center">
+                                <div class="flex-shrink-0">
+                                    <i class="fas fa-link text-muted"></i>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="mb-0">Survey Type</h6>
+                                    <small class="text-muted">
+                                        {% if survey.is_external %}External{% else %}Internal{% endif %}
+                                    </small>
+                                </div>
+                            </div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.status-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+}
+.status-draft { background-color: #6c757d; }
+.status-active { background-color: #28a745; }
+.status-closed { background-color: #dc3545; }
+</style>
+{% endblock %} 

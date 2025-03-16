@@ -21,8 +21,13 @@ from django.http import HttpResponseRedirect, JsonResponse
 from django.urls import reverse
 from alumni_directory.models import Alumni
 import logging
+from django.db.models import Prefetch
+from django.utils.timezone import now
+from django.contrib.auth import get_user_model
 
 logger = logging.getLogger(__name__)
+
+User = get_user_model()
 
 # Create your views here.
 
@@ -32,11 +37,53 @@ class ChatView(LoginRequiredMixin, TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         
+        # Handle user search first
+        search_query = self.request.GET.get('search', '').strip()
+        search_users = []
+        
+        if search_query and len(search_query) >= 2:
+            # Get blocked users
+            blocked_users = set(UserBlock.objects.filter(
+                blocker=self.request.user
+            ).values_list('blocked_id', flat=True))
+            
+            # Search users
+            search_users = User.objects.exclude(
+                id__in=list(blocked_users) + [self.request.user.id]
+            ).filter(
+                Q(username__icontains=search_query) |
+                Q(first_name__icontains=search_query) |
+                Q(last_name__icontains=search_query) |
+                Q(email__icontains=search_query) |
+                Q(alumni__course__icontains=search_query) |
+                Q(alumni__college__icontains=search_query) |
+                Q(alumni__campus__icontains=search_query) |
+                Q(alumni__graduation_year__icontains=search_query)
+            ).select_related(
+                'profile',
+                'alumni'
+            ).distinct()[:20]
+
+            # Annotate users with chat status
+            for user in search_users:
+                # Check if there's an existing conversation
+                existing_chat = Conversation.objects.filter(
+                    is_group_chat=False,
+                    participants=self.request.user
+                ).filter(
+                    participants=user
+                ).first()
+                
+                user.has_chat = bool(existing_chat)
+
         # Get conversations
         conversations = Conversation.objects.filter(
             participants=self.request.user
         ).prefetch_related(
-            'messages'
+            Prefetch('messages', 
+                    queryset=Message.objects.order_by('-timestamp'),
+                    to_attr='latest_messages'),
+            'participants'
         ).annotate(
             latest_message_time=Max('messages__timestamp'),
             unread_count=Count(
@@ -46,85 +93,54 @@ class ChatView(LoginRequiredMixin, TemplateView):
         ).order_by(
             Coalesce('latest_message_time', 'created_at').desc()
         )
-        
-        # Add last message to each conversation
+
+        # Process conversations
         for conversation in conversations:
-            conversation.last_message = conversation.messages.filter(
-                is_deleted=False
-            ).order_by('-timestamp').first()
-        
-        # Get current conversation if specified
-        conversation_id = self.kwargs.get('conversation') or self.request.GET.get('conversation')
+            if conversation.is_group_chat:
+                conversation.display_name = conversation.name
+                conversation.chat_type = 'group'
+            else:
+                other_user = conversation.get_other_participant(self.request.user)
+                if other_user and other_user in conversation.participants.all():
+                    conversation.display_name = other_user.get_full_name() or other_user.username
+                    conversation.chat_type = 'private'
+                    conversation.other_user = other_user
+                else:
+                    conversation.display_name = "Unknown User"
+                    conversation.chat_type = 'private'
+            
+            conversation.last_message = conversation.latest_messages[0] if conversation.latest_messages else None
+
+        # Get current conversation
         current_conversation = None
         chat_messages = []
+        conversation_id = self.kwargs.get('conversation') or self.request.GET.get('conversation')
+        
         if conversation_id:
-            current_conversation = get_object_or_404(
-                conversations,
-                id=conversation_id
-            )
-            chat_messages = Message.objects.filter(
-                conversation=current_conversation,
-                is_deleted=False
-            ).select_related('sender')
-            
-            # Mark messages as read
-            Message.objects.filter(
-                conversation=current_conversation,
-                is_read=False
-            ).exclude(
-                sender=self.request.user
-            ).update(is_read=True)
-        
-        # Get users
-        filter_type = self.request.GET.get('filter', 'all')
-        query = self.request.GET.get('q', '').strip()
-        
-        # Get blocked users
-        blocked_users = set(UserBlock.objects.filter(
-            blocker=self.request.user
-        ).values_list('blocked_id', flat=True))
-        
-        # Base queryset
-        users = User.objects.exclude(
-            id__in=list(blocked_users) + [self.request.user.id]
-        ).select_related('alumni', 'profile')
-        
-        # Apply filter
-        if filter_type == 'alumni':
-            users = users.filter(alumni__isnull=False)
-        elif filter_type == 'online':
-            users = users.filter(is_active=True)
-        
-        # Apply search if query exists
-        if query:
-            users = users.filter(
-                Q(username__icontains=query) |
-                Q(first_name__icontains=query) |
-                Q(last_name__icontains=query) |
-                Q(email__icontains=query) |
-                Q(alumni__course__icontains=query) |
-                Q(alumni__college__icontains=query) |
-                Q(alumni__campus__icontains=query) |
-                Q(alumni__graduation_year__icontains=query)
-            ).distinct()
-        
-        # Annotate with chat existence
-        users = users.annotate(
-            has_chat=Exists(
-                Conversation.objects.filter(
-                    is_group_chat=False,
-                    participants=self.request.user
-                ).filter(
-                    participants=OuterRef('pk')
+            try:
+                current_conversation = next(
+                    (conv for conv in conversations if str(conv.id) == str(conversation_id)),
+                    None
                 )
-            )
-        ).order_by('first_name', 'last_name')[:50]
-        
+                
+                if current_conversation:
+                    chat_messages = current_conversation.messages.select_related('sender').order_by('timestamp')
+                    
+                    chat_messages.filter(
+                        is_read=False
+                    ).exclude(
+                        sender=self.request.user
+                    ).update(is_read=True)
+            except Exception as e:
+                logger.error(f"Error retrieving conversation: {str(e)}")
+                messages.error(self.request, "An error occurred while loading the conversation.")
+                return redirect('chat:chat')
+
         context.update({
             'conversations': conversations,
             'current_conversation': current_conversation,
             'chat_messages': chat_messages,
-            'users': users,
+            'search_users': search_users,
         })
         return context
 
@@ -177,12 +193,28 @@ def send_message(request, conversation_id):
     )
     
     content = request.POST.get('content', '').strip()
-    if content:
-        Message.objects.create(
+    file = request.FILES.get('file')
+    
+    if content or file:
+        message = Message.objects.create(
             conversation=conversation,
             sender=request.user,
-            content=content
+            content=content,
+            file=file
         )
+        
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return JsonResponse({
+                'status': 'success',
+                'message': {
+                    'id': message.id,
+                    'content': message.content,
+                    'file_url': message.file.url if message.file else None,
+                    'file_name': message.file.name if message.file else None,
+                    'file_size': message.file.size if message.file else None,
+                    'timestamp': message.timestamp.strftime('%I:%M %p'),
+                }
+            })
     
     return redirect('chat:chat_with_id', conversation=conversation.id)
 
@@ -215,7 +247,7 @@ def start_conversation(request, user_id):
 def open_conversation(request, user_id):
     other_user = get_object_or_404(User, id=user_id)
     
-    # Get existing conversation or create new one
+    # Get existing conversation
     conversation = Conversation.objects.filter(
         is_group_chat=False,
         participants=request.user
@@ -224,6 +256,7 @@ def open_conversation(request, user_id):
     ).first()
     
     if not conversation:
+        # Create new conversation if none exists
         conversation = Conversation.objects.create(
             is_group_chat=False,
             created_by=request.user
@@ -237,7 +270,6 @@ class ConversationViewSet(viewsets.ModelViewSet):
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Get conversations with latest message and unread count
         return Conversation.objects.filter(
             participants=self.request.user
         ).annotate(
@@ -384,8 +416,7 @@ class MessageViewSet(viewsets.ModelViewSet):
         ).update(is_read=True)
         
         return Message.objects.filter(
-            conversation_id=conversation_id,
-            is_deleted=False
+            conversation_id=conversation_id
         ).select_related('sender')
 
     def perform_create(self, serializer):
@@ -396,15 +427,6 @@ class MessageViewSet(viewsets.ModelViewSet):
         )
         serializer.save(sender=self.request.user, conversation=conversation)
         logger.info(f"Message sent in conversation {conversation_id}")
-
-    @action(detail=True, methods=['post'])
-    def delete_message(self, request, pk=None, conversation_pk=None):
-        message = self.get_object()
-        if message.sender != request.user:
-            return Response(status=status.HTTP_403_FORBIDDEN)
-        message.soft_delete()
-        logger.info(f"Message {pk} deleted by {request.user.username}")
-        return Response(status=status.HTTP_204_NO_CONTENT)
 
 class UserBlockViewSet(viewsets.ModelViewSet):
     serializer_class = UserBlockSerializer
@@ -456,12 +478,21 @@ def search_users(request):
     # Format results
     results = []
     for user in users:
+        # Check if there's an existing conversation
+        existing_chat = Conversation.objects.filter(
+            is_group_chat=False,
+            participants=request.user
+        ).filter(
+            participants=user
+        ).first()
+        
         user_data = {
             'id': user.id,
             'username': user.username,
             'full_name': user.get_full_name() or user.username,
             'profile_avatar': user.profile.avatar.url if user.profile.avatar else None,
-            'alumni_info': None
+            'alumni_info': None,
+            'has_chat': bool(existing_chat)
         }
         
         if hasattr(user, 'alumni') and user.alumni:
@@ -475,42 +506,6 @@ def search_users(request):
         results.append(user_data)
     
     return JsonResponse(results, safe=False)
-
-@login_required
-@require_POST
-def delete_message(request, message_id):
-    message = get_object_or_404(Message, id=message_id)
-    
-    # Check if user owns the message
-    if message.sender != request.user:
-        messages.error(request, "You don't have permission to delete this message.")
-        return redirect('chat:chat_with_id', conversation=message.conversation.id)
-    
-    conversation_id = message.conversation.id
-    message.soft_delete()  # Use soft delete to maintain conversation history
-    
-    messages.success(request, "Message deleted successfully.")
-    return redirect('chat:chat_with_id', conversation=conversation_id)
-
-@login_required
-@require_POST
-def delete_conversation(request, conversation_id):
-    conversation = get_object_or_404(Conversation, id=conversation_id)
-    
-    # Check if user is part of the conversation
-    if request.user not in conversation.participants.all():
-        messages.error(request, "You don't have permission to delete this conversation.")
-        return redirect('chat:chat')
-    
-    # Remove user from conversation participants
-    conversation.participants.remove(request.user)
-    
-    # If no participants left, delete the conversation
-    if conversation.participants.count() == 0:
-        conversation.delete()
-    
-    messages.success(request, "Conversation deleted successfully.")
-    return redirect('chat:chat')
 
 @login_required
 @require_POST
@@ -555,3 +550,63 @@ def create_group(request):
         logger.error(f"Error creating group: {str(e)}")
         messages.error(request, 'An error occurred while creating the group')
         return redirect('chat:chat')
+
+@login_required
+def conversation_list(request):
+    # Get all conversations for the current user
+    conversations = (Conversation.objects
+        .filter(participants=request.user)
+        .prefetch_related(
+            Prefetch('messages', 
+                    queryset=Message.objects.order_by('-timestamp'),
+                    to_attr='latest_messages')
+        )
+        .prefetch_related('participants')
+        .annotate(last_message_time=Max('messages__timestamp'))
+        .order_by('-last_message_time'))
+
+    for conv in conversations:
+        # Add sender info for display
+        if conv.latest_messages:
+            conv.display_name = conv.name if conv.is_group_chat else conv.latest_messages[0].sender.get_full_name()
+            conv.last_message = conv.latest_messages[0]
+        else:
+            other_participant = conv.get_other_participant(request.user)
+            conv.display_name = conv.name if conv.is_group_chat else (other_participant.get_full_name() if other_participant else "Unknown")
+            conv.last_message = None
+
+    return render(request, 'chat/chat.html', {
+        'conversations': conversations,
+    })
+
+@login_required
+def conversation_detail(request, conversation_id):
+    conversation = get_object_or_404(Conversation.objects.prefetch_related('participants', 'messages'), id=conversation_id)
+    
+    if request.user not in conversation.participants.all():
+        return redirect('chat:conversation_list')
+    
+    # Mark messages as read
+    conversation.messages.filter(sender__in=conversation.participants.exclude(id=request.user.id)).update(is_read=True)
+    
+    # Get display name based on conversation type
+    if conversation.is_group_chat:
+        display_name = conversation.name
+        chat_type = 'group'
+    else:
+        latest_message = conversation.messages.order_by('-timestamp').first()
+        if latest_message:
+            display_name = latest_message.sender.get_full_name()
+        else:
+            other_participant = conversation.get_other_participant(request.user)
+            display_name = other_participant.get_full_name() if other_participant else "Unknown"
+        chat_type = 'private'
+    
+    context = {
+        'conversation': conversation,
+        'display_name': display_name,
+        'chat_type': chat_type,
+        'messages': conversation.messages.order_by('timestamp'),
+    }
+    
+    return render(request, 'chat/chat.html', context)

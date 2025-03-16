@@ -1,0 +1,272 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Find a Mentor - NORSU Alumni System{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/mentorship.css' %}">
+{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Find a Mentor</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<!-- Add CSRF token -->
+{% csrf_token %}
+<div class="mentor-search-wrapper py-5">
+    <div class="container">
+        <!-- Header Section -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mx-auto text-center">
+                <h1 class="display-5 fw-bold mb-3">Find Your Mentor</h1>
+                <p class="lead text-muted">
+                    Connect with experienced professionals who can guide you on your career journey
+                </p>
+            </div>
+        </div>
+
+        <!-- Info Alert -->
+        <div class="row mb-5">
+            <div class="col-lg-8 mx-auto">
+                <div class="alert alert-info d-flex align-items-center shadow-sm border-0 rounded-3">
+                    <div class="alert-icon me-3">
+                        <i class="fas fa-info-circle fa-2x"></i>
+                    </div>
+                    <div>
+                        <h5 class="alert-heading mb-1">Use the search filters to find mentors that match your interests.</h5>
+                        <p class="mb-0">Our mentorship program connects you with alumni who can provide guidance, share experiences, and help you achieve your career goals.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="row g-4">
+            <!-- Search and Filters -->
+            <div class="col-lg-4">
+                <div class="card search-filter-card border-0 shadow-sm rounded-3">
+                    <div class="card-body p-4">
+                        <h4 class="card-title mb-4">
+                            <i class="fas fa-search text-primary me-2"></i>
+                            Search Criteria
+                        </h4>
+                        <form id="mentorSearchForm">
+                            <div class="mb-4">
+                                <label for="expertise" class="form-label fw-medium">Areas of Expertise</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light border-end-0">
+                                        <i class="fas fa-lightbulb text-primary"></i>
+                                    </span>
+                                    <input type="text" class="form-control border-start-0 ps-0" id="expertise" name="expertise" 
+                                           placeholder="e.g., Web Development, Data Science">
+                                </div>
+                                <div class="form-text">Enter skills or knowledge areas you're interested in</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="availability" class="form-label fw-medium">Availability</label>
+                                <select class="form-select custom-select" id="availability" name="availability">
+                                    <option value="">Any Availability</option>
+                                    <option value="AVAILABLE">Fully Available</option>
+                                    <option value="LIMITED">Limited Availability</option>
+                                </select>
+                                <div class="form-text">Filter mentors by their current availability</div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label class="form-label fw-medium">Experience Level</label>
+                                <div class="form-check custom-checkbox">
+                                    <input class="form-check-input" type="checkbox" id="experienced" name="experienced">
+                                    <label class="form-check-label" for="experienced">
+                                        Experienced Mentors
+                                    </label>
+                                    <div class="form-text">Mentors with documented mentoring experience</div>
+                                </div>
+                            </div>
+                            
+                            <div class="mb-4">
+                                <label for="sort" class="form-label fw-medium">Sort By</label>
+                                <select class="form-select custom-select" id="sort" name="sort">
+                                    <option value="experience">Mentoring Experience</option>
+                                    <option value="availability">Availability</option>
+                                    <option value="recent">Recently Joined</option>
+                                </select>
+                                <div class="form-text">Choose how to sort your results</div>
+                            </div>
+                            
+                            <button type="submit" class="btn btn-primary w-100 search-btn">
+                                <i class="fas fa-search me-2"></i>
+                                Find Mentors
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Results -->
+            <div class="col-lg-8">
+                <div id="resultsHeader" class="d-none mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="results-count">
+                            <span id="resultsCount" class="fw-bold">0</span> mentors found
+                        </div>
+                        <div class="view-toggle">
+                            <button class="btn btn-sm btn-outline-secondary active" id="gridView">
+                                <i class="fas fa-th-large"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-secondary" id="listView">
+                                <i class="fas fa-list"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="searchResults" class="row g-4">
+                    <!-- Results will be populated dynamically -->
+                    <div class="col-12">
+                        <div class="empty-state text-center py-5">
+                            <div class="empty-state-icon mb-4">
+                                <i class="fas fa-users"></i>
+                            </div>
+                            <h3 class="empty-state-title">Find Your Perfect Mentor Match</h3>
+                            <p class="empty-state-description text-muted mb-4">
+                                Use the search filters to discover mentors who align with your career goals and interests.
+                            </p>
+                            <div class="empty-state-action">
+                                <button class="btn btn-outline-primary btn-lg px-4" onclick="document.getElementById('mentorSearchForm').dispatchEvent(new Event('submit'))">
+                                    <i class="fas fa-search me-2"></i>
+                                    Search All Mentors
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mentorship Request Modal -->
+<div class="modal fade mentorship-request-modal" id="mentorshipRequestModal" tabindex="-1" aria-labelledby="mentorshipRequestModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mentorshipRequestModalLabel">
+                    <i class="fas fa-handshake me-2"></i>Request Mentorship
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    Please provide details about what you're looking to gain from this mentorship. Be specific about your goals and what skills you're hoping to develop.
+                </div>
+                
+                <form id="mentorshipRequestForm">
+                    <input type="hidden" id="mentorId" name="mentorId">
+                    
+                    <div class="mb-3">
+                        <label for="skillsSeeking" class="form-label">Skills/Knowledge Areas You're Seeking Help With</label>
+                        <input type="text" class="form-control" id="skillsSeeking" name="skillsSeeking" placeholder="e.g. Web Development, Leadership, Career Guidance">
+                        <div class="form-text">List specific skills or knowledge areas you'd like guidance on.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="goals" class="form-label">Your Mentorship Goals</label>
+                        <textarea class="form-control" id="goals" name="goals" rows="3" placeholder="What do you hope to achieve through this mentorship?"></textarea>
+                        <div class="form-text">Be specific about what you want to accomplish.</div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="message" class="form-label">Introduction Message</label>
+                        <textarea class="form-control" id="message" name="message" rows="4" placeholder="Introduce yourself and explain why you chose this mentor"></textarea>
+                        <div class="form-text">This will be sent to the mentor as part of your request.</div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="submitRequest">
+                    <i class="fas fa-paper-plane me-2"></i>Send Request
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Mentor Card Template -->
+<template id="mentorCardTemplate">
+    <div class="col-md-6 col-lg-4 mb-4">
+        <div class="mentor-card h-100 shadow-sm">
+            <div class="card-body">
+                <div class="d-flex align-items-center mb-3">
+                    <div class="mentor-avatar-container me-3">
+                        <img src="" alt="" class="mentor-avatar">
+                    </div>
+                    <div>
+                        <h5 class="card-title mb-1"></h5>
+                        <p class="mentor-position mb-0"></p>
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <span class="availability-badge"></span>
+                </div>
+                
+                <div class="tags-container mb-3">
+                    <div class="tags-label">Expertise Areas</div>
+                    <div class="tags"></div>
+                </div>
+                
+                <p class="mentor-bio"></p>
+                
+                <div class="mt-auto">
+                    <button class="btn btn-primary request-btn">
+                        <i class="fas fa-handshake me-2"></i>Request Mentorship
+                    </button>
+                    <button class="btn btn-secondary own-profile-btn d-none" disabled>
+                        <i class="fas fa-user-circle me-2"></i>This is Your Profile
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</template>
+
+{% endblock %}
+
+{% block page_specific_js %}
+<script src="{% static 'js/mentorship.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize CSRF token for AJAX requests
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Set up CSRF token for all AJAX requests
+        function csrfSafeMethod(method) {
+            return (/^(GET|HEAD|OPTIONS|TRACE)$/.test(method));
+        }
+        
+        $.ajaxSetup({
+            beforeSend: function(xhr, settings) {
+                if (!csrfSafeMethod(settings.type) && !this.crossDomain) {
+                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
+                }
+            }
+        });
+        
+        // Initialize mentor search functionality
+        initMentorSearch();
+        
+        // Trigger initial search to show all mentors
+        document.getElementById('mentorSearchForm').dispatchEvent(new Event('submit'));
+    });
+</script>
+{% endblock %} 

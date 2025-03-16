@@ -8,3 +8,4 @@ class AccountsConfig(AppConfig):
     def ready(self):
         import accounts.models  # noqa
         # This imports the signals
+        import accounts.signals
