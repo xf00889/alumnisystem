@@ -57,6 +57,20 @@ class JobPosting(models.Model):
         ('EXECUTIVE', 'Executive Level'),
     ]
 
+    CATEGORY_CHOICES = [
+        ('technology', 'Technology'),
+        ('finance', 'Finance & Accounting'),
+        ('healthcare', 'Healthcare & Medical'),
+        ('education', 'Education & Training'),
+        ('sales_marketing', 'Sales & Marketing'),
+        ('hospitality', 'Hospitality & Tourism'),
+        ('manufacturing', 'Manufacturing & Production'),
+        ('administrative', 'Administrative & Clerical'),
+        ('construction', 'Construction & Engineering'),
+        ('creative', 'Creative & Design'),
+        ('other', 'Other')
+    ]
+
     job_title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
     company_name = models.CharField(max_length=200)
@@ -75,11 +89,25 @@ class JobPosting(models.Model):
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='job_postings')
-    source = models.CharField(max_length=50, default='manual', choices=[('manual', 'Manual'), ('indeed', 'Indeed')])
+    source = models.CharField(max_length=50, default='manual', choices=[
+        ('manual', 'Manual'), 
+        ('indeed', 'Indeed'),
+        ('bossjobs', 'BossJobs')
+    ])
     source_type = models.CharField(max_length=20, choices=SOURCE_TYPE_CHOICES, default='EXTERNAL')
+    category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', help_text="Job industry category")
     external_id = models.CharField(max_length=100, blank=True, null=True)
     last_scraped = models.DateTimeField(null=True, blank=True)
     accepts_internal_applications = models.BooleanField(default=False, help_text="Allow applications through the system")
+    # Fields to help with job deduplication and search
+    search_query = models.CharField(max_length=200, blank=True, null=True, 
+                                  help_text="Search query used to find this job")
+    search_location = models.CharField(max_length=200, blank=True, null=True,
+                                     help_text="Location used to find this job")
+    title_normalized = models.CharField(max_length=200, blank=True, null=True,
+                                     help_text="Normalized version of job title for deduplication")
+    hash_signature = models.CharField(max_length=64, blank=True, null=True, 
+                                   help_text="Hash signature based on job content for deduplication")
 
     class Meta:
         ordering = ['-posted_date']
@@ -88,7 +116,11 @@ class JobPosting(models.Model):
             models.Index(fields=['posted_date']),
             models.Index(fields=['is_featured']),
             models.Index(fields=['source_type']),
+            models.Index(fields=['source']),  # Add index for source
+            models.Index(fields=['external_id']),  # Add index for external_id
         ]
+        # Only one job with the same external_id per source
+        unique_together = [('source', 'external_id')]
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -105,6 +137,19 @@ class JobPosting(models.Model):
         # Automatically set accepts_internal_applications for NORSU internal jobs
         if self.source_type == 'INTERNAL':
             self.accepts_internal_applications = True
+            
+        # Generate normalized title for deduplication
+        if self.job_title:
+            # Remove special characters, lowercase, and normalize whitespace
+            normalized = re.sub(r'[^\w\s]', '', self.job_title.lower())
+            normalized = re.sub(r'\s+', ' ', normalized).strip()
+            self.title_normalized = normalized
+            
+        # Generate hash signature for content-based deduplication
+        import hashlib
+        content = f"{self.job_title}|{self.company_name}|{self.location}|{self.job_type}"
+        self.hash_signature = hashlib.sha256(content.encode()).hexdigest()
+            
         super().save(*args, **kwargs)
 
     def __str__(self):

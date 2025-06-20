@@ -1,0 +1,100 @@
+{% extends "donations/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Donors" %} - {{ campaign.name }} | {{ block.super }}{% endblock %}
+
+{% block donations_content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'donations:campaign_list' %}">{% trans "Campaigns" %}</a></li>
+            <li class="breadcrumb-item"><a href="{{ campaign.get_absolute_url }}">{{ campaign.name }}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans "Donors" %}</li>
+        </ol>
+    </nav>
+    
+    <h1 class="display-5 fw-bold">{% trans "Campaign Donors" %}</h1>
+    <p class="lead">{% blocktrans with name=campaign.name %}All donors who have contributed to {{ name }}.{% endblocktrans %}</p>
+</div>
+
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <div class="d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">{% trans "Donor List" %}</h5>
+            <span class="badge bg-primary rounded-pill">
+                {{ donations|length }} {% if anonymous_count > 0 %}+ {{ anonymous_count }} {% trans "anonymous" %}{% endif %}
+            </span>
+        </div>
+    </div>
+    
+    {% if donations %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>{% trans "Donor" %}</th>
+                    <th>{% trans "Amount" %}</th>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Message" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for donation in donations %}
+                <tr>
+                    <td>
+                        {% if donation.donor %}
+                            {{ donation.donor.get_full_name }}
+                        {% else %}
+                            {{ donation.donor_name }}
+                        {% endif %}
+                    </td>
+                    <td>{{ donation.amount }}</td>
+                    <td>{{ donation.donation_date|date:"M d, Y" }}</td>
+                    <td>
+                        {% if donation.message %}
+                            {{ donation.message|truncatechars:100 }}
+                        {% else %}
+                            <span class="text-muted">{% trans "No message" %}</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                
+                {% if anonymous_count > 0 %}
+                <tr class="table-light">
+                    <td>
+                        <i class="fas fa-user-secret me-2"></i> {% trans "Anonymous Donors" %}
+                    </td>
+                    <td colspan="3">
+                        {% blocktrans with count=anonymous_count %}
+                        {{ count }} donors have chosen to remain anonymous.
+                        {% endblocktrans %}
+                    </td>
+                </tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <div class="card-body">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i> 
+            {% if anonymous_count > 0 %}
+                {% blocktrans with count=anonymous_count %}
+                All {{ count }} donors have chosen to remain anonymous.
+                {% endblocktrans %}
+            {% else %}
+                {% trans "No donations have been made to this campaign yet." %}
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <div class="card-footer">
+        <a href="{{ campaign.get_absolute_url }}" class="btn btn-primary">
+            <i class="fas fa-arrow-left me-2"></i> {% trans "Back to Campaign" %}
+        </a>
+    </div>
+</div>
+{% endblock %} 

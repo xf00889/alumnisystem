@@ -179,6 +179,14 @@ class Education(models.Model):
         ordering = ['-graduation_year']
 
 class Experience(models.Model):
+    CAREER_SIGNIFICANCE_CHOICES = [
+        ('REGULAR', 'Regular Position'),
+        ('PROMOTION', 'Promotion'),
+        ('LATERAL', 'Lateral Move'),
+        ('NEW_ROLE', 'New Role'),
+        ('COMPANY_CHANGE', 'Company Change'),
+    ]
+    
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='experience')
     company = models.CharField(max_length=100)
     position = models.CharField(max_length=100)
@@ -186,7 +194,14 @@ class Experience(models.Model):
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     is_current = models.BooleanField(default=False)
-    description = models.TextField()
+    description = models.TextField(blank=True)
+    
+    # Fields from CareerPath model
+    achievements = models.TextField(blank=True)
+    career_significance = models.CharField(max_length=20, choices=CAREER_SIGNIFICANCE_CHOICES, default='REGULAR')
+    salary_range = models.CharField(max_length=100, blank=True)
+    skills_gained = models.TextField(blank=True, help_text="Comma-separated list of skills gained in this role")
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
@@ -196,7 +211,53 @@ class Experience(models.Model):
     class Meta:
         verbose_name = _('Experience')
         verbose_name_plural = _('Experience')
-        ordering = ['-start_date']
+        ordering = ['-is_current', '-start_date']
+        
+    def save(self, *args, **kwargs):
+        # Check if this is a new record or if is_current has changed
+        is_new = self.pk is None
+        if not is_new:
+            old_instance = Experience.objects.get(pk=self.pk)
+            is_current_changed = old_instance.is_current != self.is_current
+        else:
+            is_current_changed = self.is_current
+        
+        if self.is_current:
+            self.end_date = None
+            # Set all other experiences for this profile to not current
+            Experience.objects.filter(profile=self.profile).exclude(pk=self.pk).update(is_current=False)
+            
+            # Update profile's current position and employer
+            self.profile.current_position = self.position
+            self.profile.current_employer = self.company
+            self.profile.save(update_fields=['current_position', 'current_employer'])
+            
+            # Update alumni record if it exists
+            try:
+                alumni = self.profile.user.alumni
+                alumni.current_company = self.company
+                alumni.job_title = self.position
+                alumni.save(update_fields=['current_company', 'job_title'])
+            except:
+                pass
+        elif is_current_changed and not self.is_current:
+            # If this was previously current but now isn't, clear the profile fields
+            # Only if there are no other current experiences
+            if not Experience.objects.filter(profile=self.profile, is_current=True).exists():
+                self.profile.current_position = ''
+                self.profile.current_employer = ''
+                self.profile.save(update_fields=['current_position', 'current_employer'])
+                
+                # Update alumni record if it exists
+                try:
+                    alumni = self.profile.user.alumni
+                    alumni.current_company = ''
+                    alumni.job_title = ''
+                    alumni.save(update_fields=['current_company', 'job_title'])
+                except:
+                    pass
+                    
+        super().save(*args, **kwargs)
 
 class Skill(models.Model):
     SKILL_TYPES = [

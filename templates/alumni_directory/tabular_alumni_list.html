@@ -1,0 +1,217 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alumni Directory - Tabular View{% endblock %}
+
+{% block page_title %}Alumni Directory - Tabular View{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'alumni_directory:alumni_list' %}">Alumni Directory</a></li>
+        <li class="breadcrumb-item active" aria-current="page">Tabular View</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block content %}
+<div class="page-content">
+    <div class="container">
+        <!-- Header Section -->
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="section-title">Alumni Directory - Tabular View</h2>
+            <div>
+                <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-secondary me-2">
+                    <i class="fas fa-th-large me-1"></i> Card View
+                </a>
+                <a href="{% url 'alumni_directory:tabular_alumni_list' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" class="btn btn-success">
+                    <i class="fas fa-file-csv me-1"></i> Export to CSV
+                </a>
+            </div>
+        </div>
+        
+        <!-- Search and Filter Section -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <form method="get" action="{% url 'alumni_directory:tabular_alumni_list' %}" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search" class="form-label">Search</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="search" name="search" value="{{ search_query }}" 
+                                           class="form-control" placeholder="Search by name, course, or location">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="graduation_year" class="form-label">Graduation Year</label>
+                                <select id="graduation_year" name="graduation_year" class="form-select">
+                                    <option value="">All Years</option>
+                                    {% for year in graduation_years %}
+                                    <option value="{{ year }}" {% if selected_year == year|stringformat:"i" %}selected{% endif %}>{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="course" class="form-label">Course</label>
+                                <select id="course" name="course" class="form-select">
+                                    <option value="">All Courses</option>
+                                    {% for course_item in courses %}
+                                    <option value="{{ course_item }}" {% if selected_course == course_item %}selected{% endif %}>{{ course_item }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Results Count -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <p class="text-muted mb-0">
+                <i class="fas fa-users me-1"></i> Showing {{ alumni_list.paginator.count }} alumni records
+            </p>
+        </div>
+        
+        <!-- Tabular List -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>ID</th>
+                                <th>Full Name</th>
+                                <th>Year</th>
+                                <th>Course</th>
+                                <th>Present Occupation</th>
+                                <th>Name of Company</th>
+                                <th>Employment Address</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumni in alumni_list %}
+                            <tr>
+                                <td>{{ alumni.id }}</td>
+                                <td>
+                                    <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" class="text-decoration-none">
+                                        {{ alumni.full_name }}
+                                    </a>
+                                </td>
+                                <td>{{ alumni.graduation_year }}</td>
+                                <td>{{ alumni.course }}</td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.position }}
+                                    {% else %}
+                                        {{ alumni.job_title|default:"None" }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.company }}
+                                    {% else %}
+                                        {{ alumni.current_company|default:"None" }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.location }}
+                                    {% else %}
+                                        {% if alumni.city or alumni.province %}
+                                            {{ alumni.city }}, {{ alumni.province }}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-4">
+                                    <div class="alert alert-info mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No alumni records found matching your criteria.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Pagination -->
+        {% if alumni_list.has_other_pages %}
+        <nav aria-label="Alumni pagination">
+            <ul class="pagination justify-content-center">
+                {% if alumni_list.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in alumni_list.paginator.page_range %}
+                    {% if alumni_list.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > alumni_list.number|add:'-3' and num < alumni_list.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if alumni_list.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Initialize any needed JavaScript here
+    });
+</script>
+{% endblock %} 

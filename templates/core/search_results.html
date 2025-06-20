@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+
+{% block title %}Search Results - NORSU Alumni Tracking System{% endblock %}
+
+{% block page_title %}Search Results{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active" aria-current="page">Search Results</li>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-12">
+            <h2 class="mb-4">Search Results for "{{ results.query }}"</h2>
+            
+            {% if not results.query %}
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i> Please enter a search term to find alumni, groups, events, and more.
+                </div>
+            {% elif not results.alumni and not results.groups and not results.events and not results.announcements and not results.jobs %}
+                <div class="alert alert-warning">
+                    <i class="fas fa-exclamation-triangle me-2"></i> No results found for "{{ results.query }}". Please try a different search term.
+                </div>
+            {% endif %}
+            
+            <!-- Alumni Results -->
+            {% if results.alumni %}
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="mb-0"><i class="fas fa-user-graduate me-2"></i> Alumni</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            {% for alumni in results.alumni %}
+                                <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ alumni.user.get_full_name }}</h5>
+                                        <small>{{ alumni.graduation_year }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ alumni.industry|default:"" }}</p>
+                                    <small>{{ alumni.bio|truncatechars:100 }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Groups Results -->
+            {% if results.groups %}
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="mb-0"><i class="fas fa-users me-2"></i> Alumni Groups</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            {% for group in results.groups %}
+                                <a href="{% url 'alumni_groups:group_detail' group.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ group.name }}</h5>
+                                        <small>{{ group.members.count }} members</small>
+                                    </div>
+                                    <p class="mb-1">{{ group.description|truncatechars:150 }}</p>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Events Results -->
+            {% if results.events %}
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="mb-0"><i class="fas fa-calendar-alt me-2"></i> Events</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            {% for event in results.events %}
+                                <a href="{% url 'events:event_detail' event.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ event.title }}</h5>
+                                        <small>{{ event.start_date|date:"M d, Y" }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ event.location }}</p>
+                                    <small>{{ event.description|truncatechars:100 }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Announcements Results -->
+            {% if results.announcements %}
+                <div class="card mb-4">
+                    <div class="card-header bg-warning text-dark">
+                        <h5 class="mb-0"><i class="fas fa-bullhorn me-2"></i> Announcements</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            {% for announcement in results.announcements %}
+                                <a href="{% url 'announcements:announcement-detail' announcement.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ announcement.title }}</h5>
+                                        <small>{{ announcement.created_at|date:"M d, Y" }}</small>
+                                    </div>
+                                    <small>{{ announcement.content|truncatechars:150 }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Jobs Results -->
+            {% if results.jobs %}
+                <div class="card mb-4">
+                    <div class="card-header bg-secondary text-white">
+                        <h5 class="mb-0"><i class="fas fa-briefcase me-2"></i> Jobs</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="list-group">
+                            {% for job in results.jobs %}
+                                <a href="{% url 'jobs:job_detail' job.id %}" class="list-group-item list-group-item-action">
+                                    <div class="d-flex w-100 justify-content-between">
+                                        <h5 class="mb-1">{{ job.title }}</h5>
+                                        <small>{{ job.company }}</small>
+                                    </div>
+                                    <p class="mb-1">{{ job.location }}</p>
+                                    <small>{{ job.description|truncatechars:100 }}</small>
+                                </a>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

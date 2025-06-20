@@ -1,11 +1,11 @@
 import logging
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
-from django.db.models import Q
+from django.db.models import Q, Count, F
 from django.core.paginator import Paginator
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import get_user_model
-from .models import Alumni, AlumniDocument
+from .models import Alumni, AlumniDocument, Achievement, ProfessionalExperience
 from django.core.exceptions import PermissionDenied
 from django.db import transaction
 from django.http import Http404
@@ -13,6 +13,10 @@ from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
 from accounts.decorators import paginate
+from django.contrib import messages
+from accounts.models import Profile, Experience
+from .forms import AlumniForm, AlumniFilterForm, AlumniSearchForm, AlumniDocumentForm
+import csv
 
 logger = logging.getLogger(__name__)
 
@@ -131,136 +135,123 @@ def alumni_list(request):
             }, status=500)
         raise
 
-@user_passes_test(is_admin)
+@login_required
 def alumni_detail(request, pk):
     try:
-        # Optimize query with select_related and prefetch_related
-        alumni = get_object_or_404(
-            Alumni.objects.select_related(
-                'user',
-                'user__profile'
-            ).prefetch_related(
-                'documents',
-                'career_paths',
-                'achievements_list',
-                'user__profile__experience'
-            ),
-            pk=pk
-        )
+        # Get alumni object or 404
+        alumni = get_object_or_404(Alumni, pk=pk)
+        logger.info(f"Alumni detail view accessed for ID: {pk}, Name: {alumni.full_name}")
         
-        # Ensure profile exists before proceeding
-        try:
+        # Get profile
+        profile = None
+        if hasattr(alumni.user, 'profile'):
             profile = alumni.user.profile
-        except (Alumni.user.RelatedObjectDoesNotExist, AttributeError):
-            from accounts.models import Profile
-            with transaction.atomic():
-                profile = Profile.objects.create(user=alumni.user)
-                alumni.user.refresh_from_db()
-            logger.info(f"Created missing profile for alumni ID: {pk}")
+            logger.info(f"Profile found for alumni ID: {pk}")
+        else:
+            logger.warning(f"No profile found for alumni ID: {pk}")
         
-        # Get documents with efficient loading and categorization
-        documents = {
-            'RESUME': [],
-            'CERT': [],
-            'DIPLOMA': [],
-            'TOR': [],
-            'OTHER': []
-        }
+        # Get documents from both AlumniDocument and accounts.Document models
+        alumni_documents = list(alumni.documents.all().order_by('-uploaded_at'))
+        profile_documents = []
         
-        try:
-            for doc in alumni.documents.select_related('alumni').all():
-                if doc.document_type in documents:
-                    documents[doc.document_type].append(doc)
-        except Exception as e:
-            logger.error(f"Error loading documents for alumni {pk}: {str(e)}")
-            documents = {k: [] for k in documents.keys()}
-        
-        # Get document statistics
-        try:
-            doc_stats = {
-                'total': alumni.documents.count(),
-                'verified': alumni.documents.filter(is_verified=True).count(),
-                'pending': alumni.documents.filter(is_verified=False).count()
-            }
-        except Exception as e:
-            logger.error(f"Error calculating document stats for alumni {pk}: {str(e)}")
-            doc_stats = {'total': 0, 'verified': 0, 'pending': 0}
-        
-        # Get profile completion percentage with error handling
-        try:
-            required_fields = [
-                alumni.gender, alumni.date_of_birth, alumni.phone_number,
-                alumni.province, alumni.city, alumni.address,
-                alumni.graduation_year, alumni.course
-            ]
-            optional_fields = [
-                alumni.alternate_email, alumni.linkedin_profile,
-                alumni.major, alumni.honors, alumni.current_company,
-                alumni.job_title, alumni.industry, alumni.skills,
-                alumni.interests, alumni.bio, alumni.achievements
-            ]
+        if profile:
+            from accounts.models import Document
             
-            completed_required = sum(1 for field in required_fields if field)
-            completed_optional = sum(1 for field in optional_fields if field)
+            # Create a wrapper class to make profile documents behave like AlumniDocuments
+            class DocumentWrapper:
+                def __init__(self, doc):
+                    self.title = doc.title
+                    self.document_type = doc.document_type
+                    self.file = doc.file
+                    self.uploaded_at = doc.uploaded_at
+                    self.is_verified = doc.is_verified
+                
+                def get_document_type_display(self):
+                    # Map document types from accounts.Document to display names
+                    type_map = dict(Document.DOCUMENT_TYPES)
+                    return type_map.get(self.document_type, self.document_type)
             
-            profile_completion = {
-                'required': (completed_required / len(required_fields)) * 100,
-                'optional': (completed_optional / len(optional_fields)) * 100,
-                'total': ((completed_required + completed_optional) / (len(required_fields) + len(optional_fields))) * 100
-            }
-        except Exception as e:
-            logger.error(f"Error calculating profile completion for alumni {pk}: {str(e)}")
-            profile_completion = {'required': 0, 'optional': 0, 'total': 0}
+            # Wrap each profile document
+            profile_docs = Document.objects.filter(profile=profile).order_by('-uploaded_at')
+            profile_documents = [DocumentWrapper(doc) for doc in profile_docs]
+            logger.info(f"Profile documents found: {len(profile_documents)}")
+        
+        # Combine documents from both sources
+        combined_documents = alumni_documents + profile_documents
+        
+        # Calculate document stats
+        total_documents = len(combined_documents)
+        verified_documents = sum(1 for doc in combined_documents if hasattr(doc, 'is_verified') and doc.is_verified)
+        pending_verification = total_documents - verified_documents
+        
+        logger.info(f"Documents for alumni ID {pk}: Total={total_documents}, Verified={verified_documents}, Pending={pending_verification}")
+        
+        # Debug: Check if documents exist in the database
+        if total_documents == 0:
+            logger.warning(f"No documents found for alumni ID: {pk}")
+            # Check if there are any documents in the system at all
+            all_docs_count = AlumniDocument.objects.count()
+            logger.info(f"Total AlumniDocuments in system: {all_docs_count}")
+            
+            from accounts.models import Document
+            all_profile_docs_count = Document.objects.count()
+            logger.info(f"Total Profile Documents in system: {all_profile_docs_count}")
+        
+        # Get professional experiences using the ProfessionalExperience utility class
+        unified_experience = ProfessionalExperience.get_unified_experience(alumni)
+        career_path = ProfessionalExperience.get_career_path_only(alumni)
+        work_experience = ProfessionalExperience.get_regular_experience_only(alumni)
+        
+        # Calculate profile completion percentage
+        completion_fields = [
+            alumni.gender,
+            alumni.date_of_birth,
+            alumni.phone_number,
+            alumni.address,
+            alumni.province,
+            alumni.city,
+            alumni.country,
+            alumni.current_company,
+            alumni.job_title,
+            alumni.bio
+        ]
+        
+        filled_fields = sum(1 for field in completion_fields if field)
+        completion_percentage = int((filled_fields / len(completion_fields)) * 100)
+        
+        # Get achievements
+        achievements = alumni.achievements_list.all().order_by('-date_achieved')
+        
+        # Check if current user is owner
+        is_owner = request.user == alumni.user
+        
+        # Check if the user is staff/admin
+        is_admin = request.user.is_staff
         
         context = {
             'alumni': alumni,
             'profile': profile,
-            'documents': documents,
-            'doc_stats': doc_stats,
-            'profile_completion': profile_completion,
-            'document_types': AlumniDocument.DOCUMENT_TYPES,
-            'career_paths': alumni.career_paths.all().order_by('-start_date'),
-            'achievements': alumni.achievements_list.all().order_by('-date_achieved'),
-            'empty_sections': {
-                'personal': not any([alumni.phone_number, alumni.alternate_email, alumni.linkedin_profile]),
-                'location': not any([alumni.province, alumni.city, alumni.address]),
-                'professional': not any([alumni.current_company, alumni.job_title, alumni.industry]),
-                'academic': not any([alumni.major, alumni.honors]),
-                'skills': not alumni.skills,
-                'interests': not alumni.interests,
-                'documents': not doc_stats['total'],
-                'additional': not any([alumni.bio, alumni.achievements])
-            },
-            'experiences': alumni.user.profile.experience.all().order_by('-start_date'),
+            'documents': combined_documents,
+            'total_documents': total_documents,
+            'verified_documents': verified_documents,
+            'pending_verification': pending_verification,
+            'completion_percentage': completion_percentage,
+            'unified_experience': unified_experience,
+            'career_path': career_path,
+            'work_experience': work_experience,
+            'achievements': achievements,
+            'is_owner': is_owner,
+            'is_admin': is_admin
         }
-        
-        # Debug logging for experiences
-        logger.info(f"Alumni ID: {pk}, Experiences count: {alumni.user.profile.experience.count()}")
-        for exp in alumni.user.profile.experience.all():
-            logger.info(f"Experience: {exp.position} at {exp.company}")
-            
-        # Debug logging for profile avatar
-        if hasattr(alumni.user, 'profile') and alumni.user.profile.avatar:
-            logger.info(f"Avatar URL: {alumni.user.profile.avatar.url}")
-            logger.info(f"Avatar path: {alumni.user.profile.avatar.path}")
-        else:
-            logger.info(f"No avatar found for alumni ID: {pk}")
-
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'status': 'success',
-                'html': render(request, 'alumni_directory/partials/alumni_detail_content.html', context).content.decode('utf-8')
-            })
         
         return render(request, 'alumni_directory/alumni_detail.html', context)
         
     except Exception as e:
-        logger.error(f"Error in alumni_detail view for ID {pk}: {str(e)}")
+        logger.error(f"Error in alumni_detail view: {str(e)}")
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'status': 'error',
-                'message': 'An error occurred while loading the alumni details. Please try again.',
-                'details': str(e)
+                'message': 'An error occurred while loading the alumni details.'
             }, status=500)
         raise
 
@@ -383,3 +374,84 @@ The Alumni Team"""
             'status': 'error',
             'message': 'Failed to send reminder'
         }, status=500)
+
+@user_passes_test(is_admin)
+def tabular_alumni_list(request):
+    """
+    Display alumni in a tabular format with specific columns.
+    """
+    try:
+        # Base queryset with efficient loading
+        queryset = Alumni.objects.select_related('user').all()
+        
+        # Apply filters
+        search_query = request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search_query) | 
+                Q(user__last_name__icontains=search_query) |
+                Q(course__icontains=search_query) |
+                Q(city__icontains=search_query) |
+                Q(province__icontains=search_query)
+            )
+        
+        # Graduation Year filter
+        grad_year = request.GET.getlist('graduation_year')
+        if grad_year:
+            queryset = queryset.filter(graduation_year__in=grad_year)
+        
+        # Course filter
+        course = request.GET.getlist('course')
+        if course:
+            queryset = queryset.filter(course__in=course)
+            
+        # Export to CSV if requested
+        if request.GET.get('format') == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="alumni_directory.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Full Name', 'Year', 'Course', 'Present Occupation', 'Company', 'Employment Address'])
+            
+            for alumni in queryset:
+                # Get current experience for occupation and company
+                current_exp = None
+                if hasattr(alumni.user, 'profile'):
+                    current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                
+                writer.writerow([
+                    alumni.id,
+                    alumni.full_name,
+                    alumni.graduation_year,
+                    alumni.course,
+                    current_exp.position if current_exp else alumni.job_title,
+                    current_exp.company if current_exp else alumni.current_company,
+                    current_exp.location if current_exp else f"{alumni.city}, {alumni.province}"
+                ])
+            
+            return response
+        
+        # Pagination
+        paginator = Paginator(queryset, 25)  # 25 items per page
+        page_number = request.GET.get('page')
+        alumni_page = paginator.get_page(page_number)
+        
+        # Get counts for filtering dropdown options
+        graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
+        courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
+        
+        context = {
+            'alumni_list': alumni_page,
+            'graduation_years': graduation_years,
+            'courses': courses,
+            'search_query': search_query,
+            'selected_year': grad_year[0] if grad_year else None,
+            'selected_course': course[0] if course else None,
+        }
+        
+        return render(request, 'alumni_directory/tabular_alumni_list.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in tabular_alumni_list view: {str(e)}")
+        messages.error(request, "An error occurred while loading the alumni list.")
+        return redirect('alumni_directory:alumni_list')

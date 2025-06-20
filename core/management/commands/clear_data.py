@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from alumni_directory.models import Alumni, CareerPath, Achievement
+from alumni_directory.models import Alumni, Achievement
 from alumni_groups.models import AlumniGroup
 from events.models import Event, EventRSVP
 from announcements.models import Announcement
@@ -45,7 +45,6 @@ class Command(BaseCommand):
 
                 self.stdout.write('Deleting alumni data...')
                 Achievement.objects.all().delete()
-                CareerPath.objects.all().delete()
                 Alumni.objects.all().delete()
 
                 self.stdout.write('Deleting user accounts (preserving superusers)...')

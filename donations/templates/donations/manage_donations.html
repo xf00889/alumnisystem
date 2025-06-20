@@ -1,0 +1,682 @@
+{% extends "donations/base.html" %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{% trans "Manage Donations" %} | {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .status-badge {
+        cursor: pointer;
+    }
+    .filters {
+        background-color: #f8f9fa;
+        padding: 1rem;
+        border-radius: 0.25rem;
+        margin-bottom: 1rem;
+    }
+    
+    /* Card styling */
+    .card {
+        border: none;
+        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        border-radius: 0.5rem;
+    }
+    
+    .card-header {
+        border-bottom: none;
+        padding: 1rem;
+    }
+    
+    /* Status-specific styling */
+    .bg-completed {
+        background-color: var(--status-success);
+    }
+    
+    .bg-pending {
+        background-color: var(--status-warning);
+    }
+    
+    .bg-failed, .bg-refunded {
+        background-color: var(--status-danger);
+    }
+    
+    /* Button styling */
+    .btn {
+        border-radius: 0.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block donations_content %}
+{% csrf_token %}
+<div class="mb-4">
+    <h1 class="display-5 fw-bold text-primary">{% trans "Manage Donations" %}</h1>
+    <p class="lead">{% trans "View, filter, and manage all donations in the system." %}</p>
+</div>
+
+<!-- Filters -->
+<div class="card mb-4">
+    <div class="card-header bg-white">
+        <h5 class="mb-0 text-primary">{% trans "Filters" %}</h5>
+    </div>
+    <div class="card-body">
+        <form method="get" action="{% url 'donations:manage_donations' %}">
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="campaign" class="form-label">{% trans "Campaign" %}</label>
+                    <select name="campaign" id="campaign" class="form-select">
+                        <option value="">{% trans "All Campaigns" %}</option>
+                        {% for campaign in all_campaigns %}
+                        <option value="{{ campaign.id }}" {% if selected_campaign == campaign.id %}selected{% endif %}>
+                            {{ campaign.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="status" class="form-label">{% trans "Status" %}</label>
+                    <select name="status" id="status" class="form-select">
+                        <option value="">{% trans "All Statuses" %}</option>
+                        {% for status_code, status_name in status_choices %}
+                        <option value="{{ status_code }}" {% if selected_status == status_code %}selected{% endif %}>
+                            {{ status_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="payment_method" class="form-label">{% trans "Payment Method" %}</label>
+                    <select name="payment_method" id="payment_method" class="form-select">
+                        <option value="">{% trans "All Payment Methods" %}</option>
+                        {% for method_code, method_name in payment_method_choices %}
+                        <option value="{{ method_code }}" {% if selected_payment_method == method_code %}selected{% endif %}>
+                            {{ method_name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-3">
+                    <label for="start_date" class="form-label">{% trans "Start Date" %}</label>
+                    <input type="date" name="start_date" id="start_date" class="form-control" value="{{ start_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="end_date" class="form-label">{% trans "End Date" %}</label>
+                    <input type="date" name="end_date" id="end_date" class="form-control" value="{{ end_date|date:'Y-m-d' }}">
+                </div>
+                <div class="col-md-4 mb-3">
+                    <label for="search" class="form-label">{% trans "Search" %}</label>
+                    <input type="text" name="search" id="search" class="form-control" placeholder="{% trans 'Donor name, email, reference...' %}" value="{{ search_query }}">
+                </div>
+            </div>
+            <div class="d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>{% trans "Apply Filters" %}
+                </button>
+                <a href="{% url 'donations:manage_donations' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-broom me-2"></i>{% trans "Clear Filters" %}
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Donation Stats -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Filtered Total" %}</h5>
+                <h2 class="display-6">{{ filtered_total|default:"0"|intcomma }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card badge-success text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Completed" %}</h5>
+                <h2 class="display-6">{{ completed_count|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card badge-pending h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Pending" %}</h5>
+                <h2 class="display-6">{{ pending_count|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3 mb-3">
+        <div class="card badge-failed text-white h-100">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Failed/Refunded" %}</h5>
+                <h2 class="display-6">{{ failed_count|default:"0" }}</h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Donations Table -->
+<div class="card mb-4">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0 text-primary">{% trans "Donations" %}</h5>
+        <span class="badge badge-info">{{ donations.paginator.count }} {% trans "Results" %}</span>
+    </div>
+    {% if donations %}
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-light">
+                <tr>
+                    <th>{% trans "ID" %}</th>
+                    <th>{% trans "Donor" %}</th>
+                    <th>{% trans "Campaign" %}</th>
+                    <th>{% trans "Amount" %}</th>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Payment Method" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for donation in donations %}
+                <tr>
+                    <td>{{ donation.pk }}</td>
+                    <td>
+                        {% if donation.is_anonymous %}
+                            <span class="text-muted">{% trans "Anonymous" %}</span>
+                        {% elif donation.donor %}
+                            {{ donation.donor.get_full_name }}
+                            <small class="d-block text-muted">{{ donation.donor.email }}</small>
+                        {% else %}
+                            {{ donation.donor_name }}
+                            {% if donation.donor_email %}
+                            <small class="d-block text-muted">{{ donation.donor_email }}</small>
+                            {% endif %}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ donation.campaign.get_absolute_url }}" class="text-decoration-none text-primary">
+                            {{ donation.campaign.name }}
+                        </a>
+                    </td>
+                    <td class="fw-medium">₱{{ donation.amount|intcomma }}</td>
+                    <td>{{ donation.donation_date|date:"M d, Y" }}</td>
+                    <td>{{ donation.get_payment_method_display }}</td>
+                    <td>
+                        {% if donation.status == 'completed' %}
+                        <span class="badge badge-completed status-badge" data-bs-toggle="dropdown" aria-expanded="false" data-donation-id="{{ donation.pk }}">
+                            {{ donation.get_status_display }}
+                        </span>
+                        {% elif donation.status == 'pending' %}
+                        <span class="badge badge-pending status-badge" data-bs-toggle="dropdown" aria-expanded="false" data-donation-id="{{ donation.pk }}">
+                            {{ donation.get_status_display }}
+                        </span>
+                        {% elif donation.status == 'failed' %}
+                        <span class="badge badge-failed status-badge" data-bs-toggle="dropdown" aria-expanded="false" data-donation-id="{{ donation.pk }}">
+                            {{ donation.get_status_display }}
+                        </span>
+                        {% elif donation.status == 'refunded' %}
+                        <span class="badge badge-refunded status-badge" data-bs-toggle="dropdown" aria-expanded="false" data-donation-id="{{ donation.pk }}">
+                            {{ donation.get_status_display }}
+                        </span>
+                        {% endif %}
+                        <ul class="dropdown-menu">
+                            {% for status_code, status_name in status_choices %}
+                            <li>
+                                <a class="dropdown-item status-option" href="#" 
+                                   data-status="{{ status_code }}" 
+                                   data-donation-id="{{ donation.pk }}">
+                                    {{ status_name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ donation.pk }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                {% trans "Actions" %}
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ donation.pk }}">
+                                <li><a class="dropdown-item edit-donation" href="#" data-donation-id="{{ donation.pk }}">
+                                    <i class="fas fa-edit me-2 text-primary"></i> {% trans "Edit" %}
+                                </a></li>
+                                <li><a class="dropdown-item view-donation" href="#" data-donation-id="{{ donation.pk }}">
+                                    <i class="fas fa-eye me-2 text-info"></i> {% trans "View Details" %}
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item send-receipt" href="#" data-donation-id="{{ donation.pk }}">
+                                    <i class="fas fa-envelope me-2 text-success"></i> {% trans "Send Receipt" %}
+                                </a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li><a class="dropdown-item delete-donation" href="#" data-donation-id="{{ donation.pk }}">
+                                    <i class="fas fa-trash-alt me-2 text-danger"></i> {% trans "Delete" %}
+                                </a></li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <!-- Pagination -->
+    {% if donations.paginator.num_pages > 1 %}
+    <div class="card-footer">
+        <nav aria-label="Donation pagination">
+            <ul class="pagination justify-content-center mb-0">
+                {% if donations.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page=1">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ donations.previous_page_number }}">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-angle-double-left"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-angle-left"></i></span>
+                </li>
+                {% endif %}
+                
+                {% for i in donations.paginator.page_range %}
+                    {% if donations.number == i %}
+                    <li class="page-item active"><span class="page-link">{{ i }}</span></li>
+                    {% elif i > donations.number|add:'-3' and i < donations.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ i }}">{{ i }}</a>
+                    </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if donations.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ donations.next_page_number }}">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?{% if query_params %}{{ query_params }}&{% endif %}page={{ donations.paginator.num_pages }}">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% else %}
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-angle-right"></i></span>
+                </li>
+                <li class="page-item disabled">
+                    <span class="page-link"><i class="fas fa-angle-double-right"></i></span>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+    </div>
+    {% endif %}
+    {% else %}
+    <div class="card-body p-5 text-center">
+        <div class="mb-3">
+            <i class="fas fa-donate fa-3x text-muted"></i>
+        </div>
+        <h5>{% trans "No donations found matching your criteria." %}</h5>
+        <p class="text-muted">{% trans "Try adjusting your filters to see more results." %}</p>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Deletion Confirmation Modal -->
+<div class="modal fade" id="deleteDonationModal" tabindex="-1" aria-labelledby="deleteDonationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="deleteDonationModalLabel">{% trans "Confirm Deletion" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>{% trans "Are you sure you want to delete this donation? This action cannot be undone." %}</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">{% trans "Delete Donation" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Donation Modal -->
+<div class="modal fade" id="editDonationModal" tabindex="-1" aria-labelledby="editDonationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="editDonationModalLabel">{% trans "Edit Donation Details" %}</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="donation-edit-form-container">
+                    <p class="text-center">
+                        <i class="fas fa-spinner fa-spin fa-2x"></i>
+                        <span class="d-block mt-2">{% trans "Loading donation details..." %}</span>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Global variables
+        let csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        let currentDonationId = null;
+        
+        // Status update functionality
+        document.querySelectorAll('.status-option').forEach(option => {
+            option.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const donationId = this.dataset.donationId;
+                const status = this.dataset.status;
+                
+                updateDonationStatus(donationId, status);
+            });
+        });
+        
+        // Delete donation functionality
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteDonationModal'));
+        
+        document.querySelectorAll('.delete-donation').forEach(button => {
+            button.addEventListener('click', function() {
+                currentDonationId = this.dataset.donationId;
+                deleteModal.show();
+            });
+        });
+        
+        document.getElementById('confirmDelete').addEventListener('click', function() {
+            if (currentDonationId) {
+                deleteDonation(currentDonationId);
+                deleteModal.hide();
+            }
+        });
+        
+        // Edit donation functionality
+        const editModal = new bootstrap.Modal(document.getElementById('editDonationModal'));
+        
+        document.querySelectorAll('.edit-donation').forEach(button => {
+            button.addEventListener('click', function() {
+                currentDonationId = this.dataset.donationId;
+                loadDonationDetails(currentDonationId);
+                editModal.show();
+            });
+        });
+        
+        // Send receipt functionality
+        document.querySelectorAll('.send-receipt').forEach(button => {
+            button.addEventListener('click', function() {
+                const donationId = this.dataset.donationId;
+                sendReceipt(donationId);
+            });
+        });
+        
+        // Function to update donation status
+        function updateDonationStatus(donationId, status) {
+            // Create form data
+            const formData = new FormData();
+            formData.append('status', status);
+            
+            // Send AJAX request
+            fetch(`/donations/donation/${donationId}/update-status/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update badge text and color
+                    const badge = document.querySelector(`.status-badge[data-donation-id="${donationId}"]`);
+                    if (badge) {
+                        badge.textContent = data.new_status;
+                        
+                        // Update badge color
+                        badge.classList.remove('bg-success', 'bg-warning', 'bg-danger', 'bg-info', 'bg-secondary');
+                        if (status === 'completed') {
+                            badge.classList.add('bg-success');
+                        } else if (status === 'pending') {
+                            badge.classList.add('bg-warning');
+                        } else if (status === 'failed') {
+                            badge.classList.add('bg-danger');
+                        } else if (status === 'refunded') {
+                            badge.classList.add('bg-info');
+                        } else {
+                            badge.classList.add('bg-secondary');
+                        }
+                        
+                        // Show success message
+                        showToast('success', data.message);
+                    }
+                } else {
+                    showToast('error', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'An error occurred while updating the donation status.');
+            });
+        }
+        
+        // Function to delete donation
+        function deleteDonation(donationId) {
+            fetch(`/donations/donation/${donationId}/delete/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    // Remove the row from the table
+                    const row = document.querySelector(`tr:has([data-donation-id="${donationId}"])`);
+                    if (row) {
+                        row.remove();
+                    }
+                    
+                    // Show success message
+                    showToast('success', data.message);
+                    
+                    // Reload page if no more donations are displayed
+                    const remainingRows = document.querySelectorAll('tbody tr');
+                    if (remainingRows.length === 0) {
+                        window.location.reload();
+                    }
+                } else {
+                    showToast('error', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'An error occurred while deleting the donation.');
+            });
+        }
+        
+        // Function to load donation details for editing
+        function loadDonationDetails(donationId) {
+            const container = document.querySelector('.donation-edit-form-container');
+            container.innerHTML = `
+                <p class="text-center">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                    <span class="d-block mt-2">{% trans "Loading donation details..." %}</span>
+                </p>
+            `;
+            
+            fetch(`/donations/donation/${donationId}/edit-form/`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                container.innerHTML = html;
+                
+                // Set up form submission handler
+                const form = container.querySelector('form');
+                if (form) {
+                    form.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const formData = new FormData(form);
+                        
+                        fetch(form.action, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrfToken
+                            },
+                            body: formData
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.status === 'success') {
+                                showToast('success', data.message);
+                                editModal.hide();
+                                
+                                // Reload the page to show updated data
+                                window.location.reload();
+                            } else {
+                                // Handle validation errors
+                                const errorContainer = container.querySelector('.alert-danger');
+                                if (errorContainer) {
+                                    errorContainer.innerHTML = '';
+                                    for (const field in data.errors) {
+                                        const message = `<p><strong>${field}:</strong> ${data.errors[field].join(', ')}</p>`;
+                                        errorContainer.innerHTML += message;
+                                    }
+                                    errorContainer.classList.remove('d-none');
+                                } else {
+                                    showToast('error', data.message);
+                                }
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            showToast('error', 'An error occurred while saving the donation details.');
+                        });
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                container.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        {% trans "An error occurred while loading the donation details." %}
+                    </div>
+                `;
+            });
+        }
+        
+        // Function to send receipt email
+        function sendReceipt(donationId) {
+            fetch(`/donations/donation/${donationId}/send-receipt/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    showToast('success', data.message);
+                } else {
+                    showToast('error', data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showToast('error', 'An error occurred while sending the receipt.');
+            });
+        }
+        
+        // Toast notification function
+        function showToast(type, message) {
+            // Check if we have a toast container; if not, create one
+            let toastContainer = document.querySelector('.toast-container');
+            if (!toastContainer) {
+                toastContainer = document.createElement('div');
+                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
+                document.body.appendChild(toastContainer);
+            }
+            
+            // Create toast element
+            const toastId = 'toast-' + Date.now();
+            const toastEl = document.createElement('div');
+            toastEl.className = `toast ${type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}`;
+            toastEl.id = toastId;
+            toastEl.setAttribute('role', 'alert');
+            toastEl.setAttribute('aria-live', 'assertive');
+            toastEl.setAttribute('aria-atomic', 'true');
+            
+            // Toast content
+            toastEl.innerHTML = `
+                <div class="toast-header ${type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}">
+                    <strong class="me-auto">
+                        ${type === 'error' ? '<i class="fas fa-exclamation-circle me-2"></i>Error' : '<i class="fas fa-check-circle me-2"></i>Success'}
+                    </strong>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body">
+                    ${message}
+                </div>
+            `;
+            
+            // Add toast to container
+            toastContainer.appendChild(toastEl);
+            
+            // Initialize and show toast
+            const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
+            toast.show();
+            
+            // Remove toast element after it's hidden
+            toastEl.addEventListener('hidden.bs.toast', function() {
+                toastEl.remove();
+            });
+        }
+    });
+</script>
+{% endblock %} 

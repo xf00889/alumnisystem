@@ -10,4 +10,7 @@ urlpatterns = [
     path('<int:pk>/update/', views.AnnouncementUpdateView.as_view(), name='announcement-update'),
     path('<int:pk>/delete/', views.AnnouncementDeleteView.as_view(), name='announcement-delete'),
     path('search/', views.announcement_search, name='announcement-search'),
+    path('public/', views.PublicAnnouncementListView.as_view(), name='public-announcement-list'),
+    path('public/<int:pk>/', views.PublicAnnouncementDetailView.as_view(), name='public-announcement-detail'),
+    path('public/new/', views.PublicAnnouncementCreateView.as_view(), name='create-public-announcement'),
 ] 

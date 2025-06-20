@@ -1,0 +1,305 @@
+{% extends "donations/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{{ campaign.name }} | {{ block.super }}{% endblock %}
+
+{% block donations_content %}
+<div class="mb-4">
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'donations:campaign_list' %}">{% trans "Campaigns" %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ campaign.name }}</li>
+        </ol>
+    </nav>
+    
+    <div class="d-flex justify-content-between align-items-center">
+        <h1 class="display-5 fw-bold">{{ campaign.name }}</h1>
+        <span class="badge bg-{{ campaign.status|yesno:'success,secondary' }} fs-6">
+            {{ campaign.get_status_display }}
+        </span>
+    </div>
+    <p class="lead">{{ campaign.short_description }}</p>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-8">
+        {% if campaign.featured_image %}
+        <img src="{{ campaign.featured_image.url }}" class="img-fluid rounded mb-4" alt="{{ campaign.name }}">
+        {% endif %}
+        
+        <div class="card mb-4">
+            <div class="card-header">
+                <ul class="nav nav-tabs card-header-tabs" id="campaignTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="details-tab" data-bs-toggle="tab" data-bs-target="#details" 
+                                type="button" role="tab" aria-controls="details" aria-selected="true">
+                            {% trans "Details" %}
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="updates-tab" data-bs-toggle="tab" data-bs-target="#updates" 
+                                type="button" role="tab" aria-controls="updates" aria-selected="false">
+                            {% trans "Updates" %} 
+                            {% if updates %}
+                            <span class="badge bg-primary rounded-pill">{{ updates|length }}</span>
+                            {% endif %}
+                        </button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="donors-tab" data-bs-toggle="tab" data-bs-target="#donors" 
+                                type="button" role="tab" aria-controls="donors" aria-selected="false">
+                            {% trans "Donors" %}
+                            {% if recent_donations %}
+                            <span class="badge bg-primary rounded-pill">{{ donation_stats.total_donors }}</span>
+                            {% endif %}
+                        </button>
+                    </li>
+                </ul>
+            </div>
+            <div class="card-body">
+                <div class="tab-content" id="campaignTabsContent">
+                    <div class="tab-pane fade show active" id="details" role="tabpanel" aria-labelledby="details-tab">
+                        <h5 class="card-title">{% trans "About This Campaign" %}</h5>
+                        <div class="campaign-description mb-4">
+                            {{ campaign.description|safe }}
+                        </div>
+                        
+                        <h5 class="card-title">{% trans "Beneficiaries" %}</h5>
+                        <div class="campaign-beneficiaries mb-4">
+                            {{ campaign.beneficiaries|safe }}
+                        </div>
+                        
+                        <div class="d-flex justify-content-between text-muted">
+                            <small>{% trans "Campaign Type" %}: {{ campaign.campaign_type.name }}</small>
+                            <small>{% trans "Started" %}: {{ campaign.start_date|date:"F j, Y" }}</small>
+                        </div>
+                    </div>
+                    
+                    <div class="tab-pane fade" id="updates" role="tabpanel" aria-labelledby="updates-tab">
+                        {% if updates %}
+                            {% for update in updates %}
+                            <div class="card mb-3">
+                                <div class="card-header d-flex justify-content-between align-items-center">
+                                    <h5 class="mb-0">{{ update.title }}</h5>
+                                    <small class="text-muted">{{ update.created|date:"F j, Y" }}</small>
+                                </div>
+                                <div class="card-body">
+                                    {% if update.image %}
+                                    <img src="{{ update.image.url }}" class="img-fluid rounded mb-3" alt="{{ update.title }}">
+                                    {% endif %}
+                                    {{ update.content|safe }}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="alert alert-info">
+                                {% trans "No updates have been posted for this campaign yet." %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="tab-pane fade" id="donors" role="tabpanel" aria-labelledby="donors-tab">
+                        {% if recent_donations %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Donor" %}</th>
+                                            <th>{% trans "Amount" %}</th>
+                                            <th>{% trans "Date" %}</th>
+                                            <th>{% trans "Message" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for donation in recent_donations %}
+                                        <tr>
+                                            <td>
+                                                {% if donation.is_anonymous %}
+                                                    {% trans "Anonymous" %}
+                                                {% elif donation.donor %}
+                                                    {{ donation.donor.get_full_name }}
+                                                {% else %}
+                                                    {{ donation.donor_name }}
+                                                {% endif %}
+                                            </td>
+                                            <td>{{ donation.amount }}</td>
+                                            <td>{{ donation.donation_date|date:"M d, Y" }}</td>
+                                            <td>
+                                                {% if donation.message %}
+                                                    {{ donation.message|truncatechars:50 }}
+                                                {% else %}
+                                                    <span class="text-muted">{% trans "No message" %}</span>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                            <div class="text-center mt-3">
+                                <a href="{% url 'donations:campaign_donors' campaign.slug %}" class="btn btn-outline-primary">
+                                    {% trans "View All Donors" %}
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="alert alert-info">
+                                {% trans "No donations have been made to this campaign yet. Be the first to donate!" %}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <h5 class="card-title mb-0">{% trans "Campaign Progress" %}</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Goal" %}</span>
+                    <span class="fw-bold">{{ campaign.goal_amount }}</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span>{% trans "Raised" %}</span>
+                    <span class="fw-bold">{{ donation_stats.total_amount }}</span>
+                </div>
+                
+                <div class="progress mb-3" style="height: 20px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: {{ donation_stats.progress_percentage }}%;" 
+                         aria-valuenow="{{ donation_stats.progress_percentage }}" 
+                         aria-valuemin="0" aria-valuemax="100">
+                        {{ donation_stats.progress_percentage }}%
+                    </div>
+                </div>
+                
+                <div class="d-flex justify-content-between mb-3">
+                    <span>{% trans "Donors" %}</span>
+                    <span class="fw-bold">{{ donation_stats.total_donors }}</span>
+                </div>
+                
+                {% if campaign.days_remaining is not None %}
+                <div class="d-flex justify-content-between mb-3">
+                    <span>{% trans "Time Remaining" %}</span>
+                    <span class="fw-bold">
+                        {% if campaign.days_remaining > 0 %}
+                            {% blocktrans with days=campaign.days_remaining %}{{ days }} days{% endblocktrans %}
+                        {% else %}
+                            {% trans "Campaign ended" %}
+                        {% endif %}
+                    </span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        
+        {% if campaign.is_active %}
+        <div class="card mb-4">
+            <div class="card-header bg-success text-white">
+                <h5 class="card-title mb-0">{% trans "Make a Donation" %}</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                    <div class="alert alert-danger">
+                        {% for error in form.non_field_errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.amount.id_for_label }}" class="form-label">{% trans "Donation Amount" %}</label>
+                        {{ form.amount }}
+                        {% if form.amount.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.amount.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.payment_method.id_for_label }}" class="form-label">{% trans "Payment Method" %}</label>
+                        {{ form.payment_method }}
+                        {% if form.payment_method.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.payment_method.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    {% if not user.is_authenticated %}
+                    <div class="mb-3">
+                        <label for="{{ form.donor_name.id_for_label }}" class="form-label">{% trans "Your Name" %}</label>
+                        {{ form.donor_name }}
+                        {% if form.donor_name.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.donor_name.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.donor_email.id_for_label }}" class="form-label">{% trans "Your Email" %}</label>
+                        {{ form.donor_email }}
+                        {% if form.donor_email.errors %}
+                        <div class="invalid-feedback d-block">
+                            {% for error in form.donor_email.errors %}
+                                {{ error }}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.message.id_for_label }}" class="form-label">{% trans "Message (Optional)" %}</label>
+                        {{ form.message }}
+                    </div>
+                    
+                    <div class="mb-3 form-check">
+                        {{ form.is_anonymous }}
+                        <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">
+                            {% trans "Make this donation anonymous" %}
+                        </label>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-success w-100">
+                        {% trans "Donate Now" %}
+                    </button>
+                </form>
+            </div>
+        </div>
+        {% else %}
+        <div class="card mb-4 border-warning">
+            <div class="card-body">
+                <h5 class="card-title text-warning">{% trans "Campaign Not Active" %}</h5>
+                <p class="card-text">
+                    {% if campaign.status == 'completed' %}
+                        {% trans "This campaign has been completed. Thank you to all donors who contributed!" %}
+                    {% elif campaign.status == 'cancelled' %}
+                        {% trans "This campaign has been cancelled." %}
+                    {% elif campaign.status == 'draft' %}
+                        {% trans "This campaign is not yet active." %}
+                    {% elif campaign.status == 'paused' %}
+                        {% trans "This campaign is currently paused." %}
+                    {% endif %}
+                </p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %} 

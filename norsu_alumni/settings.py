@@ -65,7 +65,7 @@ INSTALLED_APPS = [
     'widget_tweaks',
     'taggit',
     'rest_framework',
-    'channels',  # Add channels
+    'channels',  # Keep channels if other apps use WebSockets
     'django_extensions',  # Add django_extensions
     
     # Local apps
@@ -75,12 +75,13 @@ INSTALLED_APPS = [
     'alumni_groups.apps.AlumniGroupsConfig',
     'alumni_directory.apps.AlumniDirectoryConfig',
     'events.apps.EventsConfig',
-    'chat.apps.ChatConfig',  # Add chat app
+    # 'chat.apps.ChatConfig',  # Remove chat app
     'feedback.apps.FeedbackConfig',  # Add feedback app
     'location_tracking.apps.LocationTrackingConfig',  # Add location tracking app
     'jobs.apps.JobsConfig',  # Add jobs app
     'mentorship.apps.MentorshipConfig',  # Add mentorship app
     'surveys.apps.SurveysConfig',  # Add surveys app
+    'donations.apps.DonationsConfig',  # Add donations app
 ]
 
 MIDDLEWARE = [

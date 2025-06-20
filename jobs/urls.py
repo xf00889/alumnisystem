@@ -10,6 +10,8 @@ urlpatterns = [
     # Management views
     path('manage/', views.manage_jobs, name='manage_jobs'),
     path('post/', views.post_job, name='post_job'),
+    path('crawl/', views.crawl_jobs_view, name='crawl_jobs'),
+    path('crawl-diverse/', views.crawl_diverse_jobs_view, name='crawl_diverse_jobs'),
     
     # AJAX endpoints
     path('applications/<int:application_id>/update-status/', 

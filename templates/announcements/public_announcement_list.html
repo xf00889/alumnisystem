@@ -1,0 +1,592 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load cache %}
+
+{% block title %}Public Announcements - NORSU Alumni{% endblock %}
+
+{% block page_title %}Announcements{% endblock %}
+
+{% block breadcrumb %}
+<li class="breadcrumb-item active">Public Announcements</li>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Core Design System */
+    :root {
+        /* Brand Colors */
+        --brand-primary: #2b3c6b;
+        --brand-secondary: #4a5568;
+        --brand-accent: #3182ce;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.5rem;
+        --space-6: 2rem;
+        --space-8: 3rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+    }
+
+    /* Page Layout */
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Toolbar Section */
+    .toolbar {
+        background-color: var(--brand-primary);
+        color: var(--text-light);
+        padding: var(--space-4) var(--space-4) var(--space-6);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        margin-bottom: var(--space-5);
+        position: relative;
+        z-index: 1;
+    }
+
+    .toolbar::after {
+        content: "";
+        position: absolute;
+        bottom: -20px;
+        left: 50%;
+        transform: translateX(-50%);
+        width: 95%;
+        height: 20px;
+        background-color: rgba(0, 0, 0, 0.05);
+        border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+        z-index: -1;
+    }
+
+    .toolbar-title {
+        font-size: clamp(1.5rem, 3vw, 2rem);
+        font-weight: 600;
+        margin-bottom: var(--space-2);
+    }
+
+    .toolbar-subtitle {
+        font-size: clamp(0.9rem, 2vw, 1.1rem);
+        opacity: 0.9;
+        margin-bottom: var(--space-4);
+    }
+
+    /* Search and Filter Section */
+    .filter-section {
+        background-color: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: var(--space-4);
+        margin-bottom: var(--space-5);
+        border: 1px solid var(--ui-border);
+    }
+
+    .search-form {
+        margin-bottom: var(--space-4);
+    }
+
+    .search-wrapper {
+        position: relative;
+    }
+
+    .search-icon {
+        position: absolute;
+        left: var(--space-3);
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+    }
+
+    .search-input {
+        padding-left: calc(var(--space-4) * 2);
+    }
+
+    /* Category Filters */
+    .category-filters {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-2);
+    }
+
+    .category-filter {
+        background-color: var(--ui-hover);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-2) var(--space-3);
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-secondary);
+        cursor: pointer;
+        transition: var(--transition-fast);
+    }
+
+    .category-filter.active {
+        background-color: var(--brand-accent);
+        border-color: var(--brand-accent);
+        color: var(--text-light);
+    }
+
+    .category-filter:hover {
+        background-color: var(--brand-accent);
+        border-color: var(--brand-accent);
+        color: var(--text-light);
+    }
+
+    /* Announcement Cards */
+    .announcement-list {
+        display: grid;
+        gap: var(--space-4);
+    }
+
+    .announcement-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        box-shadow: var(--shadow-md);
+        transition: var(--transition-normal);
+        border: 1px solid var(--ui-border);
+        display: flex;
+        flex-direction: column;
+    }
+
+    .announcement-card:hover {
+        box-shadow: var(--shadow-lg);
+        transform: translateY(-3px);
+    }
+
+    .announcement-header {
+        background: var(--brand-primary);
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        position: relative;
+    }
+
+    .announcement-title-wrapper {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        align-items: center;
+        justify-content: space-between;
+    }
+
+    .announcement-title {
+        color: var(--text-light);
+        font-size: clamp(1rem, 2.5vw, 1.25rem);
+        font-weight: 600;
+        margin: 0;
+        flex: 1;
+        min-width: 200px;
+    }
+
+    .priority-badge {
+        position: static;
+        padding: var(--space-2) var(--space-3);
+        border-radius: var(--radius-md);
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        white-space: nowrap;
+    }
+
+    .priority-URGENT {
+        background: var(--feedback-error);
+        color: var(--text-light);
+    }
+
+    .priority-HIGH {
+        background: var(--feedback-warning);
+        color: var(--text-primary);
+    }
+
+    .priority-MEDIUM {
+        background: var(--feedback-info);
+        color: var(--text-light);
+    }
+
+    .priority-LOW {
+        background: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .announcement-meta {
+        margin-top: var(--space-3);
+        padding-top: var(--space-3);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3) var(--space-4);
+        color: rgba(255, 255, 255, 0.8);
+        font-size: clamp(0.75rem, 1.5vw, 0.875rem);
+    }
+
+    .meta-group {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: var(--space-3);
+    }
+
+    .meta-item {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-2);
+        white-space: nowrap;
+    }
+
+    .announcement-body {
+        padding: clamp(var(--space-3), 2vw, var(--space-4));
+        flex: 1;
+    }
+
+    .announcement-content {
+        color: var(--text-primary);
+        line-height: 1.6;
+        font-size: clamp(0.875rem, 2vw, 1rem);
+    }
+
+    .announcement-footer {
+        padding: var(--space-3);
+        border-top: 1px solid var(--ui-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: var(--space-6);
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: var(--space-4);
+    }
+
+    .empty-state-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-3);
+    }
+
+    .empty-state-text {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        max-width: 500px;
+        margin: 0 auto var(--space-5);
+    }
+
+    /* Pagination */
+    .pagination-section {
+        margin-top: var(--space-6);
+        padding-top: var(--space-4);
+        border-top: 1px solid var(--ui-border);
+        display: flex;
+        justify-content: center;
+    }
+
+    .page-link {
+        border-color: var(--ui-border);
+        color: var(--text-primary);
+        margin: 0 var(--space-1);
+    }
+
+    .page-item.active .page-link {
+        background-color: var(--brand-primary);
+        border-color: var(--brand-primary);
+    }
+
+    .page-item.disabled .page-link {
+        color: var(--text-muted);
+    }
+
+    /* Responsive Adjustments */
+    @media (max-width: 992px) {
+        .toolbar {
+            padding: var(--space-4);
+        }
+        
+        .announcement-meta {
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+    }
+
+    @media (max-width: 768px) {
+        .toolbar-actions {
+            flex-direction: column;
+            align-items: stretch !important;
+        }
+        
+        .toolbar-actions .btn {
+            margin-top: var(--space-2);
+        }
+        
+        .search-input {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container py-4">
+        <!-- Toolbar Section -->
+        <div class="toolbar">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <h1 class="toolbar-title">Public Announcements</h1>
+                    <p class="toolbar-subtitle">Stay updated with the latest announcements and news</p>
+                </div>
+                {% if user.is_staff %}
+                <a href="{% url 'announcements:create-public-announcement' %}" class="btn btn-light">
+                    <i class="fas fa-plus-circle me-2"></i>Create Public Announcement
+                </a>
+                {% endif %}
+            </div>
+            
+            <!-- Search and Filter Section -->
+            <div class="search-form">
+                <form method="get" action="{% url 'announcements:public-announcement-list' %}" id="searchForm">
+                    <div class="row g-3 align-items-end">
+                        <div class="col-lg-4">
+                            <label for="search" class="form-label text-light">Search</label>
+                            <div class="search-wrapper">
+                                <i class="fas fa-search search-icon"></i>
+                                <input 
+                                    type="text" 
+                                    class="form-control search-input" 
+                                    id="search" 
+                                    name="q" 
+                                    placeholder="Search announcements"
+                                    value="{{ search_query }}"
+                                >
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-6">
+                            <label class="form-label text-light">Filter by category</label>
+                            <div class="category-filters">
+                                {% for category in categories %}
+                                <div class="form-check form-check-inline">
+                                    <input 
+                                        class="form-check-input category-checkbox" 
+                                        type="checkbox" 
+                                        name="category" 
+                                        id="category-{{ category.id }}" 
+                                        value="{{ category.id }}"
+                                        {% if category.id in selected_categories %}checked{% endif %}
+                                    >
+                                    <label class="form-check-label text-light" for="category-{{ category.id }}">
+                                        {{ category.name }}
+                                    </label>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        
+                        <div class="col-lg-2">
+                            <button type="submit" class="btn btn-light w-100">
+                                <i class="fas fa-filter me-2"></i>Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Main Content Section -->
+        <div class="row">
+            <div class="col-12">
+                <div class="announcement-list">
+                    {% if announcements %}
+                        {% for announcement in announcements %}
+                        {% cache 300 'public_announcement_card' announcement.pk announcement.last_modified %}
+                        <div class="announcement-card">
+                            <div class="announcement-header">
+                                <div class="announcement-title-wrapper">
+                                    <h3 class="announcement-title">{{ announcement.title }}</h3>
+                                    <span class="priority-badge priority-{{ announcement.priority_level }}">
+                                        <i class="fas {% if announcement.priority_level == 'URGENT' %}fa-exclamation-triangle
+                                                   {% elif announcement.priority_level == 'HIGH' %}fa-arrow-up
+                                                   {% elif announcement.priority_level == 'MEDIUM' %}fa-dot-circle
+                                                   {% else %}fa-arrow-down{% endif %}"></i>
+                                        {{ announcement.get_priority_level_display }}
+                                    </span>
+                                </div>
+
+                                <div class="announcement-meta">
+                                    <div class="meta-group">
+                                        <div class="meta-item">
+                                            <i class="fas fa-users"></i>
+                                            <span>{{ announcement.get_target_audience_display }}</span>
+                                        </div>
+                                        {% if announcement.category %}
+                                        <div class="meta-item">
+                                            <i class="fas fa-tag"></i>
+                                            <span>{{ announcement.category.name }}</span>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                    <div class="meta-group">
+                                        <div class="meta-item">
+                                            <i class="far fa-calendar-alt"></i>
+                                            <span>{{ announcement.date_posted|date:"F d, Y" }}</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="announcement-body">
+                                <div class="announcement-content">
+                                    {{ announcement.content|striptags|truncatewords:50 }}
+                                </div>
+                            </div>
+                            
+                            <div class="announcement-footer">
+                                <a href="{% url 'announcements:public-announcement-detail' announcement.pk %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-eye me-2"></i>Read More
+                                </a>
+                            </div>
+                        </div>
+                        {% endcache %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="empty-state">
+                            <i class="far fa-newspaper empty-state-icon"></i>
+                            <h3 class="empty-state-title">No announcements found</h3>
+                            <p class="empty-state-text">
+                                {% if search_query or selected_categories %}
+                                No announcements match your search criteria. Try adjusting your filters.
+                                {% else %}
+                                There are no public announcements available at this time. Check back later.
+                                {% endif %}
+                            </p>
+                            {% if search_query or selected_categories %}
+                            <a href="{% url 'announcements:public-announcement-list' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-times me-2"></i>Clear Filters
+                            </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                
+                <!-- Pagination -->
+                {% if is_paginated %}
+                <div class="pagination-section">
+                    <nav aria-label="Page navigation">
+                        <ul class="pagination">
+                            {% if page_obj.has_previous %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% for cat in selected_categories %}category={{ cat }}&{% endfor %}page=1" aria-label="First">
+                                        <span aria-hidden="true">&laquo;&laquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% for cat in selected_categories %}category={{ cat }}&{% endfor %}page={{ page_obj.previous_page_number }}" aria-label="Previous">
+                                        <span aria-hidden="true">&laquo;</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;&laquo;</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&laquo;</span>
+                                </li>
+                            {% endif %}
+                            
+                            {% for num in page_obj.paginator.page_range %}
+                                {% if page_obj.number == num %}
+                                    <li class="page-item active">
+                                        <span class="page-link">{{ num }}</span>
+                                    </li>
+                                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                                    <li class="page-item">
+                                        <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% for cat in selected_categories %}category={{ cat }}&{% endfor %}page={{ num }}">{{ num }}</a>
+                                    </li>
+                                {% endif %}
+                            {% endfor %}
+                            
+                            {% if page_obj.has_next %}
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% for cat in selected_categories %}category={{ cat }}&{% endfor %}page={{ page_obj.next_page_number }}" aria-label="Next">
+                                        <span aria-hidden="true">&raquo;</span>
+                                    </a>
+                                </li>
+                                <li class="page-item">
+                                    <a class="page-link" href="?{% if search_query %}q={{ search_query }}&{% endif %}{% for cat in selected_categories %}category={{ cat }}&{% endfor %}page={{ page_obj.paginator.num_pages }}" aria-label="Last">
+                                        <span aria-hidden="true">&raquo;&raquo;</span>
+                                    </a>
+                                </li>
+                            {% else %}
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;</span>
+                                </li>
+                                <li class="page-item disabled">
+                                    <span class="page-link">&raquo;&raquo;</span>
+                                </li>
+                            {% endif %}
+                        </ul>
+                    </nav>
+                </div>
+                {% endif %}
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle category filter checkboxes
+        const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
+        const searchForm = document.getElementById('searchForm');
+        
+        categoryCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                searchForm.submit();
+            });
+        });
+    });
+</script>
+{% endblock %} 

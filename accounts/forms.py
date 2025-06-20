@@ -123,22 +123,6 @@ class PostRegistrationForm(forms.Form):
         }),
         help_text="Enter your last name as it appears on your diploma"
     )
-    program = forms.ChoiceField(
-        choices=PROGRAM_CHOICES,
-        required=True,
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-        }),
-        help_text="Select the program you completed at NORSU"
-    )
-    school = forms.ChoiceField(
-        choices=SCHOOL_CHOICES,
-        required=True,
-        widget=forms.Select(attrs={
-            'class': 'form-control',
-        }),
-        help_text="Select the NORSU campus where you graduated"
-    )
     graduation_year = forms.IntegerField(
         required=True,
         min_value=1970,
@@ -149,50 +133,45 @@ class PostRegistrationForm(forms.Form):
             'min': 1970,
             'max': datetime.datetime.now().year
         }),
-        help_text=f"Enter your graduation year (1970-{datetime.datetime.now().year})"
+        help_text="Year you graduated",
+        label="Year"
     )
-    gender = forms.ChoiceField(
-        choices=GENDER_CHOICES,
+    course_graduated = forms.ChoiceField(
+        choices=PROGRAM_CHOICES,
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
         }),
-        help_text="Select your gender"
+        help_text="Program you completed",
+        label="Course Graduated"
     )
-    date_of_birth = forms.DateField(
-        required=True,
-        widget=forms.DateInput(attrs={
-            'class': 'form-control',
-            'type': 'date'
-        }),
-        help_text="Enter your date of birth"
-    )
-    province = forms.CharField(
-        max_length=100,
+    present_occupation = forms.CharField(
+        max_length=200,
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your province'
+            'placeholder': 'Enter your current job title'
         }),
-        help_text="Enter the province where you currently reside"
+        help_text="Your current job title or position"
     )
-    city = forms.CharField(
-        max_length=100,
+    company_name = forms.CharField(
+        max_length=200,
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your city'
+            'placeholder': 'Enter your current company'
         }),
-        help_text="Enter the city where you currently reside"
+        help_text="The name of the company you currently work for"
     )
-    address = forms.CharField(
+    employment_address = forms.CharField(
         max_length=255,
         required=True,
-        widget=forms.TextInput(attrs={
+        widget=forms.Textarea(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your address'
+            'placeholder': 'Enter your workplace address',
+            'rows': 3
         }),
-        help_text="Enter your current street address"
+        help_text="Address of your current employment"
     )
 
     def clean_graduation_year(self):
@@ -213,35 +192,41 @@ class PostRegistrationForm(forms.Form):
             profile=user.profile,
             is_primary=True,
             defaults={
-                'program': self.cleaned_data['program'],
-                'school': self.cleaned_data['school'],
+                'program': self.cleaned_data['course_graduated'],
                 'graduation_year': self.cleaned_data['graduation_year'],
             }
         )
 
-        # Update user's profile with location and personal information
+        # Update user's profile with employment information
         profile = user.profile
-        profile.address = self.cleaned_data['address']
-        profile.city = self.cleaned_data['city']
-        profile.state = self.cleaned_data['province']  # Using province as state
-        profile.country = 'PH'  # Set default country to Philippines
-        profile.birth_date = self.cleaned_data['date_of_birth']
-        profile.gender = self.cleaned_data['gender']
+        profile.current_position = self.cleaned_data['present_occupation']
+        profile.current_employer = self.cleaned_data['company_name']
+        profile.address = self.cleaned_data['employment_address']
         profile.has_completed_registration = True
         profile.save()
+
+        # Create current employment experience
+        import datetime
+        current_exp = Experience.objects.create(
+            profile=profile,
+            position=self.cleaned_data['present_occupation'],
+            company=self.cleaned_data['company_name'],
+            location=self.cleaned_data['employment_address'],
+            start_date=datetime.date.today(),
+            is_current=True,
+            career_significance='REGULAR'
+        )
 
         # Create or update Alumni record
         Alumni.objects.update_or_create(
             user=user,
             defaults={
                 'graduation_year': self.cleaned_data['graduation_year'],
-                'course': self.cleaned_data['program'],
-                'gender': self.cleaned_data['gender'],
-                'date_of_birth': self.cleaned_data['date_of_birth'],
-                'province': self.cleaned_data['province'],
-                'city': self.cleaned_data['city'],
-                'address': self.cleaned_data['address'],
-                'employment_status': 'UNEMPLOYED'  # Default status
+                'course': self.cleaned_data['course_graduated'],
+                'current_company': self.cleaned_data['company_name'],
+                'job_title': self.cleaned_data['present_occupation'],
+                'address': self.cleaned_data['employment_address'],
+                'employment_status': 'EMPLOYED_FULL'  # Assuming full-time employment
             }
         )
 
@@ -371,7 +356,11 @@ class EducationForm(forms.ModelForm):
 class ExperienceForm(forms.ModelForm):
     class Meta:
         model = Experience
-        fields = ['company', 'position', 'location', 'start_date', 'end_date', 'is_current', 'description']
+        fields = [
+            'company', 'position', 'location', 'start_date', 'end_date', 
+            'is_current', 'description', 'career_significance', 
+            'achievements', 'salary_range', 'skills_gained'
+        ]
         widgets = {
             'company': forms.TextInput(attrs={'class': 'form-control'}),
             'position': forms.TextInput(attrs={'class': 'form-control'}),
@@ -380,6 +369,15 @@ class ExperienceForm(forms.ModelForm):
             'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'is_current': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
             'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'career_significance': forms.Select(attrs={'class': 'form-select'}),
+            'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'salary_range': forms.TextInput(attrs={'class': 'form-control'}),
+            'skills_gained': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+        }
+        help_texts = {
+            'is_current': 'Check this if this is your current job. This will update your profile\'s current position.',
+            'skills_gained': 'Enter skills gained in this role, separated by commas.',
+            'achievements': 'List your key achievements in this role.',
         }
 
     def clean(self):
@@ -512,14 +510,23 @@ ExperienceFormSet = inlineformset_factory(
     form=ExperienceForm,
     extra=1,
     can_delete=True,
-    fields=['company', 'position', 'location', 'start_date', 'end_date', 'is_current', 'description'],
+    fields=[
+        'company', 'position', 'location', 'start_date', 'end_date', 
+        'is_current', 'description', 'career_significance', 
+        'achievements', 'salary_range', 'skills_gained'
+    ],
     widgets={
         'company': forms.TextInput(attrs={'class': 'form-control'}),
         'position': forms.TextInput(attrs={'class': 'form-control'}),
         'location': forms.TextInput(attrs={'class': 'form-control'}),
         'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
         'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+        'is_current': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        'career_significance': forms.Select(attrs={'class': 'form-select'}),
+        'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        'salary_range': forms.TextInput(attrs={'class': 'form-control'}),
+        'skills_gained': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
     }
 )
 

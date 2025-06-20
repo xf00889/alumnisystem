@@ -13,9 +13,13 @@ from .models import JobPosting, JobApplication, RequiredDocument
 from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet
 from .utils import calculate_job_match_score, get_skill_recommendations
 from accounts.models import Profile, SkillMatch
-import json
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side
+from .crawler.manager import CrawlerManager
+import logging
+from jobs.management.commands.crawl_diverse_jobs import Command as CrawlDiverseJobsCommand
+
+logger = logging.getLogger(__name__)
 
 def is_hr_or_admin(user):
     """Check if user is HR or admin"""
@@ -551,3 +555,178 @@ def export_applicants(request, job_id):
     
     workbook.save(response)
     return response
+
+@login_required
+@user_passes_test(is_hr_or_admin)
+def crawl_jobs_view(request):
+    """View to initiate job crawling from the web interface"""
+    if request.method == 'POST':
+        source = request.POST.get('source', '').strip().lower()
+        query = request.POST.get('query', '').strip()
+        location = request.POST.get('location', '').strip()
+        max_jobs = int(request.POST.get('max_jobs', 25))
+        job_type = request.POST.get('job_type', '').strip() or None
+        
+        if not source or not query:
+            messages.error(request, "Job source and query are required.")
+            return redirect('jobs:manage_jobs')
+        
+        try:
+            # Initialize crawler manager
+            manager = CrawlerManager()
+            
+            # Check if the source is supported
+            available_sources = manager.list_available_sources()
+            if source not in available_sources:
+                messages.error(request, f"Unsupported job source: {source}")
+                return redirect('jobs:manage_jobs')
+            
+            # Additional parameters
+            params = {'max_jobs': max_jobs}
+            if job_type:
+                params['job_type'] = job_type
+            
+            # Log the crawling parameters
+            logger.info(f"Starting job crawl from web interface: source={source}, query={query}, location={location}, max_jobs={max_jobs}")
+            
+            # Search for jobs
+            results = manager.search_and_save_jobs(
+                source=source,
+                query=query,
+                location=location,
+                **params
+            )
+            
+            # Generate summary
+            created_count = sum(1 for r in results if r.get('created', False))
+            updated_count = len(results) - created_count
+            
+            messages.success(
+                request, 
+                f"Successfully processed {len(results)} jobs "
+                f"({created_count} created, {updated_count} updated)"
+            )
+            
+        except Exception as e:
+            logger.error(f"Job crawl failed from web interface: {str(e)}")
+            messages.error(request, f"Job crawl failed: {str(e)}")
+        
+        return redirect('jobs:manage_jobs')
+    
+    # GET request shows the form
+    context = {
+        'sources': CrawlerManager().list_available_sources(),
+        'job_types': JobPosting.JOB_TYPE_CHOICES,
+    }
+    return render(request, 'jobs/crawl_jobs.html', context)
+
+@login_required
+@user_passes_test(is_hr_or_admin)
+def crawl_diverse_jobs_view(request):
+    """View to initiate diverse job crawling from the web interface"""
+    if request.method == 'POST':
+        source = request.POST.get('source', '').strip().lower()
+        location = request.POST.get('location', '').strip()
+        category = request.POST.get('category', '').strip() or None
+        max_jobs_per_category = int(request.POST.get('max_jobs_per_category', 10))
+        job_type = request.POST.get('job_type', '').strip() or None
+        
+        if not source:
+            messages.error(request, "Job source is required.")
+            return redirect('jobs:crawl_diverse_jobs')
+        
+        try:
+            # Initialize crawler manager
+            manager = CrawlerManager()
+            
+            # Check if the source is supported
+            available_sources = manager.list_available_sources()
+            if source not in available_sources:
+                messages.error(request, f"Unsupported job source: {source}")
+                return redirect('jobs:crawl_diverse_jobs')
+            
+            # Get the job categories
+            job_categories = CrawlDiverseJobsCommand.JOB_CATEGORIES
+            
+            # Process categories
+            categories_to_process = {}
+            if category:
+                # Process only the specified category
+                if category.lower() in job_categories:
+                    categories_to_process[category.lower()] = job_categories[category.lower()]
+                else:
+                    messages.error(request, f"Unsupported category: {category}")
+                    return redirect('jobs:crawl_diverse_jobs')
+            else:
+                # Process all categories
+                categories_to_process = job_categories
+            
+            total_jobs_found = 0
+            total_jobs_created = 0
+            total_jobs_updated = 0
+            
+            # Start processing categories
+            for category_name, search_terms in categories_to_process.items():
+                category_jobs_found = 0
+                category_jobs_created = 0
+                category_jobs_updated = 0
+                
+                for search_term in search_terms:
+                    try:
+                        # Search for jobs
+                        search_kwargs = {
+                            'max_jobs': max_jobs_per_category
+                        }
+                        
+                        if job_type:
+                            search_kwargs['job_type'] = job_type
+                        
+                        results = manager.search_and_save_jobs(
+                            source=source,
+                            query=search_term,
+                            location=location,
+                            category=category_name,  # Pass category separately
+                            **search_kwargs
+                        )
+                        
+                        # Count results
+                        jobs_found = len(results)
+                        jobs_created = sum(1 for r in results if r.get('created', False))
+                        jobs_updated = jobs_found - jobs_created
+                        
+                        # Add to totals
+                        category_jobs_found += jobs_found
+                        category_jobs_created += jobs_created
+                        category_jobs_updated += jobs_updated
+                        
+                    except Exception as e:
+                        logger.error(f"Error crawling jobs for '{search_term}' in category '{category_name}': {str(e)}")
+                
+                # Add to overall totals
+                total_jobs_found += category_jobs_found
+                total_jobs_created += category_jobs_created
+                total_jobs_updated += category_jobs_updated
+                
+                # Log category results
+                logger.info(f"Category {category_name}: {category_jobs_found} jobs ({category_jobs_created} created, {category_jobs_updated} updated)")
+            
+            # Display success message
+            messages.success(
+                request, 
+                f"Successfully processed {total_jobs_found} jobs across {len(categories_to_process)} categories "
+                f"({total_jobs_created} created, {total_jobs_updated} updated)"
+            )
+            
+        except Exception as e:
+            logger.error(f"Job crawl failed: {str(e)}")
+            messages.error(request, f"Job crawl failed: {str(e)}")
+        
+        return redirect('jobs:manage_jobs')
+    
+    # GET request shows the form
+    context = {
+        'sources': CrawlerManager().list_available_sources(),
+        'job_types': JobPosting.JOB_TYPE_CHOICES,
+        'categories': JobPosting.CATEGORY_CHOICES,
+    }
+    return render(request, 'jobs/crawl_diverse_jobs.html', context)

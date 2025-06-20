@@ -1,3 +1,3 @@
 """
-Django management commands for the jobs app.
+Management commands for the jobs app.
 """ 

@@ -471,8 +471,10 @@
                         <i class="fas fa-edit"></i>
                         Edit
                     </a>
-                    <a href="{% url 'announcements:announcement-delete' announcement.pk %}" 
-                       class="btn btn-danger">
+                    <a href="#" 
+                       class="btn btn-danger delete-announcement"
+                       data-announcement-id="{{ announcement.pk }}"
+                       data-announcement-title="{{ announcement.title }}">
                         <i class="fas fa-trash"></i>
                         Delete
                     </a>
@@ -503,16 +505,50 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block page_specific_js %}
+<!-- Sweet Alert Utilities -->
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
 <script>
-    // Add smooth scroll animation
-    document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-        anchor.addEventListener('click', function (e) {
-            e.preventDefault();
-            document.querySelector(this.getAttribute('href')).scrollIntoView({
-                behavior: 'smooth'
+    document.addEventListener('DOMContentLoaded', function() {
+        // Process any Django messages as SweetAlert notifications
+        if (typeof SweetAlertUtils !== 'undefined') {
+            SweetAlertUtils.processDjangoMessages();
+        }
+        
+        // Add smooth scroll animation
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                document.querySelector(this.getAttribute('href')).scrollIntoView({
+                    behavior: 'smooth'
+                });
             });
         });
+        
+        // Handle delete button
+        const deleteBtn = document.querySelector('.delete-announcement');
+        if (deleteBtn) {
+            deleteBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const announcementId = this.dataset.announcementId;
+                const announcementTitle = this.dataset.announcementTitle;
+                const deleteUrl = "{% url 'announcements:announcement-delete' announcement.pk %}";
+                const redirectUrl = "{% url 'announcements:announcement-list' %}";
+                
+                if (typeof SweetAlertUtils !== 'undefined') {
+                    SweetAlertUtils.confirmAnnouncementDeletion(
+                        announcementTitle,
+                        deleteUrl,
+                        redirectUrl
+                    );
+                } else {
+                    // Fallback to default confirmation
+                    if (confirm(`Are you sure you want to delete the announcement: "${announcementTitle}"?`)) {
+                        window.location.href = deleteUrl;
+                    }
+                }
+            });
+        }
     });
 </script>
 {% endblock %} 

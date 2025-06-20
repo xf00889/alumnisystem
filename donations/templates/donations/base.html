@@ -1,0 +1,173 @@
+{% extends "base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Donations" %}{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Note: These styles should not affect the main sidebar navigation */
+    :root {
+        --primary-color: #063970;
+        --primary-light: #0a4f94;
+        --status-success: #28a745;
+        --status-warning: #ffc107;
+        --status-danger: #dc3545;
+        --status-info: #17a2b8;
+        --status-secondary: #6c757d;
+    }
+    
+    /* Override Bootstrap primary color */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+        background-color: var(--primary-light);
+        border-color: var(--primary-light);
+    }
+    
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .text-primary {
+        color: var(--primary-color) !important;
+    }
+    
+    .bg-primary {
+        background-color: var(--primary-color) !important;
+    }
+    
+    .border-primary {
+        border-color: var(--primary-color) !important;
+    }
+    
+    /* Status Badge Colors */
+    .badge-completed, .badge-success {
+        background-color: var(--status-success);
+        color: white;
+    }
+    
+    .badge-pending, .badge-warning {
+        background-color: var(--status-warning);
+        color: #212529;
+    }
+    
+    .badge-failed, .badge-danger {
+        background-color: var(--status-danger);
+        color: white;
+    }
+    
+    .badge-refunded, .badge-secondary {
+        background-color: var(--status-secondary);
+        color: white;
+    }
+    
+    .badge-info {
+        background-color: var(--status-info);
+        color: white;
+    }
+    
+    /* Card header styling */
+    .card-header.bg-primary {
+        background-color: var(--primary-color) !important;
+    }
+    
+    .card-header.bg-success {
+        background-color: var(--status-success) !important;
+    }
+</style>
+<link rel="stylesheet" href="{% static 'donations/css/donations.css' %}">
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="row">
+        <div class="col-md-9">
+            {% block donations_content %}{% endblock %}
+        </div>
+        <div class="col-md-3">
+            {% block donations_sidebar %}
+                <div class="card mb-4">
+                    <div class="card-header bg-primary text-white">
+                        <h5 class="card-title mb-0">{% trans "Quick Links" %}</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        <a href="{% url 'donations:campaign_list' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-list me-2"></i> {% trans "All Campaigns" %}
+                        </a>
+                        {% if user.is_authenticated %}
+                        <a href="{% url 'donations:donation_history' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-history me-2"></i> {% trans "My Donation History" %}
+                        </a>
+                        {% endif %}
+                        {% if user.is_staff %}
+                        <a href="{% url 'donations:dashboard' %}" class="list-group-item list-group-item-action">
+                            <i class="fas fa-tachometer-alt me-2"></i> {% trans "Admin Dashboard" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                {% block featured_campaigns %}
+                {% if featured_campaigns %}
+                <div class="card mb-4">
+                    <div class="card-header bg-success text-white">
+                        <h5 class="card-title mb-0">{% trans "Featured Campaigns" %}</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for campaign in featured_campaigns %}
+                        <a href="{{ campaign.get_absolute_url }}" class="list-group-item list-group-item-action">
+                            <div class="d-flex w-100 justify-content-between">
+                                <h6 class="mb-1">{{ campaign.name }}</h6>
+                            </div>
+                            <div class="progress mt-2" style="height: 10px;">
+                                <div class="progress-bar bg-success" role="progressbar" 
+                                     style="width: {{ campaign.progress_percentage }}%;" 
+                                     aria-valuenow="{{ campaign.progress_percentage }}" 
+                                     aria-valuemin="0" aria-valuemax="100">
+                                </div>
+                            </div>
+                            <small>{{ campaign.progress_percentage }}% of {{ campaign.goal_amount }}</small>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endblock %}
+                
+                {% block campaign_types %}
+                {% if campaign_types %}
+                <div class="card mb-4">
+                    <div class="card-header bg-info text-white">
+                        <h5 class="card-title mb-0">{% trans "Campaign Types" %}</h5>
+                    </div>
+                    <div class="list-group list-group-flush">
+                        {% for type in campaign_types %}
+                        <a href="{% url 'donations:campaign_list' %}?campaign_type={{ type.slug }}" 
+                           class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                            {{ type.name }}
+                            <span class="badge bg-primary rounded-pill">{{ type.campaign_count }}</span>
+                        </a>
+                        {% endfor %}
+                    </div>
+                </div>
+                {% endif %}
+                {% endblock %}
+            {% endblock %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'donations/js/donations.js' %}"></script>
+{% endblock %} 

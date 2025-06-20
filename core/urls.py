@@ -9,4 +9,6 @@ urlpatterns = [
     path('dashboard/', views.admin_dashboard, name='admin_dashboard'),
     path('analytics/', RedirectView.as_view(pattern_name='core:admin_dashboard'), name='analytics_dashboard'),
     path('api/engagement-data/', views.engagement_data_api, name='engagement_data_api'),
+    path('search/', views.search, name='search'),
+    path('go-to-profile/', views.go_to_profile, name='go_to_profile'),
 ] 

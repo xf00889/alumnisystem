@@ -1,0 +1,387 @@
+{% extends "donations/base.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Donations Dashboard" %} | {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .status-badge {
+        cursor: pointer;
+    }
+</style>
+{% endblock %}
+
+{% block donations_content %}
+{% csrf_token %}
+<div class="mb-4">
+    <h1 class="display-5 fw-bold">{% trans "Donations Dashboard" %}</h1>
+    <p class="lead">{% trans "Manage and monitor all donation activities." %}</p>
+</div>
+
+<!-- Stats Cards -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card bg-primary text-white mb-4">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Total Donations" %}</h5>
+                <h2 class="display-6">{{ total_donations }}</h2>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <span>{% trans "Completed Donations" %}</span>
+                <span class="badge bg-light text-primary">{{ donation_count }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card bg-success text-white mb-4">
+            <div class="card-body">
+                <h5 class="card-title">{% trans "Campaigns" %}</h5>
+                <h2 class="display-6">{{ campaign_count }}</h2>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <span>{% trans "Active Campaigns" %}</span>
+                <span class="badge bg-light text-success">{{ active_campaign_count }}</span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card mb-4">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="mb-0">Campaigns by Status</h3>
+                <a href="{% url 'donations:manage_campaigns' %}" class="btn btn-sm btn-outline-primary">
+                    <i class="fas fa-cog me-2"></i>Manage
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for status in campaigns_by_status %}
+                    <div class="col-md-4 mb-2">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span>{{ status.status|title }}</span>
+                            <span class="badge bg-primary rounded-pill">{{ status.count }}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Recent Donations -->
+<div class="card mb-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="mb-0">Recent Donations</h3>
+        <a href="{% url 'donations:manage_donations' %}" class="btn btn-sm btn-outline-primary">
+            <i class="fas fa-cog me-2"></i>Manage
+        </a>
+    </div>
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead>
+                <tr>
+                    <th>{% trans "Donor" %}</th>
+                    <th>{% trans "Campaign" %}</th>
+                    <th>{% trans "Amount" %}</th>
+                    <th>{% trans "Date" %}</th>
+                    <th>{% trans "Payment Method" %}</th>
+                    <th>{% trans "Status" %}</th>
+                    <th>{% trans "Actions" %}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for donation in recent_donations %}
+                <tr>
+                    <td>
+                        {% if donation.is_anonymous %}
+                            {% trans "Anonymous" %}
+                        {% elif donation.donor %}
+                            {{ donation.donor.get_full_name }}
+                        {% else %}
+                            {{ donation.donor_name }}
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ donation.campaign.get_absolute_url }}">
+                            {{ donation.campaign.name }}
+                        </a>
+                    </td>
+                    <td>{{ donation.amount }}</td>
+                    <td>{{ donation.donation_date|date:"M d, Y" }}</td>
+                    <td>{{ donation.get_payment_method_display }}</td>
+                    <td>
+                        <span class="badge status-badge bg-{{ donation.status|yesno:'success,warning' }}" 
+                              data-bs-toggle="dropdown" aria-expanded="false" 
+                              data-donation-id="{{ donation.pk }}">
+                            {{ donation.get_status_display }}
+                        </span>
+                        <ul class="dropdown-menu">
+                            {% for status_code, status_name in donation.STATUS_CHOICES %}
+                            <li>
+                                <a class="dropdown-item status-option" href="#" 
+                                   data-status="{{ status_code }}" 
+                                   data-donation-id="{{ donation.pk }}">
+                                    {{ status_name }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" id="dropdownMenuButton{{ donation.pk }}" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="fas fa-ellipsis-v"></i>
+                            </button>
+                            <ul class="dropdown-menu" aria-labelledby="dropdownMenuButton{{ donation.pk }}">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'donations:donation_confirmation' donation.pk %}">
+                                        <i class="fas fa-receipt me-2"></i>{% trans "View Receipt" %}
+                                    </a>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item edit-donation" data-donation-id="{{ donation.pk }}">
+                                        <i class="fas fa-edit me-2"></i>{% trans "Edit Details" %}
+                                    </button>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <button class="dropdown-item update-status" data-donation-id="{{ donation.pk }}" data-status="completed">
+                                        <i class="fas fa-check-circle me-2 text-success"></i>{% trans "Mark as Completed" %}
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item update-status" data-donation-id="{{ donation.pk }}" data-status="pending">
+                                        <i class="fas fa-clock me-2 text-warning"></i>{% trans "Mark as Pending" %}
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item update-status" data-donation-id="{{ donation.pk }}" data-status="failed">
+                                        <i class="fas fa-times-circle me-2 text-danger"></i>{% trans "Mark as Failed" %}
+                                    </button>
+                                </li>
+                                <li>
+                                    <button class="dropdown-item update-status" data-donation-id="{{ donation.pk }}" data-status="refunded">
+                                        <i class="fas fa-undo me-2 text-info"></i>{% trans "Mark as Refunded" %}
+                                    </button>
+                                </li>
+                            </ul>
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    <div class="card-footer">
+        <a href="{% url 'donations:manage_donations' %}" class="btn btn-primary">
+            {% trans "View All Donations" %}
+        </a>
+    </div>
+</div>
+
+<!-- Quick Links -->
+<div class="card mb-4">
+    <div class="card-header bg-light">
+        <h5 class="mb-0">{% trans "Quick Links" %}</h5>
+    </div>
+    <div class="card-body">
+        <div class="list-group">
+            <a href="{% url 'donations:manage_donations' %}" class="list-group-item list-group-item-action">
+                <i class="fas fa-donate me-2"></i>Manage All Donations
+            </a>
+            <a href="{% url 'donations:manage_campaigns' %}" class="list-group-item list-group-item-action">
+                <i class="fas fa-bullhorn me-2"></i>Manage All Campaigns
+            </a>
+            <a href="{% url 'donations:campaign_create' %}" class="list-group-item list-group-item-action">
+                <i class="fas fa-plus me-2"></i>Create New Campaign
+            </a>
+            <a href="{% url 'donations:campaign_list' %}" class="list-group-item list-group-item-action">
+                <i class="fas fa-list me-2"></i>View Public Campaign List
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Global variables
+        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        
+        // Handle status update buttons
+        const updateStatusButtons = document.querySelectorAll('.update-status');
+        
+        updateStatusButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const donationId = this.getAttribute('data-donation-id');
+                const status = this.getAttribute('data-status');
+                
+                updateDonationStatus(donationId, status);
+            });
+        });
+        
+        // Function to update donation status
+        function updateDonationStatus(donationId, status) {
+            // Create form data
+            const formData = new FormData();
+            formData.append('status', status);
+            
+            // Send AJAX request
+            fetch(`/donations/donation/${donationId}/update-status/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken
+                },
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Update status badge
+                    const statusBadge = document.querySelector(`.status-badge[data-donation-id="${donationId}"]`);
+                    
+                    let badgeClass = 'bg-secondary';
+                    if (status === 'completed') {
+                        badgeClass = 'bg-success';
+                    } else if (status === 'pending') {
+                        badgeClass = 'bg-warning';
+                    } else if (status === 'failed') {
+                        badgeClass = 'bg-danger';
+                    } else if (status === 'refunded') {
+                        badgeClass = 'bg-info';
+                    }
+                    
+                    statusBadge.textContent = data.new_status;
+                    statusBadge.className = `badge status-badge ${badgeClass}`;
+                    
+                    // Show success message
+                    alert('Status updated successfully.');
+                } else {
+                    // Show error message
+                    alert('Error: ' + data.message);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('An error occurred while updating the status.');
+            });
+        }
+        
+        // Handle edit donation buttons
+        const editDonationButtons = document.querySelectorAll('.edit-donation');
+        
+        editDonationButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const donationId = this.getAttribute('data-donation-id');
+                
+                // Create a modal to show the edit form
+                const modalHTML = `
+                    <div class="modal fade" id="editDonationModal" tabindex="-1" aria-labelledby="editDonationModalLabel" aria-hidden="true">
+                        <div class="modal-dialog modal-lg">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="editDonationModalLabel">Edit Donation Details</h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <div class="donation-edit-form-container">
+                                        <p class="text-center">
+                                            <i class="fas fa-spinner fa-spin fa-2x"></i>
+                                            <span class="d-block mt-2">Loading donation details...</span>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+                
+                // Add modal to the DOM
+                document.body.insertAdjacentHTML('beforeend', modalHTML);
+                
+                // Show the modal
+                const modal = new bootstrap.Modal(document.getElementById('editDonationModal'));
+                modal.show();
+                
+                // Load the edit form
+                fetch(`/donations/donation/${donationId}/edit-form/`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        document.querySelector('.donation-edit-form-container').innerHTML = html;
+                        
+                        // Set up form submission
+                        const form = document.querySelector('.donation-edit-form-container form');
+                        if (form) {
+                            form.addEventListener('submit', function(e) {
+                                e.preventDefault();
+                                
+                                const formData = new FormData(form);
+                                
+                                fetch(form.action, {
+                                    method: 'POST',
+                                    headers: {
+                                        'X-CSRFToken': csrfToken
+                                    },
+                                    body: formData
+                                })
+                                .then(response => {
+                                    if (!response.ok) {
+                                        throw new Error(`HTTP error! status: ${response.status}`);
+                                    }
+                                    return response.json();
+                                })
+                                .then(data => {
+                                    if (data.status === 'success') {
+                                        alert(data.message);
+                                        modal.hide();
+                                        // Reload the page to show updated data
+                                        window.location.reload();
+                                    } else {
+                                        // Display form errors if any
+                                        const errorContainer = form.querySelector('.alert-danger');
+                                        if (errorContainer && data.errors) {
+                                            errorContainer.classList.remove('d-none');
+                                            errorContainer.innerHTML = '';
+                                            for (const field in data.errors) {
+                                                errorContainer.innerHTML += `<p><strong>${field}:</strong> ${data.errors[field].join(', ')}</p>`;
+                                            }
+                                        } else {
+                                            alert('Error: ' + data.message);
+                                        }
+                                    }
+                                })
+                                .catch(error => {
+                                    console.error('Error:', error);
+                                    alert('An error occurred while saving the donation.');
+                                });
+                            });
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        document.querySelector('.donation-edit-form-container').innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                An error occurred while loading the donation details.
+                            </div>
+                        `;
+                    });
+                
+                // Remove the modal from the DOM when it's hidden
+                document.getElementById('editDonationModal').addEventListener('hidden.bs.modal', function() {
+                    this.remove();
+                });
+            });
+        });
+    });
+</script>
+{% endblock %} 

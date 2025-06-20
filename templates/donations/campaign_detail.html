@@ -1,0 +1,250 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ campaign.name }} - Fundraising Campaign{% endblock %}
+
+{% block page_title %}{{ campaign.name }}{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'donations:campaign_list' %}">Campaigns</a></li>
+<li class="breadcrumb-item active">{{ campaign.name }}</li>
+{% endblock %}
+
+{% block donations_content %}
+<div class="col-lg-8">
+    <!-- Campaign Image -->
+    <div class="campaign-detail-image">
+        {% if campaign.featured_image %}
+        <img src="{{ campaign.featured_image.url }}" alt="{{ campaign.name }}">
+        {% else %}
+        <img src="{% static 'images/campaign-placeholder.jpg' %}" alt="{{ campaign.name }}">
+        {% endif %}
+    </div>
+    
+    <!-- Campaign Description -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title mb-3">About This Campaign</h3>
+            <div class="campaign-description">
+                {{ campaign.description|safe }}
+            </div>
+            
+            <div class="mt-4">
+                <h4>Beneficiaries</h4>
+                <p>{{ campaign.beneficiaries|safe }}</p>
+            </div>
+            
+            <div class="mt-4">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4>Recent Donors</h4>
+                    <a href="{% url 'donations:campaign_donors' slug=campaign.slug %}" class="btn btn-sm btn-outline-primary">
+                        View All Donors
+                    </a>
+                </div>
+                
+                <div class="donor-list">
+                    {% for donation in recent_donations %}
+                    <div class="donor-item">
+                        <div class="donor-avatar">
+                            {% if donation.donor.profile.avatar %}
+                            <img src="{{ donation.donor.profile.avatar.url }}" alt="{{ donation.donor.get_full_name }}">
+                            {% else %}
+                            {{ donation.donor.get_full_name|first }}
+                            {% endif %}
+                        </div>
+                        <div class="donor-info">
+                            <div class="donor-name">{{ donation.donor.get_full_name }}</div>
+                            <div class="small text-muted">{{ donation.donation_date|date:"F j, Y" }}</div>
+                        </div>
+                        <div class="donor-amount">₱{{ donation.amount|intcomma }}</div>
+                    </div>
+                    {% empty %}
+                    <div class="text-center py-3">
+                        <p class="text-muted">No donations yet. Be the first to donate!</p>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Campaign Updates -->
+    {% if updates %}
+    <div class="card mb-4">
+        <div class="card-body">
+            <h3 class="card-title mb-3">Campaign Updates</h3>
+            
+            {% for update in updates %}
+            <div class="update-item">
+                <h4 class="update-title">{{ update.title }}</h4>
+                <div class="update-date">{{ update.created|date:"F j, Y" }}</div>
+                <div class="update-content">{{ update.content|safe }}</div>
+                
+                {% if update.image %}
+                <div class="update-image">
+                    <img src="{{ update.image.url }}" alt="{{ update.title }}">
+                </div>
+                {% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<div class="col-lg-4">
+    <!-- Campaign Sidebar -->
+    <div class="campaign-sidebar">
+        <div class="campaign-status mb-3">
+            {% if campaign.is_active %}
+            <span class="badge bg-success">Active Campaign</span>
+            {% elif campaign.status == 'completed' %}
+            <span class="badge bg-info">Completed Campaign</span>
+            {% elif campaign.status == 'draft' %}
+            <span class="badge bg-secondary">Draft Campaign</span>
+            {% else %}
+            <span class="badge bg-warning">{{ campaign.get_status_display }}</span>
+            {% endif %}
+            
+            <span class="badge bg-primary ms-2">{{ campaign.campaign_type.name }}</span>
+        </div>
+        
+        <div class="campaign-progress mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-bold">₱{{ donation_stats.total_amount|intcomma }}</span>
+                <span class="text-muted">of ₱{{ campaign.goal_amount|intcomma }}</span>
+            </div>
+            
+            <div class="progress mb-2">
+                <div class="progress-bar" role="progressbar" style="width: {{ donation_stats.progress_percentage }}%"
+                     aria-valuenow="{{ donation_stats.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            
+            <div class="d-flex justify-content-between small text-muted">
+                <span>{{ donation_stats.progress_percentage }}% Complete</span>
+                <span>{{ donation_stats.total_donors }} Donors</span>
+            </div>
+        </div>
+        
+        {% if campaign.days_remaining is not None %}
+        <div class="campaign-timeline mb-4">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <div class="small text-muted">Started</div>
+                    <div>{{ campaign.start_date|date:"M j, Y" }}</div>
+                </div>
+                
+                {% if campaign.end_date %}
+                <div class="text-end">
+                    <div class="small text-muted">Ends</div>
+                    <div>{{ campaign.end_date|date:"M j, Y" }}</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            {% if campaign.days_remaining > 0 %}
+            <div class="alert alert-warning mt-3 mb-0 text-center">
+                <i class="fas fa-clock me-2"></i>{{ campaign.days_remaining }} days remaining
+            </div>
+            {% else %}
+            <div class="alert alert-secondary mt-3 mb-0 text-center">
+                <i class="fas fa-check-circle me-2"></i>Campaign ended
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        {% if campaign.is_active %}
+        <div class="donation-form">
+            <h4 class="mb-3">Make a Donation</h4>
+            
+            <form method="post" action="">
+                {% csrf_token %}
+                
+                <div class="mb-3">
+                    <label for="{{ form.amount.id_for_label }}" class="form-label">Donation Amount (₱)</label>
+                    {{ form.amount }}
+                    {% if form.amount.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.amount.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
+                    {{ form.payment_method }}
+                    {% if form.payment_method.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.payment_method.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3 form-check">
+                    {{ form.is_anonymous }}
+                    <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">
+                        Make this donation anonymous
+                    </label>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.message.id_for_label }}" class="form-label">Message (Optional)</label>
+                    {{ form.message }}
+                </div>
+                
+                {% if not user.is_authenticated %}
+                <div class="alert alert-info mb-3">
+                    <p class="mb-0">You are not logged in. Please provide your information below:</p>
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.donor_name.id_for_label }}" class="form-label">Your Name</label>
+                    {{ form.donor_name }}
+                    {% if form.donor_name.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.donor_name.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="mb-3">
+                    <label for="{{ form.donor_email.id_for_label }}" class="form-label">Your Email</label>
+                    {{ form.donor_email }}
+                    {% if form.donor_email.errors %}
+                    <div class="invalid-feedback d-block">
+                        {{ form.donor_email.errors.0 }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <button type="submit" class="btn btn-primary w-100">
+                    <i class="fas fa-heart me-2"></i>Donate Now
+                </button>
+            </form>
+        </div>
+        {% else %}
+        <div class="alert alert-info text-center">
+            <i class="fas fa-info-circle me-2"></i>
+            {% if campaign.status == 'completed' %}
+            This campaign has been completed. Thank you for your interest!
+            {% elif campaign.status == 'draft' %}
+            This campaign is not yet active. Please check back later.
+            {% else %}
+            This campaign is currently {{ campaign.get_status_display|lower }}. Donations are not being accepted at this time.
+            {% endif %}
+        </div>
+        {% endif %}
+        
+        <div class="mt-4">
+            <div class="d-flex justify-content-center">
+                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Campaigns
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

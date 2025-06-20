@@ -3,6 +3,7 @@ from django.conf import settings
 from django.core.validators import FileExtensionValidator
 from django_countries.fields import CountryField
 from phonenumber_field.modelfields import PhoneNumberField
+from accounts.models import Experience
 
 class Alumni(models.Model):
     GENDER_CHOICES = (
@@ -53,19 +54,6 @@ class Alumni(models.Model):
 
     # Basic Information
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
-    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
-    date_of_birth = models.DateField(null=True, blank=True)
-    
-    # Contact Information
-    phone_number = PhoneNumberField(blank=True)
-    alternate_email = models.EmailField(blank=True)
-    linkedin_profile = models.URLField(blank=True)
-    
-    # Location Information
-    country = CountryField(default='PH')
-    province = models.CharField(max_length=100)
-    city = models.CharField(max_length=100)
-    address = models.TextField()
     
     # Academic Information
     college = models.CharField(max_length=10, choices=COLLEGE_CHOICES)
@@ -76,7 +64,17 @@ class Alumni(models.Model):
     honors = models.CharField(max_length=200, blank=True)
     thesis_title = models.CharField(max_length=500, blank=True, null=True)
     
-    # Professional Information
+    # Preserved fields from original model for backward compatibility
+    # These are now considered legacy fields and should be accessed via profile
+    gender = models.CharField(max_length=1, choices=GENDER_CHOICES)
+    date_of_birth = models.DateField(null=True, blank=True)
+    phone_number = PhoneNumberField(blank=True)
+    alternate_email = models.EmailField(blank=True)
+    linkedin_profile = models.URLField(blank=True)
+    country = CountryField(default='PH')
+    province = models.CharField(max_length=100)
+    city = models.CharField(max_length=100)
+    address = models.TextField()
     current_company = models.CharField(max_length=200, blank=True)
     job_title = models.CharField(max_length=200, blank=True)
     employment_status = models.CharField(
@@ -85,12 +83,8 @@ class Alumni(models.Model):
         default='UNEMPLOYED'
     )
     industry = models.CharField(max_length=200, blank=True)
-    
-    # Skills and Interests
     skills = models.TextField(blank=True, help_text="Comma-separated list of skills")
     interests = models.TextField(blank=True, help_text="Comma-separated list of interests")
-    
-    # Additional Information
     bio = models.TextField(blank=True)
     achievements = models.TextField(blank=True)
     
@@ -149,6 +143,29 @@ class Alumni(models.Model):
     def has_pending_mentor_application(self):
         return self.mentorship_status == 'PENDING'
 
+    @property
+    def current_experience(self):
+        """Get the current professional experience if exists"""
+        try:
+            return self.user.profile.experience.filter(is_current=True).first()
+        except:
+            return None
+    
+    @property
+    def profile(self):
+        """Get the user's profile for easier access"""
+        try:
+            return self.user.profile
+        except:
+            return None
+            
+    def update_professional_info(self, experience=None):
+        """Update professional info based on the provided experience"""
+        if experience and experience.is_current:
+            self.current_company = experience.company
+            self.job_title = experience.position
+            self.save(update_fields=['current_company', 'job_title'])
+
 class AlumniDocument(models.Model):
     DOCUMENT_TYPES = (
         ('RESUME', 'Resume/CV'),
@@ -192,45 +209,6 @@ class AlumniDocument(models.Model):
         except:
             return "Unknown size"
 
-class CareerPath(models.Model):
-    PROMOTION_TYPE_CHOICES = (
-        ('PROMOTION', 'Promotion'),
-        ('LATERAL', 'Lateral Move'),
-        ('NEW_ROLE', 'New Role'),
-        ('COMPANY_CHANGE', 'Company Change'),
-    )
-
-    alumni = models.ForeignKey(Alumni, on_delete=models.CASCADE, related_name='career_paths')
-    company = models.CharField(max_length=255)
-    position = models.CharField(max_length=255)
-    start_date = models.DateField()
-    end_date = models.DateField(null=True, blank=True)
-    is_current = models.BooleanField(default=False)
-    description = models.TextField(blank=True)
-    achievements = models.TextField(blank=True)
-    promotion_type = models.CharField(max_length=20, choices=PROMOTION_TYPE_CHOICES, blank=True)
-    salary_range = models.CharField(max_length=100, blank=True)
-    location = models.CharField(max_length=255, blank=True)
-    skills_gained = models.TextField(blank=True, help_text="Comma-separated list of skills gained in this role")
-    
-    created_at = models.DateTimeField(auto_now_add=True)
-    updated_at = models.DateTimeField(auto_now=True)
-
-    class Meta:
-        ordering = ['-start_date']
-        verbose_name = 'Career Path'
-        verbose_name_plural = 'Career Paths'
-
-    def __str__(self):
-        return f"{self.position} at {self.company}"
-
-    def save(self, *args, **kwargs):
-        if self.is_current:
-            self.end_date = None
-            # Set all other career paths for this alumni to not current
-            CareerPath.objects.filter(alumni=self.alumni).exclude(pk=self.pk).update(is_current=False)
-        super().save(*args, **kwargs)
-
 class Achievement(models.Model):
     ACHIEVEMENT_TYPE_CHOICES = (
         ('AWARD', 'Award'),
@@ -264,4 +242,59 @@ class Achievement(models.Model):
         verbose_name_plural = 'Achievements'
 
     def __str__(self):
-        return self.title
+        return f"{self.title} - {self.alumni.full_name}"
+
+class ProfessionalExperience:
+    """
+    A non-database class that provides a unified view of professional experiences.
+    This acts as an interface over the Experience model to provide consistent
+    access patterns for alumni professional information.
+    """
+    
+    @classmethod
+    def get_unified_experience(cls, alumni):
+        """
+        Get all experiences for an alumni, sorted with current position first
+        """
+        try:
+            experiences = alumni.user.profile.experience.all()
+            experiences = sorted(experiences, key=lambda exp: (not exp.is_current, -exp.start_date.year, -exp.start_date.month))
+            # For backward compatibility
+            for exp in experiences:
+                exp.alumni = alumni
+            return experiences
+        except Exception as e:
+            print(f"Error getting unified experience: {e}")
+            return []
+            
+    @classmethod
+    def get_career_path_only(cls, alumni):
+        """
+        Get only career path experiences (those with career significance other than REGULAR)
+        """
+        try:
+            experiences = alumni.user.profile.experience.exclude(career_significance='REGULAR')
+            experiences = sorted(experiences, key=lambda exp: (not exp.is_current, -exp.start_date.year, -exp.start_date.month))
+            # For backward compatibility
+            for exp in experiences:
+                exp.alumni = alumni
+            return experiences
+        except Exception as e:
+            print(f"Error getting career path: {e}")
+            return []
+            
+    @classmethod
+    def get_regular_experience_only(cls, alumni):
+        """
+        Get only regular work experiences
+        """
+        try:
+            experiences = alumni.user.profile.experience.filter(career_significance='REGULAR')
+            experiences = sorted(experiences, key=lambda exp: (not exp.is_current, -exp.start_date.year, -exp.start_date.month))
+            # For backward compatibility
+            for exp in experiences:
+                exp.alumni = alumni
+            return experiences
+        except Exception as e:
+            print(f"Error getting regular experience: {e}")
+            return []

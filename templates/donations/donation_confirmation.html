@@ -1,0 +1,142 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Donation Confirmation - NORSU Alumni{% endblock %}
+
+{% block page_title %}Donation Confirmation{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'donations:campaign_list' %}">Campaigns</a></li>
+<li class="breadcrumb-item"><a href="{% url 'donations:campaign_detail' slug=donation.campaign.slug %}">{{ donation.campaign.name }}</a></li>
+<li class="breadcrumb-item active">Confirmation</li>
+{% endblock %}
+
+{% block donations_content %}
+<div class="col-md-8 mx-auto">
+    <div class="card">
+        <div class="card-body text-center py-5">
+            <div class="mb-4">
+                <i class="fas fa-check-circle text-success" style="font-size: 5rem;"></i>
+            </div>
+            
+            <h2 class="card-title mb-4">Thank You for Your Donation!</h2>
+            
+            <p class="lead mb-4">
+                Your donation of <strong>₱{{ donation.amount|intcomma }}</strong> to 
+                <strong>{{ donation.campaign.name }}</strong> has been recorded.
+            </p>
+            
+            <div class="alert alert-info mb-4">
+                <h5 class="alert-heading">Next Steps</h5>
+                <p>
+                    {% if donation.status == 'pending' %}
+                    Your donation is currently <strong>pending</strong>. Please complete the payment using your selected method.
+                    Once your payment is confirmed, your donation status will be updated.
+                    {% elif donation.status == 'completed' %}
+                    Your donation has been <strong>completed</strong>. Thank you for your generosity!
+                    {% endif %}
+                </p>
+            </div>
+            
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0">Donation Details</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-md-end fw-bold">Campaign:</div>
+                        <div class="col-md-6 text-md-start">{{ donation.campaign.name }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-md-end fw-bold">Amount:</div>
+                        <div class="col-md-6 text-md-start">₱{{ donation.amount|intcomma }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-md-end fw-bold">Date:</div>
+                        <div class="col-md-6 text-md-start">{{ donation.donation_date|date:"F j, Y, g:i a" }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-md-end fw-bold">Payment Method:</div>
+                        <div class="col-md-6 text-md-start">{{ donation.get_payment_method_display }}</div>
+                    </div>
+                    
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-md-end fw-bold">Status:</div>
+                        <div class="col-md-6 text-md-start">
+                            {% if donation.status == 'completed' %}
+                            <span class="badge bg-success">Completed</span>
+                            {% elif donation.status == 'pending' %}
+                            <span class="badge bg-warning">Pending</span>
+                            {% elif donation.status == 'failed' %}
+                            <span class="badge bg-danger">Failed</span>
+                            {% elif donation.status == 'refunded' %}
+                            <span class="badge bg-info">Refunded</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    
+                    {% if donation.reference_number %}
+                    <div class="row mb-3">
+                        <div class="col-md-6 text-md-end fw-bold">Reference Number:</div>
+                        <div class="col-md-6 text-md-start">{{ donation.reference_number }}</div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            {% if donation.payment_method == 'bank_transfer' %}
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Bank Transfer Instructions</h5>
+                </div>
+                <div class="card-body">
+                    <p>Please transfer your donation to the following bank account:</p>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-md-end fw-bold">Bank Name:</div>
+                        <div class="col-md-8 text-md-start">Bank of the Philippine Islands (BPI)</div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-md-end fw-bold">Account Name:</div>
+                        <div class="col-md-8 text-md-start">NORSU Alumni Association</div>
+                    </div>
+                    
+                    <div class="row mb-2">
+                        <div class="col-md-4 text-md-end fw-bold">Account Number:</div>
+                        <div class="col-md-8 text-md-start">1234-5678-9012</div>
+                    </div>
+                    
+                    <div class="alert alert-warning mt-3 mb-0">
+                        <p class="mb-0">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Please include your reference number <strong>{{ donation.reference_number }}</strong> in the transfer details.
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <div class="d-flex justify-content-center gap-3 mt-4">
+                <a href="{% url 'donations:campaign_detail' slug=donation.campaign.slug %}" class="btn btn-outline-primary">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Campaign
+                </a>
+                
+                {% if user.is_authenticated %}
+                <a href="{% url 'donations:donation_history' %}" class="btn btn-primary">
+                    <i class="fas fa-history me-2"></i>View Donation History
+                </a>
+                {% else %}
+                <a href="{% url 'donations:campaign_list' %}" class="btn btn-primary">
+                    <i class="fas fa-search me-2"></i>Browse More Campaigns
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

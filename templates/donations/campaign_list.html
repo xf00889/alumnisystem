@@ -1,0 +1,212 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block page_title %}Fundraising Campaigns{% endblock %}
+
+{% block donations_content %}
+<div class="col-lg-3 mb-4">
+    <!-- Filter Sidebar -->
+    <div class="filter-sidebar">
+        <h3 class="filter-title">Filter Campaigns</h3>
+        <form method="get" action="{% url 'donations:campaign_list' %}">
+            <div class="filter-section">
+                <h4 class="filter-section-title">Search</h4>
+                {{ filter_form.search }}
+            </div>
+            
+            <div class="filter-section">
+                <h4 class="filter-section-title">Campaign Type</h4>
+                {{ filter_form.campaign_type }}
+            </div>
+            
+            <div class="filter-section">
+                <h4 class="filter-section-title">Status</h4>
+                {{ filter_form.status }}
+            </div>
+            
+            <div class="filter-section">
+                <h4 class="filter-section-title">Sort By</h4>
+                {{ filter_form.sort }}
+            </div>
+            
+            <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
+        </form>
+    </div>
+    
+    <!-- Campaign Types -->
+    <div class="filter-sidebar">
+        <h3 class="filter-title">Campaign Types</h3>
+        <ul class="list-group list-group-flush">
+            {% for campaign_type in campaign_types %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <a href="{% url 'donations:campaign_list' %}?campaign_type={{ campaign_type.slug }}">
+                    {{ campaign_type.name }}
+                </a>
+                <span class="badge bg-primary rounded-pill">{{ campaign_type.campaign_count }}</span>
+            </li>
+            {% empty %}
+            <li class="list-group-item">No campaign types available</li>
+            {% endfor %}
+        </ul>
+    </div>
+    
+    <!-- Featured Campaigns -->
+    {% if featured_campaigns %}
+    <div class="filter-sidebar">
+        <h3 class="filter-title">Featured Campaigns</h3>
+        {% for campaign in featured_campaigns %}
+        <div class="mb-3">
+            <h5 class="mb-1">
+                <a href="{% url 'donations:campaign_detail' slug=campaign.slug %}">
+                    {{ campaign.name }}
+                </a>
+            </h5>
+            <div class="progress mb-2">
+                <div class="progress-bar" role="progressbar" style="width: {{ campaign.progress_percentage }}%"
+                     aria-valuenow="{{ campaign.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+            <div class="d-flex justify-content-between small text-muted">
+                <span>{{ campaign.current_amount|intcomma }} raised</span>
+                <span>{{ campaign.progress_percentage }}%</span>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+
+<div class="col-lg-9">
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center">
+                <h2>All Campaigns</h2>
+                {% if user.is_staff or user.is_superuser %}
+                <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-primary">
+                    <i class="fas fa-chart-line me-2"></i>Donation Dashboard
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="row">
+        {% for campaign in page_obj %}
+        <div class="col-md-6 col-lg-4 mb-4">
+            <div class="campaign-card">
+                <div class="campaign-image" 
+                     style="background-image: url('{% if campaign.featured_image %}{{ campaign.featured_image.url }}{% else %}{% static 'images/campaign-placeholder.jpg' %}{% endif %}');">
+                </div>
+                <div class="campaign-content">
+                    <div class="campaign-meta">
+                        <span class="campaign-type">{{ campaign.campaign_type.name }}</span>
+                        <span class="campaign-status">
+                            {% if campaign.is_active %}
+                                <span class="badge bg-success">Active</span>
+                            {% elif campaign.status == 'completed' %}
+                                <span class="badge bg-info">Completed</span>
+                            {% elif campaign.status == 'draft' %}
+                                <span class="badge bg-secondary">Draft</span>
+                            {% else %}
+                                <span class="badge bg-warning">{{ campaign.get_status_display }}</span>
+                            {% endif %}
+                        </span>
+                    </div>
+                    
+                    <h3 class="campaign-title">
+                        <a href="{% url 'donations:campaign_detail' slug=campaign.slug %}">
+                            {{ campaign.name }}
+                        </a>
+                    </h3>
+                    
+                    <p class="campaign-description">{{ campaign.short_description }}</p>
+                    
+                    <div class="campaign-progress">
+                        <div class="progress">
+                            <div class="progress-bar" role="progressbar" style="width: {{ campaign.progress_percentage }}%"
+                                 aria-valuenow="{{ campaign.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                        </div>
+                    </div>
+                    
+                    <div class="campaign-stats">
+                        <span>{{ campaign.current_amount|intcomma }} raised</span>
+                        <span>{{ campaign.progress_percentage }}% of {{ campaign.goal_amount|intcomma }}</span>
+                    </div>
+                    
+                    {% if campaign.days_remaining is not None %}
+                    <div class="text-center mt-3">
+                        <span class="badge bg-light text-dark">
+                            {% if campaign.days_remaining > 0 %}
+                                {{ campaign.days_remaining }} days left
+                            {% else %}
+                                Campaign ended
+                            {% endif %}
+                        </span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="mt-3">
+                        <a href="{% url 'donations:campaign_detail' slug=campaign.slug %}" class="btn btn-primary w-100">
+                            {% if campaign.is_active %}Donate Now{% else %}View Campaign{% endif %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info">
+                No campaigns found matching your criteria. Please try different filters.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if page_obj.has_other_pages %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <nav aria-label="Page navigation">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                    
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                        <li class="page-item active"><a class="page-link" href="#">{{ num }}</a></li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">{{ num }}</a>
+                        </li>
+                        {% endif %}
+                    {% endfor %}
+                    
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' %}&{{ key }}={{ value }}{% endif %}{% endfor %}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %} 

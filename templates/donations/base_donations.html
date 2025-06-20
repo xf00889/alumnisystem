@@ -1,0 +1,366 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Donations & Fundraising - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #063970;
+        --primary-light: #0a4f94;
+        --status-success: #28a745;
+        --status-warning: #ffc107;
+        --status-danger: #dc3545;
+        --status-info: #17a2b8;
+        --status-secondary: #6c757d;
+    }
+    
+    /* Campaign Card Styles */
+    .campaign-card {
+        border-radius: 12px;
+        overflow: hidden;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+        background-color: white;
+    }
+    
+    .campaign-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+    }
+    
+    .campaign-image {
+        height: 200px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+    }
+    
+    .campaign-content {
+        padding: 1.5rem;
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .campaign-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--primary-color);
+    }
+    
+    .campaign-description {
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+        flex-grow: 1;
+    }
+    
+    .campaign-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        font-size: 0.9rem;
+    }
+    
+    .campaign-type {
+        background-color: var(--light-bg);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.8rem;
+        font-weight: 500;
+    }
+    
+    .campaign-progress {
+        margin-bottom: 1rem;
+    }
+    
+    .progress {
+        height: 8px;
+        border-radius: 4px;
+        background-color: var(--light-bg);
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-light) 100%);
+        border-radius: 4px;
+    }
+    
+    .campaign-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.9rem;
+        color: var(--text-muted);
+    }
+    
+    /* Campaign Detail Styles */
+    .campaign-header {
+        background-color: white;
+        padding: 2rem 0;
+        margin-bottom: 2rem;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .campaign-detail-image {
+        width: 100%;
+        border-radius: 12px;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .campaign-detail-image img {
+        width: 100%;
+        height: auto;
+    }
+    
+    .campaign-sidebar {
+        background-color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        position: sticky;
+        top: 100px;
+    }
+    
+    .donation-form {
+        margin-top: 1.5rem;
+    }
+    
+    .donor-list {
+        margin-top: 2rem;
+    }
+    
+    .donor-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--border-color);
+    }
+    
+    .donor-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        margin-right: 1rem;
+        background-color: var(--light-bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .donor-info {
+        flex-grow: 1;
+    }
+    
+    .donor-name {
+        font-weight: 500;
+    }
+    
+    .donor-amount {
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    /* Dashboard Styles */
+    .stat-card {
+        background-color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        height: 100%;
+    }
+    
+    .stat-title {
+        font-size: 0.9rem;
+        color: var(--text-muted);
+        margin-bottom: 0.5rem;
+    }
+    
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+    
+    .donation-table th,
+    .donation-table td {
+        padding: 1rem;
+        vertical-align: middle;
+    }
+    
+    /* Filter Sidebar */
+    .filter-sidebar {
+        background-color: white;
+        border-radius: 12px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        color: var(--primary-color);
+    }
+    
+    .filter-section {
+        margin-bottom: 1.5rem;
+    }
+    
+    .filter-section-title {
+        font-size: 0.9rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    /* Campaign Updates */
+    .update-item {
+        padding: 1.5rem;
+        border-radius: 12px;
+        background-color: var(--light-bg);
+        margin-bottom: 1.5rem;
+    }
+    
+    .update-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .update-date {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .update-content {
+        margin-bottom: 1rem;
+    }
+    
+    .update-image {
+        width: 100%;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .update-image img {
+        width: 100%;
+        height: auto;
+    }
+    
+    /* Status Badge Colors */
+    .badge-completed {
+        background-color: var(--status-success);
+        color: white;
+    }
+    
+    .badge-pending {
+        background-color: var(--status-warning);
+        color: #212529;
+    }
+    
+    .badge-failed {
+        background-color: var(--status-danger);
+        color: white;
+    }
+    
+    .badge-refunded {
+        background-color: var(--status-secondary);
+        color: white;
+    }
+    
+    /* Campaign Status Colors */
+    .badge-active {
+        background-color: var(--status-success);
+        color: white;
+    }
+    
+    .badge-draft {
+        background-color: var(--status-secondary);
+        color: white;
+    }
+    
+    .badge-completed {
+        background-color: var(--status-info);
+        color: white;
+    }
+    
+    .badge-paused {
+        background-color: var(--status-warning);
+        color: #212529;
+    }
+    
+    .badge-cancelled {
+        background-color: var(--status-danger);
+        color: white;
+    }
+    
+    /* Override Bootstrap primary color */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+        background-color: var(--primary-light);
+        border-color: var(--primary-light);
+    }
+    
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .text-primary {
+        color: var(--primary-color) !important;
+    }
+    
+    .border-primary {
+        border-color: var(--primary-color) !important;
+    }
+</style>
+{% endblock %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-12">
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        <li class="breadcrumb-item">
+                            <a href="{% url 'core:home' %}">
+                                <i class="fas fa-home"></i>
+                            </a>
+                        </li>
+                        {% block breadcrumbs %}
+                        <li class="breadcrumb-item active">Donations & Fundraising</li>
+                        {% endblock %}
+                    </ol>
+                </nav>
+                <h1 class="page-title">{% block page_title %}Donations & Fundraising{% endblock %}</h1>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="container">
+    <div class="row">
+        {% block donations_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %} 

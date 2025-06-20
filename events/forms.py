@@ -74,6 +74,23 @@ class EventForm(forms.ModelForm):
 
         return cleaned_data
 
+class PublicEventForm(EventForm):
+    """
+    A simplified form for public events that sets status to published automatically
+    """
+    class Meta(EventForm.Meta):
+        fields = [
+            'title', 'description', 'start_date', 'end_date',
+            'location', 'is_virtual', 'virtual_link', 'max_participants',
+            'image', 'notified_groups'
+        ]
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        # Always set status to published for public events
+        cleaned_data['status'] = 'published'
+        return cleaned_data
+
 class EventRSVPForm(forms.ModelForm):
     class Meta:
         model = EventRSVP

@@ -724,7 +724,7 @@
     <!-- Sidebar for superuser -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
-            <img src="{% static 'images/logo.png' %}" alt="NORSU Logo">
+            <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo">
             <h5>NORSU Admin</h5>
         </div>
         <ul class="sidebar-nav">
@@ -792,13 +792,6 @@
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'chat' %}active{% endif %}" 
-                   href="{% url 'chat:chat' %}">
-                    <i class="fas fa-comments"></i>
-                    <span>Messages</span>
-                </a>
-            </li>
-            <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.app_name == 'feedback' %}active{% endif %}" 
                    href="{% url 'feedback:manage_feedbacks' %}">
                     <i class="fas fa-comment-dots"></i>
@@ -862,7 +855,7 @@
     <nav class="navbar navbar-expand-lg">
         <!-- Brand -->
         <a class="navbar-brand" href="{% url 'core:home' %}">
-            <img src="{% static 'images/logo.png' %}" alt="NORSU Logo">
+            <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo">
             NORSU Alumni
         </a>
 
@@ -887,17 +880,33 @@
                     </a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.namespace == 'announcements' %}active{% endif %}" 
+                    <a class="nav-link {% if request.resolver_match.namespace == 'announcements' and request.resolver_match.url_name == 'announcement-list' %}active{% endif %}" 
                        href="{% url 'announcements:announcement-list' %}" title="Announcements">
                         <i class="fas fa-bullhorn"></i>
                     </a>
                 </li>
+                {% if not user.is_authenticated %}
                 <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'events' %}active{% endif %}" 
+                    <a class="nav-link {% if request.resolver_match.namespace == 'announcements' and request.resolver_match.url_name == 'public-announcement-list' %}active{% endif %}" 
+                       href="{% url 'announcements:public-announcement-list' %}" title="Public Announcements">
+                        <i class="fas fa-newspaper"></i>
+                    </a>
+                </li>
+                {% endif %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'events' and request.resolver_match.url_name == 'event_list' %}active{% endif %}" 
                        href="{% url 'events:event_list' %}" title="Events">
                         <i class="fas fa-calendar-alt"></i>
                     </a>
                 </li>
+                {% if not user.is_authenticated %}
+                <li class="nav-item">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'events' and request.resolver_match.url_name == 'public_event_list' %}active{% endif %}" 
+                       href="{% url 'events:public_event_list' %}" title="Public Events">
+                        <i class="fas fa-calendar-check"></i>
+                    </a>
+                </li>
+                {% endif %}
                 <li class="nav-item">
                     <a class="nav-link {% if request.resolver_match.app_name == 'jobs' %}active{% endif %}" 
                        href="{% url 'jobs:job_list' %}" title="Job Board">
@@ -930,12 +939,6 @@
                     <a class="nav-link {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'survey_list_public' %}active{% endif %}" 
                        href="{% url 'surveys:survey_list_public' %}" title="Surveys">
                         <i class="fas fa-poll"></i>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'chat' %}active{% endif %}" 
-                       href="{% url 'chat:chat' %}" title="Messages">
-                        <i class="fas fa-comments"></i>
                     </a>
                 </li>
             </ul>

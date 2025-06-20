@@ -5,12 +5,13 @@ from django.views.generic import DetailView, UpdateView
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.exceptions import ValidationError
+from django.views.decorators.http import require_POST
 from .models import (
     Profile, Education, Experience, Skill, Document, SkillMatch,
     MentorApplication, Mentor
 )
 from alumni_groups.models import AlumniGroup, GroupMembership
-from alumni_directory.models import Alumni, CareerPath, Achievement, AlumniDocument
+from alumni_directory.models import Alumni, Achievement, AlumniDocument, ProfessionalExperience
 from .forms import (
     ProfileUpdateForm, 
     EducationFormSet, 
@@ -32,7 +33,6 @@ from django.db.models import Q
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.contrib import messages
-from django.views.decorators.http import require_POST
 from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
@@ -63,21 +63,6 @@ def post_registration(request):
                 # Save the form data
                 form.save(request.user)
                 
-                # Create or update Alumni record
-                Alumni.objects.update_or_create(
-                    user=request.user,  # This is our lookup field
-                    defaults={
-                        'graduation_year': form.cleaned_data.get('graduation_year'),
-                        'course': form.cleaned_data.get('program'),
-                        'gender': form.cleaned_data.get('gender', 'O'),  # Default to 'Other' if not provided
-                        'date_of_birth': form.cleaned_data.get('date_of_birth'),
-                        'province': form.cleaned_data.get('province', ''),
-                        'city': form.cleaned_data.get('city', ''),
-                        'address': form.cleaned_data.get('address', ''),
-                        'employment_status': 'UNEMPLOYED'  # Default status
-                    }
-                )
-                
                 messages.success(request, 'Registration completed successfully!')
             return redirect('core:home')
     else:
@@ -90,10 +75,18 @@ def post_registration(request):
         try:
             education = Education.objects.get(profile=request.user.profile, is_primary=True)
             initial_data.update({
-                'program': education.program,
-                'school': education.school,
+                'course_graduated': education.program,
                 'graduation_year': education.graduation_year,
             })
+            
+            # Get current employment if exists
+            current_exp = profile.experience.filter(is_current=True).first()
+            if current_exp:
+                initial_data.update({
+                    'present_occupation': current_exp.position,
+                    'company_name': current_exp.company,
+                    'employment_address': current_exp.location,
+                })
         except Education.DoesNotExist:
             pass
 
@@ -115,26 +108,66 @@ def profile_detail(request, username=None):
             profile = request.user.profile
             
         education_list = profile.education.all().order_by('-graduation_year')
-        experience_list = profile.experience.all().order_by('-start_date')
+        
+        # Ensure current position is in experience list
+        if profile.current_position and profile.current_employer:
+            current_exp = profile.experience.filter(is_current=True).first()
+            if not current_exp:
+                # Create a current experience record if it doesn't exist
+                import datetime
+                current_exp = Experience.objects.create(
+                    profile=profile,
+                    position=profile.current_position,
+                    company=profile.current_employer,
+                    location=profile.city or '',
+                    start_date=datetime.date.today(),
+                    is_current=True,
+                    career_significance='REGULAR'
+                )
+        
+        # Get all experience entries, appropriately sorted
+        experience_list = profile.experience.all().order_by('-is_current', '-start_date')
+        
+        # Split experiences for different tabs
+        career_path_items = profile.experience.exclude(career_significance='REGULAR').order_by('-is_current', '-start_date')
+        work_experience_items = profile.experience.filter(career_significance='REGULAR').order_by('-is_current', '-start_date')
+        
         skill_list = profile.skills.all().order_by('skill_type', 'name')
         
-        # Get career paths and achievements
+        # Get achievements
         try:
             alumni = profile.user.alumni
-            career_paths = alumni.career_paths.all().order_by('-start_date')
             achievements = alumni.achievements_list.all().order_by('-date_achieved')
+            
+            # Get unified professional experience with current position first
+            unified_experience = ProfessionalExperience.get_unified_experience(alumni)
         except Alumni.DoesNotExist:
-            career_paths = []
             achievements = []
+            unified_experience = experience_list
+        
+        # Check if user is a mentor
+        is_mentor = Mentor.objects.filter(user=profile.user).exists()
+        
+        # Check if user has a pending mentor application
+        has_pending_application = False
+        try:
+            if profile.user.mentor_application.status == 'PENDING':
+                has_pending_application = True
+        except (MentorApplication.DoesNotExist, AttributeError):
+            pass
         
         context = {
             'profile': profile,
             'education_list': education_list,
             'experience_list': experience_list,
             'skill_list': skill_list,
-            'career_paths': career_paths,
+            'career_path': career_path_items,
+            'work_experience': work_experience_items,
             'achievements': achievements,
+            'unified_experience': unified_experience,
             'is_own_profile': request.user == profile.user,
+            'is_mentor': is_mentor,
+            'has_pending_application': has_pending_application,
         }
         
         return render(request, 'accounts/profile_detail.html', context)
@@ -221,6 +254,32 @@ def profile_update(request):
                         education_formset.save()
                         experience_formset.save()
                         skill_formset.save()
+                        
+                        # Create or update current experience record if current position and employer are provided
+                        current_position = profile_form.cleaned_data.get('current_position')
+                        current_employer = profile_form.cleaned_data.get('current_employer')
+                        
+                        if current_position and current_employer:
+                            # Check if there's already a current experience
+                            current_exp = Experience.objects.filter(profile=profile, is_current=True).first()
+                            
+                            if current_exp:
+                                # Update existing current experience
+                                current_exp.position = current_position
+                                current_exp.company = current_employer
+                                current_exp.save()
+                            else:
+                                # Create new current experience
+                                import datetime
+                                Experience.objects.create(
+                                    profile=profile,
+                                    position=current_position,
+                                    company=current_employer,
+                                    location=profile.city or '',
+                                    start_date=datetime.date.today(),
+                                    is_current=True,
+                                    career_significance='REGULAR'
+                                )
 
                         # Update Alumni model
                         try:
@@ -635,13 +694,13 @@ def view_security_answer(request, membership_id):
 @require_POST
 def add_career_path(request):
     try:
-        alumni = request.user.alumni
+        user = request.user
         data = request.POST.dict()
         data['is_current'] = 'is_current' in data
         
-        # Create the career path
-        career_path = CareerPath.objects.create(
-            alumni=alumni,
+        # Create experience with career significance
+        experience = Experience.objects.create(
+            profile=user.profile,
             company=data['company'],
             position=data['position'],
             start_date=data['start_date'],
@@ -649,7 +708,7 @@ def add_career_path(request):
             is_current=data['is_current'],
             description=data.get('description', ''),
             achievements=data.get('achievements', ''),
-            promotion_type=data.get('promotion_type', ''),
+            career_significance=data.get('career_significance', 'REGULAR'),  # Updated to use career_significance
             salary_range=data.get('salary_range', ''),
             location=data.get('location', ''),
             skills_gained=data.get('skills_gained', '')
@@ -658,7 +717,7 @@ def add_career_path(request):
         return JsonResponse({
             'status': 'success',
             'message': 'Career path added successfully',
-            'id': career_path.id
+            'id': experience.id
         })
     except Exception as e:
         return JsonResponse({
@@ -670,18 +729,21 @@ def add_career_path(request):
 @require_POST
 def edit_career_path(request, pk):
     try:
-        career_path = get_object_or_404(CareerPath, pk=pk, alumni=request.user.alumni)
+        experience = get_object_or_404(Experience, pk=pk, profile=request.user.profile)
         data = request.POST.dict()
         data['is_current'] = 'is_current' in data
         
-        # Update the career path
+        # Update the experience
         for field, value in data.items():
             if field != 'csrfmiddlewaretoken':
                 if field == 'end_date' and data['is_current']:
                     value = None
-                setattr(career_path, field, value)
+                # Map fields if needed
+                if field == 'promotion_type':
+                    field = 'career_significance'
+                setattr(experience, field, value)
         
-        career_path.save()
+        experience.save()
         
         return JsonResponse({
             'status': 'success',
@@ -697,8 +759,8 @@ def edit_career_path(request, pk):
 @require_POST
 def delete_career_path(request, pk):
     try:
-        career_path = get_object_or_404(CareerPath, pk=pk, alumni=request.user.alumni)
-        career_path.delete()
+        experience = get_object_or_404(Experience, pk=pk, profile=request.user.profile)
+        experience.delete()
         
         return JsonResponse({
             'status': 'success',
@@ -1051,3 +1113,33 @@ def admin_mentor_list(request):
         'sort_by': sort_by,
     }
     return render(request, 'accounts/admin_mentor_list.html', context)
+
+@login_required
+@require_POST
+def delete_experience(request, pk):
+    try:
+        experience = get_object_or_404(Experience, pk=pk, profile=request.user.profile)
+        experience.delete()
+        messages.success(request, "Work experience deleted successfully.")
+        return JsonResponse({'status': 'success'})
+    except Exception as e:
+        messages.error(request, f"Error deleting experience: {str(e)}")
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+@login_required
+def edit_experience(request, pk):
+    experience = get_object_or_404(Experience, pk=pk, profile=request.user.profile)
+    
+    if request.method == 'POST':
+        form = ExperienceForm(request.POST, instance=experience)
+        if form.is_valid():
+            form.save()
+            return JsonResponse({'status': 'success'})
+        else:
+            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+    
+    if request.GET.get('form_only'):
+        form = ExperienceForm(instance=experience)
+        return render(request, 'accounts/forms/experience_form.html', {'form': form})
+    
+    return redirect('accounts:profile_detail')

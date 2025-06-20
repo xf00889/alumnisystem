@@ -25,7 +25,77 @@ def is_superuser(user):
 
 def home(request):
     if not request.user.is_authenticated:
-        return render(request, 'home.html')
+        # Get the latest announcements
+        try:
+            from announcements.models import Announcement
+            announcements = Announcement.objects.filter(
+                is_active=True
+            ).order_by('-date_posted')[:3]
+        except ImportError:
+            announcements = []
+        
+        # Get upcoming events
+        try:
+            from events.models import Event
+            from django.utils import timezone
+            upcoming_events = Event.objects.filter(
+                start_date__gte=timezone.now(),
+                status='published'
+            ).order_by('start_date')[:3]
+        except ImportError:
+            upcoming_events = []
+        
+        # Get featured alumni
+        try:
+            from alumni_directory.models import Alumni
+            featured_alumni = Alumni.objects.filter(
+                is_verified=True,
+                is_featured=True
+            ).order_by('?')[:3]  # Random selection
+            
+            # If no featured alumni, just get some random verified alumni
+            if not featured_alumni:
+                featured_alumni = Alumni.objects.filter(
+                    is_verified=True
+                ).order_by('?')[:3]
+        except ImportError:
+            featured_alumni = []
+        
+        # Get statistics
+        try:
+            alumni_count = Alumni.objects.filter(is_verified=True).count()
+        except:
+            alumni_count = None
+            
+        try:
+            from alumni_groups.models import AlumniGroup
+            group_count = AlumniGroup.objects.count()
+        except:
+            group_count = None
+            
+        try:
+            event_count = Event.objects.count()
+        except:
+            event_count = None
+            
+        try:
+            from jobs.models import Job
+            job_count = Job.objects.count()
+        except:
+            job_count = None
+        
+        context = {
+            'announcements': announcements,
+            'upcoming_events': upcoming_events,
+            'featured_alumni': featured_alumni,
+            'alumni_count': alumni_count,
+            'group_count': group_count,
+            'event_count': event_count,
+            'job_count': job_count,
+        }
+        
+        return render(request, 'home.html', context)
+        
     if request.user.is_superuser:
         return admin_dashboard(request)
     return redirect('accounts:profile_detail')
@@ -496,3 +566,76 @@ def engagement_data_api(request):
 
 # The analytics_dashboard function has been merged with admin_dashboard
 # and is no longer needed 
+
+def search(request):
+    """
+    Global search functionality for the alumni system.
+    Searches across alumni, groups, events, announcements, etc.
+    """
+    query = request.GET.get('q', '')
+    results = {
+        'query': query,
+        'alumni': [],
+        'groups': [],
+        'events': [],
+        'announcements': [],
+        'jobs': []
+    }
+    
+    if query:
+        # Search for alumni
+        alumni_results = Alumni.objects.filter(
+            Q(user__first_name__icontains=query) | 
+            Q(user__last_name__icontains=query) |
+            Q(user__email__icontains=query) |
+            Q(bio__icontains=query) |
+            Q(industry__icontains=query)
+        )[:10]
+        results['alumni'] = alumni_results
+        
+        # Search for groups
+        from alumni_groups.models import AlumniGroup
+        group_results = AlumniGroup.objects.filter(
+            Q(name__icontains=query) |
+            Q(description__icontains=query)
+        )[:10]
+        results['groups'] = group_results
+        
+        # Search for events
+        event_results = Event.objects.filter(
+            Q(title__icontains=query) |
+            Q(description__icontains=query) |
+            Q(location__icontains=query)
+        )[:10]
+        results['events'] = event_results
+        
+        # Search for announcements
+        announcement_results = Announcement.objects.filter(
+            Q(title__icontains=query) |
+            Q(content__icontains=query)
+        )[:10]
+        results['announcements'] = announcement_results
+        
+        # Search for jobs
+        try:
+            from jobs.models import Job
+            job_results = Job.objects.filter(
+                Q(title__icontains=query) |
+                Q(description__icontains=query) |
+                Q(company__icontains=query) |
+                Q(location__icontains=query)
+            )[:10]
+            results['jobs'] = job_results
+        except ImportError:
+            # Jobs app might not be installed
+            pass
+    
+    return render(request, 'core/search_results.html', {'results': results})
+
+@login_required
+def go_to_profile(request):
+    """
+    Redirects the user to their profile page.
+    This is a convenience view for navigation links.
+    """
+    return redirect('accounts:profile_detail') 

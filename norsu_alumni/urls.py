@@ -29,13 +29,13 @@ urlpatterns = [
     path('alumni-groups/', include('alumni_groups.urls', namespace='alumni_groups')),  # Alumni Groups URLs
     path('alumni-directory/', include('alumni_directory.urls', namespace='alumni_directory')),
     path('events/', include('events.urls', namespace='events')),  # Events app URLs
-    path('chat/', include('chat.urls')),  # Add chat URLs
     path('feedback/', include('feedback.urls', namespace='feedback')),  # Feedback app URLs
     path('location/', include('location_tracking.urls', namespace='location_tracking')),  # Location tracking URLs
     path('jobs/', include('jobs.urls', namespace='jobs')),  # Job Board URLs
     path('mentorship/', include('mentorship.urls', namespace='mentorship')),  # Mentorship URLs
     path('api/skills/', include('accounts.urls', namespace='skills')),  # Skill Matching API URLs
     path('surveys/', include('surveys.urls', namespace='surveys')),  # Changed from '' to 'surveys/'
+    path('donations/', include('donations.urls', namespace='donations')),  # Donations app URLs
 ]
 
 if settings.DEBUG:

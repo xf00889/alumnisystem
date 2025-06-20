@@ -83,6 +83,57 @@
         background-color: #f8d7da;
         color: #721c24;
     }
+    
+    /* Mobile responsive styles */
+    @media (max-width: 768px) {
+        .expertise-area-badges {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+        
+        .mobile-label {
+            display: none;
+            font-weight: bold;
+            margin-bottom: 4px;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .mobile-label {
+            display: block;
+        }
+        
+        .mentor-list-table thead {
+            display: none;
+        }
+        
+        .mentor-list-table, 
+        .mentor-list-table tbody, 
+        .mentor-list-table tr, 
+        .mentor-list-table td {
+            display: block;
+            width: 100%;
+        }
+        
+        .mentor-list-table tr {
+            margin-bottom: 15px;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .mentor-list-table td {
+            text-align: left;
+            padding: 8px 0;
+            border: none;
+            position: relative;
+        }
+        
+        .mentor-list-table td:not(:last-child) {
+            border-bottom: 1px solid #eee;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -143,14 +194,24 @@
                 <tbody>
                     {% for mentor in mentors %}
                     <tr>
-                        <td>{{ mentor.user.get_full_name }}</td>
-                        <td>{{ mentor.user.email }}</td>
                         <td>
-                            {% for area in mentor.expertise_areas.split %}
-                            <span class="status-badge" style="background-color: #e2e3e5; color: #383d41;">{{ area }}</span>
-                            {% endfor %}
+                            <span class="mobile-label">{% trans 'Name:' %}</span>
+                            {{ mentor.user.get_full_name }}
                         </td>
                         <td>
+                            <span class="mobile-label">{% trans 'Email:' %}</span>
+                            {{ mentor.user.email }}
+                        </td>
+                        <td>
+                            <span class="mobile-label">{% trans 'Expertise Areas:' %}</span>
+                            <div class="expertise-area-badges">
+                                {% for area in mentor.expertise_areas.split %}
+                                <span class="status-badge" style="background-color: #e2e3e5; color: #383d41;">{{ area }}</span>
+                                {% endfor %}
+                            </div>
+                        </td>
+                        <td>
+                            <span class="mobile-label">{% trans 'Availability:' %}</span>
                             <span class="status-badge 
                                 {% if mentor.availability_status == 'AVAILABLE' %}status-available
                                 {% elif mentor.availability_status == 'LIMITED' %}status-limited
@@ -158,13 +219,18 @@
                                 {{ mentor.get_availability_status_display }}
                             </span>
                         </td>
-                        <td>{{ mentor.current_mentees }} / {{ mentor.max_mentees }}</td>
                         <td>
+                            <span class="mobile-label">{% trans 'Mentees:' %}</span>
+                            {{ mentor.current_mentees }} / {{ mentor.max_mentees }}
+                        </td>
+                        <td>
+                            <span class="mobile-label">{% trans 'Verification:' %}</span>
                             <span class="status-badge {% if mentor.is_verified %}verified-badge{% else %}not-verified-badge{% endif %}">
                                 {% if mentor.is_verified %}Verified{% else %}Not Verified{% endif %}
                             </span>
                         </td>
                         <td>
+                            <span class="mobile-label">{% trans 'Actions:' %}</span>
                             <a href="{% url 'admin:accounts_mentor_change' mentor.id %}" class="changelink">
                                 {% trans 'Edit' %}
                             </a>

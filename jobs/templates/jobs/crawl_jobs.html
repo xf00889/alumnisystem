@@ -1,0 +1,229 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Crawl Jobs - AlumniSystem{% endblock %}
+
+{% block extra_css %}
+<style>
+  .crawl-form {
+    background-color: #f8f9fa;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+  .source-info {
+    margin-top: 20px;
+    border-left: 3px solid #007bff;
+    padding-left: 10px;
+  }
+  .source-info h5 {
+    color: #007bff;
+  }
+  .required-field::after {
+    content: "*";
+    color: red;
+    margin-left: 3px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2><i class="fas fa-spider"></i> Crawl Jobs from External Sources</h2>
+    <a href="{% url 'jobs:manage_jobs' %}" class="btn btn-outline-secondary">
+      <i class="fas fa-arrow-left"></i> Back to Job Management
+    </a>
+  </div>
+  
+  <div class="alert alert-info mb-4">
+    <div class="d-flex align-items-center">
+      <i class="fas fa-globe fa-2x me-3"></i>
+      <div>
+        <strong>Looking for more diverse job categories?</strong>
+        <p class="mb-0">Try our <a href="{% url 'jobs:crawl_diverse_jobs' %}" class="alert-link">Diverse Job Crawler</a> to find jobs across multiple industries and fields.</p>
+      </div>
+      <div class="ms-auto">
+        <a href="{% url 'jobs:crawl_diverse_jobs' %}" class="btn btn-success">
+          <i class="fas fa-globe"></i> Diverse Job Crawler
+        </a>
+      </div>
+    </div>
+  </div>
+  
+  <div class="row">
+    <div class="col-lg-8">
+      <div class="card crawl-form">
+        <div class="card-body">
+          <form method="post" action="{% url 'jobs:crawl_jobs' %}" id="crawlJobsForm">
+            {% csrf_token %}
+            
+            <div class="form-group mb-3">
+              <label for="source" class="required-field">Job Source</label>
+              <select class="form-control" id="source" name="source" required>
+                <option value="">Select a source</option>
+                {% for source in sources %}
+                  <option value="{{ source }}">{{ source|title }}</option>
+                {% endfor %}
+              </select>
+              <small class="form-text text-muted">The external job board to crawl.</small>
+            </div>
+            
+            <div class="form-group mb-3">
+              <label for="query" class="required-field">Search Query</label>
+              <input type="text" class="form-control" id="query" name="query" 
+                     placeholder="e.g., Python Developer, Software Engineer" required>
+              <small class="form-text text-muted">Job title or skills to search for.</small>
+            </div>
+            
+            <div class="form-group mb-3">
+              <label for="location">Location</label>
+              <input type="text" class="form-control" id="location" name="location" 
+                     placeholder="e.g., San Francisco, CA">
+              <small class="form-text text-muted">Optional location to filter results.</small>
+            </div>
+            
+            <div class="row">
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label for="job_type">Job Type</label>
+                  <select class="form-control" id="job_type" name="job_type">
+                    <option value="">Any Job Type</option>
+                    {% for value, label in job_types %}
+                      <option value="{{ value }}">{{ label }}</option>
+                    {% endfor %}
+                  </select>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="form-group mb-3">
+                  <label for="max_jobs">Maximum Jobs</label>
+                  <input type="number" class="form-control" id="max_jobs" name="max_jobs" 
+                         value="25" min="1" max="100">
+                  <small class="form-text text-muted">Maximum number of jobs to import.</small>
+                </div>
+              </div>
+            </div>
+            
+            <div class="alert alert-warning">
+              <i class="fas fa-exclamation-triangle"></i> 
+              <strong>Important:</strong> Web crawling may be subject to terms of service of the job boards. 
+              Please ensure you have permission to crawl the selected source and use a reasonable delay.
+            </div>
+            
+            <div class="d-flex justify-content-between align-items-center mt-4">
+              <span id="crawlStatus"></span>
+              <div>
+                <button type="submit" class="btn btn-primary">
+                  <i class="fas fa-spider"></i> Start Crawling
+                </button>
+              </div>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header bg-info text-white">
+          <h5 class="mb-0"><i class="fas fa-info-circle"></i> Source Information</h5>
+        </div>
+        <div class="card-body" id="sourceInfo">
+          <div class="text-center py-4">
+            <p class="text-muted">Select a source to see information</p>
+          </div>
+          
+          <!-- Source-specific info will be displayed here -->
+          <div id="indeed-info" class="source-info d-none">
+            <h5>Indeed</h5>
+            <p>Indeed is one of the largest job boards with millions of job listings.</p>
+            <ul>
+              <li>Good for a wide range of job types</li>
+              <li>Location-based filtering works well</li>
+              <li>Search queries should be specific for best results</li>
+            </ul>
+          </div>
+          
+          <!-- Add BossJobs source info section -->
+          <div id="bossjobs-info" class="source-info d-none">
+            <h5>BossJobs</h5>
+            <p>BossJobs is a popular job board focused on the Philippines and Southeast Asian region.</p>
+            <ul>
+              <li>Specializes in regional job listings</li>
+              <li>Good for tech, customer service, and BPO positions</li>
+              <li>Use location-specific filters for best results</li>
+            </ul>
+          </div>
+          
+          <!-- Add more source info sections here -->
+        </div>
+      </div>
+      
+      <div class="card mt-3">
+        <div class="card-header bg-success text-white">
+          <h5 class="mb-0"><i class="fas fa-lightbulb"></i> Tips</h5>
+        </div>
+        <div class="card-body">
+          <ul class="list-unstyled">
+            <li><i class="fas fa-check-circle text-success"></i> Use specific search queries for better results</li>
+            <li><i class="fas fa-check-circle text-success"></i> Include location for region-specific jobs</li>
+            <li><i class="fas fa-check-circle text-success"></i> Start with a small number of jobs (10-25) for testing</li>
+            <li><i class="fas fa-check-circle text-success"></i> Job descriptions will be processed to extract requirements and skills</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  $(document).ready(function() {
+    // Show source-specific information when a source is selected
+    $('#source').change(function() {
+      var source = $(this).val();
+      
+      // Hide all source info divs
+      $('.source-info').addClass('d-none');
+      
+      if (source) {
+        // Show the selected source info if it exists
+        var infoDiv = $('#' + source + '-info');
+        if (infoDiv.length) {
+          infoDiv.removeClass('d-none');
+        } else {
+          // Show generic message if no specific info is available
+          $('#sourceInfo').html(`
+            <div class="source-info">
+              <h5>${source.charAt(0).toUpperCase() + source.slice(1)}</h5>
+              <p>Crawl job postings from ${source}.</p>
+            </div>
+          `);
+        }
+      } else {
+        // Show default message if no source selected
+        $('#sourceInfo').html(`
+          <div class="text-center py-4">
+            <p class="text-muted">Select a source to see information</p>
+          </div>
+        `);
+      }
+    });
+    
+    // Form submission handling
+    $('#crawlJobsForm').submit(function() {
+      $('#crawlStatus').html(`
+        <div class="spinner-border spinner-border-sm text-primary" role="status">
+          <span class="visually-hidden">Loading...</span>
+        </div>
+        <span class="ms-2 text-muted">Processing request...</span>
+      `);
+      
+      // Disable the submit button to prevent double submission
+      $(this).find('button[type="submit"]').prop('disabled', true);
+    });
+  });
+</script>
+{% endblock %} 

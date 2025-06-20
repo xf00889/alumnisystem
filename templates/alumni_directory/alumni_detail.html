@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% load static %}
+{% load string_filters %}
 
 {% block title %}{{ alumni.full_name }} - Alumni Details{% endblock %}
 
@@ -16,7 +17,7 @@
 {% block content %}
 <!-- Back button -->
 <div class="container mt-4">
-    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-primary mb-3">
+    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-primary mb-3" style="--bs-btn-color: #063970; --bs-btn-border-color: #063970; --bs-btn-hover-bg: #063970; --bs-btn-hover-border-color: #063970;">
         <i class="fas fa-arrow-left"></i> Back to Alumni Directory
     </a>
 
@@ -24,7 +25,7 @@
     <div class="profile-header mb-4">
         <div class="container-fluid py-4 px-4">
             <div class="row align-items-center">
-                <div class="col-md-3 text-center text-md-start">
+                <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
                     <div class="profile-avatar-container">
                         {% if alumni.user.profile.avatar %}
                             <img src="{{ alumni.user.profile.avatar.url }}" alt="{{ alumni.full_name }}" class="profile-avatar">
@@ -41,7 +42,7 @@
                 </div>
                 
                 <div class="col-md-9">
-                    <h1 class="profile-name">{{ alumni.full_name }}</h1>
+                    <h1 class="profile-name text-truncate">{{ alumni.full_name }}</h1>
                     {% if alumni.job_title %}
                         <p class="profile-headline">{{ alumni.job_title }}{% if alumni.current_company %} at {{ alumni.current_company }}{% endif %}</p>
                     {% endif %}
@@ -133,72 +134,72 @@
                 </div>
             </div>
 
-            <!-- Career Path -->
+            <!-- Professional Experience Section (Combined view) -->
             <div class="profile-card">
-                <h3 class="profile-section-title">Career Path</h3>
-                {% if career_paths %}
-                    {% for career in career_paths %}
-                        <div class="mb-4 {% if not forloop.last %}border-bottom pb-3{% endif %}">
-                            <div class="d-flex align-items-start">
-                                <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" style="min-width: 40px; height: 40px;">
-                                    <i class="fas fa-building text-secondary"></i>
-                                </div>
-                                <div>
-                                    <h5 class="mb-1">{{ career.position }}</h5>
-                                    <h6 class="text-primary mb-1">{{ career.company }}</h6>
-                                    <div class="text-muted small">
-                                        {% if career.start_date %}{{ career.start_date|date:"M Y" }}{% endif %}
-                                        {% if career.end_date %} - {{ career.end_date|date:"M Y" }}{% elif career.is_current %} - Present{% endif %}
-                                        {% if career.location %} · {{ career.location }}{% endif %}
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h3 class="profile-section-title mb-0">Professional Experience</h3>
+                    {% if unified_experience %}
+                    <span class="badge bg-secondary">{{ unified_experience|length }} Position{% if unified_experience|length != 1 %}s{% endif %}</span>
+                    {% endif %}
+                </div>
+                
+                {% if unified_experience %}
+                    <div class="timeline-container">
+                        {% for exp in unified_experience %}
+                            <div class="timeline-item {% if exp.is_current %}current-position{% endif %}">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-content">
+                                    <div class="d-flex justify-content-between align-items-start">
+                                        <div>
+                                            <h5 class="timeline-title">{{ exp.position }}</h5>
+                                            <h6 class="timeline-subtitle">{{ exp.company }}</h6>
+                                            <div class="timeline-info">
+                                                <span class="date-range">
+                                                    <i class="far fa-calendar-alt me-1"></i>
+                                                    {{ exp.start_date|date:"M Y" }}{% if exp.end_date %} - {{ exp.end_date|date:"M Y" }}{% elif exp.is_current %} - <span class="badge bg-success">Present</span>{% endif %}
+                                                </span>
+                                                {% if exp.location %}
+                                                <span class="location">
+                                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                                    {{ exp.location }}
+                                                </span>
+                                                {% endif %}
+                                            </div>
+                                            {% if exp.experience_type != 'REGULAR' %}
+                                                <span class="badge bg-info">{{ exp.experience_type|title }}</span>
+                                            {% endif %}
+                                        </div>
                                     </div>
-                                    {% if career.description %}
-                                        <div class="mt-2">{{ career.description|linebreaks }}</div>
+                                    
+                                    {% if exp.description %}
+                                        <div class="timeline-body mt-3">
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    {{ exp.description|linebreaks }}
+                                                </div>
+                                            </div>
+                                        </div>
                                     {% endif %}
-                                    {% if career.achievements %}
-                                        <div class="mt-2">
-                                            <strong>Achievements:</strong>
-                                            <p>{{ career.achievements|linebreaks }}</p>
+                                    
+                                    {% if exp.achievements %}
+                                        <div class="timeline-achievements mt-3">
+                                            <h6 class="text-primary">
+                                                <i class="fas fa-trophy me-2"></i>Key Achievements
+                                            </h6>
+                                            <div class="card">
+                                                <div class="card-body">
+                                                    {{ exp.achievements|linebreaks }}
+                                                </div>
+                                            </div>
                                         </div>
                                     {% endif %}
                                 </div>
                             </div>
-                        </div>
-                    {% endfor %}
-                {% else %}
-                    <div class="text-muted text-center py-3">
-                        <i class="fas fa-info-circle me-2"></i>No career path information available
+                        {% endfor %}
                     </div>
-                {% endif %}
-            </div>
-
-            <!-- Work Experience -->
-            <div class="profile-card">
-                <h3 class="profile-section-title">Work Experience</h3>
-                {% if experiences %}
-                    {% for experience in experiences %}
-                        <div class="mb-4 {% if not forloop.last %}border-bottom pb-3{% endif %}">
-                            <div class="d-flex align-items-center">
-                                <div class="bg-light rounded-circle me-3 d-flex align-items-center justify-content-center" style="width: 50px; height: 50px;">
-                                    <i class="fas fa-building text-secondary"></i>
-                                </div>
-                                <div>
-                                    <h5 class="mb-1">{{ experience.position }}</h5>
-                                    <h6 class="text-primary mb-1">{{ experience.company }}</h6>
-                                    <div class="text-muted small">
-                                        {% if experience.start_date %}{{ experience.start_date|date:"M Y" }}{% endif %}
-                                        {% if experience.end_date %} - {{ experience.end_date|date:"M Y" }}{% elif experience.is_current %} - Present{% endif %}
-                                        {% if experience.location %} · {{ experience.location }}{% endif %}
-                                    </div>
-                                </div>
-                            </div>
-                            {% if experience.description %}
-                                <div class="mt-2">{{ experience.description|linebreaks }}</div>
-                            {% endif %}
-                        </div>
-                    {% endfor %}
                 {% else %}
                     <div class="text-muted text-center py-3">
-                        <i class="fas fa-info-circle me-2"></i>No work experience information available
+                        <i class="fas fa-info-circle me-2"></i>No professional experience available
                     </div>
                 {% endif %}
             </div>
@@ -375,9 +376,9 @@
             </div>
 
             <!-- Documents -->
-            {% if documents %}
             <div class="profile-card">
                 <h3 class="profile-section-title">Documents</h3>
+                {% if documents %}
                 <div class="document-stats mb-3">
                     <div class="row text-center">
                         <div class="col-4">
@@ -408,27 +409,47 @@
                             <div>
                                 <div class="document-title">{{ doc.title }}</div>
                                 <div class="document-meta">
-                                    <span class="document-type">{{ doc.get_document_type_display }}</span>
+                                    <span class="document-type">
+                                        {% if doc.get_document_type_display|callable %}
+                                            {{ doc.get_document_type_display }}
+                                        {% else %}
+                                            {% if doc.get_document_type_display %}
+                                                {{ doc.get_document_type_display }}
+                                            {% else %}
+                                                {{ doc.document_type }}
+                                            {% endif %}
+                                        {% endif %}
+                                    </span>
                                     <span class="document-date">{{ doc.uploaded_at|date:"M d, Y" }}</span>
                                 </div>
                             </div>
-                            <div>
+                            <div class="d-flex align-items-center">
                                 {% if doc.is_verified %}
-                                <span class="document-badge verified">
+                                <span class="document-badge verified me-2">
                                     <i class="fas fa-check-circle"></i> Verified
                                 </span>
                                 {% else %}
-                                <span class="document-badge pending">
+                                <span class="document-badge pending me-2">
                                     <i class="fas fa-clock"></i> Pending
                                 </span>
                                 {% endif %}
+                                <a href="{{ doc.file.url }}" class="btn btn-sm btn-outline-info me-2" target="_blank">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a href="{{ doc.file.url }}" class="btn btn-sm btn-outline-secondary" download>
+                                    <i class="fas fa-download"></i> Download
+                                </a>
                             </div>
                         </div>
                     </div>
                     {% endfor %}
                 </div>
+                {% else %}
+                <div class="text-muted text-center py-3">
+                    <i class="fas fa-info-circle me-2"></i>No documents available
+                </div>
+                {% endif %}
             </div>
-            {% endif %}
         </div>
     </div>
 </div>
@@ -436,6 +457,32 @@
 
 {% block extra_css %}
 <style>
+    /* Override Bootstrap primary color */
+    :root {
+        --bs-primary: #063970;
+        --bs-primary-rgb: 6, 57, 112;
+    }
+    
+    .btn-primary, 
+    .bg-primary {
+        background-color: #063970 !important;
+        border-color: #063970 !important;
+    }
+    
+    .btn-outline-primary {
+        color: #063970 !important;
+        border-color: #063970 !important;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: #063970 !important;
+        color: #fff !important;
+    }
+    
+    .text-primary {
+        color: #063970 !important;
+    }
+    
     /* Profile header styles */
     .profile-header {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
@@ -473,7 +520,7 @@
         position: absolute;
         bottom: 10px;
         right: 10px;
-        background-color: #3498db;
+        background-color: #063970;
         color: white;
         width: 36px;
         height: 36px;
@@ -492,23 +539,29 @@
     }
     
     .profile-name {
-        font-size: 2.5rem;
-        font-weight: 800;
+        font-size: 2.2rem;
+        font-weight: 700;
         color: #2c3e50;
         margin-bottom: 0.5rem;
         letter-spacing: -0.5px;
+        line-height: 1.2;
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
     }
     
     .profile-headline {
-        font-size: 1.35rem;
+        font-size: 1.25rem;
         color: #7f8c8d;
         margin-bottom: 1.25rem;
         font-weight: 400;
+        line-height: 1.4;
     }
     
     .profile-meta {
         display: flex;
-        gap: 1.5rem;
+        gap: 1rem;
         flex-wrap: wrap;
         margin-top: 1.25rem;
     }
@@ -516,13 +569,15 @@
     .profile-meta-item {
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: 0.5rem;
         color: #34495e;
         background-color: rgba(255,255,255,0.7);
-        padding: 8px 16px;
+        padding: 6px 12px;
         border-radius: 30px;
         box-shadow: 0 2px 5px rgba(0,0,0,0.05);
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
     }
     
     .profile-meta-item:hover {
@@ -531,8 +586,15 @@
     }
     
     .profile-meta-item i {
-        color: #3498db;
-        font-size: 1.1rem;
+        color: #063970;
+        font-size: 1rem;
+    }
+    
+    .profile-meta-item span {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 200px;
     }
     
     /* Profile card styles */
@@ -570,12 +632,12 @@
         left: 0;
         width: 70px;
         height: 2px;
-        background: linear-gradient(to right, #3498db, #2980b9);
+        background: linear-gradient(to right, #063970, #0a4d94);
     }
     
     /* University section styles */
     .university-card {
-        border-top: 5px solid #3498db;
+        border-top: 5px solid #063970;
         overflow: hidden;
     }
     
@@ -611,7 +673,7 @@
     .university-divider {
         width: 60px;
         height: 4px;
-        background: linear-gradient(to right, #3498db, #2980b9);
+        background: linear-gradient(to right, #063970, #0a4d94);
         margin: 12px auto 20px;
         border-radius: 2px;
     }
@@ -620,7 +682,7 @@
         background-color: #f8f9fa;
         border-radius: 10px;
         margin-top: 15px;
-        border-left: 4px solid #3498db;
+        border-left: 4px solid #063970;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0,0,0,0.05);
     }
@@ -638,11 +700,11 @@
     }
     
     .university-detail-item:hover {
-        background-color: rgba(52, 152, 219, 0.05);
+        background-color: rgba(6, 57, 112, 0.05);
     }
     
     .university-detail-item i {
-        color: #3498db;
+        color: #063970;
         font-size: 1.1rem;
         width: 24px;
         margin-right: 15px;
@@ -720,11 +782,11 @@
     }
     
     .mentor-btn i {
-        color: #3498db;
+        color: #063970;
     }
     
     .email-btn i {
-        color: #2ecc71;
+        color: #063970;
     }
     
     .linkedin-btn i {
@@ -741,7 +803,7 @@
     .document-stat-value {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #0d6efd;
+        color: #063970;
     }
     
     .document-stat-label {
@@ -794,13 +856,15 @@
     
     /* Badge styles for skills and interests */
     .badge.bg-primary-subtle {
-        background-color: #cfe2ff;
+        background-color: rgba(13, 110, 253, 0.15);
+        color: #0d6efd;
         margin: 0.25rem;
         display: inline-block;
     }
     
     .badge.bg-secondary-subtle {
-        background-color: #e2e3e5;
+        background-color: rgba(108, 117, 125, 0.15);
+        color: #6c757d;
         margin: 0.25rem;
         display: inline-block;
     }
@@ -825,13 +889,136 @@
         
         .profile-name {
             font-size: 1.75rem;
-            margin-top: 1rem;
+            margin-top: 0.5rem;
+            text-align: center;
+        }
+        
+        .profile-headline {
+            font-size: 1.1rem;
+            text-align: center;
         }
         
         .profile-meta {
-            flex-direction: column;
+            justify-content: center;
             gap: 0.5rem;
         }
+        
+        .profile-meta-item {
+            font-size: 0.8rem;
+            padding: 5px 10px;
+        }
+        
+        .profile-meta-item span {
+            max-width: 150px;
+        }
+        
+        .profile-header .container-fluid {
+            padding: 1rem;
+        }
+    }
+    
+    @media (min-width: 768px) and (max-width: 991.98px) {
+        .profile-name {
+            font-size: 1.9rem;
+        }
+        
+        .profile-meta-item span {
+            max-width: 150px;
+        }
+    }
+
+    /* Timeline styles for professional experience */
+    .timeline-container {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0.75rem;
+        width: 2px;
+        background-color: #e9ecef;
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 2rem;
+    }
+    
+    .timeline-item:last-child {
+        padding-bottom: 0;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        top: 0.25rem;
+        left: -2rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background-color: #dee2e6;
+        border: 2px solid #fff;
+        box-shadow: 0 0 0 2px #dee2e6;
+        z-index: 1;
+    }
+    
+    .timeline-item.current-position .timeline-marker {
+        background-color: #28a745;
+        box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+    }
+    
+    .timeline-content {
+        padding: 0.5rem 0;
+    }
+    
+    .timeline-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: #2c3e50;
+    }
+    
+    .timeline-subtitle {
+        font-size: 1.1rem;
+        color: #063970;
+        margin-bottom: 0.5rem;
+    }
+    
+    .timeline-info {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.9rem;
+        color: #6c757d;
+    }
+    
+    .timeline-info .date-range,
+    .timeline-info .location {
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+    }
+    
+    .timeline-body,
+    .timeline-achievements {
+        margin-top: 1rem;
+    }
+    
+    .timeline-body .card,
+    .timeline-achievements .card {
+        border-radius: 0.5rem;
+        border-color: #e9ecef;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+    
+    .timeline-achievements h6 {
+        margin-bottom: 0.75rem;
+        font-weight: 600;
+        color: #063970;
     }
 </style>
 {% endblock %}
