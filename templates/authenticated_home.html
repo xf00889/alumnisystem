@@ -1,0 +1,154 @@
+{% extends "base.html" %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Welcome - Alumni System{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Welcome Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <div class="d-flex align-items-center">
+                        <div class="me-3">
+                            {% if user.profile.avatar %}
+                                <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}" 
+                                     class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% else %}
+                                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" 
+                                     class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;">
+                            {% endif %}
+                        </div>
+                        <div>
+                            <h4 class="mb-1">Welcome back, {{ user.get_full_name|default:user.username }}!</h4>
+                            <p class="mb-0 opacity-75">{{ user.email }}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="row mb-4">
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-user fa-2x text-primary mb-3"></i>
+                    <h6>My Profile</h6>
+                    <p class="text-muted small">View and update your profile information</p>
+                    <a href="{% url 'accounts:profile_detail' %}" class="btn btn-primary btn-sm">View Profile</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-users fa-2x text-success mb-3"></i>
+                    <h6>Alumni Directory</h6>
+                    <p class="text-muted small">Connect with fellow alumni</p>
+                    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-success btn-sm">Browse Alumni</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar fa-2x text-warning mb-3"></i>
+                    <h6>Events</h6>
+                    <p class="text-muted small">Discover upcoming events</p>
+                    <a href="{% url 'events:event_list' %}" class="btn btn-warning btn-sm">View Events</a>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3 mb-3">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-briefcase fa-2x text-info mb-3"></i>
+                    <h6>Job Board</h6>
+                    <p class="text-muted small">Find career opportunities</p>
+                    <a href="{% url 'jobs:job_list' %}" class="btn btn-info btn-sm">Browse Jobs</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Recent Announcements -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-bullhorn me-2"></i>
+                        Recent Announcements
+                    </h5>
+                    <a href="{% url 'announcements:announcement_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if announcements %}
+                        {% for announcement in announcements %}
+                        <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            <h6 class="mb-1">
+                                <a href="{% url 'announcements:announcement_detail' announcement.id %}" 
+                                   class="text-decoration-none">{{ announcement.title }}</a>
+                            </h6>
+                            <p class="text-muted small mb-1">{{ announcement.content|truncatewords:20 }}</p>
+                            <small class="text-muted">
+                                <i class="far fa-clock me-1"></i>
+                                {{ announcement.date_posted|naturaltime }}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <p>No announcements available</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Upcoming Events -->
+        <div class="col-md-6 mb-4">
+            <div class="card h-100">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">
+                        <i class="fas fa-calendar-alt me-2"></i>
+                        Upcoming Events
+                    </h5>
+                    <a href="{% url 'events:event_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                </div>
+                <div class="card-body">
+                    {% if upcoming_events %}
+                        {% for event in upcoming_events %}
+                        <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
+                            <h6 class="mb-1">
+                                <a href="{% url 'events:event_detail' event.id %}" 
+                                   class="text-decoration-none">{{ event.title }}</a>
+                            </h6>
+                            <p class="text-muted small mb-1">{{ event.description|truncatewords:15 }}</p>
+                            <small class="text-muted">
+                                <i class="far fa-calendar me-1"></i>
+                                {{ event.start_date|date:"M d, Y" }}
+                                {% if event.location %}
+                                    <i class="fas fa-map-marker-alt ms-2 me-1"></i>
+                                    {{ event.location }}
+                                {% endif %}
+                            </small>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="text-center text-muted py-4">
+                            <i class="fas fa-calendar-times fa-2x mb-3"></i>
+                            <p>No upcoming events</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

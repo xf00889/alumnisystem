@@ -33,7 +33,7 @@ def home(request):
             ).order_by('-date_posted')[:3]
         except ImportError:
             announcements = []
-        
+
         # Get upcoming events
         try:
             from events.models import Event
@@ -44,7 +44,7 @@ def home(request):
             ).order_by('start_date')[:3]
         except ImportError:
             upcoming_events = []
-        
+
         # Get featured alumni
         try:
             from alumni_directory.models import Alumni
@@ -52,7 +52,7 @@ def home(request):
                 is_verified=True,
                 is_featured=True
             ).order_by('?')[:3]  # Random selection
-            
+
             # If no featured alumni, just get some random verified alumni
             if not featured_alumni:
                 featured_alumni = Alumni.objects.filter(
@@ -60,30 +60,30 @@ def home(request):
                 ).order_by('?')[:3]
         except ImportError:
             featured_alumni = []
-        
+
         # Get statistics
         try:
             alumni_count = Alumni.objects.filter(is_verified=True).count()
         except:
             alumni_count = None
-            
+
         try:
             from alumni_groups.models import AlumniGroup
             group_count = AlumniGroup.objects.count()
         except:
             group_count = None
-            
+
         try:
             event_count = Event.objects.count()
         except:
             event_count = None
-            
+
         try:
             from jobs.models import Job
             job_count = Job.objects.count()
         except:
             job_count = None
-        
+
         context = {
             'announcements': announcements,
             'upcoming_events': upcoming_events,
@@ -93,12 +93,41 @@ def home(request):
             'event_count': event_count,
             'job_count': job_count,
         }
-        
+
         return render(request, 'home.html', context)
-        
+
+    # For authenticated users, show the authenticated home page instead of redirecting
+    # This prevents redirect loops if profile_detail fails
     if request.user.is_superuser:
-        return admin_dashboard(request)
-    return redirect('accounts:profile_detail')
+        return redirect('core:admin_dashboard')  # Use consistent redirect target
+
+    # Show authenticated home page instead of redirecting to profile
+    # This prevents redirect loops and provides a better user experience
+    try:
+        from announcements.models import Announcement
+        announcements = Announcement.objects.filter(
+            is_active=True
+        ).order_by('-date_posted')[:5]
+    except ImportError:
+        announcements = []
+
+    try:
+        from events.models import Event
+        from django.utils import timezone
+        upcoming_events = Event.objects.filter(
+            start_date__gte=timezone.now(),
+            status='published'
+        ).order_by('start_date')[:5]
+    except ImportError:
+        upcoming_events = []
+
+    context = {
+        'announcements': announcements,
+        'upcoming_events': upcoming_events,
+        'user': request.user,
+    }
+
+    return render(request, 'authenticated_home.html', context)
 
 def calculate_engagement_metrics(start_date, end_date):
     """Calculate engagement metrics for the given date range"""
@@ -280,271 +309,7 @@ def calculate_event_metrics(days=30):
         'category_distribution': type_distribution
     }
 
-@user_passes_test(is_superuser)
-def admin_dashboard(request):
-    """
-    Combined admin dashboard with analytics for alumni engagement data.
-    """
-    today = timezone.now()
-    thirty_days_ago = today - timedelta(days=30)
-    
-    # Basic statistics - actual counts
-    total_alumni = Alumni.objects.filter(is_verified=True).count()
-    total_groups = AlumniGroup.objects.count()
-    total_events = Event.objects.count()
-    total_feedback = Feedback.objects.count()
-    
-    # Calculate industry distribution
-    industry_distribution = Alumni.objects.filter(is_verified=True).values('industry').annotate(
-        count=Count('id')
-    ).order_by('-count')
-    
-    # Convert to percentage and format for the template
-    industry_data = []
-    total_with_industry = sum(ind['count'] for ind in industry_distribution if ind['industry'])
 
-    for industry in industry_distribution:
-        if industry['industry']:  # Only include non-null industries
-            percentage = (industry['count'] / total_with_industry * 100) if total_with_industry > 0 else 0
-            industry_data.append({
-                'industry': industry['industry'],
-                'percentage': round(percentage, 1)
-            })
-
-    # If there are no industries or all are null, provide a default "Not Specified" category
-    if not industry_data:
-        industry_data = [{
-            'industry': 'Not Specified',
-            'percentage': 100.0
-        }]
-    
-    # Calculate graduation year distribution
-    current_year = today.year
-    grad_ranges = [
-        {'name': '2010-2015', 'start': 2010, 'end': 2015, 'count': 0},
-        {'name': '2016-2020', 'start': 2016, 'end': 2020, 'count': 0},
-        {'name': '2021-Present', 'start': 2021, 'end': current_year, 'count': 0}
-    ]
-    
-    # Query graduation years and count per range
-    graduation_years = Alumni.objects.filter(is_verified=True).values('graduation_year').exclude(graduation_year__isnull=True)
-    
-    # Count alumni in each graduation year range
-    for range_data in grad_ranges:
-        range_count = graduation_years.filter(
-            graduation_year__gte=range_data['start'],
-            graduation_year__lte=range_data['end']
-        ).count()
-        range_data['count'] = range_count
-    
-    # Calculate percentages for each range
-    total_with_grad_year = sum(r['count'] for r in grad_ranges)
-    for range_data in grad_ranges:
-        range_data['percentage'] = round((range_data['count'] / total_with_grad_year * 100), 1) if total_with_grad_year > 0 else 0
-    
-    # If no graduation years are specified, create a default
-    if total_with_grad_year == 0:
-        for range_data in grad_ranges:
-            if range_data['name'] == '2021-Present':
-                range_data['percentage'] = 100.0
-            else:
-                range_data['percentage'] = 0.0
-
-    # Calculate location distribution
-    location_distribution = Alumni.objects.filter(is_verified=True).values('province').annotate(
-        count=Count('id')
-    ).order_by('-count')
-
-    # Convert to percentage and format for the template
-    location_data = []
-    total_with_location = sum(loc['count'] for loc in location_distribution if loc['province'])
-
-    for location in location_distribution:
-        if location['province']:  # Only include non-null provinces
-            percentage = (location['count'] / total_with_location * 100) if total_with_location > 0 else 0
-            location_data.append({
-                'location': location['province'],
-                'percentage': round(percentage, 1)
-            })
-
-    # If there are no locations or all are null, provide a default "Not Specified" category
-    if not location_data:
-        location_data = [{
-            'location': 'Not Specified',
-            'percentage': 100.0
-        }]
-
-    # Calculate employment status distribution
-    employment_distribution = Alumni.objects.filter(is_verified=True).values('employment_status').annotate(
-        count=Count('id')
-    ).order_by('-count')
-
-    # Convert to percentage and format for the template
-    employment_data = []
-    total_with_employment = sum(emp['count'] for emp in employment_distribution if emp['employment_status'])
-
-    for employment in employment_distribution:
-        if employment['employment_status']:  # Only include non-null employment statuses
-            percentage = (employment['count'] / total_with_employment * 100) if total_with_employment > 0 else 0
-            # Get the display name for the employment status
-            status_display = dict(Alumni.EMPLOYMENT_STATUS_CHOICES).get(employment['employment_status'], employment['employment_status'])
-            employment_data.append({
-                'status': status_display,
-                'percentage': round(percentage, 1)
-            })
-
-    # If there are no employment statuses or all are null, provide a default "Not Specified" category
-    if not employment_data:
-        employment_data = [{
-            'status': 'Not Specified',
-            'percentage': 100.0
-        }]
-    
-    # Active groups - groups with recent activity
-    active_groups = AlumniGroup.objects.filter(
-        Q(events__start_date__gte=thirty_days_ago) |
-        Q(discussions__updated_at__gte=thirty_days_ago) |
-        Q(updated_at__gte=thirty_days_ago)
-    ).distinct().count()
-    
-    # Get active users in last 30 days - actual engagement
-    active_users_30d = UserEngagement.objects.filter(
-        created__gte=thirty_days_ago
-    ).values('user').distinct().count()
-    
-    # Calculate event participation rate with actual RSVPs
-    recent_events = Event.objects.filter(start_date__gte=thirty_days_ago)
-    total_rsvps = EventRSVP.objects.filter(event__in=recent_events, status='attending').count()
-    event_participation_rate = round((total_rsvps / total_alumni * 100), 1) if total_alumni > 0 else 0
-    
-    # Calculate feedback response rate based on actual feedback
-    feedback_responses = Feedback.objects.filter(created_at__gte=thirty_days_ago).count()
-    feedback_response_rate = round((feedback_responses / total_alumni * 100), 1) if total_alumni > 0 else 0
-    
-    # Calculate user segments based on actual engagement scores
-    user_segments = {
-        'highly_engaged': Alumni.objects.filter(user__engagement_score__total_points__gte=50).count(),
-        'moderately_engaged': Alumni.objects.filter(user__engagement_score__total_points__gte=20, user__engagement_score__total_points__lt=50).count(),
-        'low_engaged': Alumni.objects.filter(user__engagement_score__total_points__gt=0, user__engagement_score__total_points__lt=20).count(),
-        'inactive': Alumni.objects.filter(Q(user__engagement_score__total_points=0) | Q(user__engagement_score__isnull=True)).count()
-    }
-    
-    # Get recent announcements
-    recent_announcements = Announcement.objects.order_by('-date_posted')[:5]
-    
-    # Get upcoming events
-    upcoming_events = Event.objects.filter(
-        start_date__gte=today
-    ).order_by('start_date')[:5]
-    
-    # Get recent feedback
-    recent_feedback = Feedback.objects.order_by('-created_at')[:5]
-    
-    # Get job metrics from the JobPosting model
-    try:
-        from jobs.models import JobPosting
-        
-        # Calculate job board metrics
-        featured_jobs = JobPosting.objects.filter(is_featured=True).count()
-        manual_jobs = JobPosting.objects.filter(source='manual').count()
-        scraped_jobs = JobPosting.objects.filter(source='indeed').count()
-        jobs_this_month = JobPosting.objects.filter(posted_date__gte=thirty_days_ago).count()
-    except (ImportError, ModuleNotFoundError):
-        featured_jobs = 0
-        manual_jobs = 0
-        scraped_jobs = 0
-        jobs_this_month = 0
-    
-    # Calculate actual engagement metrics
-    engagement_metrics = {
-        'daily_users': UserEngagement.objects.filter(created__date=today.date()).values('user').distinct().count(),
-        'active_users': active_users_30d,
-        'total_posts': Post.objects.filter(created_at__gte=thirty_days_ago).count(),
-        'total_comments': Comment.objects.filter(created_at__gte=thirty_days_ago).count(),
-        'total_reactions': Reaction.objects.filter(created_at__gte=thirty_days_ago).count()
-    }
-    
-    # Calculate actual retention metrics
-    retention_metrics = calculate_retention_metrics()
-    
-    # Calculate actual growth metrics
-    growth_metrics = calculate_growth_metrics()
-    
-    # Calculate actual event metrics
-    event_metrics = calculate_event_metrics()
-    
-    # Calculate registration growth trend
-    registration_trend = []
-    for i in range(7):
-        date = today - timedelta(days=i*30)
-        count = Alumni.objects.filter(
-            created_at__year=date.year,
-            created_at__month=date.month
-        ).count()
-        registration_trend.append({
-            'month': date.strftime('%b'),
-            'count': count
-        })
-    registration_trend.reverse()
-    
-    # Prepare chart data with more explicit serialization
-    registration_trend = [
-        {'month': item['month'], 'count': item['count']} 
-        for item in registration_trend
-    ]
-    
-    industry_distribution = [
-        {'industry': item['industry'], 'percentage': item['percentage']} 
-        for item in industry_data
-    ]
-    
-    graduation_year_distribution = [
-        {'name': item['name'], 'percentage': item['percentage']} 
-        for item in grad_ranges
-    ]
-    
-    # Update context with prepared data
-    context = {
-        # Analytics data
-        'total_users': total_alumni,
-        'total_events': total_events,
-        'total_feedback': total_feedback,
-        'active_groups': active_groups,
-        'active_users_30d': active_users_30d,
-        'event_participation_rate': event_participation_rate,
-        'feedback_response_rate': feedback_response_rate,
-        'user_segments': user_segments,
-        'industry_distribution': industry_distribution,
-        'graduation_year_distribution': graduation_year_distribution,
-        'registration_trend_json': json.dumps(registration_trend),
-        'industry_distribution_json': json.dumps(industry_distribution),
-        'graduation_year_distribution_json': json.dumps(graduation_year_distribution),
-        'location_distribution_json': json.dumps(location_data),
-        'employment_status_json': json.dumps(employment_data),
-        
-        # Dashboard data
-        'recent_announcements': recent_announcements,
-        'upcoming_events': upcoming_events,
-        'recent_feedback': recent_feedback,
-        'total_groups': total_groups,
-        'daily_active_users': engagement_metrics['daily_users'],
-        'monthly_active_users': engagement_metrics['active_users'],
-        'total_posts': engagement_metrics['total_posts'],
-        'total_comments': engagement_metrics['total_comments'],
-        'total_reactions': engagement_metrics['total_reactions'],
-        'engagement_rate': round((active_users_30d / total_alumni * 100), 1) if total_alumni > 0 else 0,
-        'retention_rate': retention_metrics['retention_rate'],
-        'churn_rate': growth_metrics['churn_rate'],
-        'event_response_rate': event_metrics['response_rate'],
-        'event_participation_stats': event_metrics['participation_stats'],
-        'event_categories': json.dumps([{'category': str(cat['category']), 'count': cat['count']} for cat in event_metrics['category_distribution']]),
-        'featured_jobs': featured_jobs,
-        'manual_jobs': manual_jobs,
-        'scraped_jobs': scraped_jobs,
-        'jobs_this_month': jobs_this_month,
-    }
-    
-    return render(request, 'admin/analytics_dashboard.html', context)
 
 @login_required
 @user_passes_test(is_superuser)
@@ -564,8 +329,7 @@ def engagement_data_api(request):
     
     return JsonResponse(metrics)
 
-# The analytics_dashboard function has been merged with admin_dashboard
-# and is no longer needed 
+ 
 
 def search(request):
     """
@@ -638,4 +402,4 @@ def go_to_profile(request):
     Redirects the user to their profile page.
     This is a convenience view for navigation links.
     """
-    return redirect('accounts:profile_detail') 
+    return redirect('accounts:profile_detail')

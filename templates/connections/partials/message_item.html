@@ -1,0 +1,53 @@
+<!-- Individual Message Item for HTMX -->
+<div class="message {% if message.sender == request.user %}own{% endif %}" data-message-id="{{ message.id }}">
+    {% if message.sender != request.user %}
+        <div class="me-3">
+            {% if message.sender.profile.profile_picture %}
+                <img src="{{ message.sender.profile.profile_picture.url }}" 
+                     alt="{{ message.sender.get_full_name }}" 
+                     class="message-avatar">
+            {% else %}
+                <div class="message-avatar d-flex align-items-center justify-content-center" 
+                     style="background: var(--secondary-color); color: var(--text-light); font-weight: 600;">
+                    {{ message.sender.first_name|first }}{{ message.sender.last_name|first }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <div class="message-content">
+        <div class="message-text">{{ message.content }}</div>
+        
+        {% if message.attachment %}
+            <div class="message-attachment mt-2">
+                {% if message.attachment.name|slice:"-4:" in ".jpg,.png,.gif,.jpeg" %}
+                    <img src="{{ message.attachment.url }}" alt="Attachment" class="attachment-preview">
+                {% else %}
+                    <a href="{{ message.attachment.url }}" class="file-attachment" target="_blank">
+                        <i class="fas fa-file me-2"></i>
+                        {{ message.attachment.name }}
+                    </a>
+                {% endif %}
+            </div>
+        {% endif %}
+        
+        <div class="message-time">
+            {{ message.created_at|date:"M d, Y H:i" }}
+        </div>
+    </div>
+    
+    {% if message.sender == request.user %}
+        <div class="ms-3">
+            {% if message.sender.profile.profile_picture %}
+                <img src="{{ message.sender.profile.profile_picture.url }}" 
+                     alt="{{ message.sender.get_full_name }}" 
+                     class="message-avatar">
+            {% else %}
+                <div class="message-avatar d-flex align-items-center justify-content-center" 
+                     style="background: var(--primary-color); color: var(--text-light); font-weight: 600;">
+                    {{ message.sender.first_name|first }}{{ message.sender.last_name|first }}
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

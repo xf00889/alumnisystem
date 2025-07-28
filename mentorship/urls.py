@@ -1,6 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
+from . import messaging_views
 
 app_name = 'mentorship'
 
@@ -21,8 +22,16 @@ urlpatterns = [
     path('mentor/<int:pk>/toggle-availability/', views.MentorViewSet.as_view({'post': 'toggle_availability'}), name='toggle_availability'),
     path('request/<int:pk>/update-status/', views.MentorshipRequestViewSet.as_view({'post': 'update_status'}), name='update_request_status'),
     path('schedule-meeting/', views.MentorshipMeetingViewSet.as_view({'post': 'create'}), name='schedule_meeting'),
-    path('send-message/', views.MentorshipMessageViewSet.as_view({'post': 'create'}), name='send_message'),
+    path('send-message/', views.send_message_dashboard, name='send_message'),
     path('api/update-quick-progress/<int:mentorship_id>/', views.update_quick_progress, name='update_quick_progress'),
     path('api/update-mentorship-status/<int:mentorship_id>/', views.update_mentorship_status, name='update_mentorship_status'),
     path('set-timeline/', views.set_timeline, name='set_timeline'),
-] 
+    
+    # Messaging URLs
+    path('messages/', messaging_views.messaging_page, name='messaging_page'),
+    path('messages/sidebar/', messaging_views.conversation_list_view, name='conversation_list'),
+    path('messages/conversation/<int:conversation_id>/', messaging_views.conversation_detail_view, name='conversation_detail'),
+    path('messages/conversation/<int:conversation_id>/send/', messaging_views.send_message, name='send_message_new'),
+    path('messages/create/<int:mentorship_id>/', messaging_views.create_conversation, name='create_conversation'),
+    path('messages/create-direct/', messaging_views.create_direct_message, name='create_direct_message'),
+]

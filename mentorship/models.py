@@ -5,6 +5,9 @@ from accounts.models import Mentor, MentorshipRequest
 
 User = get_user_model()
 
+# Import messaging models
+from .messaging_models import Conversation, Message
+
 class MentorshipMeeting(models.Model):
     STATUS_CHOICES = [
         ('SCHEDULED', 'Scheduled'),
@@ -163,7 +166,7 @@ class TimelineMilestone(models.Model):
 
     mentorship = models.ForeignKey('accounts.MentorshipRequest', on_delete=models.CASCADE, related_name='timeline_milestone_entries')
     period = models.CharField(max_length=50, help_text="Week/Day period (e.g., '1-2', '3-4')")
-    description = models.TextField(help_text="Description of the milestone")
+    description = models.CharField(max_length=500, help_text="Description of the milestone")
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='NOT_STARTED')
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

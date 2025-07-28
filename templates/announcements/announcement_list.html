@@ -6,15 +6,28 @@
 
 {% block page_title %}Announcements{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Announcements</li>
+{% block page_header %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-bullhorn me-3"></i>Announcements</h1>
+                <p class="mb-0">Stay updated with the latest news and announcements from NORSU Alumni.</p>
+            </div>
+        </div>
+    </div>
+</div>
 {% endblock %}
+
+
 
 {% block extra_css %}
 <style>
     /* Core Design System */
     :root {
         /* Brand Colors */
+        --primary-color: #2b3c6b;
         --brand-primary: #2b3c6b;
         --brand-secondary: #4a5568;
         --brand-accent: #3182ce;
@@ -59,6 +72,31 @@
         /* Transitions */
         --transition-fast: 150ms ease;
         --transition-normal: 250ms ease;
+    }
+
+    /* Dashboard Header Styling */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-top: 1.5rem;
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-top: 1rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
     }
 
     /* Page Layout */
@@ -835,28 +873,9 @@
     <!-- Add CSRF Token -->
     {% csrf_token %}
     
-    <!-- Delete Confirmation Modal -->
-    <div class="modal fade" id="deleteModal" tabindex="-1" aria-labelledby="deleteModalLabel" aria-hidden="true">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" id="deleteModalLabel">Delete Announcement</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <p>Are you sure you want to delete the announcement:</p>
-                    <p class="announcement-title font-weight-bold"></p>
-                    <p>This action cannot be undone.</p>
-                </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="button" class="btn btn-danger" id="confirmDelete">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
+    <!-- We don't need the modal anymore as we're using SweetAlert -->
+    <!-- CSRF token is still needed for AJAX requests -->
+
 
     <div class="container py-4">
         <div class="content-container">
@@ -1043,6 +1062,8 @@
 {% endblock %}
 
 {% block extra_js %}
+<!-- Sweet Alert Utilities -->
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
 <script>
     // Utility function for debouncing
     function debounce(func, wait) {
@@ -1059,14 +1080,15 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         // Cache DOM elements
-        const deleteModal = document.getElementById('deleteModal');
-        const confirmDeleteBtn = document.getElementById('confirmDelete');
         const searchInput = document.querySelector('.search-input');
         const categoryCheckboxes = document.querySelectorAll('.category-checkbox');
         const filterForm = document.querySelector('.filter-panel form');
         const resultsContainer = document.querySelector('.announcement-list');
-        let announcementToDelete = null;
-        let currentModal = null;
+
+        // Process any Django messages as SweetAlert notifications
+        if (typeof SweetAlertUtils !== 'undefined') {
+            SweetAlertUtils.processDjangoMessages();
+        }
 
         // Function to update results count
         function updateResultsCount(count) {
@@ -1132,12 +1154,44 @@
                 button.addEventListener('click', function() {
                     const announcementId = this.dataset.announcementId;
                     const announcementTitle = this.dataset.announcementTitle;
+                    const deleteUrl = `/announcements/${announcementId}/delete/`;
                     
-                    announcementToDelete = announcementId;
-                    deleteModal.querySelector('.announcement-title').textContent = announcementTitle;
-                    
-                    currentModal = new bootstrap.Modal(deleteModal);
-                    currentModal.show();
+                    // Use SweetAlert for confirmation
+                    if (typeof SweetAlertUtils !== 'undefined') {
+                        SweetAlertUtils.confirmAnnouncementDeletion(
+                            announcementTitle,
+                            deleteUrl,
+                            window.location.href // Redirect to current page after deletion
+                        );
+                    } else {
+                        // Fallback to default confirmation
+                        if (confirm(`Are you sure you want to delete the announcement: "${announcementTitle}"?`)) {
+                            // Get CSRF token
+                            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+                            
+                            // Send delete request
+                            fetch(deleteUrl, {
+                                method: 'POST',
+                                headers: {
+                                    'X-CSRFToken': csrfToken,
+                                    'X-Requested-With': 'XMLHttpRequest'
+                                }
+                            })
+                            .then(response => response.json())
+                            .then(data => {
+                                if (data.status === 'success') {
+                                    // Refresh the search results
+                                    performSearch();
+                                } else {
+                                    throw new Error(data.message || 'Error deleting announcement');
+                                }
+                            })
+                            .catch(error => {
+                                console.error('Error:', error);
+                                alert(error.message || 'There was an error deleting the announcement. Please try again.');
+                            });
+                        }
+                    }
                 });
             });
         }
@@ -1171,59 +1225,6 @@
         // Initialize delete buttons on page load
         initializeDeleteButtons();
 
-        // Handle confirmation button click for delete
-        confirmDeleteBtn.addEventListener('click', function() {
-            if (!announcementToDelete) return;
-
-            // Show loading state
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-
-            // Get CSRF token
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-
-            // Send delete request
-            fetch(`/announcements/${announcementToDelete}/delete/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    if (currentModal) {
-                        currentModal.hide();
-                    }
-                    // Refresh the search results
-                    performSearch();
-                } else {
-                    throw new Error(data.message || 'Error deleting announcement');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                const errorDiv = document.createElement('div');
-                errorDiv.className = 'alert alert-danger mt-3 mb-0';
-                errorDiv.textContent = error.message || 'There was an error deleting the announcement. Please try again.';
-                deleteModal.querySelector('.modal-body').appendChild(errorDiv);
-            })
-            .finally(() => {
-                this.disabled = false;
-                this.innerHTML = '<i class="fas fa-trash"></i> Delete';
-                announcementToDelete = null;
-            });
-        });
-
-        // Clean up error messages when modal is hidden
-        deleteModal.addEventListener('hidden.bs.modal', function () {
-            const errorDiv = this.querySelector('.alert-danger');
-            if (errorDiv) {
-                errorDiv.remove();
-            }
-        });
-
         // Handle browser back/forward buttons
         window.addEventListener('popstate', function() {
             const params = new URLSearchParams(window.location.search);
@@ -1236,4 +1237,4 @@
         });
     });
 </script>
-{% endblock %} 
+{% endblock %}

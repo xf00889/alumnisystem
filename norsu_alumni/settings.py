@@ -48,40 +48,32 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.humanize',
-    
-    # Third-party apps
-    'crispy_forms',
-    'crispy_bootstrap5',
+    'corsheaders',
     'allauth',
     'allauth.account',
-    # 'allauth.socialaccount',  # Comment out or remove
-    # 'allauth.socialaccount.providers.facebook',  # Remove Facebook provider
-    'phonenumber_field',
-    'ckeditor',
-    'ckeditor_uploader',
-    'django_cleanup.apps.CleanupConfig',
-    'django_countries',
-    'django_filters',
-    'widget_tweaks',
+    'allauth.socialaccount',
+    'allauth.socialaccount.providers.google',
+    'allauth.socialaccount.providers.facebook',
     'taggit',
-    'rest_framework',
-    'channels',  # Keep channels if other apps use WebSockets
-    'django_extensions',  # Add django_extensions
-    
-    # Local apps
-    'accounts.apps.AccountsConfig',
-    'core.apps.CoreConfig',
-    'announcements.apps.AnnouncementsConfig',
-    'alumni_groups.apps.AlumniGroupsConfig',
-    'alumni_directory.apps.AlumniDirectoryConfig',
-    'events.apps.EventsConfig',
-    # 'chat.apps.ChatConfig',  # Remove chat app
-    'feedback.apps.FeedbackConfig',  # Add feedback app
-    'location_tracking.apps.LocationTrackingConfig',  # Add location tracking app
-    'jobs.apps.JobsConfig',  # Add jobs app
-    'mentorship.apps.MentorshipConfig',  # Add mentorship app
-    'surveys.apps.SurveysConfig',  # Add surveys app
-    'donations.apps.DonationsConfig',  # Add donations app
+    'crispy_forms',
+    'crispy_bootstrap5',
+    'notifications',
+    'phonenumber_field',
+    'channels',
+    'django_htmx',
+    'core',
+    'accounts',
+    'alumni_directory',
+    'events',
+    'alumni_groups',
+    'surveys',
+    'announcements',
+    'feedback',
+    'connections',
+    'location_tracking',
+    'mentorship',
+    'jobs',
+    'donations'
 ]
 
 MIDDLEWARE = [
@@ -90,6 +82,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'django_htmx.middleware.HtmxMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
@@ -121,8 +114,16 @@ WSGI_APPLICATION = 'norsu_alumni.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.mysql',
+        'NAME': 'alumni_norsu',
+        'USER': 'root',
+        'PASSWORD': '',
+        'HOST': 'localhost',  # Or your DB host
+        'PORT': '3306',        # Default MySQL port
+        'OPTIONS': {
+            'charset': 'utf8mb4',
+            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        },
     }
 }
 
@@ -231,6 +232,9 @@ ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_FORMS = {
     'signup': 'accounts.forms.CustomSignupForm',
 }
+
+# Custom account adapter for login redirection
+ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
 
 # Custom allauth messages
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'account_login'
@@ -452,4 +456,4 @@ REST_FRAMEWORK = {
     ],
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 20,
-} 
+}

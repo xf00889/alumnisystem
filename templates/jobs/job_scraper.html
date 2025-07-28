@@ -1,0 +1,523 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Job Scraper - NORSU Alumni System{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- HTMX -->
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .scraper-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .scraper-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+    
+    .scraper-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin-bottom: 0;
+    }
+    
+    .scraper-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+        margin-bottom: 1.5rem;
+    }
+    
+    .scraper-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .search-form {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .form-control {
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+        outline: none;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), #3d4f7a);
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+        background: linear-gradient(135deg, #3d4f7a, var(--primary-color));
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-outline-primary {
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        background: transparent;
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-primary:hover {
+        background: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .job-card {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .job-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+    
+    .company-logo {
+        width: 50px;
+        height: 50px;
+        background: linear-gradient(135deg, var(--primary-color), #3d4f7a);
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        font-weight: 600;
+        font-size: 1.2rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .job-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        text-decoration: none;
+        font-size: 1.1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .job-title:hover {
+        color: #3d4f7a;
+        text-decoration: underline;
+    }
+    
+    .company-name {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.95rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .job-location {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .job-salary {
+        color: var(--feedback-success);
+        font-weight: 600;
+        font-size: 0.95rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .job-description {
+        color: var(--text-primary);
+        font-size: 0.9rem;
+        line-height: 1.5;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .loading-spinner {
+        display: none;
+    }
+    
+    .htmx-request .loading-spinner {
+        display: inline-block;
+    }
+    
+    .htmx-request .btn-text {
+        display: none;
+    }
+    
+    .results-container {
+        min-height: 200px;
+    }
+    
+    .fade-in {
+        animation: fadeIn 0.5s ease-in;
+    }
+    
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    
+    .quick-search-section {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        text-align: center;
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .quick-search-section h4 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .quick-search-section p {
+        color: var(--text-secondary);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-outline-secondary {
+        border: 1px solid var(--ui-border);
+        color: var(--text-secondary);
+        background: transparent;
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-size: 0.8rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        margin: 0.25rem;
+    }
+    
+    .btn-outline-secondary:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .loading-indicator {
+        text-align: center;
+        padding: 2rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .spinner-border {
+        color: var(--primary-color);
+    }
+    
+    .alert {
+        border-radius: var(--radius-md);
+        border: none;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .alert-info {
+        background: rgba(66, 153, 225, 0.1);
+        color: var(--feedback-info);
+        border-left: 4px solid var(--feedback-info);
+    }
+    
+    .alert-success {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--feedback-success);
+        border-left: 4px solid var(--feedback-success);
+    }
+    
+    .alert-warning {
+        background: rgba(237, 137, 54, 0.1);
+        color: var(--feedback-warning);
+        border-left: 4px solid var(--feedback-warning);
+    }
+    
+    .alert-danger {
+        background: rgba(229, 62, 62, 0.1);
+        color: var(--feedback-error);
+        border-left: 4px solid var(--feedback-error);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Scraper Header -->
+    <div class="scraper-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-search me-3"></i>Job Scraper</h1>
+                <p class="mb-0">Find live job postings from BossJob.ph and discover new opportunities.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'jobs:job_list' %}" class="btn btn-outline-light">
+                    <i class="fas fa-list me-2"></i>View All Jobs
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Search Form -->
+    <div class="row">
+        <div class="col-12">
+            <div class="search-form">
+                <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Search Filters</h5>
+                <form hx-post="{% url 'jobs:job_scraper_results' %}" 
+                      hx-target="#results-container" 
+                      hx-indicator="#loading-indicator"
+                      hx-swap="innerHTML"
+                      class="row g-3">
+                    {% csrf_token %}
+                    
+                    <div class="col-md-5">
+                        <label for="{{ form.keyword.id_for_label }}" class="form-label">
+                            <i class="fas fa-briefcase me-2"></i>Job Keyword
+                        </label>
+                        {{ form.keyword }}
+                        {% if form.keyword.help_text %}
+                            <div class="form-text">{{ form.keyword.help_text }}</div>
+                        {% endif %}
+                        {% if form.keyword.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.keyword.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-5">
+                        <label for="{{ form.location.id_for_label }}" class="form-label">
+                            <i class="fas fa-map-marker-alt me-2"></i>Location
+                        </label>
+                        {{ form.location }}
+                        {% if form.location.help_text %}
+                            <div class="form-text">{{ form.location.help_text }}</div>
+                        {% endif %}
+                        {% if form.location.errors %}
+                            <div class="text-danger small mt-1">
+                                {% for error in form.location.errors %}
+                                    <div>{{ error }}</div>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <span class="btn-text">
+                                <i class="fas fa-search me-2"></i>Search Jobs
+                            </span>
+                            <span class="loading-spinner">
+                                <i class="fas fa-spinner fa-spin me-2"></i>Searching...
+                            </span>
+                        </button>
+                    </div>
+                </form>
+                
+                <!-- Loading Indicator -->
+                <div id="loading-indicator" class="loading-indicator" style="display: none;">
+                    <div class="spinner-border" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Fetching jobs from BossJob.ph...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Results Container -->
+    <div class="row">
+        <div class="col-12">
+            <div id="results-container" class="results-container">
+                <!-- Initial message -->
+                <div class="quick-search-section">
+                    <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                    <h4>Ready to Search</h4>
+                    <p>Enter a job keyword and location above to start searching for jobs on BossJob.ph</p>
+                    
+                    <!-- Quick Search Examples -->
+                    <div class="mt-4">
+                        <h6 class="text-muted mb-3">Popular Searches:</h6>
+                        <div class="d-flex flex-wrap justify-content-center gap-2">
+                            <button class="btn btn-outline-secondary quick-search" 
+                                    data-keyword="software developer" data-location="manila">
+                                Software Developer - Manila
+                            </button>
+                            <button class="btn btn-outline-secondary quick-search" 
+                                    data-keyword="data analyst" data-location="cebu">
+                                Data Analyst - Cebu
+                            </button>
+                            <button class="btn btn-outline-secondary quick-search" 
+                                    data-keyword="web developer" data-location="davao">
+                                Web Developer - Davao
+                            </button>
+                            <button class="btn btn-outline-secondary quick-search" 
+                                    data-keyword="python" data-location="makati">
+                                Python - Makati
+                            </button>
+                            <button class="btn btn-outline-secondary quick-search" 
+                                    data-keyword="marketing" data-location="quezon city">
+                                Marketing - Quezon City
+                            </button>
+                            <button class="btn btn-outline-secondary quick-search" 
+                                    data-keyword="accounting" data-location="taguig">
+                                Accounting - Taguig
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Quick search functionality
+document.addEventListener('DOMContentLoaded', function() {
+    const quickSearchButtons = document.querySelectorAll('.quick-search');
+    const keywordInput = document.getElementById('{{ form.keyword.id_for_label }}');
+    const locationInput = document.getElementById('{{ form.location.id_for_label }}');
+    const searchForm = document.querySelector('form');
+    
+    quickSearchButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const keyword = this.getAttribute('data-keyword');
+            const location = this.getAttribute('data-location');
+            
+            keywordInput.value = keyword;
+            locationInput.value = location;
+            
+            // Trigger the form submission
+            htmx.trigger(searchForm, 'submit');
+        });
+    });
+});
+
+// HTMX event listeners
+document.addEventListener('htmx:beforeRequest', function(event) {
+    console.log('Starting job search...');
+});
+
+document.addEventListener('htmx:afterRequest', function(event) {
+    console.log('Job search completed');
+    
+    // Add fade-in animation to results
+    const resultsContainer = document.getElementById('results-container');
+    resultsContainer.classList.add('fade-in');
+    
+    // Remove animation class after animation completes
+    setTimeout(() => {
+        resultsContainer.classList.remove('fade-in');
+    }, 500);
+});
+
+document.addEventListener('htmx:responseError', function(event) {
+    console.error('Error during job search:', event.detail);
+    
+    // Show error message
+    const resultsContainer = document.getElementById('results-container');
+    resultsContainer.innerHTML = `
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Error:</strong> Unable to fetch job listings. Please try again later.
+        </div>
+    `;
+});
+</script>
+{% endblock %}

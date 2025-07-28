@@ -6,10 +6,41 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/mentorship.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* Color Variables */
+    /* CSS Variables */
     :root {
-        --primary-color: #063970;
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+
+        /* Shadows */
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-lg: 0.5rem;
+
+        /* Legacy compatibility */
         --primary-light: #0a4f94;
         --status-success: #28a745;
         --status-warning: #ffc107;
@@ -18,12 +49,95 @@
         --status-secondary: #6c757d;
     }
     
+    body {
+        background-color: #f8f9fa;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
     /* Dashboard Layout */
     .dashboard-container {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
+        padding: 0 0 2rem 0;
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 60px);
+        overflow-x: hidden;
+        width: 100%;
+        box-sizing: border-box;
     }
+
+    /* Ensure container-fluid doesn't cause overflow */
+    .dashboard-container .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+    
+    /* Header Button Styles */
+    .dashboard-header .btn {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dashboard-header .btn-outline-primary {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--text-light);
+        backdrop-filter: blur(10px);
+    }
+    
+    .dashboard-header .btn-outline-primary:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.4);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .dashboard-header .form-check-label {
+        color: var(--text-light);
+        font-size: 0.75rem;
+    }
+    
+    .dashboard-header h1.mb-0 {
+        font-size: 1.375rem;
+    }
+    
+
     
     /* Gradient Backgrounds */
     .bg-gradient-primary {
@@ -46,13 +160,155 @@
         background: linear-gradient(45deg, var(--status-danger) 0%, #bd2130 100%);
     }
     
+    /* Analytics Cards */
+    .analytics-card {
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 0.75rem;
+        background-color: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 140px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+    .analytics-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+    .analytics-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+    .analytics-card:hover::before {
+        opacity: 1;
+    }
+
+    .analytics-card-content {
+        flex: 1;
+        z-index: 2;
+    }
+    .analytics-metric {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+        color: #1a202c;
+        line-height: 1;
+        font-family: 'Poppins', sans-serif;
+    }
+    .analytics-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #718096;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+    }
+    .analytics-icon {
+        font-size: 2.75rem;
+        opacity: 0.25;
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        transition: all 0.3s ease;
+        filter: brightness(1.1);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    .analytics-card:hover .analytics-icon {
+        opacity: 0.35;
+        transform: translateY(-50%) scale(1.1);
+        filter: brightness(1.2);
+    }
+
+    /* Enhanced icon visibility with better contrast */
+    .analytics-icon.text-primary {
+        color: #4e73df !important;
+        opacity: 0.28;
+    }
+    .analytics-icon.text-success {
+        color: #1cc88a !important;
+        opacity: 0.28;
+    }
+    .analytics-icon.text-info {
+        color: #36b9cc !important;
+        opacity: 0.28;
+    }
+    .analytics-icon.text-warning {
+        color: #f6c23e !important;
+        opacity: 0.28;
+    }
+
+    /* Enhanced hover states for better visibility */
+    .analytics-card:hover .analytics-icon.text-primary {
+        opacity: 0.4;
+        color: #3d5bd0 !important;
+    }
+    .analytics-card:hover .analytics-icon.text-success {
+        opacity: 0.4;
+        color: #17a673 !important;
+    }
+    .analytics-card:hover .analytics-icon.text-info {
+        opacity: 0.4;
+        color: #2c9faf !important;
+    }
+    .analytics-card:hover .analytics-icon.text-warning {
+        opacity: 0.4;
+        color: #dda20a !important;
+    }
+    .analytics-subtitle {
+        font-size: 0.7rem;
+        color: #a0aec0;
+        margin-top: 0.25rem;
+        line-height: 1.3;
+        font-weight: 500;
+    }
+
+    /* Tooltip Styles */
+    .analytics-card[data-tooltip] {
+        position: relative;
+    }
+    .analytics-card[data-tooltip]:hover::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        bottom: -35px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: rgba(0, 0, 0, 0.9);
+        color: white;
+        padding: 0.5rem 0.75rem;
+        border-radius: 6px;
+        font-size: 0.75rem;
+        white-space: nowrap;
+        z-index: 1000;
+        opacity: 0;
+        animation: tooltipFadeIn 0.3s ease forwards;
+    }
+    @keyframes tooltipFadeIn {
+        from { opacity: 0; transform: translateX(-50%) translateY(-5px); }
+        to { opacity: 1; transform: translateX(-50%) translateY(0); }
+    }
+
     /* Card Enhancements */
     .card {
         border: none;
         box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
         transition: transform 0.2s ease-in-out;
     }
-    
+
     .card:hover {
         transform: translateY(-3px);
     }
@@ -248,20 +504,165 @@
     .bg-info {
         background-color: var(--status-info) !important;
     }
+
+    /* Enhanced Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0 0 0.75rem 0;
+            overflow-x: hidden;
+        }
+
+        .dashboard-container .container-fluid {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .analytics-card {
+            height: 120px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 12px;
+        }
+        .analytics-metric {
+            font-size: 1.75rem;
+        }
+        .analytics-icon {
+            font-size: 2.25rem;
+            right: 0.75rem;
+            opacity: 0.3 !important;
+        }
+        .analytics-card:hover .analytics-icon {
+            opacity: 0.45 !important;
+        }
+
+        .dashboard-header {
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            border-radius: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+        .dashboard-subtitle {
+            font-size: 0.875rem;
+        }
+
+        /* Hide less important elements on mobile */
+        .analytics-subtitle {
+            display: none;
+        }
+    }
+
+    /* Medium screen adjustments */
+    @media (max-width: 992px) and (min-width: 769px) {
+        .analytics-card {
+            height: 130px;
+        }
+        .dashboard-header {
+            padding: 1.75rem;
+        }
+        .dashboard-title {
+            font-size: 1.75rem;
+        }
+    }
+
+    /* Large screen optimizations */
+    @media (min-width: 1200px) {
+        .analytics-card {
+            height: 150px;
+        }
+    }
+
+    /* Extra small screen adjustments */
+    @media (max-width: 480px) {
+        .dashboard-container .container-fluid {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+        .dashboard-header {
+            padding: 1rem;
+        }
+        .analytics-icon {
+            font-size: 2rem;
+            right: 0.5rem;
+            opacity: 0.32 !important;
+        }
+        .analytics-card:hover .analytics-icon {
+            opacity: 0.5 !important;
+        }
+    }
+
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+        .analytics-card,
+        .card {
+            transition: none;
+        }
+        .analytics-icon {
+            transition: none;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container">
-    <!-- Toast for notifications -->
-    <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-        <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="toast-header">
-                <strong class="me-auto">Notification</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+<div class="dashboard-container">
+    <div class="container-fluid">
+        <!-- Toast for notifications -->
+        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+            <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+                <div class="toast-header">
+                    <strong class="me-auto">Notification</strong>
+                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
+                </div>
+                <div class="toast-body" id="toastBody">
+                    <!-- Toast message will be inserted here -->
+                </div>
             </div>
-            <div class="toast-body" id="toastBody">
-                <!-- Toast message will be inserted here -->
+        </div>
+    
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    {% if mentor.user.profile.avatar %}
+                        <img src="{{ mentor.user.profile.avatar.url }}" alt="{{ mentor.user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-user fa-2x text-white"></i>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h1 class="mb-0"><i class="fas fa-tachometer-alt me-2"></i>Welcome back, {{ mentor.user.get_full_name }}</h1>
+                        <p class="mb-0 opacity-75">
+                            <i class="fas fa-map-marker-alt me-1"></i> {{ mentor.user.profile|format_location }}
+                            {% if mentor.user.profile.current_position %}
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-briefcase me-1"></i> {{ mentor.user.profile.current_position }}
+                            {% endif %}
+                        </p>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
+                <div class="me-3">
+                    <!-- Availability Toggle -->
+                    <div class="form-check form-switch">
+                        <input class="form-check-input" type="checkbox" id="availabilityToggle"
+                               {% if mentor.accepting_mentees %}checked{% endif %}
+                               data-mentor-id="{{ mentor.id }}"
+                               onchange="toggleAvailability()">
+                        <label class="form-check-label" for="availabilityToggle">
+                            Accepting New Mentees
+                        </label>
+                    </div>
+                </div>
+                <a href="{% url 'accounts:profile_detail' mentor.user.username %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user-edit me-1"></i> Edit Profile
+                </a>
             </div>
         </div>
     </div>
@@ -269,111 +670,54 @@
     <!-- Rest of the content -->
     <div class="row">
 {% csrf_token %}
-    <!-- Dashboard Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center">
-                {% if mentor.user.profile.avatar %}
-                    <img src="{{ mentor.user.profile.avatar.url }}" alt="{{ mentor.user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-                {% else %}
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
-                        <i class="fas fa-user fa-2x"></i>
-                </div>
-                {% endif %}
-                <div>
-                    <h2 class="mb-0">Welcome back, {{ mentor.user.get_full_name }}</h2>
-                    <p class="text-muted mb-0">
-                        <i class="fas fa-map-marker-alt me-1"></i> {{ mentor.user.profile.location|default:"Location not set" }}
-                        {% if mentor.user.profile.current_position %}
-                            <span class="mx-2">|</span>
-                            <i class="fas fa-briefcase me-1"></i> {{ mentor.user.profile.current_position }}
-                        {% endif %}
-                    </p>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
-            <div class="me-3">
-                <!-- Availability Toggle -->
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="availabilityToggle"
-                           {% if mentor.accepting_mentees %}checked{% endif %}
-                           data-mentor-id="{{ mentor.id }}"
-                           onchange="toggleAvailability()">
-                    <label class="form-check-label" for="availabilityToggle">
-                        Accepting New Mentees
-                    </label>
-                </div>
-            </div>
-            <a href="{% url 'accounts:profile_detail' mentor.user.username %}" class="btn btn-outline-primary">
-                <i class="fas fa-user-edit me-1"></i> Edit Profile
-            </a>
-        </div>
-        </div>
 
-        <!-- Stats Overview -->
-    <div class="row mb-4">
-            <div class="col-md-3">
-            <div class="card bg-gradient-primary text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
-                            <i class="fas fa-users fa-2x text-white"></i>
-                        </div>
-                        <h2 class="mb-0">{{ total_active_mentees }}</h2>
+        <!-- KPI Cards Row - Mentor Stats -->
+        <div class="row g-2 mb-4">
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Total active mentees you are currently mentoring">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Active Mentees</div>
+                        <div class="analytics-metric">{{ total_active_mentees|default:0 }}</div>
+                        <div class="analytics-subtitle">Currently mentoring</div>
                     </div>
-                    <h5 class="card-title mb-0">Active Mentees</h5>
-                    <div class="progress bg-white bg-opacity-25 mt-3" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ total_active_mentees|default:0|multiply:20 }}%"></div>
-                        </div>
+                    <div class="analytics-icon text-primary">
+                        <i class="fas fa-users"></i>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-            <div class="card bg-gradient-warning text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
-                            <i class="fas fa-clock fa-2x text-white"></i>
-                        </div>
-                        <h2 class="mb-0">{{ total_pending_requests }}</h2>
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Mentorship requests awaiting your response">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Pending Requests</div>
+                        <div class="analytics-metric">{{ total_pending_requests|default:0 }}</div>
+                        <div class="analytics-subtitle">Awaiting response</div>
                     </div>
-                    <h5 class="card-title mb-0">Pending Requests</h5>
-                    <div class="progress bg-white bg-opacity-25 mt-3" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ total_pending_requests|default:0|multiply:20 }}%"></div>
-                        </div>
+                    <div class="analytics-icon text-warning">
+                        <i class="fas fa-clock"></i>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-            <div class="card bg-gradient-info text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
-                            <i class="fas fa-calendar-check fa-2x text-white"></i>
-                        </div>
-                        <h2 class="mb-0">{{ upcoming_meetings.count }}</h2>
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Scheduled meetings with your mentees">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Upcoming Meetings</div>
+                        <div class="analytics-metric">{{ upcoming_meetings.count|default:0 }}</div>
+                        <div class="analytics-subtitle">This week</div>
                     </div>
-                    <h5 class="card-title mb-0">Upcoming Meetings</h5>
-                    <div class="progress bg-white bg-opacity-25 mt-3" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ upcoming_meetings.count|default:0|multiply:20 }}%"></div>
-                        </div>
+                    <div class="analytics-icon text-info">
+                        <i class="fas fa-calendar-check"></i>
                     </div>
                 </div>
             </div>
-            <div class="col-md-3">
-            <div class="card bg-gradient-success text-white h-100">
-                <div class="card-body">
-                    <div class="d-flex justify-content-between align-items-center mb-2">
-                        <div class="rounded-circle bg-white bg-opacity-25 p-3">
-                            <i class="fas fa-envelope fa-2x text-white"></i>
-                        </div>
-                        <h2 class="mb-0">{{ unread_messages }}</h2>
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Unread messages from your mentees">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Unread Messages</div>
+                        <div class="analytics-metric">{{ unread_messages|default:0 }}</div>
+                        <div class="analytics-subtitle">New messages</div>
                     </div>
-                    <h5 class="card-title mb-0">Unread Messages</h5>
-                    <div class="progress bg-white bg-opacity-25 mt-3" style="height: 5px;">
-                        <div class="progress-bar bg-white" style="width: {{ unread_messages|default:0|multiply:20 }}%"></div>
-                        </div>
+                    <div class="analytics-icon text-success">
+                        <i class="fas fa-envelope"></i>
                     </div>
                 </div>
             </div>
@@ -1066,9 +1410,31 @@ function scheduleMeeting(mentorshipId) {
 }
 
 function sendMessage(mentorshipId) {
-    const modal = new bootstrap.Modal(document.getElementById('sendMessageModal'));
-    document.getElementById('messageRecipientId').value = mentorshipId;
-    modal.show();
+    // First check if a conversation already exists for this mentorship
+    fetch(`/mentorship/messages/create/${mentorshipId}/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            // If redirected, it means conversation exists - go to view messages
+            window.location.href = response.url;
+        } else {
+            // If not redirected, show the send message modal
+            const modal = new bootstrap.Modal(document.getElementById('sendMessageModal'));
+            document.getElementById('messageRecipientId').value = mentorshipId;
+            modal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error checking conversation:', error);
+        // Fallback to showing the modal
+        const modal = new bootstrap.Modal(document.getElementById('sendMessageModal'));
+        document.getElementById('messageRecipientId').value = mentorshipId;
+        modal.show();
+    });
 }
 
 function updateProgress(mentorshipId) {
@@ -1253,7 +1619,10 @@ function submitMessage() {
         if (modal) modal.hide();
         
         showToast('success', 'Message sent successfully');
-        setTimeout(() => location.reload(), 1500);
+        // Redirect to messaging page with the conversation
+        setTimeout(() => {
+            window.location.href = `/mentorship/messages/create/${mentorshipId}/`;
+        }, 1500);
     })
     .catch(error => {
         console.error('Error:', error);
@@ -5358,5 +5727,6 @@ function deleteMeeting(meetingId) {
 }
 </script>
 
-</div> <!-- Close container -->
-{% endblock %} 
+    </div> <!-- Close container-fluid -->
+</div> <!-- Close dashboard-container -->
+{% endblock %}

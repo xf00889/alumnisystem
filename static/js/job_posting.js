@@ -1,406 +1,289 @@
-/**
- * Job Posting Form JavaScript
- * Enhances the job posting form with validation, dynamic content, and improved UX
- */
+console.log('Job posting JavaScript file loaded');
 
 document.addEventListener('DOMContentLoaded', function() {
-    initJobPostingForm();
+    console.log('DOM Content Loaded - Initializing job posting JavaScript');
+
+    // Initialize document formset functionality
+    initializeDocumentFormset();
 });
 
-/**
- * Initialize the job posting form functionality
- */
-function initJobPostingForm() {
-    setupDocumentFormHandling();
-    setupFormValidation();
-    setupToggleButtons();
-    setupCharacterCounters();
-    setupFormattingHelp();
-    setupSalaryRangeHelper();
-}
+function initializeDocumentFormset() {
+    console.log('=== INITIALIZING DOCUMENT FORMSET ===');
+    
+    // Find required elements
+    const documentFormsContainer = document.getElementById('document-forms');
+    const addDocumentBtn = document.getElementById('add-document');
+    let managementForm = document.querySelector('[name="required_documents-TOTAL_FORMS"]');
+    
+    // Alternative selector for management form
+    if (!managementForm) {
+        managementForm = document.querySelector('[name$="-TOTAL_FORMS"]');
+    }
+    
+    console.log('Element detection:');
+    console.log('- documentFormsContainer:', documentFormsContainer);
+    console.log('- addDocumentBtn:', addDocumentBtn);
+    console.log('- managementForm:', managementForm);
+    
+    // Check if all required elements are present
+    if (!documentFormsContainer || !addDocumentBtn || !managementForm) {
+        console.warn('Required elements not found. Missing:');
+        if (!documentFormsContainer) console.warn('- document-forms container');
+        if (!addDocumentBtn) console.warn('- add-document button');
+        if (!managementForm) console.warn('- management form');
 
-/**
- * Setup document form handling (add, remove, animation)
- */
-function setupDocumentFormHandling() {
-    const addButton = document.getElementById('add-document');
-    const totalForms = document.getElementById('id_required_documents-TOTAL_FORMS');
-    const formContainer = document.getElementById('document-forms');
+        // Try alternative selectors for debugging
+        console.log('Trying alternative selectors...');
+        const altContainer = document.querySelector('[id*="document"]');
+        const altButton = document.querySelector('button[class*="add-document"]');
+        const altMgmt = document.querySelector('input[name*="TOTAL_FORMS"]');
+
+        console.log('Alternative container:', altContainer);
+        console.log('Alternative button:', altButton);
+        console.log('Alternative management form:', altMgmt);
+
+        return;
+    }
     
-    if (!addButton || !totalForms || !formContainer) return;
+    console.log('✓ All required elements found');
     
-    const emptyForm = document.querySelector('.document-requirement')?.cloneNode(true);
-    if (!emptyForm) return;
+    // Initialize form count
+    let formCount = parseInt(managementForm.value) || 0;
+    console.log('Initial form count:', formCount);
     
-    // Add new document form
-    addButton.addEventListener('click', function() {
-        const formCount = parseInt(totalForms.value);
-        const newForm = emptyForm.cloneNode(true);
+    // Function to create new document form
+    function addDocumentForm() {
+        console.log('=== ADDING NEW DOCUMENT FORM ===');
+        console.log('Current form count:', formCount);
         
-        // Update form index
-        newForm.innerHTML = newForm.innerHTML.replace(/-\d+-/g, `-${formCount}-`);
+        // Get template HTML
+        const templateHtml = getEmptyFormTemplate();
         
-        // Clear form values
-        newForm.querySelectorAll('input:not([type=hidden]), textarea, select').forEach(input => {
-            input.value = '';
+        // Replace __prefix__ with actual form number
+        const newFormHtml = templateHtml.replace(/__prefix__/g, formCount);
+        
+        // Create new form container
+        const newFormDiv = document.createElement('div');
+        newFormDiv.className = 'document-requirement';
+        newFormDiv.innerHTML = newFormHtml;
+        
+        // Add delete button
+        const deleteBtn = document.createElement('button');
+        deleteBtn.type = 'button';
+        deleteBtn.className = 'btn btn-danger btn-sm mt-2';
+        deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+        deleteBtn.addEventListener('click', function() {
+            removeDocumentForm(newFormDiv);
         });
         
-        // Update checkbox states
-        newForm.querySelectorAll('input[type=checkbox]').forEach(checkbox => {
-            checkbox.checked = false;
-        });
+        newFormDiv.appendChild(deleteBtn);
         
-        // Add animation class
-        newForm.classList.add('new-form');
+        // Append to container
+        documentFormsContainer.appendChild(newFormDiv);
         
-        formContainer.appendChild(newForm);
-        totalForms.value = formCount + 1;
+        // Update form count
+        formCount++;
+        managementForm.value = formCount;
         
-        // Setup character counters for new form
-        setupCharacterCounters(newForm);
-    });
+        console.log('✓ New form added. Form count now:', formCount);
+        
+        // Update form indices to ensure proper numbering
+        updateFormIndices();
+    }
     
-    // Handle form deletion
-    formContainer.addEventListener('change', function(e) {
-        if (e.target.name.endsWith('-DELETE')) {
-            const formDiv = e.target.closest('.document-requirement');
-            if (e.target.checked) {
-                formDiv.style.opacity = '0.5';
-                formDiv.style.transform = 'scale(0.98)';
-            } else {
-                formDiv.style.opacity = '1';
-                formDiv.style.transform = 'scale(1)';
-            }
-        }
-    });
-}
-
-/**
- * Setup toggle buttons for collapsible sections
- */
-function setupToggleButtons() {
-    const toggleButtons = document.querySelectorAll('.toggle-btn');
+    // Function to remove document form
+    function removeDocumentForm(formElement) {
+        console.log('=== REMOVING DOCUMENT FORM ===');
+        formElement.remove();
+        formCount--;
+        managementForm.value = formCount;
+        console.log('✓ Form removed. Form count now:', formCount);
+        updateFormIndices();
+    }
     
-    toggleButtons.forEach(button => {
-        const targetId = button.getAttribute('data-bs-target');
-        const targetElement = document.querySelector(targetId);
-        const icon = button.querySelector('i');
+    // Function to update form indices
+    function updateFormIndices() {
+        console.log('=== UPDATING FORM INDICES ===');
+        const forms = documentFormsContainer.querySelectorAll('.document-requirement');
         
-        // Set initial state
-        if (targetElement && !targetElement.classList.contains('show')) {
-            icon.style.transform = 'rotate(-90deg)';
-        }
-        
-        button.addEventListener('click', function() {
-            if (icon) {
-                if (targetElement.classList.contains('show')) {
-                    icon.style.transform = 'rotate(-90deg)';
-                } else {
-                    icon.style.transform = 'rotate(0deg)';
+        forms.forEach((form, index) => {
+            // Update all input, select, and textarea elements
+            const inputs = form.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.name) {
+                    input.name = input.name.replace(/required_documents-\d+/, `required_documents-${index}`);
                 }
-            }
-        });
-    });
-}
-
-/**
- * Setup form validation
- */
-function setupFormValidation() {
-    const form = document.querySelector('.job-posting-container form');
-    if (!form) return;
-    
-    form.addEventListener('submit', function(e) {
-        let isValid = true;
-        
-        // Validate required fields
-        const requiredFields = form.querySelectorAll('[required]');
-        requiredFields.forEach(field => {
-            if (!field.value.trim()) {
-                isValid = false;
-                highlightInvalidField(field);
-            } else {
-                removeInvalidHighlight(field);
-            }
-        });
-        
-        // Validate job description minimum length
-        const jobDescription = document.getElementById('id_job_description');
-        if (jobDescription && jobDescription.value.trim().length < 100) {
-            isValid = false;
-            highlightInvalidField(jobDescription);
-            showValidationError(jobDescription, 'Job description should be at least 100 characters');
-        }
-        
-        if (!isValid) {
-            e.preventDefault();
-            showToast('Please fix the highlighted errors before submitting', 'error');
+                if (input.id) {
+                    input.id = input.id.replace(/id_required_documents-\d+/, `id_required_documents-${index}`);
+                }
+            });
             
-            // Scroll to first error
-            const firstError = form.querySelector('.is-invalid');
-            if (firstError) {
-                firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            }
+            // Update labels
+            const labels = form.querySelectorAll('label');
+            labels.forEach(label => {
+                if (label.getAttribute('for')) {
+                    const forAttr = label.getAttribute('for');
+                    label.setAttribute('for', forAttr.replace(/id_required_documents-\d+/, `id_required_documents-${index}`));
+                }
+            });
+        });
+        
+        console.log('✓ Updated indices for', forms.length, 'forms');
+    }
+    
+    // Function to get empty form template
+    function getEmptyFormTemplate() {
+        // Try to clone existing form first (more reliable with crispy forms)
+        const existingForms = documentFormsContainer.querySelectorAll('.document-requirement');
+        if (existingForms.length > 0) {
+            console.log('Cloning existing form structure');
+            const templateForm = existingForms[0].cloneNode(true);
+            
+            // Clear all input values
+            const inputs = templateForm.querySelectorAll('input, select, textarea');
+            inputs.forEach(input => {
+                if (input.type === 'checkbox') {
+                    input.checked = true; // Default to required
+                } else if (input.type === 'hidden') {
+                    input.value = '';
+                } else if (input.name && input.name.includes('file_types')) {
+                    input.value = '.pdf,.doc,.docx';
+                } else if (input.name && input.name.includes('max_file_size')) {
+                    input.value = '5';
+                } else {
+                    input.value = '';
+                }
+            });
+            
+            // Remove any existing delete buttons
+            const deleteButtons = templateForm.querySelectorAll('.btn-danger');
+            deleteButtons.forEach(btn => btn.remove());
+            
+            return templateForm.innerHTML;
         }
-    });
-}
-
-/**
- * Highlight invalid form field
- */
-function highlightInvalidField(field) {
-    field.classList.add('is-invalid');
-    
-    // Add error message if not exists
-    const errorDiv = field.parentElement.querySelector('.invalid-feedback');
-    if (!errorDiv) {
-        const div = document.createElement('div');
-        div.className = 'invalid-feedback';
-        div.textContent = field.getAttribute('data-error-message') || 'This field is required';
-        field.parentElement.appendChild(div);
+        
+        // Fallback template if no existing forms
+        console.log('Using fallback template');
+        return createFallbackTemplate();
     }
-}
-
-/**
- * Remove invalid highlight from field
- */
-function removeInvalidHighlight(field) {
-    field.classList.remove('is-invalid');
-}
-
-/**
- * Show validation error message
- */
-function showValidationError(field, message) {
-    const errorDiv = field.parentElement.querySelector('.invalid-feedback');
-    if (errorDiv) {
-        errorDiv.textContent = message;
-    } else {
-        const div = document.createElement('div');
-        div.className = 'invalid-feedback';
-        div.textContent = message;
-        field.parentElement.appendChild(div);
-    }
-}
-
-/**
- * Setup character counters for textareas
- */
-function setupCharacterCounters(container = document) {
-    const textareas = container.querySelectorAll('textarea');
     
-    textareas.forEach(textarea => {
-        // Skip if counter already exists
-        if (textarea.parentElement.querySelector('.char-counter')) return;
-        
-        const counter = document.createElement('div');
-        counter.className = 'char-counter text-muted small mt-1';
-        updateCharCounter(counter, textarea.value.length);
-        
-        textarea.parentElement.appendChild(counter);
-        
-        textarea.addEventListener('input', function() {
-            updateCharCounter(counter, this.value.length);
-        });
-    });
-}
-
-/**
- * Update character counter
- */
-function updateCharCounter(counterElement, count) {
-    counterElement.textContent = `${count} characters`;
-    
-    if (count < 50) {
-        counterElement.classList.add('text-danger');
-    } else if (count < 100) {
-        counterElement.classList.add('text-warning');
-        counterElement.classList.remove('text-danger');
-    } else {
-        counterElement.classList.remove('text-warning', 'text-danger');
-    }
-}
-
-/**
- * Setup formatting help tooltips
- */
-function setupFormattingHelp() {
-    const jobDescription = document.getElementById('id_job_description');
-    const requirements = document.getElementById('id_requirements');
-    const responsibilities = document.getElementById('id_responsibilities');
-    
-    const textareas = [jobDescription, requirements, responsibilities].filter(Boolean);
-    
-    textareas.forEach(textarea => {
-        const helpButton = document.createElement('button');
-        helpButton.type = 'button';
-        helpButton.className = 'btn btn-sm btn-outline-secondary formatting-help-btn';
-        helpButton.innerHTML = '<i class="fas fa-question-circle"></i> Formatting Help';
-        
-        textarea.parentElement.appendChild(helpButton);
-        
-        helpButton.addEventListener('click', function() {
-            showFormattingHelp(textarea);
-        });
-    });
-}
-
-/**
- * Show formatting help modal
- */
-function showFormattingHelp(textarea) {
-    // Create modal if it doesn't exist
-    if (!document.getElementById('formattingHelpModal')) {
-        const modal = document.createElement('div');
-        modal.className = 'modal fade';
-        modal.id = 'formattingHelpModal';
-        modal.setAttribute('tabindex', '-1');
-        modal.setAttribute('aria-hidden', 'true');
-        
-        modal.innerHTML = `
-            <div class="modal-dialog">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title">Formatting Tips</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+    // Fallback template function
+    function createFallbackTemplate() {
+        return `
+            <input type="hidden" name="required_documents-__prefix__-id" id="id_required_documents-__prefix__-id">
+            <div class="row">
+                <div class="col-md-6 mb-2">
+                    <div class="form-group">
+                        <label for="id_required_documents-__prefix__-name" class="form-label">Document Name</label>
+                        <input type="text" name="required_documents-__prefix__-name" class="form-control" id="id_required_documents-__prefix__-name" required>
                     </div>
-                    <div class="modal-body">
-                        <p>You can use these formatting tips to make your job posting more readable:</p>
-                        <ul>
-                            <li>Use <strong>*asterisks*</strong> for bullet points at the start of lines</li>
-                            <li>Leave blank lines between paragraphs</li>
-                            <li>Use <strong>ALL CAPS</strong> sparingly for section headers</li>
-                            <li>Keep paragraphs short and focused</li>
-                        </ul>
-                        <div class="mt-3">
-                            <button type="button" class="btn btn-sm btn-outline-primary add-bullet-list">Add Bullet List Template</button>
+                </div>
+                <div class="col-md-6 mb-2">
+                    <div class="form-group">
+                        <label for="id_required_documents-__prefix__-document_type" class="form-label">Document Type</label>
+                        <select name="required_documents-__prefix__-document_type" class="form-control" id="id_required_documents-__prefix__-document_type" required>
+                            <option value="">---------</option>
+                            <option value="RESUME">Resume/CV</option>
+                            <option value="COVER_LETTER">Cover Letter</option>
+                            <option value="TRANSCRIPT">Transcript of Records</option>
+                            <option value="DIPLOMA">Diploma</option>
+                            <option value="CERTIFICATION">Certification</option>
+                            <option value="PORTFOLIO">Portfolio</option>
+                            <option value="RECOMMENDATION">Recommendation Letter</option>
+                            <option value="GOVERNMENT_ID">Government ID</option>
+                            <option value="OTHER">Other Document</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-12 mb-2">
+                    <div class="form-group">
+                        <label for="id_required_documents-__prefix__-description" class="form-label">Description</label>
+                        <textarea name="required_documents-__prefix__-description" class="form-control" id="id_required_documents-__prefix__-description" rows="3"></textarea>
+                    </div>
+                </div>
+            </div>
+            <div class="row">
+                <div class="col-md-4 mb-2">
+                    <div class="form-group">
+                        <label for="id_required_documents-__prefix__-file_types" class="form-label">Allowed File Types</label>
+                        <input type="text" name="required_documents-__prefix__-file_types" class="form-control" id="id_required_documents-__prefix__-file_types" value=".pdf,.doc,.docx">
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="form-group">
+                        <label for="id_required_documents-__prefix__-max_file_size" class="form-label">Max File Size (MB)</label>
+                        <input type="number" name="required_documents-__prefix__-max_file_size" class="form-control" id="id_required_documents-__prefix__-max_file_size" value="5" min="1" max="50">
+                    </div>
+                </div>
+                <div class="col-md-4 mb-2">
+                    <div class="form-group">
+                        <div class="form-check">
+                            <input type="checkbox" name="required_documents-__prefix__-is_required" class="form-check-input" id="id_required_documents-__prefix__-is_required" checked>
+                            <label class="form-check-label" for="id_required_documents-__prefix__-is_required">
+                                This document is required
+                            </label>
                         </div>
                     </div>
                 </div>
             </div>
         `;
-        
-        document.body.appendChild(modal);
-        
-        // Initialize Bootstrap modal
-        const modalElement = new bootstrap.Modal(modal);
-        
-        // Add bullet list template button
-        modal.querySelector('.add-bullet-list').addEventListener('click', function() {
-            const template = "\n\n* \n* \n* \n* \n* \n";
-            textarea.value += template;
-            textarea.focus();
-            textarea.selectionStart = textarea.value.length - template.length + 3;
-            textarea.selectionEnd = textarea.selectionStart;
-            
-            // Update character counter
-            const counter = textarea.parentElement.querySelector('.char-counter');
-            if (counter) {
-                updateCharCounter(counter, textarea.value.length);
-            }
-            
-            modalElement.hide();
-        });
-        
-        modalElement.show();
-    } else {
-        const modalElement = bootstrap.Modal.getInstance(document.getElementById('formattingHelpModal')) || 
-                            new bootstrap.Modal(document.getElementById('formattingHelpModal'));
-        modalElement.show();
     }
-}
-
-/**
- * Setup salary range helper
- */
-function setupSalaryRangeHelper() {
-    const salaryField = document.getElementById('id_salary_range');
-    if (!salaryField) return;
     
-    const helpButton = document.createElement('button');
-    helpButton.type = 'button';
-    helpButton.className = 'btn btn-sm btn-outline-secondary salary-helper-btn mt-1';
-    helpButton.innerHTML = '<i class="fas fa-dollar-sign"></i> Salary Format Helper';
+    // Add event listener to the add button
+    addDocumentBtn.addEventListener('click', function(e) {
+        console.log('=== ADD DOCUMENT BUTTON CLICKED ===');
+        e.preventDefault();
+        addDocumentForm();
+    });
     
-    salaryField.parentElement.appendChild(helpButton);
-    
-    helpButton.addEventListener('click', function() {
-        const options = [
-            'PHP 25,000 - 35,000 monthly',
-            'PHP 40,000 - 60,000 monthly',
-            'PHP 70,000 - 90,000 monthly',
-            'PHP 300,000 - 500,000 annually',
-            'PHP 500,000 - 800,000 annually',
-            'PHP 1,000,000+ annually',
-            'Competitive / Negotiable',
-            'Based on experience'
-        ];
-        
-        const dropdown = document.createElement('div');
-        dropdown.className = 'salary-format-dropdown';
-        dropdown.innerHTML = options.map(option => `<div class="salary-option">${option}</div>`).join('');
-        
-        salaryField.parentElement.appendChild(dropdown);
-        
-        // Add click event to options
-        dropdown.querySelectorAll('.salary-option').forEach(option => {
-            option.addEventListener('click', function() {
-                salaryField.value = this.textContent;
-                dropdown.remove();
+    // Add delete functionality to existing forms
+    const existingForms = documentFormsContainer.querySelectorAll('.document-requirement');
+    existingForms.forEach(form => {
+        if (!form.querySelector('.btn-danger')) {
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'btn btn-danger btn-sm mt-2';
+            deleteBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+            deleteBtn.addEventListener('click', function() {
+                removeDocumentForm(form);
             });
-        });
-        
-        // Remove dropdown when clicking outside
-        document.addEventListener('click', function removeDropdown(e) {
-            if (!dropdown.contains(e.target) && e.target !== helpButton) {
-                dropdown.remove();
-                document.removeEventListener('click', removeDropdown);
-            }
-        });
+            form.appendChild(deleteBtn);
+        }
     });
+    
+    // Add global test function for debugging
+    window.testAddDocument = function() {
+        console.log('=== MANUAL TEST FUNCTION ===');
+        addDocumentForm();
+    };
+    
+    console.log('✓ Document formset initialization complete');
 }
 
-/**
- * Show toast notification
- */
-function showToast(message, type = 'info') {
-    // Create toast container if it doesn't exist
-    if (!document.querySelector('.toast-container')) {
-        const container = document.createElement('div');
-        container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(container);
+// Form validation
+document.addEventListener('DOMContentLoaded', function() {
+    const jobForm = document.getElementById('jobForm');
+    if (jobForm) {
+        jobForm.addEventListener('submit', function(e) {
+            console.log('Form submission validation');
+            const requiredFields = jobForm.querySelectorAll('[required]');
+            let isValid = true;
+            
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    field.classList.add('is-invalid');
+                    isValid = false;
+                } else {
+                    field.classList.remove('is-invalid');
+                }
+            });
+            
+            if (!isValid) {
+                e.preventDefault();
+                alert('Please fill in all required fields.');
+            }
+        });
     }
-    
-    const container = document.querySelector('.toast-container');
-    
-    // Create toast
-    const toastElement = document.createElement('div');
-    toastElement.className = `toast align-items-center text-white bg-${type === 'error' ? 'danger' : type}`;
-    toastElement.setAttribute('role', 'alert');
-    toastElement.setAttribute('aria-live', 'assertive');
-    toastElement.setAttribute('aria-atomic', 'true');
-    
-    toastElement.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    
-    container.appendChild(toastElement);
-    
-    // Initialize and show toast
-    const toast = new bootstrap.Toast(toastElement, {
-        autohide: true,
-        delay: 5000
-    });
-    
-    toast.show();
-    
-    // Remove toast after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        toastElement.remove();
-    });
-} 
+});

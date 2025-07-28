@@ -1,0 +1,374 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}{% blocktranslate with title=report.title %}Report: {{ title }}{% endblocktranslate %}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">{% translate 'Home' %}</a>
+    &rsaquo; <a href="{% url 'surveys:survey_list' %}">{% translate 'Surveys' %}</a>
+    &rsaquo; <a href="{% url 'surveys:report_list' %}">{% translate 'Reports' %}</a>
+    &rsaquo; {{ report.title }}
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="module">
+    <h1>{{ report.title }}</h1>
+    
+    <div class="report-info">
+        <div class="info-grid">
+            <div class="info-item">
+                <label>{% translate 'Type:' %}</label>
+                <span>{{ report.get_report_type_display }}</span>
+            </div>
+            <div class="info-item">
+                <label>{% translate 'Created by:' %}</label>
+                <span>{{ report.created_by.get_full_name|default:report.created_by.username }}</span>
+            </div>
+            <div class="info-item">
+                <label>{% translate 'Created at:' %}</label>
+                <span>{{ report.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <div class="info-item">
+                <label>{% translate 'Last run:' %}</label>
+                <span>
+                    {% if report.last_run %}
+                        {{ report.last_run|date:"M d, Y H:i" }}
+                    {% else %}
+                        <em>{% translate 'Never' %}</em>
+                    {% endif %}
+                </span>
+            </div>
+        </div>
+        
+        {% if report.description %}
+            <div class="description">
+                <h3>{% translate 'Description' %}</h3>
+                <p>{{ report.description|linebreaks }}</p>
+            </div>
+        {% endif %}
+        
+        {% if report.parameters %}
+            <div class="parameters">
+                <h3>{% translate 'Parameters' %}</h3>
+                <div class="parameters-grid">
+                    {% for key, value in report.parameters.items %}
+                        <div class="parameter-item">
+                            <label>{{ key|title }}:</label>
+                            <span>{{ value }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            </div>
+        {% endif %}
+    </div>
+    
+    <div class="actions">
+        <a href="#" class="button run-report" onclick="runReport({{ report.id }})">
+            {% translate 'Run Report' %}
+        </a>
+        <a href="{% url 'surveys:report_list' %}" class="button secondary">
+            {% translate 'Back to Reports' %}
+        </a>
+    </div>
+    
+    {% if report_data %}
+        <div class="report-results">
+            <h2>{% translate 'Report Results' %}</h2>
+            
+            {% if report.report_type == 'employment' %}
+                <div class="employment-report">
+                    <h3>{% translate 'Employment Trends' %}</h3>
+                    {% if report_data.employment_status %}
+                        <div class="chart-container">
+                            <h4>{% translate 'Employment Status Distribution' %}</h4>
+                            <table class="data-table">
+                                <thead>
+                                    <tr>
+                                        <th>{% translate 'Status' %}</th>
+                                        <th>{% translate 'Count' %}</th>
+                                        <th>{% translate 'Percentage' %}</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for item in report_data.employment_status %}
+                                    <tr>
+                                        <td>{{ item.status|title }}</td>
+                                        <td>{{ item.count }}</td>
+                                        <td>{{ item.percentage|floatformat:1 }}%</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif report.report_type == 'geographic' %}
+                <div class="geographic-report">
+                    <h3>{% translate 'Geographic Distribution' %}</h3>
+                    {% if report_data.locations %}
+                        <table class="data-table">
+                            <thead>
+                                <tr>
+                                    <th>{% translate 'Location' %}</th>
+                                    <th>{% translate 'Alumni Count' %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for location in report_data.locations %}
+                                <tr>
+                                    <td>{{ location.name }}</td>
+                                    <td>{{ location.count }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% endif %}
+                </div>
+            {% elif report.report_type == 'achievements' %}
+                <div class="achievements-report">
+                    <h3>{% translate 'Alumni Achievements' %}</h3>
+                    {% if report_data.achievements %}
+                        <div class="achievements-list">
+                            {% for achievement in report_data.achievements %}
+                            <div class="achievement-item">
+                                <h4>{{ achievement.title }}</h4>
+                                <p><strong>{% translate 'Alumni:' %}</strong> {{ achievement.alumni_name }}</p>
+                                <p><strong>{% translate 'Date:' %}</strong> {{ achievement.date|date:"M d, Y" }}</p>
+                                {% if achievement.description %}
+                                    <p>{{ achievement.description }}</p>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                </div>
+            {% elif report.report_type == 'feedback' %}
+                <div class="feedback-report">
+                    <h3>{% translate 'Survey Feedback Summary' %}</h3>
+                    {% if report_data.surveys %}
+                        {% for survey in report_data.surveys %}
+                        <div class="survey-feedback">
+                            <h4>{{ survey.title }}</h4>
+                            <p><strong>{% translate 'Responses:' %}</strong> {{ survey.response_count }}</p>
+                            <p><strong>{% translate 'Response Rate:' %}</strong> {{ survey.response_rate|floatformat:1 }}%</p>
+                        </div>
+                        {% endfor %}
+                    {% endif %}
+                </div>
+            {% else %}
+                <div class="custom-report">
+                    <h3>{% translate 'Custom Report Data' %}</h3>
+                    <pre>{{ report_data|pprint }}</pre>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>
+
+<script>
+function runReport(reportId) {
+    // Add AJAX call to run the report
+    fetch(`/surveys/admin/reports/${reportId}/run/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'Content-Type': 'application/json',
+        },
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        } else {
+            alert('Error running report: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('Error running report');
+    });
+}
+</script>
+
+<style>
+.module {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    margin-bottom: 20px;
+}
+
+.module h1 {
+    background: #f8f8f8;
+    border-bottom: 1px solid #ddd;
+    margin: 0;
+    padding: 10px 15px;
+    font-size: 18px;
+    color: #333;
+}
+
+.report-info {
+    padding: 15px;
+}
+
+.info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 15px;
+    margin-bottom: 20px;
+}
+
+.info-item {
+    display: flex;
+    align-items: center;
+}
+
+.info-item label {
+    font-weight: bold;
+    margin-right: 10px;
+    min-width: 100px;
+}
+
+.description {
+    margin-bottom: 20px;
+    padding: 15px;
+    background: #f9f9f9;
+    border-radius: 4px;
+}
+
+.description h3 {
+    margin-top: 0;
+    color: #333;
+}
+
+.parameters {
+    margin-bottom: 20px;
+}
+
+.parameters h3 {
+    color: #333;
+    margin-bottom: 10px;
+}
+
+.parameters-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px;
+    background: #f9f9f9;
+    padding: 15px;
+    border-radius: 4px;
+}
+
+.parameter-item {
+    display: flex;
+    align-items: center;
+}
+
+.parameter-item label {
+    font-weight: bold;
+    margin-right: 10px;
+    min-width: 80px;
+}
+
+.actions {
+    padding: 15px;
+    border-top: 1px solid #eee;
+    background: #f8f8f8;
+}
+
+.button {
+    display: inline-block;
+    padding: 8px 15px;
+    margin-right: 10px;
+    text-decoration: none;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    border: none;
+}
+
+.button.run-report {
+    background: #28a745;
+    color: white;
+}
+
+.button.run-report:hover {
+    background: #218838;
+    color: white;
+}
+
+.button.secondary {
+    background: #6c757d;
+    color: white;
+}
+
+.button.secondary:hover {
+    background: #545b62;
+    color: white;
+}
+
+.report-results {
+    padding: 15px;
+    border-top: 1px solid #eee;
+}
+
+.report-results h2 {
+    color: #333;
+    margin-bottom: 20px;
+}
+
+.data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+}
+
+.data-table th,
+.data-table td {
+    padding: 10px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.data-table th {
+    background: #f8f8f8;
+    font-weight: bold;
+}
+
+.achievement-item {
+    background: #f9f9f9;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+    border-left: 4px solid #417690;
+}
+
+.achievement-item h4 {
+    margin-top: 0;
+    color: #333;
+}
+
+.survey-feedback {
+    background: #f9f9f9;
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 4px;
+}
+
+.survey-feedback h4 {
+    margin-top: 0;
+    color: #333;
+}
+
+.chart-container {
+    margin-bottom: 30px;
+}
+
+.chart-container h4 {
+    color: #333;
+    margin-bottom: 15px;
+}
+</style>
+{% endblock %}

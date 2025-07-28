@@ -1,0 +1,1085 @@
+{% extends 'base.html' %}
+{% load django_htmx static %}
+
+{% block title %}Messages - Mentorship{% endblock %}
+
+{% block extra_css %}
+<link
+  href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* System Color Scheme */
+  :root {
+    /* Primary Colors */
+    --primary-color: #2b3c6b;
+
+    /* Secondary Colors */
+    --secondary-color: #4a5568;
+
+    /* UI Colors */
+    --ui-background: #f7fafc;
+    --ui-surface: #ffffff;
+    --ui-border: #e2e8f0;
+    --ui-hover: #edf2f7;
+
+    /* Text Colors */
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --text-muted: #a0aec0;
+    --text-light: #ffffff;
+
+    /* Feedback Colors */
+    --feedback-success: #48bb78;
+    --feedback-warning: #ed8936;
+    --feedback-error: #e53e3e;
+    --feedback-info: #4299e1;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+  }
+
+  body {
+    background-color: var(--ui-background);
+    font-family: "Poppins", sans-serif;
+    font-size: 0.875rem;
+  }
+
+  .messages-header {
+    background: var(--primary-color);
+    color: var(--text-light);
+    padding: 1.75rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    font-family: "Poppins", sans-serif;
+  }
+
+  .messages-header h2 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    color: var(--text-light);
+  }
+
+  .messages-card {
+    background: var(--ui-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--ui-border);
+    font-family: "Poppins", sans-serif;
+    overflow: hidden;
+  }
+
+  .messages-card:hover {
+    box-shadow: var(--shadow-md);
+  }
+
+  .conversation-item {
+    cursor: pointer;
+    transition: all 0.3s ease;
+    border-bottom: 1px solid var(--ui-border);
+    padding: 1.25rem;
+    background: var(--ui-surface);
+    font-family: "Poppins", sans-serif;
+  }
+
+  .conversation-item:last-child {
+    border-bottom: none;
+  }
+
+  .conversation-item:hover {
+    background-color: var(--ui-hover);
+  }
+
+  .conversation-item.active {
+    background-color: rgba(43, 60, 107, 0.1);
+    border-left: 4px solid var(--primary-color);
+  }
+
+  .conversation-item.unread {
+    font-weight: 600;
+    background-color: rgba(237, 137, 54, 0.1);
+  }
+
+  .avatar-sm {
+    width: 55px;
+    height: 55px;
+    object-fit: cover;
+    border: 2px solid var(--ui-border);
+    transition: all 0.3s ease;
+  }
+
+  .conversation-item:hover .avatar-sm {
+    border-color: var(--primary-color);
+  }
+
+  .unread-badge {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
+    color: var(--text-light);
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 0.25rem 0.5rem;
+    border-radius: 50px;
+    box-shadow: var(--shadow-sm);
+    min-width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .message-preview {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    font-weight: 400;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .conversation-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-weight: 500;
+  }
+
+  .conversation-name {
+    color: var(--text-primary);
+    font-weight: 600;
+    font-size: 0.95rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .conversation-position {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+  }
+
+  .no-conversations {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: var(--text-secondary);
+    font-family: "Poppins", sans-serif;
+  }
+
+  .no-conversations i {
+    color: var(--text-muted);
+    margin-bottom: 1.5rem;
+  }
+
+  .no-conversations h5 {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .btn-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
+    border: none;
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.3s ease;
+    box-shadow: var(--shadow-sm);
+  }
+
+  .btn-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+    background: linear-gradient(135deg, #3d4f7a 0%, var(--primary-color) 100%);
+  }
+
+  .btn-outline-primary {
+    border: 2px solid var(--primary-color);
+    color: var(--primary-color);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1.5rem;
+    font-weight: 600;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.3s ease;
+    background: transparent;
+  }
+
+  .btn-outline-primary:hover {
+    background: var(--primary-color);
+    color: var(--text-light);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+  }
+
+  .filter-controls {
+    background: var(--ui-surface);
+    padding: 1rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--ui-border);
+    font-family: "Poppins", sans-serif;
+  }
+
+  .search-input {
+    border: 2px solid var(--ui-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    font-family: "Poppins", sans-serif;
+    transition: all 0.3s ease;
+  }
+
+  .search-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+  }
+
+  @media (max-width: 768px) {
+    .sidebar-container {
+      height: auto;
+      max-height: 300px;
+    }
+
+    .conversation-area {
+      height: calc(100vh - 200px) !important;
+      min-height: 400px;
+      max-height: calc(100vh - 200px) !important;
+      overflow: hidden !important;
+    }
+
+    .conversation-content {
+      height: calc(100vh - 200px) !important;
+      max-height: calc(100vh - 200px) !important;
+      overflow: hidden !important;
+    }
+
+    .card.h-100 {
+      height: calc(100vh - 200px) !important;
+      max-height: calc(100vh - 200px) !important;
+    }
+
+    .messages-container {
+      max-height: calc(100vh - 350px) !important;
+      overflow-y: auto !important;
+    }
+  }
+
+  /* Create Message Modal Styles */
+  .search-results {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-md);
+    background: var(--ui-surface);
+  }
+
+  .search-results .list-group-item {
+    border: none;
+    border-bottom: 1px solid var(--ui-border);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 1rem;
+  }
+
+  .search-results .list-group-item:hover {
+    background-color: var(--ui-hover);
+  }
+
+  .search-results .list-group-item:last-child {
+    border-bottom: none;
+  }
+
+  .user-search-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .user-search-item img {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border: 2px solid var(--ui-border);
+  }
+
+  .user-search-info h6 {
+    margin: 0;
+    font-weight: 600;
+    color: var(--text-primary);
+  }
+
+  .user-search-info small {
+    color: var(--text-secondary);
+  }
+
+  .selected-user .alert {
+    border: 2px solid var(--primary-color);
+    background-color: rgba(43, 60, 107, 0.1);
+  }
+
+  #createMessageModal .modal-content {
+    border: none;
+    box-shadow: var(--shadow-md);
+    border-radius: var(--radius-lg);
+  }
+
+  #createMessageModal .modal-header {
+    background: var(--primary-color);
+    color: var(--text-light);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+
+  #createMessageModal .modal-title {
+    font-weight: 600;
+  }
+
+  #createMessageModal .btn-close {
+    filter: invert(1);
+  }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 2rem;
+  }
+
+  .no-results {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-secondary);
+  }
+
+  .no-results i {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    color: var(--text-muted);
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="container-fluid py-4">
+  <!-- Header -->
+  <div class="messages-header">
+    <h2><i class="fas fa-comments me-2"></i>Your Messages</h2>
+  </div>
+
+  <!-- Main Content Area -->
+  <div class="row g-3">
+    <!-- Conversations Sidebar -->
+    <div class="col-lg-4">
+      <div class="messages-card h-100">
+        <!-- Search and Filter -->
+        <div class="p-3 border-bottom">
+          <div class="mb-3">
+            <div class="input-group">
+              <span class="input-group-text"
+                ><i class="fas fa-search"></i
+              ></span>
+              <input
+                type="text"
+                class="form-control"
+                id="searchInput"
+                placeholder="Search conversations..."
+              />
+            </div>
+          </div>
+          <select class="form-select" id="sortSelect">
+            <option value="recent">Most Recent</option>
+            <option value="unread">Unread First</option>
+            <option value="alphabetical">Alphabetical</option>
+          </select>
+        </div>
+
+        <!-- Conversations Header -->
+        <div class="card-header bg-white border-bottom">
+          <div class="d-flex justify-content-between align-items-center p-3">
+            <h5 class="mb-0">Your Conversations</h5>
+            <button
+              type="button"
+              class="btn btn-primary btn-sm"
+              data-bs-toggle="modal"
+              data-bs-target="#createMessageModal"
+            >
+              <i class="fas fa-plus me-1"></i>New Message
+            </button>
+          </div>
+        </div>
+
+        <!-- Conversations List -->
+        <div
+          class="card-body p-0"
+          id="conversationsList"
+          style="max-height: 600px; overflow-y: auto"
+        >
+          <!-- Conversation list will be loaded here via HTMX -->
+          <div
+            hx-get="{% url 'mentorship:conversation_list' %}"
+            hx-trigger="load"
+            hx-target="#conversationsList"
+            class="d-flex justify-content-center align-items-center p-4"
+          >
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Loading conversations...</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Conversation Detail Area -->
+    <div class="col-lg-8">
+      <div class="messages-card h-100" id="conversation-detail">
+        <div
+          class="card-body d-flex align-items-center justify-content-center"
+          style="min-height: 500px"
+        >
+          <div class="text-center text-muted">
+            <i class="fas fa-comments fa-3x mb-3"></i>
+            <h5>Select a conversation</h5>
+            <p>Choose a conversation from the left to start messaging</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Create Message Modal -->
+<div
+  class="modal fade"
+  id="createMessageModal"
+  tabindex="-1"
+  aria-labelledby="createMessageModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="createMessageModalLabel">
+          <i class="fas fa-plus-circle me-2"></i>Start New Conversation
+        </h5>
+        <button
+          type="button"
+          class="btn-close"
+          data-bs-dismiss="modal"
+          aria-label="Close"
+        ></button>
+      </div>
+      <div class="modal-body">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label for="userSearch" class="form-label fw-medium"
+            >Search for a user to message:</label
+          >
+          <div class="input-group">
+            <span class="input-group-text"><i class="fas fa-search"></i></span>
+            <input
+              type="text"
+              class="form-control"
+              id="userSearch"
+              placeholder="Enter a name to search..."
+              autocomplete="off"
+            />
+            <button
+              class="btn btn-outline-primary"
+              type="button"
+              id="searchUserBtn"
+            >
+              <i class="fas fa-search"></i> Search
+            </button>
+          </div>
+          <div class="form-text">
+            Enter a name and click search to find connected alumni
+          </div>
+        </div>
+
+        <!-- Search Results -->
+        <div id="searchResults" class="search-results" style="display: none">
+          <div class="list-group" id="userList"></div>
+        </div>
+
+        <!-- Selected User -->
+        <div id="selectedUser" class="selected-user" style="display: none">
+          <div class="alert alert-info d-flex align-items-center">
+            <img
+              id="selectedUserAvatar"
+              src=""
+              alt="Avatar"
+              class="rounded-circle me-3"
+              width="40"
+              height="40"
+            />
+            <div>
+              <strong id="selectedUserName"></strong>
+              <div class="text-muted small" id="selectedUserEmail"></div>
+            </div>
+            <button
+              type="button"
+              class="btn btn-sm btn-outline-secondary ms-auto"
+              onclick="clearSelectedUser()"
+            >
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Message Form -->
+        <div id="messageForm" style="display: none">
+          <div class="mb-3">
+            <label for="messageContent" class="form-label fw-medium"
+              >Your message:</label
+            >
+            <textarea
+              class="form-control"
+              id="messageContent"
+              rows="4"
+              placeholder="Type your message here..."
+            ></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="btn btn-primary"
+          id="sendNewMessage"
+          style="display: none"
+          onclick="sendNewMessage()"
+        >
+          <i class="fas fa-paper-plane me-1"></i>Send Message
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %} {% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+<script>
+  // Search functionality
+  document.addEventListener("DOMContentLoaded", function () {
+    const searchInput = document.getElementById("searchInput");
+    if (searchInput) {
+      searchInput.addEventListener("input", function () {
+        const searchTerm = this.value.toLowerCase();
+        const conversations = document.querySelectorAll(".conversation-item");
+
+        conversations.forEach(function (conversation) {
+          const name = conversation.querySelector(".conversation-name");
+          const position = conversation.querySelector(".conversation-position");
+          const messagePreview = conversation.querySelector(".message-preview");
+
+          const nameText = name ? name.textContent.toLowerCase() : "";
+          const positionText = position
+            ? position.textContent.toLowerCase()
+            : "";
+          const messageText = messagePreview
+            ? messagePreview.textContent.toLowerCase()
+            : "";
+
+          if (
+            nameText.includes(searchTerm) ||
+            positionText.includes(searchTerm) ||
+            messageText.includes(searchTerm)
+          ) {
+            conversation.style.display = "block";
+          } else {
+            conversation.style.display = "none";
+          }
+        });
+      });
+    }
+  });
+
+  // Sort functionality
+  document.addEventListener("DOMContentLoaded", function () {
+    const sortSelect = document.getElementById("sortSelect");
+    if (sortSelect) {
+      sortSelect.addEventListener("change", function () {
+        const sortBy = this.value;
+        const container = document.getElementById("conversationsList");
+        const conversations = Array.from(
+          document.querySelectorAll(".conversation-item")
+        );
+
+        conversations.sort(function (a, b) {
+          switch (sortBy) {
+            case "alphabetical":
+              const nameA = a.querySelector(".conversation-name");
+              const nameB = b.querySelector(".conversation-name");
+              const textA = nameA ? nameA.textContent.trim() : "";
+              const textB = nameB ? nameB.textContent.trim() : "";
+              return textA.localeCompare(textB);
+
+            case "unread":
+              const unreadA = a.classList.contains("unread") ? 1 : 0;
+              const unreadB = b.classList.contains("unread") ? 1 : 0;
+              return unreadB - unreadA;
+
+            case "recent":
+            default:
+              // Keep original order for recent
+              return 0;
+          }
+        });
+
+        // Re-append sorted conversations
+        conversations.forEach(function (conversation) {
+          container.appendChild(conversation);
+        });
+      });
+    }
+  });
+
+  // Enhanced hover effects
+  document.addEventListener("DOMContentLoaded", function () {
+    document.addEventListener(
+      "mouseenter",
+      function (event) {
+        if (event.target.closest(".conversation-item")) {
+          event.target.closest(".conversation-item").style.transform =
+            "translateY(-2px)";
+        }
+      },
+      true
+    );
+
+    document.addEventListener(
+      "mouseleave",
+      function (event) {
+        if (event.target.closest(".conversation-item")) {
+          event.target.closest(".conversation-item").style.transform =
+            "translateY(0)";
+        }
+      },
+      true
+    );
+  });
+
+  // Function to set active conversation
+  function setActiveConversation(element) {
+    // Remove active class from all conversation items
+    document.querySelectorAll(".conversation-item").forEach(function (item) {
+      item.classList.remove("active");
+    });
+
+    // Add active class to clicked item
+    element.classList.add("active");
+  }
+
+  // Auto-refresh conversations every 45 seconds (less frequent for better UX)
+  let refreshInterval = setInterval(function () {
+    // Only refresh if we're still on the conversations page and not actively searching
+    const searchInput = document.getElementById("searchInput");
+    if (
+      window.location.pathname.includes("messaging") &&
+      (!searchInput || searchInput.value === "")
+    ) {
+      // Smooth reload with fade effect
+      document.body.style.opacity = "0.8";
+      setTimeout(function () {
+        const conversationsList = document.getElementById("conversationsList");
+        if (conversationsList) {
+          htmx.trigger(conversationsList.querySelector("[hx-get]"), "load");
+        }
+        document.body.style.opacity = "1";
+      }, 300);
+    }
+  }, 45000);
+
+  // Clear interval when leaving page
+  window.addEventListener("beforeunload", function () {
+    clearInterval(refreshInterval);
+  });
+
+  // Add loading state for conversation clicks
+  document.addEventListener("click", function (event) {
+    const conversationItem = event.target.closest(".conversation-item");
+    if (conversationItem) {
+      conversationItem.style.opacity = "0.7";
+      conversationItem.style.transform = "scale(0.98)";
+
+      // Reset after a short delay
+      setTimeout(function () {
+        conversationItem.style.opacity = "1";
+        conversationItem.style.transform = "scale(1)";
+      }, 200);
+    }
+  });
+
+  // Create Message Modal Functionality
+  let selectedUserId = null;
+  let searchTimeout = null;
+
+  // User search functionality
+  function initializeUserSearch() {
+    console.log("=== Initializing user search ===");
+
+    // Wait a bit for modal to fully render
+    setTimeout(() => {
+      const userSearchInput = document.getElementById("userSearch");
+      const searchResults = document.getElementById("searchResults");
+      const userList = document.getElementById("userList");
+      const searchUserBtn = document.getElementById("searchUserBtn");
+
+      console.log("=== Element Check ===");
+      console.log("userSearchInput:", userSearchInput);
+      console.log("searchResults:", searchResults);
+      console.log("userList:", userList);
+      console.log("searchUserBtn:", searchUserBtn);
+
+      if (!userSearchInput || !searchUserBtn || !searchResults || !userList) {
+        console.error("Critical elements missing!");
+        return;
+      }
+
+      // Define the search function
+      function performUserSearch() {
+        console.log("=== performUserSearch called ===");
+        const query = userSearchInput.value.trim();
+        console.log("Search query:", query);
+
+        if (query.length < 2) {
+          console.log("Query too short, hiding results");
+          searchResults.style.display = "none";
+          return;
+        }
+
+        console.log("Calling searchUsers with query:", query);
+        searchUsers(query);
+      }
+
+      // Remove any existing event listeners first
+      const newSearchBtn = searchUserBtn.cloneNode(true);
+      searchUserBtn.parentNode.replaceChild(newSearchBtn, searchUserBtn);
+
+      // Add click event listener to the new button
+      newSearchBtn.addEventListener("click", function (e) {
+        e.preventDefault();
+        console.log("=== Search button clicked ===");
+        performUserSearch();
+      });
+
+      // Add Enter key listener
+      userSearchInput.addEventListener("keypress", function (e) {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          console.log("=== Enter key pressed ===");
+          performUserSearch();
+        }
+      });
+
+      console.log("=== Event listeners attached successfully ===");
+    }, 200);
+  }
+
+  // Initialize on DOM ready
+  document.addEventListener("DOMContentLoaded", function () {
+    console.log("=== DOM Content Loaded ===");
+
+    // Initialize when modal is shown (more reliable than DOM ready for modal content)
+    const createMessageModal = document.getElementById("createMessageModal");
+    if (createMessageModal) {
+      console.log("Modal element found, adding event listeners");
+
+      // Initialize when modal is shown
+      createMessageModal.addEventListener("shown.bs.modal", function () {
+        console.log("=== Modal shown event triggered ===");
+        initializeUserSearch();
+      });
+
+      // Also try to initialize when modal is opening
+      createMessageModal.addEventListener("show.bs.modal", function () {
+        console.log("=== Modal show event triggered ===");
+        setTimeout(initializeUserSearch, 50);
+      });
+    } else {
+      console.log("Modal element not found, trying direct initialization");
+      initializeUserSearch();
+    }
+  });
+
+  function searchUsers(query) {
+    console.log("=== searchUsers function called ===");
+    console.log("Query:", query);
+
+    const searchResults = document.getElementById("searchResults");
+    const userList = document.getElementById("userList");
+
+    console.log("Search results element:", searchResults);
+    console.log("User list element:", userList);
+
+    if (!searchResults || !userList) {
+      console.error("Required elements not found for search!");
+      return;
+    }
+
+    // Show loading
+    userList.innerHTML =
+      '<div class="loading-spinner"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Searching...</span></div></div>';
+    searchResults.style.display = "block";
+
+    // Try both possible API endpoints
+    const apiUrl = `/accounts/api/search-connected-users/?q=${encodeURIComponent(
+      query
+    )}`;
+    const fallbackApiUrl = `/api/users/search/?q=${encodeURIComponent(query)}`;
+
+    console.log("Making API call to:", apiUrl);
+
+    // Make API call to search connected users only
+    fetch(apiUrl, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+          .value,
+      },
+      credentials: "same-origin",
+    })
+      .then((response) => {
+        console.log("=== API Response ===");
+        console.log("Status:", response.status);
+        console.log("Status Text:", response.statusText);
+
+        if (!response.ok) {
+          // Try fallback URL if first one fails
+          console.log("Primary API failed, trying fallback:", fallbackApiUrl);
+          return fetch(fallbackApiUrl, {
+            method: "GET",
+            headers: {
+              "Content-Type": "application/json",
+              "X-Requested-With": "XMLHttpRequest",
+              "X-CSRFToken": document.querySelector(
+                "[name=csrfmiddlewaretoken]"
+              ).value,
+            },
+            credentials: "same-origin",
+          });
+        }
+
+        return response;
+      })
+      .then((response) => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then((users) => {
+        console.log("=== API Response Data ===");
+        console.log("Users:", users);
+
+        // Handle different API response formats
+        const userData = Array.isArray(users) ? users : users.results || [];
+        console.log("Processed users:", userData);
+
+        displaySearchResults(userData, query);
+      })
+      .catch((error) => {
+        console.error("=== Error searching users ===");
+        console.error("Error:", error);
+
+        userList.innerHTML = `
+            <div class="no-results">
+                <i class="fas fa-exclamation-triangle"></i>
+                <p class="mb-0">Error searching users: ${error.message}</p>
+                <small class="text-muted">Please try again or contact support if the issue persists.</small>
+            </div>
+        `;
+      });
+  }
+
+  function displaySearchResults(users, query) {
+    const userList = document.getElementById("userList");
+    userList.innerHTML = "";
+
+    if (!users || users.length === 0) {
+      userList.innerHTML = `
+            <div class="no-results">
+                <i class="fas fa-user-slash"></i>
+                <p class="mb-0">No connected alumni found matching "${query}"</p>
+                <small class="text-muted">You can only message users you are connected with</small>
+            </div>
+        `;
+    } else {
+      users.forEach((user) => {
+        console.log("Processing user:", user);
+        const userItem = document.createElement("div");
+        userItem.className = "list-group-item list-group-item-action";
+        userItem.style.cursor = "pointer";
+        userItem.onclick = () => selectUser(user);
+
+        // Handle different user object structures
+        const fullName =
+          user.full_name || user.name || user.username || "Unknown User";
+        const username = user.username || user.email || "";
+        const avatarUrl =
+          user.avatar_url ||
+          user.profile_picture ||
+          user.avatar ||
+          "/static/images/default-avatar.png";
+
+        userItem.innerHTML = `
+                <div class="user-search-item">
+                    <img src="${avatarUrl}" alt="${fullName}" class="rounded-circle" width="40" height="40" onerror="this.src='/static/images/default-avatar.png'">
+                    <div class="user-search-info">
+                        <h6 class="mb-1">${fullName}</h6>
+                        <small class="text-muted">@${username}</small>
+                    </div>
+                </div>
+            `;
+
+        userList.appendChild(userItem);
+      });
+    }
+  }
+
+  function selectUser(user) {
+    selectedUserId = user.id;
+
+    // Hide search results
+    document.getElementById("searchResults").style.display = "none";
+
+    // Clear search input
+    document.getElementById("userSearch").value = "";
+
+    // Show selected user
+    const selectedUserDiv = document.getElementById("selectedUser");
+
+    // Handle different user object structures
+    const fullName =
+      user.full_name || user.name || user.username || "Unknown User";
+    const username = user.username || user.email || "";
+    const avatarUrl =
+      user.avatar_url ||
+      user.profile_picture ||
+      user.avatar ||
+      "/static/images/default-avatar.png";
+
+    document.getElementById("selectedUserAvatar").src = avatarUrl;
+    document.getElementById("selectedUserAvatar").onerror = function () {
+      this.src = "/static/images/default-avatar.png";
+    };
+    document.getElementById("selectedUserName").textContent = fullName;
+    document.getElementById("selectedUserEmail").textContent = `@${username}`;
+    selectedUserDiv.style.display = "block";
+
+    // Show message form and send button
+    document.getElementById("messageForm").style.display = "block";
+    document.getElementById("sendNewMessage").style.display = "inline-block";
+  }
+
+  function clearSelectedUser() {
+    selectedUserId = null;
+
+    // Hide selected user, message form, and send button
+    document.getElementById("selectedUser").style.display = "none";
+    document.getElementById("messageForm").style.display = "none";
+    document.getElementById("sendNewMessage").style.display = "none";
+
+    // Clear message content
+    document.getElementById("messageContent").value = "";
+  }
+
+  function sendNewMessage() {
+    const messageContent = document
+      .getElementById("messageContent")
+      .value.trim();
+    const sendButton = document.getElementById("sendNewMessage");
+
+    if (!selectedUserId) {
+      alert("Please select a user to message.");
+      return;
+    }
+
+    if (!messageContent) {
+      alert("Please enter a message.");
+      return;
+    }
+
+    // Disable send button
+    sendButton.disabled = true;
+    sendButton.innerHTML =
+      '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+
+    // Create form data
+    const formData = new FormData();
+    formData.append("recipient_id", selectedUserId);
+    formData.append("content", messageContent);
+    formData.append(
+      "csrfmiddlewaretoken",
+      document.querySelector("[name=csrfmiddlewaretoken]").value
+    );
+
+    // Send message
+    fetch("/mentorship/messages/create-direct/", {
+      method: "POST",
+      body: formData,
+      headers: {
+        "X-Requested-With": "XMLHttpRequest",
+      },
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        if (data.success) {
+          // Close modal
+          const modal = bootstrap.Modal.getInstance(
+            document.getElementById("createMessageModal")
+          );
+          modal.hide();
+
+          // Reset form
+          clearSelectedUser();
+
+          // Refresh conversations list
+          const conversationsList =
+            document.getElementById("conversationsList");
+          if (conversationsList) {
+            htmx.trigger(conversationsList.querySelector("[hx-get]"), "load");
+          }
+
+          // Show success message
+          alert("Message sent successfully!");
+        } else {
+          alert(data.error || "Failed to send message. Please try again.");
+        }
+      })
+      .catch((error) => {
+        console.error("Error sending message:", error);
+        alert("Failed to send message. Please try again.");
+      })
+      .finally(() => {
+        // Re-enable send button
+        sendButton.disabled = false;
+        sendButton.innerHTML =
+          '<i class="fas fa-paper-plane me-1"></i>Send Message';
+      });
+  }
+
+  // Reset modal when it's closed
+  document.addEventListener("DOMContentLoaded", function () {
+    const createMessageModal = document.getElementById("createMessageModal");
+    if (createMessageModal) {
+      createMessageModal.addEventListener("hidden.bs.modal", function () {
+        clearSelectedUser();
+        document.getElementById("userSearch").value = "";
+        document.getElementById("searchResults").style.display = "none";
+      });
+    }
+  });
+</script>
+{% endblock %}

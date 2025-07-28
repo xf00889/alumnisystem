@@ -1,0 +1,624 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load connections_tags %}
+
+{% block title %}My Connections - Alumni System{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        color: var(--text-primary);
+    }
+    
+    .connections-header {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .connections-header h2 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .connections-header .badge {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-md);
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .header-actions .btn {
+        font-weight: 500;
+        padding: 0.625rem 1.25rem;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .header-actions .btn-outline-light {
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        color: var(--text-light);
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+    }
+    
+    .header-actions .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-1px);
+    }
+    
+    .header-actions .btn-light {
+        background: var(--text-light);
+        color: var(--primary-color);
+        border: none;
+        font-weight: 600;
+    }
+    
+    .header-actions .btn-light:hover {
+        background: var(--ui-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .search-filter-section {
+        background: var(--ui-surface);
+        padding: 1.5rem;
+        border-radius: var(--radius-lg);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .search-filter-section .form-control,
+    .search-filter-section .form-select {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .search-filter-section .form-control:focus,
+    .search-filter-section .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+        outline: none;
+    }
+    
+    .search-filter-section .input-group-text {
+        background: var(--ui-border);
+        border: 2px solid var(--ui-border);
+        color: var(--text-secondary);
+        border-radius: var(--radius-md) 0 0 var(--radius-md);
+    }
+    
+    .connection-card {
+        transition: all 0.3s ease;
+    }
+    
+    .connection-card .card {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        background: var(--ui-surface);
+        transition: all 0.3s ease;
+        overflow: hidden;
+    }
+    
+    .connection-card .card:hover {
+        transform: translateY(-4px);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--primary-color);
+    }
+    
+    .connection-card .card-body {
+        padding: 1.75rem;
+    }
+    
+    .connection-avatar {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--ui-border);
+        transition: all 0.3s ease;
+    }
+    
+    .connection-avatar-placeholder {
+        width: 64px;
+        height: 64px;
+        border-radius: 50%;
+        background: linear-gradient(135deg, var(--primary-color), #4a5568);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        font-size: 1.5rem;
+        font-weight: 600;
+        border: 3px solid var(--ui-border);
+    }
+    
+    .connection-card:hover .connection-avatar,
+    .connection-card:hover .connection-avatar-placeholder {
+        border-color: var(--primary-color);
+        transform: scale(1.05);
+    }
+    
+    .connection-name {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .connection-job {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .connection-company {
+        color: var(--text-muted);
+        font-size: 0.8125rem;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .connection-meta {
+        background: var(--ui-hover);
+        padding: 0.75rem;
+        border-radius: var(--radius-md);
+        margin: 1rem 0;
+        font-size: 0.8125rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .connection-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+    
+    .connection-actions .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+        font-size: 0.8125rem;
+    }
+    
+    .connection-actions .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .connection-actions .btn-primary:hover {
+        background: #243356;
+        border-color: #243356;
+        transform: translateY(-1px);
+    }
+    
+    .connection-actions .btn-outline-secondary {
+        border: 2px solid var(--ui-border);
+        color: var(--text-secondary);
+    }
+    
+    .connection-actions .btn-outline-secondary:hover {
+        background: var(--ui-hover);
+        border-color: var(--text-secondary);
+    }
+    
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .empty-state i {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    
+    .empty-state h5 {
+        color: var(--text-secondary);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .empty-state p {
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        font-size: 0.9375rem;
+    }
+    
+    .empty-state .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+    }
+    
+    .empty-state .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .no-results {
+        text-align: center;
+        padding: 3rem 2rem;
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .modal-content {
+        border-radius: var(--radius-lg);
+        border: none;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .modal-header {
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+    
+    .modal-title {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .modal-body {
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-secondary);
+    }
+    
+    .modal-footer .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        border-radius: var(--radius-md);
+        padding: 0.625rem 1.25rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Connections Header -->
+    <div class="connections-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2>
+                    <i class="fas fa-users"></i> My Connections
+                    {% if connections %}<span class="badge ms-2">{{ connections.count }}</span>{% endif %}
+                </h2>
+                <p class="mb-0 opacity-90">Manage and connect with your fellow alumni network</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="header-actions">
+                    <a href="{% url 'connections:connection_requests' %}" class="btn btn-outline-light">
+                        <i class="fas fa-inbox"></i> Requests
+                        {% if pending_requests_count > 0 %}
+                            <span class="badge bg-danger ms-1">{{ pending_requests_count }}</span>
+                        {% endif %}
+                    </a>
+                    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-light">
+                        <i class="fas fa-search"></i> Find Alumni
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+            
+    {% if connections %}
+        <!-- Search and Filter Section -->
+        <div class="search-filter-section">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                        <input type="text" class="form-control" id="searchConnections" placeholder="Search connections by name or job title...">
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <select class="form-select" id="sortConnections">
+                        <option value="name">Sort by Name</option>
+                        <option value="recent">Recently Connected</option>
+                        <option value="job">Job Title</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+                
+        <!-- Connections Grid -->
+        <div class="row" id="connectionsGrid">
+            {% for connection in connections %}
+                {% with other_user=connection|get_other_user:current_user %}
+                <div class="col-md-6 col-lg-4 mb-4 connection-card" 
+                     data-name="{{ other_user.get_full_name|default:other_user.username|lower }}" 
+                     data-job="{{ other_user.profile.current_job_title|default:''|lower }}" 
+                     data-connected="{{ connection.accepted_at|date:'Y-m-d' }}">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center mb-3">
+                                {% if other_user.profile.profile_picture %}
+                                    <img src="{{ other_user.profile.profile_picture.url }}" 
+                                         alt="{{ other_user.get_full_name }}" 
+                                         class="connection-avatar me-3">
+                                {% else %}
+                                    <div class="connection-avatar-placeholder me-3">
+                                        <i class="fas fa-user"></i>
+                                    </div>
+                                {% endif %}
+                                <div class="flex-grow-1">
+                                    <h6 class="connection-name">
+                                        {{ other_user.get_full_name|default:other_user.username }}
+                                    </h6>
+                                    {% if other_user.profile.current_job_title %}
+                                        <div class="connection-job">
+                                            <i class="fas fa-briefcase"></i> {{ other_user.profile.current_job_title }}
+                                        </div>
+                                    {% endif %}
+                                    {% if other_user.profile.current_company %}
+                                        <div class="connection-company">
+                                            <i class="fas fa-building"></i> {{ other_user.profile.current_company }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            
+                            <div class="connection-meta">
+                                <i class="fas fa-calendar-check"></i> 
+                                Connected {{ connection.accepted_at|timesince }} ago
+                            </div>
+                                    
+                            <!-- Action Buttons -->
+                            <div class="connection-actions">
+                                <a href="{% url 'connections:conversations_list' %}" 
+                                   class="btn btn-primary btn-sm flex-fill">
+                                    <i class="fas fa-comment"></i> Message
+                                </a>
+                                <button class="btn btn-outline-secondary btn-sm" 
+                                        data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="fas fa-ellipsis-v"></i>
+                                </button>
+                                <ul class="dropdown-menu">
+                                    <li>
+                                        <a class="dropdown-item" href="javascript:void(0)" 
+                                           onclick="viewProfile({{ other_user.id }})">
+                                            <i class="fas fa-user"></i> View Profile
+                                        </a>
+                                    </li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <a class="dropdown-item text-danger" href="#" 
+                                           onclick="removeConnection({{ connection.id }}, '{{ other_user.get_full_name|default:other_user.username }}')">
+                                            <i class="fas fa-user-times"></i> Remove Connection
+                                        </a>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endwith %}
+            {% endfor %}
+        </div>
+                
+        <!-- No results message (hidden by default) -->
+        <div id="noResults" class="no-results" style="display: none;">
+            <i class="fas fa-search fa-3x mb-3"></i>
+            <h5>No connections found</h5>
+            <p>Try adjusting your search criteria.</p>
+        </div>
+        
+    {% else %}
+        <!-- Empty State -->
+        <div class="empty-state">
+            <i class="fas fa-users fa-3x"></i>
+            <h5>No connections yet</h5>
+            <p>Start connecting with fellow alumni to expand your network!</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Remove Connection Modal -->
+<div class="modal fade" id="removeConnectionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Remove Connection</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Are you sure you want to remove <strong id="connectionName"></strong> from your connections?</p>
+                <p class="text-muted small">This action cannot be undone. You will need to send a new connection request to reconnect.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger" id="confirmRemove">Remove Connection</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchConnections');
+    const sortSelect = document.getElementById('sortConnections');
+    const connectionsGrid = document.getElementById('connectionsGrid');
+    const noResults = document.getElementById('noResults');
+    const connectionCards = document.querySelectorAll('.connection-card');
+    
+    // Search functionality
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            filterAndSort();
+        });
+    }
+    
+    // Sort functionality
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            filterAndSort();
+        });
+    }
+    
+    function filterAndSort() {
+        const searchTerm = searchInput.value.toLowerCase();
+        const sortBy = sortSelect.value;
+        let visibleCards = [];
+        
+        connectionCards.forEach(card => {
+            const name = card.dataset.name;
+            const job = card.dataset.job;
+            const isVisible = name.includes(searchTerm) || job.includes(searchTerm);
+            
+            if (isVisible) {
+                visibleCards.push(card);
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Sort visible cards
+        visibleCards.sort((a, b) => {
+            switch (sortBy) {
+                case 'name':
+                    return a.dataset.name.localeCompare(b.dataset.name);
+                case 'recent':
+                    return new Date(b.dataset.connected) - new Date(a.dataset.connected);
+                case 'job':
+                    return a.dataset.job.localeCompare(b.dataset.job);
+                default:
+                    return 0;
+            }
+        });
+        
+        // Reorder DOM elements
+        visibleCards.forEach(card => {
+            connectionsGrid.appendChild(card);
+        });
+        
+        // Show/hide no results message
+        if (visibleCards.length === 0 && searchTerm) {
+            noResults.style.display = 'block';
+            connectionsGrid.style.display = 'none';
+        } else {
+            noResults.style.display = 'none';
+            connectionsGrid.style.display = 'block';
+        }
+    }
+});
+
+// Global functions for modal actions
+function viewProfile(userId) {
+    // Redirect to user profile page
+    window.location.href = `/accounts/profile/${userId}/`;
+}
+
+function removeConnection(connectionId, userName) {
+    document.getElementById('connectionName').textContent = userName;
+    const modal = new bootstrap.Modal(document.getElementById('removeConnectionModal'));
+    modal.show();
+    
+    document.getElementById('confirmRemove').onclick = function() {
+        fetch(`{% url 'connections:remove_connection' 0 %}`.replace('0', connectionId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                modal.hide();
+                location.reload(); // Refresh the page to update the connections list
+            } else {
+                alert('Error removing connection. Please try again.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error removing connection. Please try again.');
+        });
+    };
+}
+</script>
+{% endblock %}

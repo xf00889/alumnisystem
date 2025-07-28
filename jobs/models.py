@@ -4,6 +4,7 @@ from django.core.validators import URLValidator
 from django.contrib.auth import get_user_model
 from django.db.models import Max
 import re
+import json
 
 User = get_user_model()
 
@@ -90,24 +91,11 @@ class JobPosting(models.Model):
     is_active = models.BooleanField(default=True)
     posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='job_postings')
     source = models.CharField(max_length=50, default='manual', choices=[
-        ('manual', 'Manual'), 
-        ('indeed', 'Indeed'),
-        ('bossjobs', 'BossJobs')
+        ('manual', 'Manual')
     ])
     source_type = models.CharField(max_length=20, choices=SOURCE_TYPE_CHOICES, default='EXTERNAL')
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', help_text="Job industry category")
-    external_id = models.CharField(max_length=100, blank=True, null=True)
-    last_scraped = models.DateTimeField(null=True, blank=True)
     accepts_internal_applications = models.BooleanField(default=False, help_text="Allow applications through the system")
-    # Fields to help with job deduplication and search
-    search_query = models.CharField(max_length=200, blank=True, null=True, 
-                                  help_text="Search query used to find this job")
-    search_location = models.CharField(max_length=200, blank=True, null=True,
-                                     help_text="Location used to find this job")
-    title_normalized = models.CharField(max_length=200, blank=True, null=True,
-                                     help_text="Normalized version of job title for deduplication")
-    hash_signature = models.CharField(max_length=64, blank=True, null=True, 
-                                   help_text="Hash signature based on job content for deduplication")
 
     class Meta:
         ordering = ['-posted_date']
@@ -117,10 +105,7 @@ class JobPosting(models.Model):
             models.Index(fields=['is_featured']),
             models.Index(fields=['source_type']),
             models.Index(fields=['source']),  # Add index for source
-            models.Index(fields=['external_id']),  # Add index for external_id
         ]
-        # Only one job with the same external_id per source
-        unique_together = [('source', 'external_id')]
 
     def save(self, *args, **kwargs):
         if not self.slug:
@@ -180,3 +165,54 @@ class JobApplication(models.Model):
 
     def __str__(self):
         return f"{self.applicant.get_full_name()} - {self.job.job_title}"
+
+
+class ScrapedJob(models.Model):
+    """Model to store scraped job data as JSON"""
+    
+    SOURCE_CHOICES = [
+        ('BOSSJOB', 'BossJob.ph'),
+        ('JOBSTREET', 'JobStreet'),
+        ('LINKEDIN', 'LinkedIn'),
+        ('OTHER', 'Other'),
+    ]
+    
+    search_keyword = models.CharField(max_length=200, help_text="The keyword used for scraping")
+    search_location = models.CharField(max_length=200, help_text="The location used for scraping")
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default='BOSSJOB')
+    scraped_data = models.JSONField(help_text="Complete scraped job data as JSON")
+    total_found = models.IntegerField(default=0, help_text="Total number of jobs found in scraping")
+    scraped_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='scraped_jobs')
+    scraped_at = models.DateTimeField(auto_now_add=True)
+    is_active = models.BooleanField(default=True)
+    
+    class Meta:
+        ordering = ['-scraped_at']
+        indexes = [
+            models.Index(fields=['search_keyword']),
+            models.Index(fields=['search_location']),
+            models.Index(fields=['source']),
+            models.Index(fields=['scraped_at']),
+        ]
+    
+    def __str__(self):
+        return f"Scraped jobs for '{self.search_keyword}' in '{self.search_location}' from {self.get_source_display()}"
+    
+    @property
+    def jobs_data(self):
+        """Return the jobs list from scraped_data"""
+        if isinstance(self.scraped_data, dict):
+            return self.scraped_data.get('jobs', [])
+        return []
+    
+    @property
+    def jobs_count(self):
+        """Return the number of jobs in the scraped data"""
+        return len(self.jobs_data)
+    
+    def get_job_by_index(self, index):
+        """Get a specific job by index"""
+        jobs = self.jobs_data
+        if 0 <= index < len(jobs):
+            return jobs[index]
+        return None

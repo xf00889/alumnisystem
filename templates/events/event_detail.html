@@ -4,15 +4,26 @@
 
 {% block title %}{{ event.title }}{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'events:event_list' %}" class="text-decoration-none">Events</a></li>
-<li class="breadcrumb-item active">{{ event.title }}</li>
-{% endblock %}
-
-{% block page_title %}{{ event.title }}{% endblock %}
-
 {% block content %}
 <div class="container py-4">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-calendar-alt me-3"></i>{{ event.title }}</h1>
+                <p class="mb-0">Event details and registration information</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex gap-2 justify-content-end">
+                    {% if user.is_staff %}
+                    <a href="{% url 'events:event_update' event.pk %}" class="btn btn-outline-light">
+                        <i class="fas fa-edit me-2"></i>Edit Event
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
     <div class="row">
         <!-- Main Content -->
         <div class="col-lg-8">
@@ -239,6 +250,9 @@
 <style>
     /* Custom Variables */
     :root {
+        /* Dashboard Header Styles */
+        --dashboard-header-bg: var(--primary-color);
+        --dashboard-header-text: #ffffff;
         --primary-color: #2B3C6B;
         --primary-hover: #1e2a4d;
         --secondary-color: #4a5568;
@@ -255,6 +269,28 @@
     /* General Styles */
     body {
         background-color: var(--background-color);
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--dashboard-header-bg);
+        color: var(--dashboard-header-text);
+        padding: 1.75rem;
+        border-radius: 1rem;
+        margin-bottom: 1.25rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        font-size: 0.875rem;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
     }
 
     .event-image {
@@ -505,4 +541,4 @@
         }
     }
 </style>
-{% endblock %} 
+{% endblock %}

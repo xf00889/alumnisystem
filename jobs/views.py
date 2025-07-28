@@ -1,6 +1,7 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.core.paginator import Paginator
+from django.core.cache import cache
 from django.contrib import messages
 from django.db.models import Q, Count
 from django.http import JsonResponse, HttpResponse
@@ -9,15 +10,18 @@ from django.utils import timezone
 from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import JobPosting, JobApplication, RequiredDocument
+from .models import JobPosting, JobApplication, RequiredDocument, ScrapedJob
 from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet
+from .scraper_forms import JobScraperForm
+from .scraper_utils import scraper
 from .utils import calculate_job_match_score, get_skill_recommendations
 from accounts.models import Profile, SkillMatch
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side
-from .crawler.manager import CrawlerManager
 import logging
-from jobs.management.commands.crawl_diverse_jobs import Command as CrawlDiverseJobsCommand
+import json
+import os
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
@@ -28,26 +32,41 @@ def is_hr_or_admin(user):
 def job_list(request):
     jobs = JobPosting.objects.filter(is_active=True)
     
+    # Get scraped jobs
+    scraped_jobs = ScrapedJob.objects.filter(is_active=True).order_by('-scraped_at')
+    
+    # Check if user wants to view scraped jobs
+    view_type = request.GET.get('view_type', 'posted')  # 'posted' or 'scraped'
+    
     # Search functionality
     query = request.GET.get('q')
     if query:
-        jobs = jobs.filter(
-            Q(job_title__icontains=query) |
-            Q(company_name__icontains=query) |
-            Q(location__icontains=query) |
-            Q(job_description__icontains=query)
-        )
+        if view_type == 'scraped':
+            scraped_jobs = scraped_jobs.filter(
+                Q(search_keyword__icontains=query) |
+                Q(search_location__icontains=query)
+            )
+        else:
+            jobs = jobs.filter(
+                Q(job_title__icontains=query) |
+                Q(company_name__icontains=query) |
+                Q(location__icontains=query) |
+                Q(job_description__icontains=query)
+            )
     
     # Filtering
     job_type = request.GET.get('job_type')
     source_type = request.GET.get('source_type')
     
-    if job_type:
+    if job_type and view_type == 'posted':
         jobs = jobs.filter(job_type=job_type)
     if source_type:
-        jobs = jobs.filter(source_type=source_type)
+        if view_type == 'scraped':
+            scraped_jobs = scraped_jobs.filter(source=source_type)
+        else:
+            jobs = jobs.filter(source_type=source_type)
     
-    # Skill-based view toggle
+    # Skill-based view toggle (only for posted jobs)
     skill_based_view = request.GET.get('skill_based', 'false').lower() == 'true'
     
     # Get user profile if authenticated and skill-based view is enabled
@@ -55,7 +74,7 @@ def job_list(request):
     job_matches = []
     recommended_skills = []
     
-    if request.user.is_authenticated and skill_based_view:
+    if request.user.is_authenticated and skill_based_view and view_type == 'posted':
         try:
             user_profile = Profile.objects.get(user=request.user)
             
@@ -101,7 +120,7 @@ def job_list(request):
         
     # Sorting
     sort = request.GET.get('sort')
-    if skill_based_view and job_matches:
+    if skill_based_view and job_matches and view_type == 'posted':
         # Already sorted by match score above
         pass
     elif sort == 'oldest':
@@ -113,19 +132,28 @@ def job_list(request):
     featured_jobs = jobs.filter(is_featured=True)[:5]
     
     # For skill-based view, use the job_matches list
-    if skill_based_view and user_profile:
+    if skill_based_view and user_profile and view_type == 'posted':
         paginator = Paginator([match['job'] for match in job_matches], 10)
         page = request.GET.get('page')
         jobs_page = paginator.get_page(page)
         
         # Create a map for easy lookup of match data
         match_data = {match['job'].id: match for match in job_matches}
+    elif view_type == 'scraped':
+        # Pagination for scraped jobs
+        paginator = Paginator(scraped_jobs, 10)
+        page = request.GET.get('page')
+        jobs_page = paginator.get_page(page)
+        match_data = {}
     else:
         # Pagination for regular view
         paginator = Paginator(jobs, 10)
         page = request.GET.get('page')
         jobs_page = paginator.get_page(page)
         match_data = {}
+    
+    # Get scraped source choices
+    scraped_source_choices = getattr(ScrapedJob, 'SOURCE_CHOICES', [])
     
     context = {
         'jobs': jobs_page,
@@ -136,9 +164,12 @@ def job_list(request):
         'current_sort': sort,
         'job_types': JobPosting.JOB_TYPE_CHOICES,
         'source_types': JobPosting.SOURCE_TYPE_CHOICES,
+        'scraped_source_choices': scraped_source_choices,
         'skill_based_view': skill_based_view,
         'match_data': match_data,
-        'recommended_skills': recommended_skills[:5] if recommended_skills else []  # Show top 5 recommendations
+        'recommended_skills': recommended_skills[:5] if recommended_skills else [],  # Show top 5 recommendations
+        'view_type': view_type,
+        'scraped_jobs': scraped_jobs if view_type == 'scraped' else None,
     }
     return render(request, 'jobs/job_list.html', context)
 
@@ -556,177 +587,283 @@ def export_applicants(request, job_id):
     workbook.save(response)
     return response
 
-@login_required
-@user_passes_test(is_hr_or_admin)
-def crawl_jobs_view(request):
-    """View to initiate job crawling from the web interface"""
-    if request.method == 'POST':
-        source = request.POST.get('source', '').strip().lower()
-        query = request.POST.get('query', '').strip()
-        location = request.POST.get('location', '').strip()
-        max_jobs = int(request.POST.get('max_jobs', 25))
-        job_type = request.POST.get('job_type', '').strip() or None
-        
-        if not source or not query:
-            messages.error(request, "Job source and query are required.")
-            return redirect('jobs:manage_jobs')
-        
-        try:
-            # Initialize crawler manager
-            manager = CrawlerManager()
-            
-            # Check if the source is supported
-            available_sources = manager.list_available_sources()
-            if source not in available_sources:
-                messages.error(request, f"Unsupported job source: {source}")
-                return redirect('jobs:manage_jobs')
-            
-            # Additional parameters
-            params = {'max_jobs': max_jobs}
-            if job_type:
-                params['job_type'] = job_type
-            
-            # Log the crawling parameters
-            logger.info(f"Starting job crawl from web interface: source={source}, query={query}, location={location}, max_jobs={max_jobs}")
-            
-            # Search for jobs
-            results = manager.search_and_save_jobs(
-                source=source,
-                query=query,
-                location=location,
-                **params
-            )
-            
-            # Generate summary
-            created_count = sum(1 for r in results if r.get('created', False))
-            updated_count = len(results) - created_count
-            
-            messages.success(
-                request, 
-                f"Successfully processed {len(results)} jobs "
-                f"({created_count} created, {updated_count} updated)"
-            )
-            
-        except Exception as e:
-            logger.error(f"Job crawl failed from web interface: {str(e)}")
-            messages.error(request, f"Job crawl failed: {str(e)}")
-        
-        return redirect('jobs:manage_jobs')
-    
-    # GET request shows the form
-    context = {
-        'sources': CrawlerManager().list_available_sources(),
-        'job_types': JobPosting.JOB_TYPE_CHOICES,
-    }
-    return render(request, 'jobs/crawl_jobs.html', context)
+
 
 @login_required
 @user_passes_test(is_hr_or_admin)
-def crawl_diverse_jobs_view(request):
-    """View to initiate diverse job crawling from the web interface"""
+def bulk_update_jobs(request):
+    """Admin function to perform bulk operations on job postings"""
     if request.method == 'POST':
-        source = request.POST.get('source', '').strip().lower()
-        location = request.POST.get('location', '').strip()
-        category = request.POST.get('category', '').strip() or None
-        max_jobs_per_category = int(request.POST.get('max_jobs_per_category', 10))
-        job_type = request.POST.get('job_type', '').strip() or None
+        action = request.POST.get('action')
+        job_ids = request.POST.getlist('job_ids')
         
-        if not source:
-            messages.error(request, "Job source is required.")
-            return redirect('jobs:crawl_diverse_jobs')
+        if not job_ids:
+            messages.error(request, 'No jobs selected for bulk operation.')
+            return redirect('jobs:manage_jobs')
+        
+        jobs = JobPosting.objects.filter(id__in=job_ids)
         
         try:
-            # Initialize crawler manager
-            manager = CrawlerManager()
-            
-            # Check if the source is supported
-            available_sources = manager.list_available_sources()
-            if source not in available_sources:
-                messages.error(request, f"Unsupported job source: {source}")
-                return redirect('jobs:crawl_diverse_jobs')
-            
-            # Get the job categories
-            job_categories = CrawlDiverseJobsCommand.JOB_CATEGORIES
-            
-            # Process categories
-            categories_to_process = {}
-            if category:
-                # Process only the specified category
-                if category.lower() in job_categories:
-                    categories_to_process[category.lower()] = job_categories[category.lower()]
-                else:
-                    messages.error(request, f"Unsupported category: {category}")
-                    return redirect('jobs:crawl_diverse_jobs')
+            if action == 'activate':
+                jobs.update(is_active=True)
+                messages.success(request, f'Successfully activated {jobs.count()} job postings.')
+            elif action == 'deactivate':
+                jobs.update(is_active=False)
+                messages.success(request, f'Successfully deactivated {jobs.count()} job postings.')
+            elif action == 'feature':
+                jobs.update(is_featured=True)
+                messages.success(request, f'Successfully featured {jobs.count()} job postings.')
+            elif action == 'unfeature':
+                jobs.update(is_featured=False)
+                messages.success(request, f'Successfully unfeatured {jobs.count()} job postings.')
+            elif action == 'delete':
+                count = jobs.count()
+                jobs.delete()
+                messages.success(request, f'Successfully deleted {count} job postings.')
             else:
-                # Process all categories
-                categories_to_process = job_categories
-            
-            total_jobs_found = 0
-            total_jobs_created = 0
-            total_jobs_updated = 0
-            
-            # Start processing categories
-            for category_name, search_terms in categories_to_process.items():
-                category_jobs_found = 0
-                category_jobs_created = 0
-                category_jobs_updated = 0
-                
-                for search_term in search_terms:
-                    try:
-                        # Search for jobs
-                        search_kwargs = {
-                            'max_jobs': max_jobs_per_category
-                        }
-                        
-                        if job_type:
-                            search_kwargs['job_type'] = job_type
-                        
-                        results = manager.search_and_save_jobs(
-                            source=source,
-                            query=search_term,
-                            location=location,
-                            category=category_name,  # Pass category separately
-                            **search_kwargs
-                        )
-                        
-                        # Count results
-                        jobs_found = len(results)
-                        jobs_created = sum(1 for r in results if r.get('created', False))
-                        jobs_updated = jobs_found - jobs_created
-                        
-                        # Add to totals
-                        category_jobs_found += jobs_found
-                        category_jobs_created += jobs_created
-                        category_jobs_updated += jobs_updated
-                        
-                    except Exception as e:
-                        logger.error(f"Error crawling jobs for '{search_term}' in category '{category_name}': {str(e)}")
-                
-                # Add to overall totals
-                total_jobs_found += category_jobs_found
-                total_jobs_created += category_jobs_created
-                total_jobs_updated += category_jobs_updated
-                
-                # Log category results
-                logger.info(f"Category {category_name}: {category_jobs_found} jobs ({category_jobs_created} created, {category_jobs_updated} updated)")
-            
-            # Display success message
-            messages.success(
-                request, 
-                f"Successfully processed {total_jobs_found} jobs across {len(categories_to_process)} categories "
-                f"({total_jobs_created} created, {total_jobs_updated} updated)"
-            )
-            
+                messages.error(request, 'Invalid bulk action selected.')
         except Exception as e:
-            logger.error(f"Job crawl failed: {str(e)}")
-            messages.error(request, f"Job crawl failed: {str(e)}")
+            messages.error(request, f'Error performing bulk operation: {str(e)}')
+            logger.exception('Error in bulk update jobs')
         
         return redirect('jobs:manage_jobs')
     
-    # GET request shows the form
-    context = {
-        'sources': CrawlerManager().list_available_sources(),
-        'job_types': JobPosting.JOB_TYPE_CHOICES,
-        'categories': JobPosting.CATEGORY_CHOICES,
-    }
-    return render(request, 'jobs/crawl_diverse_jobs.html', context)
+    # GET request - redirect to manage jobs
+    return redirect('jobs:manage_jobs')
+
+
+@login_required
+def job_scraper(request):
+    """Job scraper main page with form"""
+    form = JobScraperForm()
+    return render(request, 'jobs/job_scraper.html', {
+        'form': form,
+        'page_title': 'Job Scraper - Find Jobs from BossJob.ph'
+    })
+
+
+@login_required
+def job_scraper_results(request):
+    """HTMX endpoint for job scraper results"""
+    if request.method == 'POST':
+        form = JobScraperForm(request.POST)
+        
+        if form.is_valid():
+            keyword = form.cleaned_data['keyword']
+            location = form.cleaned_data['location']
+            
+            try:
+                # Perform the scraping
+                results = scraper.search_jobs(keyword, location)
+                
+                # Log the scraping activity
+                logger.info(f"User {request.user.username} scraped jobs for '{keyword}' in '{location}' - Found {results.get('total_found', 0)} jobs")
+                
+                # Save scraped data as JSON file
+                try:
+                    # Create directory if it doesn't exist
+                    json_dir = os.path.join(settings.MEDIA_ROOT, 'scraped_jobs')
+                    os.makedirs(json_dir, exist_ok=True)
+                    
+                    # Create filename with timestamp
+                    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+                    filename = f"scraped_jobs_{keyword.replace(' ', '_')}_{location.replace(' ', '_')}_{timestamp}.json"
+                    filepath = os.path.join(json_dir, filename)
+                    
+                    # Prepare data for JSON export
+                    export_data = {
+                        'search_params': {
+                            'keyword': keyword,
+                            'location': location,
+                            'scraped_by': request.user.username,
+                            'scraped_at': datetime.now().isoformat()
+                        },
+                        'results': results
+                    }
+                    
+                    # Write JSON file
+                    with open(filepath, 'w', encoding='utf-8') as f:
+                        json.dump(export_data, f, indent=2, ensure_ascii=False)
+                    
+                    logger.info(f"Scraped data saved to: {filepath}")
+                    
+                except Exception as e:
+                    logger.error(f"Error saving scraped data to JSON: {str(e)}")
+                
+                # Save to database - deactivate old entries for same search
+                try:
+                    # Deactivate previous scraped jobs for the same keyword/location/user combination
+                    ScrapedJob.objects.filter(
+                        search_keyword=keyword,
+                        search_location=location,
+                        scraped_by=request.user,
+                        source='BOSSJOB'
+                    ).update(is_active=False)
+                    
+                    # Create new scraped job entry
+                    scraped_job = ScrapedJob.objects.create(
+                        search_keyword=keyword,
+                        search_location=location,
+                        source='BOSSJOB',
+                        scraped_data=results,
+                        total_found=results.get('total_found', 0),
+                        scraped_by=request.user
+                    )
+                    logger.info(f"Scraped data saved to database with ID: {scraped_job.id}, previous entries deactivated")
+                    
+                except Exception as e:
+                    logger.error(f"Error saving scraped data to database: {str(e)}")
+                
+                # Store job URLs in cache for redirect functionality
+                for index, job in enumerate(results.get('jobs', [])):
+                    if job.get('url') and job['url'] not in ['#', '#no-url-found', 'javascript:void(0)']:
+                        cache_key = f"job_url_{index}"
+                        cache.set(cache_key, job['url'], 3600)  # Cache for 1 hour
+                
+                # Return the results as HTML fragment for HTMX
+                return render(request, 'jobs/partials/job_scraper_results.html', {
+                    'results': results,
+                    'form': form
+                })
+                
+            except Exception as e:
+                logger.error(f"Error in job scraper: {str(e)}")
+                error_results = {
+                    'success': False,
+                    'jobs': [],
+                    'total_found': 0,
+                    'error': 'An unexpected error occurred while fetching jobs.',
+                    'message': 'Please try again later.'
+                }
+                return render(request, 'jobs/partials/job_scraper_results.html', {
+                    'results': error_results,
+                    'form': form
+                })
+    else:
+        # Form validation errors
+        error_results = {
+            'success': False,
+            'jobs': [],
+            'total_found': 0,
+            'error': 'Please correct the form errors below.',
+            'message': 'Invalid form data'
+        }
+        return render(request, 'jobs/partials/job_scraper_results.html', {
+            'results': error_results,
+            'form': form
+        })
+    
+    # If not POST, redirect to main scraper page
+    return redirect('jobs:job_scraper')
+
+
+@login_required
+def job_redirect(request, job_id):
+    """Redirect to the actual job URL on BossJob.ph with improved error handling"""
+    try:
+        # Get the job URL from cache or database
+        cache_key = f"job_url_{job_id}"
+        job_url = cache.get(cache_key)
+        
+        if not job_url:
+            # If not in cache, this might be an old or invalid job ID
+            messages.error(request, "Job link not found or has expired. Please search again.")
+            return redirect('jobs:job_scraper')
+        
+        # Handle special markers
+        if job_url in ['#no-url-found', 'javascript:void(0)', '#']:
+            messages.warning(request, "Direct job link is not available for this position. Redirecting to BossJob.ph job search.")
+            return redirect('https://bossjob.ph/en-us/jobs-hiring')
+        
+        # Ensure the URL is BossJob.ph specific
+        if 'bossjob.ph' not in job_url.lower():
+            messages.info(request, "Redirecting to BossJob.ph main jobs page.")
+            return redirect('https://bossjob.ph/en-us/jobs-hiring')
+        
+        # Test if the URL is accessible before redirecting
+        try:
+            import requests
+            from requests.adapters import HTTPAdapter
+            from urllib3.util.retry import Retry
+            
+            # Create a session with retry strategy
+            session = requests.Session()
+            retry_strategy = Retry(
+                total=2,
+                status_forcelist=[429, 500, 502, 503, 504],
+                method_whitelist=["HEAD", "GET", "OPTIONS"]
+            )
+            adapter = HTTPAdapter(max_retries=retry_strategy)
+            session.mount("http://", adapter)
+            session.mount("https://", adapter)
+            
+            # Test the URL with a HEAD request (faster than GET)
+            response = session.head(job_url, timeout=5, allow_redirects=True)
+            
+            # If we get a 404 or other client error, try alternative URL patterns
+            if response.status_code == 404:
+                logger.warning(f"Job URL returned 404: {job_url}")
+                
+                # Try alternative URL patterns
+                base_url = "https://bossjob.ph"
+                job_id_match = None
+                
+                # Extract job ID from the URL
+                import re
+                patterns = [
+                    r'/job/([^/?]+)',
+                    r'/position/([^/?]+)',
+                    r'/jobs/([^/?]+)',
+                    r'job[_-]?id[=:]([^&/?]+)',
+                    r'position[_-]?id[=:]([^&/?]+)'
+                ]
+                
+                for pattern in patterns:
+                    match = re.search(pattern, job_url, re.IGNORECASE)
+                    if match:
+                        job_id_match = match.group(1)
+                        break
+                
+                if job_id_match:
+                    # Try different URL patterns
+                    alternative_urls = [
+                        f"{base_url}/job/{job_id_match}",
+                        f"{base_url}/en-us/job/{job_id_match}",
+                        f"{base_url}/position/{job_id_match}",
+                        f"{base_url}/en-us/position/{job_id_match}",
+                        f"{base_url}/jobs/{job_id_match}"
+                    ]
+                    
+                    for alt_url in alternative_urls:
+                        if alt_url != job_url:  # Don't test the same URL again
+                            try:
+                                alt_response = session.head(alt_url, timeout=3, allow_redirects=True)
+                                if alt_response.status_code == 200:
+                                    logger.info(f"Found working alternative URL: {alt_url}")
+                                    # Update cache with working URL
+                                    cache.set(cache_key, alt_url, 3600)  # Cache for 1 hour
+                                    return redirect(alt_url)
+                            except:
+                                continue
+                
+                # If no alternative works, redirect to search page
+                messages.warning(request, "The specific job page is no longer available. Redirecting to job search.")
+                return redirect('https://bossjob.ph/en-us/jobs-hiring')
+            
+            elif response.status_code >= 400:
+                logger.warning(f"Job URL returned status {response.status_code}: {job_url}")
+                messages.warning(request, f"Job page is temporarily unavailable (Error {response.status_code}). Redirecting to job search.")
+                return redirect('https://bossjob.ph/en-us/jobs-hiring')
+            
+        except requests.RequestException as e:
+            logger.warning(f"Could not verify job URL {job_url}: {str(e)}")
+            # If we can't verify, still try to redirect (might be a network issue)
+            pass
+        
+        # Redirect to the actual job URL
+        return redirect(job_url)
+        
+    except Exception as e:
+        logger.error(f"Error in job redirect: {str(e)}")
+        messages.error(request, "An error occurred while accessing the job link. Please try searching again.")
+        return redirect('jobs:job_scraper')

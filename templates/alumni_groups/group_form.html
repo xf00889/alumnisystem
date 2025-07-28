@@ -3,17 +3,14 @@
 {% load crispy_forms_tags %}
 
 {% block title %}
-    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Alumni Group
+    {% if form.instance.pk %}Edit {{ form.instance.name }}{% else %}Create Alumni Group{% endif %}
 {% endblock %}
 
 {% block page_title %}
     {% if form.instance.pk %}Edit{% else %}Create{% endif %} Alumni Group
 {% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'alumni_groups:group_list' %}">Alumni Groups</a></li>
-<li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Group</li>
-{% endblock %}
+
 
 {% block extra_css %}
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
@@ -69,13 +66,37 @@
         --transition-normal: 250ms ease;
     }
 
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--brand-primary);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-top: 1.5rem;
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
     /* Layout */
     .page-container {
         background: var(--ui-background);
         min-height: calc(100vh - 76px);
         max-width: 1400px;
         margin: 0 auto;
-        padding: var(--space-4);
+        padding: var(--space-2);
         border-radius: var(--radius-lg);
     }
 
@@ -112,15 +133,15 @@
     .form-sections-wrapper {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
-        gap: var(--space-6);
-        padding: var(--space-6);
+        gap: var(--space-4);
+        padding: var(--space-4);
     }
 
     .form-left-section,
     .form-right-section {
         display: flex;
         flex-direction: column;
-        gap: var(--space-6);
+        gap: var(--space-4);
     }
 
     /* Form Section */
@@ -128,7 +149,7 @@
         background: var(--ui-surface);
         border: 1px solid var(--ui-border);
         border-radius: var(--radius-lg);
-        padding: var(--space-6);
+        padding: var(--space-4);
         height: fit-content;
     }
 
@@ -151,8 +172,8 @@
         font-size: 1.25rem;
         font-weight: 600;
         color: var(--text-primary);
-        margin-bottom: var(--space-6);
-        padding-bottom: var(--space-3);
+        margin-bottom: var(--space-4);
+        padding-bottom: var(--space-2);
         border-bottom: 2px solid var(--ui-border);
     }
 
@@ -164,8 +185,8 @@
     /* Row Layout */
     .row {
         display: flex;
-        gap: var(--space-4);
-        margin-bottom: var(--space-4);
+        gap: var(--space-3);
+        margin-bottom: var(--space-3);
     }
 
     .row:last-child {
@@ -185,7 +206,7 @@
 
     /* Form Group */
     .form-group {
-        margin-bottom: var(--space-6);
+        margin-bottom: var(--space-4);
     }
 
     .form-label {
@@ -344,41 +365,41 @@
     /* Responsive Design */
     @media (max-width: 1024px) {
         .page-container {
-            padding: var(--space-4);
+            padding: var(--space-2);
         }
 
         .form-sections-wrapper {
             grid-template-columns: 1fr;
-            gap: var(--space-4);
-            padding: var(--space-4);
+            gap: var(--space-3);
+            padding: var(--space-3);
         }
     }
 
     @media (max-width: 768px) {
         .page-container {
-            padding: var(--space-2);
+            padding: var(--space-1);
         }
 
         .form-sections-wrapper {
-            padding: var(--space-4);
+            padding: var(--space-3);
         }
 
         .form-section {
-            padding: var(--space-4);
+            padding: var(--space-3);
         }
     }
 
     @media (max-width: 480px) {
         .page-container {
-            padding: var(--space-2);
+            padding: var(--space-1);
         }
 
         .form-sections-wrapper {
-            padding: var(--space-3);
+            padding: var(--space-2);
         }
 
         .form-section {
-            padding: var(--space-3);
+            padding: var(--space-2);
         }
     }
 
@@ -425,17 +446,27 @@
 </style>
 {% endblock %}
 
+{% block page_header %}
+<div class="container">
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2">
+                    <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %} me-3"></i>
+                    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Alumni Group
+                </h1>
+                <p class="mb-0">Fill in the details below to {% if form.instance.pk %}update{% else %}create{% endif %} your alumni group.</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
 {% block content %}
 <div class="page-container">
     <div class="form-container">
         <div class="form-card">
-            <div class="card-header">
-                <h1 class="card-title">
-                    <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus-circle{% endif %}"></i>
-                    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Alumni Group
-                </h1>
-                <p class="card-subtitle">Fill in the details below to {% if form.instance.pk %}update{% else %}create{% endif %} your alumni group.</p>
-            </div>
+
 
             <div class="card-body">
                 <form method="post" enctype="multipart/form-data" id="groupForm" novalidate>
@@ -444,7 +475,7 @@
                         <div class="form-left-section">
                             <!-- Basic Information -->
                             <div class="form-section">
-                                <h2 class="section-title">Basic Information</h2>
+                                <h2 class="section-title"><i class="fas fa-info-circle me-2" style="color: var(--brand-primary);"></i>Basic Information</h2>
                                 <div class="form-group">
                                     {{ form.name|as_crispy_field }}
                                 </div>
@@ -458,7 +489,7 @@
 
                             <!-- Group Settings -->
                             <div class="form-section">
-                                <h2 class="section-title">Group Settings</h2>
+                                <h2 class="section-title"><i class="fas fa-cog me-2" style="color: var(--brand-primary);"></i>Group Settings</h2>
                                 <div class="form-group">
                                     {{ form.group_type|as_crispy_field }}
                                 </div>
@@ -526,4 +557,4 @@
 
 {% block extra_js %}
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-tagsinput@0.7.1/dist/bootstrap-tagsinput.min.js"></script>
-{% endblock %} 
+{% endblock %}

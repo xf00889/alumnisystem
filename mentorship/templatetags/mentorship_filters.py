@@ -80,4 +80,14 @@ def multiply(value, arg):
     try:
         return float(value) * float(arg)
     except (ValueError, TypeError):
-        return 0 
+        return 0
+
+@register.filter
+@stringfilter
+def basename(value):
+    """
+    Extract the filename from a file path.
+    Usage: {{ file_path|basename }}
+    """
+    import os
+    return os.path.basename(value)

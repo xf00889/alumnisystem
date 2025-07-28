@@ -4,380 +4,449 @@
 
 {% block title %}{{ job.job_title|format_job_title }} at {{ job.company_name }}{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'jobs:job_list' %}">Job Board</a></li>
-<li class="breadcrumb-item active">{{ job.job_title|format_job_title }}</li>
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        --linkedin-blue: #0a66c2;
+        --linkedin-blue-hover: #004182;
+    }
+    
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+    
+    .avatar-circle {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .company-logo {
+        width: 72px;
+        height: 72px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .alert-icon {
+        width: 32px;
+        height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .bg-primary-soft {
+        background-color: rgba(10, 102, 194, 0.1);
+    }
+    
+    .bg-success-soft {
+        background-color: rgba(25, 135, 84, 0.1);
+    }
+    
+    .bg-info-soft {
+        background-color: rgba(13, 202, 240, 0.1);
+    }
+    
+    .bg-warning-soft {
+        background-color: rgba(246, 194, 62, 0.1);
+    }
+    
+    .bg-gray-soft {
+        background-color: rgba(108, 117, 125, 0.1);
+    }
+    
+    .text-gray-500 {
+        color: #6c757d !important;
+    }
+    
+    .text-gray-600 {
+        color: #5a6169 !important;
+    }
+    
+    .text-gray-900 {
+        color: #212529 !important;
+    }
+    
+    .fw-medium {
+        font-weight: 500 !important;
+    }
+    
+    .btn-primary {
+        background-color: var(--linkedin-blue);
+        border-color: var(--linkedin-blue);
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--linkedin-blue-hover);
+        border-color: var(--linkedin-blue-hover);
+    }
+    
+    .btn-outline-primary {
+        color: var(--linkedin-blue);
+        border-color: var(--linkedin-blue);
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: var(--linkedin-blue);
+        border-color: var(--linkedin-blue);
+    }
+    
+    .text-primary {
+        color: var(--linkedin-blue) !important;
+    }
+    
+    .description-content {
+        font-size: 1rem;
+        line-height: 1.6;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .job-overview {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-5">
-    <div class="container">
-        <!-- Page Heading -->
-        <div class="row mb-5">
-            <div class="col-12">
-                <div class="d-sm-flex align-items-center justify-content-between">
-                    <div class="mb-4 mb-sm-0">
-                        <h1 class="h3 mb-2 text-gray-900 fw-bold">{{ job.job_title|format_job_title }}</h1>
-                        <p class="mb-0 text-gray-600">{{ job.company_name }}</p>
-                    </div>
-                    
-                    <div class="d-none d-sm-inline-block">
-                        <button class="btn btn-outline-primary fw-medium" onclick="shareJob()">
-                            <i class="fas fa-share-alt me-2"></i>Share Position
-                        </button>
-                    </div>
-                </div>
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>{{ job.job_title|format_job_title }}</h1>
+                <p class="mb-0">{{ job.company_name }} • Posted {{ job.posted_date|timesince }} ago</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <button class="btn btn-outline-light fw-medium" onclick="shareJob()">
+                    <i class="fas fa-share-alt me-2"></i>Share Position
+                </button>
             </div>
         </div>
+    </div>
 
-        <div class="row g-4">
-            <div class="col-xl-8 col-lg-7">
-                <!-- Job Details Card -->
-                <div class="card border-0 shadow-sm rounded-3 mb-4">
-                    <div class="card-body p-4">
-                        <!-- Company Header -->
-                        <div class="d-flex align-items-center mb-5">
-                            <div class="company-logo bg-light rounded-3 p-3 me-3">
-                                <i class="fas fa-building text-primary fa-2x"></i>
-                            </div>
+    <div class="row g-4">
+        <div class="col-xl-8 col-lg-7">
+            <!-- Job Details Card -->
+            <div class="dashboard-card">
+                <!-- Company Header -->
+                <div class="d-flex align-items-center mb-5">
+                    <div class="company-logo bg-light rounded-3 p-3 me-3">
+                        <i class="fas fa-building text-primary fa-2x"></i>
+                    </div>
+                    
+                    <div>
+                        <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
+                            {% if job.is_featured %}
+                            <span class="badge bg-primary-soft text-primary fw-medium">
+                                <i class="fas fa-star me-1"></i>Featured
+                            </span>
+                            {% endif %}
                             
-                            <div>
-                                <div class="d-flex flex-wrap align-items-center gap-2 mb-2">
-                                    {% if job.is_featured %}
-                                    <span class="badge bg-primary-soft text-primary fw-medium">
-                                        <i class="fas fa-star me-1"></i>Featured
-                                    </span>
-                                    {% endif %}
-                                    
-                                    <span class="badge bg-{% if job.source_type == 'INTERNAL' %}success-soft text-success{% else %}info-soft text-info{% endif %} fw-medium">
-                                        {{ job.get_source_type_display }}
-                                    </span>
-                                    
-                                    <span class="badge bg-gray-soft text-gray-600 fw-medium">
-                                        <i class="fas fa-clock me-1"></i>{{ job.posted_date|timesince }} ago
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Job Overview -->
-                        <div class="job-overview bg-light rounded-3 p-4 mb-5">
-                            <div class="row g-4">
-                                <div class="col-md-6">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="icon-circle bg-primary-soft">
-                                                <i class="fas fa-map-marker-alt text-primary"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="mb-1 text-gray-900 fw-bold">Location</h6>
-                                            <p class="mb-0 text-gray-600">{{ job.location }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                <div class="col-md-6">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="icon-circle bg-success-soft">
-                                                <i class="fas fa-briefcase text-success"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="mb-1 text-gray-900 fw-bold">Job Type</h6>
-                                            <p class="mb-0 text-gray-600">{{ job.get_job_type_display }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                                
-                                {% if job.salary_range %}
-                                <div class="col-md-6">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="icon-circle bg-warning-soft">
-                                                <i class="fas fa-money-bill-wave text-warning"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="mb-1 text-gray-900 fw-bold">Salary / Rate</h6>
-                                            <p class="mb-0 text-gray-600">
-                                                <strong>{{ job.salary_range }}</strong>
-                                            </p>
-                                        </div>
-                                    </div>
-                                </div>
-                                {% endif %}
-                                
-                                <div class="col-md-6">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="icon-circle bg-info-soft">
-                                                <i class="fas fa-calendar-alt text-info"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="mb-1 text-gray-900 fw-bold">Posted Date</h6>
-                                            <p class="mb-0 text-gray-600">{{ job.posted_date|date:"F j, Y" }}</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Job Description -->
-                        <div class="job-description mb-5">
-                            <h3 class="h5 text-gray-900 fw-bold mb-4">
-                                <i class="fas fa-align-left text-primary me-2"></i>Job Description
-                            </h3>
+                            <span class="badge bg-{% if job.source_type == 'INTERNAL' %}success-soft text-success{% else %}info-soft text-info{% endif %} fw-medium">
+                                {{ job.get_source_type_display }}
+                            </span>
                             
-                            <div class="description-content text-gray-600 bg-white p-4 rounded-3 shadow-sm">
-                                {% if job.job_description %}
-                                    {{ job.job_description|linebreaks }}
-                                {% else %}
-                                    <p class="text-muted">
-                                        <i class="fas fa-info-circle me-2"></i>
-                                        This job listing does not have a detailed description available.
-                                    </p>
-                                {% endif %}
-                            </div>
+                            <span class="badge bg-gray-soft text-gray-600 fw-medium">
+                                <i class="fas fa-clock me-1"></i>{{ job.posted_date|timesince }} ago
+                            </span>
                         </div>
-
-                        {% if job.requirements %}
-                        <!-- Job Requirements -->
-                        <div class="job-requirements mb-5">
-                            <h3 class="h5 text-gray-900 fw-bold mb-4">
-                                <i class="fas fa-clipboard-list text-primary me-2"></i>Job Requirements
-                            </h3>
-                            
-                            <div class="requirements-content text-gray-600 bg-white p-4 rounded-3 shadow-sm">
-                                {{ job.requirements|linebreaks }}
-                            </div>
-                        </div>
-                        {% endif %}
                     </div>
                 </div>
-            </div>
 
-            <div class="col-xl-4 col-lg-5">
-                <!-- Application Status Card -->
-                <div class="card border-0 shadow-sm rounded-3 mb-4">
-                    <div class="card-body p-4">
-                        <div class="d-flex justify-content-between align-items-center mb-4">
-                            <h5 class="text-gray-900 fw-bold mb-0">Application Status</h5>
-                            
-                            {% if user.is_staff or user|is_hr_or_admin %}
-                            <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewApplicantsModal">
-                                <i class="fas fa-users me-2"></i>View Applicants
-                            </button>
-                            {% endif %}
+                <!-- Job Overview -->
+                <div class="job-overview mb-5">
+                    <div class="row g-4">
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="icon-circle bg-primary-soft">
+                                        <i class="fas fa-map-marker-alt text-primary"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1 text-gray-900 fw-bold">Location</h6>
+                                    <p class="mb-0 text-gray-600">{{ job.location }}</p>
+                                </div>
+                            </div>
                         </div>
                         
-                        {% if job.accepts_internal_applications %}
-                            {% if user.is_authenticated %}
-                                {% if user_application %}
-                                <div class="alert bg-info-soft border-0 rounded-3 mb-0">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="alert-icon bg-info text-white rounded-circle">
-                                                <i class="fas fa-info"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="alert-heading text-gray-900 fw-bold mb-1">Application Submitted</h6>
-                                            <p class="mb-0 text-gray-600">Current Status:<br>
-                                            <strong class="text-info">{{ user_application.get_status_display }}</strong></p>
-                                        </div>
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="icon-circle bg-success-soft">
+                                        <i class="fas fa-briefcase text-success"></i>
                                     </div>
                                 </div>
-                                {% else %}
-                                <div class="text-center">
-                                    <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-lg w-100 fw-medium">
-                                        <i class="fas fa-paper-plane me-2"></i>Apply Now
-                                    </a>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1 text-gray-900 fw-bold">Job Type</h6>
+                                    <p class="mb-0 text-gray-600">{{ job.get_job_type_display }}</p>
                                 </div>
-                                {% endif %}
-                            {% else %}
-                                <div class="alert bg-warning-soft border-0 rounded-3 mb-0">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="alert-icon bg-warning text-white rounded-circle">
-                                                <i class="fas fa-exclamation-triangle"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="alert-heading text-gray-900 fw-bold mb-1">Authentication Required</h6>
-                                            <p class="mb-0 text-gray-600">Please <a href="{% url 'account_login' %}" class="text-primary fw-medium">log in</a> to apply for this position.</p>
-                                        </div>
+                            </div>
+                        </div>
+                        
+                        {% if job.salary_range %}
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="icon-circle bg-warning-soft">
+                                        <i class="fas fa-money-bill-wave text-warning"></i>
                                     </div>
                                 </div>
-                            {% endif %}
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1 text-gray-900 fw-bold">Salary / Rate</h6>
+                                    <p class="mb-0 text-gray-600">
+                                        <strong>{{ job.salary_range }}</strong>
+                                    </p>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="col-md-6">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="icon-circle bg-info-soft">
+                                        <i class="fas fa-calendar-alt text-info"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="mb-1 text-gray-900 fw-bold">Posted Date</h6>
+                                    <p class="mb-0 text-gray-600">{{ job.posted_date|date:"F j, Y" }}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Job Description -->
+                <div class="job-description mb-5">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-align-left text-primary me-2"></i>Job Description
+                    </h3>
+                    
+                    <div class="description-content text-gray-600">
+                        {% if job.job_description %}
+                            {{ job.job_description|linebreaks }}
                         {% else %}
-                            {% if job.application_link %}
-                                <div class="text-center">
-                                    <a href="{{ job.application_link }}" class="btn btn-primary btn-lg w-100 fw-medium" target="_blank" rel="noopener noreferrer">
-                                        <i class="fas fa-external-link-alt me-2"></i>Apply on External Site
-                                    </a>
-                                    <small class="text-gray-500 d-block mt-3">
-                                        <i class="fas fa-info-circle me-1"></i>You will be redirected to an external website
-                                    </small>
-                                </div>
-                            {% else %}
-                                <div class="alert bg-info-soft border-0 rounded-3 mb-0">
-                                    <div class="d-flex">
-                                        <div class="flex-shrink-0">
-                                            <div class="alert-icon bg-info text-white rounded-circle">
-                                                <i class="fas fa-info"></i>
-                                            </div>
-                                        </div>
-                                        <div class="flex-grow-1 ms-3">
-                                            <h6 class="alert-heading text-gray-900 fw-bold mb-1">Application Instructions</h6>
-                                            <p class="mb-0 text-gray-600">Please contact the organization directly to apply for this position.</p>
-                                        </div>
-                                    </div>
-                                </div>
-                            {% endif %}
+                            <p class="text-muted">
+                                <i class="fas fa-info-circle me-2"></i>
+                                This job listing does not have a detailed description available.
+                            </p>
                         {% endif %}
                     </div>
                 </div>
 
-                <!-- Posted By Card -->
-                {% if job.posted_by %}
-                <div class="card border-0 shadow-sm rounded-3">
-                    <div class="card-body p-4">
-                        <h5 class="text-gray-900 fw-bold mb-4">Posted By</h5>
-                        <div class="d-flex align-items-center">
-                            <div class="flex-shrink-0">
-                                <div class="avatar-circle bg-primary-soft rounded-circle">
-                                    <i class="fas fa-user text-primary"></i>
-                                </div>
-                            </div>
-                            <div class="flex-grow-1 ms-3">
-                                <h6 class="mb-1 text-gray-900 fw-bold">{{ job.posted_by.get_full_name|default:job.posted_by.username }}</h6>
-                                <p class="mb-0 text-gray-600">Staff Member</p>
-                            </div>
-                        </div>
+                {% if job.requirements %}
+                <!-- Job Requirements -->
+                <div class="job-requirements mb-5">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-clipboard-list text-primary me-2"></i>Job Requirements
+                    </h3>
+                    
+                    <div class="description-content text-gray-600">
+                        {{ job.requirements|linebreaks }}
                     </div>
                 </div>
                 {% endif %}
             </div>
         </div>
+
+        <div class="col-xl-4 col-lg-5">
+            <!-- Application Status Card -->
+            <div class="dashboard-card">
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <h5 class="text-gray-900 fw-bold mb-0">Application Status</h5>
+                    
+                    {% if user.is_staff or user|is_hr_or_admin %}
+                    <button class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#viewApplicantsModal">
+                        <i class="fas fa-users me-2"></i>View Applicants
+                    </button>
+                    {% endif %}
+                </div>
+                
+                {% if job.accepts_internal_applications %}
+                    {% if user.is_authenticated %}
+                        {% if user_application %}
+                        <div class="alert bg-info-soft border-0 rounded-3 mb-0">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="alert-icon bg-info text-white rounded-circle">
+                                        <i class="fas fa-info"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="alert-heading text-gray-900 fw-bold mb-1">Application Submitted</h6>
+                                    <p class="mb-0 text-gray-600">Current Status:<br>
+                                    <strong class="text-info">{{ user_application.get_status_display }}</strong></p>
+                                </div>
+                            </div>
+                        </div>
+                        {% else %}
+                        <div class="text-center">
+                            <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-lg w-100 fw-medium">
+                                <i class="fas fa-paper-plane me-2"></i>Apply Now
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <div class="alert bg-warning-soft border-0 rounded-3 mb-0">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="alert-icon bg-warning text-white rounded-circle">
+                                        <i class="fas fa-exclamation-triangle"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="alert-heading text-gray-900 fw-bold mb-1">Authentication Required</h6>
+                                    <p class="mb-0 text-gray-600">Please <a href="{% url 'account_login' %}" class="text-primary fw-medium">log in</a> to apply for this position.</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% else %}
+                    {% if job.application_link %}
+                        <div class="text-center">
+                            <a href="{{ job.application_link }}" class="btn btn-primary btn-lg w-100 fw-medium" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-external-link-alt me-2"></i>Apply on External Site
+                            </a>
+                            <small class="text-gray-500 d-block mt-3">
+                                <i class="fas fa-info-circle me-1"></i>You will be redirected to an external website
+                            </small>
+                        </div>
+                    {% else %}
+                        <div class="alert bg-info-soft border-0 rounded-3 mb-0">
+                            <div class="d-flex">
+                                <div class="flex-shrink-0">
+                                    <div class="alert-icon bg-info text-white rounded-circle">
+                                        <i class="fas fa-info"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1 ms-3">
+                                    <h6 class="alert-heading text-gray-900 fw-bold mb-1">Application Instructions</h6>
+                                    <p class="mb-0 text-gray-600">Please contact the organization directly to apply for this position.</p>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+
+            <!-- Posted By Card -->
+            {% if job.posted_by %}
+            <div class="dashboard-card">
+                <h5 class="text-gray-900 fw-bold mb-4">Posted By</h5>
+                <div class="d-flex align-items-center">
+                    <div class="flex-shrink-0">
+                        <div class="avatar-circle bg-primary-soft rounded-circle">
+                            <i class="fas fa-user text-primary"></i>
+                        </div>
+                    </div>
+                    <div class="flex-grow-1 ms-3">
+                        <h6 class="mb-1 text-gray-900 fw-bold">{{ job.posted_by.get_full_name|default:job.posted_by.username }}</h6>
+                        <p class="mb-0 text-gray-600">Staff Member</p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
-
-<style>
-:root {
-    --linkedin-blue: #0a66c2;
-    --linkedin-blue-hover: #004182;
-}
-
-.icon-circle {
-    width: 48px;
-    height: 48px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.25rem;
-}
-
-.avatar-circle {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
-.company-logo {
-    width: 72px;
-    height: 72px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.alert-icon {
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1rem;
-}
-
-.bg-primary-soft {
-    background-color: rgba(10, 102, 194, 0.1);
-}
-
-.bg-success-soft {
-    background-color: rgba(25, 135, 84, 0.1);
-}
-
-.bg-info-soft {
-    background-color: rgba(13, 202, 240, 0.1);
-}
-
-.bg-warning-soft {
-    background-color: rgba(246, 194, 62, 0.1);
-}
-
-.bg-gray-soft {
-    background-color: rgba(108, 117, 125, 0.1);
-}
-
-.text-gray-500 {
-    color: #6c757d !important;
-}
-
-.text-gray-600 {
-    color: #5a6169 !important;
-}
-
-.text-gray-900 {
-    color: #212529 !important;
-}
-
-.fw-medium {
-    font-weight: 500 !important;
-}
-
-.btn-primary {
-    background-color: var(--linkedin-blue);
-    border-color: var(--linkedin-blue);
-}
-
-.btn-primary:hover {
-    background-color: var(--linkedin-blue-hover);
-    border-color: var(--linkedin-blue-hover);
-}
-
-.btn-outline-primary {
-    color: var(--linkedin-blue);
-    border-color: var(--linkedin-blue);
-}
-
-.btn-outline-primary:hover {
-    background-color: var(--linkedin-blue);
-    border-color: var(--linkedin-blue);
-}
-
-.text-primary {
-    color: var(--linkedin-blue) !important;
-}
-
-.description-content {
-    font-size: 1rem;
-    line-height: 1.6;
-}
-
-.job-overview {
-    background-color: rgba(0, 0, 0, 0.02);
-}
-</style>
 
 {% block extra_js %}
 <script>
@@ -628,4 +697,4 @@ document.addEventListener('DOMContentLoaded', function() {
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

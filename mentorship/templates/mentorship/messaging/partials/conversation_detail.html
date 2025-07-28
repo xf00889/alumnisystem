@@ -1,0 +1,280 @@
+{% load static %}
+{% load mentorship_filters %}
+
+<div class="conversation-content d-flex flex-column h-100">
+    <!-- Conversation Header -->
+    <div class="card-header flex-shrink-0" style="background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); padding: 1.25rem;">
+        <div class="d-flex align-items-center">
+            <!-- Other User's Avatar -->
+            <div class="flex-shrink-0 me-3">
+                {% if other_user.profile.avatar %}
+                    <img src="{{ other_user.profile.avatar.url }}" 
+                         alt="{{ other_user.get_full_name }}"
+                         class="rounded-circle" 
+                         style="width: 50px; height: 50px; object-fit: cover; border: 2px solid var(--ui-border);">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 50px; height: 50px; background: var(--secondary-color); color: var(--text-light); border: 2px solid var(--ui-border);">
+                        <i class="fas fa-user"></i>
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- User Info -->
+            <div class="flex-grow-1">
+                <h6 class="mb-0 fw-600" style="color: var(--text-primary); font-size: 1rem;">{{ other_user.get_full_name|default:other_user.username }}</h6>
+                {% if other_user.profile.current_position %}
+                    <small style="color: var(--text-secondary); font-weight: 500;">{{ other_user.profile.current_position }}</small>
+                {% endif %}
+            </div>
+            
+            <!-- Actions -->
+            <div class="flex-shrink-0">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown" style="border-color: var(--ui-border); color: var(--text-secondary);">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end" style="border: 1px solid var(--ui-border); box-shadow: var(--shadow-md);">
+                    <li><a class="dropdown-item" href="#" style="color: var(--text-primary);"><i class="fas fa-video me-2" style="color: var(--feedback-info);"></i>Video Call</a></li>
+                    <li><a class="dropdown-item" href="#" style="color: var(--text-primary);"><i class="fas fa-calendar me-2" style="color: var(--feedback-warning);"></i>Schedule Meeting</a></li>
+                    <li><hr class="dropdown-divider" style="border-color: var(--ui-border);"></li>
+                    <li><a class="dropdown-item" href="#" style="color: var(--text-primary);"><i class="fas fa-user me-2" style="color: var(--text-secondary);"></i>View Profile</a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Messages Area -->
+    <div class="card-body p-0 flex-grow-1 d-flex flex-column" style="min-height: 0; background: var(--ui-background);">
+        <div class="messages-container p-3 flex-grow-1" id="messages-container" style="overflow-y: auto; max-height: 100%;">
+            {% if messages %}
+                {% for message in messages reversed %}
+                <div class="message mb-3 d-flex {% if message.sender == user %}justify-content-end{% else %}justify-content-start{% endif %}">
+                    {% if message.sender != user %}
+                        <!-- Other user's avatar -->
+                        <div class="flex-shrink-0 me-2">
+                            {% if message.sender.profile.avatar %}
+                                <img src="{{ message.sender.profile.avatar.url }}" 
+                                     alt="{{ message.sender.get_full_name }}"
+                                     class="rounded-circle" 
+                                     style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--ui-border);">
+                            {% else %}
+                                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width: 36px; height: 36px; font-size: 0.75rem; background: var(--secondary-color); color: var(--text-light); border: 2px solid var(--ui-border);">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="message-content" style="max-width: 70%;">
+                        <div class="message-bubble p-3 rounded-3" style="{% if message.sender == user %}background: var(--primary-color); color: var(--text-light);{% else %}background: var(--ui-surface); color: var(--text-primary); border: 1px solid var(--ui-border);{% endif %} box-shadow: var(--shadow-sm);">
+                            <p class="mb-1" style="font-weight: 400; line-height: 1.5;">{{ message.content }}</p>
+                            
+                            {% if message.attachment %}
+                                <div class="mt-2">
+                                    {% if message.attachment.url|slice:"-4:" == ".jpg" or message.attachment.url|slice:"-4:" == ".png" or message.attachment.url|slice:"-5:" == ".jpeg" %}
+                                        <img src="{{ message.attachment.url }}" 
+                                             alt="Attachment" 
+                                             class="img-fluid rounded" 
+                                             style="max-width: 200px; max-height: 200px; border-radius: var(--radius-md);">
+                                    {% else %}
+                                        <a href="{{ message.attachment.url }}" 
+                                           class="text-decoration-none d-inline-flex align-items-center p-2 rounded" 
+                                           style="background: rgba(255,255,255,0.2); color: inherit; border-radius: var(--radius-sm);">
+                                            <i class="fas fa-file me-2"></i>
+                                            <span>{{ message.attachment.name|default:"Download File" }}</span>
+                                        </a>
+                                    {% endif %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <small class="d-block mt-1 {% if message.sender == user %}text-end{% endif %}" style="color: var(--text-muted); font-weight: 500; font-size: 0.75rem;">
+                            {{ message.created_at|timesince }} ago
+                            {% if message.sender == user and message.is_read %}
+                                <i class="fas fa-check-double ms-1" title="Read"></i>
+                            {% elif message.sender == user %}
+                                <i class="fas fa-check ms-1" title="Sent"></i>
+                            {% endif %}
+                        </small>
+                    </div>
+                    
+                    {% if message.sender == user %}
+                        <!-- Current user's avatar -->
+                        <div class="flex-shrink-0 ms-2">
+                            {% if user.profile.avatar %}
+                                <img src="{{ user.profile.avatar.url }}" 
+                                     alt="{{ user.get_full_name }}"
+                                     class="rounded-circle" 
+                                     style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--ui-border);">
+                            {% else %}
+                                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                     style="width: 36px; height: 36px; font-size: 0.75rem; background: var(--primary-color); color: var(--text-light); border: 2px solid var(--ui-border);">
+                                    <i class="fas fa-user"></i>
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="text-center py-5">
+                    <i class="fas fa-comment-slash fa-2x mb-3" style="color: var(--text-muted);"></i>
+                    <p style="color: var(--text-secondary); font-weight: 500;">No messages yet. Start the conversation!</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <!-- Message Input Area -->
+    <div class="card-footer flex-shrink-0" style="background: var(--ui-surface); border-top: 1px solid var(--ui-border); padding: 1.25rem;">
+        <form id="messageForm" method="post" enctype="multipart/form-data" onsubmit="sendMessage(event, {{ conversation.id }})"
+              class="d-flex align-items-center gap-2">
+            {% csrf_token %}
+            <input type="hidden" name="conversation_id" value="{{ conversation.id }}">
+            
+            <div class="input-group">
+                <!-- File attachment button -->
+                <label class="btn" for="file-input-{{ conversation.id }}" style="background: var(--ui-background); border: 1px solid var(--ui-border); color: var(--text-secondary);">
+                    <i class="fas fa-paperclip"></i>
+                </label>
+                <input type="file" 
+                       id="file-input-{{ conversation.id }}" 
+                       name="attachment" 
+                       style="display: none;"
+                       onchange="showFileName(this)">
+                
+                <!-- Message input -->
+                <input type="text" 
+                       id="messageContent"
+                       class="form-control" 
+                       name="content" 
+                       placeholder="Type your message..." 
+                       required
+                       autocomplete="off"
+                       style="background: var(--ui-background); border: 1px solid var(--ui-border); color: var(--text-primary); padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+                
+                <!-- Send button -->
+                <button class="btn" id="sendButton" type="submit" style="background: var(--primary-color); color: var(--text-light); border: none; padding: 0.75rem 1rem; border-radius: var(--radius-md);">
+                    <i class="fas fa-paper-plane"></i>
+                </button>
+            </div>
+            
+            <!-- File name display -->
+            <div id="file-name-display-{{ conversation.id }}" class="mt-2" style="display: none;">
+                <small style="color: var(--text-muted);">
+                    <i class="fas fa-paperclip me-1"></i>
+                    <span id="file-name-{{ conversation.id }}"></span>
+                    <button type="button" class="btn btn-sm btn-link p-0 ms-2" 
+                            onclick="clearFile({{ conversation.id }})"
+                            style="color: var(--feedback-error);">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </small>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+// Scroll to bottom of messages
+function scrollToBottom() {
+    const container = document.getElementById('messages-container');
+    if (container) {
+        container.scrollTop = container.scrollHeight;
+    }
+}
+
+// Show selected file name
+function showFileName(input) {
+    const conversationId = input.id.split('-').pop();
+    const display = document.getElementById(`file-name-display-${conversationId}`);
+    const nameSpan = document.getElementById(`file-name-${conversationId}`);
+    
+    if (input.files && input.files[0]) {
+        nameSpan.textContent = input.files[0].name;
+        display.style.display = 'block';
+    } else {
+        display.style.display = 'none';
+    }
+}
+
+// Clear selected file
+function clearFile(conversationId) {
+    const input = document.getElementById(`file-input-${conversationId}`);
+    const display = document.getElementById(`file-name-display-${conversationId}`);
+    
+    input.value = '';
+    display.style.display = 'none';
+}
+
+// Send message function
+function sendMessage(event, conversationId) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const sendButton = document.getElementById('sendButton');
+    const messageContent = document.getElementById('messageContent');
+    
+    // Disable send button to prevent double submission
+    sendButton.disabled = true;
+    sendButton.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch(`/mentorship/messages/conversation/${conversationId}/send/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+            'HX-Request': 'true'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Append the new message to the messages container
+            const messagesContainer = document.getElementById('messages-container');
+            messagesContainer.insertAdjacentHTML('beforeend', data.message_html);
+            
+            // Clear the form
+            form.reset();
+            
+            // Clear file display if any
+            const fileDisplay = document.querySelector('[id^="file-name-display-"]');
+            if (fileDisplay) {
+                fileDisplay.style.display = 'none';
+            }
+            
+            // Scroll to bottom
+            setTimeout(() => {
+                scrollToBottom();
+            }, 100);
+        } else {
+            console.error('Error sending message:', data.errors);
+            alert('Failed to send message. Please check your input and try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending message:', error);
+        alert('Failed to send message. Please try again.');
+    })
+    .finally(() => {
+        // Re-enable send button
+        sendButton.disabled = false;
+        sendButton.innerHTML = '<i class="fas fa-paper-plane"></i>';
+    });
+}
+
+// Auto-scroll to bottom on load
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+});
+
+// Handle Enter key for sending messages
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Enter' && event.target.name === 'content') {
+        event.preventDefault();
+        event.target.closest('form').dispatchEvent(new Event('submit'));
+    }
+});
+</script>

@@ -1,0 +1,1053 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Messages - Alumni System{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .messages-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .messages-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+    
+    .messages-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+    }
+    
+    .messages-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .conversation-item {
+        cursor: pointer;
+        transition: all 0.3s ease;
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1.25rem;
+        background: var(--ui-surface);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .conversation-item:last-child {
+        border-bottom: none;
+    }
+    
+    .conversation-item:hover {
+        background-color: var(--ui-hover);
+    }
+    
+    .conversation-item.active {
+        background-color: rgba(43, 60, 107, 0.1);
+        border-left: 4px solid var(--primary-color);
+    }
+    
+    .conversation-item.unread {
+        font-weight: 600;
+        background-color: rgba(237, 137, 54, 0.1);
+    }
+    
+    .avatar-sm {
+        width: 55px;
+        height: 55px;
+        object-fit: cover;
+        border: 2px solid var(--ui-border);
+        transition: all 0.3s ease;
+    }
+    
+    .conversation-item:hover .avatar-sm {
+        border-color: var(--primary-color);
+    }
+    
+    .unread-badge {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
+        color: var(--text-light);
+        font-size: 0.7rem;
+        font-weight: 600;
+        padding: 0.25rem 0.5rem;
+        border-radius: 50px;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .message-preview {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 400;
+        line-height: 1.4;
+    }
+    
+    .conversation-time {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-weight: 500;
+    }
+    
+    .conversation-name {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.95rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .conversation-position {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+    
+    .no-conversations {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .no-conversations i {
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+    
+    .no-conversations h5 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1rem;
+    }
+    
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        background: linear-gradient(135deg, #3d4f7a 0%, var(--primary-color) 100%);
+    }
+    
+    .btn-outline-primary {
+        border: 2px solid var(--primary-color);
+        color: var(--primary-color);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        background: transparent;
+    }
+    
+    .btn-outline-primary:hover {
+        background: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .filter-controls {
+        background: var(--ui-surface);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-input {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    /* Create Message Modal Styles */
+    .modal-content {
+        border: none;
+        border-radius: var(--radius-lg);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    }
+    
+    .modal-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+        border-bottom: none;
+    }
+    
+    .modal-title {
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-close {
+        filter: invert(1);
+    }
+    
+    .search-results-container {
+        max-height: 300px;
+        overflow-y: auto;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        background: var(--ui-surface);
+    }
+    
+    .search-result-item {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--ui-border);
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+    }
+    
+    .search-result-item:last-child {
+        border-bottom: none;
+    }
+    
+    .search-result-item:hover {
+        background-color: var(--ui-hover);
+    }
+    
+    .search-result-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        margin-right: 0.75rem;
+        border: 2px solid var(--ui-border);
+    }
+    
+    .search-result-info {
+        flex-grow: 1;
+    }
+    
+    .search-result-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+    
+    .search-result-title {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+    
+    .selected-user-card {
+        background: var(--ui-hover);
+        border: 2px solid var(--primary-color);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+    }
+    
+    .selected-user-avatar {
+        width: 50px;
+        height: 50px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--primary-color);
+    }
+    
+    .selected-user-name {
+        color: var(--text-primary);
+        font-size: 1rem;
+    }
+    
+    .selected-user-title {
+        font-size: 0.85rem;
+    }
+    
+    .search-loading {
+        color: var(--text-secondary);
+    }
+    
+    .spinner-border-sm {
+        width: 1rem;
+        height: 1rem;
+    }
+    
+    #messageContent:disabled {
+        background-color: var(--ui-hover);
+        opacity: 0.7;
+    }
+    
+    #messageContent:enabled {
+        border-color: var(--primary-color);
+    }
+    
+    .form-label.fw-semibold {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Header -->
+    <div class="messages-header">
+        <h2><i class="fas fa-comments me-2"></i>Your Messages</h2>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="row g-3">
+        <!-- Conversations Sidebar -->
+        <div class="col-lg-4">
+            <div class="messages-card h-100">
+                <!-- Search and Filter -->
+                <div class="p-3 border-bottom">
+                    <div class="mb-3">
+                        <div class="input-group">
+                            <span class="input-group-text"><i class="fas fa-search"></i></span>
+                            <input type="text" class="form-control" id="searchInput" placeholder="Search conversations...">
+                        </div>
+                    </div>
+                    <select class="form-select" id="sortSelect">
+                        <option value="recent">Most Recent</option>
+                        <option value="unread">Unread First</option>
+                        <option value="alphabetical">Alphabetical</option>
+                    </select>
+                </div>
+                
+                <!-- Conversations Header -->
+                <div class="card-header bg-white border-bottom">
+                    <div class="d-flex justify-content-between align-items-center p-3">
+                        <h5 class="mb-0">Your Conversations</h5>
+                        <button type="button" class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#createMessageModal">
+                            <i class="fas fa-plus me-1"></i>New Message
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Conversations List -->
+                <div class="card-body p-0" id="conversationsList" style="max-height: 600px; overflow-y: auto;">
+                    {% if conversations %}
+                        {% for conv in conversations %}
+                        <div class="conversation-item {% if conv.unread_count > 0 %}unread{% endif %}"
+                             hx-get="{% url 'connections:direct_messages' conv.other_user.id %}"
+                             hx-target="#conversation-detail"
+                             hx-swap="innerHTML"
+                             onclick="setActiveConversation(this)">
+                            
+                            <div class="d-flex align-items-center">
+                                <!-- Profile Picture -->
+                                <div class="flex-shrink-0 me-3">
+                                    {% if conv.other_user.profile.profile_picture %}
+                                        <img src="{{ conv.other_user.profile.profile_picture.url }}" 
+                                             alt="{{ conv.other_user.get_full_name }}"
+                                             class="rounded-circle avatar-sm">
+                                    {% else %}
+                                        <div class="rounded-circle avatar-sm d-flex align-items-center justify-content-center text-white" style="background: linear-gradient(135deg, var(--secondary-color) 0%, var(--text-muted) 100%);">
+                                            <i class="fas fa-user"></i>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                
+                                <!-- Conversation Info -->
+                                <div class="flex-grow-1 min-w-0">
+                                    <!-- Full Name and Unread Badge -->
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <h6 class="conversation-name text-truncate mb-0">
+                                            {{ conv.other_user.get_full_name|default:conv.other_user.username }}
+                                        </h6>
+                                        
+                                        <!-- Unread Badge -->
+                                        {% if conv.unread_count > 0 %}
+                                        <span class="unread-badge ms-2">
+                                            {{ conv.unread_count }}
+                                        </span>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- Job Title/Position -->
+                                    {% if conv.other_user.profile.current_job_title %}
+                                    <div class="conversation-position text-truncate">
+                                        <i class="fas fa-briefcase me-1" style="font-size: 0.7rem;"></i>
+                                        {{ conv.other_user.profile.current_job_title }}
+                                    </div>
+                                    {% endif %}
+                                    
+                                    <!-- Last Message Preview and Timestamp -->
+                                    <div class="d-flex justify-content-between align-items-end">
+                                        <div class="message-preview flex-grow-1 me-2">
+                                            {% if conv.last_message %}
+                                                {% if conv.last_message.sender == user %}
+                                                    <span style="color: var(--primary-color); font-weight: 600;">You:</span>
+                                                {% endif %}
+                                                {{ conv.last_message.content|truncatechars:45 }}
+                                            {% else %}
+                                                <em style="color: var(--text-muted);">Start a conversation...</em>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <!-- Timestamp -->
+                                        <div class="conversation-time flex-shrink-0">
+                                            <i class="fas fa-clock me-1" style="font-size: 0.65rem;"></i>
+                                            {% if conv.last_message %}
+                                                {{ conv.last_message.created_at|timesince }} ago
+                                            {% else %}
+                                                {{ conv.conversation.created_at|timesince }} ago
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <div class="no-conversations">
+                            <i class="fas fa-comments fa-3x mb-3"></i>
+                            <h5>No conversations yet</h5>
+                            <p class="mb-3">Start messaging your connections to see conversations here.</p>
+                            <a href="{% url 'connections:my_connections' %}" class="btn btn-primary">
+                                <i class="fas fa-users me-1"></i>View My Connections
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <!-- Conversation Detail Area -->
+        <div class="col-lg-8">
+            <div class="messages-card h-100" id="conversation-detail">
+                <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 500px;">
+                    <div class="text-center text-muted">
+                        <i class="fas fa-comments fa-3x mb-3"></i>
+                        <h5>Select a conversation</h5>
+                        <p>Choose a conversation from the left to start messaging</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Create Message Modal -->
+{% csrf_token %}
+<div class="modal fade" id="createMessageModal" tabindex="-1" aria-labelledby="createMessageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="createMessageModalLabel">
+                    <i class="fas fa-paper-plane me-2"></i>New Message
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- User Search -->
+                <div class="mb-4">
+                    <label for="userSearch" class="form-label fw-semibold">
+                        <i class="fas fa-search me-1"></i>Search for a user
+                    </label>
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="userSearch" placeholder="Enter a name to search..." autocomplete="off">
+                        <button class="btn btn-primary" type="button" id="searchUserBtn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <div class="form-text">Enter a name and click search to find connected alumni</div>
+                </div>
+
+                <!-- Search Results -->
+                <div id="searchResults" class="mb-4" style="display: none;">
+                    <div class="search-results-container">
+                        <div class="search-loading" style="display: none;">
+                            <div class="text-center py-3">
+                                <div class="spinner-border spinner-border-sm text-primary me-2" role="status"></div>
+                                <span>Searching...</span>
+                            </div>
+                        </div>
+                        <div class="search-results-list"></div>
+                        <div class="no-results" style="display: none;">
+                            <div class="text-center py-3 text-muted">
+                                <i class="fas fa-search me-1"></i>
+                                No connected alumni found
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Selected User -->
+                <div id="selectedUser" class="mb-4" style="display: none;">
+                    <label class="form-label fw-semibold">
+                        <i class="fas fa-user me-1"></i>Sending to
+                    </label>
+                    <div class="selected-user-card">
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div class="d-flex align-items-center">
+                                <img class="selected-user-avatar me-3" src="" alt="">
+                                <div>
+                                    <div class="selected-user-name fw-semibold"></div>
+                                    <div class="selected-user-title text-muted small"></div>
+                                </div>
+                            </div>
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clearSelection">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Message Input -->
+                <div class="mb-3">
+                    <label for="messageContent" class="form-label fw-semibold">
+                        <i class="fas fa-comment me-1"></i>Your message
+                    </label>
+                    <textarea class="form-control" id="messageContent" rows="4" placeholder="Type your message here..." disabled></textarea>
+                    <div class="form-text">Select a user first to enable message input</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" id="sendMessageBtn" disabled>
+                    <i class="fas fa-paper-plane me-1"></i>Send Message
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/htmx.org@1.9.10"></script>
+
+<script>
+// Global variables
+let selectedUserId = null;
+
+// Debug function for testing from console
+window.testSearch = function() {
+    console.log('=== Testing search functionality ===');
+    const userSearch = document.getElementById('userSearch');
+    if (userSearch) {
+        userSearch.value = 'test';
+        performUserSearch();
+    } else {
+        console.error('Search input not found');
+    }
+};
+
+// Make functions globally accessible for debugging
+window.performUserSearch = performUserSearch;
+
+// User search functionality
+function performUserSearch() {
+    console.log('=== performUserSearch called ===');
+
+    const userSearch = document.getElementById('userSearch');
+    const searchResults = document.getElementById('searchResults');
+    const searchResultsList = document.querySelector('.search-results-list');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+
+    console.log('Elements found:', {
+        userSearch: !!userSearch,
+        searchResults: !!searchResults,
+        searchResultsList: !!searchResultsList,
+        csrfToken: !!csrfToken
+    });
+
+    if (!userSearch || !searchResults || !searchResultsList || !csrfToken) {
+        console.error('Required elements not found:', {
+            userSearch: userSearch,
+            searchResults: searchResults,
+            searchResultsList: searchResultsList,
+            csrfToken: csrfToken
+        });
+        alert('Search functionality not properly initialized. Please refresh the page and try again.');
+        return;
+    }
+
+    const query = userSearch.value.trim();
+    console.log('Search query:', query);
+
+    if (query.length < 2) {
+        console.log('Query too short, hiding results');
+        searchResults.style.display = 'none';
+        return;
+    }
+
+    // Show loading state
+    console.log('Showing loading state');
+    searchResultsList.innerHTML = `
+        <div class="text-center p-3">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Searching...</span>
+            </div>
+            <div class="mt-2">Searching for "${query}"...</div>
+        </div>
+    `;
+    searchResults.style.display = 'block';
+
+    // Make API call
+    const apiUrl = `/profile/api/search-connected-users/?q=${encodeURIComponent(query)}`;
+    console.log('Making API call to:', apiUrl);
+    console.log('CSRF Token:', csrfToken.value);
+
+    fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': csrfToken.value
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => {
+        console.log('API Response received:', response.status, response.statusText);
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(users => {
+        console.log('API Response data:', users);
+        searchResultsList.innerHTML = '';
+
+        if (users.length === 0) {
+            console.log('No users found, showing empty state');
+            searchResultsList.innerHTML = `
+                <div class="text-center p-4">
+                    <i class="fas fa-user-slash fa-2x text-muted mb-2"></i>
+                    <p class="mb-0">No connected alumni found matching "${query}"</p>
+                    <small class="text-muted">You can only message users you are connected with</small>
+                </div>
+            `;
+        } else {
+            console.log(`Found ${users.length} users, displaying results`);
+            users.forEach(user => {
+                const userItem = document.createElement('div');
+                userItem.className = 'search-result-item';
+                userItem.style.cursor = 'pointer';
+                userItem.onclick = () => selectUser(user);
+
+                userItem.innerHTML = `
+                    <img src="${user.avatar_url || '/static/images/default-avatar.png'}"
+                         alt="${user.full_name}" class="search-result-avatar">
+                    <div class="search-result-info">
+                        <div class="search-result-name">${user.full_name}</div>
+                        <div class="search-result-title">@${user.username}</div>
+                    </div>
+                `;
+
+                searchResultsList.appendChild(userItem);
+            });
+        }
+    })
+    .catch(error => {
+        console.error('Error searching users:', error);
+        searchResultsList.innerHTML = `
+            <div class="text-center p-4">
+                <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                <p class="mb-0">Error searching users: ${error.message}</p>
+                <div class="mt-2">
+                    <button class="btn btn-sm btn-outline-primary" onclick="performUserSearch()">
+                        Try Again
+                    </button>
+                </div>
+            </div>
+        `;
+    });
+}
+
+// Select a user
+function selectUser(user) {
+    selectedUserId = user.id;
+
+    // Hide search results
+    const searchResults = document.getElementById('searchResults');
+    const userSearch = document.getElementById('userSearch');
+    const selectedUserDiv = document.getElementById('selectedUser');
+    const messageContent = document.getElementById('messageContent');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+    if (searchResults) searchResults.style.display = 'none';
+    if (userSearch) userSearch.value = '';
+
+    // Show selected user
+    if (selectedUserDiv) {
+        selectedUserDiv.style.display = 'block';
+        const avatar = selectedUserDiv.querySelector('.selected-user-avatar');
+        const name = selectedUserDiv.querySelector('.selected-user-name');
+        const title = selectedUserDiv.querySelector('.selected-user-title');
+
+        if (avatar) avatar.src = user.avatar_url || '/static/images/default-avatar.png';
+        if (name) name.textContent = user.full_name;
+        if (title) title.textContent = `@${user.username}`;
+    }
+
+    // Enable message input and send button
+    if (messageContent) {
+        messageContent.disabled = false;
+        messageContent.focus();
+    }
+    if (sendMessageBtn) {
+        sendMessageBtn.disabled = false;
+    }
+
+    const formText = document.querySelector('#messageContent + .form-text');
+    if (formText) {
+        formText.textContent = 'Type your message here';
+    }
+}
+
+// Clear user selection
+function clearUserSelection() {
+    selectedUserId = null;
+
+    const selectedUserDiv = document.getElementById('selectedUser');
+    const messageContent = document.getElementById('messageContent');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+    // Hide selected user
+    if (selectedUserDiv) {
+        selectedUserDiv.style.display = 'none';
+    }
+
+    // Disable message input and send button
+    if (messageContent) {
+        messageContent.disabled = true;
+        messageContent.value = '';
+    }
+    if (sendMessageBtn) {
+        sendMessageBtn.disabled = true;
+    }
+
+    const formText = document.querySelector('#messageContent + .form-text');
+    if (formText) {
+        formText.textContent = 'Select a user first to enable message input';
+    }
+}
+
+// Reset modal state
+function resetModalState() {
+    const userSearch = document.getElementById('userSearch');
+    const messageContent = document.getElementById('messageContent');
+    const searchResults = document.getElementById('searchResults');
+    const selectedUser = document.getElementById('selectedUser');
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+    if (userSearch) userSearch.value = '';
+    if (messageContent) messageContent.value = '';
+    if (searchResults) searchResults.style.display = 'none';
+    if (selectedUser) selectedUser.style.display = 'none';
+
+    selectedUserId = null;
+    if (messageContent) messageContent.disabled = true;
+    if (sendMessageBtn) {
+        sendMessageBtn.disabled = true;
+        sendMessageBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Send Message';
+    }
+
+    const formText = document.querySelector('#messageContent + .form-text');
+    if (formText) {
+        formText.textContent = 'Select a user first to enable message input';
+    }
+}
+
+// Send new message
+function sendNewMessage() {
+    const messageContent = document.getElementById('messageContent').value.trim();
+    const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+    if (!selectedUserId || !messageContent) {
+        alert('Please select a user and enter a message.');
+        return;
+    }
+
+    // Disable button to prevent double submission
+    if (sendMessageBtn) {
+        sendMessageBtn.disabled = true;
+        sendMessageBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Sending...';
+    }
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Send message
+    fetch(`/connections/send-message/${selectedUserId}/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `content=${encodeURIComponent(messageContent)}`
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        if (data.success) {
+            // Close modal
+            const modal = bootstrap.Modal.getInstance(document.getElementById('createMessageModal'));
+            if (modal) {
+                modal.hide();
+            }
+
+            // Redirect to the conversation
+            window.location.href = `/connections/messages/${selectedUserId}/`;
+        } else {
+            alert(data.error || 'Failed to send message. Please try again.');
+        }
+    })
+    .catch(error => {
+        console.error('Send message error:', error);
+        alert('Failed to send message. Please try again.');
+    })
+    .finally(() => {
+        // Re-enable button
+        if (sendMessageBtn) {
+            sendMessageBtn.disabled = false;
+            sendMessageBtn.innerHTML = '<i class="fas fa-paper-plane me-1"></i>Send Message';
+        }
+    });
+}
+
+// Initialize modal functionality
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, initializing modal functionality');
+    const createMessageModal = document.getElementById('createMessageModal');
+
+    if (createMessageModal) {
+        console.log('Modal found, setting up event listeners');
+
+        let modalInitialized = false;
+
+        // Initialize when modal is shown
+        createMessageModal.addEventListener('shown.bs.modal', function() {
+            console.log('Modal shown event triggered');
+
+            if (modalInitialized) {
+                console.log('Modal already initialized, skipping');
+                return;
+            }
+
+            const userSearch = document.getElementById('userSearch');
+            const searchUserBtn = document.getElementById('searchUserBtn');
+            const clearSelection = document.getElementById('clearSelection');
+            const sendMessageBtn = document.getElementById('sendMessageBtn');
+
+            console.log('Modal elements found:', {
+                userSearch: !!userSearch,
+                searchUserBtn: !!searchUserBtn,
+                clearSelection: !!clearSelection,
+                sendMessageBtn: !!sendMessageBtn
+            });
+
+            // Add search button event listener
+            if (searchUserBtn) {
+                console.log('Adding search button event listener');
+                searchUserBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Search button clicked');
+                    performUserSearch();
+                });
+            } else {
+                console.error('Search button not found!');
+            }
+
+            // Add Enter key listener to search input
+            if (userSearch) {
+                console.log('Adding search input event listeners');
+                userSearch.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        console.log('Enter key pressed in search input');
+                        performUserSearch();
+                    }
+                });
+
+                // Hide results when input is cleared
+                userSearch.addEventListener('input', function(e) {
+                    if (e.target.value.trim().length === 0) {
+                        const searchResults = document.getElementById('searchResults');
+                        if (searchResults) {
+                            searchResults.style.display = 'none';
+                        }
+                    }
+                });
+            } else {
+                console.error('Search input not found!');
+            }
+
+            // Add clear selection event listener
+            if (clearSelection) {
+                clearSelection.addEventListener('click', function() {
+                    console.log('Clear selection clicked');
+                    clearUserSelection();
+                });
+            }
+
+            // Add send message event listener
+            if (sendMessageBtn) {
+                sendMessageBtn.addEventListener('click', function() {
+                    console.log('Send message clicked');
+                    sendNewMessage();
+                });
+            }
+
+            modalInitialized = true;
+            console.log('Modal initialization complete');
+        });
+
+        // Reset modal when hidden
+        createMessageModal.addEventListener('hidden.bs.modal', function() {
+            console.log('Modal hidden, resetting state');
+            resetModalState();
+            modalInitialized = false; // Allow re-initialization
+        });
+    } else {
+        console.error('Modal not found!');
+    }
+});
+
+// Search functionality for conversations list
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+    const sortSelect = document.getElementById('sortSelect');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            const searchTerm = this.value.toLowerCase();
+            const conversations = document.querySelectorAll('.conversation-item');
+
+            conversations.forEach(function(conversation) {
+                const name = conversation.querySelector('.conversation-name').textContent.toLowerCase();
+                const position = conversation.querySelector('.conversation-position');
+                const positionText = position ? position.textContent.toLowerCase() : '';
+                const messagePreview = conversation.querySelector('.message-preview').textContent.toLowerCase();
+
+                if (name.includes(searchTerm) || positionText.includes(searchTerm) || messagePreview.includes(searchTerm)) {
+                    conversation.style.display = 'block';
+                } else {
+                    conversation.style.display = 'none';
+                }
+            });
+        });
+    }
+
+    // Sort functionality
+    if (sortSelect) {
+        sortSelect.addEventListener('change', function() {
+            const sortBy = this.value;
+            const container = document.getElementById('conversationsList');
+            const conversations = Array.from(document.querySelectorAll('.conversation-item'));
+
+            conversations.sort(function(a, b) {
+                switch(sortBy) {
+                    case 'alphabetical':
+                        const nameA = a.querySelector('.conversation-name').textContent.trim();
+                        const nameB = b.querySelector('.conversation-name').textContent.trim();
+                        return nameA.localeCompare(nameB);
+
+                    case 'unread':
+                        const unreadA = a.classList.contains('unread') ? 1 : 0;
+                        const unreadB = b.classList.contains('unread') ? 1 : 0;
+                        return unreadB - unreadA;
+
+                    case 'recent':
+                    default:
+                        // Keep original order for recent
+                        return 0;
+                }
+            });
+
+            // Re-append sorted conversations
+            conversations.forEach(function(conversation) {
+                container.appendChild(conversation);
+            });
+        });
+    }
+});
+
+// Function to set active conversation
+function setActiveConversation(element) {
+    // Remove active class from all conversation items
+    document.querySelectorAll('.conversation-item').forEach(function(item) {
+        item.classList.remove('active');
+    });
+
+    // Add active class to clicked item
+    element.classList.add('active');
+}
+</script>
+{% endblock %}

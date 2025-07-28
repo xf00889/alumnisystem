@@ -1,17 +1,114 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 {% load mentorship_extras %}
 
 {% block title %}Mentor Dashboard{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/mentorship.css' %}">
 <style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Color */
+        --primary-color: #2b3c6b;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    .dashboard-header .btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.875rem;
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        transition: all 0.3s ease;
+    }
+    
+    .dashboard-header .btn:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.4);
+        color: var(--text-light);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        transform: translateY(-1px);
+    }
+    
+    .dashboard-header .btn-outline-primary {
+        background: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--text-light);
+    }
+    
+    .dashboard-header .btn-outline-primary:hover {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: var(--text-light);
+    }
+    
     /* Dashboard Layout */
     .dashboard-container {
         padding: 2rem;
         max-width: 1200px;
         margin: 0 auto;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
     }
     
     /* Gradient Backgrounds */
@@ -609,49 +706,53 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid">
 {% csrf_token %}
     <!-- Dashboard Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center">
-                {% if mentor.user.profile.avatar %}
-                    <img src="{{ mentor.user.profile.avatar.url }}" alt="{{ mentor.user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-                {% else %}
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
-                        <i class="fas fa-user fa-2x"></i>
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    {% if mentor.user.profile.avatar %}
+                        <img src="{{ mentor.user.profile.avatar.url }}" alt="{{ mentor.user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-white bg-opacity-25 d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-user fa-2x text-white"></i>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h1 class="mb-0"><i class="fas fa-chalkboard-teacher me-3"></i>Welcome back, {{ mentor.user.get_full_name }}</h1>
+                        <p class="mb-0">
+                            <i class="fas fa-map-marker-alt me-1"></i> {{ mentor.user.profile.location|default:"Location not set" }}
+                            {% if mentor.user.profile.current_position %}
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-briefcase me-1"></i> {{ mentor.user.profile.current_position }}
+                            {% endif %}
+                        </p>
+                    </div>
                 </div>
-                {% endif %}
-                <div>
-                    <h2 class="mb-0">Welcome back, {{ mentor.user.get_full_name }}</h2>
-                    <p class="text-muted mb-0">
-                        <i class="fas fa-map-marker-alt me-1"></i> {{ mentor.user.profile.location|default:"Location not set" }}
-                        {% if mentor.user.profile.current_position %}
-                            <span class="mx-2">|</span>
-                            <i class="fas fa-briefcase me-1"></i> {{ mentor.user.profile.current_position }}
-                        {% endif %}
-                    </p>
+            </div>
+            <div class="col-md-4 text-end">
+                <div class="d-flex align-items-center justify-content-end">
+                    <div class="me-3">
+                        <!-- Availability Toggle -->
+                        <div class="form-check form-switch">
+                            <input class="form-check-input" type="checkbox" id="availabilityToggle"
+                                   {% if mentor.accepting_mentees %}checked{% endif %}
+                                   data-mentor-id="{{ mentor.id }}"
+                                   onchange="toggleAvailability()">
+                            <label class="form-check-label text-white" for="availabilityToggle">
+                                Accepting New Mentees
+                            </label>
+                        </div>
+                    </div>
+                    <a href="{% url 'accounts:profile_detail' mentor.user.username %}" class="btn btn-outline-primary">
+                        <i class="fas fa-user-edit me-1"></i> Edit Profile
+                    </a>
                 </div>
             </div>
         </div>
-        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
-            <div class="me-3">
-                <!-- Availability Toggle -->
-                <div class="form-check form-switch">
-                    <input class="form-check-input" type="checkbox" id="availabilityToggle"
-                           {% if mentor.accepting_mentees %}checked{% endif %}
-                           data-mentor-id="{{ mentor.id }}"
-                           onchange="toggleAvailability()">
-                    <label class="form-check-label" for="availabilityToggle">
-                        Accepting New Mentees
-                    </label>
-                </div>
-            </div>
-            <a href="{% url 'accounts:profile_detail' mentor.user.username %}" class="btn btn-outline-primary">
-                <i class="fas fa-user-edit me-1"></i> Edit Profile
-            </a>
-        </div>
-        </div>
+    </div>
 
         <!-- Stats Overview -->
     <div class="row mb-4">
@@ -21325,5 +21426,5 @@ function updateMeetingLink() {
     });
 }
 </div> <!-- Close container -->
-{% endblock %} 
+{% endblock %}
 

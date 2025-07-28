@@ -4,6 +4,26 @@
  * for announcement creation, updating, and deletion.
  */
 
+/**
+ * Get cookie value by name
+ * @param {string} name - Cookie name
+ * @returns {string|null} Cookie value or null
+ */
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
 // Default configuration for SweetAlert notifications
 const defaultConfig = {
     position: 'center',
@@ -97,6 +117,45 @@ function showErrorAlert(message) {
 }
 
 /**
+ * Show loading indicator for long-running processes
+ * @param {string} title - Title to display in the loading alert
+ * @param {string} message - Message to display in the loading alert
+ * @returns {Object} - SweetAlert2 instance that can be closed with Swal.close()
+ */
+function showLoadingIndicator(title, message) {
+    return Swal.fire({
+        title: title || 'Processing',
+        html: `<div class="text-center">
+                <p>${message || 'Please wait while we process your request...'}</p>
+                <div class="progress mt-3" style="height: 15px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 100%"></div>
+                </div>
+               </div>`,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+}
+
+/**
+ * Show loading indicator specifically for crawling jobs
+ * @param {string} source - Source of jobs being crawled
+ * @param {string} category - Category of jobs being crawled (optional)
+ * @returns {Object} - SweetAlert2 instance that can be closed with Swal.close()
+ */
+function showJobCrawlingIndicator(source, category) {
+    const categoryText = category ? category : 'all categories';
+    return showLoadingIndicator(
+        'Crawling Jobs',
+        `<p>Crawling ${categoryText} from ${source}...</p>
+        <p class="small text-muted">This process may take a few minutes. Please be patient.</p>`
+    );
+}
+
+/**
  * Process Django messages and display them as SweetAlert notifications
  * This function can be called on page load to convert Django messages to SweetAlert
  */
@@ -166,7 +225,15 @@ function confirmAnnouncementDeletion(title, deleteUrl, redirectUrl) {
     }).then((result) => {
         if (result.isConfirmed) {
             // Send delete request
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+            // Try to get CSRF token from different sources
+            let csrfToken;
+            const csrfElement = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfElement) {
+                csrfToken = csrfElement.value;
+            } else {
+                // Fallback to cookie if meta tag not found
+                csrfToken = getCookie('csrftoken');
+            }
             
             fetch(deleteUrl, {
                 method: 'POST',
@@ -203,6 +270,8 @@ window.SweetAlertUtils = {
     showAnnouncementUpdatedAlert,
     showAnnouncementDeletedAlert,
     showErrorAlert,
+    showLoadingIndicator,
+    showJobCrawlingIndicator,
     processDjangoMessages,
     confirmAnnouncementDeletion
-}; 
+};

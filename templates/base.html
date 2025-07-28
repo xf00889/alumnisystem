@@ -10,714 +10,547 @@
     {% endif %}
     <title>{% block title %}NORSU Alumni Tracking System{% endblock title %}</title>
     
-    <!-- Google Fonts - Inter -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Google Fonts - Poppins -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
     <!-- Chart.js -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.css">
-    <!-- Base CSS -->
-    <style>
-        :root {
-            --primary-color: #2b3c6b;
-            --primary-dark: #1a2544;
-            --primary-light: #3c4f8a;
-            --text-light: #f8f9fa;
-            --font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-size-xs: 0.75rem;
-            --font-size-sm: 0.875rem;
-            --font-size-base: 1rem;
-            --font-size-lg: 1.125rem;
-            --font-size-xl: 1.25rem;
-            --line-height-tight: 1.25;
-            --line-height-normal: 1.5;
-            --line-height-relaxed: 1.75;
-            --font-weight-light: 300;
-            --font-weight-normal: 400;
-            --font-weight-medium: 500;
-            --font-weight-semibold: 600;
-            --font-weight-bold: 700;
-            --letter-spacing-tight: -0.025em;
-            --letter-spacing-normal: 0;
-            --letter-spacing-wide: 0.025em;
-            --scrollbar-width: calc(100vw - 100%);
-        }
-
-        /* Prevent layout shift */
-        html {
-            overflow-y: scroll;
-            scrollbar-gutter: stable;
-            height: 100%;
-        }
-
-        body {
-            min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            font-family: var(--font-primary);
-            font-size: var(--font-size-base);
-            line-height: var(--line-height-normal);
-            -webkit-font-smoothing: antialiased;
-            -moz-osx-font-smoothing: grayscale;
-            padding-right: 0 !important; /* Prevent padding shift when modal opens */
-            background-color: #fff;
-        }
-
-        /* Custom scrollbar styling */
-        ::-webkit-scrollbar {
-            width: 8px;
-        }
-
-        ::-webkit-scrollbar-track {
-            background: #f1f1f1;
-        }
-
-        ::-webkit-scrollbar-thumb {
-            background: var(--primary-color);
-            border-radius: 4px;
-        }
-
-        ::-webkit-scrollbar-thumb:hover {
-            background: var(--primary-dark);
-        }
-
-        /* Modal fixes */
-        .modal-open {
-            padding-right: 0 !important;
-            overflow: auto !important;
-        }
-
-        .modal {
-            padding-right: 0 !important;
-        }
-
-        .modal-dialog {
-            padding-right: var(--scrollbar-width);
-        }
-
-        /* Headers */
-        h1, h2, h3, h4, h5, h6 {
-            font-family: var(--font-primary);
-            font-weight: var(--font-weight-semibold);
-            letter-spacing: var(--letter-spacing-tight);
-            line-height: var(--line-height-tight);
-        }
-
-        /* Navbar styles */
-        .navbar {
-            background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-            padding: 1rem 2rem;
-            box-shadow: 0 2px 15px rgba(0,0,0,0.1);
-            font-family: var(--font-primary);
-            font-weight: var(--font-weight-medium);
-            position: fixed;
-            top: 0;
-            right: 0;
-            left: 0;
-            z-index: 1030;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-
-        .navbar-brand {
-            font-size: var(--font-size-xl);
-            font-weight: var(--font-weight-bold);
-            letter-spacing: var(--letter-spacing-tight);
-            color: var(--text-light) !important;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            margin-right: 3rem;
-            flex-shrink: 0;
-            min-width: 200px;
-            padding: 0.5rem 1rem;
-        }
-
-        .navbar-brand i {
-            font-size: 1.8rem;
-            color: var(--text-light);
-        }
-
-        .navbar-brand img {
-            height: 40px;
-            width: auto;
-            margin-right: 10px;
-        }
-
-        .navbar-brand {
-            display: flex;
-            align-items: center;
-        }
-
-        .nav-link {
-            color: var(--text-light) !important;
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-medium);
-            letter-spacing: var(--letter-spacing-wide);
-            padding: 0.5rem 1rem !important;
-            transition: all 0.3s ease;
-        }
-
-        .nav-link:hover {
-            color: rgba(255,255,255,0.8) !important;
-            transform: translateY(-1px);
-        }
-
-        .nav-link.active {
-            background-color: var(--primary-light);
-            border-radius: 4px;
-        }
-
-        .navbar-nav .nav-item {
-            margin: 0 0.25rem;
-        }
-
-        /* Dropdown styles */
-        .dropdown-menu {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            padding: 1rem 0;
-            margin-top: 1rem;
-            font-family: var(--font-primary);
-            font-size: var(--font-size-sm);
-        }
-
-        .dropdown-item {
-            padding: 0.7rem 1.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            transition: all 0.3s ease;
-            color: var(--primary-color);
-            font-weight: var(--font-weight-normal);
-            letter-spacing: var(--letter-spacing-normal);
-        }
-
-        .dropdown-item:hover {
-            background: rgba(43, 60, 107, 0.05);
-            color: var(--primary-color);
-            transform: translateX(5px);
-        }
-
-        .dropdown-item i {
-            width: 20px;
-            text-align: center;
-            color: var(--primary-color);
-        }
-
-        .dropdown-divider {
-            margin: 0.5rem 0;
-            border-color: rgba(0,0,0,0.05);
-        }
-
-        /* Auth Buttons */
-        .auth-buttons .nav-link {
-            margin-left: 0.5rem;
-        }
-
-        .nav-link.btn-login {
-            background: rgba(255,255,255,0.15);
-            padding: 0.5rem 1.5rem !important;
-        }
-
-        .nav-link.btn-register {
-            background: white;
-            color: var(--primary-color) !important;
-            padding: 0.5rem 1.5rem !important;
-        }
-
-        .nav-link.btn-register:hover {
-            background: rgba(255,255,255,0.9);
-            color: var(--primary-dark) !important;
-        }
-
-        /* User Avatar */
-        .user-avatar {
-            width: 35px;
-            height: 35px;
-            border-radius: 50%;
-            object-fit: cover;
-            margin-right: 0.5rem;
-        }
-
-        /* Mobile optimizations */
-        @media (max-width: 768px) {
-            .navbar-brand {
-                font-size: var(--font-size-lg);
-            }
-
-            .nav-link {
-                font-size: var(--font-size-base);
-            }
-        }
-
-        /* Mobile Navigation */
-        @media (max-width: 991.98px) {
-            .navbar {
-                padding: 0.75rem 1rem;
-            }
-
-            .navbar-brand {
-                margin-right: 1rem;
-                min-width: auto;
-            }
-
-            .navbar-collapse {
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                background: var(--primary-color);
-                padding: 1rem;
-                border-radius: 0 0 15px 15px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-            }
-
-            .navbar-nav.me-auto {
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 0.5rem;
-            }
-
-            .navbar-nav.auth-buttons {
-                position: static;
-                margin-top: 1rem;
-                justify-content: center;
-                width: 100%;
-            }
-        }
-
-        /* Toast styles */
-        .toast {
-            min-width: 300px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            border-radius: 8px;
-            overflow: hidden;
-            font-family: var(--font-primary);
-            font-size: var(--font-size-sm);
-            font-weight: var(--font-weight-medium);
-        }
-
-        .toast.bg-success {
-            background: rgba(25, 135, 84, 0.95) !important;
-        }
-
-        .toast.bg-danger {
-            background: rgba(220, 53, 69, 0.95) !important;
-        }
-
-        .toast.bg-warning {
-            background: rgba(255, 193, 7, 0.95) !important;
-            color: #000 !important;
-        }
-
-        .toast.bg-info {
-            background: rgba(13, 202, 240, 0.95) !important;
-        }
-
-        .toast-body {
-            padding: 1rem;
-        }
-
-        .toast .btn-close-white {
-            opacity: 0.8;
-            transition: opacity 0.2s;
-        }
-
-        .toast .btn-close-white:hover {
-            opacity: 1;
-        }
-
-        @media (max-width: 576px) {
-            .toast {
-                min-width: auto;
-                width: calc(100vw - 2rem);
-                margin: 0 1rem;
-            }
-        }
-
-        /* Add padding to main content to account for fixed navbar */
-        main {
-            flex: 1 0 auto;
-            padding-top: 76px; /* Adjust this value based on your navbar height */
-        }
-
-        footer {
-            flex-shrink: 0;
-            background-color: #212529;
-            color: var(--text-light);
-            padding: 3rem 0;
-            margin-top: 0;
-            font-family: var(--font-primary);
-            font-size: var(--font-size-sm);
-        }
-
-        footer h5 {
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-semibold);
-            letter-spacing: var(--letter-spacing-tight);
-        }
-
-        /* Update the navbar container styles */
-        .navbar .container {
-            max-width: 1200px;
-            width: 95%;
-            margin: 0 auto;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            position: relative;
-        }
-
-        .navbar-collapse {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .navbar-nav.me-auto {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 1rem;
-            margin: 0 auto;
-            padding: 0;
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-        }
-
-        .navbar-nav.auth-buttons {
-            margin-left: auto;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            position: absolute;
-            right: 0;
-        }
-
-        .navbar-nav .nav-link {
-            font-size: 1.2rem;
-            min-width: 40px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-            padding: 0 !important;
-            transition: all 0.3s ease;
-            position: relative;
-        }
-
-        .navbar-nav .nav-link i {
-            font-size: 1.2rem;
-        }
-
-        /* Remove the span styles since we're not using text */
-        .navbar-nav .nav-link span {
-            display: none;
-        }
-
-        /* Active link styles */
-        .navbar-nav .nav-link.active {
-            background-color: rgba(255, 255, 255, 0.1);
-            box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.2);
-        }
-
-        .navbar-nav .nav-link:hover {
-            background-color: rgba(255, 255, 255, 0.15);
-        }
-
-        .navbar-nav .nav-link.active i {
-            transform: scale(1.1);
-        }
-
-        /* Mobile Navigation Adjustments */
-        @media (max-width: 991.98px) {
-            .navbar-collapse {
-                padding: 1rem;
-                background: var(--primary-color);
-                border-radius: 15px;
-                margin-top: 1rem;
-                position: absolute;
-                top: 100%;
-                left: 0;
-                right: 0;
-                z-index: 1000;
-            }
-
-            .navbar-nav.me-auto {
-                position: static;
-                transform: none;
-                flex-direction: row;
-                flex-wrap: wrap;
-                justify-content: center;
-                gap: 0.5rem;
-                margin: 0 0 1rem 0;
-            }
-
-            .navbar-nav.auth-buttons {
-                position: static;
-                justify-content: center;
-                width: 100%;
-                margin-top: 1rem;
-            }
-
-            .navbar-nav .nav-link {
-                min-width: 80px;
-                padding: 0.5rem 0.3rem !important;
-            }
-        }
-
-        /* Update the profile dropdown for better alignment */
-        .navbar .profile-dropdown .nav-link {
-            min-width: 45px;
-            padding: 0.75rem 1rem !important;
-            margin: 0 0.4rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .navbar .profile-dropdown .dropdown-menu {
-            padding: 0.75rem;
-            margin-top: 0.5rem;
-        }
-
-        .navbar .profile-dropdown .dropdown-item {
-            padding: 0.75rem 1rem;
-            border-radius: 8px;
-        }
-
-        /* Add notification badge styles */
-        .notification-badge {
-            position: relative;
-            display: inline-block;
-        }
-
-        .badge-dot {
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 8px;
-            height: 8px;
-            background-color: #dc3545;
-            border-radius: 50%;
-            border: 2px solid var(--primary-color);
-        }
-
-        /* Sidebar styles for superuser */
-        .sidebar {
-            position: fixed;
-            top: 0;
-            left: 0;
-            height: 100vh;
-            width: 250px;
-            background: var(--primary-color);
-            color: var(--text-light);
-            padding: 1rem;
-            z-index: 1040;
-            transition: all 0.3s ease;
-            overflow-y: auto;
-        }
-
-        .sidebar-header {
-            padding: 1rem;
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-            margin-bottom: 1rem;
-        }
-
-        .sidebar-header img {
-            height: 40px;
-            width: auto;
-        }
-
-        .sidebar-header h5 {
-            margin: 0;
-            font-size: var(--font-size-lg);
-            font-weight: var(--font-weight-bold);
-        }
-
-        .sidebar-nav {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .sidebar-nav .nav-item {
-            margin: 0.5rem 0;
-        }
-
-        .sidebar-nav .nav-link {
-            display: flex;
-            align-items: center;
-            padding: 0.75rem 1rem;
-            color: var(--text-light);
-            text-decoration: none;
-            border-radius: 8px;
-            transition: all 0.3s ease;
-            gap: 1rem;
-        }
-
-        .sidebar-nav .nav-link:hover {
-            background: rgba(255, 255, 255, 0.1);
-            transform: translateX(5px);
-        }
-
-        .sidebar-nav .nav-link.active {
-            background: rgba(255, 255, 255, 0.1);
-            position: relative;
-        }
-
-        .sidebar-nav .nav-link.active::before {
-            content: '';
-            position: absolute;
-            left: 0;
-            top: 0;
-            height: 100%;
-            width: 4px;
-            background: rgba(255, 255, 255, 0.5);
-            border-radius: 0 2px 2px 0;
-        }
-
-        .sidebar-nav .nav-link i {
-            width: 20px;
-            text-align: center;
-            font-size: 1.1rem;
-        }
-
-        /* Page header styles */
-        .page-header {
-            background: white;
-            padding: 1.5rem 0;
-            margin-top: 1rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-            width: 100%;
-        }
-
-        .page-header .container {
-            max-width: 1400px;
-            width: 98%;
-            margin: 0 auto;
-            padding: 0 1.5rem;
-        }
-
-        .page-header .breadcrumb {
-            margin-bottom: 0.5rem;
-        }
-
-        .page-header .page-title {
-            font-size: 1.5rem;
-            margin-bottom: 0;
-            color: var(--primary-color);
-            font-weight: var(--font-weight-semibold);
-        }
-
-        /* Content wrapper styles */
-        .content-wrapper.with-sidebar {
-            margin-left: 250px;
-            margin-top: 0 !important;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            width: calc(100% - 250px);
-        }
-
-        .content-wrapper {
-            width: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: stretch;
-            margin: 0;
-            padding: 0;
-        }
-
-        /* Main content container */
-        .main-content {
-            width: 100%;
-            margin: 0;
-            padding: 0;
-            background: white;
-            min-height: calc(100vh - 76px); /* viewport height - navbar height */
-        }
-
-        /* Form container styles */
-        .form-container {
-            max-width: 1400px;
-            width: 98%;
-            margin: 0.5rem auto;
-            padding: 0;
-        }
-
-        .page-container {
-            max-width: 1400px;
-            width: 98%;
-            margin: 0.5rem auto;
-            padding: 0;
-        }
-
-        /* Responsive adjustments */
-        @media (max-width: 1400px) {
-            .content-wrapper.with-sidebar {
-                width: calc(100% - 250px);
-            }
-            
-            .form-container,
-            .page-container {
-                width: 98%;
-            }
-        }
-
-        @media (max-width: 768px) {
-            .content-wrapper.with-sidebar {
-                margin-left: 0;
-                width: 100%;
-            }
-            
-            .form-container,
-            .page-container {
-                width: 100%;
-                padding: 0 0.5rem;
-            }
-            
-            .page-header .container {
-                width: 100%;
-                padding: 0 0.5rem;
-            }
-            
-            .page-header .page-title {
-                font-size: 1.25rem;
-            }
-        }
-
-        /* Mobile adjustments for brand and dropdown */
-        @media (max-width: 991.98px) {
-            .navbar-brand {
-                padding: 0.5rem;
-            }
-            
-            .navbar .profile-dropdown .nav-link {
-                padding: 0.5rem !important;
-            }
-        }
-    </style>
+    <!-- External CSS Files -->
+    <link rel="stylesheet" href="{% static 'css/base.css' %}">
+    <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
+    <link rel="stylesheet" href="{% static 'css/toasts.css' %}">
     <!-- Custom CSS -->
-    {% block extra_css %}{% endblock extra_css %}
+     <style>
+         .sidebar {
+             min-height: 100vh;
+             background: #2b3c6b;
+             box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+         }
+         .sidebar .nav-link {
+             color: rgba(255,255,255,0.8);
+             padding: 0.75rem 1rem;
+             border-radius: 0.375rem;
+             margin: 0.125rem 0.5rem;
+             transition: all 0.3s ease;
+         }
+         .sidebar .nav-link:hover {
+             color: white;
+             background-color: rgba(255,255,255,0.1);
+             transform: translateX(5px);
+         }
+         .sidebar .nav-link.active {
+             color: white;
+             background-color: rgba(255,255,255,0.2);
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+         }
+         .sidebar .nav-link i {
+             width: 20px;
+             text-align: center;
+         }
+         .sidebar-brand {
+             font-weight: 600;
+             font-size: 1.25rem;
+             color: white !important;
+             text-decoration: none;
+             padding: 1rem;
+             border-bottom: 1px solid rgba(255,255,255,0.1);
+         }
+         .sidebar-brand:hover {
+             color: rgba(255,255,255,0.9) !important;
+         }
+         .main-content {
+             background-color: #f8f9fa;
+             min-height: 100vh;
+         }
+         .navbar-custom {
+             background: white;
+             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+             border-bottom: 1px solid #e9ecef;
+         }
+         .navbar-custom .navbar-brand {
+             font-weight: 600;
+             color: #495057;
+         }
+         
+         /* Enhanced Navigation Styles */
+         .nav-link-enhanced {
+             color: #6c757d;
+             font-weight: 500;
+             transition: all 0.3s ease;
+             border-radius: 0.5rem;
+             padding: 0.75rem 1rem;
+             position: relative;
+             display: flex;
+             align-items: center;
+         }
+         
+         .nav-link-enhanced:hover {
+             color: #495057;
+             background-color: rgba(0, 123, 255, 0.1);
+             transform: translateY(-1px);
+         }
+         
+         .nav-link-enhanced.active {
+             color: #007bff;
+             font-weight: 600;
+             background-color: rgba(0, 123, 255, 0.15);
+         }
+         
+         .nav-label {
+             font-size: 0.9rem;
+             font-weight: 500;
+         }
+         
+         /* Enhanced Dropdown Styles */
+         .dropdown-menu-enhanced {
+             border: none;
+             border-radius: 0.75rem;
+             padding: 0.5rem 0;
+             min-width: 280px;
+             background: white;
+             backdrop-filter: blur(10px);
+             border: 1px solid rgba(0, 0, 0, 0.1);
+         }
+         
+         .dropdown-item-enhanced {
+             padding: 0.75rem 1.25rem;
+             border-radius: 0.5rem;
+             margin: 0.125rem 0.5rem;
+             transition: all 0.3s ease;
+             display: flex;
+             align-items: center;
+             text-decoration: none;
+             color: #495057;
+         }
+         
+         .dropdown-item-enhanced:hover {
+             background-color: rgba(0, 123, 255, 0.1);
+             color: #007bff;
+             transform: translateX(5px);
+         }
+         
+         .dropdown-item-enhanced.active {
+             background-color: rgba(0, 123, 255, 0.15);
+             color: #007bff;
+             font-weight: 600;
+         }
+         
+         .dropdown-item-content {
+             flex: 1;
+         }
+         
+         .dropdown-item-content .fw-medium {
+             font-size: 0.95rem;
+             margin-bottom: 0.125rem;
+         }
+         
+         .dropdown-item-content small {
+             font-size: 0.8rem;
+             line-height: 1.2;
+         }
+         
+         .dropdown-header {
+             padding: 0.5rem 1.25rem 0.25rem;
+             margin-bottom: 0.25rem;
+             font-size: 0.85rem;
+             text-transform: uppercase;
+             letter-spacing: 0.5px;
+         }
+         
+         /* Badge Animation */
+         .pulse-animation {
+             animation: pulse 2s infinite;
+         }
+         
+         @keyframes pulse {
+             0% {
+                 transform: scale(1);
+             }
+             50% {
+                 transform: scale(1.1);
+             }
+             100% {
+                 transform: scale(1);
+             }
+         }
+         
+         /* Icon Colors */
+         .text-primary { color: #007bff !important; }
+         .text-info { color: #17a2b8 !important; }
+         .text-success { color: #28a745 !important; }
+         .text-warning { color: #ffc107 !important; }
+         .text-secondary { color: #6c757d !important; }
+         
+         /* Responsive Design */
+         @media (max-width: 1199.98px) {
+             .nav-label {
+                 display: none !important;
+             }
+         }
+         
+         @media (max-width: 991.98px) {
+             .dropdown-menu-enhanced {
+                 min-width: 250px;
+             }
+             
+             .nav-link-enhanced {
+                 padding: 0.5rem 0.75rem;
+             }
+         }
+         
+         .navbar-custom .nav-link {
+             color: #6c757d;
+             font-weight: 500;
+             transition: color 0.3s ease;
+         }
+         .navbar-custom .nav-link:hover {
+             color: #495057;
+         }
+         .navbar-custom .nav-link.active {
+             color: #007bff;
+             font-weight: 600;
+         }
+         .content-wrapper {
+             padding: 2rem;
+         }
+         @media (max-width: 768px) {
+             .sidebar {
+                 margin-left: -250px;
+             }
+             .sidebar.show {
+                 margin-left: 0;
+             }
+         }
+         
+         /* Modern Footer Styles */
+          .footer-modern {
+              background: #1a1a1a;
+              color: #ecf0f1;
+              margin-top: auto;
+              position: relative;
+              overflow: hidden;
+          }
+         
+         .footer-modern::before {
+             content: '';
+             position: absolute;
+             top: 0;
+             left: 0;
+             right: 0;
+             bottom: 0;
+             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="%23ffffff" opacity="0.03"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
+             pointer-events: none;
+         }
+         
+         .footer-content {
+             padding: 4rem 0 2rem;
+             position: relative;
+             z-index: 1;
+         }
+         
+         .footer-brand {
+             margin-bottom: 2rem;
+         }
+         
+         .brand-logo {
+             display: flex;
+             align-items: center;
+             margin-bottom: 1.5rem;
+         }
+         
+         .footer-logo {
+             width: 50px;
+             height: 50px;
+             margin-right: 1rem;
+             border-radius: 8px;
+             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+         }
+         
+         .brand-title {
+             color: #ffffff;
+             font-weight: 600;
+             margin: 0;
+             font-size: 1.5rem;
+             background: linear-gradient(45deg, #3498db, #2ecc71);
+             -webkit-background-clip: text;
+             -webkit-text-fill-color: transparent;
+             background-clip: text;
+         }
+         
+         .brand-description {
+             color: #bdc3c7;
+             line-height: 1.6;
+             margin-bottom: 1.5rem;
+             font-size: 0.95rem;
+         }
+         
+         .footer-stats {
+             display: flex;
+             gap: 2rem;
+         }
+         
+         .stat-item {
+             text-align: center;
+         }
+         
+         .stat-number {
+             display: block;
+             font-size: 1.5rem;
+             font-weight: 700;
+             color: #3498db;
+             margin-bottom: 0.25rem;
+         }
+         
+         .stat-label {
+             font-size: 0.85rem;
+             color: #95a5a6;
+             text-transform: uppercase;
+             letter-spacing: 0.5px;
+         }
+         
+         .footer-section {
+             margin-bottom: 2rem;
+         }
+         
+         .footer-title {
+             color: #ffffff;
+             font-weight: 600;
+             margin-bottom: 1.5rem;
+             font-size: 1.1rem;
+             position: relative;
+             padding-bottom: 0.5rem;
+         }
+         
+         .footer-title::after {
+             content: '';
+             position: absolute;
+             bottom: 0;
+             left: 0;
+             width: 30px;
+             height: 2px;
+             background: linear-gradient(45deg, #3498db, #2ecc71);
+             border-radius: 1px;
+         }
+         
+         .footer-links {
+             list-style: none;
+             padding: 0;
+             margin: 0;
+         }
+         
+         .footer-links li {
+             margin-bottom: 0.75rem;
+         }
+         
+         .footer-links a {
+             color: #bdc3c7;
+             text-decoration: none;
+             display: flex;
+             align-items: center;
+             transition: all 0.3s ease;
+             padding: 0.25rem 0;
+             border-radius: 4px;
+         }
+         
+         .footer-links a:hover {
+             color: #3498db;
+             transform: translateX(5px);
+             padding-left: 0.5rem;
+         }
+         
+         .footer-links a i {
+             width: 20px;
+             margin-right: 0.75rem;
+             font-size: 0.9rem;
+         }
+         
+         .contact-info {
+             margin-bottom: 2rem;
+         }
+         
+         .contact-item {
+             display: flex;
+             align-items: flex-start;
+             margin-bottom: 1rem;
+             padding: 0.5rem 0;
+         }
+         
+         .contact-item i {
+             color: #3498db;
+             margin-right: 1rem;
+             margin-top: 0.25rem;
+             width: 16px;
+             flex-shrink: 0;
+         }
+         
+         .contact-item span {
+             color: #bdc3c7;
+             line-height: 1.5;
+         }
+         
+         .social-section {
+             margin-top: 2rem;
+         }
+         
+         .social-title {
+             color: #ffffff;
+             font-weight: 500;
+             margin-bottom: 1rem;
+             font-size: 1rem;
+         }
+         
+         .social-icons {
+             display: flex;
+             gap: 0.75rem;
+             flex-wrap: wrap;
+         }
+         
+         .social-link {
+             display: flex;
+             align-items: center;
+             justify-content: center;
+             width: 45px;
+             height: 45px;
+             border-radius: 12px;
+             text-decoration: none;
+             transition: all 0.3s ease;
+             position: relative;
+             overflow: hidden;
+         }
+         
+         .social-link::before {
+             content: '';
+             position: absolute;
+             top: 0;
+             left: 0;
+             right: 0;
+             bottom: 0;
+             border-radius: 12px;
+             transition: all 0.3s ease;
+             z-index: 1;
+         }
+         
+         .social-link i {
+             position: relative;
+             z-index: 2;
+             font-size: 1.1rem;
+             color: #ffffff;
+         }
+         
+         .social-link.facebook::before {
+             background: linear-gradient(45deg, #3b5998, #4267B2);
+         }
+         
+         .social-link.twitter::before {
+             background: linear-gradient(45deg, #1da1f2, #0d8bd9);
+         }
+         
+         .social-link.linkedin::before {
+             background: linear-gradient(45deg, #0077b5, #005885);
+         }
+         
+         .social-link.instagram::before {
+             background: linear-gradient(45deg, #e4405f, #fd1d1d, #fcb045);
+         }
+         
+         .social-link.youtube::before {
+             background: linear-gradient(45deg, #ff0000, #cc0000);
+         }
+         
+         .social-link:hover {
+             transform: translateY(-3px) scale(1.05);
+             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
+         }
+         
+         .footer-bottom {
+             background: rgba(0,0,0,0.2);
+             padding: 1.5rem 0;
+             border-top: 1px solid rgba(255,255,255,0.1);
+             position: relative;
+             z-index: 1;
+         }
+         
+         .copyright {
+             color: #95a5a6;
+             margin: 0;
+             font-size: 0.9rem;
+         }
+         
+         .footer-bottom-links {
+             display: flex;
+             justify-content: flex-end;
+             gap: 1.5rem;
+             flex-wrap: wrap;
+         }
+         
+         .footer-bottom-links a {
+             color: #95a5a6;
+             text-decoration: none;
+             font-size: 0.9rem;
+             transition: color 0.3s ease;
+         }
+         
+         .footer-bottom-links a:hover {
+             color: #3498db;
+         }
+         
+         /* Responsive Design */
+         @media (max-width: 991.98px) {
+             .footer-content {
+                 padding: 3rem 0 1.5rem;
+             }
+             
+             .footer-stats {
+                 gap: 1rem;
+             }
+             
+             .social-icons {
+                 justify-content: center;
+             }
+         }
+         
+         @media (max-width: 767.98px) {
+             .footer-content {
+                 padding: 2.5rem 0 1rem;
+             }
+             
+             .brand-logo {
+                 justify-content: center;
+                 text-align: center;
+             }
+             
+             .footer-stats {
+                 justify-content: center;
+             }
+             
+             .footer-bottom-links {
+                 justify-content: center;
+                 margin-top: 1rem;
+             }
+             
+             .copyright {
+                 text-align: center;
+             }
+         }
+         
+         @media (max-width: 575.98px) {
+             .footer-bottom-links {
+                 flex-direction: column;
+                 align-items: center;
+                 gap: 0.75rem;
+             }
+             
+             .social-link {
+                 width: 40px;
+                 height: 40px;
+             }
+         }
+     </style>
+     {% block extra_css %}{% endblock extra_css %}
 </head>
 <body>
     {% if user.is_superuser %}
@@ -728,126 +561,175 @@
             <h5>NORSU Admin</h5>
         </div>
         <ul class="sidebar-nav">
+            <!-- DASHBOARD -->
             <li class="nav-item">
                 <a class="nav-link {% if request.resolver_match.url_name == 'admin_dashboard' %}active{% endif %}" 
                    href="{% url 'core:admin_dashboard' %}">
-                   <i class="fas fa-home"></i>
-                   <span>Dashboard</span>
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>Dashboard</span>
                 </a>
             </li>
+            
+            <!-- ALUMNI MANAGEMENT GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'alumni_groups' %}active{% endif %}" 
-                   href="{% url 'alumni_groups:group_list' %}">
-                    <i class="fas fa-users"></i>
-                    <span>Alumni Groups</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#alumni-management">
+                    Alumni Management
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="alumni-management">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'alumni_directory' %}active{% endif %}" 
+                       href="{% url 'alumni_directory:alumni_list' %}">
+                        <i class="fas fa-address-book"></i>
+                        <span>Alumni Directory</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'alumni_management' %}active{% endif %}" 
+                       href="{% url 'alumni_directory:alumni_management' %}">
+                        <i class="fas fa-table"></i>
+                        <span>Alumni Management</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'alumni_groups' %}active{% endif %}" 
+                       href="{% url 'alumni_groups:group_list' %}">
+                        <i class="fas fa-users"></i>
+                        <span>Alumni Groups</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'location_tracking' %}active{% endif %}" 
+                       href="{% url 'location_tracking:map' %}">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>Location Tracking</span>
+                    </a>
+                </div>
             </li>
+            
+            <!-- COMMUNICATIONS GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'alumni_directory' %}active{% endif %}" 
-                   href="{% url 'alumni_directory:alumni_list' %}">
-                    <i class="fas fa-address-book"></i>
-                    <span>Alumni Directory</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#communications">
+                    Communications
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="communications">
+                    <a class="nav-link {% if request.resolver_match.namespace == 'announcements' %}active{% endif %}" 
+                       href="{% url 'announcements:announcement-list' %}">
+                        <i class="fas fa-bullhorn"></i>
+                        <span>Announcements</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'events' %}active{% endif %}" 
+                       href="{% url 'events:event_list' %}">
+                        <i class="fas fa-calendar-alt"></i>
+                        <span>Events</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'feedback' %}active{% endif %}" 
+                       href="{% url 'feedback:manage_feedbacks' %}">
+                        <i class="fas fa-comment-dots"></i>
+                        <span>Feedbacks</span>
+                    </a>
+                </div>
             </li>
+            
+            <!-- CAREER SERVICES GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.namespace == 'announcements' %}active{% endif %}" 
-                   href="{% url 'announcements:announcement-list' %}">
-                    <i class="fas fa-bullhorn"></i>
-                    <span>Announcements</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#career-services">
+                    Career Services
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="career-services">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'jobs' %}active{% endif %}" 
+                       href="{% url 'jobs:job_list' %}">
+                        <i class="fas fa-briefcase"></i>
+                        <span>Job Board</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'job_scraper' %}active{% endif %}" 
+                       href="{% url 'jobs:job_scraper' %}">
+                        <i class="fas fa-search"></i>
+                        <span>Job Scraper</span>
+                    </a>
+                </div>
             </li>
+            
+            <!-- MENTORSHIP GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'events' %}active{% endif %}" 
-                   href="{% url 'events:event_list' %}">
-                    <i class="fas fa-calendar-alt"></i>
-                    <span>Events</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#mentorship">
+                    Mentorship
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="mentorship">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'mentorship' %}active{% endif %}" 
+                       href="{% url 'mentorship:mentor_search' %}">
+                        <i class="fas fa-hands-helping"></i>
+                        <span>Mentorship</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'mentor_dashboard' %}active{% endif %}" 
+                       href="{% url 'mentorship:mentor_dashboard' %}">
+                        <i class="fas fa-chalkboard-teacher"></i>
+                        <span>Mentor Dashboard</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'mentee_dashboard' %}active{% endif %}" 
+                       href="{% url 'mentorship:mentee_dashboard' %}">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Mentee Dashboard</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name == 'admin_mentor_list' %}active{% endif %}" 
+                       href="{% url 'accounts:admin_mentor_list' %}">
+                        <i class="fas fa-list-alt"></i>
+                        <span>Mentor List</span>
+                    </a>
+                </div>
             </li>
+            
+            <!-- ANALYTICS GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'jobs' %}active{% endif %}" 
-                   href="{% url 'jobs:job_list' %}">
-                    <i class="fas fa-briefcase"></i>
-                    <span>Job Board</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#analytics">
+                    Analytics
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="analytics">
+                    <a class="nav-link {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'survey_list' %}active{% endif %}" 
+                       href="{% url 'surveys:survey_list' %}">
+                        <i class="fas fa-poll"></i>
+                        <span>Surveys</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'report_list' %}active{% endif %}" 
+                       href="{% url 'surveys:report_list' %}">
+                        <i class="fas fa-chart-bar"></i>
+                        <span>Reports</span>
+                    </a>
+                </div>
             </li>
+            
+            <!-- SYSTEM GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'mentorship' %}active{% endif %}" 
-                   href="{% url 'mentorship:mentor_search' %}">
-                    <i class="fas fa-hands-helping"></i>
-                    <span>Mentorship</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#system">
+                    System
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="system">
+                    <a class="nav-link" href="{% url 'admin:index' %}">
+                        <i class="fas fa-cogs"></i>
+                        <span>Admin Panel</span>
+                    </a>
+                </div>
             </li>
+            
+            <!-- ACCOUNT GROUP -->
             <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'mentor_dashboard' %}active{% endif %}" 
-                   href="{% url 'mentorship:mentor_dashboard' %}">
-                    <i class="fas fa-chalkboard-teacher"></i>
-                    <span>Mentor Dashboard</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'mentee_dashboard' %}active{% endif %}" 
-                   href="{% url 'mentorship:mentee_dashboard' %}">
-                    <i class="fas fa-graduation-cap"></i>
-                    <span>Mentee Dashboard</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'feedback' %}active{% endif %}" 
-                   href="{% url 'feedback:manage_feedbacks' %}">
-                    <i class="fas fa-comment-dots"></i>
-                    <span>Feedbacks</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'survey_list' %}active{% endif %}" 
-                   href="{% url 'surveys:survey_list' %}">
-                    <i class="fas fa-poll"></i>
-                    <span>Surveys</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'report_list' %}active{% endif %}" 
-                   href="{% url 'surveys:report_list' %}">
-                    <i class="fas fa-chart-bar"></i>
-                    <span>Reports</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.url_name == 'admin_mentor_list' %}active{% endif %}" 
-                   href="{% url 'accounts:admin_mentor_list' %}">
-                    <i class="fas fa-list-alt"></i>
-                    <span>Mentor List</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link {% if request.resolver_match.app_name == 'location_tracking' %}active{% endif %}" 
-                   href="{% url 'location_tracking:map' %}">
-                    <i class="fas fa-map-marker-alt"></i>
-                    <span>Location Tracking</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'admin:index' %}">
-                    <i class="fas fa-cogs"></i>
-                    <span>Admin Panel</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'accounts:profile_detail' %}">
-                    <i class="fas fa-user-circle"></i>
-                    <span>Profile</span>
-                </a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="{% url 'account_logout' %}">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span>Logout</span>
-                </a>
+                <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#account">
+                    Account
+                    <i class="fas fa-chevron-down toggle-icon"></i>
+                </div>
+                <div class="nav-group collapse show" id="account">
+                    <a class="nav-link" href="{% url 'accounts:profile_detail' %}">
+                        <i class="fas fa-user-circle"></i>
+                        <span>Profile</span>
+                    </a>
+                    <a class="nav-link" href="{% url 'account_logout' %}">
+                        <i class="fas fa-sign-out-alt"></i>
+                        <span>Logout</span>
+                    </a>
+                </div>
             </li>
         </ul>
     </div>
     <!-- Mobile sidebar toggle button -->
-    <button class="sidebar-toggle d-md-none" onclick="toggleSidebar()">
+    <button class="sidebar-toggle d-md-none">
         <i class="fas fa-bars"></i>
     </button>
     {% else %}
@@ -867,78 +749,182 @@
         <!-- Navbar Content -->
         <div class="collapse navbar-collapse" id="navbarNav">
             <ul class="navbar-nav me-auto">
+                <!-- Home -->
                 <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" 
+                    <a class="nav-link nav-link-enhanced {% if request.resolver_match.url_name == 'home' %}active{% endif %}" 
                        href="{% url 'core:home' %}" title="Home">
                        <i class="fas fa-home"></i>
+                       <span class="nav-label d-none d-xl-inline ms-2">Home</span>
                     </a>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'alumni_groups' %}active{% endif %}" 
-                       href="{% url 'alumni_groups:group_list' %}" title="Alumni Groups">
+                
+                <!-- Community -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-link-enhanced dropdown-toggle {% if request.resolver_match.app_name == 'alumni_groups' or request.resolver_match.namespace == 'announcements' or request.resolver_match.app_name == 'events' %}active{% endif %}" 
+                       href="#" id="communityDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Community">
                         <i class="fas fa-users"></i>
+                        <span class="nav-label d-none d-xl-inline ms-2">Community</span>
                     </a>
+                    <ul class="dropdown-menu dropdown-menu-enhanced shadow-sm" aria-labelledby="communityDropdown">
+                        <li class="dropdown-header text-muted small fw-semibold">
+                            <i class="fas fa-users me-2"></i>Community Hub
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'alumni_groups' %}active{% endif %}" 
+                               href="{% url 'alumni_groups:group_list' %}">
+                            <i class="fas fa-users me-3 text-primary"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Alumni Groups</div>
+                                <small class="text-muted">Connect with fellow alumni</small>
+                            </div>
+                        </a></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.namespace == 'announcements' and request.resolver_match.url_name == 'announcement-list' %}active{% endif %}" 
+                               href="{% url 'announcements:announcement-list' %}">
+                            <i class="fas fa-bullhorn me-3 text-info"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Announcements</div>
+                                <small class="text-muted">Latest news and updates</small>
+                            </div>
+                        </a></li>
+                        {% if not user.is_authenticated %}
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.namespace == 'announcements' and request.resolver_match.url_name == 'public-announcement-list' %}active{% endif %}" 
+                               href="{% url 'announcements:public-announcement-list' %}">
+                            <i class="fas fa-newspaper me-3 text-secondary"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Public Announcements</div>
+                                <small class="text-muted">Open announcements</small>
+                            </div>
+                        </a></li>
+                        {% endif %}
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'events' and request.resolver_match.url_name == 'event_list' %}active{% endif %}" 
+                               href="{% url 'events:event_list' %}">
+                            <i class="fas fa-calendar-alt me-3 text-success"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Events</div>
+                                <small class="text-muted">Upcoming gatherings</small>
+                            </div>
+                        </a></li>
+                        {% if not user.is_authenticated %}
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'events' and request.resolver_match.url_name == 'public_event_list' %}active{% endif %}" 
+                               href="{% url 'events:public_event_list' %}">
+                            <i class="fas fa-calendar-check me-3 text-warning"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Public Events</div>
+                                <small class="text-muted">Open to everyone</small>
+                            </div>
+                        </a></li>
+                        {% endif %}
+                    </ul>
                 </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.namespace == 'announcements' and request.resolver_match.url_name == 'announcement-list' %}active{% endif %}" 
-                       href="{% url 'announcements:announcement-list' %}" title="Announcements">
-                        <i class="fas fa-bullhorn"></i>
-                    </a>
-                </li>
-                {% if not user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.namespace == 'announcements' and request.resolver_match.url_name == 'public-announcement-list' %}active{% endif %}" 
-                       href="{% url 'announcements:public-announcement-list' %}" title="Public Announcements">
-                        <i class="fas fa-newspaper"></i>
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'events' and request.resolver_match.url_name == 'event_list' %}active{% endif %}" 
-                       href="{% url 'events:event_list' %}" title="Events">
-                        <i class="fas fa-calendar-alt"></i>
-                    </a>
-                </li>
-                {% if not user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'events' and request.resolver_match.url_name == 'public_event_list' %}active{% endif %}" 
-                       href="{% url 'events:public_event_list' %}" title="Public Events">
-                        <i class="fas fa-calendar-check"></i>
-                    </a>
-                </li>
-                {% endif %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'jobs' %}active{% endif %}" 
-                       href="{% url 'jobs:job_list' %}" title="Job Board">
-                        <i class="fas fa-briefcase"></i>
-                    </a>
-                </li>
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'mentorship' %}active{% endif %}" 
-                       href="{% url 'mentorship:mentor_search' %}" title="Find a Mentor">
-                        <i class="fas fa-hands-helping"></i>
-                    </a>
-                </li>
-                {% if user.mentor_profile %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'mentor_dashboard' %}active{% endif %}" 
-                       href="{% url 'mentorship:mentor_dashboard' %}" title="Mentor Dashboard">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </a>
-                </li>
-                {% endif %}
+                
+                <!-- Communications -->
                 {% if user.is_authenticated %}
-                <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.url_name == 'mentee_dashboard' %}active{% endif %}" 
-                       href="{% url 'mentorship:mentee_dashboard' %}" title="Mentee Dashboard">
-                        <i class="fas fa-graduation-cap"></i>
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-link-enhanced dropdown-toggle {% if request.resolver_match.app_name == 'connections' %}active{% endif %}" 
+                       href="#" id="communicationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Communications">
+                        <i class="fas fa-comments"></i>
+                        <span class="nav-label d-none d-xl-inline ms-2">Communications</span>
+                        {% load connections_tags %}
+                        {% get_pending_requests_count user as pending_count %}
+                        {% if pending_count > 0 %}
+                            <span class="badge bg-danger rounded-pill ms-2 pulse-animation">{{ pending_count }}</span>
+                        {% endif %}
                     </a>
+                    <ul class="dropdown-menu dropdown-menu-enhanced shadow-sm" aria-labelledby="communicationsDropdown">
+                        <li class="dropdown-header text-muted small fw-semibold">
+                            <i class="fas fa-comments me-2"></i>Stay Connected
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'connections' and 'direct_messages' in request.resolver_match.url_name %}active{% endif %}" 
+                               href="{% url 'connections:conversations_list' %}">
+                            <i class="fas fa-comments me-3 text-primary"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Messages</div>
+                                <small class="text-muted">Chat with connections</small>
+                            </div>
+                        </a></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'connections' and request.resolver_match.url_name == 'connection_requests' %}active{% endif %}" 
+                               href="{% url 'connections:connection_requests' %}">
+                            <i class="fas fa-user-plus me-3 text-warning"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium d-flex align-items-center">
+                                    Connection Requests
+                                    {% if pending_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill ms-2">{{ pending_count }}</span>
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">Pending invitations</small>
+                            </div>
+                        </a></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'connections' and request.resolver_match.url_name == 'my_connections' %}active{% endif %}" 
+                               href="{% url 'connections:my_connections' %}">
+                            <i class="fas fa-user-friends me-3 text-success"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">My Connections</div>
+                                <small class="text-muted">Your network</small>
+                            </div>
+                        </a></li>
+                    </ul>
                 </li>
                 {% endif %}
+                
+                <!-- Career Services -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link nav-link-enhanced dropdown-toggle {% if request.resolver_match.app_name == 'jobs' or request.resolver_match.app_name == 'mentorship' %}active{% endif %}" 
+                       href="#" id="careerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Career Services">
+                        <i class="fas fa-briefcase"></i>
+                        <span class="nav-label d-none d-xl-inline ms-2">Career</span>
+                    </a>
+                    <ul class="dropdown-menu dropdown-menu-enhanced shadow-sm" aria-labelledby="careerDropdown">
+                        <li class="dropdown-header text-muted small fw-semibold">
+                            <i class="fas fa-briefcase me-2"></i>Career Development
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'jobs' %}active{% endif %}" 
+                               href="{% url 'jobs:job_list' %}">
+                            <i class="fas fa-briefcase me-3 text-primary"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Job Board</div>
+                                <small class="text-muted">Find opportunities</small>
+                            </div>
+                        </a></li>
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.app_name == 'mentorship' %}active{% endif %}" 
+                               href="{% url 'mentorship:mentor_search' %}">
+                            <i class="fas fa-hands-helping me-3 text-info"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Find a Mentor</div>
+                                <small class="text-muted">Get guidance</small>
+                            </div>
+                        </a></li>
+                        {% if user.is_authenticated %}
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.url_name == 'mentee_dashboard' %}active{% endif %}" 
+                               href="{% url 'mentorship:mentee_dashboard' %}">
+                            <i class="fas fa-graduation-cap me-3 text-success"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Mentee Dashboard</div>
+                                <small class="text-muted">Your learning journey</small>
+                            </div>
+                        </a></li>
+                        {% endif %}
+                        {% if user.mentor_profile %}
+                        <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.url_name == 'mentor_dashboard' %}active{% endif %}" 
+                               href="{% url 'mentorship:mentor_dashboard' %}">
+                            <i class="fas fa-chalkboard-teacher me-3 text-warning"></i>
+                            <div class="dropdown-item-content">
+                                <div class="fw-medium">Mentor Dashboard</div>
+                                <small class="text-muted">Guide others</small>
+                            </div>
+                        </a></li>
+                        {% endif %}
+                    </ul>
+                </li>
+                
+                <!-- Surveys -->
                 <li class="nav-item">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'survey_list_public' %}active{% endif %}" 
+                    <a class="nav-link nav-link-enhanced {% if request.resolver_match.app_name == 'surveys' and request.resolver_match.url_name == 'survey_list_public' %}active{% endif %}" 
                        href="{% url 'surveys:survey_list_public' %}" title="Surveys">
                         <i class="fas fa-poll"></i>
+                        <span class="nav-label d-none d-xl-inline ms-2">Surveys</span>
                     </a>
                 </li>
             </ul>
@@ -961,10 +947,9 @@
                             <li><a class="dropdown-item" href="{% url 'feedback:my_feedbacks' %}"><i class="fas fa-comments"></i> My Feedbacks</a></li>
                             {% if user.is_staff %}
                             <li><a class="dropdown-item" href="{% url 'feedback:manage_feedbacks' %}"><i class="fas fa-tasks"></i> Manage Feedbacks</a></li>
+                            <li><a class="dropdown-item" href="{% url 'core:admin_dashboard' %}"><i class="fas fa-tachometer-alt"></i> Admin Dashboard</a></li>
                             {% endif %}
                             <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'surveys:employment_list' %}"><i class="fas fa-briefcase"></i> My Employment</a></li>
-                            <li><a class="dropdown-item" href="{% url 'surveys:achievement_list' %}"><i class="fas fa-award"></i> My Achievements</a></li>
                             {% if user.is_staff %}
                             <li><hr class="dropdown-divider"></li>
                             <li><a class="dropdown-item" href="{% url 'surveys:survey_list' %}"><i class="fas fa-poll"></i> Manage Surveys</a></li>
@@ -993,6 +978,8 @@
 
     <!-- Main Content -->
     <div class="content-wrapper {% if user.is_superuser %}with-sidebar{% endif %}" {% if not user.is_superuser %}style="margin-top: 76px;"{% endif %}>
+        {% comment %}
+        Django messages framework disabled to prevent toast notifications
         {% if messages %}
             <div class="messages">
                 {% for message in messages %}
@@ -1003,26 +990,15 @@
                 {% endfor %}
             </div>
         {% endif %}
+        {% endcomment %}
 
         <!-- Page Header -->
         {% block page_header %}
         {% if request.resolver_match.url_name not in 'login,signup,account_login,account_signup' %}
-        <div class="page-header">
-            <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-12">
-                        <nav aria-label="breadcrumb">
-                            <ol class="breadcrumb">
-                                <li class="breadcrumb-item">
-                                    <a href="{% url 'core:home' %}">
-                                        <i class="fas fa-home"></i>
-                                    </a>
-                                </li>
-                                {% block breadcrumb %}{% endblock %}
-                            </ol>
-                        </nav>
-                        <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
-                    </div>
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-12">
+                    <h1 class="page-title">{% block page_title %}{% endblock %}</h1>
                 </div>
             </div>
         </div>
@@ -1035,38 +1011,121 @@
     </div>
 
     <!-- Footer -->
-    <footer>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-4">
-                    <h5>NORSU Alumni</h5>
-                    <p>Connecting graduates, building futures.</p>
-                </div>
-                <div class="col-md-4">
-                    <h5>Quick Links</h5>
-                    <ul class="list-unstyled">
-                        <li><a href="#" class="text-light">About Us</a></li>
-                        <li><a href="#" class="text-light">Contact</a></li>
-                        <li><a href="#" class="text-light">Privacy Policy</a></li>
-                        <li><a href="#" class="text-light">Terms of Service</a></li>
-                    </ul>
-                </div>
-                <div class="col-md-4">
-                    <h5>Connect With Us</h5>
-                    <div class="social-icons">
-                        <a href="#" class="text-light me-2"><i class="fab fa-facebook fa-2x"></i></a>
-                        <a href="#" class="text-light me-2"><i class="fab fa-twitter fa-2x"></i></a>
-                        <a href="#" class="text-light me-2"><i class="fab fa-linkedin fa-2x"></i></a>
-                        <a href="#" class="text-light"><i class="fab fa-instagram fa-2x"></i></a>
+    {% if not user.is_superuser %}
+    <footer class="footer-modern">
+        <div class="footer-content">
+            <div class="container">
+                <div class="row g-4">
+                    <!-- Brand Section -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="footer-brand">
+                            <div class="brand-logo">
+                                <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="footer-logo">
+                                <h4 class="brand-title">NORSU Alumni</h4>
+                            </div>
+                            <p class="brand-description">Connecting graduates, building futures, and fostering lifelong relationships within the NORSU community.</p>
+                            <div class="footer-stats">
+                                <div class="stat-item">
+                                    <span class="stat-number">5,000+</span>
+                                    <span class="stat-label">Alumni</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-number">50+</span>
+                                    <span class="stat-label">Countries</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Quick Links -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="footer-section">
+                            <h5 class="footer-title">Quick Links</h5>
+                            <ul class="footer-links">
+                                <li><a href="{% url 'core:home' %}"><i class="fas fa-home"></i>Home</a></li>
+                                <li><a href="{% url 'alumni_groups:group_list' %}"><i class="fas fa-users"></i>Alumni Groups</a></li>
+                                <li><a href="{% url 'jobs:job_list' %}"><i class="fas fa-briefcase"></i>Job Board</a></li>
+                                <li><a href="{% url 'events:event_list' %}"><i class="fas fa-calendar"></i>Events</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Services -->
+                    <div class="col-lg-2 col-md-6">
+                        <div class="footer-section">
+                            <h5 class="footer-title">Services</h5>
+                            <ul class="footer-links">
+                                <li><a href="{% url 'mentorship:mentor_search' %}"><i class="fas fa-hands-helping"></i>Mentorship</a></li>
+                                <li><a href="{% url 'surveys:survey_list_public' %}"><i class="fas fa-poll"></i>Surveys</a></li>
+                                <li><a href="{% url 'announcements:announcement-list' %}"><i class="fas fa-bullhorn"></i>News</a></li>
+                                <li><a href="{% url 'feedback:submit_feedback' %}"><i class="fas fa-comment"></i>Feedback</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    
+                    <!-- Contact & Social -->
+                    <div class="col-lg-4 col-md-6">
+                        <div class="footer-section">
+                            <h5 class="footer-title">Stay Connected</h5>
+                            <div class="contact-info">
+                                <div class="contact-item">
+                                    <i class="fas fa-map-marker-alt"></i>
+                                    <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fas fa-envelope"></i>
+                                    <span>alumni@norsu.edu.ph</span>
+                                </div>
+                                <div class="contact-item">
+                                    <i class="fas fa-phone"></i>
+                                    <span>+63 35 422 6002</span>
+                                </div>
+                            </div>
+                            <div class="social-section">
+                                <h6 class="social-title">Follow Us</h6>
+                                <div class="social-icons">
+                                    <a href="javascript:void(0)" class="social-link facebook" title="Facebook">
+                                        <i class="fab fa-facebook-f"></i>
+                                    </a>
+                                    <a href="javascript:void(0)" class="social-link twitter" title="Twitter">
+                                        <i class="fab fa-twitter"></i>
+                                    </a>
+                                    <a href="javascript:void(0)" class="social-link linkedin" title="LinkedIn">
+                                        <i class="fab fa-linkedin-in"></i>
+                                    </a>
+                                    <a href="javascript:void(0)" class="social-link instagram" title="Instagram">
+                                        <i class="fab fa-instagram"></i>
+                                    </a>
+                                    <a href="javascript:void(0)" class="social-link youtube" title="YouTube">
+                                        <i class="fab fa-youtube"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
-            <hr class="mt-4">
-            <div class="text-center">
-                <p class="mb-0">&copy; {% now "Y" %} NORSU Alumni Tracking System. All rights reserved.</p>
+        </div>
+        
+        <!-- Footer Bottom -->
+        <div class="footer-bottom">
+            <div class="container">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <p class="copyright">&copy; {% now "Y" %} NORSU Alumni Tracking System. All rights reserved.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="footer-bottom-links">
+                            <a href="javascript:void(0)">Privacy Policy</a>
+                            <a href="javascript:void(0)">Terms of Service</a>
+                            <a href="javascript:void(0)">Cookie Policy</a>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     </footer>
+    {% endif %}
 
     <!-- jQuery first -->
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -1076,203 +1135,23 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-tagsinput/0.8.0/bootstrap-tagsinput.min.js"></script>
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-    
-    <!-- CSRF Token Setup -->
-    <script>
-        // Setup CSRF token for AJAX requests
-        function getCookie(name) {
-            let cookieValue = null;
-            if (document.cookie && document.cookie !== '') {
-                const cookies = document.cookie.split(';');
-                for (let i = 0; i < cookies.length; i++) {
-                    const cookie = cookies[i].trim();
-                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                        break;
-                    }
-                }
-            }
-            return cookieValue;
-        }
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 
-        const csrftoken = getCookie('csrftoken');
-
-        // Set CSRF token for all AJAX requests
-        $.ajaxSetup({
-            beforeSend: function(xhr, settings) {
-                if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-                    xhr.setRequestHeader("X-CSRFToken", csrftoken);
-                }
-            }
-        });
-    </script>
-
-    <!-- Toast Initialization Script -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            var toastElList = [].slice.call(document.querySelectorAll('.toast'));
-            var toastList = toastElList.map(function(toastEl) {
-                return new bootstrap.Toast(toastEl, {
-                    animation: true,
-                    autohide: true,
-                    delay: 5000
-                });
-            });
-            
-            // Show all toasts
-            toastList.forEach(toast => toast.show());
-
-            // Add fade-out animation
-            toastElList.forEach(toast => {
-                toast.addEventListener('hide.bs.toast', function() {
-                    this.style.transition = 'opacity 0.5s ease-out';
-                    this.style.opacity = '0';
-                });
-            });
-        });
-    </script>
-
+    <!-- Meta tags for JavaScript modules -->
     {% if user.is_authenticated %}
-    <script>
-        // Add sidebar toggle functionality
-        function toggleSidebar() {
-            const sidebar = document.getElementById('sidebar');
-            sidebar.classList.toggle('show');
-        }
-        
-        // Location tracking for authenticated users
-        function getCurrentPosition() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    function(position) {
-                        // Send position to server
-                        updateLocation(position.coords.latitude, position.coords.longitude);
-                    },
-                    function(error) {
-                        console.error("Error getting location:", error);
-                        // Only show error notification for permission denied
-                        if (error.code === error.PERMISSION_DENIED) {
-                            showLocationNotification('Location sharing is disabled', 'Please enable location access in your browser settings to share your location with other alumni.', 'warning');
-                        }
-                    },
-                    {
-                        enableHighAccuracy: true,
-                        timeout: 5000,
-                        maximumAge: 0
-                    }
-                );
-            }
-        }
-        
-        // Function to update location on server
-        function updateLocation(latitude, longitude) {
-            fetch('{% url "location_tracking:update_location" %}', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'X-CSRFToken': csrftoken
-                },
-                body: JSON.stringify({
-                    latitude: latitude,
-                    longitude: longitude
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log('Location updated successfully');
-                    // Only show notification on first update
-                    if (localStorage.getItem('locationNotificationShown') !== 'true') {
-                        showLocationNotification('Location Sharing Active', 'Your location is now being shared with the alumni network.', 'success');
-                        localStorage.setItem('locationNotificationShown', 'true');
-                    }
-                }
-            })
-            .catch(error => {
-                console.error('Error updating location:', error);
-            });
-        }
-        
-        // Function to show location notification
-        function showLocationNotification(title, message, type) {
-            // Check if notification container exists, create if not
-            let notificationContainer = document.getElementById('location-notification-container');
-            if (!notificationContainer) {
-                notificationContainer = document.createElement('div');
-                notificationContainer.id = 'location-notification-container';
-                notificationContainer.style.position = 'fixed';
-                notificationContainer.style.bottom = '20px';
-                notificationContainer.style.right = '20px';
-                notificationContainer.style.zIndex = '9999';
-                document.body.appendChild(notificationContainer);
-            }
-            
-            // Create notification element
-            const notification = document.createElement('div');
-            notification.className = `location-notification alert alert-${type} shadow-sm`;
-            notification.style.maxWidth = '300px';
-            notification.style.marginTop = '10px';
-            notification.style.borderRadius = '8px';
-            notification.style.padding = '15px';
-            notification.style.animation = 'fadeIn 0.5s';
-            
-            notification.innerHTML = `
-                <h6 class="mb-1 fw-bold">${title}</h6>
-                <p class="mb-0 small">${message}</p>
-            `;
-            
-            // Add notification to container
-            notificationContainer.appendChild(notification);
-            
-            // Auto remove after 5 seconds
-            setTimeout(() => {
-                notification.style.animation = 'fadeOut 0.5s';
-                setTimeout(() => {
-                    notification.remove();
-                }, 500);
-            }, 5000);
-        }
-        
-        // Add CSS for notification animations
-        const style = document.createElement('style');
-        style.textContent = `
-            @keyframes fadeIn {
-                from { opacity: 0; transform: translateY(20px); }
-                to { opacity: 1; transform: translateY(0); }
-            }
-            @keyframes fadeOut {
-                from { opacity: 1; transform: translateY(0); }
-                to { opacity: 0; transform: translateY(20px); }
-            }
-        `;
-        document.head.appendChild(style);
-        
-        // Update location every 5 minutes
-        setInterval(getCurrentPosition, 300000);
-        
-        // Initial location update when page loads
-        document.addEventListener('DOMContentLoaded', function() {
-            setTimeout(getCurrentPosition, 3000); // Delay to ensure page is fully loaded
-        });
-    </script>
+    <meta name="user-id" content="{{ user.id }}">
+    <meta name="location-update-url" content="{% url 'location_tracking:update_location' %}">
     {% endif %}
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Initialize tooltips
-            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-                return new bootstrap.Tooltip(tooltipTriggerEl)
-            });
-
-            // Initialize popovers
-            var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'))
-            var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-                return new bootstrap.Popover(popoverTriggerEl)
-            });
-        });
-    </script>
+    <!-- Custom JavaScript Modules -->
+    <script src="{% static 'js/main.js' %}"></script>
+    <script src="{% static 'js/location.js' %}"></script>
+    <script src="{% static 'js/sidebar.js' %}"></script>
+    <script src="{% static 'js/connections.js' %}"></script>
 
     {% block page_specific_js %}{% endblock %}
 </body>
-</html> 
+</html>

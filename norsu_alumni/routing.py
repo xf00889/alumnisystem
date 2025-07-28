@@ -1,7 +1,7 @@
 from channels.routing import ProtocolTypeRouter, URLRouter
 from django.core.asgi import get_asgi_application
 from channels.auth import AuthMiddlewareStack
-from communications.routing import websocket_urlpatterns
+# from messaging.routing import websocket_urlpatterns
 
 application = ProtocolTypeRouter({
     "http": get_asgi_application(),
@@ -10,4 +10,4 @@ application = ProtocolTypeRouter({
             websocket_urlpatterns
         )
     ),
-}) 
+})

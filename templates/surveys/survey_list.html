@@ -4,56 +4,227 @@
 {% block title %}Available Surveys{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    .analytics-card {
-        border-radius: 10px;
-        padding: 1.25rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
-        margin-bottom: 1.5rem;
-        background-color: #fff;
-        border-left: 4px solid;
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
     }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .analytics-card {
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        margin-bottom: 1.5rem;
+        background-color: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .analytics-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
     .analytics-card.primary {
-        border-left-color: #4e73df;
+        border-left: 4px solid var(--primary-color);
     }
     .analytics-card.success {
-        border-left-color: #1cc88a;
+        border-left: 4px solid var(--feedback-success);
     }
     .analytics-card.info {
-        border-left-color: #36b9cc;
+        border-left: 4px solid var(--feedback-info);
     }
     .analytics-card.warning {
-        border-left-color: #f6c23e;
+        border-left: 4px solid var(--feedback-warning);
     }
+    
     .analytics-metric {
-        font-size: 1.5rem;
+        font-size: 2rem;
         font-weight: 700;
         margin-bottom: 0;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
     }
+    
     .analytics-title {
-        font-size: 0.8rem;
+        font-size: 0.75rem;
         font-weight: 600;
         text-transform: uppercase;
-        color: #888;
+        color: var(--text-secondary);
         margin-bottom: 0.5rem;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
     }
+    
     .analytics-icon {
-        font-size: 2rem;
-        opacity: 0.3;
+        font-size: 2.5rem;
+        opacity: 0.2;
     }
+    
     .chart-container {
         height: 200px;
         position: relative;
+    }
+    
+    .page-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .page-header h1 {
+        font-size: 1.75rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .page-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin-bottom: 0;
+    }
+    
+    .card {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .card-header {
+        background: var(--ui-surface);
+        border-bottom: 1px solid var(--ui-border);
+        font-weight: 600;
+        color: var(--text-primary);
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+    
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .badge {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+    }
+    
+    .badge.bg-success {
+        background-color: var(--feedback-success) !important;
+    }
+    
+    .alert {
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .alert-info {
+        background-color: rgba(66, 153, 225, 0.1);
+        border-color: var(--feedback-info);
+        color: var(--text-primary);
+    }
+    
+    .table {
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .progress {
+        background-color: var(--ui-hover);
+    }
+    
+    .progress-bar {
+        background-color: var(--feedback-success);
+    }
+    
+    .text-muted {
+        color: var(--text-secondary) !important;
+    }
+    
+    .bg-light {
+        background-color: var(--ui-hover) !important;
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-poll me-3"></i>Alumni Surveys</h1>
+                <p class="mb-0">Share your experiences and help us improve our alumni community and programs.</p>
+            </div>
+        </div>
+    </div>
+    
     <div class="row">
         <div class="col-12">
-            <h1 class="h2 mb-4">Alumni Surveys</h1>
-            
             <!-- Analytics Dashboard - Visible only to staff -->
             {% if user.is_staff %}
             <div class="card shadow-sm mb-4">
@@ -348,4 +519,4 @@
         });
     });
 </script>
-{% endblock %} 
+{% endblock %}

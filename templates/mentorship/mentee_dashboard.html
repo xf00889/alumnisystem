@@ -1,4 +1,4 @@
-﻿{% extends "base.html" %}
+{% extends "base.html" %}
 {% load static %}
 {% load mentorship_extras %}
 
@@ -6,99 +6,241 @@
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/mentorship.css' %}">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* Color Variables */
+    /* System Color Scheme */
     :root {
-        --primary-color: #063970;
-        --primary-light: #0a4f94;
-        --status-success: #28a745;
-        --status-warning: #ffc107;
-        --status-danger: #dc3545;
-        --status-info: #17a2b8;
-        --status-secondary: #6c757d;
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
     }
     
-    /* Dashboard Layout */
-    .dashboard-container {
-        padding: 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
     }
     
-    /* Gradient Backgrounds */
-    .bg-gradient-primary {
-        background: linear-gradient(45deg, var(--primary-color) 0%, var(--primary-light) 100%);
-    }
-
-    .bg-gradient-success {
-        background: linear-gradient(45deg, var(--status-success) 0%, #13855c 100%);
-    }
-
-    .bg-gradient-info {
-        background: linear-gradient(45deg, var(--status-info) 0%, #258391 100%);
-    }
-
-    .bg-gradient-warning {
-        background: linear-gradient(45deg, var(--status-warning) 0%, #dda20a 100%);
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
     }
     
-    .bg-gradient-danger {
-        background: linear-gradient(45deg, var(--status-danger) 0%, #bd2130 100%);
+    /* Header Button Styles */
+    .dashboard-header .btn {
+        font-size: 0.75rem;
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        transition: all 0.2s ease-in-out;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
     }
     
-    /* Card Enhancements */
+    .dashboard-header .btn-primary {
+        background-color: rgba(255, 255, 255, 0.15);
+        border-color: rgba(255, 255, 255, 0.3);
+        color: var(--text-light);
+        backdrop-filter: blur(10px);
+    }
+    
+    .dashboard-header .btn-primary:hover {
+        background-color: rgba(255, 255, 255, 0.25);
+        border-color: rgba(255, 255, 255, 0.4);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .dashboard-header .btn-outline-primary {
+        background-color: transparent;
+        border-color: rgba(255, 255, 255, 0.4);
+        color: var(--text-light);
+    }
+    
+    .dashboard-header .btn-outline-primary:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+    
+    .dashboard-header .btn i {
+        font-size: 0.7rem;
+    }
+    
+    .dashboard-header h1.mb-0 {
+        font-size: 1.375rem;
+        font-weight: 600;
+        margin-bottom: 0;
+        color: var(--text-light);
+    }
+    
+    .dashboard-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        color: var(--text-light);
+    }
+    
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        transition: box-shadow 0.2s ease-in-out;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .dashboard-card .card-header {
+        background: transparent;
+        border-bottom: 1px solid var(--ui-border);
+        padding: 0 0 1rem 0;
+        margin-bottom: 1rem;
+    }
+    
+    .dashboard-card .card-header h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-card .card-body {
+        padding: 0;
+    }
+    
+    /* Legacy card support */
     .card {
-        border: none;
-        box-shadow: 0 0.15rem 1.75rem 0 rgba(58, 59, 69, 0.15);
-        transition: transform 0.2s ease-in-out;
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        transition: box-shadow 0.2s ease-in-out;
     }
     
     .card:hover {
-        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
     }
-
-    /* Stats Card Icons */
-    .stats-icon {
-        width: 3rem;
-        height: 3rem;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        border-radius: 50%;
+    
+    .card-header {
+        background: transparent;
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .card-header h5 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .card-body {
+        padding: 1.5rem;
+        font-family: 'Poppins', sans-serif;
     }
 
     /* Mentorship Item Styles */
     .mentorship-item {
-        border: none;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
         margin-bottom: 1rem;
-        box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+        box-shadow: var(--shadow-sm);
+        background: var(--ui-surface);
     }
 
     .mentorship-item .accordion-button {
         padding: 1rem;
-        background: #fff;
+        background: var(--ui-surface);
         border: none;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        color: var(--text-primary);
     }
 
     .mentorship-item .accordion-button:not(.collapsed) {
-        background: #f8f9fa;
+        background: var(--ui-hover);
         color: var(--primary-color);
+        box-shadow: none;
+    }
+
+    .mentorship-item .accordion-button:focus {
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+        border-color: var(--primary-color);
     }
 
     .mentorship-title {
         font-weight: 600;
-        color: #5a5c69;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
     }
 
     /* Progress Bars */
     .progress {
         height: 1rem;
-        border-radius: 0.5rem;
-        background-color: #eaecf4;
+        border-radius: var(--radius-md);
+        background-color: var(--ui-border);
     }
     
     .progress-bar {
-        border-radius: 0.5rem;
+        border-radius: var(--radius-md);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 500;
     }
     
     .progress-bar-primary {
@@ -106,147 +248,276 @@
     }
     
     .progress-bar-success {
-        background-color: var(--status-success);
+        background-color: var(--feedback-success);
     }
     
     .progress-bar-warning {
-        background-color: var(--status-warning);
+        background-color: var(--feedback-warning);
     }
     
     .progress-bar-danger {
-        background-color: var(--status-danger);
+        background-color: var(--feedback-error);
     }
     
     .progress-bar-info {
-        background-color: var(--status-info);
+        background-color: var(--feedback-info);
     }
 
     /* Timeline Styles */
     .timeline-visualization {
         padding: 1.5rem;
-        background: #f8f9fa;
-        border-radius: 0.5rem;
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
     }
 
     /* Buttons */
     .btn {
-        padding: 0.375rem 1rem;
+        padding: 0.5rem 1rem;
         font-weight: 500;
-        border-radius: 0.5rem;
+        border-radius: var(--radius-md);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        transition: all 0.2s ease-in-out;
     }
     
     .btn-primary {
         background-color: var(--primary-color);
         border-color: var(--primary-color);
+        color: var(--text-light);
     }
     
     .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-        background-color: var(--primary-light);
-        border-color: var(--primary-light);
+        background-color: #1e2a4a;
+        border-color: #1e2a4a;
+        color: var(--text-light);
     }
     
     .btn-outline-primary {
         color: var(--primary-color);
         border-color: var(--primary-color);
+        background-color: transparent;
     }
     
     .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
         background-color: var(--primary-color);
         border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .btn-outline-secondary {
+        color: var(--secondary-color);
+        border-color: var(--secondary-color);
+    }
+    
+    .btn-outline-secondary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        color: var(--text-light);
+    }
+    
+    .btn-info {
+        background-color: var(--feedback-info);
+        border-color: var(--feedback-info);
+        color: var(--text-light);
+    }
+    
+    .btn-info:hover {
+        background-color: #3182ce;
+        border-color: #3182ce;
+    }
+    
+    .btn-outline-danger {
+        color: var(--feedback-error);
+        border-color: var(--feedback-error);
+    }
+    
+    .btn-outline-danger:hover {
+        background-color: var(--feedback-error);
+        border-color: var(--feedback-error);
+        color: var(--text-light);
     }
     
     /* Status Badges */
-    .badge-primary {
-        background-color: var(--primary-color);
-        color: white;
+    .badge {
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-sm);
     }
     
-    .badge-success {
-        background-color: var(--status-success);
-        color: white;
+    .badge.bg-primary {
+        background-color: var(--primary-color) !important;
+        color: var(--text-light);
     }
     
-    .badge-warning {
-        background-color: var(--status-warning);
-        color: #212529;
+    .badge.bg-success {
+        background-color: var(--feedback-success) !important;
+        color: var(--text-light);
     }
     
-    .badge-danger {
-        background-color: var(--status-danger);
-        color: white;
+    .badge.bg-warning {
+        background-color: var(--feedback-warning) !important;
+        color: var(--text-primary);
     }
     
-    .badge-info {
-        background-color: var(--status-info);
-        color: white;
+    .badge.bg-danger {
+        background-color: var(--feedback-error) !important;
+        color: var(--text-light);
     }
     
-    .badge-secondary {
-        background-color: var(--status-secondary);
-        color: white;
+    .badge.bg-info {
+        background-color: var(--feedback-info) !important;
+        color: var(--text-light);
     }
     
-    /* Status-specific colors */
-    .status-active {
-        color: var(--status-success);
+    /* List Groups */
+    .list-group-item {
+        border: 1px solid var(--ui-border);
+        background-color: var(--ui-surface);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        padding: 1rem;
+        margin-bottom: 0.5rem;
+        border-radius: var(--radius-md);
+        transition: background-color 0.2s ease-in-out;
     }
     
-    .status-pending {
-        color: var(--status-warning);
+    .list-group-item:hover {
+        background-color: var(--ui-hover);
     }
     
-    .status-completed {
-        color: var(--status-info);
+    .list-group-item h6 {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+        margin-bottom: 0.5rem;
     }
     
-    .status-cancelled {
-        color: var(--status-danger);
-    }
-    
-    .status-paused {
-        color: var(--status-secondary);
-    }
-    
-    /* Text colors */
+    /* Text Colors */
     .text-primary {
         color: var(--primary-color) !important;
     }
     
     .text-success {
-        color: var(--status-success) !important;
+        color: var(--feedback-success) !important;
     }
     
     .text-warning {
-        color: var(--status-warning) !important;
+        color: var(--feedback-warning) !important;
     }
     
     .text-danger {
-        color: var(--status-danger) !important;
+        color: var(--feedback-error) !important;
     }
     
     .text-info {
-        color: var(--status-info) !important;
+        color: var(--feedback-info) !important;
     }
     
-    /* Background colors */
+    .text-muted {
+        color: var(--text-muted) !important;
+    }
+    
+    .text-secondary {
+        color: var(--text-secondary) !important;
+    }
+    
+    /* Background Colors */
     .bg-primary {
         background-color: var(--primary-color) !important;
     }
     
     .bg-success {
-        background-color: var(--status-success) !important;
+        background-color: var(--feedback-success) !important;
     }
     
     .bg-warning {
-        background-color: var(--status-warning) !important;
+        background-color: var(--feedback-warning) !important;
     }
     
     .bg-danger {
-        background-color: var(--status-danger) !important;
+        background-color: var(--feedback-error) !important;
     }
     
     .bg-info {
-        background-color: var(--status-info) !important;
+        background-color: var(--feedback-info) !important;
+    }
+    
+    /* Alerts */
+    .alert {
+        border-radius: var(--radius-md);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        border: 1px solid;
+    }
+    
+    .alert-warning {
+        background-color: rgba(237, 137, 54, 0.1);
+        border-color: var(--feedback-warning);
+        color: #b7791f;
+    }
+    
+    /* Avatar and Profile Elements */
+    .rounded-circle {
+        border: 2px solid var(--ui-border);
+    }
+    
+    /* Container Adjustments */
+    .container {
+        max-width: 1200px;
+    }
+    
+    /* Empty State Styling */
+    .text-center.py-4 {
+        padding: 2rem !important;
+        color: var(--text-muted);
+    }
+    
+    .text-center.py-4 i {
+        color: var(--text-muted);
+        opacity: 0.6;
+    }
+    
+    /* Form Elements */
+    .form-text {
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Dropdown Menus */
+    .dropdown-menu {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-md);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .dropdown-item {
+        color: var(--text-primary);
+        padding: 0.5rem 1rem;
+    }
+    
+    .dropdown-item:hover {
+        background-color: var(--ui-hover);
+        color: var(--primary-color);
+    }
+    
+    /* Accordion Body */
+    .accordion-body {
+        padding: 1rem;
+        background-color: var(--ui-surface);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .accordion-body h6 {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        font-family: 'Poppins', sans-serif;
     }
 </style>
 {% endblock %}
@@ -270,37 +541,39 @@
     <div class="row">
 {% csrf_token %}
     <!-- Dashboard Header -->
-    <div class="row mb-4">
-        <div class="col-md-8">
-            <div class="d-flex align-items-center">
-                {% if user.profile.avatar %}
-                    <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
-                {% else %}
-                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
-                        <i class="fas fa-user fa-2x"></i>
-                </div>
-                {% endif %}
-                <div>
-                    <h2 class="mb-0">Welcome back, {{ user.get_full_name }}</h2>
-                    <p class="text-muted mb-0">
-                        <i class="fas fa-map-marker-alt me-1"></i> {{ user.profile.location|default:"Location not set" }}
-                        {% if user.profile.current_position %}
-                            <span class="mx-2">|</span>
-                            <i class="fas fa-briefcase me-1"></i> {{ user.profile.current_position }}
-                        {% endif %}
-                    </p>
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <div class="d-flex align-items-center">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}" class="rounded-circle me-3" style="width: 60px; height: 60px; object-fit: cover;">
+                    {% else %}
+                        <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center me-3" style="width: 60px; height: 60px;">
+                            <i class="fas fa-user fa-2x"></i>
+                        </div>
+                    {% endif %}
+                    <div>
+                        <h1 class="mb-0">Welcome back, {{ user.get_full_name }}</h1>
+                        <p class="text-muted mb-0">
+                            <i class="fas fa-map-marker-alt me-1"></i> {{ user.profile.location|default:"Location not set" }}
+                            {% if user.profile.current_position %}
+                                <span class="mx-2">|</span>
+                                <i class="fas fa-briefcase me-1"></i> {{ user.profile.current_position }}
+                            {% endif %}
+                        </p>
+                    </div>
                 </div>
             </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'mentorship:mentor_search' %}" class="btn btn-primary me-2">
+                    <i class="fas fa-search me-1"></i> Find a Mentor
+                </a>
+                <a href="{% url 'accounts:profile_detail' user.username %}" class="btn btn-outline-primary">
+                    <i class="fas fa-user-edit me-1"></i> My Profile
+                </a>
+            </div>
         </div>
-        <div class="col-md-4 text-end d-flex align-items-center justify-content-end">
-            <a href="{% url 'mentorship:mentor_search' %}" class="btn btn-primary me-2">
-                <i class="fas fa-search me-1"></i> Find a Mentor
-            </a>
-            <a href="{% url 'accounts:profile_detail' user.username %}" class="btn btn-outline-primary">
-                <i class="fas fa-user-edit me-1"></i> My Profile
-            </a>
-        </div>
-        </div>
+    </div>
 
     <!-- Main Dashboard Content -->
         <div class="row">
@@ -2427,6 +2700,77 @@ function showToast(type, message) {
     toast.show();
 }
 
+function sendMessage(mentorshipId) {
+    // First check if a conversation already exists for this mentorship
+    fetch(`/mentorship/messages/create/${mentorshipId}/`, {
+        method: 'GET',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        }
+    })
+    .then(response => {
+        if (response.redirected) {
+            // If redirected, it means conversation exists - go to view messages
+            window.location.href = response.url;
+        } else {
+            // If not redirected, show the send message modal
+            const modal = new bootstrap.Modal(document.getElementById('sendMessageModal'));
+            document.getElementById('messageRecipientId').value = mentorshipId;
+            modal.show();
+        }
+    })
+    .catch(error => {
+        console.error('Error checking conversation:', error);
+        // Fallback to showing the modal
+        const modal = new bootstrap.Modal(document.getElementById('sendMessageModal'));
+        document.getElementById('messageRecipientId').value = mentorshipId;
+        modal.show();
+    });
+}
+
+// Submit message form
+function submitMessage() {
+    const mentorshipId = document.getElementById('mentorshipIdForMessage').value;
+    const messageContent = document.getElementById('messageContent').value;
+    const messageAttachment = document.getElementById('messageAttachment').files[0];
+    
+    const formData = new FormData();
+    formData.append('mentorship', mentorshipId);
+    formData.append('content', messageContent);
+    if (messageAttachment) {
+        formData.append('attachment', messageAttachment);
+    }
+    
+    fetch('/mentorship/api/messages/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: formData
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to send message');
+        }
+        return response.json();
+    })
+    .then(data => {
+        var messageModal = document.getElementById('messageModal');
+        var modal = bootstrap.Modal.getInstance(messageModal);
+        if (modal) modal.hide();
+        
+        showToast('success', 'Message sent successfully');
+        // Redirect to messaging page with the conversation
+        setTimeout(() => {
+            window.location.href = `/mentorship/messages/create/${mentorshipId}/`;
+        }, 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('error', 'Failed to send message. Please try again.');
+    });
+}
+
 // Submit meeting form function
 function submitMeeting(event) {
     event.preventDefault();
@@ -2546,7 +2890,212 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+// Function to initialize all progress bars
+function initializeProgressBars() {
+    document.querySelectorAll('.progress-bar').forEach(progressBar => {
+        const percentage = progressBar.dataset.percentage || '0';
+        progressBar.style.width = `${percentage}%`;
+        progressBar.setAttribute('aria-valuenow', percentage);
+        progressBar.textContent = `${percentage}%`;
+    });
+
+    document.querySelectorAll('.progress-bar-skill').forEach((skillBar, index) => {
+        const proficiency = skillBar.dataset.skillProficiency || '0';
+        skillBar.style.width = `${proficiency}%`;
+        skillBar.style.backgroundColor = getSkillColor(index);
+    });
+}
+
+// Function to get color for skill progress bars
+function getSkillColor(index) {
+    const colors = [
+        '#4e73df', // Primary
+        '#1cc88a', // Success
+        '#36b9cc', // Info
+        '#f6c23e', // Warning
+        '#e74a3b'  // Danger
+    ];
+    return colors[index % colors.length];
+}
+
+// Function to validate a single milestone date
+function validateMilestoneDate(dateInput) {
+    const expectedEndDateInput = document.getElementById('expectedEndDate');
+    
+    if (!expectedEndDateInput || !expectedEndDateInput.value) {
+        showToast('warning', 'Please set an expected end date first');
+        dateInput.classList.add('is-invalid');
+        return false;
+    }
+    
+    const endDate = new Date(expectedEndDateInput.value);
+    endDate.setHours(23, 59, 59, 999); // End of the day
+    
+    const milestoneDate = new Date(dateInput.value);
+    milestoneDate.setHours(0, 0, 0, 0); // Start of the day
+    
+    const today = new Date();
+    today.setHours(0, 0, 0, 0); // Start of the day
+    today.setDate(today.getDate() - 1); // Allow today by setting comparison to yesterday
+    
+    if (milestoneDate <= today) { // Using <= to compare with yesterday
+        showToast('warning', 'Milestone date cannot be in the past');
+        dateInput.classList.add('is-invalid');
+        return false;
+    }
+    
+    if (milestoneDate > endDate) {
+        showToast('warning', 'Milestone date cannot be after the expected end date');
+        dateInput.classList.add('is-invalid');
+        return false;
+    }
+    
+    dateInput.classList.remove('is-invalid');
+    return true;
+}
+
+// Function to validate all milestone dates
+function validateAllMilestoneDates() {
+    const milestonesContainer = document.getElementById('milestones-container');
+    const dateInputs = milestonesContainer.querySelectorAll('.milestone-date');
+    
+    let allValid = true;
+    dateInputs.forEach(input => {
+        if (input.value) {
+            const isValid = validateMilestoneDate(input);
+            if (!isValid) allValid = false;
+        }
+    });
+    
+    return allValid;
+}
+
+// Modified submitTimeline function to include validation
+function submitTimeline() {
+    // Validate dates before submission
+    validateAllMilestoneDates();
+    
+    // Get the timeline alert to check for errors
+    const timelineAlert = document.getElementById('timeline-alert');
+    if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
+        // There are validation errors, don't submit
+        showToast('error', 'Please fix the timeline date errors before saving.');
+        return;
+    }
+    
+    // Original function continues here...
+    const mentorshipId = document.getElementById('mentorshipIdForTimeline').value;
+    const expectedEndDate = document.getElementById('expectedEndDate').value;
+    const additionalNotes = document.getElementById('timelineMilestones').value;
+    
+    // Validate required fields
+    if (!expectedEndDate) {
+        showToast('error', 'Please select an expected end date');
+        return;
+    }
+    
+    // Collect all milestone entries
+    const milestoneEntries = document.querySelectorAll('.milestone-entry');
+    
+    // Check if there are any milestone entries
+    if (milestoneEntries.length === 0) {
+        // Add a new milestone entry if none exist
+        const addMilestoneBtn = document.getElementById('add-milestone-btn');
+        if (addMilestoneBtn) {
+            addMilestoneBtn.click();
+            showToast('error', 'Please add at least one milestone with both period and description');
+            return;
+        }
+    }
+    
+    let formattedMilestones = '';
+    let hasValidMilestones = false;
+    
+    milestoneEntries.forEach(entry => {
+        const periodInput = entry.querySelector('.milestone-period');
+        const descriptionInput = entry.querySelector('.milestone-description');
+        const dateInput = entry.querySelector('.milestone-date');
+        
+        if (!periodInput || !descriptionInput) return;
+        
+        const period = periodInput.value.trim();
+        const description = descriptionInput.value.trim();
+        const date = dateInput ? dateInput.value.trim() : '';
+        
+        if (period && description) {
+            let formattedDescription = description;
+            if (date) {
+                formattedDescription = `${description} [Date: ${date}]`;
+            }
+            formattedMilestones += `Week/Day ${period}: ${formattedDescription}\n`;
+            hasValidMilestones = true;
+        } else if (period || description) {
+            // If one field is filled but not the other, highlight the empty field
+            if (!period) {
+                periodInput.classList.add('is-invalid');
+                setTimeout(() => periodInput.classList.remove('is-invalid'), 3000);
+            }
+            if (!description) {
+                descriptionInput.classList.add('is-invalid');
+                setTimeout(() => descriptionInput.classList.remove('is-invalid'), 3000);
+            }
+        }
+    });
+    
+    if (!hasValidMilestones) {
+        showToast('error', 'Please add at least one milestone with both period and description');
+        return;
+    }
+    
+    // Add additional notes if provided
+    if (additionalNotes) {
+        formattedMilestones += `\nAdditional Notes:\n${additionalNotes}`;
+    }
+    
+    // Show loading state
+    const submitButton = document.querySelector('#timelineModal .btn-primary');
+    const originalText = submitButton.textContent;
+    submitButton.disabled = true;
+    submitButton.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Saving...';
+    
+    fetch(`/mentorship/api/requests/${mentorshipId}/update_timeline/`, {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            expected_end_date: expectedEndDate,
+            timeline_milestones: formattedMilestones
+        })
+    })
+    .then(async response => {
+        if (!response.ok) {
+            // Try to get error details from response
+            const errorData = await response.json().catch(() => null);
+            throw new Error(errorData?.detail || `Error: ${response.status} ${response.statusText}`);
+        }
+        return response.json();
+    })
+    .then(data => {
+        var timelineModal = document.getElementById('timelineModal');
+        var modal = bootstrap.Modal.getInstance(timelineModal);
+        if (modal) modal.hide();
+        
+        showToast('success', 'Mentorship timeline updated successfully');
+        setTimeout(() => location.reload(), 1500);
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        
+        // Reset button state
+        submitButton.disabled = false;
+        submitButton.innerHTML = originalText;
+    });
+}
 </script>
 
 </div> <!-- Close container -->
-{% endblock %} 
+{% endblock %}

@@ -6,14 +6,9 @@
     {% if form.instance.pk %}Edit{% else %}New{% endif %} Announcement
 {% endblock %}
 
-{% block page_title %}
-    {% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement
-{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'announcements:announcement-list' %}">Announcements</a></li>
-<li class="breadcrumb-item active">{% if form.instance.pk %}Edit{% else %}Create{% endif %} Announcement</li>
-{% endblock %}
+
+
 
 {% block extra_css %}
 <style>
@@ -222,28 +217,7 @@
                     </div>
 
                     <div class="form-group">
-                        <label for="id_category" class="form-label">Category</label>
-                        <select name="category" id="id_category" class="form-control">
-                            <option value="" {% if not form.instance.category %}selected{% endif %}>---------</option>
-                            <option value="1" {% if form.instance.category.id == 1 %}selected{% endif %}>Campus News</option>
-                            <option value="2" {% if form.instance.category.id == 2 %}selected{% endif %}>Events</option>
-                            <option value="3" {% if form.instance.category.id == 3 %}selected{% endif %}>Career Opportunities</option>
-                            <option value="4" {% if form.instance.category.id == 4 %}selected{% endif %}>Alumni Spotlight</option>
-                            <option value="5" {% if form.instance.category.id == 5 %}selected{% endif %}>Fundraising</option>
-                            <option value="6" {% if form.instance.category.id == 6 %}selected{% endif %}>Volunteer Opportunities</option>
-                            <option value="7" {% if form.instance.category.id == 7 %}selected{% endif %}>Academic Updates</option>
-                            <option value="8" {% if form.instance.category.id == 8 %}selected{% endif %}>Community Service</option>
-                        </select>
-                        {% if form.category.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.category.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                        {% if form.category.help_text %}
-                        <small class="form-text text-muted">{{ form.category.help_text }}</small>
-                        {% endif %}
+                        {{ form.category|as_crispy_field }}
                     </div>
 
                     <div class="row">
@@ -310,4 +284,4 @@
         }
     });
 </script>
-{% endblock %} 
+{% endblock %}

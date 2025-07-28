@@ -36,6 +36,8 @@ urlpatterns = [
     path('api/skills/', include('accounts.urls', namespace='skills')),  # Skill Matching API URLs
     path('surveys/', include('surveys.urls', namespace='surveys')),  # Changed from '' to 'surveys/'
     path('donations/', include('donations.urls', namespace='donations')),  # Donations app URLs
+    path('connections/', include('connections.urls', namespace='connections')),  # Alumni Connections URLs
+    # path('messages/', include('messaging.urls', namespace='messaging')),  # Messaging app URLs
 ]
 
 if settings.DEBUG:

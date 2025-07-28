@@ -1,0 +1,790 @@
+{% if results.success %}
+    <!-- Success Alert -->
+    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm" role="alert">
+        <div class="d-flex align-items-center">
+            <i class="fas fa-check-circle me-3 fs-5"></i>
+            <div>
+                <strong class="d-block">Success!</strong>
+                <span>Found {{ results.total_found }} job{{ results.total_found|pluralize }} from BossJob.ph</span>
+            </div>
+        </div>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    
+    {% if results.jobs %}
+        <!-- Results Header -->
+        <div class="d-flex justify-content-between align-items-center mb-4 p-3 bg-light rounded-3">
+            <div>
+                <h3 class="mb-1 fw-bold text-primary">
+                    <i class="fas fa-briefcase me-2"></i>
+                    {{ results.total_found }} Job{{ results.total_found|pluralize }} Available
+                </h3>
+                <small class="text-muted">
+                    <i class="fas fa-external-link-alt me-1"></i>
+                    Live results from BossJob.ph
+                </small>
+            </div>
+            <button class="btn btn-outline-primary btn-sm" onclick="window.location.reload()">
+                <i class="fas fa-sync-alt me-1"></i>
+                Refresh
+            </button>
+        </div>
+        
+        <!-- Job Listings - LinkedIn Style -->
+        <div class="linkedin-job-list">
+            {% for job in results.jobs %}
+                <div class="linkedin-job-card">
+                    <div class="job-card-header">
+                        <!-- Company Logo -->
+                        <div class="company-logo">
+                            <div class="company-avatar">
+                                {{ job.company|first|upper }}
+                            </div>
+                        </div>
+                        
+                        <!-- Job Info -->
+                        <div class="job-info">
+                            <div class="job-title-section">
+                                {% if job.url and job.url != '#' and job.url != '#no-url-found' and 'javascript:' not in job.url|lower %}
+                                    <h3 class="job-title">
+                                        <a href="{% url 'jobs:job_redirect' job_id=forloop.counter0 %}" target="_blank" class="job-link">
+                                            {{ job.title }}
+                                        </a>
+                                    </h3>
+                                {% else %}
+                                    <h3 class="job-title job-title-disabled">
+                                        {{ job.title }}
+                                        <span class="unavailable-badge">Link Unavailable</span>
+                                    </h3>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="company-info">
+                                <span class="company-name">{{ job.company }}</span>
+                                <span class="job-location">{{ job.location }}</span>
+                                {% if job.salary and job.salary != 'Salary not disclosed' %}
+                                    <span class="job-salary">{{ job.salary }}</span>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="job-meta">
+                                <span class="job-source">
+                                    <svg class="source-icon" viewBox="0 0 16 16" width="16" height="16">
+                                        <path d="M8 0C3.58 0 0 3.58 0 8s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6s2.69-6 6-6 6 2.69 6 6-2.69 6-6 6z"/>
+                                        <path d="M8 4c-.55 0-1 .45-1 1v3c0 .55.45 1 1 1s1-.45 1-1V5c0-.55-.45-1-1-1z"/>
+                                        <circle cx="8" cy="11" r="1"/>
+                                    </svg>
+                                    Via BossJob.ph
+                                </span>
+                                <span class="job-posted">Recently posted</span>
+                            </div>
+                        </div>
+                        
+                        <!-- Action Menu -->
+                        <div class="job-actions">
+                            <button class="action-btn save-btn" onclick="toggleSave(this)" title="Save job">
+                                <svg class="save-icon" viewBox="0 0 16 16" width="16" height="16">
+                                    <path d="M3 2v12l5-3 5 3V2H3z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                            </button>
+                            <button class="action-btn more-btn" onclick="showJobMenu(this)" title="More options">
+                                <svg viewBox="0 0 16 16" width="16" height="16">
+                                    <circle cx="8" cy="3" r="1.5"/>
+                                    <circle cx="8" cy="8" r="1.5"/>
+                                    <circle cx="8" cy="13" r="1.5"/>
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Job Description -->
+                    <div class="job-description">
+                        <p>{{ job.description|truncatewords:25 }}</p>
+                    </div>
+                    
+                    <!-- Job Tags -->
+                    <div class="job-tags">
+                        {% if 'remote' in job.title|lower or 'remote' in job.description|lower %}
+                            <span class="job-tag remote-tag">
+                                <svg class="tag-icon" viewBox="0 0 16 16" width="12" height="12">
+                                    <path d="M8 1L3 6v7h10V6L8 1z" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                Remote
+                            </span>
+                        {% endif %}
+                        {% if 'full time' in job.description|lower or 'full-time' in job.description|lower %}
+                            <span class="job-tag fulltime-tag">
+                                <svg class="tag-icon" viewBox="0 0 16 16" width="12" height="12">
+                                    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                    <path d="M8 4v4l3 3" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                Full-time
+                            </span>
+                        {% endif %}
+                        {% if 'part time' in job.description|lower or 'part-time' in job.description|lower %}
+                            <span class="job-tag parttime-tag">
+                                <svg class="tag-icon" viewBox="0 0 16 16" width="12" height="12">
+                                    <circle cx="8" cy="8" r="6" fill="none" stroke="currentColor" stroke-width="1.5"/>
+                                    <path d="M8 4v4" stroke="currentColor" stroke-width="1.5"/>
+                                </svg>
+                                Part-time
+                            </span>
+                        {% endif %}
+                        <span class="job-tag source-tag">BossJob.ph</span>
+                    </div>
+                    
+                    <!-- Action Buttons -->
+                    <div class="job-card-footer">
+                        <div class="job-buttons">
+                            {% if job.url and job.url != '#' and job.url != '#no-url-found' and 'javascript:' not in job.url|lower %}
+                                <a href="{% url 'jobs:job_redirect' job_id=forloop.counter0 %}" target="_blank" class="btn-apply">
+                                    Easy Apply
+                                </a>
+                                <a href="{% url 'jobs:job_redirect' job_id=forloop.counter0 %}" target="_blank" class="btn-view">
+                                    View job
+                                </a>
+                            {% else %}
+                                <a href="https://bossjob.ph/en-us/jobs-hiring" target="_blank" class="btn-view">
+                                    Search similar
+                                </a>
+                            {% endif %}
+                        </div>
+                        <button class="btn-share" onclick="shareJob('{{ job.title }}', '{{ job.url }}')">
+                            <svg viewBox="0 0 16 16" width="16" height="16">
+                                <path d="M12 5.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 1a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
+                                <path d="M4 10.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 1a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
+                                <path d="M12 13.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5zm0 1a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7z"/>
+                                <path d="M6.5 8.5L9.5 6.5M6.5 7.5L9.5 9.5"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Footer Info -->
+        <div class="mt-4 p-3 bg-light rounded">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Results are fetched live from BossJob.ph. Click "View on BossJob.ph" to apply directly.
+                    </small>
+                </div>
+                <div class="col-md-4 text-md-end">
+                    <button class="btn btn-outline-primary btn-sm" onclick="window.location.reload()">
+                        <i class="fas fa-sync-alt me-1"></i>
+                        Refresh Results
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Debug Information for Successful Searches -->
+        {% if results.debug_info %}
+            <div class="mt-3">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="collapse" data-bs-target="#debugInfo" aria-expanded="false" aria-controls="debugInfo">
+                    <i class="fas fa-bug me-1"></i>
+                    Show Debug Info
+                </button>
+                <div class="collapse mt-2" id="debugInfo">
+                    <div class="card card-body bg-light">
+                        <h6 class="mb-3"><i class="fas fa-info-circle me-2"></i>Scraping Details:</h6>
+                        <div class="row">
+                            <div class="col-md-6">
+                                <small>
+                                    <strong>URL Accessed:</strong><br>
+                                    <code class="text-break">{{ results.debug_info.url_accessed }}</code><br><br>
+                                    <strong>Response Status:</strong> {{ results.debug_info.response_status }}<br>
+                                    <strong>Response Size:</strong> {{ results.debug_info.response_size|filesizeformat }}<br>
+                                    <strong>Jobs Extracted:</strong> {{ results.debug_info.jobs_extracted }}
+                                </small>
+                            </div>
+                            <div class="col-md-6">
+                                <small>
+                                    <strong>Job Elements Found:</strong> {{ results.debug_info.job_elements_found }}<br>
+                                    <strong>Total Elements Parsed:</strong> {{ results.debug_info.total_elements_parsed }}<br>
+                                    <strong>CSS Selectors Tried:</strong><br>
+                                    {% for selector in results.debug_info.selectors_tried %}
+                                        <code>{{ selector }}</code>{% if not forloop.last %}, {% endif %}
+                                    {% endfor %}
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+        
+    {% else %}
+        <!-- No Jobs Found -->
+        <div class="text-center py-5">
+            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <h4 class="text-muted">No Jobs Found</h4>
+            <p class="text-muted mb-4">
+                We couldn't find any jobs matching your search criteria on BossJob.ph.<br>
+                Try adjusting your keywords or location.
+            </p>
+            
+            <!-- Debug Information -->
+            {% if results.debug_info %}
+                <div class="alert alert-warning mt-4">
+                    <h6 class="alert-heading"><i class="fas fa-bug me-2"></i>Debug Information:</h6>
+                    <div class="row text-start">
+                        <div class="col-md-6">
+                            <small>
+                                <strong>URL Accessed:</strong><br>
+                                <code class="text-break">{{ results.debug_info.url_accessed }}</code><br><br>
+                                <strong>Response Status:</strong> {{ results.debug_info.response_status }}<br>
+                                <strong>Response Size:</strong> {{ results.debug_info.response_size|filesizeformat }}<br>
+                                <strong>Jobs Extracted:</strong> {{ results.debug_info.jobs_extracted }}
+                            </small>
+                        </div>
+                        <div class="col-md-6">
+                            <small>
+                                <strong>Job Elements Found:</strong> {{ results.debug_info.job_elements_found }}<br>
+                                <strong>Total Elements:</strong> {{ results.debug_info.total_elements_parsed }}<br>
+                                <strong>Selectors Tried:</strong><br>
+                                {% for selector in results.debug_info.selectors_tried %}
+                                    <code>{{ selector }}</code>{% if not forloop.last %}, {% endif %}
+                                {% endfor %}
+                            </small>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
+            
+            <!-- Suggestions -->
+            <div class="alert alert-info">
+                <h6 class="alert-heading"><i class="fas fa-lightbulb me-2"></i>Search Tips:</h6>
+                <ul class="list-unstyled mb-0 text-start">
+                    <li>• Try broader keywords (e.g., "developer" instead of "senior python developer")</li>
+                    <li>• Use common job titles (e.g., "software engineer", "data analyst")</li>
+                    <li>• Try different location variations (e.g., "Metro Manila" instead of "Makati")</li>
+                    <li>• Check your spelling and try alternative terms</li>
+                </ul>
+            </div>
+        </div>
+    {% endif %}
+    
+{% else %}
+    <!-- Error Alert -->
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Error:</strong> {{ results.error|default:"Failed to fetch jobs from BossJob.ph" }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+    
+    <!-- Error Details -->
+    <div class="text-center py-4">
+        <i class="fas fa-exclamation-circle fa-3x text-danger mb-3"></i>
+        <h4 class="text-danger">Unable to Fetch Jobs</h4>
+        <p class="text-muted mb-4">
+            {{ results.message|default:"There was an issue connecting to BossJob.ph. Please try again later." }}
+        </p>
+        
+        <!-- Retry Button -->
+        <button class="btn btn-outline-primary" onclick="window.location.reload()">
+            <i class="fas fa-redo me-2"></i>
+            Try Again
+        </button>
+    </div>
+    
+    <!-- Detailed Error Information -->
+    {% if results.debug_info %}
+        <div class="alert alert-danger mt-4">
+            <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Error Details:</h6>
+            <div class="row text-start">
+                <div class="col-md-6">
+                    <small>
+                        <strong>Error Type:</strong> {{ results.debug_info.error_type }}<br>
+                        <strong>Error Message:</strong><br>
+                        <code class="text-break text-danger">{{ results.debug_info.error_message }}</code><br><br>
+                        {% if results.debug_info.url_attempted %}
+                            <strong>URL Attempted:</strong><br>
+                            <code class="text-break">{{ results.debug_info.url_attempted }}</code><br>
+                        {% endif %}
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    <small>
+                        {% if results.debug_info.status_code %}
+                            <strong>HTTP Status:</strong> {{ results.debug_info.status_code }}<br>
+                        {% endif %}
+                        {% if results.debug_info.response_status %}
+                            <strong>Response Status:</strong> {{ results.debug_info.response_status }}<br>
+                        {% endif %}
+                        {% if results.debug_info.response_length %}
+                            <strong>Response Length:</strong> {{ results.debug_info.response_length|filesizeformat }}<br>
+                        {% endif %}
+                        <strong>Timestamp:</strong> {{ "now"|date:"Y-m-d H:i:s" }}
+                    </small>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Troubleshooting -->
+    <div class="alert alert-warning mt-4">
+        <h6 class="alert-heading"><i class="fas fa-tools me-2"></i>Troubleshooting:</h6>
+        <ul class="list-unstyled mb-0">
+            <li>• Check your internet connection</li>
+            <li>• Try again in a few minutes</li>
+            <li>• The website structure may have changed</li>
+            <li>• Contact support if the problem persists</li>
+        </ul>
+    </div>
+{% endif %}
+
+<!-- Form Errors -->
+{% if form.errors %}
+    <div class="alert alert-warning mt-3">
+        <h6 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Form Errors:</h6>
+        {% for field, errors in form.errors.items %}
+            <div class="mb-2">
+                <strong>{{ field|title }}:</strong>
+                {% for error in errors %}
+                    <div class="text-danger">{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+{% endif %}
+
+<style>
+    /* LinkedIn-inspired Job Card Styles */
+    .linkedin-job-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        background-color: #f3f2ef;
+        border-radius: 8px;
+        overflow: hidden;
+    }
+    
+    .linkedin-job-card {
+        background: white;
+        padding: 16px 24px;
+        border-bottom: 1px solid #e0e0e0;
+        transition: all 0.2s ease;
+        position: relative;
+    }
+    
+    .linkedin-job-card:hover {
+        background-color: #f9f9f9;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    .linkedin-job-card:last-child {
+        border-bottom: none;
+    }
+    
+    /* Job Card Header */
+    .job-card-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .company-logo {
+        flex-shrink: 0;
+    }
+    
+    .company-avatar {
+        width: 56px;
+        height: 56px;
+        background: linear-gradient(135deg, #0a66c2 0%, #004182 100%);
+        color: white;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 20px;
+        font-weight: 600;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.12);
+    }
+    
+    .job-info {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .job-title {
+        margin: 0 0 4px 0;
+        font-size: 16px;
+        font-weight: 600;
+        line-height: 1.25;
+        color: #181818;
+    }
+    
+    .job-link {
+        color: #0a66c2;
+        text-decoration: none;
+        transition: color 0.15s ease;
+    }
+    
+    .job-link:hover {
+        color: #004182;
+        text-decoration: underline;
+    }
+    
+    .job-title-disabled {
+        color: #666666;
+    }
+    
+    .unavailable-badge {
+        display: inline-block;
+        background: #fef3cd;
+        color: #856404;
+        font-size: 11px;
+        font-weight: 500;
+        padding: 2px 6px;
+        border-radius: 4px;
+        margin-left: 8px;
+        border: 1px solid #ffeaa7;
+    }
+    
+    .company-info {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 4px 12px;
+        margin-bottom: 4px;
+        font-size: 14px;
+        color: #666666;
+    }
+    
+    .company-name {
+        font-weight: 500;
+        color: #181818;
+    }
+    
+    .job-location::before {
+        content: "•";
+        margin-right: 8px;
+        color: #999999;
+    }
+    
+    .job-salary {
+        color: #057642;
+        font-weight: 500;
+    }
+    
+    .job-salary::before {
+        content: "•";
+        margin-right: 8px;
+        color: #999999;
+    }
+    
+    .job-meta {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-size: 12px;
+        color: #666666;
+    }
+    
+    .job-source {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+    }
+    
+    .source-icon {
+        fill: #666666;
+    }
+    
+    .job-posted {
+        color: #057642;
+    }
+    
+    /* Action Menu */
+    .job-actions {
+        display: flex;
+        gap: 8px;
+        flex-shrink: 0;
+    }
+    
+    .action-btn {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        color: #666666;
+    }
+    
+    .action-btn:hover {
+        background-color: #f0f0f0;
+        color: #181818;
+    }
+    
+    .save-btn.saved {
+        color: #0a66c2;
+    }
+    
+    .save-btn.saved .save-icon {
+        fill: #0a66c2;
+    }
+    
+    /* Job Description */
+    .job-description {
+        margin-bottom: 12px;
+    }
+    
+    .job-description p {
+        margin: 0;
+        font-size: 14px;
+        line-height: 1.4;
+        color: #181818;
+    }
+    
+    /* Job Tags */
+    .job-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 16px;
+    }
+    
+    .job-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        padding: 4px 8px;
+        background: #f3f2ef;
+        color: #666666;
+        font-size: 12px;
+        font-weight: 500;
+        border-radius: 16px;
+        border: 1px solid #e0e0e0;
+    }
+    
+    .tag-icon {
+        stroke: currentColor;
+    }
+    
+    .remote-tag {
+        background: #e7f3ff;
+        color: #0a66c2;
+        border-color: #b8daff;
+    }
+    
+    .fulltime-tag {
+        background: #d4edda;
+        color: #057642;
+        border-color: #c3e6cb;
+    }
+    
+    .parttime-tag {
+        background: #fff3cd;
+        color: #856404;
+        border-color: #ffeaa7;
+    }
+    
+    .source-tag {
+        background: #f8f9fa;
+        color: #495057;
+        border-color: #dee2e6;
+    }
+    
+    /* Job Card Footer */
+    .job-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .job-buttons {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-apply {
+        background: #0a66c2;
+        color: white;
+        border: 1px solid #0a66c2;
+        padding: 6px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .btn-apply:hover {
+        background: #004182;
+        border-color: #004182;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-view {
+        background: transparent;
+        color: #0a66c2;
+        border: 1px solid #0a66c2;
+        padding: 6px 16px;
+        border-radius: 16px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .btn-view:hover {
+        background: #f3f2ef;
+        color: #004182;
+        border-color: #004182;
+        text-decoration: none;
+    }
+    
+    .btn-share {
+        width: 32px;
+        height: 32px;
+        border: none;
+        background: transparent;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        transition: background-color 0.15s ease;
+        color: #666666;
+    }
+    
+    .btn-share:hover {
+        background-color: #f0f0f0;
+        color: #181818;
+    }
+    
+    .btn-share svg {
+        stroke: currentColor;
+        fill: none;
+        stroke-width: 1.5;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .linkedin-job-card {
+            padding: 12px 16px;
+        }
+        
+        .job-card-header {
+            gap: 8px;
+        }
+        
+        .company-avatar {
+            width: 48px;
+            height: 48px;
+            font-size: 18px;
+        }
+        
+        .job-title {
+            font-size: 15px;
+        }
+        
+        .company-info {
+            font-size: 13px;
+        }
+        
+        .job-description p {
+            font-size: 13px;
+        }
+        
+        .job-buttons {
+            flex-direction: column;
+            gap: 6px;
+        }
+        
+        .btn-apply,
+        .btn-view {
+            padding: 8px 12px;
+            font-size: 13px;
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .job-card-footer {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 12px;
+        }
+        
+        .btn-share {
+            align-self: center;
+        }
+    }
+    
+    /* Legacy styles for other elements */
+    .search-summary {
+        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        border-radius: 12px;
+        border: 1px solid #dee2e6;
+    }
+    
+    .search-summary .badge {
+        background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+    }
+</style>
+
+<script>
+// Share job function
+function shareJob(title, url) {
+    if (navigator.share) {
+        navigator.share({
+            title: title,
+            text: `Check out this job: ${title}`,
+            url: url
+        }).catch(console.error);
+    } else {
+        // Fallback: copy to clipboard
+        const shareText = `${title} - ${url}`;
+        navigator.clipboard.writeText(shareText).then(() => {
+            // Show toast notification
+            const toast = document.createElement('div');
+            toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+            toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+            toast.innerHTML = `
+                <div class="d-flex">
+                    <div class="toast-body">
+                        <i class="fas fa-check me-2"></i>Job link copied to clipboard!
+                    </div>
+                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                </div>
+            `;
+            document.body.appendChild(toast);
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+            
+            // Remove toast after it's hidden
+            toast.addEventListener('hidden.bs.toast', () => {
+                document.body.removeChild(toast);
+            });
+        }).catch(() => {
+            alert('Job link: ' + shareText);
+        });
+    }
+}
+
+// Auto-dismiss alerts after 5 seconds
+document.addEventListener('DOMContentLoaded', function() {
+    const alerts = document.querySelectorAll('.alert-success');
+    alerts.forEach(alert => {
+        setTimeout(() => {
+            const bsAlert = new bootstrap.Alert(alert);
+            bsAlert.close();
+        }, 5000);
+    });
+});
+</script>

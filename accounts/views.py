@@ -103,9 +103,17 @@ def profile_detail(request, username=None):
         # If username is provided, get that user's profile, otherwise get the logged-in user's profile
         if username:
             user = get_object_or_404(User, username=username)
-            profile = user.profile
+            try:
+                profile = user.profile
+            except Profile.DoesNotExist:
+                # Create profile if it doesn't exist
+                profile = Profile.objects.create(user=user)
         else:
-            profile = request.user.profile
+            try:
+                profile = request.user.profile
+            except Profile.DoesNotExist:
+                # Create profile if it doesn't exist
+                profile = Profile.objects.create(user=request.user)
             
         education_list = profile.education.all().order_by('-graduation_year')
         
@@ -172,8 +180,14 @@ def profile_detail(request, username=None):
         
         return render(request, 'accounts/profile_detail.html', context)
     except Exception as e:
-        messages.error(request, f'Error loading profile: {str(e)}')
-        return redirect('core:home')
+        logger.error(f'Error in profile_detail view: {str(e)}')
+        messages.error(request, 'There was an error loading your profile. Please try again.')
+        # Instead of redirecting to home (which could cause a loop),
+        # render a simple error page or redirect to a safe page
+        return render(request, 'accounts/profile_error.html', {
+            'error_message': 'Unable to load profile information.',
+            'user': request.user
+        })
 
 @login_required
 def profile_update(request):
@@ -443,6 +457,39 @@ def search_users_api(request):
     return JsonResponse(data, safe=False)
 
 @login_required
+def search_connected_users_api(request):
+    """Search only connected users for messaging"""
+    from connections.models import Connection
+    
+    query = request.GET.get('q', '').strip()
+    if len(query) < 2:
+        return JsonResponse([], safe=False)
+    
+    # Get connected users
+    connected_users = Connection.get_user_connections(request.user, status='ACCEPTED')
+    
+    # Filter connected users by search query
+    filtered_users = []
+    for user in connected_users:
+        if (query.lower() in user.first_name.lower() or 
+            query.lower() in user.last_name.lower() or 
+            query.lower() in user.get_full_name().lower() or
+            query.lower() in user.username.lower()):
+            filtered_users.append(user)
+    
+    # Limit to 10 results
+    filtered_users = filtered_users[:10]
+    
+    data = [{
+        'id': user.id,
+        'username': user.username,
+        'full_name': user.get_full_name(),
+        'avatar_url': user.profile.avatar.url if hasattr(user, 'profile') and user.profile.avatar else '/static/images/default-avatar.png'
+    } for user in filtered_users]
+    
+    return JsonResponse(data, safe=False)
+
+@login_required
 def user_detail_api(request, user_id):
     user = get_object_or_404(User, id=user_id)
     return JsonResponse({
@@ -566,7 +613,10 @@ def edit_personal_info(request):
                     profile.avatar = None
                     profile.save()
             
+            messages.success(request, 'Your profile has been updated successfully!')
             return redirect('accounts:profile_detail')
+        else:
+            messages.error(request, 'Please correct the errors below.')
     else:
         user_form = UserUpdateForm(instance=request.user)
         profile_form = ProfileUpdateForm(instance=request.user.profile)

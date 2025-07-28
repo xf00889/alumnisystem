@@ -117,6 +117,33 @@ class Profile(models.Model):
             is_primary=True
         )
 
+    @property
+    def location(self):
+        """Get the user's location as a formatted string"""
+        # First try to get from primary address (normalized model)
+        primary_addr = self.primary_address
+        if primary_addr:
+            parts = []
+            if primary_addr.city:
+                parts.append(primary_addr.city)
+            if primary_addr.state:
+                parts.append(primary_addr.state)
+            if primary_addr.country:
+                parts.append(str(primary_addr.country.name))
+            if parts:
+                return ", ".join(parts)
+
+        # Fallback to legacy fields in profile
+        parts = []
+        if self.city:
+            parts.append(self.city)
+        if self.state:
+            parts.append(self.state)
+        if self.country:
+            parts.append(str(self.country.name))
+
+        return ", ".join(parts) if parts else None
+
     def save(self, *args, **kwargs):
         # Sync professional information with Alumni model if it exists
         super().save(*args, **kwargs)
@@ -460,4 +487,5 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    instance.profile.save()
+    if hasattr(instance, 'profile'):
+        instance.profile.save()

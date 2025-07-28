@@ -1,0 +1,627 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alumni Management{% endblock %}
+
+
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: #1e2a54;
+        border-color: #1e2a54;
+    }
+    
+    .btn-success {
+        background: var(--feedback-success);
+        border: 1px solid var(--feedback-success);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+        background: #38a169;
+        border-color: #38a169;
+    }
+    
+    .btn-info {
+        background: var(--feedback-info);
+        border: 1px solid var(--feedback-info);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-info:hover {
+        background: #3182ce;
+        border-color: #3182ce;
+    }
+    
+    .table-responsive {
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+    
+    .table {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+    }
+    
+    .table thead th {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        font-weight: 600;
+        padding: 1rem;
+        text-align: center;
+        font-size: 0.875rem;
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--ui-border);
+        text-align: center;
+        font-size: 0.875rem;
+    }
+    
+    .table tbody tr:hover {
+        background-color: var(--ui-hover);
+    }
+    
+    .form-control, .form-select {
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--ui-border);
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+    
+    .input-group-text {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: 1px solid var(--primary-color);
+        border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+        font-size: 0.875rem;
+    }
+    
+    .pagination .page-link {
+        border-radius: var(--radius-sm);
+        margin: 0 2px;
+        border: 1px solid var(--ui-border);
+        color: var(--primary-color);
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .modal-content {
+        border-radius: var(--radius-md);
+        border: none;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .modal-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        padding: 1.5rem;
+    }
+    
+    .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+    
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: var(--radius-sm);
+        margin: 0 2px;
+    }
+    
+    .filter-controls {
+        background: var(--ui-surface);
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .analytics-period-selector {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .analytics-label {
+        color: var(--text-light);
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .analytics-select {
+        background: var(--ui-surface);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        width: 100%;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .analytics-select:focus {
+        outline: none;
+        border-color: var(--text-light);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    
+    .analytics-select:hover {
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1 class="page-title">Alumni Management</h1>
+        <p class="mb-0">Manage and view all alumni records with advanced filtering and export capabilities</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+                    <i class="fas fa-file-import me-1"></i> Import Data
+                </button>
+                <a href="{% url 'alumni_directory:alumni_management' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" class="btn btn-success">
+                    <i class="fas fa-file-csv me-1"></i> Export to CSV
+                </a>
+            </div>
+            
+            <!-- Search and Filter Section -->
+            <div class="filter-controls">
+                <form method="get" action="{% url 'alumni_directory:alumni_management' %}" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search" class="form-label">Search</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="search" name="search" value="{{ search_query }}" 
+                                           class="form-control" placeholder="Search by name, course, or location">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="graduation_year" class="form-label">Graduation Year</label>
+                                <select id="graduation_year" name="graduation_year" class="form-select">
+                                    <option value="">All Years</option>
+                                    {% for year in graduation_years %}
+                                    <option value="{{ year }}" {% if selected_year == year|stringformat:"i" %}selected{% endif %}>{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="form-group">
+                                <label for="course" class="form-label">Course</label>
+                                <select id="course" name="course" class="form-select">
+                                    <option value="">All Courses</option>
+                                    {% for course_item in courses %}
+                                    <option value="{{ course_item }}" {% if selected_course == course_item %}selected{% endif %}>{{ course_item }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        
+            <!-- Results Count -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">
+                    <i class="fas fa-users me-1"></i> Showing {{ alumni_list.paginator.count }} alumni records
+                </p>
+            </div>
+            
+            <!-- Tabular List -->
+            <div class="dashboard-card">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Full Name</th>
+                                <th>Year</th>
+                                <th>Course</th>
+                                <th>Present Occupation</th>
+                                <th>Name of Company</th>
+                                <th>Employment Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumni in alumni_list %}
+                            <tr>
+                                <td>{{ alumni.id }}</td>
+                                <td>
+                                    <strong>{{ alumni.full_name }}</strong>
+                                </td>
+                                <td>{{ alumni.graduation_year }}</td>
+                                <td>{{ alumni.course }}</td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.position }}
+                                    {% else %}
+                                        {{ alumni.job_title|default:"None" }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.company }}
+                                    {% else %}
+                                        {{ alumni.current_company|default:"None" }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.location }}
+                                    {% else %}
+                                        {% if alumni.city or alumni.province %}
+                                            {{ alumni.city }}, {{ alumni.province }}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-action" 
+                                            data-bs-toggle="modal" 
+                                            data-bs-target="#alumniDetailModal"
+                                            data-alumni-id="{{ alumni.id }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="8" class="text-center py-4">
+                                    <div class="alert alert-info mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No alumni records found matching your criteria.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+        {% if alumni_list.has_other_pages %}
+        <nav aria-label="Alumni pagination">
+            <ul class="pagination justify-content-center">
+                {% if alumni_list.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in alumni_list.paginator.page_range %}
+                    {% if alumni_list.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > alumni_list.number|add:'-3' and num < alumni_list.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if alumni_list.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="fas fa-file-import me-2"></i>Import Alumni Data
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'alumni_directory:alumni_management' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                        <div class="form-text">
+                            Please upload a CSV file with the following columns: Full Name, Year, Course, Present Occupation, Name of Company, Employment Address
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> The CSV file should have headers matching the table columns. Existing records with the same name and graduation year will be updated.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="import_csv" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>Import Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Alumni Detail Modal -->
+<div class="modal fade" id="alumniDetailModal" tabindex="-1" aria-labelledby="alumniDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alumniDetailModalLabel">
+                    <i class="fas fa-user me-2"></i>Alumni Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="alumniDetailContent">
+                <!-- Content will be loaded via AJAX -->
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script>
+    // Handle alumni detail modal
+    document.addEventListener('DOMContentLoaded', function() {
+        const alumniDetailModal = document.getElementById('alumniDetailModal');
+
+        if (!alumniDetailModal) {
+            return;
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // Add event listener for modal show event
+        alumniDetailModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+
+            if (!button) {
+                return;
+            }
+
+            const alumniId = button.getAttribute('data-alumni-id');
+
+            if (!alumniId) {
+                return;
+            }
+
+            const modalBody = document.getElementById('alumniDetailContent');
+            if (!modalBody) {
+                return;
+            }
+
+            // Show loading spinner
+            modalBody.innerHTML = `
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+
+            // Fetch alumni details
+            const url = `/alumni-directory/alumni/${alumniId}/detail-modal/`;
+
+            fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',  // Include cookies for authentication
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html',
+                    'X-CSRFToken': csrftoken,
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    modalBody.innerHTML = html;
+                })
+                .catch(error => {
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading alumni details: ${error.message}
+                        </div>
+                    `;
+                });
+        });
+    });
+</script>
+{% endblock %}

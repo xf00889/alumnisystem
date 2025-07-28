@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Search Functionality</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+</head>
+<body>
+    <div class="container mt-5">
+        <h2>Test Search Functionality</h2>
+        
+        <!-- CSRF Token -->
+        {% csrf_token %}
+        
+        <!-- Search Input -->
+        <div class="mb-4">
+            <label for="userSearch" class="form-label">Search for a user</label>
+            <div class="input-group">
+                <input type="text" class="form-control" id="userSearch" placeholder="Enter a name to search...">
+                <button class="btn btn-primary" type="button" id="searchUserBtn">
+                    <i class="fas fa-search"></i> Search
+                </button>
+            </div>
+        </div>
+
+        <!-- Search Results -->
+        <div id="searchResults" class="mb-4" style="display: none;">
+            <div class="search-results-container border rounded p-3">
+                <div class="search-results-list"></div>
+            </div>
+        </div>
+
+        <!-- Test Button -->
+        <button class="btn btn-success" onclick="testSearch()">Test Search Function</button>
+        
+        <!-- Debug Info -->
+        <div class="mt-4">
+            <h5>Debug Information</h5>
+            <div id="debugInfo" class="bg-light p-3 rounded">
+                <p>Check the browser console for detailed debug messages.</p>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <script>
+        // Test search functionality
+        function performUserSearch() {
+            console.log('=== performUserSearch called ===');
+            
+            const userSearch = document.getElementById('userSearch');
+            const searchResults = document.getElementById('searchResults');
+            const searchResultsList = document.querySelector('.search-results-list');
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+
+            console.log('Elements found:', {
+                userSearch: !!userSearch,
+                searchResults: !!searchResults,
+                searchResultsList: !!searchResultsList,
+                csrfToken: !!csrfToken
+            });
+
+            if (!userSearch || !searchResults || !searchResultsList || !csrfToken) {
+                console.error('Required elements not found');
+                document.getElementById('debugInfo').innerHTML = '<p class="text-danger">Required elements not found!</p>';
+                return;
+            }
+
+            const query = userSearch.value.trim();
+            console.log('Search query:', query);
+            
+            if (query.length < 2) {
+                console.log('Query too short');
+                searchResults.style.display = 'none';
+                return;
+            }
+
+            // Show loading state
+            console.log('Showing loading state');
+            searchResultsList.innerHTML = `
+                <div class="text-center p-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Searching...</span>
+                    </div>
+                    <div class="mt-2">Searching for "${query}"...</div>
+                </div>
+            `;
+            searchResults.style.display = 'block';
+
+            // Make API call
+            const apiUrl = `/profile/api/search-connected-users/?q=${encodeURIComponent(query)}`;
+            console.log('Making API call to:', apiUrl);
+            
+            fetch(apiUrl, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': csrfToken.value
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                console.log('API Response received:', response.status, response.statusText);
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                return response.json();
+            })
+            .then(users => {
+                console.log('API Response data:', users);
+                searchResultsList.innerHTML = '';
+
+                if (users.length === 0) {
+                    searchResultsList.innerHTML = `
+                        <div class="text-center p-4">
+                            <i class="fas fa-user-slash fa-2x text-muted mb-2"></i>
+                            <p class="mb-0">No connected alumni found matching "${query}"</p>
+                        </div>
+                    `;
+                } else {
+                    users.forEach(user => {
+                        const userItem = document.createElement('div');
+                        userItem.className = 'border-bottom p-2';
+                        userItem.innerHTML = `
+                            <div class="d-flex align-items-center">
+                                <img src="${user.avatar_url || '/static/images/default-avatar.png'}"
+                                     alt="${user.full_name}" class="rounded-circle me-3" width="40" height="40">
+                                <div>
+                                    <div class="fw-semibold">${user.full_name}</div>
+                                    <div class="text-muted small">@${user.username}</div>
+                                </div>
+                            </div>
+                        `;
+                        searchResultsList.appendChild(userItem);
+                    });
+                }
+                
+                document.getElementById('debugInfo').innerHTML = `
+                    <p class="text-success">Search completed successfully!</p>
+                    <p>Found ${users.length} users</p>
+                `;
+            })
+            .catch(error => {
+                console.error('Error searching users:', error);
+                searchResultsList.innerHTML = `
+                    <div class="text-center p-4">
+                        <i class="fas fa-exclamation-triangle fa-2x text-danger mb-2"></i>
+                        <p class="mb-0">Error: ${error.message}</p>
+                    </div>
+                `;
+                
+                document.getElementById('debugInfo').innerHTML = `
+                    <p class="text-danger">Search failed: ${error.message}</p>
+                `;
+            });
+        }
+
+        // Test function
+        function testSearch() {
+            console.log('=== Testing search functionality ===');
+            const userSearch = document.getElementById('userSearch');
+            if (userSearch) {
+                userSearch.value = 'test';
+                performUserSearch();
+            } else {
+                console.error('Search input not found');
+            }
+        }
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOM loaded');
+            
+            const searchUserBtn = document.getElementById('searchUserBtn');
+            const userSearch = document.getElementById('userSearch');
+            
+            if (searchUserBtn) {
+                searchUserBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    console.log('Search button clicked');
+                    performUserSearch();
+                });
+            }
+            
+            if (userSearch) {
+                userSearch.addEventListener('keypress', function(e) {
+                    if (e.key === 'Enter') {
+                        e.preventDefault();
+                        console.log('Enter key pressed');
+                        performUserSearch();
+                    }
+                });
+            }
+            
+            console.log('Event listeners attached');
+        });
+    </script>
+</body>
+</html>

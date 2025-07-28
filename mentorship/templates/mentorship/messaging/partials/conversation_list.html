@@ -1,0 +1,102 @@
+{% load static %}
+
+{% if conversations %}
+    {% for conv in conversations %}
+    <div class="conversation-item p-3 cursor-pointer" 
+         data-conversation-id="{{ conv.conversation.id }}"
+         hx-get="{% url 'mentorship:conversation_detail' conv.conversation.id %}"
+         hx-target="#conversation-detail"
+         hx-swap="innerHTML"
+         style="border-bottom: 1px solid var(--ui-border); transition: all 0.2s ease; background: var(--ui-surface);">
+        
+        <div class="d-flex align-items-center">
+            <!-- Avatar -->
+            <div class="flex-shrink-0 me-3 position-relative">
+                {% if conv.other_user.profile.avatar %}
+                    <img src="{{ conv.other_user.profile.avatar.url }}" 
+                         alt="{{ conv.other_user.get_full_name }}"
+                         class="rounded-circle" 
+                         style="width: 52px; height: 52px; object-fit: cover; border: 2px solid var(--ui-border);">
+                {% else %}
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 52px; height: 52px; background: var(--secondary-color); color: var(--text-light); border: 2px solid var(--ui-border);">
+                        <i class="fas fa-user" style="font-size: 1.2rem;"></i>
+                    </div>
+                {% endif %}
+                
+                <!-- Online status indicator -->
+                {% if conv.other_user.is_online %}
+                    <div class="position-absolute bottom-0 end-0" 
+                         style="width: 14px; height: 14px; background: var(--feedback-success); border: 2px solid var(--ui-surface); border-radius: 50%;"></div>
+                {% endif %}
+            </div>
+            
+            <!-- Conversation Info -->
+            <div class="flex-grow-1 min-w-0">
+                <div class="d-flex justify-content-between align-items-start mb-1">
+                    <h6 class="mb-0 text-truncate" style="font-weight: 600; color: var(--text-primary); font-size: 0.95rem;">{{ conv.other_user.get_full_name|default:conv.other_user.username }}</h6>
+                    
+                    {% if conv.last_message %}
+                        <small style="color: var(--text-muted); font-weight: 500; font-size: 0.75rem;">
+                            {% if conv.last_message.created_at.date == today %}
+                                {{ conv.last_message.created_at|time:"g:i A" }}
+                            {% else %}
+                                {{ conv.last_message.created_at|date:"M j" }}
+                            {% endif %}
+                        </small>
+                    {% endif %}
+                </div>
+                
+                <p class="mb-1 text-truncate" style="color: var(--text-secondary); font-size: 0.8rem; font-weight: 500;">{{ conv.other_user.profile.current_position|default:"Alumni" }}</p>
+                
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="message-preview flex-grow-1">
+                        {% if conv.last_message %}
+                            <p class="mb-0 text-truncate" style="color: var(--text-muted); font-size: 0.85rem;">
+                                {% if conv.last_message.sender == user %}
+                                    <span style="color: var(--primary-color);">You:</span>
+                                {% endif %}
+                                {{ conv.last_message.content|truncatechars:45 }}
+                            </p>
+                        {% else %}
+                            <p class="mb-0" style="color: var(--text-muted); font-size: 0.85rem;"><em>No messages yet</em></p>
+                        {% endif %}
+                    </div>
+                    
+                    {% if conv.unread_count > 0 %}
+                        <span class="badge ms-2" style="background: var(--primary-color); color: var(--text-light); font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-full);">{{ conv.unread_count }}</span>
+                    {% endif %}
+                </div>
+                
+                <!-- Mentorship Status -->
+                <div class="mt-2">
+                    <span class="badge" style="background: var(--feedback-success); color: var(--text-light); font-size: 0.7rem; padding: 0.25rem 0.5rem; border-radius: var(--radius-sm);">
+                        <i class="fas fa-handshake me-1"></i>
+                        Active Mentorship
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+{% else %}
+    <!-- Empty State -->
+    <div class="text-center p-4">
+        <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+        <h6 class="text-muted">No conversations yet</h6>
+        <p class="text-muted small mb-0">
+            Start a mentorship to begin messaging with mentors or mentees.
+        </p>
+        <a href="{% url 'mentorship:mentor_search' %}" class="btn btn-primary btn-sm mt-2">
+            <i class="fas fa-search me-1"></i>
+            Find Mentors
+        </a>
+    </div>
+{% endif %}
+
+<!-- Refresh trigger for auto-updates -->
+<div hx-get="{% url 'mentorship:conversation_list' %}"
+     hx-trigger="refresh from:body"
+     hx-target="#conversation-sidebar"
+     hx-swap="innerHTML"
+     style="display: none;"></div>

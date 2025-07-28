@@ -22,6 +22,7 @@ urlpatterns = [
     path('post-registration/', views.post_registration, name='post_registration'),
     # API endpoints
     path('api/search-users/', views.search_users_api, name='search_users_api'),
+    path('api/search-connected-users/', views.search_connected_users_api, name='search_connected_users_api'),
     path('api/user/<int:user_id>/', views.user_detail_api, name='user_detail_api'),
     path('group/<int:group_id>/manage-members/', views.manage_members, name='manage_members'),
     path('member/<int:membership_id>/update-status/', views.update_member_status, name='update_member_status'),
@@ -42,4 +43,4 @@ urlpatterns = [
     
     # Admin Views
     path('admin/mentor-list/', views.admin_mentor_list, name='admin_mentor_list'),
-] 
+]

@@ -8,6 +8,7 @@
 <!-- Add Leaflet.markercluster CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Custom styles for clusters -->
 <style>
     /* Add avatar background classes */
@@ -15,34 +16,63 @@
         background-image: url('{% static "images/default-avatar.png" %}');
     }
 
+    /* System Color Scheme - Dashboard Design */
     :root {
         --primary-color: #2b3c6b;
-        --secondary-color: #3c4f8a;
-        --accent-color: #4CAF50;
-        --background-light: #f8f9fa;
-        --background-dark: #1a1a1a;
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
         --text-light: #ffffff;
-        --text-dark: #333333;
-        --shadow: 0 2px 8px rgba(0,0,0,0.1);
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
     }
 
-    /* Dark mode styles */
-    [data-theme="dark"] {
-        --background-color: var(--background-dark);
-        --text-color: var(--text-light);
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
     }
 
     .map-interface {
-        font-family: 'Roboto', sans-serif;
-        padding: 20px;
+        font-family: 'Poppins', sans-serif;
+        padding: 1.25rem;
     }
 
     .map-container {
-        background: var(--background-light);
-        border-radius: 12px;
-        box-shadow: var(--shadow);
-        padding: 20px;
-        margin-bottom: 20px;
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .map-container:hover {
+        box-shadow: var(--shadow-md);
     }
 
     .controls-container {
@@ -54,45 +84,57 @@
 
     .search-box {
         position: relative;
-        margin-bottom: 15px;
+        margin-bottom: 1rem;
     }
 
     .search-box input {
         width: 100%;
-        padding: 12px 20px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        font-size: 14px;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
         transition: all 0.3s ease;
+        background: var(--ui-surface);
     }
 
     .search-box input:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.2);
         outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
     }
 
     .filters-container {
         display: flex;
-        gap: 15px;
+        gap: 1rem;
         flex-wrap: wrap;
+        margin-bottom: 1rem;
     }
 
     .filter-select {
-        padding: 10px 15px;
-        border: 1px solid #ddd;
-        border-radius: 8px;
-        background-color: white;
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        background: var(--ui-surface);
         min-width: 150px;
-        font-size: 14px;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-primary);
+    }
+    
+    .filter-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
     }
 
     #map {
         height: 700px;
         width: 100%;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
         z-index: 1;
+        border: 1px solid var(--ui-border);
     }
 
     .location-info {
@@ -128,36 +170,58 @@
     .stats-container {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 20px;
-        margin-bottom: 20px;
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
     }
 
     .stat-card {
-        background: white;
-        padding: 20px;
-        border-radius: 12px;
-        box-shadow: var(--shadow);
         text-align: center;
+        padding: 2rem 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        min-height: 140px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
         transition: all 0.3s ease;
     }
     
     .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .stat-card.primary { 
+        border-left: 3px solid var(--primary-color);
+    }
+    .stat-card.success { 
+        border-left: 3px solid var(--feedback-success);
+    }
+    .stat-card.info { 
+        border-left: 3px solid var(--feedback-info);
     }
 
     .stat-card h3 {
-        color: var(--primary-color);
-        margin: 0;
-        font-size: 32px;
+        font-size: 2.25rem;
         font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1;
     }
 
     .stat-card p {
-        color: #666;
-        margin: 5px 0 0 0;
-        font-size: 14px;
+        color: var(--text-secondary);
         font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
     }
 
     /* Loading indicator */
@@ -211,7 +275,7 @@
     }
 
     .marker-popup {
-        font-family: 'Roboto', sans-serif;
+        font-family: 'Poppins', sans-serif;
         padding: 10px;
     }
 
@@ -324,12 +388,108 @@
     }
 
     .users-stats-container {
-        background-color: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
         height: 100%;
+        margin-bottom: 1.5rem;
     }
+    
+    .users-stats-container:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+         opacity: 0.9;
+         font-size: 0.875rem;
+         margin: 0;
+     }
+     
+     /* Alert Styling */
+     .alert {
+         border-radius: var(--radius-sm);
+         border: 1px solid transparent;
+         padding: 0.75rem 1rem;
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .alert-info {
+         background-color: var(--info-light);
+         border-color: var(--info-color);
+         color: var(--info-dark);
+     }
+     
+     .alert-warning {
+          background-color: var(--warning-light);
+          border-color: var(--warning-color);
+          color: var(--warning-dark);
+      }
+      
+      /* Badge Styling */
+      .badge {
+          font-size: 0.75rem;
+          font-weight: 500;
+          padding: 0.25rem 0.5rem;
+          border-radius: var(--radius-sm);
+          font-family: 'Poppins', sans-serif;
+      }
+      
+      .bg-primary {
+          background-color: var(--primary-color) !important;
+          color: var(--text-light);
+      }
+      
+      .bg-light {
+          background-color: var(--ui-muted) !important;
+          color: var(--text-secondary);
+      }
+      
+      /* Button Styling */
+      .btn {
+          border-radius: var(--radius-sm);
+          font-size: 0.875rem;
+          font-weight: 500;
+          padding: 0.5rem 1rem;
+          border: 1px solid transparent;
+          font-family: 'Poppins', sans-serif;
+          transition: all 0.2s ease;
+      }
+      
+      .btn-primary {
+          background-color: var(--primary-color);
+          border-color: var(--primary-color);
+          color: var(--text-light);
+      }
+      
+      .btn-primary:hover {
+          background-color: var(--primary-dark);
+          border-color: var(--primary-dark);
+          transform: translateY(-1px);
+          box-shadow: var(--shadow-md);
+      }
     
     .users-list-container {
         display: flex;
@@ -337,51 +497,173 @@
         height: 100%;
     }
     
+    .batch-group {
+        margin-bottom: 1.25rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: var(--ui-surface);
+        box-shadow: var(--shadow-sm);
+    }
+    
     .batch-header {
-        background-color: var(--primary-color);
-        color: white;
-        border-radius: 8px;
-        padding: 8px 15px;
-        margin-bottom: 15px;
+        background: linear-gradient(135deg, var(--primary-color), #3a4d7a);
+        color: var(--text-light);
+        border-radius: 0;
+        padding: 1rem 1.25rem;
+        margin-bottom: 0;
+        border-bottom: none;
         display: flex;
         align-items: center;
         justify-content: space-between;
+        font-family: 'Poppins', sans-serif;
+        position: relative;
+    }
+    
+    .batch-header::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+    }
+    
+    .batch-header h4 {
+        font-size: 0.9rem;
+        font-weight: 600;
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .batch-header h4::before {
+        content: '🎓';
+        font-size: 1rem;
+    }
+    
+    .batch-count {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
     }
     
     .user-item {
-        background-color: #f8f9fa;
-        border-radius: 8px;
-        padding: 8px 12px;
-        margin-bottom: 8px;
-        transition: all 0.2s ease;
+        background: transparent;
+        border-radius: 0;
+        padding: 0.875rem 1.25rem;
+        margin-bottom: 0;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        cursor: pointer;
+        position: relative;
     }
     
-    .user-item:hover {
-        background-color: #e9ecef;
-        transform: translateX(5px);
+    .user-item:last-child {
+        border-bottom: none;
     }
     
-    .page-title {
-        color: var(--primary-color);
-        margin-bottom: 20px;
-        font-weight: 700;
-        border-left: 5px solid var(--primary-color);
-        padding-left: 15px;
-    }
-    
-    .alert-info {
-        border-left: 4px solid #0dcaf0;
-    }
-    
-    .alert-warning {
-        border-left: 4px solid #ffc107;
-    }
-    
-    .badge {
-        font-size: 12px;
+    .user-name {
         font-weight: 500;
-        padding: 5px 10px;
-        border-radius: 20px;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .user-name::before {
+        content: '👤';
+        font-size: 0.875rem;
+        opacity: 0.7;
+    }
+    
+    .user-content {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+    }
+    
+    .user-details {
+        flex: 1;
+        min-width: 0;
+    }
+    
+    .user-course {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+        font-weight: 400;
+    }
+    
+    .avatar-mini {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background-color: var(--ui-border);
+        background-size: cover;
+        background-position: center;
+        flex-shrink: 0;
+        border: 2px solid var(--ui-surface);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+    
+    /* Location Button */
+    .location-button {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        width: 3rem;
+        height: 3rem;
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        border-radius: var(--radius-full);
+        box-shadow: var(--shadow-lg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.125rem;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        z-index: 1000;
+    }
+    
+    .location-button:hover {
+        background: var(--primary-dark);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-xl);
+    }
+    
+    /* User List Container */
+    .user-list {
+        max-height: 200px;
+        overflow-y: auto;
+        position: relative;
+    }
+    
+    .user-list::-webkit-scrollbar {
+        width: 4px;
+    }
+    
+    .user-list::-webkit-scrollbar-track {
+        background: var(--ui-muted);
+    }
+    
+    .user-list::-webkit-scrollbar-thumb {
+        background: var(--ui-border);
+        border-radius: var(--radius-sm);
+    }
+    
+    .user-list::-webkit-scrollbar-thumb:hover {
+        background: var(--text-secondary);
     }
 
     .alumni-item {
@@ -433,31 +715,9 @@
         /* This animation is no longer used */
     }
 
-    /* Add tooltip and hover effects for alumni items */
+    /* User List Container */
     .user-list {
         position: relative;
-    }
-    
-    .user-list::before {
-        content: 'Click on an alumni to see their location on the map';
-        position: absolute;
-        top: -30px;
-        left: 0;
-        right: 0;
-        background-color: rgba(43, 60, 107, 0.8);
-        color: white;
-        font-size: 12px;
-        padding: 5px 10px;
-        border-radius: 4px;
-        text-align: center;
-        opacity: 0;
-        transition: opacity 0.3s ease;
-        pointer-events: none;
-        z-index: 10;
-    }
-    
-    .user-list:hover::before {
-        opacity: 1;
     }
 
     /* Add marker styles */
@@ -543,7 +803,11 @@
 {% block content %}
 <div class="map-interface">
     <div class="container-fluid">
-        <h1 class="page-title h3">Alumni Location Tracking</h1>
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <h1>Alumni Location Tracking</h1>
+            <p>Real-time location tracking and analytics for alumni network</p>
+        </div>
         
         <!-- Stats Overview -->
         <div class="stats-container">
@@ -600,23 +864,24 @@
                                 <div class="batch-group mb-3">
                                     <div class="batch-header">
                                         <h4 class="h6 mb-0">Batch {{ batch }}</h4>
-                                        <span class="badge bg-light text-dark">{{ users|length }}</span>
+                                        <span class="batch-count">{{ users|length }}</span>
                                     </div>
                                     <div class="user-list">
                                         {% for user in users %}
-                                        <div class="user-item d-flex align-items-center alumni-item" 
+                                        <div class="user-item alumni-item" 
                                              data-lat="{{ user.latitude|default:'' }}" 
                                              data-lng="{{ user.longitude|default:'' }}"
-                                             data-name="{{ user.name }}"
-                                             style="cursor: pointer;">
-                                            {% if user.avatar %}
-                                            <div class="avatar-mini me-2" style="background-image: url('{{ user.avatar }}');"></div>
-                                            {% else %}
-                                            <div class="avatar-mini me-2 avatar-bg-default"></div>
-                                            {% endif %}
-                                            <div>
-                                                <div class="user-name">{{ user.name }}</div>
-                                                <small class="text-muted">{{ user.course }}</small>
+                                             data-name="{{ user.name }}">
+                                            <div class="user-content">
+                                                {% if user.avatar %}
+                                                <div class="avatar-mini" style="background-image: url('{{ user.avatar }}');"></div>
+                                                {% else %}
+                                                <div class="avatar-mini avatar-bg-default"></div>
+                                                {% endif %}
+                                                <div class="user-details">
+                                                    <div class="user-name">{{ user.name }}</div>
+                                                    <div class="user-course">{{ user.course }}</div>
+                                                </div>
                                             </div>
                                         </div>
                                         {% endfor %}
@@ -1436,4 +1701,4 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
-{% endblock %} 
+{% endblock %}

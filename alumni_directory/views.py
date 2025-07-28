@@ -25,7 +25,7 @@ User = get_user_model()
 def is_admin(user):
     return user.is_authenticated and user.is_staff
 
-@user_passes_test(is_admin)
+@login_required
 @paginate(items_per_page=12)  # Show 12 alumni per page
 def alumni_list(request):
     try:
@@ -255,7 +255,7 @@ def alumni_detail(request, pk):
             }, status=500)
         raise
 
-@user_passes_test(is_admin)
+@user_passes_test(is_admin, login_url='account_login')
 def download_document(request, doc_id):
     try:
         document = get_object_or_404(AlumniDocument, id=doc_id)
@@ -285,7 +285,7 @@ def download_document(request, doc_id):
             'message': 'An error occurred while processing the document download.'
         }, status=500)
 
-@user_passes_test(is_admin)
+@user_passes_test(is_admin, login_url='account_login')
 def send_reminder(request, pk):
     if request.method != 'POST':
         return JsonResponse({'status': 'error', 'message': 'Method not allowed'}, status=405)
@@ -375,7 +375,7 @@ The Alumni Team"""
             'message': 'Failed to send reminder'
         }, status=500)
 
-@user_passes_test(is_admin)
+@login_required
 def tabular_alumni_list(request):
     """
     Display alumni in a tabular format with specific columns.
@@ -455,3 +455,317 @@ def tabular_alumni_list(request):
         logger.error(f"Error in tabular_alumni_list view: {str(e)}")
         messages.error(request, "An error occurred while loading the alumni list.")
         return redirect('alumni_directory:alumni_list')
+
+@user_passes_test(is_admin, login_url='account_login')
+def alumni_management(request):
+    """
+    Alumni Management view with tabular display, import/export functionality.
+    """
+    try:
+        # Handle CSV import
+        if request.method == 'POST' and 'import_csv' in request.POST:
+            csv_file = request.FILES.get('csv_file')
+            if csv_file:
+                try:
+                    # Read CSV file
+                    decoded_file = csv_file.read().decode('utf-8')
+                    csv_data = csv.DictReader(decoded_file.splitlines())
+                    
+                    imported_count = 0
+                    updated_count = 0
+                    
+                    for row in csv_data:
+                        # Extract data from CSV row
+                        full_name = row.get('Full Name', '').strip()
+                        graduation_year = row.get('Year', '').strip()
+                        course = row.get('Course', '').strip()
+                        occupation = row.get('Present Occupation', '').strip()
+                        company = row.get('Name of Company', '').strip()
+                        address = row.get('Employment Address', '').strip()
+                        
+                        if full_name and graduation_year:
+                            # Split full name into first and last name
+                            name_parts = full_name.split(' ', 1)
+                            first_name = name_parts[0]
+                            last_name = name_parts[1] if len(name_parts) > 1 else ''
+                            
+                            # Try to find existing alumni by name and graduation year
+                            try:
+                                alumni = Alumni.objects.get(
+                                    user__first_name__iexact=first_name,
+                                    user__last_name__iexact=last_name,
+                                    graduation_year=graduation_year
+                                )
+                                # Update existing alumni
+                                alumni.course = course
+                                alumni.job_title = occupation
+                                alumni.current_company = company
+                                if address:
+                                    address_parts = address.split(', ')
+                                    if len(address_parts) >= 2:
+                                        alumni.city = address_parts[0]
+                                        alumni.province = address_parts[1]
+                                alumni.save()
+                                updated_count += 1
+                            except Alumni.DoesNotExist:
+                                # Create new user and alumni
+                                user = User.objects.create_user(
+                                    username=f"{first_name.lower()}.{last_name.lower()}.{graduation_year}",
+                                    first_name=first_name,
+                                    last_name=last_name,
+                                    email=f"{first_name.lower()}.{last_name.lower()}@example.com"
+                                )
+                                
+                                alumni = Alumni.objects.create(
+                                    user=user,
+                                    graduation_year=graduation_year,
+                                    course=course,
+                                    job_title=occupation,
+                                    current_company=company
+                                )
+                                
+                                if address:
+                                    address_parts = address.split(', ')
+                                    if len(address_parts) >= 2:
+                                        alumni.city = address_parts[0]
+                                        alumni.province = address_parts[1]
+                                        alumni.save()
+                                
+                                imported_count += 1
+                    
+                    messages.success(request, f"Successfully imported {imported_count} new alumni and updated {updated_count} existing records.")
+                    
+                except Exception as e:
+                    logger.error(f"Error importing CSV: {str(e)}")
+                    messages.error(request, f"Error importing CSV file: {str(e)}")
+            else:
+                messages.error(request, "Please select a CSV file to import.")
+        
+        # Base queryset with efficient loading
+        queryset = Alumni.objects.select_related('user').all()
+        
+        # Apply filters
+        search_query = request.GET.get('search', '').strip()
+        if search_query:
+            queryset = queryset.filter(
+                Q(user__first_name__icontains=search_query) | 
+                Q(user__last_name__icontains=search_query) |
+                Q(course__icontains=search_query) |
+                Q(city__icontains=search_query) |
+                Q(province__icontains=search_query)
+            )
+        
+        # Graduation Year filter
+        grad_year = request.GET.getlist('graduation_year')
+        if grad_year:
+            queryset = queryset.filter(graduation_year__in=grad_year)
+        
+        # Course filter
+        course = request.GET.getlist('course')
+        if course:
+            queryset = queryset.filter(course__in=course)
+            
+        # Export to CSV if requested
+        if request.GET.get('format') == 'csv':
+            response = HttpResponse(content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="alumni_management_export.csv"'
+            
+            writer = csv.writer(response)
+            writer.writerow(['ID', 'Full Name', 'Year', 'Course', 'Present Occupation', 'Name of Company', 'Employment Address'])
+            
+            for alumni in queryset:
+                # Get current experience for occupation and company
+                current_exp = None
+                if hasattr(alumni.user, 'profile'):
+                    current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                
+                writer.writerow([
+                    alumni.id,
+                    alumni.full_name,
+                    alumni.graduation_year,
+                    alumni.course,
+                    current_exp.position if current_exp else alumni.job_title,
+                    current_exp.company if current_exp else alumni.current_company,
+                    current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
+                ])
+            
+            return response
+        
+        # Pagination
+        paginator = Paginator(queryset, 25)  # 25 items per page
+        page_number = request.GET.get('page')
+        alumni_page = paginator.get_page(page_number)
+        
+        # Get counts for filtering dropdown options
+        graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
+        courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
+        
+        context = {
+            'alumni_list': alumni_page,
+            'graduation_years': graduation_years,
+            'courses': courses,
+            'search_query': search_query,
+            'selected_year': grad_year[0] if grad_year else None,
+            'selected_course': course[0] if course else None,
+        }
+        
+        return render(request, 'alumni_directory/alumni_management.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in alumni_management view: {str(e)}")
+        messages.error(request, "An error occurred while loading the alumni management page.")
+        return redirect('alumni_directory:alumni_list')
+
+@user_passes_test(is_admin, login_url='account_login')
+def alumni_detail_modal(request, pk):
+    """
+    Return alumni detail content for modal display.
+    """
+    try:
+        alumni = get_object_or_404(Alumni, pk=pk)
+        logger.info(f"Alumni detail modal accessed for ID: {pk}, Name: {alumni.full_name}")
+
+        # Get profile
+        profile = None
+        unified_experience = []
+        if hasattr(alumni.user, 'profile'):
+            profile = alumni.user.profile
+
+            # Get all experience entries, appropriately sorted
+            unified_experience = profile.experience.all().order_by('-is_current', '-start_date')
+
+        # Get documents from both AlumniDocument and accounts.Document models
+        alumni_documents = list(alumni.documents.all().order_by('-uploaded_at'))
+        profile_documents = []
+
+        if profile:
+            from accounts.models import Document
+
+            # Create a wrapper class to make profile documents behave like AlumniDocuments
+            class DocumentWrapper:
+                def __init__(self, doc):
+                    self.id = doc.id
+                    self.title = doc.title
+                    self.document_type = doc.document_type
+                    self.file = doc.file
+                    self.uploaded_at = doc.uploaded_at
+                    self.is_verified = doc.is_verified
+                    self.file_size = self._get_file_size()
+
+                def _get_file_size(self):
+                    try:
+                        if self.file and hasattr(self.file, 'size'):
+                            size = self.file.size
+                            if size < 1024:
+                                return f"{size} B"
+                            elif size < 1024 * 1024:
+                                return f"{size / 1024:.1f} KB"
+                            else:
+                                return f"{size / (1024 * 1024):.1f} MB"
+                    except:
+                        pass
+                    return "Unknown size"
+
+                def get_document_type_display(self):
+                    # Map document types from accounts.Document to display names
+                    type_map = dict(Document.DOCUMENT_TYPES)
+                    return type_map.get(self.document_type, self.document_type)
+
+            # Wrap each profile document
+            profile_docs = Document.objects.filter(profile=profile).order_by('-uploaded_at')
+            profile_documents = [DocumentWrapper(doc) for doc in profile_docs]
+
+        # Combine documents from both sources
+        combined_documents = alumni_documents + profile_documents
+
+        # Group documents by type for template
+        documents_by_type = {}
+        for doc in combined_documents:
+            doc_type = doc.document_type
+            if doc_type not in documents_by_type:
+                documents_by_type[doc_type] = []
+            documents_by_type[doc_type].append(doc)
+
+        # Document types for template iteration
+        document_types = [
+            ('RESUME', 'Resume/CV'),
+            ('CERT', 'Certification'),
+            ('DIPLOMA', 'Diploma'),
+            ('TOR', 'Transcript of Records'),
+            ('TRANSCRIPT', 'Academic Transcript'),
+            ('CERTIFICATE', 'Certificate'),
+            ('OTHER', 'Other'),
+        ]
+
+        # Calculate document stats
+        total_documents = len(combined_documents)
+        verified_documents = sum(1 for doc in combined_documents if hasattr(doc, 'is_verified') and doc.is_verified)
+        pending_verification = total_documents - verified_documents
+
+        doc_stats = {
+            'total': total_documents,
+            'verified': verified_documents,
+            'pending': pending_verification
+        }
+
+        # Calculate profile completion
+        required_fields = [
+            alumni.gender, alumni.date_of_birth, alumni.phone_number,
+            alumni.province, alumni.city, alumni.address,
+            alumni.graduation_year, alumni.course
+        ]
+        optional_fields = [
+            alumni.alternate_email, alumni.linkedin_profile,
+            alumni.major, alumni.honors, alumni.current_company,
+            alumni.job_title, alumni.industry, alumni.skills,
+            alumni.interests, alumni.bio, alumni.achievements
+        ]
+
+        completed_required = sum(1 for field in required_fields if field)
+        completed_optional = sum(1 for field in optional_fields if field)
+
+        required_percentage = (completed_required / len(required_fields)) * 100
+        optional_percentage = (completed_optional / len(optional_fields)) * 100
+        total_percentage = (required_percentage + optional_percentage) / 2
+
+        profile_completion = {
+            'required': required_percentage,
+            'optional': optional_percentage,
+            'total': total_percentage
+        }
+
+        # Determine empty sections
+        empty_sections = {
+            'personal': not any([alumni.phone_number, alumni.alternate_email, alumni.linkedin_profile]),
+            'location': not any([alumni.province, alumni.city, alumni.address]),
+            'professional': not any([alumni.current_company, alumni.job_title, alumni.industry]),
+            'academic': not any([alumni.major, alumni.honors]),
+            'skills': not alumni.skills,
+            'interests': not alumni.interests,
+            'documents': not combined_documents,
+            'additional': not any([alumni.bio, alumni.achievements])
+        }
+
+        # Get achievements
+        achievements = alumni.achievements_list.all().order_by('-date_achieved')
+
+        context = {
+            'alumni': alumni,
+            'profile': profile,
+            'unified_experience': unified_experience,
+            'achievements': achievements,
+            'documents': documents_by_type,
+            'document_types': document_types,
+            'doc_stats': doc_stats,
+            'profile_completion': profile_completion,
+            'empty_sections': empty_sections,
+        }
+
+        return render(request, 'alumni_directory/partials/alumni_detail_modal.html', context)
+
+    except Exception as e:
+        logger.error(f"Error in alumni_detail_modal view: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'An error occurred while loading the alumni details.'
+        }, status=500)

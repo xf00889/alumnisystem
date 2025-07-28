@@ -37,7 +37,7 @@ def status_color(status):
 @register.filter
 def format_job_title(job_title):
     """
-    Formats job titles for display, especially for BossJobs titles.
+    Formats job titles for display.
     - Preserves complete job titles when possible
     - Cleans up salary and experience info
     - Removes special characters
@@ -113,4 +113,4 @@ def format_job_title(job_title):
         # Return original with potential truncation for very long titles
         if len(original_title) > 70:
             return original_title[:60].strip() + "..."
-        return original_title 
+        return original_title

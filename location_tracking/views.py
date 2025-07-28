@@ -24,10 +24,27 @@ def map_view(request):
     # Group users by batch if education data is available
     batch_groups = {}
     for user in users_with_locations:
+        batch = "Unknown"
+        course = "Unknown"
+        avatar_url = None
+        
         try:
-            # Get primary education for batch info
-            education = user.profile.education.filter(is_primary=True).first()
-            batch = education.graduation_year if education else "Unknown"
+            # Check if user has a profile
+            if hasattr(user, 'profile'):
+                profile = user.profile
+                avatar_url = profile.avatar.url if profile.avatar else None
+                
+                # Get primary education for batch info
+                education = profile.education.filter(is_primary=True).first()
+                if education and education.graduation_year:
+                    batch = education.graduation_year
+                    course = education.get_program_display() if education.program else "Unknown"
+                elif profile.education.exists():
+                    # If no primary education, use the most recent one
+                    recent_education = profile.education.order_by('-graduation_year').first()
+                    if recent_education and recent_education.graduation_year:
+                        batch = recent_education.graduation_year
+                        course = recent_education.get_program_display() if recent_education.program else "Unknown"
             
             # Get the latest location data for this user
             latest_location = LocationData.objects.filter(
@@ -38,22 +55,8 @@ def map_view(request):
             latitude = float(latest_location.latitude) if latest_location else None
             longitude = float(latest_location.longitude) if latest_location else None
             
-            if batch not in batch_groups:
-                batch_groups[batch] = []
-            
-            batch_groups[batch].append({
-                'name': user.get_full_name() or user.username,
-                'avatar': user.profile.avatar.url if hasattr(user, 'profile') and user.profile.avatar else None,
-                'course': education.get_program_display() if education else "Unknown",
-                'latitude': latitude,
-                'longitude': longitude
-            })
         except Exception as e:
-            # Handle users without profile or education
-            if "Unknown" not in batch_groups:
-                batch_groups["Unknown"] = []
-            
-            # Get the latest location data for this user
+            # Handle any errors gracefully
             try:
                 latest_location = LocationData.objects.filter(
                     user=user, 
@@ -65,14 +68,18 @@ def map_view(request):
             except:
                 latitude = None
                 longitude = None
-            
-            batch_groups["Unknown"].append({
-                'name': user.get_full_name() or user.username,
-                'avatar': None,
-                'course': "Unknown",
-                'latitude': latitude,
-                'longitude': longitude
-            })
+        
+        # Add user to appropriate batch group
+        if batch not in batch_groups:
+            batch_groups[batch] = []
+        
+        batch_groups[batch].append({
+            'name': user.get_full_name() or user.username,
+            'avatar': avatar_url,
+            'course': course,
+            'latitude': latitude,
+            'longitude': longitude
+        })
     
     # Sort batch groups by year (newest first)
     sorted_batch_groups = dict(sorted(batch_groups.items(), key=lambda x: (x[0] != "Unknown", x[0]), reverse=True))
@@ -180,17 +187,41 @@ def get_all_locations(request):
     
     data = []
     for location in locations:
-        # Get primary education record
-        education = location.user.profile.education.filter(is_primary=True).first()
+        batch = None
+        course = None
+        avatar_url = None
+        city = None
+        
+        try:
+            # Check if user has a profile
+            if hasattr(location.user, 'profile'):
+                profile = location.user.profile
+                avatar_url = profile.avatar.url if profile.avatar else None
+                city = profile.city if profile.city else None
+                
+                # Get primary education for batch info
+                education = profile.education.filter(is_primary=True).first()
+                if education and education.graduation_year:
+                    batch = education.graduation_year
+                    course = education.get_program_display() if education.program else None
+                elif profile.education.exists():
+                    # If no primary education, use the most recent one
+                    recent_education = profile.education.order_by('-graduation_year').first()
+                    if recent_education and recent_education.graduation_year:
+                        batch = recent_education.graduation_year
+                        course = recent_education.get_program_display() if recent_education.program else None
+        except Exception as e:
+            # Handle any errors gracefully
+            pass
         
         data.append({
             'user': location.user.get_full_name() or location.user.username,
             'latitude': float(location.latitude),
             'longitude': float(location.longitude),
             'timestamp': location.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'avatar': location.user.profile.avatar.url if hasattr(location.user, 'profile') and location.user.profile.avatar else None,
-            'batch': education.graduation_year if education else None,
-            'course': education.get_program_display() if education else None,
-            'location': location.user.profile.city if hasattr(location.user, 'profile') else None,
+            'avatar': avatar_url,
+            'batch': batch,
+            'course': course,
+            'location': city,
         })
     return JsonResponse({'locations': data})

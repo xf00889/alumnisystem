@@ -1,0 +1,370 @@
+/* NORSU Alumni System - Sidebar Styles */
+
+/* Sidebar Base Styles */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 250px;
+    background: var(--primary-color);
+    color: var(--text-light);
+    padding: 1rem;
+    z-index: 1040;
+    transition: var(--transition-normal);
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+}
+
+/* Sidebar Header */
+.sidebar-header {
+    padding: 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1rem;
+}
+
+.sidebar-header img {
+    height: 40px;
+    width: auto;
+    border-radius: var(--border-radius-sm);
+}
+
+.sidebar-header h5 {
+    margin: 0;
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-bold);
+    letter-spacing: var(--letter-spacing-tight);
+}
+
+/* Sidebar Navigation */
+.sidebar-nav {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.sidebar-nav .nav-item {
+    margin: 0.5rem 0;
+}
+
+.sidebar-nav .nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 1rem;
+    margin-bottom: 4px;
+    color: var(--text-light);
+    text-decoration: none;
+    border-radius: var(--border-radius-md);
+    transition: var(--transition-normal);
+    gap: 0.8rem;
+    font-weight: var(--font-weight-medium);
+    font-size: 0.8rem;
+    position: relative;
+    overflow: hidden;
+}
+
+.sidebar-nav .nav-link::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+    transition: var(--transition-normal);
+}
+
+.sidebar-nav .nav-link:hover::before {
+    left: 100%;
+}
+
+.sidebar-nav .nav-link:hover {
+    background: rgba(255, 255, 255, 0.1);
+    transform: translateX(5px);
+    color: var(--text-light);
+}
+
+.sidebar-nav .nav-link.active {
+    background: rgba(255, 255, 255, 0.08);
+    position: relative;
+    box-shadow: none;
+    border-left: 2px solid rgba(255, 255, 255, 0.6);
+}
+
+.sidebar-nav .nav-link i {
+    width: 18px;
+    text-align: center;
+    font-size: 1rem;
+    transition: var(--transition-normal);
+}
+
+.sidebar-nav .nav-link:hover i {
+    transform: scale(1.1);
+}
+
+.sidebar-nav .nav-link span {
+    font-size: var(--font-size-xs, 0.75rem);
+    letter-spacing: var(--letter-spacing-normal);
+}
+
+/* Sidebar Toggle Button (Mobile) */
+.sidebar-toggle {
+    position: fixed;
+    top: 1rem;
+    left: 1rem;
+    z-index: 1050;
+    background: var(--primary-color);
+    color: var(--text-light);
+    border: none;
+    border-radius: var(--border-radius-md);
+    padding: 0.75rem;
+    font-size: 1.2rem;
+    box-shadow: var(--shadow-md);
+    transition: var(--transition-normal);
+    display: none;
+}
+
+.sidebar-toggle:hover {
+    background: var(--primary-dark);
+    transform: scale(1.05);
+}
+
+.sidebar-toggle:focus {
+    outline: 2px solid var(--text-light);
+    outline-offset: 2px;
+}
+
+/* Mobile Sidebar Behavior */
+@media (max-width: 768px) {
+    .sidebar {
+        transform: translateX(-100%);
+        transition: transform var(--transition-normal);
+    }
+    
+    .sidebar.show {
+        transform: translateX(0);
+    }
+    
+    .sidebar-toggle {
+        display: block;
+    }
+    
+    /* Overlay for mobile sidebar */
+    .sidebar-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 1035;
+        opacity: 0;
+        visibility: hidden;
+        transition: var(--transition-normal);
+    }
+    
+    .sidebar-overlay.show {
+        opacity: 1;
+        visibility: visible;
+    }
+}
+
+/* Sidebar Scrollbar Styling */
+.sidebar::-webkit-scrollbar {
+    width: 6px;
+}
+
+.sidebar::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: var(--border-radius-sm);
+}
+
+.sidebar::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+}
+
+/* Sidebar Categories for collapsible groups */
+.sidebar-category {
+    margin: 1rem 0 0.25rem 0;
+    padding: 0.4rem 1rem;
+    font-size: 0.65rem;
+    font-weight: var(--font-weight-semibold, 600);
+    text-transform: uppercase;
+    letter-spacing: var(--letter-spacing-wide, 1px);
+    color: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: relative;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    border-radius: var(--border-radius-sm, 4px);
+    background-color: rgba(0, 0, 0, 0.1);
+    border-left: 3px solid transparent;
+    user-select: none; /* Prevent text selection when clicking */
+}
+
+.sidebar-category:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-left-color: rgba(255, 255, 255, 0.5);
+}
+
+.sidebar-category.active {
+    color: #fff;
+    background-color: rgba(255, 255, 255, 0.15);
+    border-left-color: #fff;
+}
+
+.toggle-icon {
+    font-size: 0.7rem;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    margin-left: 5px; /* Add space between text and icon */
+    padding: 2px; /* Make icon easier to hit */
+}
+
+.sidebar-category[aria-expanded="true"] .toggle-icon {
+    transform: rotate(180deg);
+}
+
+.sidebar-category[aria-expanded="false"] .toggle-icon {
+    transform: rotate(0deg);
+}
+
+/* Navigation group (collapsible) */
+.nav-group {
+    overflow: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    padding-left: 1rem;
+    opacity: 1;
+    visibility: visible;
+    max-height: none; /* Always visible by default */
+}
+
+.nav-group.collapse:not(.show) {
+    max-height: 0;
+    opacity: 0;
+    visibility: hidden;
+    padding-top: 0;
+    padding-bottom: 0;
+    margin-top: 0;
+    margin-bottom: 0;
+}
+
+.nav-group.collapse.show {
+    max-height: 1000px; /* Large enough to accommodate content */
+    opacity: 1;
+    visibility: visible;
+    padding-top: inherit;
+    padding-bottom: inherit;
+    margin-top: inherit;
+    margin-bottom: inherit;
+}
+
+/* Add subtle border to left side of nav groups */
+.nav-group {
+    border-left: 2px solid rgba(255, 255, 255, 0.15);
+    margin-left: 1rem;
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.02), transparent);
+    border-radius: 0 var(--border-radius-sm, 4px) var(--border-radius-sm, 4px) 0;
+}
+
+.nav-group.show {
+    border-left-color: rgba(255, 255, 255, 0.3);
+    background: linear-gradient(to right, rgba(255, 255, 255, 0.05), transparent);
+}
+
+/* Space between groups */
+.nav-item:not(:last-child) {
+    margin-bottom: 0.5rem;
+}
+
+/* Make entire category header clickable */
+.sidebar-category {
+    -webkit-tap-highlight-color: transparent; /* Remove tap highlight on mobile */
+}
+
+/* Accessibility */
+.sidebar-category:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.6);
+    outline-offset: -2px;
+}
+
+/* Sidebar Footer */
+.sidebar-footer {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    padding: 1rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.sidebar-footer .nav-link {
+    justify-content: center;
+    margin: 0.25rem 0;
+    font-size: var(--font-size-sm);
+}
+
+/* Accessibility Improvements */
+.sidebar-nav .nav-link:focus {
+    outline: 2px solid rgba(255, 255, 255, 0.8);
+    outline-offset: 2px;
+}
+
+/* Keyboard Navigation */
+.sidebar-nav .nav-link:focus-visible {
+    background: rgba(255, 255, 255, 0.2);
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .sidebar {
+        background: var(--primary-dark);
+        border-right: 2px solid var(--text-light);
+    }
+    
+    .sidebar-nav .nav-link {
+        border: 1px solid transparent;
+    }
+    
+    .sidebar-nav .nav-link:hover,
+    .sidebar-nav .nav-link.active {
+        border-color: var(--text-light);
+        background: rgba(255, 255, 255, 0.2);
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .sidebar,
+    .sidebar-nav .nav-link,
+    .sidebar-toggle,
+    .sidebar-overlay {
+        transition: none;
+    }
+    
+    .sidebar-nav .nav-link:hover {
+        transform: none;
+    }
+    
+    .sidebar-nav .nav-link::before {
+        display: none;
+    }
+}
+
+/* Print Styles */
+@media print {
+    .sidebar,
+    .sidebar-toggle {
+        display: none;
+    }
+}

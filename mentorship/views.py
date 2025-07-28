@@ -3,6 +3,7 @@ from rest_framework import viewsets, permissions, status, filters
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Q, Case, When, IntegerField
 from django.utils import timezone
@@ -14,6 +15,10 @@ from .serializers import (
 )
 from rest_framework import serializers
 from django.http import JsonResponse
+from django.shortcuts import render, get_object_or_404, redirect
+
+# Import messaging views
+from .messaging_views import conversation_list_view, conversation_detail_view, messaging_page, send_message, create_conversation
 
 @login_required
 def mentor_search(request):
@@ -170,13 +175,38 @@ def mentor_dashboard(request):
         status='SCHEDULED',
         meeting_date__gt=timezone.now()
     ).select_related('mentorship', 'mentorship__mentee').order_by('meeting_date')[:5]
-    
+
+    # Get recent progress updates
+    recent_progress = MentorshipProgress.objects.filter(
+        mentorship__mentor=mentor,
+        mentorship__status='APPROVED'
+    ).select_related('mentorship', 'mentorship__mentee').order_by('-created_at')[:5]
+
+    # Calculate statistics for the analytics cards
+    total_active_mentees = active_mentorships.count()
+    total_pending_requests = pending_requests.count()
+
+    # Get unread messages count (if messaging system is implemented)
+    unread_messages = 0
+    try:
+        from .models import MentorshipMessage
+        unread_messages = MentorshipMessage.objects.filter(
+            conversation__participants=mentor.user,
+            is_read=False
+        ).exclude(sender=mentor.user).count()
+    except:
+        pass
+
     context = {
         'mentor': mentor,
         'pending_requests': pending_requests,
         'active_mentorships': active_mentorships,
         'completed_mentorships': completed_mentorships,
         'upcoming_meetings': upcoming_meetings,
+        'recent_progress': recent_progress,
+        'total_active_mentees': total_active_mentees,
+        'total_pending_requests': total_pending_requests,
+        'unread_messages': unread_messages,
     }
     
     return render(request, 'mentorship/mentor_dashboard.html', context)
@@ -818,3 +848,47 @@ def set_timeline(request):
     mentorship.save()
     
     return JsonResponse({"success": True})
+
+@login_required
+@require_POST
+def send_message_dashboard(request):
+    """
+    Handle sending messages from dashboard modals
+    """
+    recipient_id = request.POST.get('recipient_id')
+    content = request.POST.get('content')
+    
+    if not all([recipient_id, content]):
+        messages.error(request, 'All fields are required.')
+        return redirect(request.META.get('HTTP_REFERER', '/'))
+    
+    try:
+        # Get the mentorship based on recipient_id (which is mentorship_id)
+        mentorship = get_object_or_404(
+            MentorshipRequest,
+            Q(mentor__user=request.user) | Q(mentee=request.user),
+            pk=recipient_id,
+            status='APPROVED'
+        )
+        
+        # Get or create conversation for this mentorship
+        from .messaging_models import Conversation, Message
+        conversation, created = Conversation.objects.get_or_create(
+            mentorship=mentorship
+        )
+        
+        # Create the message in the conversation
+        message = Message.objects.create(
+            conversation=conversation,
+            sender=request.user,
+            content=content
+        )
+        
+        # Redirect to the conversation
+        from django.urls import reverse
+        messaging_url = reverse('mentorship:messaging_page')
+        return redirect(f'{messaging_url}?conversation={conversation.id}')
+        
+    except Exception as e:
+        messages.error(request, f'Failed to send message: {str(e)}')
+        return redirect(request.META.get('HTTP_REFERER', '/'))

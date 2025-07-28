@@ -4,71 +4,554 @@
 
 {% block title %}{{ alumni.full_name }} - Alumni Details{% endblock %}
 
-{% block breadcrumb %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'alumni_directory:alumni_list' %}">Alumni Directory</a></li>
-        <li class="breadcrumb-item active">{{ alumni.full_name }}</li>
-    </ol>
-</nav>
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        --primary-light: #3c4f8a;
+        --primary-dark: #1a2544;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-primary);
+    }
+    
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+    
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background-color: var(--primary-light);
+        border-color: var(--primary-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-outline-primary {
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        transition: all 0.3s ease;
+    }
+    
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .profile-header {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .profile-avatar {
+        width: 150px;
+        height: 150px;
+        object-fit: cover;
+        border-radius: 50%;
+        border: 4px solid var(--ui-border);
+        box-shadow: var(--shadow-md);
+        transition: transform 0.3s ease;
+    }
+    
+    .profile-avatar:hover {
+        transform: scale(1.05);
+    }
+    
+    .profile-name {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .profile-headline {
+        font-size: 1.25rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        font-weight: 400;
+    }
+    
+    .profile-meta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    
+    .profile-meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--ui-hover);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-lg);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .profile-meta-item i {
+        color: var(--primary-color);
+    }
+    
+    .mentor-badge {
+        position: absolute;
+        bottom: 10px;
+        right: 10px;
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        box-shadow: var(--shadow-md);
+        border: 3px solid var(--ui-surface);
+    }
+    
+    .section-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid var(--ui-border);
+        position: relative;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .section-title::after {
+        content: '';
+        position: absolute;
+        bottom: -2px;
+        left: 0;
+        width: 60px;
+        height: 2px;
+        background: var(--primary-color);
+    }
+    
+    .university-card {
+        border-top: 4px solid var(--primary-color);
+    }
+    
+    .university-logo {
+        max-width: 120px;
+        height: auto;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .university-name {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 1rem 0;
+        font-size: 1.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .university-details {
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .university-detail-item {
+        display: flex;
+        align-items: center;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+    
+    .university-detail-item:last-child {
+        border-bottom: none;
+    }
+    
+    .university-detail-item i {
+        color: var(--primary-color);
+        width: 20px;
+        margin-right: 1rem;
+    }
+    
+    .detail-label {
+        font-weight: 500;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+    }
+    
+    .detail-value {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+    
+    .contact-btn {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        margin-bottom: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .contact-btn:hover {
+        background: var(--ui-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+        color: var(--text-primary);
+        text-decoration: none;
+    }
+    
+    .contact-btn i {
+        font-size: 1.25rem;
+        width: 24px;
+        margin-right: 1rem;
+    }
+    
+    .mentor-btn i {
+        color: var(--primary-color);
+    }
+    
+    .email-btn i {
+        color: var(--feedback-info);
+    }
+    
+    .linkedin-btn i {
+        color: #0077b5;
+    }
+    
+    .timeline-container {
+        position: relative;
+        padding-left: 2rem;
+    }
+    
+    .timeline-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: 0.75rem;
+        width: 2px;
+        background: var(--ui-border);
+    }
+    
+    .timeline-item {
+        position: relative;
+        padding-bottom: 2rem;
+    }
+    
+    .timeline-marker {
+        position: absolute;
+        top: 0.25rem;
+        left: -2rem;
+        width: 1rem;
+        height: 1rem;
+        border-radius: 50%;
+        background: var(--ui-border);
+        border: 2px solid var(--ui-surface);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .timeline-item.current-position .timeline-marker {
+        background: var(--feedback-success);
+    }
+    
+    .timeline-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .timeline-subtitle {
+        font-size: 1.1rem;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        font-weight: 500;
+    }
+    
+    .timeline-info {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .badge {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-lg);
+    }
+    
+    .badge.bg-primary-subtle {
+        background: rgba(6, 57, 112, 0.1);
+        color: var(--primary-color);
+        margin: 0.25rem;
+    }
+    
+    .badge.bg-secondary-subtle {
+        background: var(--ui-hover);
+        color: var(--text-secondary);
+        margin: 0.25rem;
+    }
+    
+    .document-stats {
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .document-stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .document-stat-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+    
+    .document-item {
+        padding: 1rem;
+        border-bottom: 1px solid var(--ui-border);
+        transition: background-color 0.3s ease;
+    }
+    
+    .document-item:hover {
+        background: var(--ui-hover);
+    }
+    
+    .document-item:last-child {
+        border-bottom: none;
+    }
+    
+    .document-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .document-meta {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+    
+    .document-badge.verified {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--feedback-success);
+        border: 1px solid rgba(72, 187, 120, 0.2);
+    }
+    
+    .document-badge.pending {
+        background: rgba(237, 137, 54, 0.1);
+        color: var(--feedback-warning);
+        border: 1px solid rgba(237, 137, 54, 0.2);
+    }
+    
+    @media (max-width: 768px) {
+        .dashboard-card {
+            padding: 1.5rem;
+        }
+        
+        .profile-header {
+            padding: 1.5rem;
+        }
+        
+        .profile-name {
+            font-size: 2rem;
+            text-align: center;
+        }
+        
+        .profile-headline {
+            text-align: center;
+        }
+        
+        .profile-meta {
+            justify-content: center;
+        }
+        
+        .profile-avatar {
+            width: 120px;
+            height: 120px;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Back button -->
-<div class="container mt-4">
-    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-primary mb-3" style="--bs-btn-color: #063970; --bs-btn-border-color: #063970; --bs-btn-hover-bg: #063970; --bs-btn-hover-border-color: #063970;">
-        <i class="fas fa-arrow-left"></i> Back to Alumni Directory
-    </a>
-
-    <!-- Profile header -->
-    <div class="profile-header mb-4">
-        <div class="container-fluid py-4 px-4">
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="container">
             <div class="row align-items-center">
-                <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
-                    <div class="profile-avatar-container">
-                        {% if alumni.user.profile.avatar %}
-                            <img src="{{ alumni.user.profile.avatar.url }}" alt="{{ alumni.full_name }}" class="profile-avatar">
-                        {% else %}
-                            <img src="{% static 'images/default-avatar.png' %}" alt="{{ alumni.full_name }}" class="profile-avatar">
-                        {% endif %}
-                        
-                        {% if alumni.is_mentor %}
-                        <div class="mentor-badge" data-bs-toggle="tooltip" title="Mentor">
-                            <i class="fas fa-chalkboard-teacher"></i>
-                        </div>
-                        {% endif %}
-                    </div>
+                <div class="col-md-8 text-center text-md-start">
+                    <h1><i class="fas fa-user-graduate me-3"></i>Alumni Profile</h1>
+                    <p>Detailed information about {{ alumni.full_name }}</p>
                 </div>
-                
-                <div class="col-md-9">
-                    <h1 class="profile-name text-truncate">{{ alumni.full_name }}</h1>
-                    {% if alumni.job_title %}
-                        <p class="profile-headline">{{ alumni.job_title }}{% if alumni.current_company %} at {{ alumni.current_company }}{% endif %}</p>
+                <div class="col-md-4 text-center text-md-end">
+                    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>Back to Directory
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Profile Header Card -->
+    <div class="dashboard-card profile-header">
+        <div class="row align-items-center">
+            <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
+                <div class="position-relative d-inline-block">
+                    {% if alumni.user.profile.avatar %}
+                        <img src="{{ alumni.user.profile.avatar.url }}" alt="{{ alumni.full_name }}" class="profile-avatar">
+                    {% else %}
+                        <img src="{% static 'images/default-avatar.png' %}" alt="{{ alumni.full_name }}" class="profile-avatar">
                     {% endif %}
                     
-                    <div class="profile-meta">
-                        {% if alumni.location %}
-                        <div class="profile-meta-item">
-                            <i class="fas fa-map-marker-alt"></i>
-                            <span>{{ alumni.location }}</span>
-                        </div>
-                        {% endif %}
-                        
-                        {% if alumni.email %}
-                        <div class="profile-meta-item">
-                            <i class="fas fa-envelope"></i>
-                            <span>{{ alumni.email }}</span>
-                        </div>
-                        {% endif %}
-                        
-                        {% if alumni.graduation_year %}
-                        <div class="profile-meta-item">
-                            <i class="fas fa-graduation-cap"></i>
-                            <span>Class of {{ alumni.graduation_year }}</span>
-                        </div>
-                        {% endif %}
+                    {% if alumni.is_mentor %}
+                    <div class="mentor-badge" data-bs-toggle="tooltip" title="Mentor">
+                        <i class="fas fa-chalkboard-teacher"></i>
                     </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="col-md-9">
+                <h1 class="profile-name text-truncate">{{ alumni.full_name }}</h1>
+                {% if alumni.job_title %}
+                    <p class="profile-headline">{{ alumni.job_title }}{% if alumni.current_company %} at {{ alumni.current_company }}{% endif %}</p>
+                {% endif %}
+                
+                <div class="profile-meta">
+                    {% if alumni.user.profile.address or alumni.user.profile.city or alumni.user.profile.state %}
+                    <div class="profile-meta-item">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ alumni.user.profile.address }}, {{ alumni.user.profile.city }}, {{ alumni.user.profile.state }}, {{ alumni.user.profile.country.name }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if alumni.email %}
+                    <div class="profile-meta-item">
+                        <i class="fas fa-envelope"></i>
+                        <span>{{ alumni.email }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    {% if alumni.graduation_year %}
+                    <div class="profile-meta-item">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>Class of {{ alumni.graduation_year }}</span>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -79,8 +562,8 @@
         <!-- Left column -->
         <div class="col-lg-8">
             <!-- Personal Information -->
-            <div class="profile-card">
-                <h3 class="profile-section-title">Personal Information</h3>
+            <div class="dashboard-card">
+                <h3 class="section-title"><i class="fas fa-user me-2"></i>Personal Information</h3>
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Full Name:</strong> {{ alumni.full_name }}</p>
@@ -101,16 +584,18 @@
                         {% if alumni.alternate_email %}
                             <p><strong>Alternate Email:</strong> {{ alumni.alternate_email }}</p>
                         {% endif %}
-                        {% if alumni.location %}
-                            <p><strong>Location:</strong> {{ alumni.location }}</p>
+                        {% if alumni.user.profile.address or alumni.user.profile.city or alumni.user.profile.state %}
+                            <p><strong>Address:</strong> 
+                                <span>{{ alumni.user.profile.address }}, {{ alumni.user.profile.city }}, {{ alumni.user.profile.state }}, {{ alumni.user.profile.country.name }}</span>
+                            </p>
                         {% endif %}
                     </div>
                 </div>
             </div>
 
             <!-- Professional Information -->
-            <div class="profile-card">
-                <h3 class="profile-section-title">Professional Information</h3>
+            <div class="dashboard-card">
+                <h3 class="section-title"><i class="fas fa-briefcase me-2"></i>Professional Information</h3>
                 <div class="row">
                     <div class="col-md-6">
                         {% if alumni.employment_status %}
@@ -135,9 +620,9 @@
             </div>
 
             <!-- Professional Experience Section (Combined view) -->
-            <div class="profile-card">
+            <div class="dashboard-card">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h3 class="profile-section-title mb-0">Professional Experience</h3>
+                    <h3 class="section-title mb-0"><i class="fas fa-history me-2"></i>Professional Experience</h3>
                     {% if unified_experience %}
                     <span class="badge bg-secondary">{{ unified_experience|length }} Position{% if unified_experience|length != 1 %}s{% endif %}</span>
                     {% endif %}
@@ -205,8 +690,8 @@
             </div>
 
             <!-- Skills & Interests -->
-            <div class="profile-card">
-                <h3 class="profile-section-title">Skills & Interests</h3>
+            <div class="dashboard-card">
+                <h3 class="section-title"><i class="fas fa-star me-2"></i>Skills & Interests</h3>
                 {% if alumni.skills or alumni.interests %}
                     {% if alumni.skills %}
                     <div class="mb-3">
@@ -237,8 +722,8 @@
             </div>
 
             <!-- Additional Information -->
-            <div class="profile-card">
-                <h3 class="profile-section-title">Additional Information</h3>
+            <div class="dashboard-card">
+                <h3 class="section-title"><i class="fas fa-info-circle me-2"></i>Additional Information</h3>
                 {% if alumni.bio or alumni.achievements %}
                     {% if alumni.bio %}
                     <div class="mb-4">
@@ -264,8 +749,8 @@
         <!-- Right sidebar -->
         <div class="col-lg-4">
             <!-- University Information -->
-            <div class="profile-card university-card">
-                <h3 class="profile-section-title">University</h3>
+            <div class="dashboard-card university-card">
+                <h3 class="section-title"><i class="fas fa-university me-2"></i>University</h3>
                 <div class="text-center mb-4">
                     <div class="university-logo-container">
                         <img src="{% static 'images/logo.png' %}" alt="University Logo" class="university-logo">
@@ -341,8 +826,8 @@
             </div>
 
             <!-- Contact buttons -->
-            <div class="profile-card contact-card">
-                <h3 class="profile-section-title">Contact</h3>
+            <div class="dashboard-card contact-card">
+                <h3 class="section-title"><i class="fas fa-phone me-2"></i>Contact</h3>
                 <div class="contact-buttons">
                     {% if alumni.is_mentor %}
                         <a href="{% url 'mentorship:request_mentorship' mentor_id=alumni.id %}" class="contact-btn mentor-btn">
@@ -354,6 +839,61 @@
                                 {% endif %}
                             </div>
                         </a>
+                    {% endif %}
+                    
+                    {% if user.is_authenticated and user != alumni.user %}
+                        <!-- Connection Button -->
+                        {% load connections_tags %}
+                        {% get_connection_status user alumni.user as connection_status %}
+                        {% get_connection_object user alumni.user as connection_obj %}
+                        {% if connection_status == 'none' %}
+                            <button class="contact-btn connect-btn" data-user-id="{{ alumni.user.id }}">
+                                <i class="fas fa-user-plus"></i>
+                                <div>
+                                    <span>Connect</span>
+                                    <small>Send connection request</small>
+                                </div>
+                            </button>
+                        {% elif connection_status == 'pending_sent' %}
+                            <button class="contact-btn" disabled>
+                                <i class="fas fa-clock"></i>
+                                <div>
+                                    <span>Request Sent</span>
+                                    <small>Waiting for response</small>
+                                </div>
+                            </button>
+                        {% elif connection_status == 'pending_received' %}
+                            <div class="d-flex gap-2">
+                                <button class="contact-btn accept-connection-btn" data-connection-id="{{ connection_obj.id }}">
+                                    <i class="fas fa-check"></i>
+                                    <div>
+                                        <span>Accept</span>
+                                        <small>Connection request</small>
+                                    </div>
+                                </button>
+                                <button class="contact-btn reject-connection-btn" data-connection-id="{{ connection_obj.id }}">
+                                    <i class="fas fa-times"></i>
+                                    <div>
+                                        <span>Reject</span>
+                                    </div>
+                                </button>
+                            </div>
+                        {% elif connection_status == 'connected' %}
+                            <a href="{% url 'connections:direct_messages' alumni.user.id %}" class="contact-btn">
+                                <i class="fas fa-comments"></i>
+                                <div>
+                                    <span>Message</span>
+                                    <small>Send direct message</small>
+                                </div>
+                            </a>
+                            <button class="contact-btn remove-connection-btn" data-user-id="{{ alumni.user.id }}">
+                                <i class="fas fa-user-times"></i>
+                                <div>
+                                    <span>Remove Connection</span>
+                                    <small>Remove from connections</small>
+                                </div>
+                            </button>
+                        {% endif %}
                     {% endif %}
                     
                     <a href="mailto:{{ alumni.email }}" class="contact-btn email-btn">
@@ -376,8 +916,8 @@
             </div>
 
             <!-- Documents -->
-            <div class="profile-card">
-                <h3 class="profile-section-title">Documents</h3>
+            <div class="dashboard-card">
+                <h3 class="section-title"><i class="fas fa-file-alt me-2"></i>Documents</h3>
                 {% if documents %}
                 <div class="document-stats mb-3">
                     <div class="row text-center">
@@ -455,593 +995,47 @@
 </div>
 {% endblock %}
 
-{% block extra_css %}
-<style>
-    /* Override Bootstrap primary color */
-    :root {
-        --bs-primary: #063970;
-        --bs-primary-rgb: 6, 57, 112;
-    }
-    
-    .btn-primary, 
-    .bg-primary {
-        background-color: #063970 !important;
-        border-color: #063970 !important;
-    }
-    
-    .btn-outline-primary {
-        color: #063970 !important;
-        border-color: #063970 !important;
-    }
-    
-    .btn-outline-primary:hover {
-        background-color: #063970 !important;
-        color: #fff !important;
-    }
-    
-    .text-primary {
-        color: #063970 !important;
-    }
-    
-    /* Profile header styles */
-    .profile-header {
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-        border-radius: 16px;
-        overflow: hidden;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-        position: relative;
-        border: 1px solid rgba(0,0,0,0.05);
-    }
-    
-    .profile-avatar-container {
-        position: relative;
-        display: inline-block;
-        padding: 6px;
-        background-color: white;
-        border-radius: 50%;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
-    }
-    
-    .profile-avatar {
-        width: 160px;
-        height: 160px;
-        object-fit: cover;
-        border: 4px solid white;
-        box-shadow: inset 0 0 10px rgba(0,0,0,0.1);
-        border-radius: 50%;
-        transition: transform 0.3s ease;
-    }
-    
-    .profile-avatar-container:hover .profile-avatar {
-        transform: scale(1.03);
-    }
-    
-    .mentor-badge {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        background-color: #063970;
-        color: white;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        border: 3px solid white;
-        transition: transform 0.2s ease;
-    }
-    
-    .mentor-badge:hover {
-        transform: scale(1.1);
-    }
-    
-    .profile-name {
-        font-size: 2.2rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-        letter-spacing: -0.5px;
-        line-height: 1.2;
-        max-width: 100%;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-    }
-    
-    .profile-headline {
-        font-size: 1.25rem;
-        color: #7f8c8d;
-        margin-bottom: 1.25rem;
-        font-weight: 400;
-        line-height: 1.4;
-    }
-    
-    .profile-meta {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-top: 1.25rem;
-    }
-    
-    .profile-meta-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        color: #34495e;
-        background-color: rgba(255,255,255,0.7);
-        padding: 6px 12px;
-        border-radius: 30px;
-        box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-    }
-    
-    .profile-meta-item:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-    }
-    
-    .profile-meta-item i {
-        color: #063970;
-        font-size: 1rem;
-    }
-    
-    .profile-meta-item span {
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 200px;
-    }
-    
-    /* Profile card styles */
-    .profile-card {
-        background-color: #ffffff;
-        border-radius: 16px;
-        padding: 1.75rem;
-        margin-bottom: 2rem;
-        box-shadow: 0 6px 15px rgba(0,0,0,0.05);
-        transition: transform 0.3s, box-shadow 0.3s;
-        border: 1px solid rgba(0,0,0,0.03);
-        position: relative;
-        overflow: hidden;
-    }
-    
-    .profile-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 12px 20px rgba(0,0,0,0.08);
-    }
-    
-    .profile-section-title {
-        font-size: 1.6rem;
-        font-weight: 700;
-        color: #2c3e50;
-        margin-bottom: 1.5rem;
-        padding-bottom: 0.85rem;
-        border-bottom: 2px solid #f0f2f5;
-        position: relative;
-    }
-    
-    .profile-section-title::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 70px;
-        height: 2px;
-        background: linear-gradient(to right, #063970, #0a4d94);
-    }
-    
-    /* University section styles */
-    .university-card {
-        border-top: 5px solid #063970;
-        overflow: hidden;
-    }
-    
-    .university-logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        margin-bottom: 15px;
-    }
-    
-    .university-logo {
-        max-width: 150px;
-        height: auto;
-        border-radius: 8px;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-        padding: 5px;
-        background-color: white;
-        transition: transform 0.3s ease;
-    }
-    
-    .university-logo:hover {
-        transform: scale(1.05);
-    }
-    
-    .university-name {
-        color: #2c3e50;
-        font-weight: 700;
-        margin-top: 15px;
-        margin-bottom: 8px;
-        font-size: 1.5rem;
-    }
-    
-    .university-divider {
-        width: 60px;
-        height: 4px;
-        background: linear-gradient(to right, #063970, #0a4d94);
-        margin: 12px auto 20px;
-        border-radius: 2px;
-    }
-    
-    .university-details {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        margin-top: 15px;
-        border-left: 4px solid #063970;
-        overflow: hidden;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-    }
-    
-    .university-detail-item {
-        display: flex;
-        align-items: flex-start;
-        padding: 14px 16px;
-        border-bottom: 1px dashed rgba(0,0,0,0.08);
-        transition: background-color 0.2s ease;
-    }
-    
-    .university-detail-item:last-child {
-        border-bottom: none;
-    }
-    
-    .university-detail-item:hover {
-        background-color: rgba(6, 57, 112, 0.05);
-    }
-    
-    .university-detail-item i {
-        color: #063970;
-        font-size: 1.1rem;
-        width: 24px;
-        margin-right: 15px;
-        margin-top: 3px;
-    }
-    
-    .university-detail-item div {
-        display: flex;
-        flex-direction: column;
-        flex: 1;
-    }
-    
-    .detail-label {
-        font-weight: 600;
-        color: #7f8c8d;
-        font-size: 0.85rem;
-        margin-bottom: 3px;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-    
-    .detail-value {
-        color: #2c3e50;
-        font-weight: 500;
-    }
-    
-    /* Contact buttons styles */
-    .contact-card {
-        border-top: none;
-        background-color: #fff;
-    }
-    
-    .contact-buttons {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-    }
-    
-    .contact-btn {
-        display: flex;
-        align-items: center;
-        padding: 12px 16px;
-        border-radius: 4px;
-        text-decoration: none;
-        transition: background-color 0.2s ease;
-        color: #333;
-        border: 1px solid #e0e0e0;
-        background-color: #fff;
-    }
-    
-    .contact-btn:hover {
-        background-color: #f8f9fa;
-    }
-    
-    .contact-btn i {
-        font-size: 18px;
-        width: 24px;
-        margin-right: 16px;
-    }
-    
-    .contact-btn div {
-        display: flex;
-        flex-direction: column;
-    }
-    
-    .contact-btn span {
-        font-weight: 500;
-        color: #333;
-    }
-    
-    .contact-btn small {
-        color: #777;
-        font-size: 12px;
-        margin-top: 2px;
-    }
-    
-    .mentor-btn i {
-        color: #063970;
-    }
-    
-    .email-btn i {
-        color: #063970;
-    }
-    
-    .linkedin-btn i {
-        color: #0077b5;
-    }
-    
-    /* Document styles */
-    .document-stats {
-        background-color: #f8f9fa;
-        border-radius: 0.5rem;
-        padding: 1rem;
-    }
-    
-    .document-stat-value {
-        font-size: 1.5rem;
-        font-weight: 700;
-        color: #063970;
-    }
-    
-    .document-stat-label {
-        font-size: 0.875rem;
-        color: #6c757d;
-    }
-    
-    .document-item {
-        padding: 1rem;
-        border-bottom: 1px solid #dee2e6;
-    }
-    
-    .document-item:last-child {
-        border-bottom: none;
-    }
-    
-    .document-title {
-        font-weight: 600;
-    }
-    
-    .document-meta {
-        font-size: 0.875rem;
-        color: #6c757d;
-    }
-    
-    .document-type {
-        margin-right: 1rem;
-    }
-    
-    .document-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: 0.25rem;
-    }
-    
-    .document-badge.verified {
-        background-color: #d1e7dd;
-        color: #0f5132;
-    }
-    
-    .document-badge.pending {
-        background-color: #fff3cd;
-        color: #664d03;
-    }
-    
-    .document-badge.rejected {
-        background-color: #f8d7da;
-        color: #842029;
-    }
-    
-    /* Badge styles for skills and interests */
-    .badge.bg-primary-subtle {
-        background-color: rgba(13, 110, 253, 0.15);
-        color: #0d6efd;
-        margin: 0.25rem;
-        display: inline-block;
-    }
-    
-    .badge.bg-secondary-subtle {
-        background-color: rgba(108, 117, 125, 0.15);
-        color: #6c757d;
-        margin: 0.25rem;
-        display: inline-block;
-    }
-    
-    /* Fix for container nesting */
-    .profile-header .container-fluid {
-        padding-left: 0;
-        padding-right: 0;
-    }
-    
-    /* Ensure proper spacing between sections */
-    .profile-card h5 {
-        margin-bottom: 1rem;
-        font-weight: 600;
-    }
-    
-    @media (max-width: 767.98px) {
-        .profile-avatar {
-            width: 120px;
-            height: 120px;
-        }
-        
-        .profile-name {
-            font-size: 1.75rem;
-            margin-top: 0.5rem;
-            text-align: center;
-        }
-        
-        .profile-headline {
-            font-size: 1.1rem;
-            text-align: center;
-        }
-        
-        .profile-meta {
-            justify-content: center;
-            gap: 0.5rem;
-        }
-        
-        .profile-meta-item {
-            font-size: 0.8rem;
-            padding: 5px 10px;
-        }
-        
-        .profile-meta-item span {
-            max-width: 150px;
-        }
-        
-        .profile-header .container-fluid {
-            padding: 1rem;
-        }
-    }
-    
-    @media (min-width: 768px) and (max-width: 991.98px) {
-        .profile-name {
-            font-size: 1.9rem;
-        }
-        
-        .profile-meta-item span {
-            max-width: 150px;
-        }
-    }
-
-    /* Timeline styles for professional experience */
-    .timeline-container {
-        position: relative;
-        padding-left: 2rem;
-    }
-    
-    .timeline-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0.75rem;
-        width: 2px;
-        background-color: #e9ecef;
-    }
-    
-    .timeline-item {
-        position: relative;
-        padding-bottom: 2rem;
-    }
-    
-    .timeline-item:last-child {
-        padding-bottom: 0;
-    }
-    
-    .timeline-marker {
-        position: absolute;
-        top: 0.25rem;
-        left: -2rem;
-        width: 1rem;
-        height: 1rem;
-        border-radius: 50%;
-        background-color: #dee2e6;
-        border: 2px solid #fff;
-        box-shadow: 0 0 0 2px #dee2e6;
-        z-index: 1;
-    }
-    
-    .timeline-item.current-position .timeline-marker {
-        background-color: #28a745;
-        box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
-    }
-    
-    .timeline-content {
-        padding: 0.5rem 0;
-    }
-    
-    .timeline-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: #2c3e50;
-    }
-    
-    .timeline-subtitle {
-        font-size: 1.1rem;
-        color: #063970;
-        margin-bottom: 0.5rem;
-    }
-    
-    .timeline-info {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.9rem;
-        color: #6c757d;
-    }
-    
-    .timeline-info .date-range,
-    .timeline-info .location {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    
-    .timeline-body,
-    .timeline-achievements {
-        margin-top: 1rem;
-    }
-    
-    .timeline-body .card,
-    .timeline-achievements .card {
-        border-radius: 0.5rem;
-        border-color: #e9ecef;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-    }
-    
-    .timeline-achievements h6 {
-        margin-bottom: 0.75rem;
-        font-weight: 600;
-        color: #063970;
-    }
-</style>
-{% endblock %}
-
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const reminderBtn = document.getElementById('reminderBtn');
     const reminderModal = document.getElementById('reminderModal') ? new bootstrap.Modal(document.getElementById('reminderModal')) : null;
     const sendReminderBtn = document.getElementById('sendReminderBtn');
-    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
 
     function showAlert(message, type = 'success') {
         const alertDiv = document.createElement('div');
         alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 500px;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: ${type === 'success' ? '#48bb78' : type === 'danger' ? '#e53e3e' : '#4299e1'};
+            color: white;
+            border: none;
         `;
-        document.querySelector('.container-fluid').insertAdjacentElement('afterbegin', alertDiv);
-        setTimeout(() => alertDiv.remove(), 5000);
+        alertDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button type="button" onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; margin-left: auto; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
     }
 
+    // Reminder functionality
     if (reminderBtn && reminderModal) {
         reminderBtn.addEventListener('click', function() {
             try {
@@ -1078,6 +1072,174 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+
+    // Connection functionality
+    // Handle connect button
+    const connectBtn = document.querySelector('.connect-btn[data-user-id]');
+    if (connectBtn) {
+        connectBtn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const buttonElement = this;
+            
+            // Disable button during request
+            buttonElement.disabled = true;
+            const originalContent = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i><div><span>Connecting...</span></div>';
+            
+            fetch(`{% url 'connections:send_request' 0 %}`.replace('0', userId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update button to show pending state
+                    buttonElement.innerHTML = '<i class="fas fa-clock"></i><div><span>Request Sent</span><small>Waiting for response</small></div>';
+                    buttonElement.disabled = true;
+                    showAlert(data.message, 'success');
+                } else {
+                    // Restore original button state
+                    buttonElement.innerHTML = originalContent;
+                    buttonElement.disabled = false;
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Restore original button state
+                buttonElement.innerHTML = originalContent;
+                buttonElement.disabled = false;
+                showAlert('Error sending connection request. Please try again.', 'danger');
+            });
+        });
+    }
+
+    // Handle accept connection button
+    const acceptBtn = document.querySelector('.accept-connection-btn[data-connection-id]');
+    if (acceptBtn) {
+        acceptBtn.addEventListener('click', function() {
+            const connectionId = this.dataset.connectionId;
+            const buttonContainer = this.closest('.d-flex');
+            
+            fetch(`{% url 'connections:accept_request' 0 %}`.replace('0', connectionId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Replace buttons with message button
+                    buttonContainer.innerHTML = `
+                        <a href="{% url 'connections:direct_messages' alumni.user.id %}" class="contact-btn">
+                            <i class="fas fa-comments"></i>
+                            <div>
+                                <span>Message</span>
+                                <small>Send direct message</small>
+                            </div>
+                        </a>
+                    `;
+                    showAlert(data.message, 'success');
+                } else {
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('Error accepting connection request. Please try again.', 'danger');
+            });
+        });
+    }
+
+    // Handle reject connection button
+    const rejectBtn = document.querySelector('.reject-connection-btn[data-connection-id]');
+    if (rejectBtn) {
+        rejectBtn.addEventListener('click', function() {
+            const connectionId = this.dataset.connectionId;
+            const buttonContainer = this.closest('.d-flex');
+            
+            if (confirm('Are you sure you want to reject this connection request?')) {
+                fetch(`{% url 'connections:reject_request' 0 %}`.replace('0', connectionId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Replace buttons with connect button
+                         buttonContainer.innerHTML = `
+                             <button class="contact-btn connect-btn" data-user-id="{{ alumni.user.id }}">
+                                 <div>
+                                     <span>Connect</span>
+                                     <small>Send connection request</small>
+                                 </div>
+                             </button>
+                         `;
+                        showAlert(data.message, 'info');
+                        // Re-attach event listener to new connect button
+                        location.reload();
+                    } else {
+                        showAlert(data.message, 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error rejecting connection request. Please try again.', 'danger');
+                });
+            }
+        });
+    }
+
+    // Handle remove connection button
+    const removeBtn = document.querySelector('.remove-connection-btn[data-user-id]');
+    if (removeBtn) {
+        removeBtn.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const buttonElement = this;
+            
+            if (confirm('Are you sure you want to remove this connection?')) {
+                fetch(`{% url 'connections:remove_connection' 0 %}`.replace('0', userId), {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // Replace with connect button
+                        buttonElement.outerHTML = `
+                            <button class="contact-btn connect-btn" data-user-id="${userId}">
+                                <i class="fas fa-user-plus"></i>
+                                <div>
+                                    <span>Connect</span>
+                                    <small>Send connection request</small>
+                                </div>
+                            </button>
+                        `;
+                        showAlert('Connection removed successfully.', 'info');
+                        // Re-attach event listener to new connect button
+                        location.reload();
+                    } else {
+                        showAlert('Error removing connection. Please try again.', 'danger');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    showAlert('Error removing connection. Please try again.', 'danger');
+                });
+            }
+        });
+    }
 });
 </script>
-{% endblock %} 
+{% endblock %}

@@ -3,146 +3,628 @@
 
 {% block title %}Alumni Directory{% endblock %}
 
-{% block page_title %}Alumni Directory{% endblock %}
-
-{% block breadcrumb %}
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
-        <li class="breadcrumb-item active" aria-current="page">Alumni Directory</li>
-    </ol>
-</nav>
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+    
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Search Section */
+    .search-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        align-items: end;
+    }
+    
+    .search-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .search-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-input,
+    .search-select {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .search-input:focus,
+    .search-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+    
+    .search-button,
+    .clear-button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+    
+    .search-button {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .search-button:hover {
+        background: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .clear-button {
+        background: var(--feedback-error);
+        color: var(--text-light);
+    }
+    
+    .clear-button:hover {
+        background: #c53030;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+    
+    /* Statistics Section */
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        border-left: 3px solid var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1;
+        display: block;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
+        display: block;
+    }
+    
+    /* Active Filters */
+    .active-filters {
+        background: var(--ui-surface);
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .filter-tags {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        align-items: center;
+    }
+    
+    .filter-tag {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .filter-tag-remove {
+        background: none;
+        border: none;
+        color: var(--text-light);
+        cursor: pointer;
+        padding: 0;
+        font-size: 0.75rem;
+        opacity: 0.8;
+        transition: opacity 0.3s ease;
+    }
+    
+    .filter-tag-remove:hover {
+        opacity: 1;
+    }
+    
+    /* Alumni Grid */
+    .alumni-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .alumni-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        position: relative;
+    }
+    
+    .alumni-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .mentor-badge {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--feedback-success);
+        color: var(--text-light);
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .alumni-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        gap: 1rem;
+    }
+    
+    .alumni-avatar {
+        width: 60px;
+        height: 60px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid var(--ui-border);
+    }
+    
+    .alumni-info h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 0.25rem 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .alumni-info .username {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .alumni-details {
+        margin-bottom: 1.5rem;
+    }
+    
+    .detail-row {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .detail-row i {
+        width: 16px;
+        color: var(--primary-color);
+    }
+    
+    .alumni-actions {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .btn-view-profile,
+    .btn-connect {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex: 1;
+        justify-content: center;
+        min-width: 120px;
+    }
+    
+    .btn-view-profile {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .btn-view-profile:hover {
+        background: var(--secondary-color);
+        color: var(--text-light);
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+    
+    .btn-connect {
+        background: var(--feedback-info);
+        color: var(--text-light);
+    }
+    
+    .btn-connect:hover:not(:disabled) {
+        background: #3182ce;
+        transform: translateY(-1px);
+    }
+    
+    .btn-connect:disabled {
+        background: var(--text-muted);
+        cursor: not-allowed;
+        opacity: 0.6;
+    }
+    
+    /* Pagination */
+    .pagination-section {
+        background: var(--ui-surface);
+        padding: 1.5rem;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .page-item {
+        margin: 0;
+    }
+    
+    .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        background: var(--ui-surface);
+    }
+    
+    .page-link:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    
+    .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        background: var(--ui-surface);
+        padding: 4rem 2rem;
+        border-radius: var(--radius-md);
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Responsive Design */
+     @media (max-width: 768px) {
+         .container-fluid {
+             padding: 1rem;
+         }
+        
+        .search-form {
+            grid-template-columns: 1fr;
+        }
+        
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .alumni-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .alumni-actions {
+            flex-direction: column;
+        }
+        
+        .btn-view-profile,
+        .btn-connect {
+            min-width: auto;
+        }
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="page-content">
-    <div class="container">
-        <!-- Search and Filter Section -->
-        <div class="search-filter-section mb-4">
-            <form id="filterForm" method="get" class="needs-validation" novalidate>
-                <div class="row g-3 align-items-center">
-                    <div class="col-lg-8">
-                        <div class="search-box">
-                            <i class="fas fa-search search-icon" aria-hidden="true"></i>
-                            <input type="search" 
-                                   name="search" 
-                                   class="form-control search-input" 
-                                   placeholder="Search alumni by name, course, or location..."
-                                   value="{{ selected_filters.search }}"
-                                   aria-label="Search alumni">
-                        </div>
-                    </div>
-                    <div class="col-lg-4 text-lg-end">
-                        <div class="filter-buttons">
-                            <a href="{% url 'alumni_directory:tabular_alumni_list' %}" class="btn btn-outline-secondary me-2">
-                                <i class="fas fa-table me-1"></i>Tabular View
-                            </a>
-                            <button type="button" class="btn btn-outline-primary filter-btn" data-bs-toggle="modal" data-bs-target="#filterModal">
-                                <i class="fas fa-filter me-2" aria-hidden="true"></i>Filters
-                                <span class="filter-count badge bg-primary" {% if not selected_filters_count %}style="display: none;"{% endif %}>
-                                    {{ selected_filters_count }}
-                                </span>
-                            </button>
-                            {% if any_filter_active %}
-                            <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-link text-danger clear-btn">
-                                <i class="fas fa-times me-1" aria-hidden="true"></i>Clear All
-                            </a>
-                            {% endif %}
-                        </div>
-                    </div>
+<div class="container-fluid">
+        <!-- Header Section -->
+        <div class="directory-header">
+            <h1 class="directory-title">NORSU Alumni Directory</h1>
+            <p class="directory-subtitle">Find and connect with fellow NORSU graduates</p>
+        </div>
+
+        <!-- Search Section -->
+        <div class="search-section">
+            <form method="get" class="search-form">
+                <div class="search-group">
+                    <label class="search-label" for="search">Search Alumni</label>
+                    <input type="search" 
+                           id="search"
+                           name="search" 
+                           class="search-input" 
+                           placeholder="Enter name, course, or location..."
+                           value="{{ selected_filters.search }}">
                 </div>
+                <div class="search-group">
+                    <label class="search-label" for="graduation_year">Graduation Year</label>
+                    <select id="graduation_year" name="graduation_year" class="search-select">
+                        <option value="">All Years</option>
+                        {% for year in graduation_years %}
+                        <option value="{{ year }}" {% if year|stringformat:"i" in selected_filters.graduation_year %}selected{% endif %}>{{ year }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="search-group">
+                    <label class="search-label" for="course">Course</label>
+                    <select id="course" name="course" class="search-select">
+                        <option value="">All Courses</option>
+                        {% for course_item in courses %}
+                        <option value="{{ course_item }}" {% if course_item in selected_filters.course %}selected{% endif %}>{{ course_item }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="search-group">
+                    <label class="search-label" for="college">College</label>
+                    <select id="college" name="college" class="search-select">
+                        <option value="">All Colleges</option>
+                        {% for code, name in colleges %}
+                        <option value="{{ code }}" {% if code in selected_filters.college %}selected{% endif %}>{{ name }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div>
+                    <button type="submit" class="search-button">
+                        <i class="fas fa-search"></i> Search
+                    </button>
+                </div>
+                {% if any_filter_active %}
+                <div>
+                    <a href="{% url 'alumni_directory:alumni_list' %}" class="clear-button">
+                        <i class="fas fa-times"></i> Clear
+                    </a>
+                </div>
+                {% endif %}
             </form>
         </div>
 
         <!-- Statistics Section -->
-        <div class="row justify-content-center g-4 mb-4">
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-users"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value">{{ total_alumni }}</div>
-                        <div class="stat-label">Total Alumni</div>
-                    </div>
-                </div>
+        <div class="stats-section">
+            <div class="stat-card">
+                <span class="stat-number">{{ total_alumni }}</span>
+                <span class="stat-label">Total Alumni</span>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-graduation-cap"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value">{{ graduation_years_count }}</div>
-                        <div class="stat-label">Graduation Years</div>
-                    </div>
-                </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ graduation_years_count }}</span>
+                <span class="stat-label">Graduation Years</span>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-book"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value">{{ courses_count }}</div>
-                        <div class="stat-label">Courses</div>
-                    </div>
-                </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ courses_count }}</span>
+                <span class="stat-label">Courses</span>
             </div>
-            <div class="col-md-3 col-sm-6">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="fas fa-map-marker-alt"></i>
-                    </div>
-                    <div class="stat-content">
-                        <div class="stat-value">{{ provinces_count }}</div>
-                        <div class="stat-label">Provinces</div>
-                    </div>
-                </div>
+            <div class="stat-card">
+                <span class="stat-number">{{ provinces_count }}</span>
+                <span class="stat-label">Provinces</span>
             </div>
         </div>
 
         <!-- Active Filters -->
         {% if selected_filters.graduation_year or selected_filters.course or selected_filters.college or selected_filters.campus or selected_filters.employment_status %}
-        <div class="active-filters mb-4" role="region" aria-label="Active filters">
-            <div class="d-flex flex-wrap gap-2">
+        <div class="active-filters">
+            <div class="filter-tags">
+                <strong>Active Filters:</strong>
                 {% for year in selected_filters.graduation_year %}
                 <span class="filter-tag">
-                    <span class="filter-text">Year: {{ year }}</span>
-                    <button type="button" class="btn-remove-filter" onclick="removeFilter('graduation_year', '{{ year }}')" aria-label="Remove year filter {{ year }}">
-                        <i class="fas fa-times" aria-hidden="true"></i>
+                    Year: {{ year }}
+                    <button type="button" class="filter-tag-remove" onclick="removeFilter('graduation_year', '{{ year }}')">
+                        <i class="fas fa-times"></i>
                     </button>
                 </span>
                 {% endfor %}
                 {% for college_name in selected_filters.college %}
                 <span class="filter-tag">
-                    <span class="filter-text">College: {{ college_name }}</span>
-                    <button type="button" class="btn-remove-filter" onclick="removeFilter('college', '{{ college_name }}')" aria-label="Remove college filter {{ college_name }}">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                    </button>
-                </span>
-                {% endfor %}
-                {% for campus_name in selected_filters.campus %}
-                <span class="filter-tag">
-                    <span class="filter-text">Campus: {{ campus_name }}</span>
-                    <button type="button" class="btn-remove-filter" onclick="removeFilter('campus', '{{ campus_name }}')" aria-label="Remove campus filter {{ campus_name }}">
-                        <i class="fas fa-times" aria-hidden="true"></i>
+                    College: {{ college_name }}
+                    <button type="button" class="filter-tag-remove" onclick="removeFilter('college', '{{ college_name }}')">
+                        <i class="fas fa-times"></i>
                     </button>
                 </span>
                 {% endfor %}
                 {% for course_name in selected_filters.course %}
                 <span class="filter-tag">
-                    <span class="filter-text">Course: {{ course_name }}</span>
-                    <button type="button" class="btn-remove-filter" onclick="removeFilter('course', '{{ course_name }}')" aria-label="Remove course filter {{ course_name }}">
-                        <i class="fas fa-times" aria-hidden="true"></i>
-                    </button>
-                </span>
-                {% endfor %}
-                {% for status in selected_filters.employment_status %}
-                <span class="filter-tag">
-                    <span class="filter-text">Status: {{ status }}</span>
-                    <button type="button" class="btn-remove-filter" onclick="removeFilter('employment_status', '{{ status }}')" aria-label="Remove employment status filter {{ status }}">
-                        <i class="fas fa-times" aria-hidden="true"></i>
+                    Course: {{ course_name }}
+                    <button type="button" class="filter-tag-remove" onclick="removeFilter('course', '{{ course_name }}')">
+                        <i class="fas fa-times"></i>
                     </button>
                 </span>
                 {% endfor %}
@@ -150,836 +632,232 @@
         </div>
         {% endif %}
 
-        <!-- Alumni List Container -->
-        <div class="alumni-list-container">
-            {% if alumni_list %}
-            <div class="row g-4">
-                {% for alumni in alumni_list %}
-                <div class="col-xl-3 col-lg-4 col-md-6">
-                    <article class="alumni-card" role="article" aria-labelledby="alumni-name-{{ alumni.id }}">
-                        <div class="alumni-header">
-                            <div class="alumni-avatar-wrapper">
-                                <img src="{% if alumni.user.profile.avatar %}{{ alumni.user.profile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
-                                     alt="{{ alumni.full_name }}"
-                                     class="alumni-avatar">
-                                {% if alumni.mentorship_status == 'VERIFIED' %}
-                                <div class="mentor-badge" title="Verified Mentor">
-                                    <i class="fas fa-chalkboard-teacher"></i>
-                                </div>
-                                {% endif %}
-                            </div>
-                            <div class="alumni-title">
-                                <h3 class="alumni-name" id="alumni-name-{{ alumni.id }}">
-                                    {{ alumni.full_name }}
-                                    {% if alumni.mentorship_status == 'VERIFIED' %}
-                                    <span class="badge bg-success ms-2">
-                                        <i class="fas fa-check-circle me-1"></i>
-                                        Mentor
-                                    </span>
-                                    {% endif %}
-                                </h3>
-                                <p class="text-muted mb-0">
-                                    <i class="fas fa-id-card me-1"></i>
-                                    {{ alumni.user.username }}
-                                </p>
-                            </div>
-                        </div>
-                        
-                        <div class="alumni-details">
-                            <div class="info-row" title="Course">
-                                <i class="fas fa-graduation-cap" aria-hidden="true"></i>
-                                <span>{{ alumni.course }}</span>
-                            </div>
-                            <div class="info-row" title="Graduation Year">
-                                <i class="fas fa-calendar" aria-hidden="true"></i>
-                                <span>Class of {{ alumni.graduation_year }}</span>
-                            </div>
-                            <div class="info-row" title="Location">
-                                <i class="fas fa-map-marker-alt" aria-hidden="true"></i>
-                                <span>{{ alumni.city }}, {{ alumni.province }}</span>
-                            </div>
-                            {% if alumni.current_job_title %}
-                            <div class="info-row" title="Current Position">
-                                <i class="fas fa-briefcase" aria-hidden="true"></i>
-                                <span>{{ alumni.current_job_title }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="card-actions">
-                            <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" 
-                               class="btn btn-primary btn-view-profile"
-                               aria-label="View {{ alumni.full_name }}'s full profile">
-                                <i class="fas fa-user me-2" aria-hidden="true"></i>View Profile
-                            </a>
-                        </div>
-                    </article>
+        <!-- Alumni Grid -->
+        {% if alumni_list %}
+        <div class="alumni-grid">
+            {% for alumni in alumni_list %}
+            <div class="alumni-card">
+                {% if alumni.mentorship_status == 'VERIFIED' %}
+                <div class="mentor-badge">
+                    <i class="fas fa-chalkboard-teacher"></i> Mentor
                 </div>
-                {% endfor %}
-            </div>
+                {% endif %}
+                
+                <div class="alumni-header">
+                    <img src="{% if alumni.user.profile.avatar %}{{ alumni.user.profile.avatar.url }}{% else %}{% static 'images/default-avatar.png' %}{% endif %}" 
+                         alt="{{ alumni.full_name }}"
+                         class="alumni-avatar">
+                    <div class="alumni-info">
+                        <h3>{{ alumni.full_name }}</h3>
+                        <p class="username">{{ alumni.user.username }}</p>
+                    </div>
+                </div>
+                
+                <div class="alumni-details">
+                    <div class="detail-row">
+                        <i class="fas fa-graduation-cap"></i>
+                        <span>{{ alumni.course }}</span>
+                    </div>
+                    <div class="detail-row">
+                        <i class="fas fa-calendar"></i>
+                        <span>Class of {{ alumni.graduation_year }}</span>
+                    </div>
+                    {% if alumni.user.profile.address or alumni.user.profile.city or alumni.user.profile.state %}
+                    <div class="detail-row">
+                        <i class="fas fa-map-marker-alt"></i>
+                        <span>{{ alumni.user.profile.address }}, {{ alumni.user.profile.city }}, {{ alumni.user.profile.state }}, {{ alumni.user.profile.country.name }}</span>
+                    </div>
+                    {% endif %}
+                     {% if alumni.job_title %}
+                     <div class="detail-row">
+                         <i class="fas fa-briefcase"></i>
+                         <span>{{ alumni.job_title }}</span>
+                     </div>
+                     {% endif %}
+                 </div>
+                 
+                 <div class="alumni-actions">
+                     <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" class="btn-view-profile">
+                         <i class="fas fa-user"></i> View Profile
+                     </a>
+                     
+                     {% if user.is_authenticated and user != alumni.user %}
+                         {% load connections_tags %}
+                         {% get_connection_status user alumni.user as connection_status %}
+                         {% if connection_status == 'none' %}
+                             <button class="btn-connect" data-user-id="{{ alumni.user.id }}">
+                                 <i class="fas fa-user-plus"></i> Connect
+                             </button>
+                         {% elif connection_status == 'pending_sent' %}
+                             <button class="btn-connect" disabled>
+                                 <i class="fas fa-clock"></i> Pending
+                             </button>
+                         {% elif connection_status == 'connected' %}
+                             <a href="{% url 'connections:direct_messages' alumni.user.id %}" class="btn-connect">
+                                 <i class="fas fa-comments"></i> Message
+                             </a>
+                         {% endif %}
+                     {% endif %}
+                 </div>
+             </div>
+             {% endfor %}
+         </div>
 
-            {% include 'components/pagination.html' %}
+         <!-- Pagination -->
+         {% if alumni_list.has_other_pages %}
+         <div class="pagination-section">
+             <nav aria-label="Alumni pagination">
+                 <ul class="pagination">
+                     {% if alumni_list.has_previous %}
+                     <li class="page-item">
+                         <a class="page-link" href="?page=1{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                             &laquo;&laquo;
+                         </a>
+                     </li>
+                     <li class="page-item">
+                         <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                             &laquo;
+                         </a>
+                     </li>
+                     {% endif %}
 
-            {% else %}
-            <div class="empty-state" role="status">
-                <i class="fas fa-users" aria-hidden="true"></i>
-                <h2>No Alumni Found</h2>
-                <p>There are no alumni records matching your search criteria.</p>
-            </div>
-            {% endif %}
-        </div>
-    </div>
+                     {% for num in alumni_list.paginator.page_range %}
+                         {% if alumni_list.number == num %}
+                             <li class="page-item active">
+                                 <span class="page-link">{{ num }}</span>
+                             </li>
+                         {% elif num > alumni_list.number|add:'-3' and num < alumni_list.number|add:'3' %}
+                             <li class="page-item">
+                                 <a class="page-link" href="?page={{ num }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">{{ num }}</a>
+                             </li>
+                         {% endif %}
+                     {% endfor %}
+
+                     {% if alumni_list.has_next %}
+                     <li class="page-item">
+                         <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                             &raquo;
+                         </a>
+                     </li>
+                     <li class="page-item">
+                         <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if selected_filters.search %}&search={{ selected_filters.search }}{% endif %}{% for year in selected_filters.graduation_year %}&graduation_year={{ year }}{% endfor %}{% for course in selected_filters.course %}&course={{ course }}{% endfor %}{% for college in selected_filters.college %}&college={{ college }}{% endfor %}">
+                             &raquo;&raquo;
+                         </a>
+                     </li>
+                     {% endif %}
+                 </ul>
+             </nav>
+         </div>
+         {% endif %}
+
+         {% else %}
+         <div class="empty-state">
+             <i class="fas fa-users"></i>
+             <h3>No Alumni Found</h3>
+             <p>There are no alumni records matching your search criteria.</p>
+         </div>
+         {% endif %}</div>
 </div>
 
-<!-- Filter Modal -->
-<div class="modal fade" id="filterModal" tabindex="-1" aria-labelledby="filterModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="filterModalLabel">
-                    <i class="fas fa-filter me-2"></i>Filter Alumni
-                </h5>
-                <button type="button" 
-                        class="btn-close" 
-                        data-bs-dismiss="modal" 
-                        aria-label="Close"
-                        title="Close filter modal">
-                </button>
-            </div>
-            <div class="modal-body">
-                <form id="filterModalForm" method="get" class="needs-validation" novalidate>
-                    <!-- Filter Summary -->
-                    <div class="filter-summary mb-4" role="status" aria-live="polite">
-                        <div class="d-flex align-items-center justify-content-between">
-                            <div>
-                                <span class="filter-count-text">
-                                    <strong id="activeFilterCount">0</strong> filters selected
-                                </span>
-                            </div>
-                            <button type="button" 
-                                    class="btn btn-link text-danger p-0" 
-                                    onclick="clearAllFilters()"
-                                    title="Clear all filters">
-                                <i class="fas fa-times me-1"></i>Clear All
-                            </button>
-                        </div>
-                    </div>
-
-                    <!-- Filter Groups -->
-                    <div class="row g-4">
-                        <!-- College Filter -->
-                        <div class="col-lg-6">
-                            <div class="filter-group">
-                                <div class="filter-header">
-                                    <label class="filter-label" for="collegeSearch">
-                                        <i class="fas fa-university me-2"></i>College
-                                        <span class="filter-count" id="collegeCount">0</span>
-                                    </label>
-                                    <button type="button" 
-                                            class="btn btn-link btn-sm p-0 filter-clear" 
-                                            onclick="clearFilterGroup('college')"
-                                            aria-label="Clear college filters">
-                                        Clear
-                                    </button>
-                                </div>
-                                <div class="filter-content">
-                                    <div class="filter-search mb-3">
-                                        <div class="search-wrapper">
-                                            <i class="fas fa-search search-icon"></i>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="collegeSearch"
-                                                   placeholder="Search college..."
-                                                   aria-label="Search colleges">
-                                            <button type="button" 
-                                                    class="btn-clear-search" 
-                                                    onclick="clearSearch('collegeSearch')"
-                                                    aria-label="Clear college search">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="filter-options custom-scrollbar" id="collegeOptions">
-                                        {% for code, name in colleges %}
-                                        <div class="form-check">
-                                            <input type="checkbox" 
-                                                   name="college" 
-                                                   value="{{ code }}" 
-                                                   class="form-check-input"
-                                                   id="college-{{ code|lower }}"
-                                                   {% if code in selected_filters.college %}checked{% endif %}>
-                                            <label class="form-check-label" for="college-{{ code|lower }}">
-                                                {{ name }}
-                                            </label>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Campus Filter -->
-                        <div class="col-lg-6">
-                            <div class="filter-group">
-                                <div class="filter-header">
-                                    <label class="filter-label" for="campusSearch">
-                                        <i class="fas fa-map-marker-alt me-2"></i>Campus
-                                        <span class="filter-count" id="campusCount">0</span>
-                                    </label>
-                                    <button type="button" 
-                                            class="btn btn-link btn-sm p-0 filter-clear" 
-                                            onclick="clearFilterGroup('campus')"
-                                            aria-label="Clear campus filters">
-                                        Clear
-                                    </button>
-                                </div>
-                                <div class="filter-content">
-                                    <div class="filter-search mb-3">
-                                        <div class="search-wrapper">
-                                            <i class="fas fa-search search-icon"></i>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="campusSearch"
-                                                   placeholder="Search campus..."
-                                                   aria-label="Search campuses">
-                                            <button type="button" 
-                                                    class="btn-clear-search" 
-                                                    onclick="clearSearch('campusSearch')"
-                                                    aria-label="Clear campus search">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="filter-options custom-scrollbar" id="campusOptions">
-                                        {% for code, name in campuses %}
-                                        <div class="form-check">
-                                            <input type="checkbox" 
-                                                   name="campus" 
-                                                   value="{{ code }}" 
-                                                   class="form-check-input"
-                                                   id="campus-{{ code|lower }}"
-                                                   {% if code in selected_filters.campus %}checked{% endif %}>
-                                            <label class="form-check-label" for="campus-{{ code|lower }}">
-                                                {{ name }}
-                                            </label>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Course Filter -->
-                        <div class="col-lg-6">
-                            <div class="filter-group">
-                                <div class="filter-header">
-                                    <label class="filter-label" for="courseSearch">
-                                        <i class="fas fa-book me-2"></i>Course
-                                        <span class="filter-count" id="courseCount">0</span>
-                                    </label>
-                                    <button type="button" 
-                                            class="btn btn-link btn-sm p-0 filter-clear" 
-                                            onclick="clearFilterGroup('course')"
-                                            aria-label="Clear course filters">
-                                        Clear
-                                    </button>
-                                </div>
-                                <div class="filter-content">
-                                    <div class="filter-search mb-3">
-                                        <div class="search-wrapper">
-                                            <i class="fas fa-search search-icon"></i>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="courseSearch"
-                                                   placeholder="Search courses..."
-                                                   aria-label="Search courses">
-                                            <button type="button" 
-                                                    class="btn-clear-search" 
-                                                    onclick="clearSearch('courseSearch')"
-                                                    aria-label="Clear course search">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="filter-options custom-scrollbar" id="courseOptions">
-                                        <!-- College of Agriculture and Forestry -->
-                                        <div class="filter-subgroup">
-                                            <div class="filter-subheader">College of Agriculture and Forestry</div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Agriculture" id="course-bsa"
-                                                    {% if 'BS in Agriculture' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsa">BS in Agriculture</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Forestry" id="course-bsf"
-                                                    {% if 'BS in Forestry' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsf">BS in Forestry</label>
-                                            </div>
-                                        </div>
-
-                                        <!-- College of Arts and Sciences -->
-                                        <div class="filter-subgroup">
-                                            <div class="filter-subheader">College of Arts and Sciences</div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="Bachelor of Arts" id="course-ba"
-                                                    {% if 'Bachelor of Arts' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-ba">Bachelor of Arts</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Biology" id="course-bsbio"
-                                                    {% if 'BS in Biology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsbio">BS in Biology</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Chemistry" id="course-bschem"
-                                                    {% if 'BS in Chemistry' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bschem">BS in Chemistry</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Computer Science" id="course-bscs"
-                                                    {% if 'BS in Computer Science' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bscs">BS in Computer Science</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Geology" id="course-bsgeology"
-                                                    {% if 'BS in Geology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsgeology">BS in Geology</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Information Technology" id="course-bsit"
-                                                    {% if 'BS in Information Technology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsit">BS in Information Technology</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Mathematics" id="course-bsmath"
-                                                    {% if 'BS in Mathematics' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsmath">BS in Mathematics</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Psychology" id="course-bspsych"
-                                                    {% if 'BS in Psychology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bspsych">BS in Psychology</label>
-                                            </div>
-                                        </div>
-
-                                        <!-- College of Engineering and Architecture -->
-                                        <div class="filter-subgroup">
-                                            <div class="filter-subheader">College of Engineering and Architecture</div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Architecture" id="course-bsarch"
-                                                    {% if 'BS in Architecture' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsarch">BS in Architecture</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Civil Engineering" id="course-bsce"
-                                                    {% if 'BS in Civil Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsce">BS in Civil Engineering</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Computer Engineering" id="course-bscpe"
-                                                    {% if 'BS in Computer Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bscpe">BS in Computer Engineering</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Electrical Engineering" id="course-bsee"
-                                                    {% if 'BS in Electrical Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsee">BS in Electrical Engineering</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Electronics and Communication Engineering" id="course-bsece"
-                                                    {% if 'BS in Electronics and Communication Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsece">BS in Electronics and Communication Engineering</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Geodetic Engineering" id="course-bsgeo"
-                                                    {% if 'BS in Geodetic Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsgeo">BS in Geodetic Engineering</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Geothermal Engineering" id="course-bsgeotherm"
-                                                    {% if 'BS in Geothermal Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsgeotherm">BS in Geothermal Engineering</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Mechanical Engineering" id="course-bsme"
-                                                    {% if 'BS in Mechanical Engineering' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsme">BS in Mechanical Engineering</label>
-                                            </div>
-                                        </div>
-
-                                        <!-- College of Industrial Technology -->
-                                        <div class="filter-subgroup">
-                                            <div class="filter-subheader">College of Industrial Technology</div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="Associate in Industrial Technology" id="course-ait"
-                                                    {% if 'Associate in Industrial Technology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-ait">Associate in Industrial Technology</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="Diploma in Technology" id="course-dit"
-                                                    {% if 'Diploma in Technology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-dit">Diploma in Technology</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Aviation Management" id="course-bsam"
-                                                    {% if 'BS in Aviation Management' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsam">BS in Aviation Management</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="BS in Industrial Technology" id="course-bsit"
-                                                    {% if 'BS in Industrial Technology' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bsit">BS in Industrial Technology</label>
-                                            </div>
-                                            <div class="form-check">
-                                                <input type="checkbox" class="form-check-input" name="course" value="Bachelor of Technological Education" id="course-bte"
-                                                    {% if 'Bachelor of Technological Education' in selected_filters.course %}checked{% endif %}>
-                                                <label class="form-check-label" for="course-bte">Bachelor of Technological Education</label>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Graduation Year Filter -->
-                        <div class="col-lg-6">
-                            <div class="filter-group">
-                                <div class="filter-header">
-                                    <label class="filter-label" for="yearSearch">
-                                        <i class="fas fa-graduation-cap me-2"></i>Graduation Year
-                                        <span class="filter-count" id="yearCount">0</span>
-                                    </label>
-                                    <button type="button" 
-                                            class="btn btn-link btn-sm p-0 filter-clear" 
-                                            onclick="clearFilterGroup('graduation_year')"
-                                            aria-label="Clear graduation year filters">
-                                        Clear
-                                    </button>
-                                </div>
-                                <div class="filter-content">
-                                    <div class="filter-search mb-3">
-                                        <div class="search-wrapper">
-                                            <i class="fas fa-search search-icon"></i>
-                                            <input type="text" 
-                                                   class="form-control" 
-                                                   id="yearSearch"
-                                                   placeholder="Search year..."
-                                                   aria-label="Search graduation years">
-                                            <button type="button" 
-                                                    class="btn-clear-search" 
-                                                    onclick="clearSearch('yearSearch')"
-                                                    aria-label="Clear year search">
-                                                <i class="fas fa-times"></i>
-                                            </button>
-                                        </div>
-                                    </div>
-                                    <div class="filter-options custom-scrollbar" id="yearOptions">
-                                        {% for year in graduation_years %}
-                                        <div class="form-check">
-                                            <input type="checkbox" 
-                                                   name="graduation_year" 
-                                                   value="{{ year }}" 
-                                                   class="form-check-input"
-                                                   id="year-{{ year }}"
-                                                   {% if year|stringformat:"s" in selected_filters.graduation_year %}checked{% endif %}>
-                                            <label class="form-check-label" for="year-{{ year }}">
-                                                {{ year }}
-                                            </label>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Employment Status Filter -->
-                        <div class="col-lg-6">
-                            <div class="filter-group">
-                                <div class="filter-header">
-                                    <label class="filter-label">
-                                        <i class="fas fa-briefcase me-2"></i>Employment Status
-                                        <span class="filter-count" id="statusCount">0</span>
-                                    </label>
-                                    <button type="button" 
-                                            class="btn btn-link btn-sm p-0 filter-clear" 
-                                            onclick="clearFilterGroup('employment_status')"
-                                            aria-label="Clear employment status filters">
-                                        Clear
-                                    </button>
-                                </div>
-                                <div class="filter-content">
-                                    <div class="filter-options" id="statusOptions">
-                                        {% for value, label in employment_statuses %}
-                                        <div class="form-check">
-                                            <input type="checkbox" 
-                                                   name="employment_status" 
-                                                   value="{{ value }}" 
-                                                   class="form-check-input"
-                                                   id="status-{{ value }}"
-                                                   {% if value in selected_filters.employment_status %}checked{% endif %}>
-                                            <label class="form-check-label" for="status-{{ value }}">
-                                                {{ label }}
-                                            </label>
-                                        </div>
-                                        {% endfor %}
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="modal-footer">
-                        <div class="d-flex justify-content-between w-100">
-                            <button type="button" 
-                                    class="btn btn-outline-secondary" 
-                                    data-bs-dismiss="modal">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </button>
-                            <div>
-                                <button type="button" 
-                                        class="btn btn-link me-2" 
-                                        onclick="clearAllFilters()">
-                                    Clear All
-                                </button>
-                                <button type="submit" 
-                                        class="btn btn-primary" 
-                                        id="applyFiltersBtn">
-                                    <i class="fas fa-check me-1"></i>Apply Filters
-                                    <span class="filter-count" id="footerFilterCount">0</span>
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% endblock %}
-
-{% block extra_css %}
-<style>
-    /* Page Layout */
-    .page-content {
-        padding: 2rem 0;
-        background-color: #f8f9fa;
-        min-height: calc(100vh - 60px);
-    }
-
-    /* Search and Filter Section */
-    .search-filter-section {
-        background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        margin-bottom: 2rem;
-    }
-
-    .search-box {
-        position: relative;
-    }
-
-    .search-icon {
-        position: absolute;
-        left: 1rem;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #6c757d;
-    }
-
-    .search-input {
-        padding-left: 2.5rem;
-        height: 48px;
-        border-radius: 8px;
-        border: 1px solid #dee2e6;
-        font-size: 1rem;
-        transition: all 0.2s ease;
-    }
-
-    .search-input:focus {
-        border-color: #3498db;
-        box-shadow: 0 0 0 0.2rem rgba(52, 152, 219, 0.25);
-    }
-
-    .filter-btn {
-        height: 48px;
-        border-radius: 8px;
-        padding: 0 1.5rem;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    .filter-btn:hover {
-        background-color: #3498db;
-        color: white;
-        border-color: #3498db;
-    }
-
-    /* Statistics Cards */
-    .stat-card {
-        background: white;
-        border-radius: 12px;
-        padding: 1.5rem;
-        display: flex;
-        align-items: center;
-        gap: 1.5rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.08);
-    }
-
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        background: linear-gradient(135deg, #3498db, #2980b9);
-        border-radius: 12px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.5rem;
-    }
-
-    .stat-content {
-        flex: 1;
-    }
-
-    .stat-value {
-        font-size: 1.75rem;
-        font-weight: 700;
-        color: #2c3e50;
-        line-height: 1.2;
-        margin-bottom: 0.25rem;
-    }
-
-    .stat-label {
-        color: #6c757d;
-        font-size: 0.875rem;
-        font-weight: 500;
-    }
-
-    /* Active Filters */
-    .filter-tag {
-        display: inline-flex;
-        align-items: center;
-        background: white;
-        padding: 0.5rem 1rem;
-        border-radius: 30px;
-        border: 1px solid #dee2e6;
-        font-size: 0.875rem;
-        color: #2c3e50;
-        gap: 0.5rem;
-        transition: all 0.2s ease;
-    }
-
-    .filter-tag:hover {
-        border-color: #3498db;
-        box-shadow: 0 2px 4px rgba(52, 152, 219, 0.1);
-    }
-
-    .btn-remove-filter {
-        background: none;
-        border: none;
-        color: #6c757d;
-        padding: 0;
-        cursor: pointer;
-        transition: color 0.2s ease;
-    }
-
-    .btn-remove-filter:hover {
-        color: #dc3545;
-    }
-
-    /* Alumni Cards */
-    .alumni-card {
-        background: white;
-        border-radius: 12px;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-    }
-
-    .alumni-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 16px rgba(0,0,0,0.08);
-    }
-
-    .alumni-header {
-        padding: 1.5rem;
-        text-align: center;
-        border-bottom: 1px solid #f8f9fa;
-    }
-
-    .alumni-avatar-wrapper {
-        position: relative;
-        display: inline-block;
-        margin-bottom: 1rem;
-    }
-
-    .alumni-avatar {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 4px solid white;
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        transition: transform 0.2s ease;
-    }
-
-    .alumni-card:hover .alumni-avatar {
-        transform: scale(1.05);
-    }
-
-    .mentor-badge {
-        position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 32px;
-        height: 32px;
-        background: #3498db;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        border: 3px solid white;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .alumni-name {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-
-    .alumni-details {
-        padding: 1.5rem;
-        flex: 1;
-    }
-
-    .info-row {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        margin-bottom: 1rem;
-        color: #6c757d;
-    }
-
-    .info-row:last-child {
-        margin-bottom: 0;
-    }
-
-    .info-row i {
-        color: #3498db;
-        width: 16px;
-    }
-
-    .card-actions {
-        padding: 1.5rem;
-        border-top: 1px solid #f8f9fa;
-    }
-
-    .btn-view-profile {
-        width: 100%;
-        padding: 0.75rem;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.2s ease;
-    }
-
-    /* Empty State */
-    .empty-state {
-        text-align: center;
-        padding: 4rem 2rem;
-        background: white;
-        border-radius: 12px;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.04);
-    }
-
-    .empty-state i {
-        font-size: 3rem;
-        color: #3498db;
-        margin-bottom: 1.5rem;
-    }
-
-    .empty-state h2 {
-        font-size: 1.5rem;
-        color: #2c3e50;
-        margin-bottom: 0.5rem;
-    }
-
-    .empty-state p {
-        color: #6c757d;
-        margin-bottom: 0;
-    }
-
-    /* Filter Modal */
-    .modal-content {
-        border-radius: 12px;
-        border: none;
-    }
-
-    .modal-header {
-        background: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        padding: 1.25rem 1.5rem;
-    }
-
-    .modal-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: #2c3e50;
-    }
-
-    .modal-body {
-        padding: 1.5rem;
-    }
-
-    .filter-summary {
-        background: #f8f9fa;
-        padding: 1rem;
-        border-radius: 8px;
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 767.98px) {
-        .stat-card {
-            padding: 1rem;
-        }
-
-        .stat-icon {
-            width: 40px;
-            height: 40px;
-            font-size: 1.25rem;
-        }
-
-        .stat-value {
-            font-size: 1.5rem;
-        }
-
-        .alumni-avatar {
-            width: 100px;
-            height: 100px;
-        }
-
-        .alumni-name {
-            font-size: 1.125rem;
-        }
-    }
-</style>
-{% endblock %}
-
-{% block extra_js %}
+<!-- JavaScript for filter functionality and connection requests -->
 <script>
-    // Your existing JavaScript code here
+function removeFilter(filterType, value) {
+    const url = new URL(window.location);
+    const params = new URLSearchParams(url.search);
+    
+    // Get all values for this filter type
+    const values = params.getAll(filterType);
+    
+    // Remove all instances of this filter type
+    params.delete(filterType);
+    
+    // Add back all values except the one we want to remove
+    values.forEach(v => {
+        if (v !== value) {
+            params.append(filterType, v);
+        }
+    });
+    
+    // Redirect to the new URL
+    window.location.href = url.pathname + '?' + params.toString();
+}
+
+// Connection functionality
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle connect button clicks
+    document.querySelectorAll('.btn-connect[data-user-id]').forEach(button => {
+        button.addEventListener('click', function() {
+            const userId = this.dataset.userId;
+            const buttonElement = this;
+            
+            // Disable button during request
+            buttonElement.disabled = true;
+            const originalContent = buttonElement.innerHTML;
+            buttonElement.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Connecting...';
+            
+            fetch(`{% url 'connections:send_request' 0 %}`.replace('0', userId), {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Update button to show pending state
+                    buttonElement.innerHTML = '<i class="fas fa-clock"></i> Pending';
+                    buttonElement.disabled = true;
+                    showAlert(data.message, 'success');
+                } else {
+                    // Restore original button state
+                    buttonElement.innerHTML = originalContent;
+                    buttonElement.disabled = false;
+                    showAlert(data.message, 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                // Restore original button state
+                buttonElement.innerHTML = originalContent;
+                buttonElement.disabled = false;
+                showAlert('Error sending connection request. Please try again.', 'danger');
+            });
+        });
+    });
+    
+    function showAlert(message, type) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+        alertDiv.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 9999;
+            min-width: 300px;
+            max-width: 500px;
+            padding: 1rem;
+            border-radius: 0.375rem;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+            background: ${type === 'success' ? '#48bb78' : type === 'danger' ? '#e53e3e' : '#4299e1'};
+            color: white;
+            border: none;
+        `;
+        alertDiv.innerHTML = `
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
+                <span>${message}</span>
+                <button type="button" onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; margin-left: auto; cursor: pointer; font-size: 1.2rem;">&times;</button>
+            </div>
+        `;
+        document.body.appendChild(alertDiv);
+        
+        setTimeout(() => {
+            if (alertDiv.parentNode) {
+                alertDiv.remove();
+            }
+        }, 5000);
+    }
+});
 </script>
-{% endblock %} 
+{% endblock %}

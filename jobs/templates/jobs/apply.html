@@ -5,45 +5,85 @@
 
 {% block title %}Apply for {{ job.job_title|format_job_title }}{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item"><a href="{% url 'core:home' %}">Home</a></li>
-<li class="breadcrumb-item"><a href="{% url 'jobs:job_list' %}">Job Board</a></li>
-<li class="breadcrumb-item"><a href="{% url 'jobs:job_detail' job.slug %}">{{ job.job_title|format_job_title }}</a></li>
-<li class="breadcrumb-item active">Apply</li>
-{% endblock %}
-
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+/* System Color Scheme */
 :root {
-    --linkedin-blue: #0a66c2;
-    --linkedin-blue-hover: #004182;
-    --linkedin-border: #e0e0e0;
-    --linkedin-bg: #f3f2f0;
-    --linkedin-text: #000000;
-    --linkedin-secondary-text: #666666;
-    --linkedin-surface: #ffffff;
-    --linkedin-hover: #f3f6f8;
-    --linkedin-shadow: rgba(0, 0, 0, 0.08);
+    /* Secondary Colors */
+    --secondary-color: #4a5568;
+    
+    /* UI Colors */
+    --ui-background: #f7fafc;
+    --ui-surface: #ffffff;
+    --ui-border: #e2e8f0;
+    --ui-hover: #edf2f7;
+    
+    /* Text Colors */
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --text-muted: #a0aec0;
+    --text-light: #ffffff;
+    
+    /* Feedback Colors */
+    --feedback-success: #48bb78;
+    --feedback-warning: #ed8936;
+    --feedback-error: #e53e3e;
+    --feedback-info: #4299e1;
+    
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+}
+
+.dashboard-card {
+    background: var(--ui-surface);
+    border-radius: var(--radius-md);
+    box-shadow: var(--shadow-sm);
+    padding: 2rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--ui-border);
+    font-size: 1rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+.dashboard-card:hover {
+    box-shadow: var(--shadow-md);
+}
+
+.dashboard-header {
+    background: var(--primary-color);
+    color: var(--text-light);
+    padding: 1.75rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    font-size: 0.875rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+.dashboard-header h1 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+}
+
+.dashboard-header p {
+    opacity: 0.9;
+    font-size: 0.875rem;
 }
 
 .application-wrapper {
-    background-color: var(--linkedin-bg);
+    background-color: var(--ui-background);
     min-height: calc(100vh - 60px);
     margin-top: -1.5rem;
     padding: 2rem 0;
-}
-
-.card {
-    border: none;
-    box-shadow: 0 0 0 1px var(--linkedin-border);
-    border-radius: 8px;
-    margin-bottom: 1.5rem;
-    background: var(--linkedin-surface);
-    transition: box-shadow 0.3s ease;
-}
-
-.card:hover {
-    box-shadow: 0 0 0 1px var(--linkedin-border), 0 4px 12px var(--linkedin-shadow);
+    font-family: 'Poppins', sans-serif;
 }
 
 .job-summary-card {
@@ -51,11 +91,12 @@
 }
 
 .job-summary-title {
-    color: var(--linkedin-text);
+    color: var(--text-primary);
     font-size: 24px;
     line-height: 30px;
     font-weight: 600;
     margin-bottom: 16px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .job-summary-details {
@@ -69,15 +110,16 @@
     display: flex;
     align-items: center;
     padding: 6px 12px;
-    background: var(--linkedin-hover);
-    border-radius: 4px;
-    color: var(--linkedin-text);
+    background: var(--ui-hover);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
     font-size: 14px;
     line-height: 20px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .job-summary-item i {
-    color: var(--linkedin-secondary-text);
+    color: var(--text-secondary);
     margin-right: 8px;
     font-size: 16px;
 }
@@ -89,7 +131,7 @@
 .form-section {
     margin-bottom: 24px;
     padding-bottom: 24px;
-    border-bottom: 1px solid var(--linkedin-border);
+    border-bottom: 1px solid var(--ui-border);
 }
 
 .form-section:last-child {
@@ -98,39 +140,42 @@
 }
 
 .section-title {
-    color: var(--linkedin-text);
+    color: var(--text-primary);
     font-size: 20px;
     line-height: 24px;
     font-weight: 600;
     margin-bottom: 16px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .form-label {
     font-weight: 500;
-    color: var(--linkedin-text);
+    color: var(--text-primary);
     margin-bottom: 4px;
     font-size: 14px;
     line-height: 20px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .form-control {
-    border: 1px solid var(--linkedin-border);
-    border-radius: 4px;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-sm);
     padding: 8px 12px;
     font-size: 14px;
     line-height: 20px;
-    color: var(--linkedin-text);
+    color: var(--text-primary);
     height: auto;
     transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
 }
 
 .form-control:hover:not(:focus) {
-    border-color: var(--linkedin-text);
+    border-color: var(--text-primary);
 }
 
 .form-control:focus {
-    border-color: var(--linkedin-blue);
-    box-shadow: 0 0 0 1px var(--linkedin-blue);
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 1px var(--primary-color);
     outline: none;
 }
 
@@ -146,44 +191,46 @@ textarea.form-control {
 .file-upload-wrapper .form-control {
     padding: 12px;
     cursor: pointer;
-    background-color: var(--linkedin-hover);
+    background-color: var(--ui-hover);
 }
 
 .file-upload-info {
     margin-top: 8px;
     padding: 12px;
-    background-color: var(--linkedin-hover);
-    border-radius: 4px;
+    background-color: var(--ui-hover);
+    border-radius: var(--radius-sm);
     font-size: 14px;
     line-height: 20px;
-    color: var(--linkedin-secondary-text);
+    color: var(--text-secondary);
+    font-family: 'Poppins', sans-serif;
 }
 
 .file-upload-info i {
-    color: var(--linkedin-blue);
+    color: var(--primary-color);
     margin-right: 8px;
 }
 
 .required-label {
-    color: #cc1016;
+    color: var(--feedback-error);
     margin-left: 4px;
     font-weight: 500;
 }
 
 .help-text {
-    color: var(--linkedin-secondary-text);
+    color: var(--text-secondary);
     font-size: 14px;
     line-height: 20px;
     margin-top: 4px;
+    font-family: 'Poppins', sans-serif;
 }
 
 .form-actions {
     position: sticky;
     bottom: 0;
-    background: var(--linkedin-surface);
+    background: var(--ui-surface);
     padding: 16px 24px;
-    border-top: 1px solid var(--linkedin-border);
-    border-radius: 0 0 8px 8px;
+    border-top: 1px solid var(--ui-border);
+    border-radius: 0 0 var(--radius-md) var(--radius-md);
     margin: 24px -24px -24px;
     display: flex;
     justify-content: flex-end;
@@ -200,35 +247,41 @@ textarea.form-control {
     font-weight: 600;
     border-radius: 16px;
     transition: all 0.2s ease;
+    font-family: 'Poppins', sans-serif;
 }
 
 .btn-primary {
-    background-color: var(--linkedin-blue);
-    border-color: var(--linkedin-blue);
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
     color: white;
 }
 
 .btn-primary:hover {
-    background-color: var(--linkedin-blue-hover);
-    border-color: var(--linkedin-blue-hover);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    background-color: var(--secondary-color);
+    border-color: var(--secondary-color);
+    box-shadow: var(--shadow-md);
 }
 
 .btn-outline-secondary {
     background-color: transparent;
-    border: 1px solid var(--linkedin-border);
-    color: var(--linkedin-text);
+    border: 1px solid var(--ui-border);
+    color: var(--text-primary);
 }
 
 .btn-outline-secondary:hover {
-    background-color: var(--linkedin-hover);
-    border-color: var(--linkedin-text);
-    color: var(--linkedin-text);
+    background-color: var(--ui-hover);
+    border-color: var(--text-primary);
+    color: var(--text-primary);
 }
 
 .btn i {
     margin-right: 8px;
     font-size: 16px;
+}
+
+body {
+    background-color: var(--ui-background);
+    font-family: 'Poppins', sans-serif;
 }
 
 @media (max-width: 768px) {
@@ -270,10 +323,16 @@ textarea.form-control {
 {% block content %}
 <div class="application-wrapper">
     <div class="container-fluid">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <h1 class="mb-2"><i class="fas fa-paper-plane me-3"></i>Job Application</h1>
+            <p class="mb-0">Apply for {{ job.job_title|format_job_title }} at {{ job.company_name }}</p>
+        </div>
+        
         <!-- Job Summary Card -->
-        <div class="card">
+        <div class="dashboard-card">
             <div class="job-summary-card">
-                <h1 class="job-summary-title">{{ job.job_title|format_job_title }}</h1>
+                <h2 class="job-summary-title">{{ job.job_title|format_job_title }}</h2>
                 <div class="job-summary-details">
                     <div class="job-summary-item">
                         <i class="fas fa-building"></i>
@@ -298,7 +357,7 @@ textarea.form-control {
         </div>
 
         <!-- Application Form -->
-        <div class="card">
+        <div class="dashboard-card">
             <div class="card-body p-4">
                 <form method="post" enctype="multipart/form-data" class="application-form">
                     {% csrf_token %}
@@ -384,4 +443,4 @@ textarea.form-control {
         </div>
     </div>
 </div>
-{% endblock %} 
+{% endblock %}

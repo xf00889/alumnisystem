@@ -1,0 +1,68 @@
+<!-- Individual Message Item for HTMX -->
+<div class="message mb-3 d-flex {% if message.sender == user %}justify-content-end{% else %}justify-content-start{% endif %}" data-message-id="{{ message.id }}">
+    {% if message.sender != user %}
+        <!-- Other user's avatar -->
+        <div class="flex-shrink-0 me-2">
+            {% if message.sender.profile.avatar %}
+                <img src="{{ message.sender.profile.avatar.url }}" 
+                     alt="{{ message.sender.get_full_name }}"
+                     class="rounded-circle" 
+                     style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--ui-border);">
+            {% else %}
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width: 36px; height: 36px; font-size: 0.75rem; background: var(--secondary-color); color: var(--text-light); border: 2px solid var(--ui-border);">
+                    <i class="fas fa-user"></i>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+    
+    <div class="message-content" style="max-width: 70%;">
+        <div class="message-bubble p-3 rounded-3" style="{% if message.sender == user %}background: var(--primary-color); color: var(--text-light);{% else %}background: var(--ui-surface); color: var(--text-primary); border: 1px solid var(--ui-border);{% endif %} box-shadow: var(--shadow-sm);">
+            <p class="mb-1" style="font-weight: 400; line-height: 1.5;">{{ message.content }}</p>
+            
+            {% if message.attachment %}
+                <div class="mt-2">
+                    {% if message.attachment.url|slice:"-4:" == ".jpg" or message.attachment.url|slice:"-4:" == ".png" or message.attachment.url|slice:"-5:" == ".jpeg" %}
+                        <img src="{{ message.attachment.url }}" 
+                             alt="Attachment" 
+                             class="img-fluid rounded" 
+                             style="max-width: 200px; max-height: 200px; border-radius: var(--radius-md);">
+                    {% else %}
+                        <a href="{{ message.attachment.url }}" 
+                           style="background: rgba(255,255,255,0.2); color: inherit; border-radius: var(--radius-sm);">
+                            <i class="fas fa-file me-2"></i>
+                            <span>{{ message.attachment.name|default:"Download File" }}</span>
+                        </a>
+                    {% endif %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <small class="d-block mt-1 {% if message.sender == user %}text-end{% endif %}" style="color: var(--text-muted); font-weight: 500; font-size: 0.75rem;">
+            {{ message.created_at|timesince }} ago
+            {% if message.sender == user and message.is_read %}
+                <i class="fas fa-check-double ms-1" title="Read"></i>
+            {% elif message.sender == user %}
+                <i class="fas fa-check ms-1" title="Sent"></i>
+            {% endif %}
+        </small>
+    </div>
+    
+    {% if message.sender == user %}
+        <!-- Current user's avatar -->
+        <div class="flex-shrink-0 ms-2">
+            {% if message.sender.profile.avatar %}
+                <img src="{{ message.sender.profile.avatar.url }}" 
+                     alt="{{ message.sender.get_full_name }}"
+                     class="rounded-circle" 
+                     style="width: 36px; height: 36px; object-fit: cover; border: 2px solid var(--ui-border);">
+            {% else %}
+                <div class="rounded-circle d-flex align-items-center justify-content-center"
+                     style="width: 36px; height: 36px; font-size: 0.75rem; background: var(--primary-color); color: var(--text-light); border: 2px solid var(--ui-border);">
+                    <i class="fas fa-user"></i>
+                </div>
+            {% endif %}
+        </div>
+    {% endif %}
+</div>

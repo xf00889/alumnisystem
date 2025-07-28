@@ -3,14 +3,77 @@
 
 {% block title %}Manage Feedbacks{% endblock %}
 
-{% block breadcrumb %}
-<li class="breadcrumb-item active">Manage Feedbacks</li>
-{% endblock %}
 
-{% block page_title %}Manage Feedbacks{% endblock %}
 
+{% block page_header %}{% endblock %}
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
+   /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
     .card {
         border: none;
         border-radius: 0.5rem;
@@ -121,73 +184,83 @@
 {% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <!-- Filters Card -->
-    <div class="card shadow-sm mb-4">
-        <div class="card-body">
-            <form method="get" class="row g-3">
-                <div class="col-md-3">
-                    <label class="form-label">Status</label>
-                    <select name="status" class="form-select">
-                        <option value="">All Statuses</option>
-                        {% for status_code, status_label in status_choices %}
-                            <option value="{{ status_code }}" {% if current_filters.status == status_code %}selected{% endif %}>
-                                {{ status_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label">Category</label>
-                    <select name="category" class="form-select">
-                        <option value="">All Categories</option>
-                        {% for category_code, category_label in category_choices %}
-                            <option value="{{ category_code }}" {% if current_filters.category == category_code %}selected{% endif %}>
-                                {{ category_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label">Priority</label>
-                    <select name="priority" class="form-select">
-                        <option value="">All Priorities</option>
-                        {% for priority_code, priority_label in priority_choices %}
-                            <option value="{{ priority_code }}" {% if current_filters.priority == priority_code %}selected{% endif %}>
-                                {{ priority_label }}
-                            </option>
-                        {% endfor %}
-                    </select>
-                </div>
-                
-                <div class="col-md-3">
-                    <label class="form-label">Search</label>
-                    <div class="input-group">
-                        <input type="text" name="search" class="form-control" 
-                               value="{{ current_filters.search }}" placeholder="Search feedbacks...">
-                        <button type="submit" class="btn btn-primary">
-                            <i class="fas fa-search"></i>
-                        </button>
-                    </div>
-                </div>
-                
-                <div class="col-12 mt-3">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-filter me-2"></i>Apply Filters
-                    </button>
-                    <a href="{% url 'feedback:manage_feedbacks' %}" class="btn btn-outline-secondary ms-2">
-                        <i class="fas fa-times me-2"></i>Clear Filters
-                    </a>
-                </div>
-            </form>
+<div class="container-fluid py-4">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h1 class="mb-2"><i class="fas fa-comments me-3"></i>Manage Feedbacks</h1>
+                <p class="mb-0">View and manage user feedbacks.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <!-- Optional content or filters if needed -->
+            </div>
         </div>
+    </div>
+    <!-- Filters Card -->
+    <div class="dashboard-card">
+        <form method="get" class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Status</label>
+                <select name="status" class="form-select">
+                    <option value="">All Statuses</option>
+                    {% for status_code, status_label in status_choices %}
+                        <option value="{{ status_code }}" {% if current_filters.status == status_code %}selected{% endif %}>
+                            {{ status_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Category</label>
+                <select name="category" class="form-select">
+                    <option value="">All Categories</option>
+                    {% for category_code, category_label in category_choices %}
+                        <option value="{{ category_code }}" {% if current_filters.category == category_code %}selected{% endif %}>
+                            {{ category_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Priority</label>
+                <select name="priority" class="form-select">
+                    <option value="">All Priorities</option>
+                    {% for priority_code, priority_label in priority_choices %}
+                        <option value="{{ priority_code }}" {% if current_filters.priority == priority_code %}selected{% endif %}>
+                            {{ priority_label }}
+                        </option>
+                    {% endfor %}
+                </select>
+            </div>
+            
+            <div class="col-md-3">
+                <label class="form-label">Search</label>
+                <div class="input-group">
+                    <input type="text" name="search" class="form-control" 
+                               value="{{ current_filters.search }}" placeholder="Search feedbacks...">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="col-12 mt-3">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-filter me-2"></i>Apply Filters
+                </button>
+                <a href="{% url 'feedback:manage_feedbacks' %}" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-times me-2"></i>Clear Filters
+                </a>
+            </div>
+        </form>
     </div>
 
     <!-- Feedbacks List -->
     {% if feedbacks %}
-        <div class="card shadow-sm">
+        <div class="dashboard-card">
             <div class="table-responsive">
                 <table class="table table-hover mb-0">
                     <thead>
@@ -327,4 +400,4 @@
         });
     });
 </script>
-{% endblock %} 
+{% endblock %}
