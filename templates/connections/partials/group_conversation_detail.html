@@ -1,0 +1,1110 @@
+<!-- Group Conversation Detail Partial for HTMX -->
+<div class="chat-container h-100">
+    <!-- Chat Header -->
+    <div class="chat-header p-3">
+        <div class="d-flex align-items-center">
+            <div class="me-3" id="group-avatar-container-{{ conversation.id }}">
+                <!-- Group photo image (shown when photo exists) -->
+                <img id="group-photo-img-{{ conversation.id }}"
+                     src="{% if conversation.group_photo %}{{ conversation.group_photo.url }}{% endif %}"
+                     alt="{{ conversation.group_name|default:'Group Chat' }}"
+                     class="rounded-circle group-photo-img {% if not conversation.group_photo %}d-none{% endif %}"
+                     style="width: 50px; height: 50px; object-fit: cover; border: 2px solid var(--ui-border);"
+                     onerror="this.style.display='none'; this.classList.add('d-none'); document.getElementById('group-avatar-fallback-{{ conversation.id }}').style.display='flex'; document.getElementById('group-avatar-fallback-{{ conversation.id }}').classList.remove('d-none');">
+
+                <!-- Fallback avatar (shown when no photo or photo fails to load) -->
+                <div id="group-avatar-fallback-{{ conversation.id }}"
+                     class="rounded-circle align-items-center justify-content-center text-white fw-bold group-avatar chat-header-avatar {% if conversation.group_photo %}d-none{% else %}d-flex{% endif %}"
+                     data-group-name="{{ conversation.group_name|default:'Group Chat' }}"
+                     data-group-id="{{ conversation.id }}"
+                     style="width: 50px; height: 50px; border: 2px solid var(--ui-border); font-size: 18px;">
+                    <!-- Initials and gradient will be set by JavaScript -->
+                </div>
+            </div>
+            
+            <div class="flex-grow-1">
+                <div class="chat-title">{{ conversation.group_name }}</div>
+                <div class="chat-subtitle">
+                    {{ participants.count }} participant{{ participants.count|pluralize }}
+                    {% if conversation.created_by %}
+                        • Created by {{ conversation.created_by.get_full_name }}
+                    {% endif %}
+                </div>
+            </div>
+            
+            <!-- Group Actions -->
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                    <i class="fas fa-ellipsis-v"></i>
+                </button>
+                <ul class="dropdown-menu">
+                    <li><a class="dropdown-item" href="#" onclick="showGroupPhotoUpload({{ conversation.id }})">
+                        <i class="fas fa-camera me-2"></i>Set Group Photo
+                    </a></li>
+                    {% if conversation.group_photo %}
+                    <li><a class="dropdown-item" href="#" onclick="removeGroupPhoto({{ conversation.id }})">
+                        <i class="fas fa-trash me-2"></i>Remove Group Photo
+                    </a></li>
+                    {% endif %}
+                    <li><hr class="dropdown-divider"></li>
+                    {% if conversation.created_by == request.user %}
+                    <li><a class="dropdown-item" href="#" onclick="showAddMembers({{ conversation.id }})">
+                        <i class="fas fa-user-plus me-2"></i>Add Members
+                    </a></li>
+                    {% endif %}
+                    <li><a class="dropdown-item" href="#" onclick="showParticipants({{ conversation.id }})">
+                        <i class="fas fa-users me-2"></i>View Participants
+                    </a></li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <!-- Messages Container -->
+    <div class="messages-container flex-grow-1" id="messagesContainer" style="max-height: 400px; overflow-y: auto;">
+        {% for message in messages %}
+            <div class="message {% if message.sender == request.user %}own{% endif %}" data-message-id="{{ message.id }}">
+                <!-- Avatar for other users (left side) -->
+                {% if message.sender != request.user %}
+                    <div class="me-3">
+                        {% if message.sender.profile.avatar %}
+                            <img src="{{ message.sender.profile.avatar.url }}"
+                                 alt="{{ message.sender.get_full_name }}"
+                                 class="message-avatar"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="message-avatar d-none align-items-center justify-content-center text-white fw-bold user-avatar"
+                                 data-user-id="{{ message.sender.id }}"
+                                 data-first-name="{{ message.sender.first_name }}"
+                                 data-last-name="{{ message.sender.last_name }}"
+                                 data-username="{{ message.sender.username }}"
+                                 style="font-size: 16px;">
+                                <!-- Initials and gradient will be set by JavaScript -->
+                            </div>
+                        {% else %}
+                            <div class="message-avatar d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
+                                 data-user-id="{{ message.sender.id }}"
+                                 data-first-name="{{ message.sender.first_name }}"
+                                 data-last-name="{{ message.sender.last_name }}"
+                                 data-username="{{ message.sender.username }}"
+                                 style="font-size: 16px;">
+                                <!-- Initials and gradient will be set by JavaScript -->
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+                
+                <div class="message-content">
+                    <!-- Sender name for group messages (except own messages) -->
+                    {% if message.sender != request.user %}
+                        <div class="message-sender-name">{{ message.sender.get_full_name }}</div>
+                    {% endif %}
+                    
+                    <div class="message-text">{{ message.content }}</div>
+                    
+                    {% if message.attachment %}
+                        <div class="message-attachment mt-2">
+                            {% if message.attachment.name|slice:"-4:" in ".jpg,.png,.gif,.jpeg" %}
+                                <img src="{{ message.attachment.url }}" alt="Attachment" class="attachment-preview">
+                            {% else %}
+                                <a href="{{ message.attachment.url }}" class="file-attachment" target="_blank">
+                                    <i class="fas fa-file me-2"></i>
+                                    {{ message.attachment.name }}
+                                </a>
+                            {% endif %}
+                        </div>
+                    {% endif %}
+                    
+                    <div class="message-time">
+                        {{ message.created_at|date:"M d, Y H:i" }}
+                    </div>
+                </div>
+                
+                <!-- Avatar for own messages (right side) -->
+                {% if message.sender == request.user %}
+                    <div class="ms-3">
+                        {% if message.sender.profile.avatar %}
+                            <img src="{{ message.sender.profile.avatar.url }}"
+                                 alt="{{ message.sender.get_full_name }}"
+                                 class="message-avatar"
+                                 onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                            <div class="message-avatar d-none align-items-center justify-content-center text-white fw-bold user-avatar"
+                                 data-user-id="{{ message.sender.id }}"
+                                 data-first-name="{{ message.sender.first_name }}"
+                                 data-last-name="{{ message.sender.last_name }}"
+                                 data-username="{{ message.sender.username }}"
+                                 style="font-size: 16px;">
+                                <!-- Initials and gradient will be set by JavaScript -->
+                            </div>
+                        {% else %}
+                            <div class="message-avatar d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
+                                 data-user-id="{{ message.sender.id }}"
+                                 data-first-name="{{ message.sender.first_name }}"
+                                 data-last-name="{{ message.sender.last_name }}"
+                                 data-username="{{ message.sender.username }}"
+                                 style="font-size: 16px;">
+                                <!-- Initials and gradient will be set by JavaScript -->
+                            </div>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+        {% empty %}
+            <div class="text-center text-muted p-4">
+                <i class="fas fa-comments fa-2x mb-2"></i>
+                <p>No messages yet. Start the conversation!</p>
+            </div>
+        {% endfor %}
+    </div>
+
+    <!-- Message Form -->
+    <div class="message-form">
+        <form id="groupMessageForm" onsubmit="sendGroupMessage(event, {{ conversation.id }})">
+            {% csrf_token %}
+            <div class="row g-2">
+                <div class="col">
+                    <div class="input-group">
+                        <input type="text" 
+                               class="form-control" 
+                               name="content" 
+                               placeholder="Type your message..." 
+                               required 
+                               autocomplete="off">
+                        <input type="file" 
+                               class="d-none" 
+                               id="groupAttachmentInput" 
+                               name="attachment" 
+                               accept="image/*,.pdf,.doc,.docx">
+                        <button type="button" 
+                                class="btn btn-outline-secondary" 
+                                onclick="document.getElementById('groupAttachmentInput').click()">
+                            <i class="fas fa-paperclip"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Group Photo Upload Modal is in the main template -->
+
+<!-- Participants Modal for Group Conversation Detail -->
+<div class="modal fade" id="participantsModal" tabindex="-1" aria-labelledby="participantsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="participantsModalLabel">
+                    <i class="fas fa-users me-2"></i>Group Participants
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="participantsContent">
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-2 text-muted">Loading participants...</p>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Group-specific styles */
+.message-sender-name {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    margin-bottom: 0.25rem;
+}
+
+.message.own .message-sender-name {
+    display: none; /* Don't show sender name for own messages */
+}
+
+/* Reuse existing message styles from conversation_detail.html */
+.chat-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    background: var(--ui-background);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow-lg);
+}
+
+.chat-header {
+    background: var(--ui-surface);
+    border-bottom: 1px solid var(--ui-border);
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.chat-title {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.chat-subtitle {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin: 0;
+}
+
+.messages-container {
+    background: var(--ui-background);
+    padding: 1.5rem;
+}
+
+.message {
+    margin-bottom: 1.5rem;
+    display: flex;
+    align-items: flex-start;
+    width: 100%;
+    position: relative;
+}
+
+.message.own {
+    flex-direction: row-reverse;
+    justify-content: flex-start;
+}
+
+.message:not(.own) {
+    justify-content: flex-start;
+    flex-direction: row;
+}
+
+.message-content {
+    max-width: 70%;
+    padding: 1rem 1.25rem;
+    border-radius: var(--radius-lg);
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    font-weight: 400;
+    line-height: 1.5;
+    flex-grow: 0;
+    flex-shrink: 1;
+}
+
+.message.own .message-content {
+    background: var(--primary-color);
+    color: var(--text-light);
+    border-bottom-right-radius: var(--radius-sm);
+}
+
+.message:not(.own) .message-content {
+    background: var(--ui-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--ui-border);
+    border-bottom-left-radius: var(--radius-sm);
+}
+
+.message-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--ui-border);
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+
+/* Avatar container positioning */
+.message .me-3,
+.message .ms-3 {
+    flex-shrink: 0;
+    flex-grow: 0;
+    display: flex;
+    align-items: flex-start;
+}
+
+/* Left-side messages (other users) */
+.message:not(.own) .me-3 {
+    order: 1;
+    margin-right: 0.75rem;
+}
+
+.message:not(.own) .message-content {
+    order: 2;
+}
+
+/* Right-side messages (current user) */
+.message.own .ms-3 {
+    order: 1;
+    margin-left: 0.75rem;
+}
+
+.message.own .message-content {
+    order: 2;
+    text-align: right;
+}
+
+.message-time {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    margin-top: 0.5rem;
+    font-weight: 500;
+}
+
+.message.own .message-time {
+    text-align: right;
+}
+
+/* Additional styling for own messages */
+.message.own .message-text {
+    text-align: right;
+}
+
+.message.own .message-sender-name {
+    text-align: right;
+}
+
+/* Ensure proper spacing for right-aligned messages */
+.message.own {
+    margin-left: auto;
+    margin-right: 0;
+}
+
+.message:not(.own) {
+    margin-left: 0;
+    margin-right: auto;
+}
+
+/* Participants Modal Styles */
+.participant-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 0.5rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    transition: all 0.2s ease;
+}
+
+.participant-item:hover {
+    background: var(--ui-hover);
+    border-color: var(--primary-color);
+}
+
+.participant-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--ui-border);
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.participant-info {
+    flex-grow: 1;
+}
+
+.participant-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.participant-role {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.participant-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    font-weight: 500;
+}
+
+.participant-status.creator {
+    background: #f0fff4;
+    color: #48bb78;
+}
+
+.participant-status.member {
+    background: #ebf8ff;
+    color: #4299e1;
+}
+
+.participant-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.remove-participant-btn {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    border-radius: var(--radius-sm);
+    transition: all 0.2s ease;
+    min-width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.remove-participant-btn:hover {
+    background-color: #e53e3e;
+    border-color: #e53e3e;
+    color: white;
+    transform: scale(1.05);
+}
+
+.remove-participant-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+}
+
+/* Add Members Modal Styles */
+.search-results-container {
+    max-height: 300px;
+    overflow-y: auto;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+}
+
+.search-result-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-radius: var(--radius-md);
+    margin-bottom: 0.5rem;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+.search-result-item:hover {
+    background: var(--ui-hover);
+    border-color: var(--primary-color);
+}
+
+.search-result-item.selected {
+    background: var(--primary-bg);
+    border-color: var(--primary-color);
+}
+
+.search-result-checkbox {
+    margin-right: 0.75rem;
+}
+
+.search-result-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid var(--ui-border);
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.search-result-info {
+    flex-grow: 1;
+}
+
+.search-result-name {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.25rem;
+}
+
+.search-result-details {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.selected-members-container {
+    max-height: 150px;
+    overflow-y: auto;
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-md);
+    padding: 0.5rem;
+    background: var(--ui-surface);
+}
+
+.selected-member-tag {
+    display: inline-flex;
+    align-items: center;
+    background: var(--primary-color);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: var(--radius-sm);
+    margin: 0.25rem;
+    font-size: 0.875rem;
+}
+
+.selected-member-remove {
+    margin-left: 0.5rem;
+    cursor: pointer;
+    opacity: 0.8;
+}
+
+.selected-member-remove:hover {
+    opacity: 1;
+}
+
+.message-form {
+    border-top: 1px solid var(--ui-border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    padding: 1.25rem;
+    background: var(--ui-surface);
+}
+
+.attachment-preview {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: var(--radius-md);
+    border: 1px solid var(--ui-border);
+}
+
+/* Prevent avatar positioning issues */
+.messages-container .user-avatar {
+    position: static !important;
+    float: none !important;
+    margin: 0 !important;
+}
+
+/* Ensure proper message layout */
+.messages-container {
+    position: relative;
+    overflow-x: hidden;
+}
+
+.message {
+    clear: both;
+    overflow: hidden;
+}
+
+.file-attachment {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    background: var(--ui-hover);
+    border-radius: var(--radius-md);
+    text-decoration: none;
+    color: var(--text-primary);
+    border: 1px solid var(--ui-border);
+    transition: all 0.2s ease;
+}
+
+.file-attachment:hover {
+    background: var(--ui-border);
+    color: var(--primary-color);
+}
+</style>
+
+<script>
+// Group message sending function
+function sendGroupMessage(event, conversationId) {
+    event.preventDefault();
+    
+    const form = event.target;
+    const formData = new FormData(form);
+    const messageInput = form.querySelector('input[name="content"]');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
+    // Disable form while sending
+    messageInput.disabled = true;
+    submitBtn.disabled = true;
+    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    
+    fetch(`/connections/group/${conversationId}/send/`, {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Clear the form
+            form.reset();
+            
+            // Add the new message to the container
+            const messagesContainer = document.getElementById('messagesContainer');
+            if (messagesContainer && data.message_html) {
+                messagesContainer.insertAdjacentHTML('beforeend', data.message_html);
+                messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
+            
+            // Update conversations list
+            if (window.refreshConversationsList) {
+                window.refreshConversationsList();
+            }
+        } else {
+            alert(data.error || 'Failed to send message');
+        }
+    })
+    .catch(error => {
+        console.error('Error sending group message:', error);
+        alert('Failed to send message. Please try again.');
+    })
+    .finally(() => {
+        // Re-enable form
+        messageInput.disabled = false;
+        submitBtn.disabled = false;
+        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i>';
+        messageInput.focus();
+    });
+}
+
+// Group photo functions are defined globally in the main template
+
+// Add Members functionality - Use global namespace
+// Ensure the global AddMembersManager exists
+if (!window.AddMembersManager) {
+    console.log('Creating AddMembersManager from partial template');
+    window.AddMembersManager = {
+        selectedMembers: new Set(),
+        currentConversationId: null,
+
+        init: function() {
+            console.log('AddMembersManager initialized from partial');
+        },
+
+        showModal: function(conversationId) {
+            console.log('=== SHOW ADD MEMBERS CALLED (from partial) ===');
+            console.log('Conversation ID:', conversationId);
+
+            this.currentConversationId = conversationId;
+            this.selectedMembers.clear();
+
+            // Reset modal state
+            const memberSearchInput = document.getElementById('memberSearchInput');
+            const addSelectedMembersBtn = document.getElementById('addSelectedMembersBtn');
+
+            if (memberSearchInput) memberSearchInput.value = '';
+
+            const sections = ['searchResultsSection', 'selectedMembersSection', 'searchLoadingState', 'noResultsState'];
+            sections.forEach(sectionId => {
+                const section = document.getElementById(sectionId);
+                if (section) section.style.display = 'none';
+            });
+
+            if (addSelectedMembersBtn) addSelectedMembersBtn.disabled = true;
+
+            // Show the modal
+            const modalElement = document.getElementById('addMembersModal');
+            if (modalElement) {
+                const modal = new bootstrap.Modal(modalElement);
+                modal.show();
+
+                // Set up event listeners
+                this.setupEventListeners();
+            } else {
+                console.error('Add Members modal not found in partial template');
+            }
+        }
+    };
+}
+
+function showAddMembers(conversationId) {
+    window.AddMembersManager.showModal(conversationId);
+}
+
+// Ensure setupEventListeners exists in AddMembersManager
+if (!window.AddMembersManager.setupEventListeners) {
+    window.AddMembersManager.setupEventListeners = function() {
+        console.log('Setting up Add Members event listeners (from partial)');
+
+        const searchInput = document.getElementById('memberSearchInput');
+        const searchBtn = document.getElementById('searchMembersBtn');
+        const selectAllBtn = document.getElementById('selectAllBtn');
+        const addSelectedBtn = document.getElementById('addSelectedMembersBtn');
+
+        console.log('Elements found (partial):', {
+            searchInput: !!searchInput,
+            searchBtn: !!searchBtn,
+            selectAllBtn: !!selectAllBtn,
+            addSelectedBtn: !!addSelectedBtn
+        });
+
+        // Remove existing listeners to prevent duplicates
+        if (searchInput) {
+            searchInput.removeEventListener('keypress', this.handleSearchKeypress);
+            searchInput.addEventListener('keypress', this.handleSearchKeypress.bind(this));
+        }
+
+        if (searchBtn) {
+            searchBtn.removeEventListener('click', this.performMemberSearch);
+            searchBtn.addEventListener('click', this.performMemberSearch.bind(this));
+        }
+
+        if (selectAllBtn) {
+            selectAllBtn.removeEventListener('click', this.selectAllMembers);
+            selectAllBtn.addEventListener('click', this.selectAllMembers.bind(this));
+        }
+
+        if (addSelectedBtn) {
+            addSelectedBtn.removeEventListener('click', this.addSelectedMembers);
+            addSelectedBtn.addEventListener('click', this.addSelectedMembers.bind(this));
+            console.log('Add Selected Members button event listener attached (partial)');
+        } else {
+            console.error('Add Selected Members button not found in partial!');
+        }
+    };
+}
+
+// Ensure the required functions exist in AddMembersManager
+if (!window.AddMembersManager.handleSearchKeypress) {
+    window.AddMembersManager.handleSearchKeypress = function(event) {
+        if (event.key === 'Enter') {
+            event.preventDefault();
+            this.performMemberSearch();
+        }
+    };
+}
+
+if (!window.AddMembersManager.performMemberSearch) {
+    window.AddMembersManager.performMemberSearch = function() {
+        const query = document.getElementById('memberSearchInput').value.trim();
+
+        if (query.length < 2) {
+            alert('Please enter at least 2 characters to search');
+            return;
+        }
+
+        console.log('Searching for members (partial):', query);
+
+        // Show loading state
+        const loadingState = document.getElementById('searchLoadingState');
+        const resultsSection = document.getElementById('searchResultsSection');
+        const noResultsState = document.getElementById('noResultsState');
+
+        if (loadingState) loadingState.style.display = 'block';
+        if (resultsSection) resultsSection.style.display = 'none';
+        if (noResultsState) noResultsState.style.display = 'none';
+
+        // Perform search
+        fetch(`/connections/group/${this.currentConversationId}/search-members/?q=${encodeURIComponent(query)}`)
+            .then(response => response.json())
+            .then(data => {
+                console.log('Search results (partial):', data);
+
+                if (loadingState) loadingState.style.display = 'none';
+
+                if (data.success) {
+                    if (data.users && data.users.length > 0) {
+                        this.renderSearchResults(data.users);
+                    } else {
+                        if (noResultsState) noResultsState.style.display = 'block';
+                    }
+                } else {
+                    alert('Error: ' + (data.error || 'Failed to search for members'));
+                }
+            })
+            .catch(error => {
+                console.error('Error searching for members (partial):', error);
+                if (loadingState) loadingState.style.display = 'none';
+                alert('Failed to search for members. Please try again.');
+            });
+    };
+}
+
+// Remove duplicate function - use global AddMembersManager instead
+
+// All functions now use the global AddMembersManager namespace
+// No duplicate functions needed in partial template
+
+// Participants functionality for group conversation detail
+function showParticipants(conversationId) {
+    console.log('=== SHOW PARTICIPANTS CALLED (from partial) ===');
+    console.log('Conversation ID:', conversationId);
+
+    // Check if Bootstrap is available
+    if (typeof bootstrap === 'undefined') {
+        console.error('Bootstrap is not loaded!');
+        alert('Bootstrap is not loaded. Please refresh the page and try again.');
+        return;
+    }
+
+    // Check if modal element exists (try both local and global scope)
+    let modalElement = document.getElementById('participantsModal');
+    console.log('Modal element found:', !!modalElement);
+
+    if (!modalElement) {
+        console.error('Participants modal element not found in DOM!');
+        alert('Modal not found. Please refresh the page and try again.');
+        return;
+    }
+
+    try {
+        // Initialize and show the modal
+        console.log('Initializing Bootstrap modal...');
+        const modal = new bootstrap.Modal(modalElement);
+
+        console.log('Modal initialized successfully, showing modal...');
+        modal.show();
+
+        // Load participants data
+        console.log('Fetching participants data...');
+        fetch(`/connections/group/${conversationId}/participants/`)
+            .then(response => {
+                console.log('Response received:', response.status);
+                return response.json();
+            })
+            .then(data => {
+                console.log('Data received:', data);
+                if (data.success) {
+                    renderParticipants(data.participants, data.current_user_is_creator, data.current_user_id, conversationId);
+                } else {
+                    showParticipantsError(data.error || 'Failed to load participants');
+                }
+            })
+            .catch(error => {
+                console.error('Error loading participants:', error);
+                showParticipantsError('Failed to load participants. Please try again.');
+            });
+
+    } catch (error) {
+        console.error('Error initializing modal:', error);
+        alert('Error opening participants modal: ' + error.message);
+    }
+}
+
+function renderParticipants(participants, currentUserIsCreator, currentUserId, conversationId) {
+    const container = document.getElementById('participantsContent');
+
+    if (!participants || participants.length === 0) {
+        container.innerHTML = `
+            <div class="text-center text-muted">
+                <i class="fas fa-users fa-2x mb-3"></i>
+                <p>No participants found</p>
+            </div>
+        `;
+        return;
+    }
+
+    const participantsHtml = participants.map(participant => `
+        <div class="participant-item">
+            <div class="participant-avatar-container">
+                ${participant.avatar ?
+                    `<img src="${participant.avatar}" alt="${participant.name}" class="participant-avatar"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                     <div class="participant-avatar d-none align-items-center justify-content-center text-white fw-bold user-avatar"
+                          data-user-id="${participant.id}"
+                          data-first-name="${participant.first_name}"
+                          data-last-name="${participant.last_name}"
+                          data-username="${participant.username}"
+                          style="font-size: 14px; width: 40px; height: 40px;">
+                     </div>` :
+                    `<div class="participant-avatar d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
+                          data-user-id="${participant.id}"
+                          data-first-name="${participant.first_name}"
+                          data-last-name="${participant.last_name}"
+                          data-username="${participant.username}"
+                          style="font-size: 14px; width: 40px; height: 40px;">
+                     </div>`
+                }
+            </div>
+            <div class="participant-info">
+                <div class="participant-name">${participant.name}</div>
+                <div class="participant-role">${participant.position || 'Alumni'}</div>
+            </div>
+            <div class="participant-actions">
+                <div class="participant-status ${participant.is_creator ? 'creator' : 'member'}">
+                    ${participant.is_creator ? 'Creator' : 'Member'}
+                </div>
+                ${currentUserIsCreator && !participant.is_creator && participant.id !== currentUserId ?
+                    `<button class="btn btn-sm btn-outline-danger ms-2 remove-participant-btn"
+                             onclick="removeParticipant(${conversationId}, ${participant.id}, '${participant.name}')"
+                             title="Remove ${participant.name} from group">
+                        <i class="fas fa-user-minus"></i>
+                     </button>` : ''
+                }
+            </div>
+        </div>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="participants-list">
+            <div class="mb-3">
+                <small class="text-muted">${participants.length} participant${participants.length !== 1 ? 's' : ''}</small>
+            </div>
+            ${participantsHtml}
+        </div>
+    `;
+
+    // Initialize avatars for participants without profile photos
+    setTimeout(() => {
+        const avatars = container.querySelectorAll('.user-avatar');
+        avatars.forEach(avatar => {
+            if (window.initializeUserAvatar) {
+                window.initializeUserAvatar(avatar);
+            }
+        });
+    }, 100);
+}
+
+function showParticipantsError(message) {
+    const container = document.getElementById('participantsContent');
+    container.innerHTML = `
+        <div class="text-center text-danger">
+            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+            <p>${message}</p>
+        </div>
+    `;
+}
+
+// Remove participant functionality
+function removeParticipant(conversationId, participantId, participantName) {
+    console.log('=== REMOVE PARTICIPANT CALLED (from partial) ===');
+    console.log('Conversation ID:', conversationId);
+    console.log('Participant ID:', participantId);
+    console.log('Participant Name:', participantName);
+
+    // Show confirmation dialog
+    if (!confirm(`Are you sure you want to remove ${participantName} from this group?`)) {
+        console.log('Removal cancelled by user');
+        return;
+    }
+
+    // Show loading state
+    const removeBtn = document.querySelector(`button[onclick*="removeParticipant(${conversationId}, ${participantId}"]`);
+    if (removeBtn) {
+        removeBtn.disabled = true;
+        removeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+    }
+
+    // Get CSRF token
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // Send removal request
+    fetch(`/connections/group/${conversationId}/remove-participant/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': csrfToken,
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: `participant_id=${participantId}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        console.log('Remove participant response:', data);
+
+        if (data.success) {
+            // Show success message
+            alert(data.message);
+
+            // Refresh the participants list
+            showParticipants(conversationId);
+
+            // Optionally refresh the conversation to update participant count
+            if (window.loadGroupConversation) {
+                window.loadGroupConversation(conversationId);
+            }
+        } else {
+            alert('Error: ' + (data.error || 'Failed to remove participant'));
+
+            // Restore button state
+            if (removeBtn) {
+                removeBtn.disabled = false;
+                removeBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error removing participant:', error);
+        alert('Failed to remove participant. Please try again.');
+
+        // Restore button state
+        if (removeBtn) {
+            removeBtn.disabled = false;
+            removeBtn.innerHTML = '<i class="fas fa-user-minus"></i>';
+        }
+    });
+}
+
+// Group photo modal functionality is now in the main template
+</script>
+
+<!-- Add Members Modal -->
+<div class="modal fade" id="addMembersModal" tabindex="-1" aria-labelledby="addMembersModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addMembersModalLabel">
+                    <i class="fas fa-user-plus me-2"></i>Add Members to Group
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Search Section -->
+                <div class="mb-4">
+                    <div class="input-group">
+                        <input type="text" id="memberSearchInput" class="form-control"
+                               placeholder="Search for alumni by name or username..."
+                               autocomplete="off">
+                        <button class="btn btn-primary" type="button" id="searchMembersBtn">
+                            <i class="fas fa-search"></i> Search
+                        </button>
+                    </div>
+                    <small class="text-muted">Search for alumni to add to this group conversation</small>
+                </div>
+
+                <!-- Search Results Section -->
+                <div id="searchResultsSection" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="mb-0">Search Results</h6>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" id="selectAllBtn">
+                            Select All
+                        </button>
+                    </div>
+                    <div id="searchResults" class="search-results-container">
+                        <!-- Search results will be populated here -->
+                    </div>
+                </div>
+
+                <!-- Selected Members Section -->
+                <div id="selectedMembersSection" style="display: none;">
+                    <h6 class="mb-3">Selected Members (<span id="selectedCount">0</span>)</h6>
+                    <div id="selectedMembers" class="selected-members-container">
+                        <!-- Selected members will be shown here -->
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="searchLoadingState" class="text-center" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Searching...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Searching for members...</p>
+                </div>
+
+                <!-- No Results State -->
+                <div id="noResultsState" class="text-center text-muted" style="display: none;">
+                    <i class="fas fa-search fa-2x mb-3"></i>
+                    <p>No alumni found matching your search criteria</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="addSelectedMembersBtn" disabled>
+                    <i class="fas fa-user-plus me-1"></i>Add Selected Members
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

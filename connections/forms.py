@@ -1,5 +1,5 @@
 from django import forms
-from .models import DirectMessage
+from .models import DirectMessage, DirectConversation
 
 
 class DirectMessageForm(forms.ModelForm):
@@ -54,3 +54,45 @@ class DirectMessageForm(forms.ModelForm):
                 raise forms.ValidationError("File type not allowed. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG, GIF.")
         
         return attachment
+
+
+class GroupPhotoUploadForm(forms.ModelForm):
+    """Form for uploading group photos for group conversations"""
+
+    class Meta:
+        model = DirectConversation
+        fields = ['group_photo']
+        widgets = {
+            'group_photo': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+                'id': 'groupPhotoInput'
+            })
+        }
+        labels = {
+            'group_photo': 'Group Photo'
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['group_photo'].required = True
+        self.fields['group_photo'].help_text = "Upload a group photo (JPG, PNG, GIF). Max size: 5MB"
+
+    def clean_group_photo(self):
+        group_photo = self.cleaned_data.get('group_photo')
+        if group_photo:
+            # Check file size (max 5MB)
+            if group_photo.size > 5 * 1024 * 1024:
+                raise forms.ValidationError("File size cannot exceed 5MB.")
+
+            # Check if it's an image
+            if not group_photo.content_type.startswith('image/'):
+                raise forms.ValidationError("File must be an image (JPG, PNG, GIF).")
+
+            # Check file extension
+            allowed_extensions = ['.jpg', '.jpeg', '.png', '.gif']
+            file_extension = group_photo.name.lower().split('.')[-1]
+            if f'.{file_extension}' not in allowed_extensions:
+                raise forms.ValidationError("File type not allowed. Allowed types: JPG, JPEG, PNG, GIF.")
+
+        return group_photo

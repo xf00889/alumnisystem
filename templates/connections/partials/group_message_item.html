@@ -1,4 +1,4 @@
-<!-- Individual Message Item for HTMX -->
+<!-- Individual Group Message Item for HTMX -->
 <div class="message {% if message.sender == request.user %}own{% endif %}" data-message-id="{{ message.id }}">
     <!-- Avatar for other users (left side) -->
     {% if message.sender != request.user %}
@@ -30,6 +30,11 @@
     {% endif %}
     
     <div class="message-content">
+        <!-- Sender name for group messages (except own messages) -->
+        {% if message.sender != request.user %}
+            <div class="message-sender-name">{{ message.sender.get_full_name }}</div>
+        {% endif %}
+        
         <div class="message-text">{{ message.content }}</div>
         
         {% if message.attachment %}

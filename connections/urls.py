@@ -19,6 +19,19 @@ urlpatterns = [
     path('messages/<int:user_id>/', views.direct_messages, name='direct_messages'),
     path('send-message/<int:user_id>/', views.send_message, name='send_message'),
 
-    # Test page
+    # Group chat URLs
+    path('api/create-group/', views.create_group_chat, name='create_group_chat'),
+    path('group/<int:conversation_id>/', views.group_chat_detail, name='group_chat_detail'),
+    path('group/<int:conversation_id>/send/', views.send_group_message, name='send_group_message'),
+    path('group/<int:conversation_id>/upload-photo/', views.upload_group_photo, name='upload_group_photo'),
+    path('group/<int:conversation_id>/remove-photo/', views.remove_group_photo, name='remove_group_photo'),
+    path('group/<int:conversation_id>/participants/', views.group_participants, name='group_participants'),
+    path('group/<int:conversation_id>/remove-participant/', views.remove_group_participant, name='remove_group_participant'),
+    path('group/<int:conversation_id>/search-members/', views.search_group_members, name='search_group_members'),
+    path('group/<int:conversation_id>/add-members/', views.add_group_members, name='add_group_members'),
+
+    # Test pages
     path('test-search/', views.test_search, name='test_search'),
+    path('test-search-api/', views.test_search_api, name='test_search_api'),
+    path('test-inline/', views.test_inline_interface, name='test_inline_interface'),
 ]
