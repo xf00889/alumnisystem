@@ -109,7 +109,8 @@ def home(request):
 
     # Check if user has completed registration
     try:
-        profile = request.user.profile
+        from accounts.models import Profile
+        profile, created = Profile.objects.get_or_create(user=request.user)
         if not profile.has_completed_registration:
             return redirect('accounts:post_registration')
     except:
