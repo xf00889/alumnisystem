@@ -38,7 +38,7 @@ def home(request):
         
         # Check if user has completed registration
         if not profile.has_completed_registration:
-            return redirect('accounts:complete_registration')
+            return redirect('accounts:post_registration')
         
         # Check if user is superuser
         if request.user.is_superuser:
