@@ -31,6 +31,19 @@ def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
 def home(request):
+    if request.user.is_authenticated:
+        # Ensure user has a profile
+        from accounts.models import Profile
+        profile, created = Profile.objects.get_or_create(user=request.user)
+        
+        # Check if user has completed registration
+        if not profile.has_completed_registration:
+            return redirect('accounts:complete_registration')
+        
+        # Check if user is superuser
+        if request.user.is_superuser:
+            return redirect('admin:index')
+    
     if not request.user.is_authenticated:
         # Get the latest announcements
         try:
