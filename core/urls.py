@@ -1,6 +1,7 @@
 from django.urls import path
 from . import views
 from . import admin_views
+from .views.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 
 app_name = 'core'
@@ -46,4 +47,7 @@ urlpatterns = [
     path('api/notifications/<int:notification_id>/read/', views.mark_notification_read, name='mark_notification_read'),
     path('api/notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('api/notifications/unread-count/', views.get_unread_count, name='get_unread_count'),
+    
+    # Health check endpoint
+    path('health/', health_check_view, name='health_check'),
 ]

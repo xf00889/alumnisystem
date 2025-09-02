@@ -25,7 +25,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-5$o7#0#k6l3z$u9s&2xd#n@f&=x#8q$j#z7$x#0#k6l3z$u9s')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=True, cast=bool)
+DEBUG = config('DEBUG', default=False, cast=bool)
 
 # Get the base ALLOWED_HOSTS from config
 ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.134.71,10.0.1.18', cast=Csv())
@@ -377,8 +377,6 @@ REST_FRAMEWORK = {
     'PAGE_SIZE': 20,
 }
 
-
-
 # LinkedIn OAuth2 Settings
 LINKEDIN_OAUTH2_SETTINGS = {
     'AUTHORIZATION_URL': 'https://www.linkedin.com/oauth/v2/authorization',
@@ -460,27 +458,16 @@ SESSION_COOKIE_DOMAIN = None
 SESSION_COOKIE_PATH = '/'
 
 # Channels Configuration
-ASGI_APPLICATION = 'norsu_alumni.asgi.application'
-# Redis/Channels configuration
-REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
+# Temporarily disable ASGI and Redis for deployment
+# ASGI_APPLICATION = 'norsu_alumni.asgi.application'
 
-CHANNEL_LAYERS = {
-    'default': {
-        'BACKEND': 'channels_redis.core.RedisChannelLayer',
-        'CONFIG': {
-            "hosts": [REDIS_URL],
-        },
-    },
-}
+# REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
 
-# Rest Framework Settings
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-}
+# CHANNEL_LAYERS = {
+#     'default': {
+#         'BACKEND': 'channels_redis.core.RedisChannelLayer',
+#         'CONFIG': {
+#             "hosts": [REDIS_URL],
+#         },
+#     },
+# }
