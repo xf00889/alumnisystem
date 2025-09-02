@@ -1,0 +1,733 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Bulk Export - Admin Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Layout */
+    .dashboard-container {
+        padding: 0 0 2rem 0;
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 60px);
+        overflow-x: hidden;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    /* Ensure container-fluid doesn't cause overflow */
+    .dashboard-container .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .dashboard-header-content {
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    /* Export Controls */
+    .export-controls {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 1.5rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .export-controls:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .export-controls h3 {
+        margin: 0 0 1.5rem 0;
+        color: var(--primary-color);
+        font-size: 1.3rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .format-selection {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+        flex-wrap: wrap;
+    }
+
+    .format-option {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .format-option input[type="radio"] {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary-color);
+    }
+
+    .format-option label {
+        font-weight: 500;
+        color: #2d3748;
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .export-actions {
+        display: flex;
+        gap: 1rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(43, 60, 107, 0.4);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: #6c757d;
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #5a6268;
+        transform: translateY(-1px);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none !important;
+    }
+
+    .selection-summary {
+        background: #e8f0ff;
+        border: 1px solid var(--primary-color);
+        border-radius: 8px;
+        padding: 1rem;
+        margin-top: 1rem;
+    }
+
+    .selection-summary h4 {
+        margin: 0 0 0.75rem 0;
+        color: var(--primary-color);
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .selected-models {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+
+    .selected-model-tag {
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    /* Export Grid */
+    .export-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .export-card {
+        background: white;
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 2px solid transparent;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .export-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary-color);
+    }
+
+    .export-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .export-card:hover::before {
+        opacity: 1;
+    }
+
+    .export-card.selected {
+        border-color: var(--primary-color);
+        background: linear-gradient(135deg, #f8f9ff 0%, #e8f0ff 100%);
+    }
+
+    .export-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+    }
+
+    .export-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.2rem;
+        color: white;
+        flex-shrink: 0;
+    }
+
+    .export-card-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .export-card-info h3 {
+        margin: 0;
+        font-size: 1.1rem;
+        color: #2d3748;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.3;
+    }
+
+    .export-card-info p {
+        margin: 0.25rem 0 0 0;
+        color: #718096;
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+
+    .export-card-count {
+        background: var(--primary-color);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: 15px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        flex-shrink: 0;
+    }
+
+    /* Enhanced Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0 0 0.75rem 0;
+            overflow-x: hidden;
+        }
+
+        .dashboard-header {
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            flex-direction: column;
+            text-align: center;
+            gap: 1.5rem;
+            border-radius: 0;
+        }
+
+        .dashboard-header-content {
+            text-align: center;
+            width: 100%;
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.875rem;
+        }
+
+        .export-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .format-selection {
+            flex-direction: column;
+        }
+
+        .export-actions {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .export-controls {
+            padding: 1rem;
+        }
+
+        .export-card {
+            padding: 1rem;
+        }
+    }
+
+    /* Medium screen adjustments */
+    @media (max-width: 992px) and (min-width: 769px) {
+        .dashboard-header {
+            padding: 1.75rem;
+            flex-direction: row;
+            text-align: left;
+        }
+
+        .dashboard-header-content {
+            text-align: left;
+        }
+
+        .dashboard-title {
+            font-size: 1.75rem;
+        }
+    }
+
+    /* Extra small screen adjustments */
+    @media (max-width: 480px) {
+        .dashboard-container .container-fluid {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        .export-card-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+
+        .export-card-count {
+            align-self: center;
+        }
+    }
+
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+        .export-card,
+        .export-controls {
+            transition: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="container-fluid">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-header-content">
+                <h1 class="dashboard-title">Bulk Export</h1>
+                <p class="dashboard-subtitle">Select multiple data types and export them all at once in your preferred format</p>
+            </div>
+        </div>
+
+        <!-- Export Controls -->
+        <div class="export-controls">
+            <h3><i class="fas fa-cog me-2"></i>Export Settings</h3>
+            
+            <div class="format-selection">
+                <div class="format-option">
+                    <input type="radio" id="format-csv" name="format_type" value="csv" checked>
+                    <label for="format-csv"><i class="fas fa-file-csv me-1"></i>CSV</label>
+                </div>
+                <div class="format-option">
+                    <input type="radio" id="format-excel" name="format_type" value="excel">
+                    <label for="format-excel"><i class="fas fa-file-excel me-1"></i>Excel</label>
+                </div>
+                <div class="format-option">
+                    <input type="radio" id="format-pdf" name="format_type" value="pdf">
+                    <label for="format-pdf"><i class="fas fa-file-pdf me-1"></i>PDF</label>
+                </div>
+            </div>
+            
+            <div class="export-actions">
+                <button class="btn btn-primary" id="export-btn" disabled>
+                    <i class="fas fa-download me-1"></i>Export Selected Data
+                </button>
+                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left me-1"></i>Back to Dashboard
+                </a>
+            </div>
+            
+            <div class="selection-summary" id="selection-summary" style="display: none;">
+                <h4><i class="fas fa-check-circle me-1"></i>Selected Models</h4>
+                <div class="selected-models" id="selected-models-list"></div>
+            </div>
+        </div>
+        
+        <!-- Data Selection Grid -->
+        <div class="export-grid">
+            <!-- Alumni -->
+            <div class="export-card" data-model="alumni">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #667eea;">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Alumni Directory</h3>
+                        <p>Graduate profiles and information</p>
+                    </div>
+                    <div class="export-card-count">{{ total_alumni }}</div>
+                </div>
+            </div>
+            
+            <!-- Users -->
+            <div class="export-card" data-model="users">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #28a745;">
+                        <i class="fas fa-users"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>User Accounts</h3>
+                        <p>System user information</p>
+                    </div>
+                    <div class="export-card-count">{{ total_users }}</div>
+                </div>
+            </div>
+            
+            <!-- Jobs -->
+            <div class="export-card" data-model="jobs">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #ffc107;">
+                        <i class="fas fa-briefcase"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Job Postings</h3>
+                        <p>Available job opportunities</p>
+                    </div>
+                    <div class="export-card-count">{{ total_jobs }}</div>
+                </div>
+            </div>
+            
+            <!-- Mentorships -->
+            <div class="export-card" data-model="mentorships">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #17a2b8;">
+                        <i class="fas fa-handshake"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Mentorships</h3>
+                        <p>Mentor-mentee relationships</p>
+                    </div>
+                    <div class="export-card-count">{{ total_mentorships }}</div>
+                </div>
+            </div>
+            
+            <!-- Events -->
+            <div class="export-card" data-model="events">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #dc3545;">
+                        <i class="fas fa-calendar-alt"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Events</h3>
+                        <p>Upcoming and past events</p>
+                    </div>
+                    <div class="export-card-count">{{ total_events }}</div>
+                </div>
+            </div>
+            
+            <!-- Donations -->
+            <div class="export-card" data-model="donations">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #e83e8c;">
+                        <i class="fas fa-hand-holding-heart"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Donations</h3>
+                        <p>Donation records and campaigns</p>
+                    </div>
+                    <div class="export-card-count">{{ total_donations }}</div>
+                </div>
+            </div>
+            
+            <!-- Announcements -->
+            <div class="export-card" data-model="announcements">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #fd7e14;">
+                        <i class="fas fa-bullhorn"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Announcements</h3>
+                        <p>System announcements and news</p>
+                    </div>
+                    <div class="export-card-count">{{ total_announcements }}</div>
+                </div>
+            </div>
+            
+            <!-- Feedback -->
+            <div class="export-card" data-model="feedback">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #6f42c1;">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Feedback</h3>
+                        <p>User feedback and ratings</p>
+                    </div>
+                    <div class="export-card-count">{{ total_feedback }}</div>
+                </div>
+            </div>
+            
+            <!-- Surveys -->
+            <div class="export-card" data-model="surveys">
+                <div class="export-card-header">
+                    <div class="export-icon" style="background: #20c997;">
+                        <i class="fas fa-poll"></i>
+                    </div>
+                    <div class="export-card-info">
+                        <h3>Surveys</h3>
+                        <p>Survey data and responses</p>
+                    </div>
+                    <div class="export-card-count">{{ total_surveys }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- CSRF Token for AJAX requests -->
+{% csrf_token %}
+{% endblock %}
+
+{% block page_specific_js %}
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const exportCards = document.querySelectorAll('.export-card');
+    const exportBtn = document.getElementById('export-btn');
+    const selectionSummary = document.getElementById('selection-summary');
+    const selectedModelsList = document.getElementById('selected-models-list');
+    const formatInputs = document.querySelectorAll('input[name="format_type"]');
+    
+    let selectedModels = [];
+    
+    // Handle card selection
+    exportCards.forEach(card => {
+        card.addEventListener('click', function() {
+            const model = this.dataset.model;
+            
+            if (this.classList.contains('selected')) {
+                // Deselect
+                this.classList.remove('selected');
+                selectedModels = selectedModels.filter(m => m !== model);
+            } else {
+                // Select
+                this.classList.add('selected');
+                selectedModels.push(model);
+            }
+            
+            updateExportButton();
+            updateSelectionSummary();
+        });
+    });
+    
+    // Handle format selection
+    let selectedFormat = 'csv';
+    formatInputs.forEach(input => {
+        input.addEventListener('change', function() {
+            selectedFormat = this.value;
+        });
+    });
+    
+    // Handle export button click
+    exportBtn.addEventListener('click', function() {
+        if (selectedModels.length === 0) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Models Selected',
+                text: 'Please select at least one model to export.'
+            });
+            return;
+        }
+        
+        // Show SweetAlert loading state
+        Swal.fire({
+            title: 'Processing Export...',
+            text: 'Please wait while we prepare your files for download.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+        
+        // Prepare form data
+        const formData = new FormData();
+        formData.append('format_type', selectedFormat);
+        selectedModels.forEach(model => {
+            formData.append('models', model);
+        });
+        
+        // Use fetch to handle the download
+        fetch('{% url "core:bulk_export_process" %}', {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Export failed');
+            }
+            return response.blob();
+        })
+        .then(blob => {
+            // Create download link
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = `bulk_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.zip`;
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            
+            // Show success message
+            Swal.fire({
+                icon: 'success',
+                title: 'Export Completed!',
+                text: 'Your files have been downloaded successfully.',
+                confirmButtonText: 'OK'
+            });
+        })
+        .catch(error => {
+            console.error('Export error:', error);
+            Swal.fire({
+                icon: 'error',
+                title: 'Export Failed',
+                text: 'An error occurred during export. Please try again.',
+                confirmButtonText: 'OK'
+            });
+        });
+    });
+    
+    function updateExportButton() {
+        if (selectedModels.length > 0) {
+            exportBtn.disabled = false;
+            exportBtn.innerHTML = `<i class="fas fa-download me-1"></i>Export ${selectedModels.length} Selected`;
+        } else {
+            exportBtn.disabled = true;
+            exportBtn.innerHTML = `<i class="fas fa-download me-1"></i>Export Selected Data`;
+        }
+    }
+    
+    function updateSelectionSummary() {
+        if (selectedModels.length > 0) {
+            selectionSummary.style.display = 'block';
+            selectedModelsList.innerHTML = '';
+            
+            selectedModels.forEach(model => {
+                const tag = document.createElement('span');
+                tag.className = 'selected-model-tag';
+                tag.textContent = model.charAt(0).toUpperCase() + model.slice(1);
+                selectedModelsList.appendChild(tag);
+            });
+        } else {
+            selectionSummary.style.display = 'none';
+        }
+    }
+    
+    // Initialize
+    updateExportButton();
+    updateSelectionSummary();
+});
+</script>
+{% endblock %}

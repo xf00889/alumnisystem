@@ -24,26 +24,38 @@ class EventListView(LoginRequiredMixin, ListView):
     login_url = 'account_login'
 
     def get_queryset(self):
+        # Only show actual Event objects created through the event form
+        # This excludes any RSVP activities or other user interactions
         queryset = Event.objects.select_related('created_by').prefetch_related('rsvps')
-        
+
+        # Ensure we only get Event model instances (not any mixed content)
+        # Filter out any records that might not be proper events
+        queryset = queryset.filter(
+            title__isnull=False,  # Events must have titles
+            start_date__isnull=False,  # Events must have start dates
+            created_by__isnull=False,  # Events must have creators
+            description__isnull=False,  # Events must have descriptions
+            location__isnull=False  # Events must have locations
+        )
+
         # Get filter parameters
         status = self.request.GET.get('status')
         search = self.request.GET.get('search')
-        
+
         # Apply filters
         if status:
             queryset = queryset.filter(status=status)
-        
+
         if search:
             queryset = queryset.filter(
                 Q(title__icontains=search) |
                 Q(description__icontains=search) |
                 Q(location__icontains=search)
             )
-        
+
         # Annotate with RSVP count
         queryset = queryset.annotate(rsvp_count=Count('rsvps'))
-        
+
         # Order by start date
         return queryset.order_by('start_date')
 
@@ -294,7 +306,7 @@ class PublicEventCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMess
     
     def test_func(self):
         return self.request.user.is_staff
-    
+
     def handle_no_permission(self):
         messages.error(self.request, "You don't have permission to perform this action.")
         return redirect('events:public_event_list')

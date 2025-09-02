@@ -1,0 +1,821 @@
+{% extends 'donations/base.html' %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block title %}{% trans "Fraud Monitoring Dashboard" %} - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+
+    .fraud-monitoring {
+        font-family: 'Poppins', sans-serif;
+        padding: 1.25rem;
+        background-color: var(--ui-background);
+        min-height: calc(100vh - 60px);
+    }
+
+    /* Dashboard Header (Matching Location Tracking Style) */
+    .fraud-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .fraud-header h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .fraud-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Card Styling (Matching Location Tracking) */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .dashboard-card .card-header {
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+    }
+
+    .dashboard-card .card-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.125rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Button Styling (Matching Location Tracking) */
+    .btn {
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-success {
+        background-color: var(--feedback-success);
+        border-color: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .btn-success:hover {
+        background-color: #38a169;
+        border-color: #38a169;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-outline-primary {
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+
+    .btn-outline-primary.active {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    /* Metrics Cards */
+    .metric-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .metric-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .metric-card.bg-danger {
+        background: var(--feedback-error) !important;
+    }
+
+    .metric-card.bg-warning {
+        background: var(--feedback-warning) !important;
+    }
+
+    .metric-card.bg-info {
+        background: var(--feedback-info) !important;
+    }
+
+    .metric-card.bg-secondary {
+        background: var(--secondary-color) !important;
+    }
+
+    .metric-card h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-light);
+    }
+
+    .metric-card p {
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+
+    .metric-card small {
+        font-size: 0.875rem;
+        opacity: 0.8;
+        color: var(--text-light);
+    }
+
+    .metric-card i {
+        opacity: 0.8;
+    }
+
+    /* Alert Cards */
+    .alert-card {
+        transition: all 0.3s ease;
+        border-left: 4px solid transparent;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .alert-card.severity-low {
+        border-left-color: var(--feedback-success);
+    }
+    
+    .alert-card.severity-medium {
+        border-left-color: var(--feedback-warning);
+    }
+    
+    .alert-card.severity-high {
+        border-left-color: var(--feedback-error);
+    }
+    
+    .alert-card.severity-critical {
+        border-left-color: #dc3545;
+    }
+    
+    .alert-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    /* Status Badge */
+    .status-badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-sm);
+    }
+
+    /* Risk Indicator */
+    .risk-indicator {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+    }
+    
+    .risk-low { background-color: var(--feedback-success); }
+    .risk-medium { background-color: var(--feedback-warning); }
+    .risk-high { background-color: var(--feedback-error); }
+    .risk-critical { background-color: #dc3545; }
+
+    /* Blacklist Items */
+    .blacklist-item {
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        border-left: 3px solid var(--feedback-error);
+        transition: all 0.2s ease;
+    }
+
+    .blacklist-item:hover {
+        background: var(--ui-border);
+    }
+
+    /* Table Styling */
+    .table {
+        font-size: 0.875rem;
+    }
+
+    .table th {
+        color: var(--text-primary);
+        font-weight: 600;
+        border-bottom: 2px solid var(--ui-border);
+        background: var(--ui-hover);
+    }
+
+    .table td {
+        color: var(--text-secondary);
+        vertical-align: middle;
+    }
+
+    .table-hover tbody tr:hover {
+        background-color: var(--ui-hover);
+    }
+
+    /* Badge Styling */
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-sm);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .fraud-monitoring {
+            padding: 0.75rem;
+        }
+
+        .fraud-header {
+            padding: 1.25rem;
+        }
+
+        .fraud-header h4 {
+            font-size: 1.25rem;
+        }
+
+        .fraud-header .d-flex {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .dashboard-card .card-body {
+            padding: 1rem;
+        }
+
+        .dashboard-card .card-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .metric-card {
+            padding: 1rem;
+        }
+
+        .metric-card h3 {
+            font-size: 1.5rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .fraud-monitoring {
+            padding: 0.5rem;
+        }
+
+        .fraud-header {
+            padding: 1rem;
+        }
+
+        .fraud-header h4 {
+            font-size: 1.125rem;
+        }
+
+        .dashboard-card .card-body {
+            padding: 0.75rem;
+        }
+
+        .metric-card {
+            padding: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block donations_content %}
+<div class="fraud-monitoring">
+    <div class="container">
+        <!-- Fraud Monitoring Header (Matching Location Tracking Style) -->
+        <div class="fraud-header">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-shield-alt fa-3x" style="opacity: 0.8;"></i>
+                </div>
+                <div>
+                    <h4>{% trans "Fraud Detection & Monitoring Dashboard" %}</h4>
+                    <p>{% trans "Comprehensive fraud detection, monitoring, and risk assessment system" %}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Time Range Filter -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-calendar-alt me-2"></i>
+                    {% trans "Time Range Selection" %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <small class="text-muted">
+                            {% trans "Monitoring fraud patterns and suspicious activities" %}
+                        </small>
+                    </div>
+                    <div class="btn-group" role="group">
+                        <a href="?days=7" class="btn btn-outline-primary {% if days == 7 %}active{% endif %}">{% trans "7 Days" %}</a>
+                        <a href="?days=30" class="btn btn-outline-primary {% if days == 30 %}active{% endif %}">{% trans "30 Days" %}</a>
+                        <a href="?days=90" class="btn btn-outline-primary {% if days == 90 %}active{% endif %}">{% trans "90 Days" %}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Fraud Statistics Cards -->
+        <div class="row mb-4">
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="metric-card bg-danger">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ fraud_summary.total_alerts|default:0 }}</h3>
+                            <p>{% trans "Total Alerts" %}</p>
+                            <small>{% trans "Last" %} {{ days }} {% trans "days" %}</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-exclamation-triangle fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="metric-card bg-warning">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ pending_alerts.count }}</h3>
+                            <p>{% trans "Pending Review" %}</p>
+                            <small>{% trans "Requires Action" %}</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-clock fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="metric-card bg-info">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ high_risk_donations.count }}</h3>
+                            <p>{% trans "High Risk" %}</p>
+                            <small>{% trans "Donations Flagged" %}</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-flag fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6 mb-3">
+                <div class="metric-card bg-secondary">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <h3>{{ blacklisted_entities.count }}</h3>
+                            <p>{% trans "Blacklisted" %}</p>
+                            <small>{% trans "Active Entries" %}</small>
+                        </div>
+                        <div class="align-self-center">
+                            <i class="fas fa-ban fa-2x"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pending Alerts Section -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-exclamation-circle me-2"></i>
+                    {% trans "Pending Fraud Alerts" %}
+                    <span class="badge bg-warning ms-2">{{ pending_alerts.count }}</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if pending_alerts %}
+                    <div class="row">
+                        {% for alert in pending_alerts %}
+                        <div class="col-lg-6 mb-3">
+                            <div class="alert-card card severity-{{ alert.severity }}">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">
+                                            <span class="risk-indicator risk-{{ alert.severity }}"></span>
+                                            {{ alert.get_alert_type_display }}
+                                        </h6>
+                                        <span class="badge bg-{{ alert.severity|yesno:'danger,warning,success' }} status-badge">
+                                            {{ alert.get_severity_display }}
+                                        </span>
+                                    </div>
+                                    <p class="card-text text-muted small mb-2">
+                                        <strong>{% trans "Donation" %}:</strong> {{ alert.donation.reference_number }}<br>
+                                        <strong>{% trans "Campaign" %}:</strong> {{ alert.donation.campaign.name|truncatechars:40 }}<br>
+                                        <strong>{% trans "Amount" %}:</strong> ₱{{ alert.donation.amount|floatformat:2|intcomma }}
+                                    </p>
+                                    <p class="card-text">{{ alert.description|truncatechars:100 }}</p>
+                                    <div class="d-flex justify-content-between align-items-center">
+                                        <small class="text-muted">
+                                            <i class="fas fa-clock me-1"></i>
+                                            {{ alert.created_at|timesince }} {% trans "ago" %}
+                                        </small>
+                                        <div class="btn-group btn-group-sm">
+                                            <button class="btn btn-outline-success btn-sm" 
+                                                    onclick="resolveAlert({{ alert.id }}, 'resolved')">
+                                                <i class="fas fa-check"></i> {% trans "Resolve" %}
+                                            </button>
+                                            <button class="btn btn-outline-secondary btn-sm" 
+                                                    onclick="resolveAlert({{ alert.id }}, 'false_positive')">
+                                                <i class="fas fa-times"></i> {% trans "False Positive" %}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                        <h5 class="text-muted">{% trans "No Pending Alerts" %}</h5>
+                        <p class="text-muted">{% trans "All fraud alerts have been reviewed." %}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- High Risk Donations and Blacklisted Entities -->
+        <div class="row mb-4">
+            <div class="col-lg-8 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-flag me-2"></i>
+                            {% trans "High Risk Donations" %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if high_risk_donations %}
+                            <div class="table-responsive">
+                                <table class="table table-hover">
+                                    <thead>
+                                        <tr>
+                                            <th>{% trans "Reference" %}</th>
+                                            <th>{% trans "Campaign" %}</th>
+                                            <th>{% trans "Amount" %}</th>
+                                            <th>{% trans "Risk Level" %}</th>
+                                            <th>{% trans "Date" %}</th>
+                                            <th>{% trans "Actions" %}</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for donation in high_risk_donations %}
+                                        <tr>
+                                            <td>
+                                                <code>{{ donation.reference_number }}</code>
+                                            </td>
+                                            <td>{{ donation.campaign.name|truncatechars:30 }}</td>
+                                            <td>₱{{ donation.amount|floatformat:2|intcomma }}</td>
+                                            <td>
+                                                {% for alert in donation.fraud_alerts.all %}
+                                                    {% if alert.status == 'pending' %}
+                                                        <span class="badge bg-{{ alert.severity|yesno:'danger,warning,success' }}">
+                                                            {{ alert.get_severity_display }}
+                                                        </span>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </td>
+                                            <td>{{ donation.created_at|date:"M d, Y" }}</td>
+                                            <td>
+                                                <a href="{% url 'donations:manage_donations' %}?search={{ donation.reference_number }}" 
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    <i class="fas fa-eye"></i> {% trans "Review" %}
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
+                                <h5 class="text-muted">{% trans "No High Risk Donations" %}</h5>
+                                <p class="text-muted">{% trans "All donations are within normal risk parameters." %}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Blacklisted Entities -->
+            <div class="col-lg-4 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-ban me-2"></i>
+                            {% trans "Recent Blacklist" %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if blacklisted_entities %}
+                            {% for entity in blacklisted_entities %}
+                            <div class="blacklist-item">
+                                <div class="d-flex justify-content-between align-items-start">
+                                    <div>
+                                        <strong>{{ entity.get_entity_type_display }}</strong><br>
+                                        <code class="small">{{ entity.value|truncatechars:25 }}</code><br>
+                                        <small class="text-muted">{{ entity.reason|truncatechars:50 }}</small>
+                                    </div>
+                                    <small class="text-muted">
+                                        {{ entity.created_at|date:"M d" }}
+                                    </small>
+                                </div>
+                            </div>
+                            {% endfor %}
+                            <div class="text-center mt-3">
+                                <a href="#" class="btn btn-sm btn-outline-secondary">
+                                    {% trans "View All" %}
+                                </a>
+                            </div>
+                        {% else %}
+                            <div class="text-center py-4">
+                                <i class="fas fa-list fa-2x text-muted mb-3"></i>
+                                <p class="text-muted">{% trans "No blacklisted entities" %}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Recent Alerts History -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-history me-2"></i>
+                    {% trans "Recent Alert History" %}
+                </h5>
+            </div>
+            <div class="card-body">
+                {% if recent_alerts %}
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>{% trans "Alert Type" %}</th>
+                                    <th>{% trans "Donation" %}</th>
+                                    <th>{% trans "Severity" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Reviewed By" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for alert in recent_alerts %}
+                                <tr>
+                                    <td>{{ alert.get_alert_type_display }}</td>
+                                    <td>
+                                        <code class="small">{{ alert.donation.reference_number }}</code>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ alert.severity|yesno:'danger,warning,success' }}">
+                                            {{ alert.get_severity_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{% if alert.status == 'resolved' %}success{% elif alert.status == 'false_positive' %}secondary{% elif alert.status == 'investigating' %}warning{% else %}danger{% endif %}">
+                                            {{ alert.get_status_display }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if alert.reviewed_by %}
+                                            {{ alert.reviewed_by.get_full_name|default:alert.reviewed_by.username }}
+                                        {% else %}
+                                            <span class="text-muted">{% trans "Pending" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ alert.created_at|date:"M d, Y H:i" }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">{% trans "No Recent Alerts" %}</h5>
+                        <p class="text-muted">{% trans "No fraud alerts have been generated recently." %}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-tools me-2"></i>
+                    {% trans "Quick Actions" %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-primary w-100" onclick="refreshDashboard()">
+                            <i class="fas fa-sync-alt me-2"></i>
+                            {% trans "Refresh Data" %}
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-secondary w-100" onclick="exportAlerts()">
+                            <i class="fas fa-download me-2"></i>
+                            {% trans "Export Alerts" %}
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <button class="btn btn-outline-info w-100" onclick="showBlacklistModal()">
+                            <i class="fas fa-ban me-2"></i>
+                            {% trans "Manage Blacklist" %}
+                        </button>
+                    </div>
+                    <div class="col-md-3 mb-2">
+                        <a href="{% url 'donations:manage_donations' %}" class="btn btn-outline-success w-100">
+                            <i class="fas fa-list me-2"></i>
+                            {% trans "All Donations" %}
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function resolveAlert(alertId, status) {
+    if (!confirm('{% trans "Are you sure you want to " %}' + status + '{% trans " this alert?" %}')) {
+        return;
+    }
+
+    const notes = prompt('{% trans "Add resolution notes (optional):" %}');
+
+    fetch(`/donations/fraud-alerts/${alertId}/resolve/`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        },
+        body: `status=${status}&notes=${encodeURIComponent(notes || '')}`
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            location.reload();
+        } else {
+            alert('{% trans "Error: " %}' + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('{% trans "An error occurred while resolving the alert." %}');
+    });
+}
+
+function refreshDashboard() {
+    location.reload();
+}
+
+function exportAlerts() {
+    // TODO: Implement alert export functionality
+    alert('{% trans "Export functionality will be implemented soon." %}');
+}
+
+function showBlacklistModal() {
+    // TODO: Implement blacklist management modal
+    alert('{% trans "Blacklist management will be implemented soon." %}');
+}
+
+// Auto-refresh every 5 minutes
+setInterval(function() {
+    const lastRefresh = localStorage.getItem('fraudDashboardLastRefresh');
+    const now = Date.now();
+
+    if (!lastRefresh || (now - parseInt(lastRefresh)) > 300000) { // 5 minutes
+        localStorage.setItem('fraudDashboardLastRefresh', now.toString());
+        location.reload();
+    }
+}, 300000);
+
+// Store last refresh time
+localStorage.setItem('fraudDashboardLastRefresh', Date.now().toString());
+</script>
+{% endblock %}

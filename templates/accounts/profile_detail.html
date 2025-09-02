@@ -718,6 +718,28 @@
                                 </div>
                             </div>
                         </div>
+                        {% if alumni and alumni.college %}
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label class="text-muted small mb-1">College</label>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-university text-primary me-2"></i>
+                                    <span>{{ alumni.college_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+                        {% if alumni and alumni.campus %}
+                        <div class="col-md-6">
+                            <div class="info-item">
+                                <label class="text-muted small mb-1">Campus</label>
+                                <div class="d-flex align-items-center">
+                                    <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                    <span>{{ alumni.get_campus_display }}</span>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
                     </div>
                 </div>
                     </div>
@@ -865,10 +887,16 @@
                                             {{ education.location }}
                                         </span>
                                         {% endif %}
+                                        {% if education.is_primary and alumni and alumni.college %}
+                                        <span class="college-info">
+                                            <i class="fas fa-university"></i>
+                                            {{ alumni.college_display }}
+                                        </span>
+                                        {% endif %}
                                         {% if education.is_primary %}
                                         <span class="badge bg-primary">Primary Education</span>
-                {% endif %}
-            </div>
+                                        {% endif %}
+                                    </div>
 
                                     {% if education.achievements %}
                                     <div class="timeline-achievements mt-3">
@@ -2192,56 +2220,85 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
     
-    // Handle confirm delete button
+    // Handle confirm delete button with SweetAlert
     const confirmDeleteBtn = document.getElementById('confirmDeleteBtn');
     if (confirmDeleteBtn) {
         confirmDeleteBtn.addEventListener('click', function() {
             if (!deleteItemId || !deleteItemType) return;
             
             let url = '';
+            let itemName = '';
             if (deleteItemType === 'experience') {
                 url = `/accounts/update/experience/${deleteItemId}/delete/`;
+                itemName = 'work experience';
             } else if (deleteItemType === 'education') {
                 url = `/accounts/update/education/${deleteItemId}/delete/`;
+                itemName = 'education record';
             } else {
                 return;
             }
             
-            // Show loading state
-            const originalText = this.innerHTML;
-            this.disabled = true;
-            this.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
-            
-            fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    // Close modal
-                    const modalInstance = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
-                    modalInstance.hide();
+            // Use SweetAlert for confirmation
+            Swal.fire({
+                icon: 'warning',
+                title: 'Confirm Deletion',
+                text: `Are you sure you want to delete this ${itemName}? This action cannot be undone.`,
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Deleting...',
+                        text: 'Please wait while we delete the item.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
                     
-                    // Show success message and reload
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 500);
-                } else {
-                    throw new Error(data.message || 'Delete operation failed');
+                    fetch(url, {
+                        method: 'POST',
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Close modal
+                            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('confirmDeleteModal'));
+                            modalInstance.hide();
+                            
+                            // Show success message
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Deleted!',
+                                text: 'The item has been deleted successfully.',
+                                confirmButtonText: 'OK'
+                            }).then(() => {
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'Delete operation failed');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: 'Error deleting item: ' + error.message,
+                            confirmButtonText: 'OK'
+                        });
+                    });
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                // Reset button state
-                this.disabled = false;
-                this.innerHTML = originalText;
-                
-                // Show error toast
-                alert('Error deleting item: ' + error.message);
             });
         });
     }

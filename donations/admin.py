@@ -1,6 +1,9 @@
 from django.contrib import admin
 from django.utils.translation import gettext_lazy as _
-from .models import CampaignType, Campaign, Donation, DonorRecognition, CampaignUpdate
+from .models import (
+    CampaignType, Campaign, Donation, DonorRecognition, CampaignUpdate,
+    GCashConfig, FraudAlert, BlacklistedEntity
+)
 
 @admin.register(CampaignType)
 class CampaignTypeAdmin(admin.ModelAdmin):
@@ -54,18 +57,21 @@ class CampaignUpdateAdmin(admin.ModelAdmin):
 
 @admin.register(Donation)
 class DonationAdmin(admin.ModelAdmin):
-    list_display = ('get_donor_display', 'campaign', 'amount', 'status', 
-                   'payment_method', 'donation_date', 'receipt_sent')
-    list_filter = ('status', 'payment_method', 'receipt_sent', 'donation_date', 'campaign')
-    search_fields = ('donor__first_name', 'donor__last_name', 'donor__email', 
-                    'donor_name', 'donor_email', 'campaign__name', 'reference_number')
-    readonly_fields = ('created_at', 'updated_at')
+    list_display = ('get_donor_display', 'campaign', 'amount', 'status',
+                   'reference_number', 'donation_date', 'verified_by')
+    list_filter = ('status', 'receipt_sent', 'donation_date', 'campaign', 'verified_by')
+    search_fields = ('donor__first_name', 'donor__last_name', 'donor__email',
+                    'donor_name', 'donor_email', 'campaign__name', 'reference_number', 'gcash_transaction_id')
+    readonly_fields = ('created_at', 'updated_at', 'reference_number')
     fieldsets = (
         (_('Donation Information'), {
-            'fields': ('campaign', 'amount', 'donation_date', 'status', 'payment_method', 'reference_number')
+            'fields': ('campaign', 'amount', 'donation_date', 'status', 'reference_number')
         }),
         (_('Donor Information'), {
             'fields': ('donor', 'is_anonymous', 'donor_name', 'donor_email')
+        }),
+        (_('Payment Verification'), {
+            'fields': ('payment_proof', 'gcash_transaction_id', 'verification_notes', 'verified_by', 'verification_date')
         }),
         (_('Additional Information'), {
             'fields': ('message', 'receipt_sent')
@@ -95,3 +101,55 @@ class DonorRecognitionAdmin(admin.ModelAdmin):
             'fields': ('name', 'description', 'minimum_amount', 'badge_image', 'is_active')
         }),
     )
+
+
+
+@admin.register(FraudAlert)
+class FraudAlertAdmin(admin.ModelAdmin):
+    list_display = ('donation', 'alert_type', 'severity', 'status', 'created_at', 'reviewed_by')
+    list_filter = ('alert_type', 'severity', 'status', 'created_at')
+    search_fields = ('donation__reference_number', 'description', 'ip_address')
+    readonly_fields = ('created_at', 'metadata')
+    fieldsets = (
+        (_('Alert Information'), {
+            'fields': ('donation', 'alert_type', 'severity', 'status', 'description')
+        }),
+        (_('Technical Details'), {
+            'fields': ('ip_address', 'user_agent', 'metadata'),
+            'classes': ('collapse',)
+        }),
+        (_('Review Information'), {
+            'fields': ('reviewed_by', 'reviewed_at', 'resolution_notes')
+        }),
+    )
+
+    def get_readonly_fields(self, request, obj=None):
+        readonly = list(self.readonly_fields)
+        if obj and obj.reviewed_at:
+            readonly.extend(['alert_type', 'severity', 'donation'])
+        return readonly
+
+
+@admin.register(BlacklistedEntity)
+class BlacklistedEntityAdmin(admin.ModelAdmin):
+    list_display = ('entity_type', 'value', 'is_active', 'created_by', 'created_at', 'expires_at')
+    list_filter = ('entity_type', 'is_active', 'created_at')
+    search_fields = ('value', 'reason')
+    readonly_fields = ('created_at',)
+    fieldsets = (
+        (_('Blacklist Information'), {
+            'fields': ('entity_type', 'value', 'reason', 'is_active')
+        }),
+        (_('Expiration'), {
+            'fields': ('expires_at',)
+        }),
+        (_('System Information'), {
+            'fields': ('created_by', 'created_at'),
+            'classes': ('collapse',)
+        }),
+    )
+
+    def save_model(self, request, obj, form, change):
+        if not change:  # Only set created_by for new objects
+            obj.created_by = request.user
+        super().save_model(request, obj, form, change)

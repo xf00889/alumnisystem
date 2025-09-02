@@ -1,0 +1,289 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="page-title">{{ page_title }}</h1>
+                <p class="page-subtitle">{{ page_subtitle }}</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ announcements.paginator.count }}</span>
+                        <span class="stat-label">Total Announcements</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_header %}
+
+{% block content %}
+<div class="container py-5">
+    {% if announcements %}
+        <div class="row g-4">
+            {% for announcement in announcements %}
+            <div class="col-lg-6 col-md-12">
+                <div class="content-card h-100">
+                    <div class="card-body">
+                        <div class="announcement-header mb-3">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                {% if announcement.category %}
+                                <span class="badge bg-primary">{{ announcement.category.name }}</span>
+                                {% endif %}
+                                <span class="priority-badge priority-{{ announcement.priority_level|lower }}">
+                                    {{ announcement.get_priority_level_display }}
+                                </span>
+                            </div>
+                            <div class="announcement-meta">
+                                <small class="text-muted">
+                                    <i class="fas fa-calendar-alt me-1"></i>
+                                    {{ announcement.date_posted|naturaltime }}
+                                </small>
+                                {% if announcement.views_count %}
+                                <small class="text-muted ms-3">
+                                    <i class="fas fa-eye me-1"></i>
+                                    {{ announcement.views_count }} views
+                                </small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <h5 class="card-title">{{ announcement.title }}</h5>
+                        
+                        <div class="announcement-content">
+                            <div class="content-preview" id="preview-{{ announcement.id }}">
+                                <p class="card-text">{{ announcement.content|striptags|truncatewords:30 }}</p>
+                            </div>
+                            <div class="content-full d-none" id="full-{{ announcement.id }}">
+                                <div class="card-text">{{ announcement.content|linebreaks }}</div>
+                            </div>
+                        </div>
+                        
+                        <div class="announcement-footer">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="target-audience">
+                                    <small class="text-muted">
+                                        <i class="fas fa-users me-1"></i>
+                                        Target: {{ announcement.get_target_audience_display }}
+                                    </small>
+                                </div>
+                                <button class="btn btn-sm btn-outline-primary read-more-btn" 
+                                        data-id="{{ announcement.id }}" 
+                                        onclick="toggleContent({{ announcement.id }})">
+                                    <i class="fas fa-chevron-down me-1"></i>Read More
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if announcements.has_other_pages %}
+        <nav aria-label="Announcements pagination" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if announcements.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ announcements.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in announcements.paginator.page_range %}
+                    {% if announcements.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > announcements.number|add:'-3' and num < announcements.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if announcements.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ announcements.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ announcements.paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    {% else %}
+        <!-- No Announcements -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-bullhorn fa-4x text-muted mb-4"></i>
+                    <h3 class="text-muted">No Announcements Available</h3>
+                    <p class="text-muted">Check back soon for the latest updates and announcements!</p>
+                    <a href="{% url 'core:home' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-home me-1"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Call to Action -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="content-card text-center">
+                <div class="card-body py-5">
+                    <h3 class="mb-3">Stay Connected</h3>
+                    <p class="text-muted mb-4">Join our alumni network to receive important announcements and updates directly.</p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>Sign Up Now
+                        </a>
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<style>
+    .header-stats .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+    }
+    
+    .header-stats .stat-number {
+        display: block;
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-light);
+        margin-bottom: 0.25rem;
+    }
+    
+    .header-stats .stat-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .priority-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+    }
+    
+    .priority-low {
+        background-color: var(--feedback-info);
+        color: white;
+    }
+    
+    .priority-medium {
+        background-color: var(--feedback-warning);
+        color: white;
+    }
+    
+    .priority-high {
+        background-color: var(--feedback-error);
+        color: white;
+    }
+    
+    .priority-urgent {
+        background-color: #dc3545;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    .announcement-header {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: 1rem;
+    }
+    
+    .announcement-footer {
+        border-top: 1px solid var(--ui-border);
+        padding-top: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .read-more-btn {
+        transition: all 0.2s ease;
+    }
+    
+    .read-more-btn:hover {
+        transform: translateY(-1px);
+    }
+    
+    .pagination .page-link {
+        color: var(--primary-color);
+        border-color: var(--ui-border);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .pagination .page-link:hover {
+        color: var(--primary-dark);
+        background-color: var(--ui-hover);
+    }
+</style>
+{% endblock extra_css %}
+
+{% block extra_js %}
+<script>
+function toggleContent(announcementId) {
+    const preview = document.getElementById(`preview-${announcementId}`);
+    const full = document.getElementById(`full-${announcementId}`);
+    const button = document.querySelector(`[data-id="${announcementId}"]`);
+    const icon = button.querySelector('i');
+    
+    if (preview.classList.contains('d-none')) {
+        // Show preview, hide full
+        preview.classList.remove('d-none');
+        full.classList.add('d-none');
+        button.innerHTML = '<i class="fas fa-chevron-down me-1"></i>Read More';
+    } else {
+        // Show full, hide preview
+        preview.classList.add('d-none');
+        full.classList.remove('d-none');
+        button.innerHTML = '<i class="fas fa-chevron-up me-1"></i>Show Less';
+    }
+}
+</script>
+{% endblock extra_js %}

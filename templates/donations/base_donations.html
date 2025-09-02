@@ -6,32 +6,56 @@
 {% block extra_css %}
 <style>
     :root {
-        --primary-color: #063970;
-        --primary-light: #0a4f94;
-        --status-success: #28a745;
-        --status-warning: #ffc107;
-        --status-danger: #dc3545;
-        --status-info: #17a2b8;
+        /* Match authenticated_home design tokens */
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --primary-light: #4a5568;
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+
+        /* Feedback Colors */
+        --status-success: #48bb78;
+        --status-warning: #ed8936;
+        --status-danger: #e53e3e;
+        --status-info: #4299e1;
         --status-secondary: #6c757d;
+
+        /* Shadows & Radius */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
     }
-    
+
     /* Campaign Card Styles */
     .campaign-card {
-        border-radius: 12px;
+        border-radius: var(--radius-md);
         overflow: hidden;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
         transition: transform 0.3s ease, box-shadow 0.3s ease;
         height: 100%;
         display: flex;
         flex-direction: column;
-        background-color: white;
+        background-color: var(--ui-surface);
     }
-    
+
     .campaign-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
     }
-    
+
     .campaign-image {
         height: 200px;
         background-size: cover;
@@ -139,13 +163,16 @@
         align-items: center;
         padding: 0.75rem 0;
         border-bottom: 1px solid var(--border-color);
+        gap: 0.75rem;
+        flex-wrap: nowrap;
     }
-    
+
     .donor-avatar {
         width: 40px;
         height: 40px;
         border-radius: 50%;
-        margin-right: 1rem;
+        flex: 0 0 40px;
+        overflow: hidden;
         background-color: var(--light-bg);
         display: flex;
         align-items: center;
@@ -153,9 +180,18 @@
         font-weight: 600;
         color: var(--primary-color);
     }
-    
+
+    .donor-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+        border-radius: 50%;
+    }
+
     .donor-info {
         flex-grow: 1;
+        min-width: 0;
     }
     
     .donor-name {
@@ -196,13 +232,14 @@
     
     /* Filter Sidebar */
     .filter-sidebar {
-        background-color: white;
-        border-radius: 12px;
+        background-color: var(--ui-surface);
+        border-radius: var(--radius-md);
         padding: 1.5rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-sm);
         margin-bottom: 1.5rem;
     }
-    
+
     .filter-title {
         font-size: 1.1rem;
         font-weight: 600;
@@ -303,26 +340,12 @@
     }
     
     /* Override Bootstrap primary color */
-    .btn-primary {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    
-    .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
-        background-color: var(--primary-light);
-        border-color: var(--primary-light);
-    }
-    
-    .btn-outline-primary {
-        color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    
-    .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    
+    .btn { border-radius: var(--radius-sm); font-size: 0.875rem; font-weight: 500; padding: 0.5rem 1rem; border: 1px solid transparent; transition: all 0.2s ease; text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem; }
+    .btn-primary { background-color: var(--primary-color); border-color: var(--primary-color); color: var(--text-light); }
+    .btn-primary:hover, .btn-primary:focus, .btn-primary:active { background-color: var(--secondary-color); border-color: var(--secondary-color); transform: translateY(-1px); box-shadow: var(--shadow-md); color: var(--text-light); text-decoration: none; }
+    .btn-outline-primary { background-color: transparent; color: var(--primary-color); border-color: var(--primary-color); }
+    .btn-outline-primary:hover, .btn-outline-primary:focus, .btn-outline-primary:active { background-color: var(--primary-color); border-color: var(--primary-color); color: var(--text-light); transform: translateY(-1px); box-shadow: var(--shadow-md); text-decoration: none; }
+
     .text-primary {
         color: var(--primary-color) !important;
     }
@@ -330,6 +353,21 @@
     .border-primary {
         border-color: var(--primary-color) !important;
     }
+
+    /* Dashboard Card (matches authenticated_home) */
+    .dashboard-card { background: var(--ui-surface); border-radius: var(--radius-md); margin-bottom: 1.5rem; box-shadow: var(--shadow-sm); border: 1px solid var(--ui-border); transition: all 0.3s ease; }
+    .dashboard-card:hover { box-shadow: var(--shadow-md); transform: translateY(-2px); }
+    .dashboard-card .card-body { padding: 1.5rem; }
+    .dashboard-card .card-header { background: var(--ui-hover); border-bottom: 1px solid var(--ui-border); padding: 1rem 1.5rem; }
+    .dashboard-card .card-title { color: var(--text-primary); font-weight: 600; margin: 0; font-size: 1.125rem; }
+
+    /* Welcome Header */
+    .welcome-header { background: var(--primary-color); color: var(--text-light); padding: 1.75rem; border-radius: var(--radius-md); margin-bottom: 1.25rem; box-shadow: var(--shadow-sm); font-size: 0.875rem; }
+    .welcome-header h4 { font-size: 1.5rem; font-weight: 600; margin-bottom: 0.25rem; }
+    .welcome-header p { opacity: 0.9; font-size: 0.875rem; margin: 0; }
+
+    @media (max-width: 768px) { .dashboard-card .card-body { padding: 1rem; } .dashboard-card .card-header { padding: 0.75rem 1rem; } }
+    @media (max-width: 576px) { .dashboard-card .card-body { padding: 0.75rem; } }
 </style>
 {% endblock %}
 

@@ -1,0 +1,846 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block title %}{% trans "Enhanced Verification Dashboard" %} - NORSU Alumni{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block breadcrumbs %}
+<li class="breadcrumb-item"><a href="{% url 'donations:dashboard' %}">{% trans "Dashboard" %}</a></li>
+<li class="breadcrumb-item active">{% trans "Verification" %}</li>
+{% endblock %}
+
+{% block donations_content %}
+<div class="col-12">
+  <div class="welcome-header mt-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4>{% trans "Verification Dashboard" %}</h4>
+        <p>{% trans "Manage donation verification, approvals, and auditing." %}</p>
+      </div>
+      <div class="d-flex gap-2">
+        <a href="{% url 'donations:analytics_dashboard' %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-chart-line me-2"></i>{% trans "View Analytics" %}
+        </a>
+        <button type="button" class="btn btn-outline-light btn-sm" onclick="exportData()">
+          <i class="fas fa-download me-2"></i>{% trans "Export Data" %}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+<!-- Enhanced Statistics Cards -->
+<div class="row mb-4">
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title mb-1">{{ stats.pending_count }}</h3>
+                        <p class="card-text mb-0">{% trans "Pending Verification" %}</p>
+                        <small class="opacity-75">{% trans "Requires Action" %}</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-clock fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title mb-1">{{ stats.completed_count }}</h3>
+                        <p class="card-text mb-0">{% trans "Completed" %}</p>
+                        <small class="opacity-75">{% trans "Successfully Verified" %}</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title mb-1">{{ stats.failed_count }}</h3>
+                        <p class="card-text mb-0">{% trans "Failed" %}</p>
+                        <small class="opacity-75">{% trans "Verification Failed" %}</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-times-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-md-6 mb-3">
+        <div class="dashboard-card h-100">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h3 class="card-title mb-1">{{ stats.today_verified }}</h3>
+                        <p class="card-text mb-0">{% trans "Today's Verifications" %}</p>
+                        <small class="opacity-75">{% trans "Your Progress" %}</small>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-day fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Admin Performance (Super Admin Only) -->
+{% if admin_stats and user.is_superuser %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-users me-2"></i>
+                    {% trans "Admin Performance Today" %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for admin in admin_stats %}
+                    <div class="col-md-2 text-center mb-2">
+                        <div class="p-2 border rounded">
+                            <strong>{{ admin.get_full_name|default:admin.username }}</strong><br>
+                            <span class="badge bg-primary">{{ admin.verifications_today }} {% trans "verifications" %}</span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Advanced Filters and Search -->
+<div class="dashboard-card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-filter me-2"></i>
+            {% trans "Filters and Search" %}
+        </h5>
+    </div>
+    <div class="card-body">
+        <form method="get" id="filter-form" class="row g-3">
+            <div class="col-md-4">
+                <label for="search" class="form-label">{% trans "Search" %}</label>
+                <input type="text"
+                       class="form-control"
+                       id="search"
+                       name="search"
+                       value="{{ search }}"
+                       placeholder="{% trans 'Name, email, reference, transaction ID...' %}">
+            </div>
+            <div class="col-md-3">
+                <label for="campaign" class="form-label">{% trans "Campaign" %}</label>
+                <select class="form-select" id="campaign" name="campaign">
+                    <option value="">{% trans "All Campaigns" %}</option>
+                    {% for campaign in campaigns %}
+                    <option value="{{ campaign.id }}" {% if campaign_filter == campaign.id|stringformat:"s" %}selected{% endif %}>
+                        {{ campaign.name|truncatechars:30 }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label for="date_from" class="form-label">{% trans "From Date" %}</label>
+                <input type="date" class="form-control" id="date_from" name="date_from" value="{{ date_from }}">
+            </div>
+            <div class="col-md-2">
+                <label for="date_to" class="form-label">{% trans "To Date" %}</label>
+                <input type="date" class="form-control" id="date_to" name="date_to" value="{{ date_to }}">
+            </div>
+            <div class="col-md-1">
+                <label class="form-label">&nbsp;</label>
+                <div class="d-grid">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </form>
+
+        <!-- Quick Actions -->
+        <div class="mt-3 d-flex gap-2 flex-wrap">
+            <button type="button" class="btn btn-outline-secondary btn-sm" onclick="clearFilters()">
+                <i class="fas fa-times me-1"></i>{% trans "Clear Filters" %}
+            </button>
+            <button type="button" class="btn btn-outline-info btn-sm" onclick="exportData()">
+                <i class="fas fa-download me-1"></i>{% trans "Export Data" %}
+            </button>
+            <div class="ms-auto">
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-outline-primary btn-sm" onclick="selectAll()">
+                        <i class="fas fa-check-square me-1"></i>{% trans "Select All" %}
+                    </button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" onclick="selectNone()">
+                        <i class="fas fa-square me-1"></i>{% trans "Select None" %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Tabbed Interface -->
+<div class="dashboard-card">
+    <div class="card-header p-0">
+        <ul class="nav nav-tabs card-header-tabs" id="verification-tabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if current_tab == 'pending' %}active{% endif %}"
+                   href="?tab=pending{% if search %}&search={{ search }}{% endif %}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                    <i class="fas fa-clock me-2"></i>
+                    {% trans "Pending" %}
+                    <span class="badge bg-warning ms-1">{{ stats.pending_count }}</span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if current_tab == 'completed' %}active{% endif %}"
+                   href="?tab=completed{% if search %}&search={{ search }}{% endif %}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                    <i class="fas fa-check-circle me-2"></i>
+                    {% trans "Completed" %}
+                    <span class="badge bg-success ms-1">{{ stats.completed_count }}</span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if current_tab == 'failed' %}active{% endif %}"
+                   href="?tab=failed{% if search %}&search={{ search }}{% endif %}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                    <i class="fas fa-times-circle me-2"></i>
+                    {% trans "Failed" %}
+                    <span class="badge bg-danger ms-1">{{ stats.failed_count }}</span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if current_tab == 'disputed' %}active{% endif %}"
+                   href="?tab=disputed{% if search %}&search={{ search }}{% endif %}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                    <i class="fas fa-question-circle me-2"></i>
+                    {% trans "Disputed" %}
+                    <span class="badge bg-warning ms-1">{{ stats.disputed_count }}</span>
+                </a>
+            </li>
+            <li class="nav-item" role="presentation">
+                <a class="nav-link {% if current_tab == 'all' %}active{% endif %}"
+                   href="?tab=all{% if search %}&search={{ search }}{% endif %}{% if campaign_filter %}&campaign={{ campaign_filter }}{% endif %}{% if date_from %}&date_from={{ date_from }}{% endif %}{% if date_to %}&date_to={{ date_to }}{% endif %}">
+                    <i class="fas fa-list me-2"></i>
+                    {% trans "All" %}
+                </a>
+            </li>
+        </ul>
+    </div>
+    <div class="card-body">
+        <!-- Bulk Actions Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+                <span class="text-muted">
+                    {% trans "Showing" %} {{ page_obj.start_index }}-{{ page_obj.end_index }}
+                    {% trans "of" %} {{ page_obj.paginator.count }} {% trans "donations" %}
+                </span>
+            </div>
+            <div class="d-flex gap-2">
+                <!-- Sorting -->
+                <div class="dropdown">
+                    <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                        <i class="fas fa-sort me-1"></i>{% trans "Sort" %}
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&sort=-created_at">{% trans "Newest First" %}</a></li>
+                        <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&sort=created_at">{% trans "Oldest First" %}</a></li>
+                        <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&sort=-amount">{% trans "Highest Amount" %}</a></li>
+                        <li><a class="dropdown-item" href="?{{ request.GET.urlencode }}&sort=amount">{% trans "Lowest Amount" %}</a></li>
+                    </ul>
+                </div>
+
+                <!-- Bulk Actions -->
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-success btn-sm" onclick="bulkAction('completed')" disabled id="bulk-approve">
+                        <i class="fas fa-check me-1"></i>{% trans "Approve Selected" %}
+                    </button>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="bulkAction('failed')" disabled id="bulk-reject">
+                        <i class="fas fa-times me-1"></i>{% trans "Reject Selected" %}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        {% if page_obj %}
+            <div class="table-responsive">
+                <table class="table table-hover" id="donations-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 40px;">
+                                <input type="checkbox" class="form-check-input" id="select-all-checkbox">
+                            </th>
+                            <th>{% trans "Donor" %}</th>
+                            <th>{% trans "Campaign" %}</th>
+                            <th>{% trans "Amount" %}</th>
+                            <th>{% trans "Reference" %}</th>
+                            <th>{% trans "Date" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Proof" %}</th>
+                            <th>{% trans "Actions" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donation in page_obj %}
+                        <tr id="donation-{{ donation.pk }}" class="donation-row">
+                            <td>
+                                {% if current_tab == 'pending' %}
+                                <input type="checkbox" class="form-check-input donation-checkbox" value="{{ donation.pk }}">
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div>
+                                        {% if donation.is_anonymous %}
+                                            <span class="text-muted">{% trans "Anonymous" %}</span>
+                                        {% elif donation.donor %}
+                                            <strong>{{ donation.donor.get_full_name }}</strong><br>
+                                            <small class="text-muted">{{ donation.donor.email }}</small>
+                                        {% else %}
+                                            <strong>{{ donation.donor_name }}</strong><br>
+                                            <small class="text-muted">{{ donation.donor_email }}</small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="fw-bold">{{ donation.campaign.name|truncatechars:25 }}</span>
+                            </td>
+                            <td>
+                                <span class="fw-bold text-success">₱{{ donation.amount|intcomma }}</span>
+                            </td>
+                            <td>
+                                <code class="small">{{ donation.reference_number }}</code>
+                                {% if donation.gcash_transaction_id %}
+                                <br><small class="text-muted">{{ donation.gcash_transaction_id }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span title="{{ donation.created_at }}">{{ donation.created_at|timesince }} {% trans "ago" %}</span>
+                                {% if donation.verification_date %}
+                                <br><small class="text-muted">{% trans "Verified:" %} {{ donation.verification_date|timesince }} {% trans "ago" %}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if donation.status == 'completed' %}
+                                    <span class="badge bg-success">{{ donation.get_status_display }}</span>
+                                {% elif donation.status == 'failed' %}
+                                    <span class="badge bg-danger">{{ donation.get_status_display }}</span>
+                                {% elif donation.status == 'disputed' %}
+                                    <span class="badge bg-warning">{{ donation.get_status_display }}</span>
+                                {% elif donation.status == 'pending_verification' %}
+                                    <span class="badge bg-warning">{{ donation.get_status_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ donation.get_status_display }}</span>
+                                {% endif %}
+                                {% if donation.verified_by %}
+                                <br><small class="text-muted">{% trans "by" %} {{ donation.verified_by.get_full_name }}</small>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if donation.payment_proof %}
+                                    <button class="btn btn-sm btn-outline-primary"
+                                            onclick="viewProof('{{ donation.payment_proof.url }}', '{{ donation.reference_number }}')">
+                                        <i class="fas fa-eye"></i>
+                                    </button>
+                                {% else %}
+                                    <span class="text-muted small">{% trans "No proof" %}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if donation.status == 'pending_verification' %}
+                                <div class="btn-group" role="group">
+                                    <button class="btn btn-sm btn-success"
+                                            onclick="verifyDonation({{ donation.pk }}, 'completed')"
+                                            title="{% trans 'Approve' %}">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-danger"
+                                            onclick="verifyDonation({{ donation.pk }}, 'failed')"
+                                            title="{% trans 'Reject' %}">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-warning"
+                                            onclick="verifyDonation({{ donation.pk }}, 'disputed')"
+                                            title="{% trans 'Mark as Disputed' %}">
+                                        <i class="fas fa-question"></i>
+                                    </button>
+                                </div>
+                                {% else %}
+                                <span class="text-muted small">{% trans "No actions" %}</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            {% if page_obj.has_other_pages %}
+            <nav aria-label="{% trans 'Donations pagination' %}">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                                <i class="fas fa-chevron-left"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                        {% if page_obj.number == num %}
+                            <li class="page-item active">
+                                <span class="page-link">{{ num }}</span>
+                            </li>
+                        {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ num }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">{{ num }}</a>
+                            </li>
+                        {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.urlencode %}&{{ request.GET.urlencode }}{% endif %}">
+                                <i class="fas fa-chevron-right"></i>
+                            </a>
+                        </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        {% else %}
+            <div class="text-center py-5">
+                <i class="fas fa-search fa-3x text-muted mb-3"></i>
+                <h5>{% trans "No donations found" %}</h5>
+                <p class="text-muted">{% trans "Try adjusting your filters or search criteria." %}</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Recent Verifications -->
+<div class="card">
+    <div class="card-header">
+        <h5 class="mb-0">
+            <i class="fas fa-history me-2"></i>
+            {% trans "Recent Verifications" %}
+        </h5>
+    </div>
+    <div class="card-body">
+        {% if recent_verifications %}
+            <div class="table-responsive">
+                <table class="table table-sm">
+                    <thead>
+                        <tr>
+                            <th>{% trans "Donor" %}</th>
+                            <th>{% trans "Amount" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Verified By" %}</th>
+                            <th>{% trans "Date" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for donation in recent_verifications %}
+                        <tr>
+                            <td>
+                                {% if donation.is_anonymous %}
+                                    <span class="text-muted">{% trans "Anonymous" %}</span>
+                                {% elif donation.donor %}
+                                    {{ donation.donor.get_full_name }}
+                                {% else %}
+                                    {{ donation.donor_name }}
+                                {% endif %}
+                            </td>
+                            <td>₱{{ donation.amount|intcomma }}</td>
+                            <td>
+                                {% if donation.status == 'completed' %}
+                                    <span class="badge bg-success">{{ donation.get_status_display }}</span>
+                                {% elif donation.status == 'failed' %}
+                                    <span class="badge bg-danger">{{ donation.get_status_display }}</span>
+                                {% elif donation.status == 'disputed' %}
+                                    <span class="badge bg-warning">{{ donation.get_status_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ donation.verified_by.get_full_name|default:"-" }}</td>
+                            <td>{{ donation.verification_date|timesince }} {% trans "ago" %}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <p class="text-muted">{% trans "No recent verifications." %}</p>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Enhanced Image Modal -->
+<div class="modal fade" id="proofModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-image me-2"></i>
+                    {% trans "Payment Proof" %} - <span id="proofReference"></span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img id="proofImage" src="" alt="Payment Proof" class="img-fluid rounded shadow">
+                <div class="mt-3">
+                    <button class="btn btn-outline-primary" onclick="downloadProof()">
+                        <i class="fas fa-download me-1"></i>{% trans "Download" %}
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="openInNewTab()">
+                        <i class="fas fa-external-link-alt me-1"></i>{% trans "Open in New Tab" %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bulk Action Modal -->
+<div class="modal fade" id="bulkActionModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">
+                    <i class="fas fa-tasks me-2"></i>
+                    {% trans "Bulk Action Confirmation" %}
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p id="bulkActionMessage"></p>
+                <div class="mb-3">
+                    <label for="bulkNotes" class="form-label">{% trans "Notes (Optional)" %}</label>
+                    <textarea class="form-control" id="bulkNotes" rows="3" placeholder="{% trans 'Add notes for this bulk action...' %}"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">{% trans "Cancel" %}</button>
+                <button type="button" class="btn btn-primary" id="confirmBulkAction">{% trans "Confirm" %}</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Checkbox functionality
+    const selectAllCheckbox = document.getElementById('select-all-checkbox');
+    const donationCheckboxes = document.querySelectorAll('.donation-checkbox');
+    const bulkApproveBtn = document.getElementById('bulk-approve');
+    const bulkRejectBtn = document.getElementById('bulk-reject');
+
+    // Select all functionality
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            donationCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateBulkActionButtons();
+        });
+    }
+
+    // Individual checkbox functionality
+    donationCheckboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateBulkActionButtons();
+            updateSelectAllCheckbox();
+        });
+    });
+
+    function updateBulkActionButtons() {
+        const checkedBoxes = document.querySelectorAll('.donation-checkbox:checked');
+        const hasSelection = checkedBoxes.length > 0;
+
+        if (bulkApproveBtn) bulkApproveBtn.disabled = !hasSelection;
+        if (bulkRejectBtn) bulkRejectBtn.disabled = !hasSelection;
+    }
+
+    function updateSelectAllCheckbox() {
+        if (selectAllCheckbox) {
+            const checkedCount = document.querySelectorAll('.donation-checkbox:checked').length;
+            const totalCount = donationCheckboxes.length;
+
+            selectAllCheckbox.checked = checkedCount === totalCount && totalCount > 0;
+            selectAllCheckbox.indeterminate = checkedCount > 0 && checkedCount < totalCount;
+        }
+    }
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+        // Ctrl+A to select all
+        if (e.ctrlKey && e.key === 'a' && e.target.tagName !== 'INPUT' && e.target.tagName !== 'TEXTAREA') {
+            e.preventDefault();
+            selectAll();
+        }
+
+        // Ctrl+D to deselect all
+        if (e.ctrlKey && e.key === 'd') {
+            e.preventDefault();
+            selectNone();
+        }
+
+        // Ctrl+Enter to approve selected
+        if (e.ctrlKey && e.key === 'Enter') {
+            e.preventDefault();
+            bulkAction('completed');
+        }
+
+        // Ctrl+Delete to reject selected
+        if (e.ctrlKey && e.key === 'Delete') {
+            e.preventDefault();
+            bulkAction('failed');
+        }
+    });
+
+    // Auto-refresh every 30 seconds
+    setInterval(function() {
+        // Only refresh if no modals are open and no checkboxes are selected
+        const openModals = document.querySelectorAll('.modal.show');
+        const selectedCheckboxes = document.querySelectorAll('.donation-checkbox:checked');
+
+        if (openModals.length === 0 && selectedCheckboxes.length === 0) {
+            // Subtle refresh indicator
+            const refreshIndicator = document.createElement('div');
+            refreshIndicator.className = 'position-fixed top-0 end-0 m-3 alert alert-info alert-dismissible fade show';
+            refreshIndicator.innerHTML = '<i class="fas fa-sync-alt fa-spin me-2"></i>{% trans "Refreshing..." %}';
+            document.body.appendChild(refreshIndicator);
+
+            setTimeout(() => {
+                location.reload();
+            }, 1000);
+        }
+    }, 30000);
+});
+
+// Global variables for modal functionality
+let currentProofUrl = '';
+let currentBulkAction = '';
+let selectedDonations = [];
+
+function viewProof(imageUrl, referenceNumber) {
+    currentProofUrl = imageUrl;
+    document.getElementById('proofImage').src = imageUrl;
+    document.getElementById('proofReference').textContent = referenceNumber || '';
+    new bootstrap.Modal(document.getElementById('proofModal')).show();
+}
+
+function downloadProof() {
+    if (currentProofUrl) {
+        const link = document.createElement('a');
+        link.href = currentProofUrl;
+        link.download = 'payment_proof_' + Date.now() + '.jpg';
+        link.click();
+    }
+}
+
+function openInNewTab() {
+    if (currentProofUrl) {
+        window.open(currentProofUrl, '_blank');
+    }
+}
+
+function selectAll() {
+    const checkboxes = document.querySelectorAll('.donation-checkbox');
+    checkboxes.forEach(checkbox => checkbox.checked = true);
+    document.getElementById('select-all-checkbox').checked = true;
+    updateBulkActionButtons();
+}
+
+function selectNone() {
+    const checkboxes = document.querySelectorAll('.donation-checkbox');
+    checkboxes.forEach(checkbox => checkbox.checked = false);
+    document.getElementById('select-all-checkbox').checked = false;
+    updateBulkActionButtons();
+}
+
+function clearFilters() {
+    window.location.href = window.location.pathname;
+}
+
+function exportData() {
+    const params = new URLSearchParams(window.location.search);
+    params.set('export', 'csv');
+    window.location.href = window.location.pathname + '?' + params.toString();
+}
+
+function bulkAction(action) {
+    const checkedBoxes = document.querySelectorAll('.donation-checkbox:checked');
+    if (checkedBoxes.length === 0) {
+        alert('{% trans "Please select at least one donation." %}');
+        return;
+    }
+
+    selectedDonations = Array.from(checkedBoxes).map(cb => cb.value);
+    currentBulkAction = action;
+
+    const actionText = action === 'completed' ? '{% trans "approve" %}' : '{% trans "reject" %}';
+    const message = `{% trans "Are you sure you want to" %} ${actionText} ${selectedDonations.length} {% trans "selected donations?" %}`;
+
+    document.getElementById('bulkActionMessage').textContent = message;
+    document.getElementById('bulkNotes').value = '';
+
+    const modal = new bootstrap.Modal(document.getElementById('bulkActionModal'));
+    modal.show();
+
+    document.getElementById('confirmBulkAction').onclick = function() {
+        performBulkAction();
+        modal.hide();
+    };
+}
+
+function performBulkAction() {
+    const notes = document.getElementById('bulkNotes').value;
+
+    const formData = new FormData();
+    formData.append('action', currentBulkAction);
+    formData.append('donation_ids', JSON.stringify(selectedDonations));
+    formData.append('notes', notes);
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    // Show loading state
+    const loadingToast = showToast('{% trans "Processing bulk action..." %}', 'info', false);
+
+    fetch('/donations/bulk-verify/', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        loadingToast.hide();
+        if (data.status === 'success') {
+            showToast(`{% trans "Successfully processed" %} ${data.processed_count} {% trans "donations" %}`, 'success');
+            setTimeout(() => location.reload(), 1500);
+        } else {
+            showToast('{% trans "Error:" %} ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        loadingToast.hide();
+        console.error('Error:', error);
+        showToast('{% trans "An error occurred. Please try again." %}', 'error');
+    });
+}
+
+function verifyDonation(donationId, status) {
+    const notes = prompt('{% trans "Add verification notes (optional):" %}');
+
+    const formData = new FormData();
+    formData.append('status', status);
+    formData.append('verification_notes', notes || '');
+    formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
+
+    // Show loading state on button
+    const buttons = document.querySelectorAll(`#donation-${donationId} button`);
+    buttons.forEach(btn => btn.disabled = true);
+
+    fetch(`/donations/verify-donation/${donationId}/`, {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // Remove row with animation
+            const row = document.getElementById(`donation-${donationId}`);
+            if (row) {
+                row.style.transition = 'opacity 0.3s ease';
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.remove();
+                    // Update counts
+                    updateStatsCounts();
+                }, 300);
+            }
+            showToast('{% trans "Donation verified successfully" %}', 'success');
+        } else {
+            buttons.forEach(btn => btn.disabled = false);
+            showToast('{% trans "Error:" %} ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        buttons.forEach(btn => btn.disabled = false);
+        console.error('Error:', error);
+        showToast('{% trans "An error occurred. Please try again." %}', 'error');
+    });
+}
+
+function updateStatsCounts() {
+    // Update the pending count badge
+    const pendingBadge = document.querySelector('.nav-link[href*="tab=pending"] .badge');
+    if (pendingBadge) {
+        const currentCount = parseInt(pendingBadge.textContent);
+        if (currentCount > 0) {
+            pendingBadge.textContent = currentCount - 1;
+        }
+    }
+}
+
+function showToast(message, type = 'info', autoHide = true) {
+    const toastContainer = document.getElementById('toast-container') || createToastContainer();
+
+    const toastId = 'toast-' + Date.now();
+    const bgClass = type === 'success' ? 'bg-success' : type === 'error' ? 'bg-danger' : 'bg-info';
+    const icon = type === 'success' ? 'check' : type === 'error' ? 'exclamation-triangle' : 'info-circle';
+
+    const toastHtml = `
+        <div id="${toastId}" class="toast align-items-center text-white ${bgClass} border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body">
+                    <i class="fas fa-${icon} me-2"></i>${message}
+                </div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    `;
+
+    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
+    const toastElement = document.getElementById(toastId);
+    const toast = new bootstrap.Toast(toastElement, { autohide: autoHide, delay: 5000 });
+
+    toast.show();
+
+    toastElement.addEventListener('hidden.bs.toast', function() {
+        toastElement.remove();
+    });
+
+    return toast;
+}
+
+function createToastContainer() {
+    const container = document.createElement('div');
+    container.id = 'toast-container';
+    container.className = 'toast-container position-fixed top-0 end-0 p-3';
+    container.style.zIndex = '9999';
+    document.body.appendChild(container);
+    return container;
+}
+</script>
+{% endblock %}

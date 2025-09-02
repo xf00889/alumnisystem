@@ -2,13 +2,38 @@
 {% load static %}
 {% load humanize %}
 
-{% block page_title %}Fundraising Campaigns{% endblock %}
+{% block page_header %}{% endblock %}
 
 {% block donations_content %}
+<div class="col-12">
+  <div class="welcome-header mt-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4>Fundraising Campaigns</h4>
+        <p>Browse and support active and upcoming fundraising campaigns.</p>
+      </div>
+      <div class="d-flex gap-2">
+        {% if user.is_staff %}
+        <a href="{% url 'donations:campaign_create' %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-plus me-2"></i>Create Campaign
+        </a>
+        {% endif %}
+        {% if user.is_superuser %}
+        <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-chart-line me-2"></i>View Dashboard
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
 <div class="col-lg-3 mb-4">
     <!-- Filter Sidebar -->
-    <div class="filter-sidebar">
-        <h3 class="filter-title">Filter Campaigns</h3>
+    <div class="filter-sidebar dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Filter Campaigns</h5>
+        </div>
+        <div class="card-body">
         <form method="get" action="{% url 'donations:campaign_list' %}">
             <div class="filter-section">
                 <h4 class="filter-section-title">Search</h4>
@@ -32,11 +57,15 @@
             
             <button type="submit" class="btn btn-primary w-100">Apply Filters</button>
         </form>
+        </div>
     </div>
-    
+
     <!-- Campaign Types -->
-    <div class="filter-sidebar">
-        <h3 class="filter-title">Campaign Types</h3>
+    <div class="filter-sidebar dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Campaign Types</h5>
+        </div>
+        <div class="card-body">
         <ul class="list-group list-group-flush">
             {% for campaign_type in campaign_types %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -49,12 +78,16 @@
             <li class="list-group-item">No campaign types available</li>
             {% endfor %}
         </ul>
+        </div>
     </div>
-    
+
     <!-- Featured Campaigns -->
     {% if featured_campaigns %}
-    <div class="filter-sidebar">
-        <h3 class="filter-title">Featured Campaigns</h3>
+    <div class="filter-sidebar dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0">Featured Campaigns</h5>
+        </div>
+        <div class="card-body">
         {% for campaign in featured_campaigns %}
         <div class="mb-3">
             <h5 class="mb-1">
@@ -72,6 +105,8 @@
             </div>
         </div>
         {% endfor %}
+        </div>
+        </div>
     </div>
     {% endif %}
 </div>
@@ -79,22 +114,31 @@
 <div class="col-lg-9">
     <div class="row mb-4">
         <div class="col-12">
-            <div class="d-flex justify-content-between align-items-center">
-                <h2>All Campaigns</h2>
-                {% if user.is_staff or user.is_superuser %}
-                <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-primary">
-                    <i class="fas fa-chart-line me-2"></i>Donation Dashboard
-                </a>
-                {% endif %}
+            <div class="dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">All Campaigns</h5>
+                    <div class="d-flex gap-2">
+                      {% if user.is_staff %}
+                      <a href="{% url 'donations:campaign_create' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-plus me-2"></i>Create Campaign
+                      </a>
+                      {% endif %}
+                      {% if user.is_superuser %}
+                      <a href="{% url 'donations:dashboard' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-chart-line me-2"></i>Donation Dashboard
+                      </a>
+                      {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
     </div>
-    
+
     <div class="row">
         {% for campaign in page_obj %}
         <div class="col-md-6 col-lg-4 mb-4">
-            <div class="campaign-card">
-                <div class="campaign-image" 
+            <div class="campaign-card dashboard-card">
+                <div class="campaign-image"
                      style="background-image: url('{% if campaign.featured_image %}{{ campaign.featured_image.url }}{% else %}{% static 'images/campaign-placeholder.jpg' %}{% endif %}');">
                 </div>
                 <div class="campaign-content">
@@ -147,7 +191,7 @@
                     
                     <div class="mt-3">
                         <a href="{% url 'donations:campaign_detail' slug=campaign.slug %}" class="btn btn-primary w-100">
-                            {% if campaign.is_active %}Donate Now{% else %}View Campaign{% endif %}
+                            {% if campaign.is_active %}<i class="fas fa-heart me-2"></i>Donate Now{% else %}<i class="fas fa-eye me-2"></i>View Campaign{% endif %}
                         </a>
                     </div>
                 </div>

@@ -17,7 +17,7 @@
                 <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-secondary me-2">
                     <i class="fas fa-th-large me-1"></i> Card View
                 </a>
-                <a href="{% url 'alumni_directory:tabular_alumni_list' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" class="btn btn-success">
+                <a href="{% url 'alumni_directory:tabular_alumni_list' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}" class="btn btn-success">
                     <i class="fas fa-file-csv me-1"></i> Export to CSV
                 </a>
             </div>
@@ -34,7 +34,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                                     <input type="text" id="search" name="search" value="{{ search_query }}" 
-                                           class="form-control" placeholder="Search by name, course, or location">
+                                           class="form-control" placeholder="Search by name, course, college, or location">
                                 </div>
                             </div>
                         </div>
@@ -45,6 +45,17 @@
                                     <option value="">All Years</option>
                                     {% for year in graduation_years %}
                                     <option value="{{ year }}" {% if selected_year == year|stringformat:"i" %}selected{% endif %}>{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="college" class="form-label">College</label>
+                                <select id="college" name="college" class="form-select">
+                                    <option value="">All Colleges</option>
+                                    {% for college_code, college_name in colleges %}
+                                    <option value="{{ college_code }}" {% if selected_college == college_code %}selected{% endif %}>{{ college_name }}</option>
                                     {% endfor %}
                                 </select>
                             </div>
@@ -86,6 +97,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Full Name</th>
+                                <th>College</th>
                                 <th>Year</th>
                                 <th>Course</th>
                                 <th>Present Occupation</th>
@@ -101,6 +113,13 @@
                                     <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" class="text-decoration-none">
                                         {{ alumni.full_name }}
                                     </a>
+                                </td>
+                                <td>
+                                    {% if alumni.college %}
+                                        <span class="badge bg-info text-dark">{{ alumni.college_display }}</span>
+                                    {% else %}
+                                        <span class="text-muted">Not specified</span>
+                                    {% endif %}
                                 </td>
                                 <td>{{ alumni.graduation_year }}</td>
                                 <td>{{ alumni.course }}</td>
@@ -138,7 +157,7 @@
                             </tr>
                             {% empty %}
                             <tr>
-                                <td colspan="7" class="text-center py-4">
+                                <td colspan="8" class="text-center py-4">
                                     <div class="alert alert-info mb-0">
                                         <i class="fas fa-info-circle me-2"></i>
                                         No alumni records found matching your criteria.
@@ -158,12 +177,12 @@
             <ul class="pagination justify-content-center">
                 {% if alumni_list.has_previous %}
                 <li class="page-item">
-                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="First">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}" aria-label="First">
                         <span aria-hidden="true">&laquo;&laquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Previous">
+                    <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}" aria-label="Previous">
                         <span aria-hidden="true">&laquo;</span>
                     </a>
                 </li>
@@ -176,19 +195,19 @@
                         </li>
                     {% elif num > alumni_list.number|add:'-3' and num < alumni_list.number|add:'3' %}
                         <li class="page-item">
-                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">{{ num }}</a>
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}">{{ num }}</a>
                         </li>
                     {% endif %}
                 {% endfor %}
 
                 {% if alumni_list.has_next %}
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Next">
+                    <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}" aria-label="Next">
                         <span aria-hidden="true">&raquo;</span>
                     </a>
                 </li>
                 <li class="page-item">
-                    <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Last">
+                    <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}" aria-label="Last">
                         <span aria-hidden="true">&raquo;&raquo;</span>
                     </a>
                 </li>

@@ -4,151 +4,381 @@
 
 {% block title %}Welcome - Alumni System{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .authenticated-home {
+        font-family: 'Poppins', sans-serif;
+        padding: 1.25rem;
+        background-color: var(--ui-background);
+        min-height: calc(100vh - 60px);
+    }
+
+    /* Dashboard Header (Matching Location Tracking Style) */
+    .welcome-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .welcome-header h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .welcome-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Card Styling (Matching Location Tracking) */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .dashboard-card .card-header {
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+    }
+
+    .dashboard-card .card-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.125rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Button Styling (Matching Location Tracking) */
+    .btn {
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-success {
+        background-color: var(--feedback-success);
+        border-color: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .btn-success:hover {
+        background-color: #38a169;
+        border-color: #38a169;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-info {
+        background-color: var(--feedback-info);
+        border-color: var(--feedback-info);
+        color: var(--text-light);
+    }
+
+    .btn-info:hover {
+        background-color: #3182ce;
+        border-color: #3182ce;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-outline-primary {
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container-fluid">
-    <!-- Welcome Header -->
-    <div class="row mb-4">
-        <div class="col-12">
-            <div class="card bg-primary text-white">
-                <div class="card-body">
-                    <div class="d-flex align-items-center">
-                        <div class="me-3">
-                            {% if user.profile.avatar %}
-                                <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}" 
-                                     class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;">
-                            {% else %}
-                                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" 
-                                     class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover;">
-                            {% endif %}
-                        </div>
-                        <div>
-                            <h4 class="mb-1">Welcome back, {{ user.get_full_name|default:user.username }}!</h4>
-                            <p class="mb-0 opacity-75">{{ user.email }}</p>
-                        </div>
+<div class="authenticated-home">
+    <div class="container">
+        <!-- Dashboard Header (Matching Location Tracking Style) -->
+        <div class="welcome-header">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    {% if user.profile.avatar %}
+                        <img src="{{ user.profile.avatar.url }}" alt="{{ user.get_full_name }}"
+                             class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+                    {% else %}
+                        <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar"
+                             class="rounded-circle" style="width: 60px; height: 60px; object-fit: cover; border: 3px solid rgba(255,255,255,0.2);">
+                    {% endif %}
+                </div>
+                <div>
+                    <h4>Welcome back, {{ user.get_full_name|default:user.username }}!</h4>
+                    <p>{{ user.email }}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="row mb-4">
+            <div class="col-md-3 mb-3">
+                <div class="dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-user fa-2x mb-3" style="color: var(--primary-color);"></i>
+                        <h6 style="color: var(--text-primary); font-weight: 600;">My Profile</h6>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">View and update your profile information</p>
+                        <a href="{% url 'accounts:profile_detail' %}" class="btn btn-primary btn-sm">View Profile</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-users fa-2x mb-3" style="color: var(--feedback-success);"></i>
+                        <h6 style="color: var(--text-primary); font-weight: 600;">Alumni Directory</h6>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">Connect with fellow alumni</p>
+                        <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-success btn-sm">Browse Alumni</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-calendar fa-2x mb-3" style="color: var(--feedback-warning);"></i>
+                        <h6 style="color: var(--text-primary); font-weight: 600;">Events</h6>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">Discover upcoming events</p>
+                        <a href="{% url 'events:event_list' %}" class="btn" style="background-color: var(--feedback-warning); border-color: var(--feedback-warning); color: var(--text-light);">View Events</a>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3 mb-3">
+                <div class="dashboard-card">
+                    <div class="card-body text-center">
+                        <i class="fas fa-briefcase fa-2x mb-3" style="color: var(--feedback-info);"></i>
+                        <h6 style="color: var(--text-primary); font-weight: 600;">Job Board</h6>
+                        <p style="color: var(--text-secondary); font-size: 0.875rem;">Find career opportunities</p>
+                        <a href="{% url 'jobs:job_list' %}" class="btn btn-info btn-sm">Browse Jobs</a>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
 
-    <!-- Quick Actions -->
-    <div class="row mb-4">
-        <div class="col-md-3 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-user fa-2x text-primary mb-3"></i>
-                    <h6>My Profile</h6>
-                    <p class="text-muted small">View and update your profile information</p>
-                    <a href="{% url 'accounts:profile_detail' %}" class="btn btn-primary btn-sm">View Profile</a>
-                </div>
+        <div class="row">
+            <!-- Recent Announcements -->
+            <div class="col-md-6 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">
+                            <i class="fas fa-bullhorn me-2"></i>
+                            Recent Announcements
+                        </h5>
+                        <a href="{% url 'announcements:announcement-list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if announcements %}
+                            {% for announcement in announcements %}
+                            <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}" style="border-color: var(--ui-border) !important;">
+                                <h6 class="mb-1" style="color: var(--text-primary); font-weight: 600;">
+                                    <a href="{% url 'announcements:announcement-detail' announcement.id %}"
+                                       style="color: var(--primary-color); text-decoration: none;">{{ announcement.title }}</a>
+                                </h6>
+                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">{{ announcement.content|truncatewords:20 }}</p>
+                                <small style="color: var(--text-muted); font-size: 0.75rem;">
+                                    <i class="far fa-clock me-1"></i>
+                                    {{ announcement.date_posted|naturaltime }}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4" style="color: var(--text-muted);">
+                                <i class="fas fa-info-circle fa-2x mb-3" style="color: var(--text-muted);"></i>
+                                <p style="color: var(--text-secondary);">No announcements available</p>
+                            </div>
+                        {% endif %}
+                    </div>
             </div>
         </div>
-        <div class="col-md-3 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-users fa-2x text-success mb-3"></i>
-                    <h6>Alumni Directory</h6>
-                    <p class="text-muted small">Connect with fellow alumni</p>
-                    <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-success btn-sm">Browse Alumni</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-calendar fa-2x text-warning mb-3"></i>
-                    <h6>Events</h6>
-                    <p class="text-muted small">Discover upcoming events</p>
-                    <a href="{% url 'events:event_list' %}" class="btn btn-warning btn-sm">View Events</a>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 mb-3">
-            <div class="card h-100">
-                <div class="card-body text-center">
-                    <i class="fas fa-briefcase fa-2x text-info mb-3"></i>
-                    <h6>Job Board</h6>
-                    <p class="text-muted small">Find career opportunities</p>
-                    <a href="{% url 'jobs:job_list' %}" class="btn btn-info btn-sm">Browse Jobs</a>
-                </div>
-            </div>
-        </div>
-    </div>
 
-    <div class="row">
-        <!-- Recent Announcements -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-bullhorn me-2"></i>
-                        Recent Announcements
-                    </h5>
-                    <a href="{% url 'announcements:announcement_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    {% if announcements %}
-                        {% for announcement in announcements %}
-                        <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
-                            <h6 class="mb-1">
-                                <a href="{% url 'announcements:announcement_detail' announcement.id %}" 
-                                   class="text-decoration-none">{{ announcement.title }}</a>
-                            </h6>
-                            <p class="text-muted small mb-1">{{ announcement.content|truncatewords:20 }}</p>
-                            <small class="text-muted">
-                                <i class="far fa-clock me-1"></i>
-                                {{ announcement.date_posted|naturaltime }}
-                            </small>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-info-circle fa-2x mb-3"></i>
-                            <p>No announcements available</p>
-                        </div>
-                    {% endif %}
+            <!-- Upcoming Events -->
+            <div class="col-md-6 mb-4">
+                <div class="dashboard-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">
+                            <i class="fas fa-calendar-alt me-2"></i>
+                            Upcoming Events
+                        </h5>
+                        <a href="{% url 'events:event_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
+                    </div>
+                    <div class="card-body">
+                        {% if upcoming_events %}
+                            {% for event in upcoming_events %}
+                            <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}" style="border-color: var(--ui-border) !important;">
+                                <h6 class="mb-1" style="color: var(--text-primary); font-weight: 600;">
+                                    <a href="{% url 'events:event_detail' event.id %}"
+                                       style="color: var(--primary-color); text-decoration: none;">{{ event.title }}</a>
+                                </h6>
+                                <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 0.25rem;">{{ event.description|truncatewords:15 }}</p>
+                                <small style="color: var(--text-muted); font-size: 0.75rem;">
+                                    <i class="far fa-calendar me-1"></i>
+                                    {{ event.start_date|date:"M d, Y" }}
+                                    {% if event.location %}
+                                        <i class="fas fa-map-marker-alt ms-2 me-1"></i>
+                                        {{ event.location }}
+                                    {% endif %}
+                                </small>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="text-center py-4" style="color: var(--text-muted);">
+                                <i class="fas fa-calendar-times fa-2x mb-3" style="color: var(--text-muted);"></i>
+                                <p style="color: var(--text-secondary);">No upcoming events</p>
+                            </div>
+                        {% endif %}
+                    </div>
                 </div>
             </div>
         </div>
 
-        <!-- Upcoming Events -->
-        <div class="col-md-6 mb-4">
-            <div class="card h-100">
-                <div class="card-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">
-                        <i class="fas fa-calendar-alt me-2"></i>
-                        Upcoming Events
-                    </h5>
-                    <a href="{% url 'events:event_list' %}" class="btn btn-sm btn-outline-primary">View All</a>
-                </div>
-                <div class="card-body">
-                    {% if upcoming_events %}
-                        {% for event in upcoming_events %}
-                        <div class="mb-3 {% if not forloop.last %}border-bottom pb-3{% endif %}">
-                            <h6 class="mb-1">
-                                <a href="{% url 'events:event_detail' event.id %}" 
-                                   class="text-decoration-none">{{ event.title }}</a>
-                            </h6>
-                            <p class="text-muted small mb-1">{{ event.description|truncatewords:15 }}</p>
-                            <small class="text-muted">
-                                <i class="far fa-calendar me-1"></i>
-                                {{ event.start_date|date:"M d, Y" }}
-                                {% if event.location %}
-                                    <i class="fas fa-map-marker-alt ms-2 me-1"></i>
-                                    {{ event.location }}
-                                {% endif %}
-                            </small>
-                        </div>
-                        {% endfor %}
-                    {% else %}
-                        <div class="text-center text-muted py-4">
-                            <i class="fas fa-calendar-times fa-2x mb-3"></i>
-                            <p>No upcoming events</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
+        <!-- Add responsive design -->
+        <style>
+            @media (max-width: 768px) {
+                .authenticated-home {
+                    padding: 0.75rem;
+                }
+
+                .welcome-header {
+                    padding: 1.25rem;
+                }
+
+                .welcome-header h4 {
+                    font-size: 1.25rem;
+                }
+
+                .welcome-header .d-flex {
+                    flex-direction: column;
+                    text-align: center;
+                    gap: 1rem;
+                }
+
+                .dashboard-card .card-body {
+                    padding: 1rem;
+                }
+
+                .dashboard-card .card-header {
+                    padding: 0.75rem 1rem;
+                }
+            }
+
+            @media (max-width: 576px) {
+                .authenticated-home {
+                    padding: 0.5rem;
+                }
+
+                .welcome-header {
+                    padding: 1rem;
+                }
+
+                .welcome-header h4 {
+                    font-size: 1.125rem;
+                }
+
+                .dashboard-card .card-body {
+                    padding: 0.75rem;
+                }
+            }
+        </style>
     </div>
 </div>
 {% endblock %}

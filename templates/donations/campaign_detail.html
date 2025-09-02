@@ -4,7 +4,7 @@
 
 {% block title %}{{ campaign.name }} - Fundraising Campaign{% endblock %}
 
-{% block page_title %}{{ campaign.name }}{% endblock %}
+{% block page_header %}{% endblock %}
 
 {% block breadcrumbs %}
 <li class="breadcrumb-item"><a href="{% url 'donations:campaign_list' %}">Campaigns</a></li>
@@ -13,40 +13,51 @@
 
 {% block donations_content %}
 <div class="col-lg-8">
+    <!-- Welcome Header for Donation Page -->
+    <div class="welcome-header mt-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h4>{{ campaign.name }}</h4>
+                <p>Support this campaign by making a donation.</p>
+            </div>
+            <div>
+                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-2"></i>Back to Campaigns
+                </a>
+            </div>
+        </div>
+    </div>
+
     <!-- Campaign Image -->
     <div class="campaign-detail-image">
         {% if campaign.featured_image %}
         <img src="{{ campaign.featured_image.url }}" alt="{{ campaign.name }}">
         {% else %}
-        <img src="{% static 'images/campaign-placeholder.jpg' %}" alt="{{ campaign.name }}">
         {% endif %}
     </div>
     
     <!-- Campaign Description -->
-    <div class="card mb-4">
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">About This Campaign</h5>
+        </div>
         <div class="card-body">
-            <h3 class="card-title mb-3">About This Campaign</h3>
             <div class="campaign-description">
                 {{ campaign.description|safe }}
             </div>
-            
             <div class="mt-4">
-                <h4>Beneficiaries</h4>
+                <h6>Beneficiaries</h6>
                 <p>{{ campaign.beneficiaries|safe }}</p>
             </div>
-            
             <div class="mt-4">
                 <div class="d-flex justify-content-between align-items-center">
-                    <h4>Recent Donors</h4>
-                    <a href="{% url 'donations:campaign_donors' slug=campaign.slug %}" class="btn btn-sm btn-outline-primary">
-                        View All Donors
-                    </a>
+                    <h6 class="mb-0">Recent Donors</h6>
+                    <a href="{% url 'donations:campaign_donors' slug=campaign.slug %}" class="btn btn-sm btn-outline-primary">View All Donors</a>
                 </div>
-                
                 <div class="donor-list">
                     {% for donation in recent_donations %}
                     <div class="donor-item">
-                        <div class="donor-avatar">
+                        <div class="donor-avatar me-3">
                             {% if donation.donor.profile.avatar %}
                             <img src="{{ donation.donor.profile.avatar.url }}" alt="{{ donation.donor.get_full_name }}">
                             {% else %}
@@ -68,19 +79,19 @@
             </div>
         </div>
     </div>
-    
+
     <!-- Campaign Updates -->
     {% if updates %}
-    <div class="card mb-4">
+    <div class="dashboard-card">
+        <div class="card-header">
+            <h5 class="card-title mb-0">Campaign Updates</h5>
+        </div>
         <div class="card-body">
-            <h3 class="card-title mb-3">Campaign Updates</h3>
-            
             {% for update in updates %}
             <div class="update-item">
                 <h4 class="update-title">{{ update.title }}</h4>
                 <div class="update-date">{{ update.created|date:"F j, Y" }}</div>
                 <div class="update-content">{{ update.content|safe }}</div>
-                
                 {% if update.image %}
                 <div class="update-image">
                     <img src="{{ update.image.url }}" alt="{{ update.title }}">
@@ -95,7 +106,7 @@
 
 <div class="col-lg-4">
     <!-- Campaign Sidebar -->
-    <div class="campaign-sidebar">
+    <div class="campaign-sidebar dashboard-card">
         <div class="campaign-status mb-3">
             {% if campaign.is_active %}
             <span class="badge bg-success">Active Campaign</span>
@@ -157,8 +168,12 @@
         
         {% if campaign.is_active %}
         <div class="donation-form">
-            <h4 class="mb-3">Make a Donation</h4>
-            
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Make a Donation</h5>
+                </div>
+                <div class="card-body">
+
             <form method="post" action="">
                 {% csrf_token %}
                 
@@ -168,16 +183,6 @@
                     {% if form.amount.errors %}
                     <div class="invalid-feedback d-block">
                         {{ form.amount.errors.0 }}
-                    </div>
-                    {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="{{ form.payment_method.id_for_label }}" class="form-label">Payment Method</label>
-                    {{ form.payment_method }}
-                    {% if form.payment_method.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.payment_method.errors.0 }}
                     </div>
                     {% endif %}
                 </div>
@@ -224,6 +229,8 @@
                     <i class="fas fa-heart me-2"></i>Donate Now
                 </button>
             </form>
+                </div>
+            </div>
         </div>
         {% else %}
         <div class="alert alert-info text-center">
@@ -240,7 +247,7 @@
         
         <div class="mt-4">
             <div class="d-flex justify-content-center">
-                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-secondary">
+                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-primary">
                     <i class="fas fa-arrow-left me-2"></i>Back to Campaigns
                 </a>
             </div>

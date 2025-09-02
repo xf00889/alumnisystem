@@ -1,6 +1,70 @@
 {% load static %}
 {% load mentorship_filters %}
 
+<style>
+/* Compact messaging interface styling */
+.conversation-content .btn {
+    font-size: 0.8125rem;
+    padding: 0.5rem 0.75rem;
+}
+
+.conversation-content .btn-sm {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.625rem;
+}
+
+.conversation-content .message-bubble p {
+    font-size: 0.8125rem;
+    line-height: 1.6;
+    margin-bottom: 0.25rem;
+}
+
+.conversation-content .form-control {
+    font-size: 0.8125rem;
+    padding: 0.75rem 1rem;
+}
+
+.conversation-content .form-label {
+    font-size: 0.875rem;
+    font-weight: 500;
+}
+
+.conversation-content .modal-title {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.conversation-content .meeting-card h6 {
+    font-size: 0.9375rem;
+}
+
+.conversation-content .meeting-card .small {
+    font-size: 0.8125rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .conversation-content .btn {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.625rem;
+    }
+
+    .conversation-content .btn-sm {
+        font-size: 0.6875rem;
+        padding: 0.375rem 0.5rem;
+    }
+
+    .conversation-content .message-bubble p {
+        font-size: 0.75rem;
+    }
+
+    .conversation-content .form-control {
+        font-size: 0.75rem;
+        padding: 0.625rem 0.875rem;
+    }
+}
+</style>
+
 <div class="conversation-content d-flex flex-column h-100">
     <!-- Conversation Header -->
     <div class="card-header flex-shrink-0" style="background: var(--ui-surface); border-bottom: 1px solid var(--ui-border); padding: 1.25rem;">
@@ -29,15 +93,16 @@
             </div>
             
             <!-- Actions -->
-            <div class="flex-shrink-0">
-                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown" style="border-color: var(--ui-border); color: var(--text-secondary);">
+            <div class="flex-shrink-0 d-flex gap-2">
+                <button class="btn btn-primary btn-sm" type="button" onclick="openScheduleMeetingModal({{ conversation.mentorship.id }})" style="font-size: 0.8125rem; padding: 0.5rem 0.75rem;">
+                    <i class="fas fa-calendar-plus me-1"></i>Schedule Meeting
+                </button>
+                <button class="btn btn-outline-secondary btn-sm" type="button" data-bs-toggle="dropdown" style="border-color: var(--ui-border); color: var(--text-secondary); font-size: 0.8125rem; padding: 0.5rem 0.75rem;">
                     <i class="fas fa-ellipsis-v"></i>
                 </button>
                 <ul class="dropdown-menu dropdown-menu-end" style="border: 1px solid var(--ui-border); box-shadow: var(--shadow-md);">
-                    <li><a class="dropdown-item" href="#" style="color: var(--text-primary);"><i class="fas fa-video me-2" style="color: var(--feedback-info);"></i>Video Call</a></li>
-                    <li><a class="dropdown-item" href="#" style="color: var(--text-primary);"><i class="fas fa-calendar me-2" style="color: var(--feedback-warning);"></i>Schedule Meeting</a></li>
-                    <li><hr class="dropdown-divider" style="border-color: var(--ui-border);"></li>
                     <li><a class="dropdown-item" href="#" style="color: var(--text-primary);"><i class="fas fa-user me-2" style="color: var(--text-secondary);"></i>View Profile</a></li>
+                    <li><a class="dropdown-item" href="#" onclick="viewScheduledMeetings({{ conversation.mentorship.id }})" style="color: var(--text-primary);"><i class="fas fa-calendar me-2" style="color: var(--feedback-info);"></i>View Meetings</a></li>
                 </ul>
             </div>
         </div>
@@ -121,6 +186,53 @@
                 <div class="text-center py-5">
                     <i class="fas fa-comment-slash fa-2x mb-3" style="color: var(--text-muted);"></i>
                     <p style="color: var(--text-secondary); font-weight: 500;">No messages yet. Start the conversation!</p>
+                </div>
+            {% endif %}
+
+            <!-- Upcoming Scheduled Meetings Display -->
+            <!-- Note: Only meetings with status 'SCHEDULED' and future meeting_date are shown -->
+            {% if meetings %}
+                <div class="meetings-section mt-4 pt-3" style="border-top: 1px solid var(--ui-border);">
+                    <h6 class="mb-3" style="color: var(--text-primary); font-weight: 600;">
+                        <i class="fas fa-calendar-alt me-2"></i>Upcoming Meetings
+                        <small class="text-muted ms-2" style="font-size: 0.75rem; font-weight: 400;">({{ meetings|length }})</small>
+                    </h6>
+                    {% for meeting in meetings %}
+                        <div class="meeting-card mb-3 p-3" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 12px; border-left: 4px solid var(--primary-color);">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0 me-3">
+                                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                                         style="width: 40px; height: 40px; background: var(--primary-color); color: white;">
+                                        <i class="fas fa-calendar-check"></i>
+                                    </div>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1" style="color: var(--text-primary); font-weight: 600; font-size: 0.9375rem;">
+                                        {{ meeting.title }}
+                                    </h6>
+                                    <p class="mb-2 small" style="color: var(--text-secondary); font-size: 0.8125rem;">
+                                        <i class="fas fa-clock me-1"></i>{{ meeting.meeting_date|date:"M d, Y" }} at {{ meeting.meeting_date|date:"H:i" }} • {{ meeting.duration }} minutes
+                                    </p>
+                                    {% if meeting.description %}
+                                        <p class="mb-2 small" style="color: var(--text-secondary); font-size: 0.75rem;">{{ meeting.description }}</p>
+                                    {% endif %}
+                                    <div class="d-flex gap-2 align-items-center">
+                                        {% if meeting.meeting_link %}
+                                            <a href="{{ meeting.meeting_link }}" target="_blank" class="btn btn-sm btn-primary" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;">
+                                                <i class="fas fa-video me-1"></i>Join Meeting
+                                            </a>
+                                        {% endif %}
+                                        <button class="btn btn-sm btn-outline-secondary" onclick="editMeeting({{ meeting.id }})" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;">
+                                            <i class="fas fa-edit me-1"></i>Edit
+                                        </button>
+                                    </div>
+                                    <div class="mt-2">
+                                        <small class="text-muted" style="font-size: 0.6875rem;">Scheduled {{ meeting.created_at|timesince }} ago</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endfor %}
                 </div>
             {% endif %}
         </div>
@@ -265,10 +377,7 @@ function sendMessage(event, conversationId) {
     });
 }
 
-// Auto-scroll to bottom on load
-document.addEventListener('DOMContentLoaded', function() {
-    scrollToBottom();
-});
+// Auto-scroll to bottom on load (consolidated with meeting cleanup below)
 
 // Handle Enter key for sending messages
 document.addEventListener('keydown', function(event) {
@@ -276,5 +385,571 @@ document.addEventListener('keydown', function(event) {
         event.preventDefault();
         event.target.closest('form').dispatchEvent(new Event('submit'));
     }
+});
+
+// Meeting scheduling functionality
+function openScheduleMeetingModal(mentorshipId) {
+    // Create modal if it doesn't exist
+    let modal = document.getElementById('scheduleMeetingModal');
+    if (!modal) {
+        createScheduleMeetingModal();
+        modal = document.getElementById('scheduleMeetingModal');
+    }
+
+    // Set mentorship ID
+    document.getElementById('meetingMentorshipId').value = mentorshipId;
+
+    // Show modal
+    const bootstrapModal = new bootstrap.Modal(modal);
+    bootstrapModal.show();
+}
+
+function createScheduleMeetingModal() {
+    const modalHTML = `
+        <div class="modal fade" id="scheduleMeetingModal" tabindex="-1" aria-labelledby="scheduleMeetingModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="scheduleMeetingModalLabel">
+                            <i class="fas fa-calendar-plus me-2"></i>Schedule Meeting
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="scheduleMeetingForm">
+                            <input type="hidden" id="meetingMentorshipId" name="mentorship">
+
+                            <div class="mb-3">
+                                <label for="meetingTitle" class="form-label">Meeting Title</label>
+                                <input type="text" class="form-control" id="meetingTitle" name="title" required
+                                       placeholder="e.g., Weekly Check-in, Project Review">
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="meetingDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="meetingDescription" name="description" rows="3"
+                                          placeholder="Meeting agenda and topics to discuss..."></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="meetingDate" class="form-label">Date & Time</label>
+                                        <input type="datetime-local" class="form-control" id="meetingDate" name="meeting_date" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="meetingDuration" class="form-label">Duration (minutes)</label>
+                                        <select class="form-select" id="meetingDuration" name="duration">
+                                            <option value="30">30 minutes</option>
+                                            <option value="60" selected>1 hour</option>
+                                            <option value="90">1.5 hours</option>
+                                            <option value="120">2 hours</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="meetingLink" class="form-label">
+                                    <i class="fas fa-video me-1"></i>Meeting Link
+                                </label>
+                                <input type="url" class="form-control" id="meetingLink" name="meeting_link"
+                                       placeholder="https://meet.google.com/... or https://zoom.us/...">
+                                <div class="form-text">
+                                    Add a video call link (Zoom, Google Meet, etc.) for easy access
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="scheduleMeeting()">
+                            <i class="fas fa-calendar-check me-1"></i>Schedule Meeting
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function scheduleMeeting() {
+    const form = document.getElementById('scheduleMeetingForm');
+    const formData = new FormData(form);
+
+    // Validate required fields
+    const title = formData.get('title');
+    const meetingDate = formData.get('meeting_date');
+    const mentorshipId = formData.get('mentorship');
+
+    if (!title || !meetingDate || !mentorshipId) {
+        alert('Please fill in all required fields');
+        return;
+    }
+
+    // Prepare data for API
+    const meetingData = {
+        mentorship: mentorshipId,
+        title: title,
+        description: formData.get('description') || '',
+        meeting_date: meetingDate,
+        duration: parseInt(formData.get('duration')) || 60,
+        meeting_link: formData.get('meeting_link') || '',
+        status: 'SCHEDULED'
+    };
+
+    // Send to API
+    fetch('/mentorship/api/meetings/', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(meetingData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to schedule meeting');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('scheduleMeetingModal'));
+        modal.hide();
+
+        // Reset form
+        form.reset();
+
+        // Show success message
+        showToast('success', 'Meeting scheduled successfully!');
+
+        // Add meeting to conversation
+        addMeetingToConversation(data);
+    })
+    .catch(error => {
+        console.error('Error scheduling meeting:', error);
+        showToast('error', 'Failed to schedule meeting. Please try again.');
+    });
+}
+
+function addMeetingToConversation(meetingData) {
+    const messagesContainer = document.getElementById('messages-container');
+    const meetingDate = new Date(meetingData.meeting_date);
+    const now = new Date();
+
+    // Only add the meeting if it's in the future
+    if (meetingDate <= now) {
+        console.log('Meeting is in the past, not adding to conversation');
+        return;
+    }
+
+    const formattedDate = meetingDate.toLocaleDateString() + ' at ' + meetingDate.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+
+    // Check if meetings section exists, if not create it
+    let meetingsSection = messagesContainer.querySelector('.meetings-section');
+    if (!meetingsSection) {
+        const meetingsSectionHTML = `
+            <div class="meetings-section mt-4 pt-3" style="border-top: 1px solid var(--ui-border);">
+                <h6 class="mb-3" style="color: var(--text-primary); font-weight: 600;">
+                    <i class="fas fa-calendar-alt me-2"></i>Upcoming Meetings
+                    <small class="text-muted ms-2 meeting-count" style="font-size: 0.75rem; font-weight: 400;">(1)</small>
+                </h6>
+            </div>
+        `;
+        messagesContainer.insertAdjacentHTML('beforeend', meetingsSectionHTML);
+        meetingsSection = messagesContainer.querySelector('.meetings-section');
+    } else {
+        // Update meeting count
+        const countElement = meetingsSection.querySelector('.meeting-count');
+        if (countElement) {
+            const currentCount = parseInt(countElement.textContent.match(/\d+/)[0]) || 0;
+            countElement.textContent = `(${currentCount + 1})`;
+        }
+    }
+
+    const meetingHTML = `
+        <div class="meeting-card mb-3 p-3" data-meeting-id="${meetingData.id}" data-meeting-date="${meetingData.meeting_date}" style="background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%); border-radius: 12px; border-left: 4px solid var(--primary-color);">
+            <div class="d-flex align-items-start">
+                <div class="flex-shrink-0 me-3">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center"
+                         style="width: 40px; height: 40px; background: var(--primary-color); color: white;">
+                        <i class="fas fa-calendar-check"></i>
+                    </div>
+                </div>
+                <div class="flex-grow-1">
+                    <h6 class="mb-1" style="color: var(--text-primary); font-weight: 600; font-size: 0.9375rem;">
+                        ${meetingData.title}
+                    </h6>
+                    <p class="mb-2 small" style="color: var(--text-secondary); font-size: 0.8125rem;">
+                        <i class="fas fa-clock me-1"></i>${formattedDate} • ${meetingData.duration} minutes
+                    </p>
+                    ${meetingData.description ? `<p class="mb-2 small" style="color: var(--text-secondary); font-size: 0.75rem;">${meetingData.description}</p>` : ''}
+                    <div class="d-flex gap-2 align-items-center">
+                        ${meetingData.meeting_link ? `
+                            <a href="${meetingData.meeting_link}" target="_blank" class="btn btn-sm btn-primary" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;">
+                                <i class="fas fa-video me-1"></i>Join Meeting
+                            </a>
+                        ` : ''}
+                        <button class="btn btn-sm btn-outline-secondary" onclick="editMeeting(${meetingData.id})" style="font-size: 0.75rem; padding: 0.375rem 0.75rem;">
+                            <i class="fas fa-edit me-1"></i>Edit
+                        </button>
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted" style="font-size: 0.6875rem;">Scheduled just now</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    meetingsSection.insertAdjacentHTML('beforeend', meetingHTML);
+    scrollToBottom();
+}
+
+function viewScheduledMeetings(mentorshipId) {
+    // This could open a modal or navigate to a meetings page
+    // For now, we'll show a simple alert
+    alert('View meetings functionality - to be implemented');
+}
+
+function editMeeting(meetingId) {
+    // Fetch meeting details and populate edit modal
+    fetch(`/mentorship/api/meetings/${meetingId}/`)
+    .then(response => response.json())
+    .then(data => {
+        // Create edit modal if it doesn't exist
+        let modal = document.getElementById('editMeetingModal');
+        if (!modal) {
+            createEditMeetingModal();
+            modal = document.getElementById('editMeetingModal');
+        }
+
+        // Populate form with existing data
+        document.getElementById('editMeetingId').value = data.id;
+        document.getElementById('editMeetingTitle').value = data.title;
+        document.getElementById('editMeetingDescription').value = data.description || '';
+        document.getElementById('editMeetingDate').value = data.meeting_date.slice(0, 16); // Format for datetime-local
+        document.getElementById('editMeetingDuration').value = data.duration;
+        document.getElementById('editMeetingLink').value = data.meeting_link || '';
+
+        // Show modal
+        const bootstrapModal = new bootstrap.Modal(modal);
+        bootstrapModal.show();
+    })
+    .catch(error => {
+        console.error('Error fetching meeting details:', error);
+        showToast('error', 'Failed to load meeting details');
+    });
+}
+
+function createEditMeetingModal() {
+    const modalHTML = `
+        <div class="modal fade" id="editMeetingModal" tabindex="-1" aria-labelledby="editMeetingModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="editMeetingModalLabel">
+                            <i class="fas fa-edit me-2"></i>Edit Meeting
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editMeetingForm">
+                            <input type="hidden" id="editMeetingId" name="id">
+
+                            <div class="mb-3">
+                                <label for="editMeetingTitle" class="form-label">Meeting Title</label>
+                                <input type="text" class="form-control" id="editMeetingTitle" name="title" required>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editMeetingDescription" class="form-label">Description</label>
+                                <textarea class="form-control" id="editMeetingDescription" name="description" rows="3"></textarea>
+                            </div>
+
+                            <div class="row">
+                                <div class="col-md-8">
+                                    <div class="mb-3">
+                                        <label for="editMeetingDate" class="form-label">Date & Time</label>
+                                        <input type="datetime-local" class="form-control" id="editMeetingDate" name="meeting_date" required>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="editMeetingDuration" class="form-label">Duration (minutes)</label>
+                                        <select class="form-select" id="editMeetingDuration" name="duration">
+                                            <option value="30">30 minutes</option>
+                                            <option value="60">1 hour</option>
+                                            <option value="90">1.5 hours</option>
+                                            <option value="120">2 hours</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label for="editMeetingLink" class="form-label">
+                                    <i class="fas fa-video me-1"></i>Meeting Link
+                                </label>
+                                <input type="url" class="form-control" id="editMeetingLink" name="meeting_link">
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-danger" onclick="deleteMeeting()">
+                            <i class="fas fa-trash me-1"></i>Cancel Meeting
+                        </button>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="updateMeeting()">
+                            <i class="fas fa-save me-1"></i>Update Meeting
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
+}
+
+function updateMeeting() {
+    const form = document.getElementById('editMeetingForm');
+    const formData = new FormData(form);
+    const meetingId = formData.get('id');
+
+    const meetingData = {
+        title: formData.get('title'),
+        description: formData.get('description') || '',
+        meeting_date: formData.get('meeting_date'),
+        duration: parseInt(formData.get('duration')),
+        meeting_link: formData.get('meeting_link') || '',
+        status: 'SCHEDULED'
+    };
+
+    fetch(`/mentorship/api/meetings/${meetingId}/`, {
+        method: 'PUT',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(meetingData)
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to update meeting');
+        }
+        return response.json();
+    })
+    .then(data => {
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editMeetingModal'));
+        modal.hide();
+
+        // Show success message
+        showToast('success', 'Meeting updated successfully!');
+
+        // Refresh the conversation to show updated meeting
+        // Check if updated meeting is still in the future before reloading
+        const updatedMeetingDate = new Date(meetingData.meeting_date);
+        const now = new Date();
+
+        if (updatedMeetingDate > now) {
+            location.reload();
+        } else {
+            // Meeting is now in the past, just remove it from display
+            const meetingCard = document.querySelector(`[data-meeting-id="${meetingId}"]`);
+            if (meetingCard) {
+                meetingCard.remove();
+                updateMeetingCount();
+
+                // Hide meetings section if no meetings left
+                const meetingsSection = document.querySelector('.meetings-section');
+                if (meetingsSection && meetingsSection.querySelectorAll('.meeting-card').length === 0) {
+                    meetingsSection.style.display = 'none';
+                }
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error updating meeting:', error);
+        showToast('error', 'Failed to update meeting. Please try again.');
+    });
+}
+
+function deleteMeeting() {
+    if (!confirm('Are you sure you want to cancel this meeting? This action cannot be undone.')) {
+        return;
+    }
+
+    const meetingId = document.getElementById('editMeetingId').value;
+
+    fetch(`/mentorship/api/meetings/${meetingId}/`, {
+        method: 'DELETE',
+        headers: {
+            'X-CSRFToken': getCookie('csrftoken'),
+        }
+    })
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Failed to cancel meeting');
+        }
+
+        // Close modal
+        const modal = bootstrap.Modal.getInstance(document.getElementById('editMeetingModal'));
+        modal.hide();
+
+        // Show success message
+        showToast('success', 'Meeting cancelled successfully!');
+
+        // Remove the meeting card from display
+        const meetingCard = document.querySelector(`[data-meeting-id="${meetingId}"]`);
+        if (meetingCard) {
+            meetingCard.remove();
+            updateMeetingCount();
+
+            // Hide meetings section if no meetings left
+            const meetingsSection = document.querySelector('.meetings-section');
+            if (meetingsSection && meetingsSection.querySelectorAll('.meeting-card').length === 0) {
+                meetingsSection.style.display = 'none';
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Error cancelling meeting:', error);
+        showToast('error', 'Failed to cancel meeting. Please try again.');
+    });
+}
+
+function showToast(type, message) {
+    // Simple toast notification
+    const toast = document.createElement('div');
+    toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
+    toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+    toast.innerHTML = `
+        <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${message}
+        <button type="button" class="btn-close" onclick="this.parentElement.remove()"></button>
+    `;
+
+    document.body.appendChild(toast);
+
+    // Auto remove after 5 seconds
+    setTimeout(() => {
+        if (toast.parentElement) {
+            toast.remove();
+        }
+    }, 5000);
+}
+
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Function to check and remove past meetings from the frontend
+function removePastMeetings() {
+    const meetingCards = document.querySelectorAll('.meeting-card[data-meeting-date]');
+    const now = new Date();
+    let removedCount = 0;
+
+    console.log(`Checking ${meetingCards.length} meetings for past dates at ${now.toISOString()}`);
+
+    meetingCards.forEach(card => {
+        const meetingDateStr = card.getAttribute('data-meeting-date');
+        const meetingDate = new Date(meetingDateStr);
+
+        console.log(`Meeting date: ${meetingDateStr} (${meetingDate.toISOString()}) vs Now: ${now.toISOString()}`);
+
+        if (meetingDate <= now) {
+            console.log(`Removing past meeting: ${meetingDateStr}`);
+            card.remove();
+            removedCount++;
+        }
+    });
+
+    // Update meeting count if any meetings were removed
+    if (removedCount > 0) {
+        console.log(`Removed ${removedCount} past meetings`);
+        updateMeetingCount();
+
+        // Hide meetings section if no meetings left
+        const meetingsSection = document.querySelector('.meetings-section');
+        if (meetingsSection && meetingsSection.querySelectorAll('.meeting-card').length === 0) {
+            meetingsSection.style.display = 'none';
+            console.log('Hidden meetings section - no upcoming meetings');
+        }
+    }
+}
+
+// Function to update the meeting count display
+function updateMeetingCount() {
+    const countElement = document.querySelector('.meeting-count');
+    const meetingCards = document.querySelectorAll('.meeting-card');
+
+    if (countElement) {
+        countElement.textContent = `(${meetingCards.length})`;
+    }
+}
+
+// Function to start periodic checking for past meetings
+function startMeetingCleanup() {
+    console.log('Starting meeting cleanup service...');
+
+    // Check immediately
+    removePastMeetings();
+
+    // Then check every minute
+    const cleanupInterval = setInterval(removePastMeetings, 60000); // 60 seconds
+
+    // Store interval ID for potential cleanup
+    window.meetingCleanupInterval = cleanupInterval;
+
+    console.log('Meeting cleanup service started - checking every 60 seconds');
+}
+
+// Function to manually trigger meeting cleanup (useful for testing)
+function triggerMeetingCleanup() {
+    console.log('Manually triggering meeting cleanup...');
+    removePastMeetings();
+}
+
+// Function to stop the cleanup service
+function stopMeetingCleanup() {
+    if (window.meetingCleanupInterval) {
+        clearInterval(window.meetingCleanupInterval);
+        window.meetingCleanupInterval = null;
+        console.log('Meeting cleanup service stopped');
+    }
+}
+
+// Enhanced initialization
+document.addEventListener('DOMContentLoaded', function() {
+    scrollToBottom();
+    startMeetingCleanup();
+});
+
+// Cleanup when leaving the page
+window.addEventListener('beforeunload', function() {
+    stopMeetingCleanup();
+});
+
+// Also cleanup when the conversation detail is replaced (for HTMX)
+document.addEventListener('htmx:beforeSwap', function() {
+    stopMeetingCleanup();
 });
 </script>

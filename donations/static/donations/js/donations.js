@@ -5,20 +5,100 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize donation amount buttons if they exist
     const donationAmountBtns = document.querySelectorAll('.donation-amount-btn');
     const amountInput = document.querySelector('#id_amount');
-    
+    const customAmountBtn = document.querySelector('#custom-amount-btn');
+
     if (donationAmountBtns.length > 0 && amountInput) {
+        // Handle preset amount buttons
         donationAmountBtns.forEach(btn => {
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const amount = this.dataset.amount;
                 amountInput.value = amount;
-                
+
                 // Remove active class from all buttons
-                donationAmountBtns.forEach(b => b.classList.remove('active'));
-                
+                donationAmountBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-primary');
+                });
+
                 // Add active class to clicked button
                 this.classList.add('active');
+                this.classList.remove('btn-outline-primary');
+                this.classList.add('btn-primary');
+
+                // Remove custom button active state
+                if (customAmountBtn) {
+                    customAmountBtn.classList.remove('active');
+                    customAmountBtn.classList.remove('btn-secondary');
+                    customAmountBtn.classList.add('btn-outline-secondary');
+                }
+
+                // Add visual feedback
+                this.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    this.style.transform = 'scale(1)';
+                }, 150);
             });
+        });
+
+        // Handle custom amount button
+        if (customAmountBtn) {
+            customAmountBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // Remove active state from preset buttons
+                donationAmountBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-primary');
+                });
+
+                // Activate custom button
+                this.classList.add('active');
+                this.classList.remove('btn-outline-secondary');
+                this.classList.add('btn-secondary');
+
+                // Focus on amount input
+                amountInput.focus();
+                amountInput.select();
+            });
+        }
+
+        // Handle manual input changes
+        amountInput.addEventListener('input', function() {
+            const currentValue = parseFloat(this.value);
+            let matchFound = false;
+
+            // Check if current value matches any preset
+            donationAmountBtns.forEach(btn => {
+                const btnAmount = parseFloat(btn.dataset.amount);
+                if (currentValue === btnAmount) {
+                    btn.click();
+                    matchFound = true;
+                }
+            });
+
+            // If no match, activate custom button
+            if (!matchFound && customAmountBtn) {
+                donationAmountBtns.forEach(b => {
+                    b.classList.remove('active');
+                    b.classList.remove('btn-primary');
+                    b.classList.add('btn-outline-primary');
+                });
+
+                customAmountBtn.classList.add('active');
+                customAmountBtn.classList.remove('btn-outline-secondary');
+                customAmountBtn.classList.add('btn-secondary');
+            }
+        });
+
+        // Format amount input with commas
+        amountInput.addEventListener('blur', function() {
+            const value = parseFloat(this.value);
+            if (!isNaN(value)) {
+                this.value = value.toFixed(2);
+            }
         });
     }
     

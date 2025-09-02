@@ -85,7 +85,6 @@ def post_registration(request):
                 initial_data.update({
                     'present_occupation': current_exp.position,
                     'company_name': current_exp.company,
-                    'employment_address': current_exp.location,
                 })
         except Education.DoesNotExist:
             pass
@@ -142,11 +141,12 @@ def profile_detail(request, username=None):
         
         skill_list = profile.skills.all().order_by('skill_type', 'name')
         
-        # Get achievements
+        # Get achievements and alumni information
+        alumni = None
         try:
             alumni = profile.user.alumni
             achievements = alumni.achievements_list.all().order_by('-date_achieved')
-            
+
             # Get unified professional experience with current position first
             unified_experience = ProfessionalExperience.get_unified_experience(alumni)
         except Alumni.DoesNotExist:
@@ -166,6 +166,7 @@ def profile_detail(request, username=None):
         
         context = {
             'profile': profile,
+            'alumni': alumni,  # Add alumni information to context
             'education_list': education_list,
             'experience_list': experience_list,
             'skill_list': skill_list,

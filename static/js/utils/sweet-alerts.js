@@ -169,6 +169,30 @@ function processDjangoMessages() {
                            firstMessage.classList.contains('alert-danger') ? 'error' :
                            firstMessage.classList.contains('alert-warning') ? 'warning' : 'info';
         
+        // Skip processing signup-related success messages
+        if (messageType === 'success' && (
+            messageText.includes('Registration completed successfully') ||
+            messageText.includes('Account created successfully') ||
+            messageText.includes('Welcome') ||
+            messageText.includes('Sign up successful') ||
+            messageText.includes('Account created') ||
+            messageText.includes('Registration successful')
+        )) {
+            // Just hide the Django message without showing SweetAlert
+            document.querySelector('.messages').style.display = 'none';
+            return;
+        }
+        
+        // Skip processing on signup-related pages
+        const currentPath = window.location.pathname;
+        if (currentPath.includes('/accounts/signup/') || 
+            currentPath.includes('/accounts/post_registration/') ||
+            currentPath.includes('/accounts/complete_registration/')) {
+            // Just hide the Django message without showing SweetAlert
+            document.querySelector('.messages').style.display = 'none';
+            return;
+        }
+        
         // Hide the original Django message
         document.querySelector('.messages').style.display = 'none';
         
@@ -202,6 +226,239 @@ function processDjangoMessages() {
             });
         }
     }
+}
+
+/**
+ * Enhanced form submission with SweetAlert confirmation and feedback
+ * @param {HTMLFormElement} form - The form element to handle
+ * @param {Object} options - Configuration options
+ */
+function handleFormSubmission(form, options = {}) {
+    const defaultOptions = {
+        confirmText: 'Are you sure you want to submit this form?',
+        successText: 'Operation completed successfully!',
+        errorText: 'An error occurred. Please try again.',
+        showConfirmation: true,
+        redirectUrl: null,
+        customSuccessCallback: null,
+        customErrorCallback: null
+    };
+    
+    const config = { ...defaultOptions, ...options };
+    
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (config.showConfirmation) {
+            Swal.fire({
+                ...defaultConfig,
+                icon: 'question',
+                title: 'Confirm Action',
+                text: config.confirmText,
+                showCancelButton: true,
+                confirmButtonText: 'Yes, proceed',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    submitForm(form, config);
+                }
+            });
+        } else {
+            submitForm(form, config);
+        }
+    });
+}
+
+/**
+ * Submit form with AJAX and handle response
+ * @param {HTMLFormElement} form - The form element
+ * @param {Object} config - Configuration options
+ */
+function submitForm(form, config) {
+    // Show loading state
+    Swal.fire({
+        ...defaultConfig,
+        title: 'Processing...',
+        text: 'Please wait while we process your request.',
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            Swal.showLoading();
+        }
+    });
+    
+    const formData = new FormData(form);
+    
+    fetch(form.action, {
+        method: form.method || 'POST',
+        body: formData,
+        headers: {
+            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            Swal.fire({
+                ...defaultConfig,
+                icon: 'success',
+                title: 'Success!',
+                text: config.customSuccessCallback ? config.customSuccessCallback(data) : config.successText,
+                confirmButtonText: 'OK'
+            }).then(() => {
+                if (config.redirectUrl) {
+                    window.location.href = config.redirectUrl;
+                } else if (data.redirect_url) {
+                    window.location.href = data.redirect_url;
+                }
+            });
+        } else {
+            throw new Error(data.message || config.errorText);
+        }
+    })
+    .catch(error => {
+        Swal.fire({
+            ...defaultConfig,
+            icon: 'error',
+            title: 'Error',
+            text: config.customErrorCallback ? config.customErrorCallback(error) : error.message,
+            confirmButtonText: 'OK'
+        });
+    });
+}
+
+/**
+ * Show confirmation dialog for delete operations
+ * @param {string} title - Title of the item to delete
+ * @param {string} deleteUrl - URL to send delete request to
+ * @param {string} redirectUrl - URL to redirect to after successful deletion
+ */
+function confirmDelete(title, deleteUrl, redirectUrl = null) {
+    Swal.fire({
+        ...defaultConfig,
+        icon: 'warning',
+        title: 'Confirm Deletion',
+        text: `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                ...defaultConfig,
+                title: 'Deleting...',
+                text: 'Please wait while we delete the item.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Send delete request
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire({
+                        ...defaultConfig,
+                        icon: 'success',
+                        title: 'Deleted!',
+                        text: 'The item has been deleted successfully.',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        if (redirectUrl) {
+                            window.location.href = redirectUrl;
+                        } else {
+                            location.reload();
+                        }
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to delete item');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    ...defaultConfig,
+                    icon: 'error',
+                    title: 'Error',
+                    text: error.message,
+                    confirmButtonText: 'OK'
+                });
+            });
+        }
+    });
+}
+
+/**
+ * Show success message for form operations
+ * @param {string} message - Success message
+ * @param {string} redirectUrl - Optional redirect URL
+ */
+function showSuccessMessage(message, redirectUrl = null) {
+    Swal.fire({
+        ...defaultConfig,
+        icon: 'success',
+        title: 'Success!',
+        text: message,
+        confirmButtonText: 'OK'
+    }).then(() => {
+        if (redirectUrl) {
+            window.location.href = redirectUrl;
+        }
+    });
+}
+
+/**
+ * Show error message for form operations
+ * @param {string} message - Error message
+ */
+function showErrorMessage(message) {
+    Swal.fire({
+        ...defaultConfig,
+        icon: 'error',
+        title: 'Error',
+        text: message,
+        confirmButtonText: 'OK'
+    });
+}
+
+/**
+ * Show warning message
+ * @param {string} message - Warning message
+ */
+function showWarningMessage(message) {
+    Swal.fire({
+        ...defaultConfig,
+        icon: 'warning',
+        title: 'Warning',
+        text: message,
+        confirmButtonText: 'OK'
+    });
+}
+
+/**
+ * Show info message
+ * @param {string} message - Info message
+ */
+function showInfoMessage(message) {
+    Swal.fire({
+        ...defaultConfig,
+        icon: 'info',
+        title: 'Information',
+        text: message,
+        confirmButtonText: 'OK'
+    });
 }
 
 /**

@@ -10,8 +10,15 @@ from announcements.models import Announcement
 from events.models import Event, EventRSVP
 from alumni_directory.models import Alumni
 from feedback.models import Feedback
-from core.models import UserEngagement, EngagementScore, Post, Comment, Reaction
+from core.models import UserEngagement, EngagementScore, Post, Comment, Reaction, Notification
 from django.http import JsonResponse
+from django.views.decorators.http import require_http_methods
+from django.views.decorators.csrf import csrf_exempt
+from django.contrib.auth.decorators import login_required
+from django.core.paginator import Paginator
+from django.contrib import messages
+from django.core.mail import send_mail
+from django.conf import settings
 import pandas as pd
 import numpy as np
 import json
@@ -96,13 +103,20 @@ def home(request):
 
         return render(request, 'home.html', context)
 
-    # For authenticated users, show the authenticated home page instead of redirecting
-    # This prevents redirect loops if profile_detail fails
+    # For authenticated users, check if they have completed registration
     if request.user.is_superuser:
         return redirect('core:admin_dashboard')  # Use consistent redirect target
 
-    # Show authenticated home page instead of redirecting to profile
-    # This prevents redirect loops and provides a better user experience
+    # Check if user has completed registration
+    try:
+        profile = request.user.profile
+        if not profile.has_completed_registration:
+            return redirect('accounts:post_registration')
+    except:
+        # If profile doesn't exist, redirect to post registration
+        return redirect('accounts:post_registration')
+
+    # Show authenticated home page for users who have completed registration
     try:
         from announcements.models import Announcement
         announcements = Announcement.objects.filter(
@@ -403,3 +417,345 @@ def go_to_profile(request):
     This is a convenience view for navigation links.
     """
     return redirect('accounts:profile_detail')
+
+
+# Notification Views
+@login_required
+@require_http_methods(["GET"])
+def get_notifications(request):
+    """
+    API endpoint to fetch notifications for the current user
+    """
+    try:
+        # Get query parameters
+        limit = int(request.GET.get('limit', 10))
+        offset = int(request.GET.get('offset', 0))
+        unread_only = request.GET.get('unread_only', 'false').lower() == 'true'
+
+        # Build query
+        notifications_query = Notification.objects.filter(recipient=request.user)
+
+        if unread_only:
+            notifications_query = notifications_query.filter(is_read=False)
+
+        # Get notifications with pagination
+        notifications = notifications_query[offset:offset + limit]
+
+        # Serialize notifications
+        notifications_data = []
+        for notification in notifications:
+            notifications_data.append({
+                'id': notification.id,
+                'title': notification.title,
+                'message': notification.message,
+                'notification_type': notification.notification_type,
+                'is_read': notification.is_read,
+                'created_at': notification.created_at.isoformat(),
+                'action_url': notification.action_url,
+                'sender': {
+                    'name': notification.sender.get_full_name() if notification.sender else None,
+                    'avatar': notification.sender.profile.avatar.url if notification.sender and notification.sender.profile.avatar else None
+                } if notification.sender else None
+            })
+
+        # Get total count and unread count
+        total_count = Notification.objects.filter(recipient=request.user).count()
+        unread_count = Notification.get_unread_count(request.user)
+
+        return JsonResponse({
+            'success': True,
+            'notifications': notifications_data,
+            'total_count': total_count,
+            'unread_count': unread_count,
+            'has_more': (offset + limit) < total_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error fetching notifications: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to fetch notifications'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_notification_read(request, notification_id):
+    """
+    API endpoint to mark a specific notification as read
+    """
+    try:
+        notification = Notification.objects.get(
+            id=notification_id,
+            recipient=request.user
+        )
+        notification.mark_as_read()
+
+        return JsonResponse({
+            'success': True,
+            'unread_count': Notification.get_unread_count(request.user)
+        })
+
+    except Notification.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'error': 'Notification not found'
+        }, status=404)
+    except Exception as e:
+        logger.error(f"Error marking notification as read: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to mark notification as read'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["POST"])
+def mark_all_notifications_read(request):
+    """
+    API endpoint to mark all notifications as read for the current user
+    """
+    try:
+        Notification.mark_all_as_read(request.user)
+
+        return JsonResponse({
+            'success': True,
+            'unread_count': 0
+        })
+
+    except Exception as e:
+        logger.error(f"Error marking all notifications as read: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to mark all notifications as read'
+        }, status=500)
+
+
+@login_required
+@require_http_methods(["GET"])
+def get_unread_count(request):
+    """
+    API endpoint to get unread notification count for the current user
+    """
+    try:
+        unread_count = Notification.get_unread_count(request.user)
+
+        return JsonResponse({
+            'success': True,
+            'unread_count': unread_count
+        })
+
+    except Exception as e:
+        logger.error(f"Error getting unread count: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to get unread count'
+        }, status=500)
+
+
+# Landing Page Views for Unauthenticated Users
+
+def landing_events(request):
+    """
+    Display published events for unauthenticated users with pagination
+    """
+    events_list = Event.objects.filter(
+        status='published',
+        start_date__gte=timezone.now()
+    ).order_by('start_date')
+
+    paginator = Paginator(events_list, 9)  # Show 9 events per page
+    page_number = request.GET.get('page')
+    events = paginator.get_page(page_number)
+
+    context = {
+        'events': events,
+        'page_title': 'Upcoming Events',
+        'page_subtitle': 'Discover exciting events and activities in the NORSU alumni community'
+    }
+
+    return render(request, 'landing/events.html', context)
+
+
+def landing_announcements(request):
+    """
+    Display active announcements for unauthenticated users with pagination
+    """
+    announcements_list = Announcement.objects.filter(
+        is_active=True
+    ).order_by('-date_posted')
+
+    paginator = Paginator(announcements_list, 10)  # Show 10 announcements per page
+    page_number = request.GET.get('page')
+    announcements = paginator.get_page(page_number)
+
+    context = {
+        'announcements': announcements,
+        'page_title': 'Latest Announcements',
+        'page_subtitle': 'Stay updated with the latest news and announcements from NORSU'
+    }
+
+    return render(request, 'landing/announcements.html', context)
+
+
+def landing_news(request):
+    """
+    Display news content for unauthenticated users
+    """
+    # Get announcements categorized as news or high priority announcements
+    try:
+        from announcements.models import Category
+        news_category = Category.objects.filter(name__icontains='news').first()
+        if news_category:
+            news_list = Announcement.objects.filter(
+                is_active=True,
+                category=news_category
+            ).order_by('-date_posted')
+        else:
+            # Fallback to high priority announcements
+            news_list = Announcement.objects.filter(
+                is_active=True,
+                priority_level__in=['HIGH', 'URGENT']
+            ).order_by('-date_posted')
+    except:
+        news_list = Announcement.objects.filter(
+            is_active=True,
+            priority_level__in=['HIGH', 'URGENT']
+        ).order_by('-date_posted')
+
+    paginator = Paginator(news_list, 8)  # Show 8 news items per page
+    page_number = request.GET.get('page')
+    news = paginator.get_page(page_number)
+
+    # Get featured news (first 3 items)
+    featured_news = news_list[:3] if news_list else []
+
+    context = {
+        'news': news,
+        'featured_news': featured_news,
+        'page_title': 'Latest News',
+        'page_subtitle': 'Stay informed with the latest news and updates from NORSU'
+    }
+
+    return render(request, 'landing/news.html', context)
+
+
+def about_us(request):
+    """
+    Display About Us page with university information and statistics
+    """
+    # Get statistics
+    try:
+        alumni_count = Alumni.objects.filter(is_verified=True).count()
+    except:
+        alumni_count = 0
+
+    try:
+        group_count = AlumniGroup.objects.count()
+    except:
+        group_count = 0
+
+    try:
+        event_count = Event.objects.count()
+    except:
+        event_count = 0
+
+    try:
+        from jobs.models import Job
+        job_count = Job.objects.count()
+    except:
+        job_count = 0
+
+    # Sample staff information (this could be moved to a model later)
+    staff_members = [
+        {
+            'name': 'Dr. Maria Santos',
+            'position': 'Alumni Relations Director',
+            'department': 'Office of Alumni Affairs',
+            'email': 'maria.santos@norsu.edu.ph'
+        },
+        {
+            'name': 'Prof. Juan Dela Cruz',
+            'position': 'Alumni Engagement Coordinator',
+            'department': 'Office of Alumni Affairs',
+            'email': 'juan.delacruz@norsu.edu.ph'
+        },
+        {
+            'name': 'Ms. Ana Rodriguez',
+            'position': 'Alumni Database Manager',
+            'department': 'Information Technology Services',
+            'email': 'ana.rodriguez@norsu.edu.ph'
+        }
+    ]
+
+    context = {
+        'page_title': 'About NORSU Alumni Network',
+        'page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
+        'alumni_count': alumni_count,
+        'group_count': group_count,
+        'event_count': event_count,
+        'job_count': job_count,
+        'staff_members': staff_members,
+    }
+
+    return render(request, 'landing/about_us.html', context)
+
+
+def contact_us(request):
+    """
+    Display Contact Us page with contact form and information
+    """
+    context = {
+        'page_title': 'Contact Us',
+        'page_subtitle': 'Get in touch with the NORSU Alumni Network team'
+    }
+
+    return render(request, 'landing/contact_us.html', context)
+
+
+@require_http_methods(["POST"])
+def contact_us_submit(request):
+    """
+    Handle contact form submission
+    """
+    try:
+        name = request.POST.get('name', '').strip()
+        email = request.POST.get('email', '').strip()
+        subject = request.POST.get('subject', '').strip()
+        message = request.POST.get('message', '').strip()
+
+        # Basic validation
+        if not all([name, email, subject, message]):
+            messages.error(request, 'All fields are required.')
+            return redirect('core:contact_us')
+
+        # Send email (configure your email settings in settings.py)
+        try:
+            email_subject = f"Contact Form: {subject}"
+            email_message = f"""
+            Name: {name}
+            Email: {email}
+            Subject: {subject}
+
+            Message:
+            {message}
+            """
+
+            send_mail(
+                email_subject,
+                email_message,
+                settings.DEFAULT_FROM_EMAIL,
+                ['alumni@norsu.edu.ph'],  # Replace with actual email
+                fail_silently=False,
+            )
+
+            messages.success(request, 'Thank you for your message! We will get back to you soon.')
+        except Exception as e:
+            logger.error(f"Error sending contact form email: {str(e)}")
+            messages.error(request, 'There was an error sending your message. Please try again later.')
+
+    except Exception as e:
+        logger.error(f"Error processing contact form: {str(e)}")
+        messages.error(request, 'There was an error processing your request. Please try again.')
+
+    return redirect('core:contact_us')

@@ -560,10 +560,40 @@ document.addEventListener('DOMContentLoaded', function() {
     isVirtualCheckbox.addEventListener('change', toggleVirtualFields);
     toggleVirtualFields();
 
-    // Form submission handling
+    // Form submission handling with SweetAlert
     form.addEventListener('submit', function(e) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        e.preventDefault();
+        
+        // Show confirmation dialog
+        Swal.fire({
+            icon: 'question',
+            title: '{% if form.instance.pk %}Update{% else %}Create{% endif %} Event',
+            text: 'Are you sure you want to {% if form.instance.pk %}update{% else %}create{% endif %} this event?',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, {% if form.instance.pk %}update{% else %}create{% endif %} it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: '{% if form.instance.pk %}Updating{% else %}Creating{% endif %} Event...',
+                    text: 'Please wait while we {% if form.instance.pk %}update{% else %}create{% endif %} the event.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Disable submit button and show loading
+                submitBtn.disabled = true;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+                
+                // Submit the form
+                form.submit();
+            }
+        });
     });
 
     // Initialize tooltips

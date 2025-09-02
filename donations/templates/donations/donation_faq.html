@@ -1,0 +1,689 @@
+{% extends 'donations/base.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "Donation FAQ & Help" %} - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+
+    .faq-help {
+        font-family: 'Poppins', sans-serif;
+        padding: 1.25rem;
+        background-color: var(--ui-background);
+        min-height: calc(100vh - 60px);
+    }
+
+    /* Dashboard Header (Matching Location Tracking Style) */
+    .faq-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .faq-header h4 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .faq-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Card Styling (Matching Location Tracking) */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .dashboard-card .card-header {
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+    }
+
+    .dashboard-card .card-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.125rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Button Styling (Matching Location Tracking) */
+    .btn {
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-success {
+        background-color: var(--feedback-success);
+        border-color: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .btn-success:hover {
+        background-color: #38a169;
+        border-color: #38a169;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-info {
+        background-color: var(--feedback-info);
+        border-color: var(--feedback-info);
+        color: var(--text-light);
+    }
+
+    .btn-info:hover {
+        background-color: #3182ce;
+        border-color: #3182ce;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    /* Help Cards */
+    .help-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        text-align: center;
+        height: 100%;
+    }
+
+    .help-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .help-card i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .help-card h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .help-card p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    /* FAQ Accordion Styling */
+    .faq-accordion .card {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+    }
+
+    .faq-accordion .card:hover {
+        box-shadow: var(--shadow-md);
+    }
+
+    .faq-accordion .card-header {
+        background-color: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        padding: 0;
+    }
+
+    .faq-accordion .btn-link {
+        color: var(--text-primary) !important;
+        text-decoration: none;
+        font-weight: 600;
+        padding: 1rem 1.5rem;
+        width: 100%;
+        text-align: left;
+        border: none;
+        background: transparent;
+        transition: all 0.2s ease;
+    }
+
+    .faq-accordion .btn-link:hover {
+        color: var(--primary-color) !important;
+        background-color: var(--ui-surface);
+    }
+
+    .faq-accordion .btn-link:focus {
+        box-shadow: none;
+        outline: none;
+    }
+
+    .faq-accordion .btn-link i.fa-chevron-down {
+        transition: transform 0.2s ease;
+    }
+
+    .faq-accordion .btn-link.collapsed i.fa-chevron-down {
+        transform: rotate(0deg);
+    }
+
+    .faq-accordion .btn-link:not(.collapsed) i.fa-chevron-down {
+        transform: rotate(180deg);
+    }
+
+    /* FAQ Items */
+    .faq-item {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .faq-item:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+    }
+
+    .faq-item h6 {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        font-size: 1rem;
+    }
+
+    .faq-item p {
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+        font-size: 0.875rem;
+        line-height: 1.5;
+    }
+
+    .faq-item ul, .faq-item ol {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.6;
+        padding-left: 1.5rem;
+    }
+
+    .faq-item li {
+        margin-bottom: 0.25rem;
+    }
+
+    .faq-item strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    /* Alert Styling */
+    .alert-info {
+        background-color: rgba(66, 153, 225, 0.1);
+        border: 1px solid var(--feedback-info);
+        color: var(--text-primary);
+        border-radius: var(--radius-md);
+    }
+
+    .alert-info h6 {
+        color: var(--feedback-info);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .alert-info ul {
+        margin-bottom: 0;
+        padding-left: 1.5rem;
+    }
+
+    .alert-info li {
+        margin-bottom: 0.25rem;
+        color: var(--text-secondary);
+    }
+
+    .alert-info strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    /* Contact Information */
+    .contact-info a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: color 0.2s ease;
+    }
+
+    .contact-info a:hover {
+        color: var(--secondary-color);
+        text-decoration: underline;
+    }
+
+    .contact-info i {
+        color: var(--primary-color);
+        width: 20px;
+        text-align: center;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .faq-help {
+            padding: 0.75rem;
+        }
+
+        .faq-header {
+            padding: 1.25rem;
+        }
+
+        .faq-header h4 {
+            font-size: 1.25rem;
+        }
+
+        .faq-header .d-flex {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .dashboard-card .card-body {
+            padding: 1rem;
+        }
+
+        .help-card {
+            padding: 1rem;
+        }
+
+        .help-card i {
+            font-size: 2.5rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .faq-help {
+            padding: 0.5rem;
+        }
+
+        .faq-header {
+            padding: 1rem;
+        }
+
+        .faq-header h4 {
+            font-size: 1.125rem;
+        }
+
+        .dashboard-card .card-body {
+            padding: 0.75rem;
+        }
+
+        .help-card {
+            padding: 0.75rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block donations_content %}
+<div class="faq-help">
+    <div class="container">
+        <!-- FAQ & Help Header (Matching Location Tracking Style) -->
+        <div class="faq-header">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-question-circle fa-3x" style="opacity: 0.8;"></i>
+                </div>
+                <div>
+                    <h4>{% trans "Donation FAQ & Help Center" %}</h4>
+                    <p>{% trans "Find answers to common questions and get help with your donations" %}</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Help Section -->
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-life-ring me-2"></i>
+                    {% trans "Need Immediate Help?" %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-4 mb-3">
+                        <div class="help-card">
+                            <i class="fas fa-search text-primary"></i>
+                            <h6>{% trans "Track Your Donation" %}</h6>
+                            <p>{% trans "Check the status of your donation using your reference number" %}</p>
+                            <a href="{% url 'donations:donation_status_tracker' %}" class="btn btn-primary btn-sm">
+                                {% trans "Track Now" %}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="help-card">
+                            <i class="fas fa-envelope text-success"></i>
+                            <h6>{% trans "Email Support" %}</h6>
+                            <p>{% trans "Get help from our alumni support team" %}</p>
+                            <a href="mailto:alumni@norsu.edu.ph" class="btn btn-success btn-sm">
+                                {% trans "Send Email" %}
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 mb-3">
+                        <div class="help-card">
+                            <i class="fas fa-phone text-info"></i>
+                            <h6>{% trans "Phone Support" %}</h6>
+                            <p>{% trans "Call us during business hours" %}</p>
+                            <a href="tel:+63123456789" class="btn btn-info btn-sm">
+                                {% trans "Call Now" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- FAQ Sections -->
+        <div class="faq-accordion" id="faqAccordion">
+            <!-- General Questions -->
+            <div class="card">
+                <div class="card-header" id="generalHeading">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link" type="button" data-bs-toggle="collapse" data-bs-target="#generalCollapse">
+                            <i class="fas fa-question-circle me-2"></i>
+                            {% trans "General Questions" %}
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </button>
+                    </h5>
+                </div>
+                <div id="generalCollapse" class="collapse show" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        <div class="faq-item">
+                            <h6>{% trans "How do I make a donation?" %}</h6>
+                            <p>{% trans "To make a donation:" %}</p>
+                            <ol>
+                                <li>{% trans "Choose a campaign from our campaigns page" %}</li>
+                                <li>{% trans "Select your donation amount" %}</li>
+                                <li>{% trans "Fill out the donation form" %}</li>
+                                <li>{% trans "Follow the GCash payment instructions" %}</li>
+                                <li>{% trans "Upload your payment proof" %}</li>
+                                <li>{% trans "Wait for verification (usually within 24 hours)" %}</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "What payment methods do you accept?" %}</h6>
+                            <p>{% trans "Currently, we accept donations through:" %}</p>
+                            <ul>
+                                <li><strong>GCash</strong> - {% trans "Our only supported payment method" %}</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "Is my donation secure?" %}</h6>
+                            <p>{% trans "Yes, your donations are secure. We use industry-standard security measures and all donations are manually verified by our team before being processed." %}</p>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "Can I make an anonymous donation?" %}</h6>
+                            <p>{% trans "Yes, you can choose to make your donation anonymous when filling out the donation form. Anonymous donations will not be displayed publicly, but we will still send you a receipt for your records." %}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- GCash Payment Questions -->
+            <div class="card">
+                <div class="card-header" id="gcashHeading">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#gcashCollapse">
+                            <i class="fas fa-mobile-alt me-2"></i>
+                            {% trans "GCash Payment Questions" %}
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </button>
+                    </h5>
+                </div>
+                <div id="gcashCollapse" class="collapse" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        <div class="faq-item">
+                            <h6>{% trans "How do I pay using GCash?" %}</h6>
+                            <p>{% trans "To pay using GCash:" %}</p>
+                            <ol>
+                                <li>{% trans "Open your GCash app" %}</li>
+                                <li>{% trans "Scan the QR code provided or enter our GCash number manually" %}</li>
+                                {% if gcash_config %}
+                                <li>{% trans "Send to:" %} <strong>{{ gcash_config.gcash_number }}</strong> ({{ gcash_config.account_name }})</li>
+                                {% endif %}
+                                <li>{% trans "Enter the exact donation amount" %}</li>
+                                <li>{% trans "Add your reference number in the message/notes field" %}</li>
+                                <li>{% trans "Complete the payment" %}</li>
+                                <li>{% trans "Take a screenshot of the confirmation" %}</li>
+                                <li>{% trans "Upload the screenshot on our website" %}</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "What if I forgot to include the reference number?" %}</h6>
+                            <p>{% trans "If you forgot to include the reference number in your GCash payment, please:" %}</p>
+                            <ul>
+                                <li>{% trans "Contact us immediately at alumni@norsu.edu.ph" %}</li>
+                                <li>{% trans "Include your donation reference number and GCash transaction ID" %}</li>
+                                <li>{% trans "Attach a screenshot of your GCash payment" %}</li>
+                            </ul>
+                            <p>{% trans "Our team will manually match your payment to your donation." %}</p>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "My GCash payment was successful but my donation shows as failed. What should I do?" %}</h6>
+                            <p>{% trans "If your GCash payment was successful but your donation shows as failed:" %}</p>
+                            <ol>
+                                <li>{% trans "Check that you sent the payment to the correct GCash number" %}</li>
+                                <li>{% trans "Verify that you included the reference number in the message" %}</li>
+                                <li>{% trans "Make sure the amount matches exactly" %}</li>
+                                <li>{% trans "Contact our support team with your transaction details" %}</li>
+                            </ol>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "How long does GCash verification take?" %}</h6>
+                            <p>{% trans "GCash donations are typically verified within:" %}</p>
+                            <ul>
+                                <li><strong>{% trans "Business hours:" %}</strong> {% trans "2-4 hours" %}</li>
+                                <li><strong>{% trans "Weekends/Holidays:" %}</strong> {% trans "24-48 hours" %}</li>
+                            </ul>
+                            <p>{% trans "You will receive an email confirmation once your donation is verified." %}</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Troubleshooting -->
+            <div class="card">
+                <div class="card-header" id="troubleshootingHeading">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#troubleshootingCollapse">
+                            <i class="fas fa-tools me-2"></i>
+                            {% trans "Troubleshooting" %}
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </button>
+                    </h5>
+                </div>
+                <div id="troubleshootingCollapse" class="collapse" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        <div class="faq-item">
+                            <h6>{% trans "I can't upload my payment proof. What should I do?" %}</h6>
+                            <p>{% trans "If you're having trouble uploading your payment proof:" %}</p>
+                            <ul>
+                                <li>{% trans "Make sure your image is less than 5MB in size" %}</li>
+                                <li>{% trans "Use JPG or PNG format only" %}</li>
+                                <li>{% trans "Check your internet connection" %}</li>
+                                <li>{% trans "Try using a different browser" %}</li>
+                                <li>{% trans "Clear your browser cache and cookies" %}</li>
+                            </ul>
+                            <p>{% trans "If the problem persists, email your payment proof to alumni@norsu.edu.ph with your reference number." %}</p>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "I lost my reference number. How can I track my donation?" %}</h6>
+                            <p>{% trans "If you lost your reference number:" %}</p>
+                            <ul>
+                                <li>{% trans "Check your email for the donation confirmation" %}</li>
+                                <li>{% trans "Look for the reference number in your browser history" %}</li>
+                                <li>{% trans "Contact us with your GCash transaction details" %}</li>
+                                <li>{% trans "Provide your name and email used for the donation" %}</li>
+                            </ul>
+                        </div>
+                        
+                        <div class="faq-item">
+                            <h6>{% trans "The website is not working properly on my phone. What should I do?" %}</h6>
+                            <p>{% trans "For mobile issues:" %}</p>
+                            <ul>
+                                <li>{% trans "Make sure you have a stable internet connection" %}</li>
+                                <li>{% trans "Update your mobile browser to the latest version" %}</li>
+                                <li>{% trans "Clear your browser cache and data" %}</li>
+                                <li>{% trans "Try using a different browser (Chrome, Firefox, Safari)" %}</li>
+                                <li>{% trans "Restart your phone and try again" %}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Contact Information -->
+            <div class="card">
+                <div class="card-header" id="contactHeading">
+                    <h5 class="mb-0">
+                        <button class="btn btn-link collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#contactCollapse">
+                            <i class="fas fa-address-book me-2"></i>
+                            {% trans "Contact Information" %}
+                            <i class="fas fa-chevron-down float-end"></i>
+                        </button>
+                    </h5>
+                </div>
+                <div id="contactCollapse" class="collapse" data-bs-parent="#faqAccordion">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-primary">{% trans "Alumni Office" %}</h6>
+                                <div class="contact-info">
+                                <p>
+                                    <i class="fas fa-envelope me-2"></i>
+                                    <a href="mailto:alumni@norsu.edu.ph">alumni@norsu.edu.ph</a><br>
+                                    <i class="fas fa-phone me-2"></i>
+                                    <a href="tel:+63123456789">+63 123 456 7890</a><br>
+                                    <i class="fas fa-clock me-2"></i>
+                                    {% trans "Monday - Friday, 8:00 AM - 5:00 PM" %}
+                                </p>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <h6 class="fw-bold text-primary">{% trans "Technical Support" %}</h6>
+                                <div class="contact-info">
+                                <p>
+                                    <i class="fas fa-envelope me-2"></i>
+                                    <a href="mailto:support@norsu.edu.ph">support@norsu.edu.ph</a><br>
+                                    <i class="fas fa-globe me-2"></i>
+                                    <a href="https://norsu.edu.ph" target="_blank">norsu.edu.ph</a><br>
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    {% trans "Dumaguete City, Negros Oriental" %}
+                                </p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="alert alert-info mt-3">
+                            <h6>{% trans "Response Times" %}</h6>
+                            <ul>
+                                <li><strong>{% trans "Email:" %}</strong> {% trans "Within 24 hours during business days" %}</li>
+                                <li><strong>{% trans "Phone:" %}</strong> {% trans "Immediate during business hours" %}</li>
+                                <li><strong>{% trans "Donation Issues:" %}</strong> {% trans "Priority response within 4 hours" %}</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

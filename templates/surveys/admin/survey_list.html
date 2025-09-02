@@ -1,93 +1,219 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}Survey Management & Analytics{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* Dashboard Layout */
-    .dashboard-container {
-        padding: 2rem 0;
-        background-color: #f8f9fa;
+    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+
+    .survey-dashboard {
+        font-family: 'Poppins', sans-serif;
+        padding: 1.25rem;
+        background-color: var(--ui-background);
         min-height: calc(100vh - 60px);
     }
-    
+
+    /* Dashboard Header (Matching manage_donations style) */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header h1 {
+        color: var(--text-light);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 1.5rem;
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+        color: var(--text-light);
+    }
+
+    /* Card Styling (Matching manage_donations) */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .dashboard-card .card-header {
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+    }
+
+    .dashboard-card .card-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.125rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
     /* Analytics Cards */
     .analytics-card {
-        border-radius: 15px;
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
         padding: 1.5rem;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        box-shadow: var(--shadow-sm);
         margin-bottom: 1.5rem;
-        background-color: #fff;
-        border-left: 5px solid;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+        position: relative;
+        overflow: hidden;
     }
+
     .analytics-card:hover {
+        box-shadow: var(--shadow-md);
         transform: translateY(-2px);
-        box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
     }
-    .analytics-card.primary { border-left-color: #4e73df; }
-    .analytics-card.success { border-left-color: #1cc88a; }
-    .analytics-card.info { border-left-color: #36b9cc; }
-    .analytics-card.warning { border-left-color: #f6c23e; }
-    
+
+    .analytics-card.primary {
+        border-left: 4px solid var(--primary-color);
+    }
+
+    .analytics-card.success {
+        border-left: 4px solid var(--feedback-success);
+    }
+
+    .analytics-card.info {
+        border-left: 4px solid var(--feedback-info);
+    }
+
+    .analytics-card.warning {
+        border-left: 4px solid var(--feedback-warning);
+    }
+
     .analytics-metric {
         font-size: 2rem;
         font-weight: 700;
         margin-bottom: 0.25rem;
-        color: #2c3e50;
+        color: var(--text-primary);
     }
+
     .analytics-title {
         font-size: 0.85rem;
         font-weight: 600;
         text-transform: uppercase;
-        color: #6c757d;
+        color: var(--text-secondary);
         margin-bottom: 0.5rem;
         letter-spacing: 0.5px;
     }
+
     .analytics-icon {
         font-size: 2.5rem;
         opacity: 0.15;
-        color: #2c3e50;
+        color: var(--text-primary);
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
     }
-    
+
     /* Chart Containers */
     .chart-container {
         height: 300px;
         position: relative;
         margin: 1rem 0;
     }
+
     .chart-card {
-        background: #fff;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
         margin-bottom: 2rem;
-        transition: transform 0.2s ease;
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
     }
+
     .chart-card:hover {
+        box-shadow: var(--shadow-md);
         transform: translateY(-2px);
     }
+
     .chart-card .card-header {
-        background: transparent;
-        border-bottom: 1px solid rgba(0,0,0,0.05);
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
         padding: 1.25rem;
     }
+
     .chart-card .card-header h5 {
         font-size: 1.1rem;
         font-weight: 600;
-        color: #2c3e50;
+        color: var(--text-primary);
+        margin: 0;
     }
-    
+
     /* Section Headers */
     .section-heading {
-        color: #2c3e50;
+        color: var(--text-primary);
         font-size: 1.5rem;
         font-weight: 600;
         margin: 2rem 0 1.5rem;
         padding-bottom: 0.75rem;
-        border-bottom: 2px solid #e9ecef;
+        border-bottom: 2px solid var(--ui-border);
         position: relative;
+        font-family: 'Poppins', sans-serif;
     }
+
     .section-heading::after {
         content: '';
         position: absolute;
@@ -95,87 +221,258 @@
         left: 0;
         width: 50px;
         height: 2px;
-        background: #4e73df;
+        background: var(--primary-color);
     }
-    
+
     /* Tables */
     .table-container {
-        background: #fff;
-        border-radius: 15px;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
         overflow: hidden;
+        border: 1px solid var(--ui-border);
     }
+
     .table {
         margin-bottom: 0;
+        color: var(--text-primary);
     }
+
     .table thead th {
-        background: #f8f9fa;
-        border-bottom: 2px solid #e9ecef;
-        color: #2c3e50;
+        background: var(--ui-hover);
+        border-bottom: 2px solid var(--ui-border);
+        color: var(--text-primary);
         font-weight: 600;
         text-transform: uppercase;
         font-size: 0.85rem;
         letter-spacing: 0.5px;
+        padding: 1rem 0.75rem;
     }
+
     .table td {
         vertical-align: middle;
-        color: #2c3e50;
+        color: var(--text-primary);
+        padding: 1rem 0.75rem;
+        border-bottom: 1px solid var(--ui-border);
     }
-    
+
+    .table tbody tr:hover {
+        background-color: var(--ui-hover);
+    }
+
     /* Status Badges */
     .badge {
         padding: 0.5em 1em;
         font-weight: 500;
         letter-spacing: 0.5px;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
     }
-    .badge.bg-success { background-color: #1cc88a !important; }
-    .badge.bg-secondary { background-color: #858796 !important; }
-    .badge.bg-danger { background-color: #e74a3b !important; }
-    
+
+    .badge.bg-success {
+        background-color: var(--feedback-success) !important;
+        color: var(--text-light);
+    }
+
+    .badge.bg-secondary {
+        background-color: var(--text-secondary) !important;
+        color: var(--text-light);
+    }
+
+    .badge.bg-danger {
+        background-color: var(--feedback-error) !important;
+        color: var(--text-light);
+    }
+
+    .badge.bg-warning {
+        background-color: var(--feedback-warning) !important;
+        color: var(--text-light);
+    }
+
+    .badge.bg-info {
+        background-color: var(--feedback-info) !important;
+        color: var(--text-light);
+    }
+
     /* Progress Bars */
     .progress {
         height: 8px;
-        border-radius: 4px;
-        background-color: #edf2f7;
+        border-radius: var(--radius-sm);
+        background-color: var(--ui-hover);
         margin: 0.5rem 0;
     }
+
     .progress-bar {
-        border-radius: 4px;
-        background-color: #1cc88a;
+        border-radius: var(--radius-sm);
+        background-color: var(--feedback-success);
     }
-    
-    /* Action Buttons */
-    .btn-group .btn {
-        padding: 0.375rem 0.75rem;
+
+    /* Button Styling (Matching manage_donations) */
+    .btn {
+        border-radius: var(--radius-sm);
         font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
     }
-    .btn-group .btn i {
-        margin-right: 0.25rem;
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
     }
-    
+
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-outline-primary {
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+
+    .btn-outline-danger {
+        background-color: transparent;
+        border-color: var(--feedback-error);
+        color: var(--feedback-error);
+    }
+
+    .btn-outline-danger:hover {
+        background-color: var(--feedback-error);
+        border-color: var(--feedback-error);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Links */
+    .text-decoration-none {
+        text-decoration: none;
+        color: var(--primary-color);
+        transition: color 0.2s ease;
+    }
+
+    .text-decoration-none:hover {
+        color: var(--secondary-color);
+        text-decoration: underline;
+    }
+
+    /* Text Colors */
+    .text-muted {
+        color: var(--text-muted) !important;
+    }
+
+    .text-primary {
+        color: var(--primary-color) !important;
+    }
+
     /* Responsive Design */
     @media (max-width: 768px) {
+        .survey-dashboard {
+            padding: 0.75rem;
+        }
+
+        .dashboard-header {
+            padding: 1.25rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.5rem;
+        }
+
         .analytics-card {
             margin-bottom: 1rem;
         }
+
         .chart-container {
             height: 250px;
         }
+
         .table-responsive {
-            border-radius: 15px;
+            border-radius: var(--radius-md);
+        }
+
+        .section-heading {
+            font-size: 1.25rem;
+            margin: 1.5rem 0 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .survey-dashboard {
+            padding: 0.5rem;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.25rem;
+        }
+
+        .analytics-card {
+            padding: 1rem;
+        }
+
+        .analytics-metric {
+            font-size: 1.5rem;
+        }
+
+        .analytics-icon {
+            font-size: 2rem;
+            top: 0.75rem;
+            right: 0.75rem;
+        }
+
+        .chart-container {
+            height: 200px;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-container">
+<div class="survey-dashboard">
     <div class="container">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="h2 mb-0">Survey Management & Analytics</h1>
-            <a href="{% url 'surveys:survey_create' %}" class="btn btn-primary">
-                <i class="fas fa-plus me-2"></i>Create New Survey
-            </a>
+        <!-- Dashboard Header (Matching manage_donations style) -->
+        <div class="dashboard-header">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h1>Survey Management & Analytics</h1>
+                    <p>View, manage, and analyze survey responses and participation rates.</p>
+                </div>
+                <a href="{% url 'surveys:survey_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>Create New Survey
+                </a>
+            </div>
         </div>
 
         <!-- Analytics Overview -->
@@ -244,7 +541,9 @@
             <div class="col-md-6 mb-4">
                 <div class="chart-card h-100">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-university me-2"></i>Responses by College</h5>
+                        <h5 class="card-title">
+                            <i class="fas fa-university me-2"></i>Responses by College
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -256,7 +555,9 @@
             <div class="col-md-6 mb-4">
                 <div class="chart-card h-100">
                     <div class="card-header">
-                        <h5 class="mb-0"><i class="fas fa-graduation-cap me-2"></i>Responses by Batch</h5>
+                        <h5 class="card-title">
+                            <i class="fas fa-graduation-cap me-2"></i>Responses by Batch
+                        </h5>
                     </div>
                     <div class="card-body">
                         <div class="chart-container">
@@ -269,121 +570,139 @@
         
         <!-- Survey Management -->
         <h4 class="section-heading">Survey Management</h4>
-        <div class="table-container mb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Survey Title</th>
-                            <th>Status</th>
-                            <th>Created</th>
-                            <th>Period</th>
-                            <th class="text-center">Responses</th>
-                            <th class="text-end">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for survey in surveys %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
-                                    {{ survey.title }}
-                                </a>
-                            </td>
-                            <td>
-                                {% if survey.status == 'draft' %}
-                                    <span class="badge bg-secondary">Draft</span>
-                                {% elif survey.status == 'active' %}
-                                    <span class="badge bg-success">Active</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Closed</span>
-                                {% endif %}
-                            </td>
-                            <td>{{ survey.created_at|date:"M d, Y" }}</td>
-                            <td>
-                                <small class="text-muted">
-                                    {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
-                                </small>
-                            </td>
-                            <td class="text-center">{{ survey.responses.count }}</td>
-                            <td>
-                                <div class="btn-group float-end">
-                                    <a href="{% url 'surveys:survey_detail' survey.id %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-eye"></i>
-                                    </a>
-                                    <a href="{% url 'surveys:survey_update' survey.id %}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-edit"></i>
-                                    </a>
-                                    <a href="{% url 'surveys:survey_delete' survey.id %}" class="btn btn-sm btn-outline-danger">
-                                        <i class="fas fa-trash"></i>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                        {% empty %}
-                        <tr>
-                            <td colspan="6" class="text-center py-5">
-                                <div class="text-muted mb-3">No surveys have been created yet</div>
-                                <a href="{% url 'surveys:survey_create' %}" class="btn btn-primary">
-                                    <i class="fas fa-plus me-2"></i>Create your first survey
-                                </a>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-poll me-2"></i>{% trans "Surveys" %}
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Survey Title</th>
+                                    <th>Status</th>
+                                    <th>Created</th>
+                                    <th>Period</th>
+                                    <th class="text-center">Responses</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for survey in surveys %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
+                                            {{ survey.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if survey.status == 'draft' %}
+                                            <span class="badge bg-secondary">Draft</span>
+                                        {% elif survey.status == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Closed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ survey.created_at|date:"M d, Y" }}</td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">{{ survey.responses.count }}</td>
+                                    <td>
+                                        <div class="btn-group float-end">
+                                            <a href="{% url 'surveys:survey_detail' survey.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-eye"></i>
+                                            </a>
+                                            <a href="{% url 'surveys:survey_update' survey.id %}" class="btn btn-sm btn-outline-primary">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <a href="{% url 'surveys:survey_delete' survey.id %}" class="btn btn-sm btn-outline-danger">
+                                                <i class="fas fa-trash"></i>
+                                            </a>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="6" class="text-center py-5">
+                                        <div class="text-muted mb-3">No surveys have been created yet</div>
+                                        <a href="{% url 'surveys:survey_create' %}" class="btn btn-primary">
+                                            <i class="fas fa-plus me-2"></i>Create your first survey
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
         
         <!-- Response Metrics -->
         <h4 class="section-heading">Response Metrics</h4>
-        <div class="table-container mb-4">
-            <div class="table-responsive">
-                <table class="table table-hover align-middle">
-                    <thead>
-                        <tr>
-                            <th>Survey</th>
-                            <th>Status</th>
-                            <th>Period</th>
-                            <th class="text-center">Responses</th>
-                            <th class="text-center">Response Rate</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for survey in survey_data %}
-                        <tr>
-                            <td>
-                                <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
-                                    {{ survey.title }}
-                                </a>
-                            </td>
-                            <td>
-                                {% if survey.status == 'draft' %}
-                                    <span class="badge bg-secondary">Draft</span>
-                                {% elif survey.status == 'active' %}
-                                    <span class="badge bg-success">Active</span>
-                                {% else %}
-                                    <span class="badge bg-danger">Closed</span>
-                                {% endif %}
-                            </td>
-                            <td>
-                                <small class="text-muted">
-                                    {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
-                                </small>
-                            </td>
-                            <td class="text-center">{{ survey.responses_count }}</td>
-                            <td>
-                                <div class="d-flex align-items-center justify-content-center">
-                                    <div class="progress flex-grow-1 mx-2" style="max-width: 150px;">
-                                        <div class="progress-bar" role="progressbar" style="width: {{ survey.response_rate }}%"></div>
-                                    </div>
-                                    <span class="text-muted small" style="width: 45px;">{{ survey.response_rate }}%</span>
-                                </div>
-                            </td>
-                        </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h5 class="card-title">
+                    <i class="fas fa-chart-bar me-2"></i>{% trans "Response Analytics" %}
+                </h5>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-container">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Survey</th>
+                                    <th>Status</th>
+                                    <th>Period</th>
+                                    <th class="text-center">Responses</th>
+                                    <th class="text-center">Response Rate</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for survey in survey_data %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
+                                            {{ survey.title }}
+                                        </a>
+                                    </td>
+                                    <td>
+                                        {% if survey.status == 'draft' %}
+                                            <span class="badge bg-secondary">Draft</span>
+                                        {% elif survey.status == 'active' %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Closed</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small class="text-muted">
+                                            {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
+                                        </small>
+                                    </td>
+                                    <td class="text-center">{{ survey.responses_count }}</td>
+                                    <td>
+                                        <div class="d-flex align-items-center justify-content-center">
+                                            <div class="progress flex-grow-1 mx-2" style="max-width: 150px;">
+                                                <div class="progress-bar" role="progressbar" style="width: {{ survey.response_rate }}%"></div>
+                                            </div>
+                                            <span class="text-muted small" style="width: 45px;">{{ survey.response_rate }}%</span>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -410,8 +729,8 @@
                         {% endfor %}
                     ],
                     backgroundColor: [
-                        '#4e73df', '#1cc88a', '#36b9cc', '#f6c23e', '#e74a3b', 
-                        '#5a5c69', '#6610f2', '#fd7e14', '#20c9a6', '#858796'
+                        '#2b3c6b', '#48bb78', '#4299e1', '#ed8936', '#e53e3e', 
+                        '#4a5568', '#718096', '#a0aec0', '#e2e8f0', '#f7fafc'
                     ],
                     borderWidth: 2,
                     borderColor: '#ffffff'
@@ -452,8 +771,8 @@
                             {{ item.count }},
                         {% endfor %}
                     ],
-                    backgroundColor: '#4e73df',
-                    borderColor: '#4e73df',
+                    backgroundColor: '#2b3c6b',
+                    borderColor: '#2b3c6b',
                     borderWidth: 1,
                     borderRadius: 5
                 }]

@@ -1,0 +1,398 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="page-title">{{ page_title }}</h1>
+                <p class="page-subtitle">{{ page_subtitle }}</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ news.paginator.count }}</span>
+                        <span class="stat-label">News Articles</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_header %}
+
+{% block content %}
+<div class="container py-5">
+    {% if featured_news %}
+    <!-- Featured News Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <h2 class="section-title mb-4">
+                <i class="fas fa-star text-warning me-2"></i>Featured News
+            </h2>
+        </div>
+        
+        {% for article in featured_news %}
+        {% if forloop.first %}
+        <!-- Main Featured Article -->
+        <div class="col-lg-8 mb-4">
+            <div class="featured-article content-card">
+                <div class="card-body p-4">
+                    <div class="article-meta mb-3">
+                        <div class="d-flex justify-content-between align-items-center">
+                            {% if article.category %}
+                            <span class="badge bg-primary">{{ article.category.name }}</span>
+                            {% endif %}
+                            <span class="priority-badge priority-{{ article.priority_level|lower }}">
+                                {{ article.get_priority_level_display }}
+                            </span>
+                        </div>
+                        <small class="text-muted mt-2 d-block">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            {{ article.date_posted|naturaltime }}
+                        </small>
+                    </div>
+                    
+                    <h3 class="article-title mb-3">{{ article.title }}</h3>
+                    <p class="article-excerpt">{{ article.content|striptags|truncatewords:50 }}</p>
+                    
+                    <div class="article-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-users me-1"></i>
+                                {{ article.get_target_audience_display }}
+                            </small>
+                            <button class="btn btn-primary" onclick="showFullArticle({{ article.id }})">
+                                <i class="fas fa-arrow-right me-1"></i>Read Full Article
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        {% endfor %}
+        
+        <!-- Side Featured Articles -->
+        <div class="col-lg-4">
+            {% for article in featured_news %}
+            {% if not forloop.first and forloop.counter <= 3 %}
+            <div class="side-article content-card mb-3">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        {% if article.category %}
+                        <span class="badge bg-secondary small">{{ article.category.name }}</span>
+                        {% endif %}
+                        <small class="text-muted">{{ article.date_posted|date:"M d" }}</small>
+                    </div>
+                    <h6 class="article-title mb-2">{{ article.title }}</h6>
+                    <p class="article-excerpt small">{{ article.content|striptags|truncatewords:15 }}</p>
+                    <button class="btn btn-sm btn-outline-primary" onclick="showFullArticle({{ article.id }})">
+                        Read More
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- All News Section -->
+    {% if news %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <h2 class="section-title">
+                <i class="fas fa-newspaper text-primary me-2"></i>All News
+            </h2>
+        </div>
+    </div>
+    
+    <div class="row g-4">
+        {% for article in news %}
+        <div class="col-lg-4 col-md-6">
+            <div class="news-card content-card h-100">
+                <div class="card-body">
+                    <div class="article-meta mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            {% if article.category %}
+                            <span class="badge bg-primary">{{ article.category.name }}</span>
+                            {% endif %}
+                            <span class="priority-badge priority-{{ article.priority_level|lower }}">
+                                {{ article.get_priority_level_display }}
+                            </span>
+                        </div>
+                        <small class="text-muted">
+                            <i class="fas fa-calendar-alt me-1"></i>
+                            {{ article.date_posted|naturaltime }}
+                        </small>
+                        {% if article.views_count %}
+                        <small class="text-muted ms-3">
+                            <i class="fas fa-eye me-1"></i>
+                            {{ article.views_count }} views
+                        </small>
+                        {% endif %}
+                    </div>
+                    
+                    <h5 class="card-title">{{ article.title }}</h5>
+                    <p class="card-text">{{ article.content|striptags|truncatewords:25 }}</p>
+                    
+                    <div class="article-footer mt-auto">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <small class="text-muted">
+                                <i class="fas fa-users me-1"></i>
+                                {{ article.get_target_audience_display }}
+                            </small>
+                            <button class="btn btn-sm btn-outline-primary" onclick="showFullArticle({{ article.id }})">
+                                <i class="fas fa-arrow-right me-1"></i>Read More
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    <!-- Pagination -->
+    {% if news.has_other_pages %}
+    <nav aria-label="News pagination" class="mt-5">
+        <ul class="pagination justify-content-center">
+            {% if news.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ news.previous_page_number }}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+            
+            {% for num in news.paginator.page_range %}
+                {% if news.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                {% elif num > news.number|add:'-3' and num < news.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                {% endif %}
+            {% endfor %}
+            
+            {% if news.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ news.next_page_number }}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ news.paginator.num_pages }}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+            {% endif %}
+        </ul>
+    </nav>
+    {% endif %}
+    
+    {% else %}
+    <!-- No News -->
+    <div class="row">
+        <div class="col-12">
+            <div class="text-center py-5">
+                <i class="fas fa-newspaper fa-4x text-muted mb-4"></i>
+                <h3 class="text-muted">No News Available</h3>
+                <p class="text-muted">Check back soon for the latest news and updates!</p>
+                <a href="{% url 'core:home' %}" class="btn btn-primary mt-3">
+                    <i class="fas fa-home me-1"></i>Back to Home
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+    
+    <!-- Call to Action -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="content-card text-center">
+                <div class="card-body py-5">
+                    <h3 class="mb-3">Stay Informed</h3>
+                    <p class="text-muted mb-4">Join our alumni network to receive the latest news and updates from NORSU.</p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>Sign Up Now
+                        </a>
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Article Modal -->
+<div class="modal fade" id="articleModal" tabindex="-1" aria-labelledby="articleModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="articleModalLabel">Article Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="text-center py-5">
+                    <i class="fas fa-lock fa-3x text-muted mb-3"></i>
+                    <h4>Login Required</h4>
+                    <p class="text-muted">Please login to read the full article and access more features.</p>
+                    <div class="d-flex gap-3 justify-content-center mt-4">
+                        <a href="{% url 'account_login' %}" class="btn btn-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                        <a href="{% url 'account_signup' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-user-plus me-1"></i>Sign Up
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<style>
+    .header-stats .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+    }
+    
+    .header-stats .stat-number {
+        display: block;
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-light);
+        margin-bottom: 0.25rem;
+    }
+    
+    .header-stats .stat-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .section-title {
+        font-size: 1.75rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--ui-border);
+    }
+    
+    .featured-article {
+        border: 2px solid var(--primary-color);
+    }
+    
+    .featured-article .article-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+    
+    .side-article {
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .news-card {
+        transition: all 0.3s ease;
+    }
+    
+    .news-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .priority-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-weight: 500;
+    }
+    
+    .priority-low {
+        background-color: var(--feedback-info);
+        color: white;
+    }
+    
+    .priority-medium {
+        background-color: var(--feedback-warning);
+        color: white;
+    }
+    
+    .priority-high {
+        background-color: var(--feedback-error);
+        color: white;
+    }
+    
+    .priority-urgent {
+        background-color: #dc3545;
+        color: white;
+        animation: pulse 2s infinite;
+    }
+    
+    @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.7; }
+        100% { opacity: 1; }
+    }
+    
+    .article-meta {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: 0.75rem;
+    }
+    
+    .article-footer {
+        border-top: 1px solid var(--ui-border);
+        padding-top: 0.75rem;
+        margin-top: 1rem;
+    }
+    
+    .pagination .page-link {
+        color: var(--primary-color);
+        border-color: var(--ui-border);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .pagination .page-link:hover {
+        color: var(--primary-dark);
+        background-color: var(--ui-hover);
+    }
+</style>
+{% endblock extra_css %}
+
+{% block extra_js %}
+<script>
+function showFullArticle(articleId) {
+    // Show modal with login prompt
+    const modal = new bootstrap.Modal(document.getElementById('articleModal'));
+    modal.show();
+}
+</script>
+{% endblock extra_js %}

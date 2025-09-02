@@ -488,4 +488,40 @@
 
 {% block page_specific_js %}
 <script src="{% static 'js/job_posting.js' %}"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('jobForm');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show confirmation dialog
+            Swal.fire({
+                icon: 'question',
+                title: '{% if job %}Update{% else %}Post{% endif %} Job',
+                text: 'Are you sure you want to {% if job %}update{% else %}post{% endif %} this job posting?',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, {% if job %}update{% else %}post{% endif %} it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: '{% if job %}Updating{% else %}Posting{% endif %} Job...',
+                        text: 'Please wait while we {% if job %}update{% else %}post{% endif %} the job.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit the form
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

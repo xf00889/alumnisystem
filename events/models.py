@@ -2,7 +2,6 @@ from django.db import models
 from django.conf import settings
 from django.utils import timezone
 from alumni_groups.models import AlumniGroup
-from ckeditor.fields import RichTextField
 
 class Event(models.Model):
     STATUS_CHOICES = [
@@ -13,7 +12,7 @@ class Event(models.Model):
     ]
 
     title = models.CharField(max_length=200)
-    description = RichTextField()
+    description = models.TextField()
     start_date = models.DateTimeField()
     end_date = models.DateTimeField()
     location = models.CharField(max_length=200)

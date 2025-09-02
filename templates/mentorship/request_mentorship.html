@@ -5,96 +5,551 @@
 
 {% block extra_css %}
 <style>
-    .mentor-info {
-        background-color: #f8f9fa;
-        border-radius: 10px;
-        padding: 20px;
-        margin-bottom: 20px;
+/* System Color Scheme - Dashboard Design */
+:root {
+    --primary-color: #2b3c6b;
+    --secondary-color: #4a5568;
+
+    /* UI Colors */
+    --ui-background: #f7fafc;
+    --ui-surface: #ffffff;
+    --ui-border: #e2e8f0;
+    --ui-hover: #edf2f7;
+
+    /* Text Colors */
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --text-muted: #a0aec0;
+    --text-light: #ffffff;
+
+    /* Feedback Colors */
+    --feedback-success: #48bb78;
+    --feedback-warning: #ed8936;
+    --feedback-error: #e53e3e;
+    --feedback-info: #4299e1;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.375rem;
+    --radius-lg: 0.5rem;
+}
+
+/* Page Layout & Background */
+.mentorship-request-page {
+    background: var(--ui-background);
+    min-height: 100vh;
+    padding: 1.25rem;
+}
+
+/* Dashboard Header - Matching Location Tracking Style */
+.page-header {
+    background: var(--primary-color);
+    color: var(--text-light);
+    padding: 1.75rem;
+    border-radius: var(--radius-md);
+    margin: 1.25rem;
+    box-shadow: var(--shadow-sm);
+    font-size: 0.875rem;
+    font-family: 'Poppins', sans-serif;
+}
+
+.page-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.25rem;
+    text-align: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+}
+
+.page-title i {
+    color: var(--text-light);
+    font-size: 1.5rem;
+}
+
+.page-subtitle {
+    opacity: 0.9;
+    font-size: 0.875rem;
+    margin: 0;
+    text-align: center;
+    font-weight: 400;
+}
+
+/* Mentor Profile Card */
+.mentor-profile-card {
+    background: var(--ui-surface);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--ui-border);
+    height: fit-content;
+    position: sticky;
+    top: 2rem;
+    margin: 1.25rem;
+}
+
+.mentor-avatar-container {
+    position: relative;
+    display: inline-block;
+    margin-bottom: 1.5rem;
+}
+
+.mentor-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 3px solid var(--ui-border);
+    transition: all 0.2s ease;
+}
+
+.mentor-avatar:hover {
+    border-color: var(--primary-color);
+}
+
+.mentor-status-badge {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    background: var(--feedback-success);
+    border: 2px solid var(--ui-surface);
+    border-radius: 50%;
+}
+
+.mentor-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    text-align: center;
+}
+
+.mentor-position {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    font-weight: 400;
+    text-align: center;
+    margin-bottom: 1.5rem;
+    line-height: 1.4;
+}
+
+.mentor-section {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+
+.mentor-section:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.mentor-section-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+}
+
+.mentor-section-title i {
+    margin-right: 0.5rem;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}
+
+.expertise-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.expertise-badge {
+    background: var(--primary-color);
+    color: var(--text-light);
+    padding: 0.375rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.75rem;
+    font-weight: 500;
+    text-transform: capitalize;
+    transition: background-color 0.2s ease;
+}
+
+.expertise-badge:hover {
+    background: var(--secondary-color);
+}
+
+.mentor-text {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+    line-height: 1.5;
+    margin: 0;
+}
+
+/* Request Form Card */
+.request-form-card {
+    background: #fff;
+    border-radius: 12px;
+    padding: 2rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border: 1px solid #e9ecef;
+}
+
+.form-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid #e9ecef;
+}
+
+.form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #212529;
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.form-title i {
+    color: #007bff;
+    font-size: 1.25rem;
+}
+
+.form-description {
+    color: #6c757d;
+    font-size: 0.9rem;
+    margin: 0;
+}
+
+/* Enhanced Alert */
+.alert {
+    border-radius: var(--radius-sm);
+    border: 1px solid transparent;
+    padding: 0.75rem 1rem;
+    font-size: 0.875rem;
+    margin-bottom: 1.5rem;
+}
+
+.alert-info {
+    background-color: rgba(66, 153, 225, 0.1);
+    border-color: var(--feedback-info);
+    color: var(--text-primary);
+}
+
+.alert-info i {
+    color: var(--feedback-info);
+    margin-right: 0.5rem;
+}
+
+/* Form Styling */
+.form-group {
+    margin-bottom: 1.5rem;
+}
+
+.form-label {
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+}
+
+.form-label i {
+    margin-right: 0.5rem;
+    color: var(--primary-color);
+    font-size: 0.875rem;
+}
+
+.form-control {
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-sm);
+    padding: 0.75rem 1rem;
+    font-size: 0.9rem;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background: var(--ui-surface);
+}
+
+.form-control:focus {
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    background: var(--ui-surface);
+    outline: 0;
+}
+
+.form-text {
+    color: var(--text-secondary);
+    font-size: 0.8rem;
+    margin-top: 0.25rem;
+}
+
+/* Enhanced Buttons */
+.btn-container {
+    display: flex;
+    gap: 1rem;
+    justify-content: flex-end;
+    margin-top: 2rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--ui-border);
+}
+
+.btn {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+    border-radius: var(--radius-sm);
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 140px;
+}
+
+.btn i {
+    margin-right: 0.5rem;
+}
+
+.btn-primary {
+    background: var(--primary-color);
+    color: var(--text-light);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover {
+    background: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: var(--text-light);
+}
+
+.btn-outline-secondary {
+    background: transparent;
+    color: var(--text-secondary);
+    border-color: var(--text-secondary);
+}
+
+.btn-outline-secondary:hover {
+    background: var(--text-secondary);
+    color: var(--text-light);
+    border-color: var(--text-secondary);
+}
+
+/* Loading State */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Form Section Styling */
+.form-section {
+    background: var(--ui-surface);
+    border-radius: var(--radius-md);
+    padding: 2rem;
+    box-shadow: var(--shadow-sm);
+    border: 1px solid var(--ui-border);
+    margin: 1.25rem;
+}
+
+.form-section .form-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--ui-border);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .mentorship-request-page {
+        padding: 0.75rem;
     }
-    
-    .mentor-avatar {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        object-fit: cover;
+
+    .page-header {
+        padding: 1.5rem;
+        margin: 0.75rem;
     }
-    
-    .mentor-name {
-        font-size: 1.5rem;
-        font-weight: bold;
-        margin-bottom: 5px;
+
+    .page-title {
+        font-size: 1.25rem;
+        flex-direction: column;
+        gap: 0.5rem;
     }
-    
-    .mentor-expertise {
-        margin-bottom: 15px;
+
+    .mentor-profile-card {
+        position: static;
+        margin: 0.75rem;
+        padding: 1.5rem;
     }
-    
-    .expertise-badge {
-        background-color: #e9ecef;
-        color: #495057;
-        padding: 5px 10px;
-        border-radius: 20px;
-        margin-right: 5px;
-        margin-bottom: 5px;
-        display: inline-block;
-    }
-    
+
     .form-section {
-        background-color: #fff;
-        border-radius: 10px;
-        padding: 30px;
-        box-shadow: 0 0 15px rgba(0,0,0,0.05);
+        padding: 1.5rem;
+        margin: 0.75rem;
     }
-    
+
     .form-title {
-        margin-bottom: 20px;
-        color: #343a40;
+        font-size: 1.25rem;
     }
+
+    .btn-container {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .btn {
+        width: 100%;
+        margin-bottom: 0.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    .mentorship-request-page {
+        padding: 0.5rem;
+    }
+
+    .page-header {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+
+    .page-title {
+        font-size: 1.125rem;
+    }
+
+    .mentor-profile-card,
+    .form-section {
+        padding: 1rem;
+        margin: 0.5rem;
+    }
+
+    .mentor-avatar {
+        width: 80px;
+        height: 80px;
+    }
+
+    .mentor-name {
+        font-size: 1.25rem;
+    }
+
+    .form-title {
+        font-size: 1.125rem;
+    }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="container py-5">
-    <div class="row">
-        <div class="col-md-4">
-            <div class="mentor-info">
-                <div class="text-center mb-4">
-                    {% if mentor.user.profile.avatar %}
-                        <img src="{{ mentor.user.profile.avatar.url }}" alt="{{ mentor.user.get_full_name }}" class="mentor-avatar">
-                    {% else %}
-                        <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="mentor-avatar">
-                    {% endif %}
-                </div>
-                
-                <div class="mentor-name text-center">{{ mentor.user.get_full_name }}</div>
-                
-                <div class="text-center text-muted mb-3">
-                    {{ mentor.user.profile.current_position }}
-                    {% if mentor.user.profile.current_employer %}
-                        at {{ mentor.user.profile.current_employer }}
-                    {% endif %}
-                </div>
-                
-                <div class="mentor-expertise">
-                    <h6>Areas of Expertise:</h6>
-                    <div>
-                        {% for area in mentor.expertise_areas.split|slice:":5" %}
-                            <span class="expertise-badge">{{ area }}</span>
-                        {% endfor %}
+<div class="mentorship-request-page">
+    <div class="container">
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title">
+                <i class="fas fa-handshake"></i>
+                Request Mentorship
+            </h1>
+            <p class="page-subtitle">Connect with {{ mentor.user.get_full_name }} and start your mentorship journey</p>
+        </div>
+
+        <div class="row">
+            <!-- Mentor Profile Card -->
+            <div class="col-lg-4 col-md-5">
+                <div class="mentor-profile-card">
+                    <!-- Avatar Section -->
+                    <div class="text-center">
+                        <div class="mentor-avatar-container">
+                            {% if mentor.user.profile.avatar %}
+                                <img src="{{ mentor.user.profile.avatar.url }}"
+                                     alt="{{ mentor.user.get_full_name }}"
+                                     class="mentor-avatar"
+                                     onerror="this.src='{% static 'images/default-avatar.png' %}'">
+                            {% else %}
+                                <img src="{% static 'images/default-avatar.png' %}"
+                                     alt="Default Avatar"
+                                     class="mentor-avatar">
+                            {% endif %}
+                            <div class="mentor-status-badge" title="Available for mentorship"></div>
+                        </div>
+
+                        <h2 class="mentor-name">{{ mentor.user.get_full_name }}</h2>
+
+                        <div class="mentor-position">
+                            {{ mentor.user.profile.current_position|default:"Professional" }}
+                            {% if mentor.user.profile.current_employer %}
+                                <br><span class="text-muted">at {{ mentor.user.profile.current_employer }}</span>
+                            {% endif %}
+                        </div>
                     </div>
-                </div>
-                
-                <div class="mb-3">
-                    <h6>Mentoring Experience:</h6>
-                    <p>{{ mentor.mentoring_experience|truncatewords:50 }}</p>
-                </div>
-                
-                <div>
-                    <h6>Expectations:</h6>
-                    <p>{{ mentor.expectations|truncatewords:50 }}</p>
+
+                    <!-- Areas of Expertise -->
+                    <div class="mentor-section">
+                        <h6 class="mentor-section-title">
+                            <i class="fas fa-star"></i>
+                            Areas of Expertise
+                        </h6>
+                        <div class="expertise-container">
+                            {% for area in mentor.expertise_areas.split|slice:":6" %}
+                                <span class="expertise-badge">{{ area|title }}</span>
+                            {% empty %}
+                                <span class="text-muted small">No expertise areas specified</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <!-- Mentoring Experience -->
+                    {% if mentor.mentoring_experience %}
+                    <div class="mentor-section">
+                        <h6 class="mentor-section-title">
+                            <i class="fas fa-graduation-cap"></i>
+                            Mentoring Experience
+                        </h6>
+                        <p class="mentor-text">{{ mentor.mentoring_experience|truncatewords:40 }}</p>
+                    </div>
+                    {% endif %}
+
+                    <!-- Expectations -->
+                    {% if mentor.expectations %}
+                    <div class="mentor-section">
+                        <h6 class="mentor-section-title">
+                            <i class="fas fa-target"></i>
+                            Expectations
+                        </h6>
+                        <p class="mentor-text">{{ mentor.expectations|truncatewords:40 }}</p>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
-        </div>
         
         <div class="col-md-8">
             <div class="form-section">
@@ -118,26 +573,44 @@
                     {% csrf_token %}
                     
                     <div class="mb-4">
-                        <label for="skills_seeking" class="form-label">Skills/Knowledge Areas You're Seeking Help With*</label>
-                        <textarea id="skills_seeking" name="skills_seeking" class="form-control" rows="3" required></textarea>
+                        <label for="skills_seeking" class="form-label">
+                            <i class="fas fa-lightbulb"></i>
+                            Skills/Knowledge Areas You're Seeking Help With*
+                        </label>
+                        <textarea id="skills_seeking" name="skills_seeking" class="form-control" rows="3" required
+                                  placeholder="e.g., Python programming, data analysis, project management..."></textarea>
                         <div class="form-text">List specific skills, technologies, or knowledge areas you'd like guidance on.</div>
                     </div>
-                    
+
                     <div class="mb-4">
-                        <label for="goals" class="form-label">Your Mentorship Goals*</label>
-                        <textarea id="goals" name="goals" class="form-control" rows="3" required></textarea>
+                        <label for="goals" class="form-label">
+                            <i class="fas fa-target"></i>
+                            Your Mentorship Goals*
+                        </label>
+                        <textarea id="goals" name="goals" class="form-control" rows="3" required
+                                  placeholder="e.g., Career transition, skill development, leadership growth..."></textarea>
                         <div class="form-text">What do you hope to achieve through this mentorship? Be specific about your goals.</div>
                     </div>
-                    
+
                     <div class="mb-4">
-                        <label for="message" class="form-label">Introduction Message*</label>
-                        <textarea id="message" name="message" class="form-control" rows="5" required></textarea>
+                        <label for="message" class="form-label">
+                            <i class="fas fa-envelope"></i>
+                            Introduction Message*
+                        </label>
+                        <textarea id="message" name="message" class="form-control" rows="5" required
+                                  placeholder="Tell the mentor about yourself, your background, and why you'd like their guidance..."></textarea>
                         <div class="form-text">Introduce yourself and explain why you chose this mentor specifically.</div>
                     </div>
                     
-                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-                        <a href="{% url 'alumni_directory:alumni_detail' pk=mentor.user.id %}" class="btn btn-outline-secondary me-md-2">Cancel</a>
-                        <button type="submit" class="btn btn-primary">Submit Request for Approval</button>
+                    <div class="btn-container">
+                        <a href="{% url 'alumni_directory:alumni_detail' pk=mentor.user.id %}" class="btn btn-outline-secondary">
+                            <i class="fas fa-times"></i>
+                            Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-paper-plane"></i>
+                            Submit Request
+                        </button>
                     </div>
                 </form>
             </div>

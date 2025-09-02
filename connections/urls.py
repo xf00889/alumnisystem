@@ -19,6 +19,9 @@ urlpatterns = [
     path('messages/<int:user_id>/', views.direct_messages, name='direct_messages'),
     path('send-message/<int:user_id>/', views.send_message, name='send_message'),
 
+    # Generic conversation detail URL (redirects to appropriate URL based on conversation type)
+    path('conversations/<int:conversation_id>/', views.conversation_detail_redirect, name='conversation_detail'),
+
     # Group chat URLs
     path('api/create-group/', views.create_group_chat, name='create_group_chat'),
     path('group/<int:conversation_id>/', views.group_chat_detail, name='group_chat_detail'),

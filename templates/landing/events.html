@@ -1,0 +1,241 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="page-title">{{ page_title }}</h1>
+                <p class="page-subtitle">{{ page_subtitle }}</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="header-stats">
+                    <div class="stat-item">
+                        <span class="stat-number">{{ events.paginator.count }}</span>
+                        <span class="stat-label">Upcoming Events</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_header %}
+
+{% block content %}
+<div class="container py-5">
+    {% if events %}
+        <div class="row g-4">
+            {% for event in events %}
+            <div class="col-lg-4 col-md-6">
+                <div class="content-card h-100">
+                    {% if event.image %}
+                    <div class="card-image">
+                        <img src="{{ event.image.url }}" alt="{{ event.title }}" class="img-fluid" style="width: 100%; height: 200px; object-fit: cover;">
+                    </div>
+                    {% endif %}
+                    <div class="card-body">
+                        <div class="event-meta mb-3">
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-calendar-alt text-primary me-2"></i>
+                                <span class="text-muted">{{ event.start_date|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-clock text-primary me-2"></i>
+                                <span class="text-muted">{{ event.start_date|time:"g:i A" }}</span>
+                            </div>
+                            {% if event.location %}
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-map-marker-alt text-primary me-2"></i>
+                                <span class="text-muted">{{ event.location }}</span>
+                            </div>
+                            {% endif %}
+                            {% if event.is_virtual %}
+                            <div class="d-flex align-items-center mb-2">
+                                <i class="fas fa-video text-success me-2"></i>
+                                <span class="badge bg-success">Virtual Event</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <h5 class="card-title">{{ event.title }}</h5>
+                        <p class="card-text">{{ event.description|striptags|truncatewords:20 }}</p>
+                        
+                        {% if event.max_participants %}
+                        <div class="event-capacity mb-3">
+                            <small class="text-muted">
+                                <i class="fas fa-users me-1"></i>
+                                Max Participants: {{ event.max_participants }}
+                            </small>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="d-flex justify-content-between align-items-center">
+                            <span class="badge bg-primary">{{ event.get_status_display }}</span>
+                            <small class="text-muted">
+                                {% if event.is_past_event %}
+                                    <i class="fas fa-check-circle text-success me-1"></i>Completed
+                                {% elif event.is_ongoing %}
+                                    <i class="fas fa-play-circle text-warning me-1"></i>Ongoing
+                                {% else %}
+                                    <i class="fas fa-clock text-info me-1"></i>Upcoming
+                                {% endif %}
+                            </small>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-grid">
+                            <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login to View Details
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if events.has_other_pages %}
+        <nav aria-label="Events pagination" class="mt-5">
+            <ul class="pagination justify-content-center">
+                {% if events.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First">
+                            <span aria-hidden="true">&laquo;&laquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ events.previous_page_number }}" aria-label="Previous">
+                            <span aria-hidden="true">&laquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in events.paginator.page_range %}
+                    {% if events.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > events.number|add:'-3' and num < events.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if events.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ events.next_page_number }}" aria-label="Next">
+                            <span aria-hidden="true">&raquo;</span>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ events.paginator.num_pages }}" aria-label="Last">
+                            <span aria-hidden="true">&raquo;&raquo;</span>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+    {% else %}
+        <!-- No Events -->
+        <div class="row">
+            <div class="col-12">
+                <div class="text-center py-5">
+                    <i class="fas fa-calendar-times fa-4x text-muted mb-4"></i>
+                    <h3 class="text-muted">No Upcoming Events</h3>
+                    <p class="text-muted">Check back soon for exciting events and activities!</p>
+                    <a href="{% url 'core:home' %}" class="btn btn-primary mt-3">
+                        <i class="fas fa-home me-1"></i>Back to Home
+                    </a>
+                </div>
+            </div>
+        </div>
+    {% endif %}
+    
+    <!-- Call to Action -->
+    <div class="row mt-5">
+        <div class="col-12">
+            <div class="content-card text-center">
+                <div class="card-body py-5">
+                    <h3 class="mb-3">Want to Stay Updated?</h3>
+                    <p class="text-muted mb-4">Join our alumni network to receive event notifications and connect with fellow alumni.</p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary">
+                            <i class="fas fa-user-plus me-1"></i>Sign Up Now
+                        </a>
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-sign-in-alt me-1"></i>Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<style>
+    .header-stats .stat-item {
+        text-align: center;
+        padding: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: var(--radius-md);
+    }
+    
+    .header-stats .stat-number {
+        display: block;
+        font-size: 2rem;
+        font-weight: 600;
+        color: var(--text-light);
+        margin-bottom: 0.25rem;
+    }
+    
+    .header-stats .stat-label {
+        font-size: 0.875rem;
+        color: rgba(255, 255, 255, 0.8);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+    
+    .event-meta {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: 1rem;
+    }
+    
+    .card-image {
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .card-image img {
+        transition: transform 0.3s ease;
+    }
+    
+    .content-card:hover .card-image img {
+        transform: scale(1.05);
+    }
+    
+    .pagination .page-link {
+        color: var(--primary-color);
+        border-color: var(--ui-border);
+    }
+    
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .pagination .page-link:hover {
+        color: var(--primary-dark);
+        background-color: var(--ui-hover);
+    }
+</style>
+{% endblock extra_css %}

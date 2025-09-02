@@ -59,7 +59,7 @@
                 </div>
             {% endif %}
 
-            <form method="post" enctype="multipart/form-data" class="profile-form">
+            <form method="post" enctype="multipart/form-data" class="profile-form" id="profileForm">
                 {% csrf_token %}
                 
                 <!-- Avatar Card -->
@@ -519,4 +519,43 @@
         color: var(--feedback-info);
     }
 </style>
+{% endblock %}
+
+{% block page_specific_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const form = document.getElementById('profileForm');
+        
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Show confirmation dialog
+            Swal.fire({
+                icon: 'question',
+                title: 'Update Profile',
+                text: 'Are you sure you want to update your profile?',
+                showCancelButton: true,
+                confirmButtonText: 'Yes, update it!',
+                cancelButtonText: 'Cancel'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Updating Profile...',
+                        text: 'Please wait while we save your changes.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit the form
+                    form.submit();
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}

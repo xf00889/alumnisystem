@@ -274,12 +274,37 @@
             SweetAlertUtils.processDjangoMessages();
         }
         
-        // Handle form submission for better user experience
+        // Handle form submission with SweetAlert confirmation
         if (form) {
             form.addEventListener('submit', function(e) {
-                // Form submission is handled normally, but SweetAlert will be shown
-                // through the processDjangoMessages function when the page reloads
-                // or when a redirect happens
+                e.preventDefault();
+                
+                // Show confirmation dialog
+                Swal.fire({
+                    icon: 'question',
+                    title: '{% if form.instance.pk %}Update{% else %}Publish{% endif %} Announcement',
+                    text: 'Are you sure you want to {% if form.instance.pk %}update{% else %}publish{% endif %} this announcement?',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, {% if form.instance.pk %}update{% else %}publish{% endif %} it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: '{% if form.instance.pk %}Updating{% else %}Publishing{% endif %} Announcement...',
+                            text: 'Please wait while we {% if form.instance.pk %}update{% else %}publish{% endif %} the announcement.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Submit the form
+                        form.submit();
+                    }
+                });
             });
         }
     });

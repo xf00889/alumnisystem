@@ -392,14 +392,43 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Form validation
+    // Form validation with SweetAlert
     const form = document.querySelector('#feedbackForm');
     form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
         if (!this.checkValidity()) {
-            e.preventDefault();
             e.stopPropagation();
+            this.classList.add('was-validated');
+            return;
         }
-        this.classList.add('was-validated');
+        
+        // Show confirmation dialog
+        Swal.fire({
+            icon: 'question',
+            title: 'Submit Feedback',
+            text: 'Are you sure you want to submit this feedback?',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, submit it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Submitting Feedback...',
+                    text: 'Please wait while we submit your feedback.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Submit the form
+                form.submit();
+            }
+        });
     });
 });
 </script>

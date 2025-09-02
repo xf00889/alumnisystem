@@ -176,6 +176,181 @@
         opacity: 0.28;
     }
 
+    /* Export Section Styles */
+    .export-container {
+        background: #fff;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+    }
+
+    .export-header h5 {
+        color: var(--primary-color);
+        font-weight: 600;
+    }
+
+    .export-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .export-card {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+        transition: all 0.3s ease;
+    }
+
+    .export-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+        border-color: var(--primary-color);
+    }
+
+    .export-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+    }
+
+    .export-icon {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(78, 115, 223, 0.1);
+        border-radius: 10px;
+    }
+
+    .export-card-header h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #2d3748;
+        flex: 1;
+    }
+
+    .export-card-header small {
+        font-size: 0.75rem;
+        color: #718096;
+    }
+
+    .export-formats {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .export-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
+        background: none;
+        font-family: inherit;
+    }
+
+    .export-btn:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .export-csv {
+        background: #10b981;
+        color: white;
+        border-color: #10b981;
+    }
+
+    .export-csv:hover {
+        background: #059669;
+        border-color: #059669;
+        color: white;
+    }
+
+    .export-excel {
+        background: #1d4ed8;
+        color: white;
+        border-color: #1d4ed8;
+    }
+
+    .export-excel:hover {
+        background: #1e40af;
+        border-color: #1e40af;
+        color: white;
+    }
+
+    .export-pdf {
+        background: #dc2626;
+        color: white;
+        border-color: #dc2626;
+    }
+
+    .export-pdf:hover {
+        background: #b91c1c;
+        border-color: #b91c1c;
+        color: white;
+    }
+
+    .bulk-export-section {
+        border-top: 1px solid rgba(0, 0, 0, 0.1);
+    }
+
+    .bulk-export-card {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 1rem;
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+
+    .bulk-export-info h6 {
+        margin: 0 0 0.25rem 0;
+        font-weight: 600;
+        color: #2d3748;
+    }
+
+    .bulk-export-info p {
+        margin: 0;
+        color: #718096;
+    }
+
+    /* Responsive adjustments for export section */
+    @media (max-width: 768px) {
+        .export-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .export-formats {
+            flex-direction: column;
+        }
+        
+        .export-btn {
+            justify-content: center;
+        }
+        
+        .bulk-export-card {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+
     /* Enhanced hover states for better visibility */
     .analytics-card:hover .analytics-icon.text-primary {
         opacity: 0.4;
@@ -918,6 +1093,63 @@
             </div>
         </div>
 
+        <!-- Alumni by College Chart Row -->
+        <div class="row g-3 mb-4">
+            <div class="col-xl-8 col-lg-8 col-md-12">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <span><i class="fas fa-university me-2"></i>Alumni by College</span>
+                        <small class="text-muted">Distribution across colleges</small>
+                    </div>
+                    <div class="chart-loading" id="collegeLoading" style="display: none;">
+                        <div class="spinner"></div>
+                        <span>Loading chart data...</span>
+                    </div>
+                    <div class="chart-no-data" id="collegeNoData" style="display: none;">
+                        <i class="fas fa-university"></i>
+                        <div>No data available</div>
+                    </div>
+                    <canvas id="collegeChart" class="chart-canvas" role="img" aria-label="Alumni distribution by college chart"></canvas>
+                </div>
+            </div>
+
+            <!-- College Statistics Summary -->
+            <div class="col-xl-4 col-lg-4 col-md-12">
+                <div class="analytics-card h-100">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">College Statistics</div>
+                        <div class="analytics-metric" id="totalColleges">{{ alumni_by_college|length }}</div>
+                        <div class="analytics-subtitle">Active colleges</div>
+                        <div class="mt-3">
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <span class="text-muted small">Largest College:</span>
+                                <span class="fw-bold small" id="largestCollege">
+                                    {% if alumni_by_college %}
+                                        {{ alumni_by_college.0.count }} alumni
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </span>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center">
+                                <span class="text-muted small">Average per College:</span>
+                                <span class="fw-bold small" id="averagePerCollege">
+                                    {% if alumni_by_college and total_alumni %}
+                                        {% widthratio total_alumni alumni_by_college|length 1 %} alumni
+                                    {% else %}
+                                        N/A
+                                    {% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="analytics-icon text-primary">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <!-- Recent Activity Row - Full Width -->
         <div class="row g-2 mb-4">
             <div class="col-12">
@@ -1074,12 +1306,225 @@
                 </div>
             </div>
         </div>
+
+        <!-- Data Export Section -->
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="export-container">
+                    <div class="export-header">
+                        <h5 class="mb-3"><i class="fas fa-download me-2"></i>Data Export</h5>
+                        <p class="text-muted mb-3">Export system data in various formats for reporting and analysis.</p>
+                    </div>
+                    
+                    <div class="export-grid">
+                        <!-- Alumni Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-graduation-cap export-icon"></i>
+                                <h6>Alumni Directory</h6>
+                                <small class="text-muted">{{ total_alumni }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_alumni' 'csv' %}', 'Alumni Directory', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_alumni' 'excel' %}', 'Alumni Directory', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_alumni' 'pdf' %}', 'Alumni Directory', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Users Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-users export-icon"></i>
+                                <h6>User Accounts</h6>
+                                <small class="text-muted">{{ total_users }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_users' 'csv' %}', 'User Accounts', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_users' 'excel' %}', 'User Accounts', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_users' 'pdf' %}', 'User Accounts', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Jobs Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-briefcase export-icon"></i>
+                                <h6>Job Postings</h6>
+                                <small class="text-muted">{{ total_jobs }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_jobs' 'csv' %}', 'Job Postings', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_jobs' 'excel' %}', 'Job Postings', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_jobs' 'pdf' %}', 'Job Postings', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Events Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-calendar-alt export-icon"></i>
+                                <h6>Events</h6>
+                                <small class="text-muted">{{ total_events }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_events' 'csv' %}', 'Events', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_events' 'excel' %}', 'Events', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_events' 'pdf' %}', 'Events', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Mentorships Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-chalkboard-teacher export-icon"></i>
+                                <h6>Mentorships</h6>
+                                <small class="text-muted">{{ active_mentorships }} active</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_mentorships' 'csv' %}', 'Mentorships', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_mentorships' 'excel' %}', 'Mentorships', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_mentorships' 'pdf' %}', 'Mentorships', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Donations Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-hand-holding-heart export-icon"></i>
+                                <h6>Donations</h6>
+                                <small class="text-muted">{{ donation_count }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_donations' 'csv' %}', 'Donations', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_donations' 'excel' %}', 'Donations', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_donations' 'pdf' %}', 'Donations', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Announcements Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-bullhorn export-icon"></i>
+                                <h6>Announcements</h6>
+                                <small class="text-muted">{{ total_announcements|default:0 }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_announcements' 'csv' %}', 'Announcements', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_announcements' 'excel' %}', 'Announcements', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_announcements' 'pdf' %}', 'Announcements', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Feedback Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-comments export-icon"></i>
+                                <h6>Feedback</h6>
+                                <small class="text-muted">{{ total_feedback }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_feedback' 'csv' %}', 'Feedback', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_feedback' 'excel' %}', 'Feedback', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_feedback' 'pdf' %}', 'Feedback', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Surveys Export -->
+                        <div class="export-card">
+                            <div class="export-card-header">
+                                <i class="fas fa-poll export-icon"></i>
+                                <h6>Surveys</h6>
+                                <small class="text-muted">{{ total_surveys }} records</small>
+                            </div>
+                            <div class="export-formats">
+                                <button onclick="handleSingleExport('{% url 'core:export_surveys' 'csv' %}', 'Surveys', 'csv')" class="export-btn export-csv">
+                                    <i class="fas fa-file-csv"></i> CSV
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_surveys' 'excel' %}', 'Surveys', 'excel')" class="export-btn export-excel">
+                                    <i class="fas fa-file-excel"></i> Excel
+                                </button>
+                                <button onclick="handleSingleExport('{% url 'core:export_surveys' 'pdf' %}', 'Surveys', 'pdf')" class="export-btn export-pdf">
+                                    <i class="fas fa-file-pdf"></i> PDF
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bulk Export Options -->
+                    <div class="bulk-export-section mt-4 pt-3 border-top">
+                        <h6 class="text-muted mb-3">Bulk Export Options</h6>
+                        <div class="bulk-export-options">
+                            <div class="bulk-export-card">
+                                <div class="bulk-export-info">
+                                    <h6>Export All Data</h6>
+                                    <p class="text-muted small">Download comprehensive data from all modules in a single operation.</p>
+                                </div>
+                                <div class="bulk-export-actions">
+                                    <button class="btn btn-outline-primary btn-sm" onclick="showBulkExportModal()">
+                                        <i class="fas fa-download me-2"></i>Configure Bulk Export
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 {% endblock %}
 
 {% block page_specific_js %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Time period selector functionality
@@ -1122,8 +1567,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showLoadingStates() {
-        const loadingElements = ['userRegistrationLoading', 'alumniYearLoading', 'donationLoading', 'activityLoading'];
-        const chartElements = ['userRegistrationChart', 'alumniYearChart', 'donationChart', 'activityChart'];
+        const loadingElements = ['userRegistrationLoading', 'alumniYearLoading', 'donationLoading', 'activityLoading', 'collegeLoading'];
+        const chartElements = ['userRegistrationChart', 'alumniYearChart', 'donationChart', 'activityChart', 'collegeChart'];
 
         loadingElements.forEach(id => {
             const element = document.getElementById(id);
@@ -1137,8 +1582,8 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function hideLoadingStates() {
-        const loadingElements = ['userRegistrationLoading', 'alumniYearLoading', 'donationLoading', 'activityLoading'];
-        const chartElements = ['userRegistrationChart', 'alumniYearChart', 'donationChart', 'activityChart'];
+        const loadingElements = ['userRegistrationLoading', 'alumniYearLoading', 'donationLoading', 'activityLoading', 'collegeLoading'];
+        const chartElements = ['userRegistrationChart', 'alumniYearChart', 'donationChart', 'activityChart', 'collegeChart'];
 
         loadingElements.forEach(id => {
             const element = document.getElementById(id);
@@ -1152,7 +1597,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     function showNoDataStates() {
-        const noDataElements = ['userRegistrationNoData', 'alumniYearNoData', 'donationNoData', 'activityNoData'];
+        const noDataElements = ['userRegistrationNoData', 'alumniYearNoData', 'donationNoData', 'activityNoData', 'collegeNoData'];
         noDataElements.forEach(id => {
             const element = document.getElementById(id);
             if (element) element.style.display = 'flex';
@@ -1392,8 +1837,9 @@ document.addEventListener('DOMContentLoaded', function() {
     const alumniYearCtx = document.getElementById('alumniYearChart').getContext('2d');
     const donationCtx = document.getElementById('donationChart').getContext('2d');
     const activityCtx = document.getElementById('activityChart').getContext('2d');
+    const collegeCtx = document.getElementById('collegeChart').getContext('2d');
 
-    let userRegistrationChart, alumniYearChart, donationChart, activityChart;
+    let userRegistrationChart, alumniYearChart, donationChart, activityChart, collegeChart;
 
     function updateCharts(data) {
         // User Registration Chart - Enhanced Line Chart
@@ -1590,6 +2036,144 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
+    // Load and render college chart
+    function loadCollegeChart() {
+        // Show loading state
+        const collegeLoading = document.getElementById('collegeLoading');
+        const collegeNoData = document.getElementById('collegeNoData');
+        const collegeChartElement = document.getElementById('collegeChart');
+
+        if (collegeLoading) collegeLoading.style.display = 'flex';
+        if (collegeNoData) collegeNoData.style.display = 'none';
+        if (collegeChartElement) collegeChartElement.style.display = 'none';
+
+        fetch('{% url 'core:alumni_by_college_api' %}')
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(result => {
+                if (collegeLoading) collegeLoading.style.display = 'none';
+                if (collegeChartElement) collegeChartElement.style.display = 'block';
+
+                if (result.success && result.data && result.data.length > 0) {
+                    renderCollegeChart(result.data);
+                    updateCollegeStats(result.data, result.total_alumni);
+                } else {
+                    if (collegeNoData) collegeNoData.style.display = 'flex';
+                }
+            })
+            .catch(error => {
+                console.error('Error loading college chart data:', error);
+                if (collegeLoading) collegeLoading.style.display = 'none';
+                if (collegeNoData) collegeNoData.style.display = 'flex';
+                showError('Failed to load college chart data. Please try again.');
+            });
+    }
+
+    function renderCollegeChart(data) {
+        if (collegeChart) collegeChart.destroy();
+
+        // Generate colors for each college
+        const colors = [
+            '#2b3c6b', '#48bb78', '#4299e1', '#ed8936', '#e53e3e',
+            '#4a5568', '#718096', '#a0aec0', '#e2e8f0', '#f7fafc'
+        ];
+
+        collegeChart = new Chart(collegeCtx, {
+            type: 'bar',
+            data: {
+                labels: data.map(item => item.college_name),
+                datasets: [{
+                    label: 'Alumni Count',
+                    data: data.map(item => item.count),
+                    backgroundColor: colors.slice(0, data.length),
+                    borderColor: colors.slice(0, data.length).map(color => color + '80'),
+                    borderWidth: 2,
+                    borderRadius: 6,
+                    borderSkipped: false
+                }]
+            },
+            options: {
+                ...barChartOptions,
+                plugins: {
+                    ...barChartOptions.plugins,
+                    legend: {
+                        display: false
+                    },
+                    tooltip: {
+                        ...barChartOptions.plugins.tooltip,
+                        callbacks: {
+                            label: function(context) {
+                                return `${context.label}: ${context.parsed.y} alumni`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    ...barChartOptions.scales,
+                    y: {
+                        ...barChartOptions.scales.y,
+                        title: {
+                            display: true,
+                            text: 'Number of Alumni',
+                            font: {
+                                size: 12,
+                                family: 'Poppins, sans-serif',
+                                weight: '500'
+                            },
+                            color: '#4a5568'
+                        }
+                    },
+                    x: {
+                        ...barChartOptions.scales.x,
+                        title: {
+                            display: true,
+                            text: 'Colleges',
+                            font: {
+                                size: 12,
+                                family: 'Poppins, sans-serif',
+                                weight: '500'
+                            },
+                            color: '#4a5568'
+                        },
+                        ticks: {
+                            ...barChartOptions.scales.x.ticks,
+                            maxRotation: 45,
+                            minRotation: 0
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    function updateCollegeStats(data, totalAlumni) {
+        // Update largest college stat
+        const largestCollegeElement = document.getElementById('largestCollege');
+        if (largestCollegeElement && data.length > 0) {
+            largestCollegeElement.textContent = `${data[0].count} alumni`;
+        }
+
+        // Update average per college stat
+        const averagePerCollegeElement = document.getElementById('averagePerCollege');
+        if (averagePerCollegeElement && data.length > 0) {
+            const average = Math.round(totalAlumni / data.length);
+            averagePerCollegeElement.textContent = `${average} alumni`;
+        }
+
+        // Update total colleges count
+        const totalCollegesElement = document.getElementById('totalColleges');
+        if (totalCollegesElement) {
+            totalCollegesElement.textContent = data.length;
+        }
+    }
+
+    // Load college chart on page load
+    loadCollegeChart();
+
     // Auto-refresh data every 5 minutes
     setInterval(() => {
         loadAnalyticsData(currentPeriod);
@@ -1613,6 +2197,47 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Dashboard Error:', message);
         // You could show a toast notification here
     }
+
+               // Bulk export functionality
+           window.showBulkExportModal = function() {
+               // Redirect to the bulk export interface
+               window.location.href = '{% url "core:bulk_export_interface" %}';
+           };
+
+           // Single export functionality with SweetAlert
+           window.handleSingleExport = function(url, modelName, format) {
+               // Show loading state
+               Swal.fire({
+                   title: 'Processing Export...',
+                   text: `Preparing ${modelName} data in ${format.toUpperCase()} format.`,
+                   allowOutsideClick: false,
+                   allowEscapeKey: false,
+                   showConfirmButton: false,
+                   didOpen: () => {
+                       Swal.showLoading();
+                   }
+               });
+
+               // Create a temporary link to trigger download
+               const link = document.createElement('a');
+               link.href = url;
+               link.style.display = 'none';
+               document.body.appendChild(link);
+
+               // Simulate click to start download
+               link.click();
+               document.body.removeChild(link);
+
+               // Show success message after a short delay
+               setTimeout(() => {
+                   Swal.fire({
+                       icon: 'success',
+                       title: 'Export Completed!',
+                       text: `${modelName} data has been downloaded in ${format.toUpperCase()} format.`,
+                       confirmButtonText: 'OK'
+                   });
+               }, 1500);
+           };
 });
 </script>
 {% endblock %}

@@ -3,18 +3,19 @@
 {% load i18n %}
 
 {% block title %}{{ campaign.name }} | {{ block.super }}{% endblock %}
+{% block page_title %}{{ campaign.name }}{% endblock %}
 
 {% block donations_content %}
-<div class="mb-4">
+<div class="mb-3">
     <nav aria-label="breadcrumb">
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'donations:campaign_list' %}">{% trans "Campaigns" %}</a></li>
             <li class="breadcrumb-item active" aria-current="page">{{ campaign.name }}</li>
         </ol>
     </nav>
-    
+
     <div class="d-flex justify-content-between align-items-center">
-        <h1 class="display-5 fw-bold">{{ campaign.name }}</h1>
+        <div></div>
         <span class="badge bg-{{ campaign.status|yesno:'success,secondary' }} fs-6">
             {{ campaign.get_status_display }}
         </span>
@@ -215,8 +216,56 @@
                     {% endif %}
                     
                     <div class="mb-3">
-                        <label for="{{ form.amount.id_for_label }}" class="form-label">{% trans "Donation Amount" %}</label>
-                        {{ form.amount }}
+                        <label for="{{ form.amount.id_for_label }}" class="form-label fw-bold">
+                            <i class="fas fa-peso-sign me-2"></i>{% trans "Donation Amount" %}
+                        </label>
+
+                        <!-- Quick Select Buttons -->
+                        <div class="mb-3">
+                            <div class="row g-2">
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 donation-amount-btn" data-amount="500">
+                                        ₱500
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 donation-amount-btn" data-amount="1000">
+                                        ₱1,000
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 donation-amount-btn" data-amount="2500">
+                                        ₱2,500
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 donation-amount-btn" data-amount="5000">
+                                        ₱5,000
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-primary w-100 donation-amount-btn" data-amount="10000">
+                                        ₱10,000
+                                    </button>
+                                </div>
+                                <div class="col-6 col-md-4">
+                                    <button type="button" class="btn btn-outline-secondary w-100" id="custom-amount-btn">
+                                        <i class="fas fa-edit me-1"></i>{% trans "Custom" %}
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Amount Input -->
+                        <div class="input-group">
+                            <span class="input-group-text">₱</span>
+                            {{ form.amount }}
+                        </div>
+                        <div class="form-text">
+                            <i class="fas fa-info-circle me-1"></i>
+                            {% trans "Select a preset amount or enter a custom amount" %}
+                        </div>
+
                         {% if form.amount.errors %}
                         <div class="invalid-feedback d-block">
                             {% for error in form.amount.errors %}
@@ -226,21 +275,15 @@
                         {% endif %}
                     </div>
                     
-                    <div class="mb-3">
-                        <label for="{{ form.payment_method.id_for_label }}" class="form-label">{% trans "Payment Method" %}</label>
-                        {{ form.payment_method }}
-                        {% if form.payment_method.errors %}
-                        <div class="invalid-feedback d-block">
-                            {% for error in form.payment_method.errors %}
-                                {{ error }}
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-                    </div>
-                    
                     {% if not user.is_authenticated %}
                     <div class="mb-3">
-                        <label for="{{ form.donor_name.id_for_label }}" class="form-label">{% trans "Your Name" %}</label>
+                        <label for="{{ form.donor_name.id_for_label }}" class="form-label">
+                            {% trans "Your Name" %}
+                            <i class="fas fa-info-circle text-muted ms-1"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="{% trans 'Enter your full name as you want it to appear on the donor list (if not anonymous)' %}"></i>
+                        </label>
                         {{ form.donor_name }}
                         {% if form.donor_name.errors %}
                         <div class="invalid-feedback d-block">
@@ -252,7 +295,13 @@
                     </div>
                     
                     <div class="mb-3">
-                        <label for="{{ form.donor_email.id_for_label }}" class="form-label">{% trans "Your Email" %}</label>
+                        <label for="{{ form.donor_email.id_for_label }}" class="form-label">
+                            {% trans "Your Email" %}
+                            <i class="fas fa-info-circle text-muted ms-1"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="{% trans 'We will send donation confirmations and receipts to this email address' %}"></i>
+                        </label>
                         {{ form.donor_email }}
                         {% if form.donor_email.errors %}
                         <div class="invalid-feedback d-block">
@@ -273,11 +322,19 @@
                         {{ form.is_anonymous }}
                         <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">
                             {% trans "Make this donation anonymous" %}
+                            <i class="fas fa-info-circle text-muted ms-1"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="{% trans 'Anonymous donations will not show your name publicly, but you will still receive a receipt' %}"></i>
                         </label>
                     </div>
                     
-                    <button type="submit" class="btn btn-success w-100">
-                        {% trans "Donate Now" %}
+                    <button type="submit" class="btn btn-success w-100 btn-lg py-3" id="donate-btn">
+                        <i class="fas fa-heart me-2"></i>
+                        <span class="fw-bold">{% trans "Donate Now" %}</span>
+                        <div class="small mt-1">
+                            {% trans "Secure GCash Payment" %}
+                        </div>
                     </button>
                 </form>
             </div>
@@ -302,4 +359,143 @@
         {% endif %}
     </div>
 </div>
-{% endblock %} 
+
+<!-- Floating Help Button -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1050;">
+    <div class="dropdown dropup">
+        <button class="btn btn-primary rounded-circle shadow-lg"
+                type="button"
+                id="helpDropdown"
+                data-bs-toggle="dropdown"
+                aria-expanded="false"
+                style="width: 60px; height: 60px;">
+            <i class="fas fa-question fa-lg"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow" style="min-width: 250px;">
+            <li><h6 class="dropdown-header">{% trans "Need Help?" %}</h6></li>
+            <li>
+                <a class="dropdown-item" href="{% url 'donations:donation_faq' %}">
+                    <i class="fas fa-question-circle me-2"></i>
+                    {% trans "FAQ & Help Guide" %}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="{% url 'donations:donation_status_tracker' %}">
+                    <i class="fas fa-search me-2"></i>
+                    {% trans "Track Your Donation" %}
+                </a>
+            </li>
+            <li><hr class="dropdown-divider"></li>
+            <li>
+                <a class="dropdown-item" href="mailto:alumni@norsu.edu.ph">
+                    <i class="fas fa-envelope me-2"></i>
+                    {% trans "Email Support" %}
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item" href="tel:+63123456789">
+                    <i class="fas fa-phone me-2"></i>
+                    {% trans "Call Support" %}
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'donations/js/donations.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Add visual validation indicators
+    const form = document.querySelector('#donation-form');
+    if (form) {
+        const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validateField(this);
+            });
+
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid') || this.classList.contains('is-valid')) {
+                    validateField(this);
+                }
+            });
+        });
+
+        // Form submission validation
+        form.addEventListener('submit', function(e) {
+            let isValid = true;
+            inputs.forEach(input => {
+                if (!validateField(input)) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                e.preventDefault();
+                // Scroll to first invalid field
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
+            }
+        });
+    }
+
+    function validateField(field) {
+        const value = field.value.trim();
+        let isValid = true;
+
+        // Remove existing validation classes
+        field.classList.remove('is-valid', 'is-invalid');
+
+        // Check if required field is empty
+        if (field.hasAttribute('required') && !value) {
+            isValid = false;
+        }
+
+        // Email validation
+        if (field.type === 'email' && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                isValid = false;
+            }
+        }
+
+        // Amount validation
+        if (field.name === 'amount' && value) {
+            const amount = parseFloat(value);
+            if (isNaN(amount) || amount <= 0) {
+                isValid = false;
+            }
+        }
+
+        // Add validation class
+        field.classList.add(isValid ? 'is-valid' : 'is-invalid');
+
+        return isValid;
+    }
+
+    // Help button animation
+    const helpButton = document.querySelector('#helpDropdown');
+    if (helpButton) {
+        // Pulse animation every 10 seconds
+        setInterval(() => {
+            helpButton.style.animation = 'pulse 1s ease-in-out';
+            setTimeout(() => {
+                helpButton.style.animation = '';
+            }, 1000);
+        }, 10000);
+    }
+});
+</script>
+{% endblock %}

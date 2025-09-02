@@ -1,0 +1,111 @@
+{% extends "donations/base.html" %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage GCash" %}{% endblock %}
+{% block page_title %}{% trans "Manage GCash" %}{% endblock %}
+
+{% block donations_content %}
+<div class="card mb-4">
+    <div class="card-header bg-light d-flex align-items-center justify-content-between">
+        <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i> {% trans "GCash Configuration" %}</h5>
+        {% if active_config %}
+            <span class="badge bg-success">{% trans "Active" %}</span>
+        {% else %}
+            <span class="badge bg-secondary">{% trans "Inactive" %}</span>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">{{ message }}</div>
+            {% endfor %}
+            {% endif %}
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label" for="id_name">{% trans "Configuration Name" %}</label>
+                    {{ form.name }}
+                    {% if form.name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="id_gcash_number">{% trans "GCash Number" %}</label>
+                    {{ form.gcash_number }}
+                    {% if form.gcash_number.errors %}
+                    <div class="invalid-feedback d-block">{{ form.gcash_number.errors.0 }}</div>
+                    {% endif %}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label" for="id_account_name">{% trans "Account Name" %}</label>
+                    {{ form.account_name }}
+                    {% if form.account_name.errors %}
+                    <div class="invalid-feedback d-block">{{ form.account_name.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="id_qr_code_image">{% trans "QR Code Image" %}</label>
+                    {{ form.qr_code_image }}
+                    {% if form.qr_code_image.errors %}
+                    <div class="invalid-feedback d-block">{{ form.qr_code_image.errors.0 }}</div>
+                    {% endif %}
+                    {% if config and config.qr_code_image %}
+                    <div class="mt-2">
+                        <img src="{{ config.qr_code_image.url }}" alt="QR Code" class="img-thumbnail" style="max-width: 240px;">
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-6">
+                    <label class="form-label" for="id_instructions">{% trans "Payment Instructions" %}</label>
+                    {{ form.instructions }}
+                    {% if form.instructions.errors %}
+                    <div class="invalid-feedback d-block">{{ form.instructions.errors.0 }}</div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-12">
+                    <div class="form-check">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="id_is_active">{% trans "Set as Active" %}</label>
+                        {% if form.is_active.errors %}
+                        <div class="invalid-feedback d-block">{{ form.is_active.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                    <p class="form-text text-muted">
+                        {% trans "Only one GCash configuration can be active at a time. A QR code image is required to activate." %}
+                    </p>
+                </div>
+            </div>
+
+            <div class="mt-4 d-flex justify-content-end">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i> {% trans "Save Configuration" %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if config %}
+<div class="card">
+    <div class="card-header bg-light d-flex align-items-center justify-content-between">
+        <h6 class="mb-0"><i class="fas fa-info-circle me-2"></i> {% trans "Current Status" %}</h6>
+    </div>
+    <div class="card-body">
+        <ul class="list-unstyled mb-0">
+            <li><strong>{% trans "Name" %}:</strong> {{ config.name }}</li>
+            <li><strong>{% trans "GCash Number" %}:</strong> {{ config.gcash_number }}</li>
+            <li><strong>{% trans "Account Name" %}:</strong> {{ config.account_name }}</li>
+            <li><strong>{% trans "Active" %}:</strong> {{ config.is_active|yesno:_('Yes,No') }}</li>
+            <li><strong>{% trans "Updated" %}:</strong> {{ config.updated_at|date:"M d, Y H:i" }}</li>
+        </ul>
+    </div>
+</div>
+{% endif %}
+{% endblock %}
+

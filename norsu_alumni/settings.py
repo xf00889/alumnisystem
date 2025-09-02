@@ -28,13 +28,15 @@ SECRET_KEY = config('SECRET_KEY', default='django-insecure-5$o7#0#k6l3z$u9s&2xd#
 DEBUG = config('DEBUG', default=True, cast=bool)
 
 # Get the base ALLOWED_HOSTS from config
-ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.134.71,*,10.0.1.18', cast=Csv())
+ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.134.71,10.0.1.18', cast=Csv())
 
-# Ensure 192.168.1.6 is always included
-if '192.168.1.6' not in ALLOWED_HOSTS_BASE:
-    ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6']
-else:
-    ALLOWED_HOSTS = ALLOWED_HOSTS_BASE
+# Add Render domain and local IPs
+ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', '*.onrender.com']
+
+# If RENDER environment variable is set, add the specific Render URL
+RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
+if RENDER_EXTERNAL_HOSTNAME:
+    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
 
 
 # Application definition
@@ -78,6 +80,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -112,20 +115,31 @@ WSGI_APPLICATION = 'norsu_alumni.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.0/ref/settings/#databases
 
-DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.mysql',
-        'NAME': 'alumni_norsu',
-        'USER': 'root',
-        'PASSWORD': '',
-        'HOST': 'localhost',  # Or your DB host
-        'PORT': '3306',        # Default MySQL port
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-            'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
-        },
+# Database configuration
+DATABASE_URL = config('DATABASE_URL', default=None)
+
+if DATABASE_URL:
+    # Production database (PostgreSQL on Render)
+    import dj_database_url
+    DATABASES = {
+        'default': dj_database_url.parse(DATABASE_URL)
     }
-}
+else:
+    # Development database (MySQL)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': 'alumni_norsu',
+            'USER': 'root',
+            'PASSWORD': '',
+            'HOST': 'localhost',  # Or your DB host
+            'PORT': '3306',        # Default MySQL port
+            'OPTIONS': {
+                'charset': 'utf8mb4',
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+            },
+        }
+    }
 
 
 # Password validation
@@ -168,6 +182,9 @@ USE_TZ = False  # Disable timezone support to handle dates in local time
 STATIC_URL = config('STATIC_URL', default='/static/')
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
+
+# Whitenoise configuration
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = config('MEDIA_URL', default='/media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -219,7 +236,7 @@ SOCIALACCOUNT_LOGIN_ON_GET = True
 SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
-ACCOUNT_AUTHENTICATION_METHOD = 'email'
+ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 ACCOUNT_LOGOUT_ON_GET = True
 LOGIN_URL = 'account_login'
@@ -251,7 +268,7 @@ EMAIL_HOST_PASSWORD = config('EMAIL_HOST_PASSWORD')
 DEFAULT_FROM_EMAIL = config('DEFAULT_FROM_EMAIL', default=EMAIL_HOST_USER)
 
 # Site URL for email links
-SITE_URL = 'http://127.0.0.1:8000'
+SITE_URL = config('SITE_URL', default='http://127.0.0.1:8000')
 CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8000',
     'http://localhost:8000',
@@ -262,6 +279,13 @@ CSRF_TRUSTED_ORIGINS = [
     'http://192.168.11.214:8005',
     'http://192.168.1.6:8005',  # Added for external access
 ]
+
+# Add Render domain to CSRF trusted origins
+if RENDER_EXTERNAL_HOSTNAME:
+    CSRF_TRUSTED_ORIGINS.extend([
+        f'https://{RENDER_EXTERNAL_HOSTNAME}',
+        f'http://{RENDER_EXTERNAL_HOSTNAME}'
+    ])
 
 # Logging Configuration
 LOGGING = {
@@ -437,11 +461,14 @@ SESSION_COOKIE_PATH = '/'
 
 # Channels Configuration
 ASGI_APPLICATION = 'norsu_alumni.asgi.application'
+# Redis/Channels configuration
+REDIS_URL = config('REDIS_URL', default='redis://127.0.0.1:6379')
+
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            "hosts": [('127.0.0.1', 6379)],
+            "hosts": [REDIS_URL],
         },
     },
 }

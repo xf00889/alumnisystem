@@ -7,6 +7,7 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
+from django.urls import reverse
 import json
 import os
 from .models import Connection, DirectConversation, DirectMessage
@@ -998,3 +999,27 @@ def remove_group_photo(request, conversation_id):
         'success': True,
         'message': 'Group photo removed successfully!'
     })
+
+
+@login_required
+def conversation_detail_redirect(request, conversation_id):
+    """
+    Generic conversation detail view that redirects to the main messages page.
+    The connections app uses a single-page interface where all conversations
+    are displayed in one view, so we redirect to the conversations list.
+    """
+    try:
+        conversation = get_object_or_404(DirectConversation, id=conversation_id)
+
+        # Check if user is a participant
+        if request.user not in conversation.participants.all():
+            messages.error(request, "You don't have access to this conversation.")
+            return redirect('connections:conversations_list')
+
+        # Always redirect to the main messages page where users can see all conversations
+        # and navigate to the specific conversation from there
+        return redirect('connections:conversations_list')
+
+    except DirectConversation.DoesNotExist:
+        messages.error(request, "Conversation not found.")
+        return redirect('connections:conversations_list')

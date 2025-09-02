@@ -1,0 +1,110 @@
+{% extends 'donations/base.html' %}
+{% load i18n %}
+
+{% block title %}{% trans "Manage GCash" %}{% endblock %}
+
+{% block donations_content %}
+<div class="card mb-4">
+  <div class="card-header bg-primary text-white d-flex align-items-center justify-content-between">
+    <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i> {% trans "GCash Configuration" %}</h5>
+    {% if gcash_config and gcash_config.is_active %}
+      <span class="badge bg-success">{% trans "Active" %}</span>
+    {% else %}
+      <span class="badge bg-secondary">{% trans "Inactive" %}</span>
+    {% endif %}
+  </div>
+  <div class="card-body">
+    <div class="row g-4">
+      <div class="col-lg-5">
+        <div class="border rounded p-3 h-100">
+          <h6 class="text-primary fw-bold mb-3">{% trans "Current Status" %}</h6>
+          {% if gcash_config %}
+            <p class="mb-2"><strong>{% trans "Name:" %}</strong> {{ gcash_config.name }}</p>
+            <p class="mb-2"><strong>{% trans "GCash Number:" %}</strong> {{ gcash_config.gcash_number }}</p>
+            <p class="mb-2"><strong>{% trans "Account Name:" %}</strong> {{ gcash_config.account_name }}</p>
+            <p class="mb-2"><strong>{% trans "Updated:" %}</strong> {{ gcash_config.updated_at|date:"M d, Y H:i" }}</p>
+            <div class="mt-3">
+              <h6 class="fw-bold">{% trans "QR Code" %}</h6>
+              {% if gcash_config.qr_code_image %}
+                <img src="{{ gcash_config.qr_code_image.url }}" alt="QR" class="img-fluid rounded border" style="max-width: 280px;">
+              {% else %}
+                <div class="alert alert-warning py-2 mb-0">{% trans "No QR uploaded yet." %}</div>
+              {% endif %}
+            </div>
+            {% if gcash_config.instructions %}
+            <div class="mt-3">
+              <h6 class="fw-bold">{% trans "Instructions" %}</h6>
+              <div class="text-muted">{{ gcash_config.instructions|linebreaks }}</div>
+            </div>
+            {% endif %}
+          {% else %}
+            <div class="alert alert-info mb-0">{% trans "No GCash configuration exists yet. Use the form to create one." %}</div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="col-lg-7">
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+          {% csrf_token %}
+          <div class="row g-3">
+            <div class="col-md-6">
+              <label class="form-label" for="id_name">{% trans "Configuration Name" %}</label>
+              {{ form.name }}
+              {% if form.name.errors %}<div class="invalid-feedback d-block">{{ form.name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="id_gcash_number">{% trans "GCash Number" %}</label>
+              {{ form.gcash_number }}
+              {% if form.gcash_number.errors %}<div class="invalid-feedback d-block">{{ form.gcash_number.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="id_account_name">{% trans "Account Name" %}</label>
+              {{ form.account_name }}
+              {% if form.account_name.errors %}<div class="invalid-feedback d-block">{{ form.account_name.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-md-6">
+              <label class="form-label" for="id_qr_code_image">{% trans "QR Code Image" %}</label>
+              {{ form.qr_code_image }}
+              {% if form.qr_code_image.errors %}<div class="invalid-feedback d-block">{{ form.qr_code_image.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12">
+              <label class="form-label" for="id_instructions">{% trans "Payment Instructions" %}</label>
+              {{ form.instructions }}
+              {% if form.instructions.errors %}<div class="invalid-feedback d-block">{{ form.instructions.errors.0 }}</div>{% endif %}
+            </div>
+            <div class="col-12 form-check mt-2">
+              {{ form.is_active }}
+              <label class="form-check-label" for="id_is_active">{% trans "Mark as Active" %}</label>
+              <div class="form-text">{% trans "Only one configuration can be active at a time. Activating this will deactivate others." %}</div>
+            </div>
+          </div>
+          <div class="mt-4 d-flex gap-2">
+            <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> {% trans "Save" %}</button>
+            {% if gcash_config and gcash_config.pk %}
+              <a href="?refresh=1" class="btn btn-outline-secondary"><i class="fas fa-sync me-1"></i> {% trans "Refresh" %}</a>
+            {% endif %}
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// Basic client-side validation hooks (Bootstrap)
+(() => {
+  'use strict';
+  const forms = document.querySelectorAll('.needs-validation');
+  Array.from(forms).forEach(form => {
+    form.addEventListener('submit', event => {
+      if (!form.checkValidity()) {
+        event.preventDefault();
+        event.stopPropagation();
+      }
+      form.classList.add('was-validated');
+    }, false);
+  });
+})();
+</script>
+{% endblock %}
+

@@ -610,18 +610,7 @@
 {% block content %}
 <div class="dashboard-container">
     <div class="container-fluid">
-        <!-- Toast for notifications -->
-        <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
-            <div id="toast" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-                <div class="toast-header">
-                    <strong class="me-auto">Notification</strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-                <div class="toast-body" id="toastBody">
-                    <!-- Toast message will be inserted here -->
-                </div>
-            </div>
-        </div>
+
     
     <!-- Dashboard Header -->
     <div class="dashboard-header">
@@ -976,30 +965,7 @@
             </div>
         </div>
 
-            <!-- Recent Progress -->
-            <div class="card">
-                <div class="card-header">
-                    <h5 class="mb-0">Recent Progress Updates</h5>
-                        </div>
-                <div class="card-body">
-                    {% if recent_progress %}
-                    <div class="list-group">
-                        {% for progress in recent_progress %}
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h6 class="mb-1">{{ progress.title }}</h6>
-                                <small>{{ progress.created_at|timesince }} ago</small>
-                            </div>
-                            <p class="mb-1">{{ progress.description|truncatewords:20 }}</p>
-                            <small>by {{ progress.mentorship.mentee.get_full_name }}</small>
-                    </div>
-                    {% endfor %}
-                    </div>
-                {% else %}
-                    <p class="text-muted">No recent progress updates</p>
-                {% endif %}
-            </div>
-        </div>
+
     </div>
 </div>
 </div>
@@ -1088,6 +1054,7 @@ document.addEventListener('DOMContentLoaded', function() {
         'scheduleMeetingModal',
         'sendMessageModal',
         'progressDetailsModal',
+        'progressModal',
         'timelineModal',
         'updateStatusModal',
         'quickProgressModal'
@@ -1104,6 +1071,9 @@ document.addEventListener('DOMContentLoaded', function() {
             console.warn(`Modal element not found: ${id}`);
         }
     });
+
+    // Initialize progress modal event listeners
+    initializeProgressModalListeners();
 });
 
 // Function to initialize milestone buttons
@@ -1241,7 +1211,7 @@ function validateMilestoneDate(dateInput) {
     const expectedEndDateInput = document.getElementById('expectedEndDate');
     
     if (!expectedEndDateInput || !expectedEndDateInput.value) {
-        showToast('warning', 'Please set an expected end date first');
+        console.log('Please set an expected end date first');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -1257,13 +1227,13 @@ function validateMilestoneDate(dateInput) {
     today.setDate(today.getDate() - 1); // Allow today by setting comparison to yesterday
     
     if (milestoneDate <= today) { // Using <= to compare with yesterday
-        showToast('warning', 'Milestone date cannot be in the past');
+        console.log('Milestone date cannot be in the past');
         dateInput.classList.add('is-invalid');
         return false;
     }
-    
+
     if (milestoneDate > endDate) {
-        showToast('warning', 'Milestone date cannot be after the expected end date');
+        console.log('Milestone date cannot be after the expected end date');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -1320,7 +1290,7 @@ function toggleAvailability() {
     
     if (!mentorId) {
         console.error('No mentor ID found in data attribute');
-        showToast('error', 'Failed to update availability: No mentor ID found');
+        console.log('Failed to update availability: No mentor ID found');
         return;
     }
 
@@ -1337,7 +1307,7 @@ function toggleAvailability() {
         },
         success: function(response) {
             console.log('Toggle success:', response);
-            showToast('success', `Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
+            console.log(`Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
         },
         error: function(xhr, status, error) {
             console.error('Error toggling availability:', xhr.responseText || error);
@@ -1442,7 +1412,14 @@ function updateProgress(mentorshipId) {
     var progressModal = document.getElementById('progressModal');
     var modal = bootstrap.Modal.getInstance(progressModal) || new bootstrap.Modal(progressModal);
     document.getElementById('mentorshipIdForProgress').value = mentorshipId;
-    
+
+    // Reset form and validation
+    resetProgressForm();
+
+    // Set current date
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('progressDate').value = today;
+
     // Fetch current progress percentage
     fetch(`/mentorship/api/requests/${mentorshipId}/`, {
         headers: {
@@ -1459,27 +1436,76 @@ function updateProgress(mentorshipId) {
         // Set current progress percentage
         const progressSlider = document.getElementById('progressPercentage');
         const progressValue = document.getElementById('progressPercentageValue');
-        if (progressSlider && progressValue && data.progress_percentage) {
-            progressSlider.value = data.progress_percentage;
-            progressValue.textContent = data.progress_percentage + '%';
+        if (progressSlider && progressValue) {
+            const currentProgress = data.progress_percentage || 0;
+            progressSlider.value = currentProgress;
+            progressValue.textContent = currentProgress + '%';
+            updateProgressSliderBackground(currentProgress);
         }
-        
+
         modal.show();
     })
     .catch(error => {
         console.error('Error:', error);
         showToast('error', 'Failed to fetch current progress. Using default values.');
+        // Set default values
+        const progressSlider = document.getElementById('progressPercentage');
+        const progressValue = document.getElementById('progressPercentageValue');
+        if (progressSlider && progressValue) {
+            progressSlider.value = 0;
+            progressValue.textContent = '0%';
+            updateProgressSliderBackground(0);
+        }
         modal.show(); // Show modal anyway
     });
 }
 
+// Reset progress form
+function resetProgressForm() {
+    const form = document.getElementById('progressForm');
+    if (form) {
+        form.reset();
+        form.classList.remove('was-validated');
+
+        // Remove validation classes
+        const inputs = form.querySelectorAll('.form-control');
+        inputs.forEach(input => {
+            input.classList.remove('is-valid', 'is-invalid');
+        });
+    }
+}
+
+// Update progress slider background
+function updateProgressSliderBackground(value) {
+    const slider = document.getElementById('progressPercentage');
+    if (slider) {
+        const percentage = (value / 100) * 100;
+        slider.style.background = `linear-gradient(to right, #007bff 0%, #007bff ${percentage}%, #e9ecef ${percentage}%, #e9ecef 100%)`;
+    }
+}
+
 // Submit progress form
 function submitProgress() {
+    const form = document.getElementById('progressForm');
+    const submitBtn = document.getElementById('submitProgressBtn');
+    const loadingOverlay = document.querySelector('.progress-modal-loading');
+    const formContent = document.querySelector('.progress-modal-form');
+
+    // Validate form
+    if (!validateProgressForm()) {
+        return;
+    }
+
+    // Get form values
     const mentorshipId = document.getElementById('mentorshipIdForProgress').value;
-    const progressTitle = document.getElementById('progressTitle').value;
-    const progressDescription = document.getElementById('progressDescription').value;
+    const progressTitle = document.getElementById('progressTitle').value.trim();
+    const progressDescription = document.getElementById('progressDescription').value.trim();
     const progressPercentage = document.getElementById('progressPercentage').value;
-    
+
+    // Show loading state
+    showProgressLoading(true);
+    setButtonLoading(submitBtn, true);
+
     // First create the progress update
     fetch('/mentorship/api/progress/', {
         method: 'POST',
@@ -1519,17 +1545,155 @@ function submitProgress() {
         return response.json();
     })
     .then(data => {
+        // Hide loading state
+        showProgressLoading(false);
+        setButtonLoading(submitBtn, false);
+
+        // Close modal
         var progressModal = document.getElementById('progressModal');
         var modal = bootstrap.Modal.getInstance(progressModal);
         if (modal) modal.hide();
-        
-        showToast('success', 'Progress updated successfully');
-        setTimeout(() => location.reload(), 1500);
+
+        // Show success message
+        showToast('success', 'Progress updated successfully! The page will refresh shortly.');
+        setTimeout(() => location.reload(), 2000);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update progress. Please try again.');
+
+        // Hide loading state
+        showProgressLoading(false);
+        setButtonLoading(submitBtn, false);
+
+        // Show error message
+        showToast('error', 'Failed to update progress. Please check your connection and try again.');
     });
+}
+
+// Validate progress form
+function validateProgressForm() {
+    const form = document.getElementById('progressForm');
+    const titleInput = document.getElementById('progressTitle');
+    const descriptionInput = document.getElementById('progressDescription');
+    let isValid = true;
+
+    // Reset validation
+    form.classList.remove('was-validated');
+    titleInput.classList.remove('is-valid', 'is-invalid');
+    descriptionInput.classList.remove('is-valid', 'is-invalid');
+
+    // Validate title
+    if (!titleInput.value.trim()) {
+        titleInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        titleInput.classList.add('is-valid');
+    }
+
+    // Validate description
+    if (!descriptionInput.value.trim()) {
+        descriptionInput.classList.add('is-invalid');
+        isValid = false;
+    } else {
+        descriptionInput.classList.add('is-valid');
+    }
+
+    if (!isValid) {
+        form.classList.add('was-validated');
+        showToast('error', 'Please fill in all required fields.');
+    }
+
+    return isValid;
+}
+
+// Show/hide loading overlay
+function showProgressLoading(show) {
+    const loadingOverlay = document.querySelector('.progress-modal-loading');
+    const formContent = document.querySelector('.progress-modal-form');
+
+    if (show) {
+        loadingOverlay.classList.remove('d-none');
+        formContent.style.opacity = '0.5';
+    } else {
+        loadingOverlay.classList.add('d-none');
+        formContent.style.opacity = '1';
+    }
+}
+
+// Set button loading state
+function setButtonLoading(button, loading) {
+    if (loading) {
+        button.classList.add('btn-loading');
+        button.disabled = true;
+        button.setAttribute('data-original-text', button.innerHTML);
+        button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Saving...';
+    } else {
+        button.classList.remove('btn-loading');
+        button.disabled = false;
+        const originalText = button.getAttribute('data-original-text');
+        if (originalText) {
+            button.innerHTML = originalText;
+        } else {
+            button.innerHTML = '<i class="fas fa-save me-1"></i>Save Progress';
+        }
+    }
+}
+
+// Initialize progress modal event listeners
+function initializeProgressModalListeners() {
+    // Progress slider event listener
+    const progressSlider = document.getElementById('progressPercentage');
+    const progressValue = document.getElementById('progressPercentageValue');
+
+    if (progressSlider && progressValue) {
+        progressSlider.addEventListener('input', function() {
+            const value = this.value;
+            progressValue.textContent = value + '%';
+            updateProgressSliderBackground(value);
+        });
+
+        // Initialize slider background
+        updateProgressSliderBackground(progressSlider.value);
+    }
+
+    // Form validation on input
+    const titleInput = document.getElementById('progressTitle');
+    const descriptionInput = document.getElementById('progressDescription');
+
+    if (titleInput) {
+        titleInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+    }
+
+    if (descriptionInput) {
+        descriptionInput.addEventListener('input', function() {
+            if (this.value.trim()) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+    }
+
+    // Form submission with Enter key
+    const progressForm = document.getElementById('progressForm');
+    if (progressForm) {
+        progressForm.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                submitProgress();
+            }
+        });
+    }
 }
 
 // Submit meeting form
@@ -1630,45 +1794,13 @@ function submitMessage() {
     });
 }
 
-// Show toast notification
-    function showToast(type, message) {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type} show`;
-        toast.innerHTML = `
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        `;
-        
-        // Add toast container if it doesn't exist
-        let container = document.querySelector('.toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            container.style.zIndex = '9999'; // Increased from 1050 to ensure it's always on top
-            document.body.appendChild(container);
-        }
-        
-        container.appendChild(toast);
-        
-        // Initialize Bootstrap toast
-        const bsToast = new bootstrap.Toast(toast, {
-            autohide: true,
-            delay: 3000
-        });
-        bsToast.show();
-        
-        // Remove toast after it's hidden
-        toast.addEventListener('hidden.bs.toast', () => {
-            toast.remove();
-        });
-    }
+
+
+// Disabled toast notifications - function does nothing
+function showToast(type, message) {
+    // Toast notifications have been disabled
+    console.log(`Toast (${type}): ${message}`);
+}
 
 // CSRF Token helper
 function getCookie(name) {
@@ -3297,12 +3429,18 @@ function renderMilestoneTable(milestones, mentorshipId) {
                     : '';
                 
                 row.innerHTML = `
-                    <td>Week/Day ${safePeriod}</td>
-                    <td>${safeDescription}</td>
-                    <td><span class="timeline-status-badge ${statusClass}">${statusText}</span></td>
-                    <td>
-                        <select class="form-select form-select-sm milestone-quick-status" 
-                                data-period="${safePeriod}" 
+                    <td class="period-column">
+                        <span class="fw-semibold text-primary">Week/Day ${safePeriod}</span>
+                    </td>
+                    <td class="description-column">
+                        <div class="milestone-description">${safeDescription}</div>
+                    </td>
+                    <td class="status-column">
+                        <span class="badge milestone-status-badge ${statusClass}">${statusText}</span>
+                    </td>
+                    <td class="actions-column">
+                        <select class="form-select form-select-sm milestone-quick-status"
+                                data-period="${safePeriod}"
                                 data-description="${safeDescription}"
                                 data-mentorship="${mentorshipId}"
                                 onchange="updateQuickMilestoneStatus(this)">
@@ -4387,66 +4525,119 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Progress Modal -->
 <div class="modal fade" id="progressModal" tabindex="-1" aria-labelledby="progressModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="progressModalLabel">Update Progress</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        <div class="modal-content progress-modal-content">
+            <div class="modal-header bg-gradient-primary text-white">
+                <h5 class="modal-title d-flex align-items-center" id="progressModalLabel">
+                    <i class="fas fa-chart-line me-2"></i>Update Progress
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <div class="modal-body">
-                <form id="progressForm">
-                    <input type="hidden" id="mentorshipIdForProgress">
-                    
-                    <div class="mb-3">
-                        <label for="progressTitle" class="form-label">Progress Title</label>
-                        <input type="text" class="form-control" id="progressTitle" required>
+            <div class="modal-body p-4">
+                <!-- Loading Overlay -->
+                <div class="progress-modal-loading d-none">
+                    <div class="d-flex justify-content-center align-items-center py-5">
+                        <div class="spinner-border text-primary me-3" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <span class="text-muted">Updating progress...</span>
                     </div>
-                    
-                    <div class="mb-3">
-                        <label for="progressDescription" class="form-label">Description</label>
-                        <textarea class="form-control" id="progressDescription" rows="3" required></textarea>
-                    </div>
-                </form>
+                </div>
+
+                <!-- Form Content -->
+                <div class="progress-modal-form">
+                    <form id="progressForm" novalidate>
+                        <input type="hidden" id="mentorshipIdForProgress">
+
+                        <!-- Progress Overview -->
+                        <div class="progress-overview-card mb-4">
+                            <div class="card border-0 bg-light">
+                                <div class="card-body p-3">
+                                    <h6 class="card-title mb-3">
+                                        <i class="fas fa-percentage text-primary me-2"></i>Overall Progress
+                                    </h6>
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <label for="progressPercentage" class="form-label small text-muted mb-1">
+                                                Progress Percentage
+                                            </label>
+                                            <input type="range" class="form-range" id="progressPercentage"
+                                                   min="0" max="100" value="0" step="5">
+                                            <div class="d-flex justify-content-between small text-muted mt-1">
+                                                <span>0%</span>
+                                                <span>50%</span>
+                                                <span>100%</span>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-4 text-center">
+                                            <div class="progress-percentage-display">
+                                                <span id="progressPercentageValue" class="display-6 fw-bold text-primary">0%</span>
+                                                <div class="small text-muted">Complete</div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Progress Details -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="progressTitle" class="form-label">
+                                        <i class="fas fa-tag text-primary me-1"></i>Progress Title
+                                    </label>
+                                    <input type="text" class="form-control" id="progressTitle"
+                                           placeholder="e.g., Completed resume review" required>
+                                    <div class="invalid-feedback">
+                                        Please provide a progress title.
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="progressDate" class="form-label">
+                                        <i class="fas fa-calendar text-primary me-1"></i>Date
+                                    </label>
+                                    <input type="date" class="form-control" id="progressDate"
+                                           value="" readonly>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="progressDescription" class="form-label">
+                                <i class="fas fa-align-left text-primary me-1"></i>Description
+                            </label>
+                            <textarea class="form-control" id="progressDescription" rows="4"
+                                      placeholder="Describe the progress made, achievements, or milestones reached..."
+                                      required></textarea>
+                            <div class="invalid-feedback">
+                                Please provide a description of the progress.
+                            </div>
+                            <div class="form-text">
+                                <small class="text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Provide detailed information about what was accomplished.
+                                </small>
+                            </div>
+                        </div>
+                    </form>
+                </div>
             </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-primary" onclick="submitProgress()">Save Progress</button>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Cancel
+                </button>
+                <button type="button" class="btn btn-primary" onclick="submitProgress()" id="submitProgressBtn">
+                    <i class="fas fa-save me-1"></i>Save Progress
+                </button>
             </div>
         </div>
     </div>
 </div>
 
-<!-- Toast Styles -->
+
 <style>
-.toast-container {
-    z-index: 9999; /* Increased from 1050 to ensure it's always on top */
-}
-
-.toast {
-    min-width: 250px;
-}
-
-.toast-success {
-    background-color: #d4edda;
-    border-color: #c3e6cb;
-    color: #155724;
-}
-
-.toast-error {
-    background-color: #f8d7da;
-    border-color: #f5c6cb;
-    color: #721c24;
-}
-
-.toast-success .toast-header {
-    background-color: #c3e6cb;
-    color: #155724;
-}
-
-.toast-error .toast-header {
-    background-color: #f5c6cb;
-    color: #721c24;
-}
-
 /* Loading indicator styles */
 .loading-spinner-container {
     display: flex;
@@ -4469,12 +4660,394 @@ document.addEventListener('DOMContentLoaded', function() {
     box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25) !important;
     transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
 }
+
+/* Enhanced Progress Modal Styles */
+.progress-modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+    overflow: hidden;
+}
+
+.bg-gradient-primary {
+    background: linear-gradient(135deg, #007bff 0%, #0056b3 100%);
+}
+
+.progress-overview-card .card {
+    border-radius: 12px;
+    transition: all 0.3s ease;
+}
+
+.progress-overview-card .card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+.progress-percentage-display {
+    padding: 1rem;
+    border-radius: 10px;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    border: 2px solid #dee2e6;
+}
+
+.form-range {
+    height: 8px;
+    background: linear-gradient(to right, #e9ecef 0%, #e9ecef 100%);
+    border-radius: 5px;
+}
+
+.form-range::-webkit-slider-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.form-range::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: #007bff;
+    border: 3px solid #fff;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+    cursor: pointer;
+}
+
+.progress-modal-loading {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: 1000;
+    border-radius: 15px;
+}
+
+.form-control:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.form-control.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+}
+
+.form-control.is-valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+}
+
+/* Mobile Responsive Improvements */
+@media (max-width: 768px) {
+    .progress-modal-content {
+        margin: 1rem;
+        border-radius: 10px;
+    }
+
+    .modal-body {
+        padding: 1.5rem !important;
+    }
+
+    .progress-percentage-display {
+        margin-top: 1rem;
+    }
+
+    .progress-percentage-display .display-6 {
+        font-size: 2rem;
+    }
+}
+
+/* Button Loading States */
+.btn-loading {
+    position: relative;
+    color: transparent !important;
+}
+
+.btn-loading::after {
+    content: "";
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    top: 50%;
+    left: 50%;
+    margin-left: -8px;
+    margin-top: -8px;
+    border: 2px solid transparent;
+    border-top-color: currentColor;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* Timeline Modal Improvements */
+.timeline-modal-content {
+    border: none;
+    border-radius: 15px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
+.timeline-modal-content .modal-body {
+    padding: 2rem;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+/* Milestone Table Styling */
+.milestone-table {
+    margin-bottom: 0;
+    table-layout: fixed;
+    width: 100%;
+}
+
+.milestone-table th,
+.milestone-table td {
+    vertical-align: middle;
+    padding: 1rem 0.75rem;
+    border-bottom: 1px solid #dee2e6;
+}
+
+.milestone-table th {
+    font-weight: 600;
+    color: #495057;
+    background-color: #f8f9fa;
+    border-top: none;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+/* Column Width Specifications */
+.period-column {
+    width: 15%;
+    min-width: 120px;
+}
+
+.description-column {
+    width: 45%;
+    min-width: 200px;
+}
+
+.status-column {
+    width: 20%;
+    min-width: 140px;
+}
+
+.actions-column {
+    width: 20%;
+    min-width: 140px;
+}
+
+/* Text Wrapping and Overflow */
+.milestone-table td {
+    word-wrap: break-word;
+    word-break: break-word;
+    white-space: normal;
+    line-height: 1.4;
+}
+
+.milestone-table .description-column {
+    max-width: 0; /* Forces text wrapping */
+}
+
+/* Status Badge Styling */
+.milestone-table .badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    white-space: nowrap;
+}
+
+.milestone-status-badge {
+    font-size: 0.75rem;
+    padding: 0.375rem 0.75rem;
+    border-radius: 0.375rem;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.025em;
+}
+
+.milestone-status-badge.completed {
+    background-color: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.milestone-status-badge.in-progress {
+    background-color: #fff3cd;
+    color: #856404;
+    border: 1px solid #ffeaa7;
+}
+
+.milestone-status-badge.not-started {
+    background-color: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+/* Milestone Description Styling */
+.milestone-description {
+    line-height: 1.4;
+    color: #495057;
+    font-size: 0.9rem;
+}
+
+/* Timeline Milestone Card Styling */
+.timeline-milestone-card {
+    background: #fff;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+.timeline-milestone-card:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-1px);
+}
+
+.timeline-milestone-header {
+    padding: 0.75rem 1rem;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+.timeline-milestone-header.completed {
+    background: #d4edda;
+    color: #155724;
+    border-bottom-color: #c3e6cb;
+}
+
+.timeline-milestone-header.in-progress {
+    background: #fff3cd;
+    color: #856404;
+    border-bottom-color: #ffeaa7;
+}
+
+.timeline-milestone-header.not-started {
+    background: #f8d7da;
+    color: #721c24;
+    border-bottom-color: #f5c6cb;
+}
+
+.timeline-milestone-title {
+    padding: 1rem;
+    font-weight: 500;
+    color: #495057;
+    line-height: 1.4;
+}
+
+.timeline-milestone-topics {
+    padding: 0 1rem 1rem;
+}
+
+.timeline-milestone-topics-title {
+    font-weight: 600;
+    color: #6c757d;
+    font-size: 0.875rem;
+    margin-bottom: 0.5rem;
+}
+
+.timeline-milestone-topics ul {
+    margin: 0;
+    padding-left: 1.25rem;
+    color: #6c757d;
+    font-size: 0.875rem;
+}
+
+.timeline-milestone-topics li {
+    margin-bottom: 0.25rem;
+    line-height: 1.3;
+}
+
+.timeline-milestone-status-select {
+    margin: 0 1rem 1rem;
+    font-size: 0.875rem;
+}
+
+/* Dropdown Styling in Table */
+.milestone-table .form-select {
+    font-size: 0.875rem;
+    padding: 0.375rem 0.75rem;
+    border: 1px solid #ced4da;
+    border-radius: 0.375rem;
+}
+
+.milestone-table .form-select:focus {
+    border-color: #007bff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* Mobile Responsiveness */
+@media (max-width: 768px) {
+    .timeline-modal-content .modal-body {
+        padding: 1rem;
+    }
+
+    .milestone-table {
+        font-size: 0.875rem;
+    }
+
+    .milestone-table th,
+    .milestone-table td {
+        padding: 0.75rem 0.5rem;
+    }
+
+    .period-column {
+        width: 20%;
+        min-width: 100px;
+    }
+
+    .description-column {
+        width: 40%;
+        min-width: 150px;
+    }
+
+    .status-column {
+        width: 20%;
+        min-width: 120px;
+    }
+
+    .actions-column {
+        width: 20%;
+        min-width: 120px;
+    }
+}
+
+@media (max-width: 576px) {
+    .modal-xl {
+        max-width: 95%;
+        margin: 1rem auto;
+    }
+
+    .milestone-table {
+        font-size: 0.8rem;
+    }
+
+    .milestone-table th,
+    .milestone-table td {
+        padding: 0.5rem 0.25rem;
+    }
+}
 </style>
 
 <!-- Timeline Status Modal -->
 <div class="modal fade timeline-status-modal" id="timelineStatusModal" tabindex="-1" aria-labelledby="timelineStatusModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content timeline-modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="timelineStatusModalLabel">Update Timeline Status</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -4501,8 +5074,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <!-- Progress Details Modal -->
 <div class="modal fade" id="progressDetailsModal" tabindex="-1" aria-labelledby="progressDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content timeline-modal-content">
             <div class="modal-header bg-primary text-white">
                 <h5 class="modal-title" id="progressDetailsModalLabel">Mentorship Progress Details</h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -4554,27 +5127,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                 </div>
                             </div>
                             
-                            <div class="timeline-visualization mb-4">
-                                <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h6 class="mb-0"><i class="fas fa-chart-line me-2"></i>Timeline Visualization</h6>
-                                    <span class="badge bg-primary" id="timeline-progress-badge">0%</span>
-                                </div>
-                                <p class="text-muted small mb-3">Track your mentorship progress through milestones. Click on any milestone for details.</p>
-                                <div class="timeline-visual-container" id="timeline-visual-container">
-                                    <!-- Timeline visualization will be rendered here -->
-                                </div>
-                            </div>
-                            
+
                             <div class="milestone-list">
-                                <h6>Milestones</h6>
+                                <h6><i class="fas fa-list-check me-2"></i>Milestones</h6>
                                 <div class="table-responsive">
-                                    <table class="table table-hover">
-                                        <thead>
+                                    <table class="table table-hover milestone-table">
+                                        <thead class="table-light">
                                             <tr>
-                                                <th>Period</th>
-                                                <th>Description</th>
-                                                <th>Status</th>
-                                                <th>Actions</th>
+                                                <th class="period-column">Period</th>
+                                                <th class="description-column">Description</th>
+                                                <th class="status-column">Status</th>
+                                                <th class="actions-column">Actions</th>
                                             </tr>
                                         </thead>
                                         <tbody id="milestone-table-body">
@@ -4875,8 +5438,7 @@ document.addEventListener('DOMContentLoaded', function() {
     </div>
 </div>
 
-<!-- Toast Container -->
-<div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
+
 
 <!-- Template Handling Script -->
 <script>
@@ -5651,18 +6213,8 @@ function deleteMeeting(meetingId) {
     // Get CSRF token using the existing getCookie function
     const csrfToken = getCookie('csrftoken');
     
-    // Check if toast elements exist
-    const toastElement = document.getElementById('toast');
-    const toastBody = document.getElementById('toastBody');
-    
     // Show loading indicator
-    if (toastElement && toastBody) {
-        toastBody.innerHTML = '<div class="d-flex align-items-center"><div class="spinner-border spinner-border-sm me-2" role="status"></div>Cancelling meeting...</div>';
-        const toast = new bootstrap.Toast(toastElement);
-        toast.show();
-    } else {
-        console.log('Cancelling meeting...');
-    }
+    console.log('Cancelling meeting...');
     
     console.log(`Deleting meeting with ID: ${meetingId}`);
     
@@ -5701,13 +6253,7 @@ function deleteMeeting(meetingId) {
     })
     .then(() => {
         // Show success message
-        if (toastElement && toastBody) {
-            toastBody.innerHTML = '<i class="fas fa-check-circle me-2 text-success"></i>Meeting cancelled successfully!';
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
-        } else {
-            alert('Meeting cancelled successfully!');
-        }
+        console.log('Meeting cancelled successfully!');
         
         // Reload page after a short delay
         setTimeout(() => {
@@ -5716,13 +6262,7 @@ function deleteMeeting(meetingId) {
     })
     .catch(error => {
         console.error('Error deleting meeting:', error);
-        if (toastElement && toastBody) {
-            toastBody.innerHTML = `<i class="fas fa-exclamation-circle me-2 text-danger"></i>${error.message}`;
-            const toast = new bootstrap.Toast(toastElement);
-            toast.show();
-        } else {
-            alert(`Error: ${error.message}`);
-        }
+        console.error(`Error: ${error.message}`);
     });
 }
 </script>

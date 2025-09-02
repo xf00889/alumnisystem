@@ -1,0 +1,468 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
+
+{% block page_header %}
+<div class="page-header">
+    <div class="container">
+        <div class="row align-items-center">
+            <div class="col-lg-8">
+                <h1 class="page-title">{{ page_title }}</h1>
+                <p class="page-subtitle">{{ page_subtitle }}</p>
+            </div>
+            <div class="col-lg-4 text-lg-end">
+                <div class="header-contact">
+                    <div class="contact-highlight">
+                        <i class="fas fa-phone fa-2x mb-2"></i>
+                        <div>
+                            <strong>+63 35 422 6002</strong>
+                            <br><small>Office Hours: 8AM - 5PM</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock page_header %}
+
+{% block content %}
+<div class="container py-5">
+    <!-- Contact Form and Info -->
+    <div class="row mb-5">
+        <!-- Contact Form -->
+        <div class="col-lg-8 mb-4">
+            <div class="content-card">
+                <div class="card-body p-4">
+                    <h3 class="mb-4">
+                        <i class="fas fa-envelope text-primary me-2"></i>Send us a Message
+                    </h3>
+                    
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'core:contact_us_submit' %}" id="contactForm">
+                        {% csrf_token %}
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="name" class="form-label">Full Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="email" class="form-label">Email Address *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label for="subject" class="form-label">Subject *</label>
+                            <select class="form-select" id="subject" name="subject" required>
+                                <option value="">Select a subject</option>
+                                <option value="General Inquiry">General Inquiry</option>
+                                <option value="Alumni Registration">Alumni Registration</option>
+                                <option value="Event Information">Event Information</option>
+                                <option value="Technical Support">Technical Support</option>
+                                <option value="Partnership Opportunities">Partnership Opportunities</option>
+                                <option value="Feedback/Suggestions">Feedback/Suggestions</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="mb-4">
+                            <label for="message" class="form-label">Message *</label>
+                            <textarea class="form-control" id="message" name="message" rows="6" required 
+                                      placeholder="Please provide details about your inquiry..."></textarea>
+                        </div>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+        <div class="col-lg-4">
+            <div class="content-card h-100">
+                <div class="card-body p-4">
+                    <h4 class="mb-4">
+                        <i class="fas fa-info-circle text-primary me-2"></i>Contact Information
+                    </h4>
+                    
+                    <div class="contact-item mb-4">
+                        <div class="contact-icon">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h6>Office Address</h6>
+                            <p>Negros Oriental State University<br>
+                               Kagawasan, Ave. Rizal<br>
+                               Dumaguete City, 6200<br>
+                               Negros Oriental, Philippines</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item mb-4">
+                        <div class="contact-icon">
+                            <i class="fas fa-phone"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h6>Phone Number</h6>
+                            <p>+63 35 422 6002<br>
+                               +63 35 225 2376</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item mb-4">
+                        <div class="contact-icon">
+                            <i class="fas fa-envelope"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h6>Email Address</h6>
+                            <p>alumni@norsu.edu.ph<br>
+                               info@norsu.edu.ph</p>
+                        </div>
+                    </div>
+                    
+                    <div class="contact-item mb-4">
+                        <div class="contact-icon">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                        <div class="contact-details">
+                            <h6>Office Hours</h6>
+                            <p>Monday - Friday: 8:00 AM - 5:00 PM<br>
+                               Saturday: 8:00 AM - 12:00 PM<br>
+                               Sunday: Closed</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Social Media and Additional Info -->
+    <div class="row mb-5">
+        <!-- Social Media -->
+        <div class="col-lg-6 mb-4">
+            <div class="content-card">
+                <div class="card-body p-4 text-center">
+                    <h4 class="mb-4">
+                        <i class="fas fa-share-alt text-primary me-2"></i>Follow Us
+                    </h4>
+                    <p class="text-muted mb-4">Stay connected with us on social media for the latest updates and news.</p>
+                    
+                    <div class="social-links">
+                        <a href="#" class="social-link facebook" target="_blank">
+                            <i class="fab fa-facebook-f"></i>
+                            <span>Facebook</span>
+                        </a>
+                        <a href="#" class="social-link twitter" target="_blank">
+                            <i class="fab fa-twitter"></i>
+                            <span>Twitter</span>
+                        </a>
+                        <a href="#" class="social-link instagram" target="_blank">
+                            <i class="fab fa-instagram"></i>
+                            <span>Instagram</span>
+                        </a>
+                        <a href="#" class="social-link linkedin" target="_blank">
+                            <i class="fab fa-linkedin-in"></i>
+                            <span>LinkedIn</span>
+                        </a>
+                        <a href="#" class="social-link youtube" target="_blank">
+                            <i class="fab fa-youtube"></i>
+                            <span>YouTube</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Links -->
+        <div class="col-lg-6 mb-4">
+            <div class="content-card">
+                <div class="card-body p-4">
+                    <h4 class="mb-4">
+                        <i class="fas fa-link text-primary me-2"></i>Quick Links
+                    </h4>
+                    <div class="row">
+                        <div class="col-6">
+                            <ul class="quick-links">
+                                <li><a href="{% url 'core:home' %}"><i class="fas fa-home me-2"></i>Home</a></li>
+                                <li><a href="{% url 'core:landing_events' %}"><i class="fas fa-calendar-alt me-2"></i>Events</a></li>
+                                <li><a href="{% url 'core:landing_announcements' %}"><i class="fas fa-bullhorn me-2"></i>Announcements</a></li>
+                                <li><a href="{% url 'core:landing_news' %}"><i class="fas fa-newspaper me-2"></i>News</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="quick-links">
+                                <li><a href="{% url 'core:about_us' %}"><i class="fas fa-info-circle me-2"></i>About Us</a></li>
+                                <li><a href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
+                                <li><a href="{% url 'account_signup' %}"><i class="fas fa-user-plus me-2"></i>Sign Up</a></li>
+                                <li><a href="#"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FAQ Section -->
+    <div class="row mb-5">
+        <div class="col-12">
+            <div class="content-card">
+                <div class="card-body p-4">
+                    <h3 class="mb-4">
+                        <i class="fas fa-question-circle text-primary me-2"></i>Frequently Asked Questions
+                    </h3>
+                    
+                    <div class="accordion" id="faqAccordion">
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq1">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                    How do I register for the alumni network?
+                                </button>
+                            </h2>
+                            <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Click on the "Sign Up" button in the navigation menu and fill out the registration form with your details. 
+                                    You'll need to provide your graduation year, course, and other relevant information for verification.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq2">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                    How can I update my profile information?
+                                </button>
+                            </h2>
+                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    After logging in, go to your profile page where you can edit your personal information, 
+                                    contact details, professional background, and other profile settings.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq3">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                    How do I find and connect with other alumni?
+                                </button>
+                            </h2>
+                            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Use the Alumni Directory to search for classmates and colleagues. You can filter by graduation year, 
+                                    course, location, or industry. Send connection requests to build your professional network.
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq4">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                                    Can I post job opportunities on the platform?
+                                </button>
+                            </h2>
+                            <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    Yes! Registered alumni can post job opportunities through the Job Board. 
+                                    This helps fellow alumni find career opportunities and strengthens our professional network.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call to Action -->
+    <div class="row">
+        <div class="col-12">
+            <div class="content-card text-center">
+                <div class="card-body py-5">
+                    <h3 class="mb-3">Ready to Join Our Community?</h3>
+                    <p class="text-muted mb-4">
+                        Connect with fellow NORSU alumni, access exclusive opportunities, and be part of our growing network.
+                    </p>
+                    <div class="d-flex gap-3 justify-content-center">
+                        <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-user-plus me-2"></i>Sign Up Now
+                        </a>
+                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
+                            <i class="fas fa-sign-in-alt me-2"></i>Login
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}
+
+{% block extra_css %}
+<style>
+    .header-contact .contact-highlight {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        background: rgba(255, 255, 255, 0.1);
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        color: var(--text-light);
+        text-align: left;
+    }
+    
+    .contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+    
+    .contact-item:last-child {
+        border-bottom: none;
+    }
+    
+    .contact-icon {
+        width: 40px;
+        height: 40px;
+        background: var(--primary-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+    }
+    
+    .contact-details h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+    
+    .contact-details p {
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.5;
+    }
+    
+    .social-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        justify-content: center;
+    }
+    
+    .social-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        min-width: 120px;
+        justify-content: center;
+    }
+    
+    .social-link.facebook {
+        background: #1877f2;
+    }
+    
+    .social-link.twitter {
+        background: #1da1f2;
+    }
+    
+    .social-link.instagram {
+        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    }
+    
+    .social-link.linkedin {
+        background: #0077b5;
+    }
+    
+    .social-link.youtube {
+        background: #ff0000;
+    }
+    
+    .social-link:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        color: white;
+    }
+    
+    .quick-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .quick-links li {
+        margin-bottom: 0.75rem;
+    }
+    
+    .quick-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+    }
+    
+    .quick-links a:hover {
+        color: var(--primary-color);
+        transform: translateX(5px);
+    }
+    
+    .accordion-button {
+        font-weight: 500;
+        color: var(--text-primary);
+    }
+    
+    .accordion-button:not(.collapsed) {
+        background-color: var(--ui-hover);
+        color: var(--primary-color);
+    }
+    
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.25);
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.25);
+    }
+    
+    @media (max-width: 768px) {
+        .header-contact .contact-highlight {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+        
+        .social-links {
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .social-link {
+            min-width: 200px;
+        }
+    }
+</style>
+{% endblock extra_css %}

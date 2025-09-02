@@ -1,5 +1,6 @@
 {% extends "donations/base.html" %}
 {% load static %}
+{% load humanize %}
 {% load i18n %}
 
 {% block title %}{% trans "Donation Confirmation" %} | {{ block.super }}{% endblock %}
@@ -16,25 +17,108 @@
 </div>
 
 <div class="card mb-4">
-    <div class="card-header bg-success text-white">
-        <h5 class="mb-0">{% trans "Thank You for Your Donation!" %}</h5>
-    </div>
-    <div class="card-body">
-        <div class="text-center mb-4">
-            <i class="fas fa-check-circle text-success fa-5x mb-3"></i>
-            <h2>{% trans "Your donation has been received" %}</h2>
-            <p class="lead">
-                {% blocktrans with amount=donation.amount %}Thank you for your generous donation of {{ amount }}.{% endblocktrans %}
-            </p>
+    {% if donation.status == 'completed' %}
+        <div class="card-header bg-success text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-check-circle me-2"></i>
+                {% trans "Donation Completed!" %}
+            </h5>
         </div>
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="fas fa-check-circle text-success fa-5x mb-3"></i>
+                <h2>{% trans "Your donation has been verified and completed" %}</h2>
+                <p class="lead">
+                    {% blocktrans with amount=donation.amount|intcomma %}Thank you for your generous donation of ₱{{ amount }}.{% endblocktrans %}
+                </p>
+            </div>
+    {% elif donation.status == 'pending_verification' %}
+        <div class="card-header bg-warning text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-clock me-2"></i>
+                {% trans "Donation Pending Verification" %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="fas fa-clock text-warning fa-5x mb-3"></i>
+                <h2>{% trans "Your payment proof has been submitted" %}</h2>
+                <p class="lead">
+                    {% blocktrans with amount=donation.amount|intcomma %}Your donation of ₱{{ amount }} is being verified by our team.{% endblocktrans %}
+                </p>
+                <div class="alert alert-info">
+                    <strong>{% trans "What happens next?" %}</strong><br>
+                    {% trans "Our team will verify your payment within 24 hours during business days. You will receive an email confirmation once verified." %}
+                </div>
+            </div>
+    {% elif donation.status == 'pending_payment' %}
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-mobile-alt me-2"></i>
+                {% trans "Complete Your Donation" %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="fas fa-mobile-alt text-primary fa-5x mb-3"></i>
+                <h2>{% trans "Payment Required" %}</h2>
+                <p class="lead">
+                    {% blocktrans with amount=donation.amount|intcomma %}Please complete your GCash payment of ₱{{ amount }} to finalize your donation.{% endblocktrans %}
+                </p>
+                <div class="alert alert-warning">
+                    <strong>{% trans "Next Steps:" %}</strong><br>
+                    {% trans "Follow the payment instructions to complete your donation via GCash." %}
+                </div>
+                <a href="{% url 'donations:payment_instructions' pk=donation.pk %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-arrow-right me-2"></i>
+                    {% trans "Continue to Payment" %}
+                </a>
+            </div>
+    {% elif donation.status == 'failed' %}
+        <div class="card-header bg-danger text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-times-circle me-2"></i>
+                {% trans "Donation Failed" %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="fas fa-times-circle text-danger fa-5x mb-3"></i>
+                <h2>{% trans "Payment could not be verified" %}</h2>
+                <p class="lead">
+                    {% trans "Unfortunately, we could not verify your payment. Please contact us for assistance." %}
+                </p>
+                {% if donation.verification_notes %}
+                    <div class="alert alert-danger">
+                        <strong>{% trans "Verification Notes:" %}</strong><br>
+                        {{ donation.verification_notes|linebreaks }}
+                    </div>
+                {% endif %}
+            </div>
+    {% else %}
+        <div class="card-header bg-secondary text-white">
+            <h5 class="mb-0">
+                <i class="fas fa-info-circle me-2"></i>
+                {% trans "Donation Status" %}
+            </h5>
+        </div>
+        <div class="card-body">
+            <div class="text-center mb-4">
+                <i class="fas fa-info-circle text-secondary fa-5x mb-3"></i>
+                <h2>{{ donation.get_status_display }}</h2>
+                <p class="lead">
+                    {% blocktrans with amount=donation.amount|intcomma %}Your donation of ₱{{ amount }} is currently {{ donation.get_status_display|lower }}.{% endblocktrans %}
+                </p>
+            </div>
+    {% endif %}
         
         <div class="row">
             <div class="col-md-6">
                 <h5>{% trans "Donation Details" %}</h5>
                 <table class="table">
                     <tr>
-                        <th>{% trans "Donation ID" %}</th>
-                        <td>{{ donation.pk }}</td>
+                        <th>{% trans "Reference Number" %}</th>
+                        <td><code>{{ donation.reference_number }}</code></td>
                     </tr>
                     <tr>
                         <th>{% trans "Campaign" %}</th>
@@ -42,24 +126,36 @@
                     </tr>
                     <tr>
                         <th>{% trans "Amount" %}</th>
-                        <td>{{ donation.amount }}</td>
+                        <td>₱{{ donation.amount|intcomma }}</td>
                     </tr>
                     <tr>
-                        <th>{% trans "Date" %}</th>
+                        <th>{% trans "Payment Method" %}</th>
+                        <td>GCash</td>
+                    </tr>
+                    <tr>
+                        <th>{% trans "Date Created" %}</th>
                         <td>{{ donation.donation_date|date:"F j, Y, g:i a" }}</td>
                     </tr>
                     <tr>
                         <th>{% trans "Status" %}</th>
                         <td>
-                            <span class="badge bg-{{ donation.status|yesno:'success,warning' }}">
-                                {{ donation.get_status_display }}
-                            </span>
+                            {% if donation.status == 'completed' %}
+                                <span class="badge bg-success">{{ donation.get_status_display }}</span>
+                            {% elif donation.status == 'pending_verification' %}
+                                <span class="badge bg-warning">{{ donation.get_status_display }}</span>
+                            {% elif donation.status == 'pending_payment' %}
+                                <span class="badge bg-primary">{{ donation.get_status_display }}</span>
+                            {% elif donation.status == 'failed' %}
+                                <span class="badge bg-danger">{{ donation.get_status_display }}</span>
+                            {% else %}
+                                <span class="badge bg-secondary">{{ donation.get_status_display }}</span>
+                            {% endif %}
                         </td>
                     </tr>
-                    {% if donation.reference_number %}
+                    {% if donation.verification_date %}
                     <tr>
-                        <th>{% trans "Reference Number" %}</th>
-                        <td>{{ donation.reference_number }}</td>
+                        <th>{% trans "Verified Date" %}</th>
+                        <td>{{ donation.verification_date|date:"F j, Y, g:i a" }}</td>
                     </tr>
                     {% endif %}
                 </table>
@@ -93,7 +189,7 @@
                     {% endif %}
                     <tr>
                         <th>{% trans "Payment Method" %}</th>
-                        <td>{{ donation.get_payment_method_display }}</td>
+                        <td>GCash</td>
                     </tr>
                     {% if donation.message %}
                     <tr>
@@ -119,16 +215,33 @@
         </div>
     </div>
     <div class="card-footer">
-        <div class="d-flex justify-content-between">
-            <a href="{{ donation.campaign.get_absolute_url }}" class="btn btn-outline-primary">
+        <div class="text-center">
+            {% if donation.status == 'pending_payment' %}
+                <a href="{% url 'donations:payment_instructions' pk=donation.pk %}" class="btn btn-primary btn-lg me-2">
+                    <i class="fas fa-mobile-alt me-2"></i> {% trans "Complete Payment" %}
+                </a>
+            {% elif donation.status == 'pending_verification' %}
+                <div class="alert alert-info mb-3">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% trans "Your payment is being verified. You will receive an email confirmation once completed." %}
+                </div>
+            {% endif %}
+
+            <a href="{{ donation.campaign.get_absolute_url }}" class="btn btn-outline-primary me-2">
                 <i class="fas fa-arrow-left me-2"></i> {% trans "Back to Campaign" %}
             </a>
-            <a href="{% url 'donations:donation_history' %}" class="btn btn-outline-secondary">
-                <i class="fas fa-history me-2"></i> {% trans "View Donation History" %}
+
+            {% if user.is_authenticated %}
+            <a href="{% url 'donations:donation_history' %}" class="btn btn-outline-secondary me-2">
+                <i class="fas fa-history me-2"></i> {% trans "My Donations" %}
             </a>
+            {% endif %}
+
+            {% if donation.status == 'completed' %}
             <button class="btn btn-success" onclick="window.print()">
                 <i class="fas fa-print me-2"></i> {% trans "Print Receipt" %}
             </button>
+            {% endif %}
         </div>
     </div>
 </div>

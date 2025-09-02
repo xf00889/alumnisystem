@@ -1,0 +1,433 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block title %}{% trans "Payment Instructions" %} - NORSU Alumni{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block donations_content %}
+<div class="col-12">
+  <!-- Welcome Header -->
+  <div class="welcome-header mt-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4>{% trans "Payment Instructions" %}</h4>
+        <p>{% trans "How to complete your donation using GCash." %}</p>
+      </div>
+      <div>
+        <a href="{% url 'donations:campaign_detail' slug=donation.campaign.slug %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Campaign" %}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Progress Indicator -->
+  <div class="row mb-4">
+    <div class="col-12">
+        <div class="dashboard-card">
+            <div class="card-body py-3">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="progress-step completed me-3">
+                            <span class="step-number">1</span>
+                        </div>
+                        <div class="d-none d-md-block">
+                            <small class="text-muted">{% trans "Donation Created" %}</small>
+                        </div>
+                    </div>
+
+                    <div class="progress-line flex-grow-1 mx-3"></div>
+
+                    <div class="d-flex align-items-center">
+                        <div class="progress-step active me-3">
+                            <span class="step-number">2</span>
+                        </div>
+                        <div class="d-none d-md-block">
+                            <small class="fw-bold text-primary">{% trans "Make Payment" %}</small>
+                        </div>
+                    </div>
+
+                    <div class="progress-line flex-grow-1 mx-3"></div>
+
+                    <div class="d-flex align-items-center">
+                        <div class="progress-step me-3">
+                            <span class="step-number">3</span>
+                        </div>
+                        <div class="d-none d-md-block">
+                            <small class="text-muted">{% trans "Upload Proof" %}</small>
+                        </div>
+                    </div>
+
+                    <div class="progress-line flex-grow-1 mx-3"></div>
+
+                    <div class="d-flex align-items-center">
+                        <div class="progress-step">
+                            <span class="step-number">4</span>
+                        </div>
+                        <div class="d-none d-md-block">
+                            <small class="text-muted">{% trans "Verification" %}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Mobile Progress Text -->
+                <div class="d-md-none text-center mt-2">
+                    <small class="fw-bold text-primary">{% trans "Step 2 of 4: Make Payment" %}</small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8 mx-auto">
+        <div class="dashboard-card">
+            <div class="card-header d-flex align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-mobile-alt me-2"></i>
+                    {% trans "GCash Payment Instructions" %}
+                </h5>
+            </div>
+            <div class="card-body">
+                <!-- Donation Summary -->
+                <div class="alert alert-info mb-4">
+                    <h5 class="alert-heading">{% trans "Donation Summary" %}</h5>
+                    <hr>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <strong>{% trans "Campaign:" %}</strong> {{ donation.campaign.name }}<br>
+                            <strong>{% trans "Amount:" %}</strong> ₱{{ donation.amount|intcomma }}<br>
+                        </div>
+                        <div class="col-md-6">
+                            <strong>{% trans "Reference Number:" %}</strong>
+                            <span class="badge bg-secondary fs-6">{{ donation.reference_number }}</span><br>
+                            <strong>{% trans "Status:" %}</strong>
+                            <span class="badge bg-warning">{{ donation.get_status_display }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- QR Code Section -->
+                <div class="text-center mb-4">
+                    <h5 class="card-title mb-3">
+                        <span class="badge bg-primary rounded-pill me-2">1</span>
+                        {% trans "Scan QR Code or Use GCash Number" %}
+                    </h5>
+                    {% if gcash_config.qr_code_image %}
+                        <div class="qr-code-container mb-3 position-relative">
+                            <div class="qr-code-wrapper p-3 bg-white border rounded-3 shadow-sm d-inline-block">
+                                <img src="{{ gcash_config.qr_code_image.url }}"
+                                     alt="GCash QR Code"
+                                     class="qr-code-image"
+                                     style="max-width: min(300px, 80vw); width: 100%; height: auto;">
+                                <div class="qr-code-overlay position-absolute top-0 start-0 w-100 h-100 d-flex align-items-center justify-content-center"
+                                     style="background: rgba(0,0,0,0.8); opacity: 0; transition: opacity 0.3s;">
+                                    <button class="btn btn-light btn-sm" onclick="enlargeQR()">
+                                        <i class="fas fa-expand me-1"></i>{% trans "Enlarge" %}
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="mt-2">
+                                <small class="text-muted">
+                                    <i class="fas fa-mobile-alt me-1"></i>
+                                    {% trans "Tap to enlarge QR code" %}
+                                </small>
+                            </div>
+                        </div>
+                    {% endif %}
+                    
+                    <div class="alert alert-primary border-2 mb-3">
+                        <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                            <div class="mb-2 mb-md-0">
+                                <strong class="d-block">{% trans "GCash Number:" %}</strong>
+                                <span class="fs-4 fw-bold text-primary font-monospace">{{ gcash_config.gcash_number }}</span>
+                            </div>
+                            <button class="btn btn-primary btn-lg"
+                                    onclick="copyToClipboard('{{ gcash_config.gcash_number }}')"
+                                    style="min-height: 48px;">
+                                <i class="fas fa-copy me-2"></i>{% trans "Copy Number" %}
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-info border-2 mb-4">
+                        <div class="text-center">
+                            <strong class="d-block mb-1">{% trans "Account Name:" %}</strong>
+                            <span class="fs-5 fw-bold">{{ gcash_config.account_name }}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Instructions -->
+                <div class="mb-4">
+                    <h5 class="card-title mb-3">
+                        <span class="badge bg-primary rounded-pill me-2">2</span>
+                        {% trans "Complete Payment in GCash" %}
+                    </h5>
+                    <div class="list-group list-group-flush">
+                        <div class="list-group-item border-0 px-0 py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-mobile-alt"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1">{% trans "Open GCash App" %}</h6>
+                                    <p class="mb-0 text-muted">{% trans "Scan the QR code above OR manually enter the GCash number" %}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item border-0 px-0 py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-peso-sign"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1">{% trans "Enter Amount" %}</h6>
+                                    <p class="mb-2 text-muted">{% trans "Enter the exact amount:" %}</p>
+                                    <div class="alert alert-warning py-2 mb-0">
+                                        <strong class="fs-5">₱{{ donation.amount|intcomma }}</strong>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item border-0 px-0 py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-comment"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1">{% trans "Add Reference Number" %}</h6>
+                                    <p class="mb-2 text-muted">{% trans "In the message/notes field, enter your reference number:" %}</p>
+                                    <div class="d-flex flex-column flex-md-row align-items-md-center gap-2">
+                                        <code class="fs-6 fw-bold text-primary bg-light p-2 rounded flex-grow-1">{{ donation.reference_number }}</code>
+                                        <button class="btn btn-outline-primary"
+                                                onclick="copyToClipboard('{{ donation.reference_number }}')"
+                                                style="min-height: 44px;">
+                                            <i class="fas fa-copy me-1"></i>{% trans "Copy" %}
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item border-0 px-0 py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-camera"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1">{% trans "Take Screenshot" %}</h6>
+                                    <p class="mb-0 text-muted">{% trans "Complete the payment and take a clear screenshot of the confirmation" %}</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="list-group-item border-0 px-0 py-3">
+                            <div class="d-flex align-items-start">
+                                <div class="flex-shrink-0">
+                                    <span class="badge bg-success rounded-circle p-2 me-3" style="width: 40px; height: 40px; display: flex; align-items: center; justify-content: center;">
+                                        <i class="fas fa-upload"></i>
+                                    </span>
+                                </div>
+                                <div class="flex-grow-1">
+                                    <h6 class="fw-bold mb-1">{% trans "Upload Proof" %}</h6>
+                                    <p class="mb-0 text-muted">{% trans "Return to this page and upload your payment proof" %}</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Additional Instructions -->
+                {% if gcash_config.instructions %}
+                <div class="alert alert-warning">
+                    <h6>{% trans "Important Notes:" %}</h6>
+                    {{ gcash_config.instructions|linebreaks }}
+                </div>
+                {% endif %}
+
+                <!-- Action Buttons -->
+                <div class="text-center">
+                    <div class="d-grid gap-3">
+                        <a href="{% url 'donations:upload_payment_proof' pk=donation.pk %}"
+                           class="btn btn-success btn-lg py-3">
+                            <i class="fas fa-upload me-2"></i>
+                            <span class="fw-bold">{% trans "Upload Payment Proof" %}</span>
+                            <div class="small mt-1">{% trans "Step 3: Submit your screenshot" %}</div>
+                        </a>
+
+                        <div class="d-flex gap-2">
+                            <a href="{% url 'donations:campaign_detail' slug=donation.campaign.slug %}"
+                               class="btn btn-outline-secondary flex-fill">
+                                <i class="fas fa-arrow-left me-2"></i>
+                                {% trans "Back to Campaign" %}
+                            </a>
+                            <button class="btn btn-outline-info" onclick="refreshInstructions()">
+                                <i class="fas fa-sync-alt me-2"></i>
+                                {% trans "Refresh" %}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Add hover effect to QR code
+    const qrContainer = document.querySelector('.qr-code-container');
+    const qrOverlay = document.querySelector('.qr-code-overlay');
+
+    if (qrContainer && qrOverlay) {
+        qrContainer.addEventListener('mouseenter', function() {
+            qrOverlay.style.opacity = '1';
+        });
+
+        qrContainer.addEventListener('mouseleave', function() {
+            qrOverlay.style.opacity = '0';
+        });
+
+        // Click to enlarge QR code
+        qrContainer.addEventListener('click', enlargeQR);
+    }
+
+    // Auto-refresh page every 30 seconds to check for updates
+    let refreshInterval = setInterval(function() {
+        // Only refresh if user hasn't interacted recently
+        if (document.hidden === false) {
+            const lastActivity = localStorage.getItem('lastActivity');
+            const now = Date.now();
+            if (!lastActivity || (now - parseInt(lastActivity)) > 30000) {
+                location.reload();
+            }
+        }
+    }, 30000);
+
+    // Track user activity
+    document.addEventListener('click', function() {
+        localStorage.setItem('lastActivity', Date.now().toString());
+    });
+
+    // Add visual feedback to copy buttons
+    const copyButtons = document.querySelectorAll('button[onclick*="copyToClipboard"]');
+    copyButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const originalText = this.innerHTML;
+            this.innerHTML = '<i class="fas fa-check me-2"></i>{% trans "Copied!" %}';
+            this.classList.add('btn-success');
+            this.classList.remove('btn-primary', 'btn-outline-primary');
+
+            setTimeout(() => {
+                this.innerHTML = originalText;
+                this.classList.remove('btn-success');
+                this.classList.add('btn-primary');
+            }, 2000);
+        });
+    });
+});
+
+function enlargeQR() {
+    const qrImage = document.querySelector('.qr-code-image');
+    if (!qrImage) return;
+
+    // Create modal
+    const modal = document.createElement('div');
+    modal.className = 'modal fade';
+    modal.innerHTML = `
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">{% trans "GCash QR Code" %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="${qrImage.src}" alt="GCash QR Code" class="img-fluid" style="max-width: 100%;">
+                    <div class="mt-3">
+                        <p class="text-muted">{% trans "Scan this QR code with your GCash app" %}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+
+    // Remove modal after hiding
+    modal.addEventListener('hidden.bs.modal', function() {
+        document.body.removeChild(modal);
+    });
+}
+
+function refreshInstructions() {
+    const button = event.target;
+    const originalText = button.innerHTML;
+
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>{% trans "Refreshing..." %}';
+    button.disabled = true;
+
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showToast('{% trans "Copied to clipboard!" %}', 'success');
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast('{% trans "Copied to clipboard!" %}', 'success');
+        } catch (err) {
+            showToast('{% trans "Could not copy to clipboard. Please copy manually." %}', 'error');
+        }
+        document.body.removeChild(textArea);
+    });
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+    toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    // Remove toast after it's hidden
+    toast.addEventListener('hidden.bs.toast', function() {
+        document.body.removeChild(toast);
+    });
+}
+</script>
+{% endblock %}

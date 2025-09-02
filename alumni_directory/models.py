@@ -29,6 +29,7 @@ class Alumni(models.Model):
         ('CCJE', 'College of Criminal Justice Education'),
         ('CEA', 'College of Engineering and Architecture'),
         ('CIT', 'College of Industrial Technology'),
+        ('COL', 'College of Law'),
         ('CNPAHS', 'College of Nursing, Pharmacy and Allied Health Sciences'),
         ('CTE', 'College of Teacher Education'),
         ('CTHM', 'College of Tourism and Hospitality Management'),

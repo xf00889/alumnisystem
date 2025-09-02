@@ -17,10 +17,90 @@ from django.contrib import messages
 from accounts.models import Profile, Experience
 from .forms import AlumniForm, AlumniFilterForm, AlumniSearchForm, AlumniDocumentForm
 import csv
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
 User = get_user_model()
+
+def apply_selective_export_filters(request, base_queryset=None):
+    """
+    Apply selective export filters and generate appropriate filename
+    Returns tuple: (filtered_queryset, filename, has_selective_filters)
+    """
+    if base_queryset is None:
+        export_queryset = Alumni.objects.select_related('user').all()
+    else:
+        export_queryset = base_queryset
+
+    # Apply selective export filters
+    export_colleges = request.GET.getlist('export_colleges')
+    if export_colleges:
+        export_queryset = export_queryset.filter(college__in=export_colleges)
+
+    export_courses = request.GET.getlist('export_courses')
+    if export_courses:
+        export_queryset = export_queryset.filter(course__in=export_courses)
+
+    export_years = request.GET.getlist('export_years')
+    if export_years:
+        export_queryset = export_queryset.filter(graduation_year__in=export_years)
+
+    # Year range filters
+    year_from = request.GET.get('export_year_from')
+    year_to = request.GET.get('export_year_to')
+    if year_from:
+        export_queryset = export_queryset.filter(graduation_year__gte=year_from)
+    if year_to:
+        export_queryset = export_queryset.filter(graduation_year__lte=year_to)
+
+    export_employment_status = request.GET.getlist('export_employment_status')
+    if export_employment_status:
+        export_queryset = export_queryset.filter(employment_status__in=export_employment_status)
+
+    export_verification_status = request.GET.getlist('export_verification_status')
+    if export_verification_status:
+        # Convert string values to boolean
+        verification_filters = []
+        for status in export_verification_status:
+            if status.lower() == 'true':
+                verification_filters.append(True)
+            elif status.lower() == 'false':
+                verification_filters.append(False)
+        if verification_filters:
+            export_queryset = export_queryset.filter(is_verified__in=verification_filters)
+
+    # Generate dynamic filename
+    filename_parts = ['alumni']
+
+    if export_colleges:
+        college_codes = '_'.join(export_colleges)
+        filename_parts.append(college_codes)
+
+    if year_from or year_to or export_years:
+        if year_from and year_to:
+            filename_parts.append(f"{year_from}-{year_to}")
+        elif export_years:
+            if len(export_years) <= 3:
+                filename_parts.append('_'.join(export_years))
+            else:
+                filename_parts.append(f"{min(export_years)}-{max(export_years)}")
+
+    if export_employment_status and len(export_employment_status) < 5:
+        emp_codes = '_'.join([status.split('_')[0] for status in export_employment_status])
+        filename_parts.append(emp_codes)
+
+    # Add timestamp
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    filename_parts.append(timestamp)
+
+    filename = '_'.join(filename_parts) + '.csv'
+
+    # Check if any selective filters were applied
+    has_selective_filters = any([export_colleges, export_courses, export_years, year_from, year_to,
+                                export_employment_status, export_verification_status])
+
+    return export_queryset, filename, has_selective_filters
 
 def is_admin(user):
     return user.is_authenticated and user.is_staff
@@ -46,9 +126,21 @@ def alumni_list(request):
         # Apply filters
         search_query = request.GET.get('search', '').strip()
         if search_query:
+            # Create a lookup for college display names
+            college_lookup = Q()
+            for code, name in Alumni.COLLEGE_CHOICES:
+                if search_query.lower() in name.lower():
+                    college_lookup |= Q(college=code)
+
             queryset = queryset.filter(
-                Q(user__first_name__icontains=search_query) | 
-                Q(user__last_name__icontains=search_query)
+                Q(user__first_name__icontains=search_query) |
+                Q(user__last_name__icontains=search_query) |
+                Q(course__icontains=search_query) |
+                Q(city__icontains=search_query) |
+                Q(province__icontains=search_query) |
+                Q(current_company__icontains=search_query) |
+                Q(job_title__icontains=search_query) |
+                college_lookup  # Include college name search
             )
         
         # Graduation Year filter
@@ -404,31 +496,45 @@ def tabular_alumni_list(request):
         course = request.GET.getlist('course')
         if course:
             queryset = queryset.filter(course__in=course)
+
+        # College filter
+        college = request.GET.getlist('college')
+        if college:
+            queryset = queryset.filter(college__in=college)
             
         # Export to CSV if requested
         if request.GET.get('format') == 'csv':
+            # Apply selective export filters
+            export_queryset, filename, has_selective_filters = apply_selective_export_filters(request)
+
+            # If no selective filters are applied, use the current filtered queryset
+            if not has_selective_filters:
+                export_queryset = queryset
+                filename = f"alumni_directory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
             response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = 'attachment; filename="alumni_directory.csv"'
-            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
             writer = csv.writer(response)
-            writer.writerow(['ID', 'Full Name', 'Year', 'Course', 'Present Occupation', 'Company', 'Employment Address'])
-            
-            for alumni in queryset:
+            writer.writerow(['ID', 'Full Name', 'College', 'Year', 'Course', 'Present Occupation', 'Company', 'Employment Address'])
+
+            for alumni in export_queryset:
                 # Get current experience for occupation and company
                 current_exp = None
                 if hasattr(alumni.user, 'profile'):
                     current_exp = alumni.user.profile.experience.filter(is_current=True).first()
-                
+
                 writer.writerow([
                     alumni.id,
                     alumni.full_name,
+                    alumni.college_display if alumni.college else 'Not specified',
                     alumni.graduation_year,
                     alumni.course,
                     current_exp.position if current_exp else alumni.job_title,
                     current_exp.company if current_exp else alumni.current_company,
                     current_exp.location if current_exp else f"{alumni.city}, {alumni.province}"
                 ])
-            
+
             return response
         
         # Pagination
@@ -444,9 +550,11 @@ def tabular_alumni_list(request):
             'alumni_list': alumni_page,
             'graduation_years': graduation_years,
             'courses': courses,
+            'colleges': Alumni.COLLEGE_CHOICES,
             'search_query': search_query,
             'selected_year': grad_year[0] if grad_year else None,
             'selected_course': course[0] if course else None,
+            'selected_college': college[0] if college else None,
         }
         
         return render(request, 'alumni_directory/tabular_alumni_list.html', context)
@@ -547,12 +655,21 @@ def alumni_management(request):
         # Apply filters
         search_query = request.GET.get('search', '').strip()
         if search_query:
+            # Create a lookup for college display names
+            college_lookup = Q()
+            for code, name in Alumni.COLLEGE_CHOICES:
+                if search_query.lower() in name.lower():
+                    college_lookup |= Q(college=code)
+
             queryset = queryset.filter(
-                Q(user__first_name__icontains=search_query) | 
+                Q(user__first_name__icontains=search_query) |
                 Q(user__last_name__icontains=search_query) |
                 Q(course__icontains=search_query) |
                 Q(city__icontains=search_query) |
-                Q(province__icontains=search_query)
+                Q(province__icontains=search_query) |
+                Q(current_company__icontains=search_query) |
+                Q(job_title__icontains=search_query) |
+                college_lookup  # Include college name search
             )
         
         # Graduation Year filter
@@ -564,31 +681,45 @@ def alumni_management(request):
         course = request.GET.getlist('course')
         if course:
             queryset = queryset.filter(course__in=course)
+
+        # College filter
+        college = request.GET.getlist('college')
+        if college:
+            queryset = queryset.filter(college__in=college)
             
         # Export to CSV if requested
         if request.GET.get('format') == 'csv':
+            # Apply selective export filters
+            export_queryset, filename, has_selective_filters = apply_selective_export_filters(request)
+
+            # If no selective filters are applied, use the current filtered queryset
+            if not has_selective_filters:
+                export_queryset = queryset
+                filename = f"alumni_management_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+
             response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = 'attachment; filename="alumni_management_export.csv"'
-            
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+
             writer = csv.writer(response)
-            writer.writerow(['ID', 'Full Name', 'Year', 'Course', 'Present Occupation', 'Name of Company', 'Employment Address'])
-            
-            for alumni in queryset:
+            writer.writerow(['ID', 'Full Name', 'College', 'Year', 'Course', 'Present Occupation', 'Name of Company', 'Employment Address'])
+
+            for alumni in export_queryset:
                 # Get current experience for occupation and company
                 current_exp = None
                 if hasattr(alumni.user, 'profile'):
                     current_exp = alumni.user.profile.experience.filter(is_current=True).first()
-                
+
                 writer.writerow([
                     alumni.id,
                     alumni.full_name,
+                    alumni.college_display if alumni.college else 'Not specified',
                     alumni.graduation_year,
                     alumni.course,
                     current_exp.position if current_exp else alumni.job_title,
                     current_exp.company if current_exp else alumni.current_company,
                     current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
                 ])
-            
+
             return response
         
         # Pagination
@@ -604,9 +735,11 @@ def alumni_management(request):
             'alumni_list': alumni_page,
             'graduation_years': graduation_years,
             'courses': courses,
+            'colleges': Alumni.COLLEGE_CHOICES,
             'search_query': search_query,
             'selected_year': grad_year[0] if grad_year else None,
             'selected_course': course[0] if course else None,
+            'selected_college': college[0] if college else None,
         }
         
         return render(request, 'alumni_directory/alumni_management.html', context)

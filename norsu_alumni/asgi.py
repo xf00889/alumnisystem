@@ -15,12 +15,18 @@ from channels.auth import AuthMiddlewareStack
 
 os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'norsu_alumni.settings')
 
-# WebSocket-enabled ASGI application
+# Initialize Django ASGI application early to ensure the AppRegistry
+# is populated before importing code that may import ORM models.
+django_asgi_app = get_asgi_application()
+
+# Temporarily disable WebSocket for deployment
+# TODO: Implement proper WebSocket routing when needed
 application = ProtocolTypeRouter({
-    "http": get_asgi_application(),
-    "websocket": AuthMiddlewareStack(
-        URLRouter(
-            websocket_urlpatterns
-        )
-    ),
+    "http": django_asgi_app,
+    # WebSocket disabled until proper routing is configured
+    # "websocket": AuthMiddlewareStack(
+    #     URLRouter(
+    #         websocket_urlpatterns
+    #     )
+    # ),
 })

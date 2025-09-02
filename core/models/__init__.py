@@ -25,6 +25,7 @@ class TimeStampedModel(models.Model):
 from .analytics import UserEngagement, EngagementScore
 from .contact import Address, ContactInfo
 from .content import Post, Comment, Reaction
+from .notifications import Notification, NotificationPreference
 
 __all__ = [
     'TimeStampedModel',
@@ -35,4 +36,6 @@ __all__ = [
     'Post',
     'Comment',
     'Reaction',
-] 
+    'Notification',
+    'NotificationPreference',
+]

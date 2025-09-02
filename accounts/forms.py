@@ -41,50 +41,86 @@ class CustomSignupForm(SignupForm):
         return user
 
 class PostRegistrationForm(forms.Form):
+    # Import college choices from Alumni model
+    from alumni_directory.models import Alumni
+
+    COLLEGE_CHOICES = [
+        ('', '-- Select your college --'),
+    ] + list(Alumni.COLLEGE_CHOICES)
+
+    # Organize courses by college for cascading dropdown functionality
+    COURSES_BY_COLLEGE = {
+        'CAS': [  # College of Arts and Sciences
+            ('BSIT', 'BS in Information Technology'),
+            ('BSCS', 'BS in Computer Science'),
+            ('BSP', 'BS in Psychology'),
+            ('BSM', 'BS in Mathematics'),
+            ('BSPHY', 'BS in Physics'),
+            ('BSBIO', 'BS in Biology'),
+        ],
+        'CBA': [  # College of Business Administration
+            ('BSA', 'BS in Accountancy'),
+            ('BSBA-FM', 'BSBA in Financial Management'),
+            ('BSBA-MM', 'BSBA in Marketing Management'),
+            ('BSBA-HRM', 'BSBA in Human Resource Management'),
+        ],
+        'CTE': [  # College of Teacher Education
+            ('BEED', 'Bachelor of Elementary Education'),
+            ('BSED-ENG', 'BS in Education - English'),
+            ('BSED-MATH', 'BS in Education - Mathematics'),
+            ('BSED-SCI', 'BS in Education - Science'),
+            ('BSED-SS', 'BS in Education - Social Studies'),
+        ],
+        'CNPAHS': [  # College of Nursing, Pharmacy and Allied Health Sciences
+            ('BSN', 'BS in Nursing'),
+            ('BSP', 'BS in Pharmacy'),
+            ('BSMT', 'BS in Medical Technology'),
+        ],
+        'CCJE': [  # College of Criminal Justice Education
+            ('BSCRIM', 'BS in Criminology'),
+        ],
+        'CTHM': [  # College of Tourism and Hospitality Management
+            ('BSHRM', 'BS in Hotel and Restaurant Management'),
+            ('BSTM', 'BS in Tourism Management'),
+        ],
+        'CEA': [  # College of Engineering and Architecture
+            ('BSCE', 'BS in Civil Engineering'),
+            ('BSEE', 'BS in Electrical Engineering'),
+            ('BSME', 'BS in Mechanical Engineering'),
+            ('BSARCH', 'BS in Architecture'),
+        ],
+        'CAFF': [  # College of Agriculture, Forestry and Fishery
+            ('BSA-AGRI', 'BS in Agriculture'),
+            ('BSF', 'BS in Forestry'),
+            ('BSFT', 'BS in Fisheries Technology'),
+        ],
+        'CIT': [  # College of Industrial Technology
+            ('BSIT-AT', 'BS in Industrial Technology - Automotive'),
+            ('BSIT-ET', 'BS in Industrial Technology - Electronics'),
+            ('BSIT-FPSM', 'BS in Industrial Technology - Food Processing'),
+        ],
+        'COL': [  # College of Law
+            ('JD', 'Juris Doctor'),
+            ('LLB', 'Bachelor of Laws'),
+        ],
+    }
+
+    # Default course choices (empty until college is selected)
     PROGRAM_CHOICES = [
-        ('', '-- Select your program --'),
-        # College of Arts and Sciences (CAS)
-        ('BSIT', 'BS in Information Technology'),
-        ('BSCS', 'BS in Computer Science'),
-        ('BSP', 'BS in Psychology'),
-        ('BSM', 'BS in Mathematics'),
-        ('BSPHY', 'BS in Physics'),
-        ('BSBIO', 'BS in Biology'),
-        # College of Business Administration (CBA)
-        ('BSA', 'BS in Accountancy'),
-        ('BSBA-FM', 'BSBA in Financial Management'),
-        ('BSBA-MM', 'BSBA in Marketing Management'),
-        ('BSBA-HRM', 'BSBA in Human Resource Management'),
-        # College of Teacher Education (CTE)
-        ('BEED', 'Bachelor of Elementary Education'),
-        ('BSED-ENG', 'BS in Education - English'),
-        ('BSED-MATH', 'BS in Education - Mathematics'),
-        ('BSED-SCI', 'BS in Education - Science'),
-        ('BSED-SS', 'BS in Education - Social Studies'),
-        # College of Nursing, Pharmacy and Allied Health Sciences (CNPAHS)
-        ('BSN', 'BS in Nursing'),
-        ('BSP', 'BS in Pharmacy'),
-        ('BSMT', 'BS in Medical Technology'),
-        # College of Criminal Justice Education (CCJE)
-        ('BSCRIM', 'BS in Criminology'),
-        # College of Tourism and Hospitality Management (CTHM)
-        ('BSHRM', 'BS in Hotel and Restaurant Management'),
-        ('BSTM', 'BS in Tourism Management'),
-        # College of Engineering and Architecture (CEA)
-        ('BSCE', 'BS in Civil Engineering'),
-        ('BSEE', 'BS in Electrical Engineering'),
-        ('BSME', 'BS in Mechanical Engineering'),
-        ('BSARCH', 'BS in Architecture'),
-        # College of Agriculture, Forestry and Fishery (CAFF)
-        ('BSA-AGRI', 'BS in Agriculture'),
-        ('BSF', 'BS in Forestry'),
-        ('BSFT', 'BS in Fisheries Technology'),
-        # College of Industrial Technology (CIT)
-        ('BSIT-AT', 'BS in Industrial Technology - Automotive'),
-        ('BSIT-ET', 'BS in Industrial Technology - Electronics'),
-        ('BSIT-FPSM', 'BS in Industrial Technology - Food Processing'),
-        ('OTHER', 'Other Program'),
+        ('', '-- Select your college first --'),
     ]
+
+    # Generate all program choices for validation purposes
+    ALL_PROGRAM_CHOICES = [('', '-- Select your program --')]
+    for college_code, courses in COURSES_BY_COLLEGE.items():
+        ALL_PROGRAM_CHOICES.extend(courses)
+    ALL_PROGRAM_CHOICES.append(('OTHER', 'Other Program'))
+
+    # Generate course to college mapping from the organized structure
+    COURSE_COLLEGE_MAPPING = {}
+    for college_code, courses in COURSES_BY_COLLEGE.items():
+        for course_code, course_name in courses:
+            COURSE_COLLEGE_MAPPING[course_code] = college_code
 
     SCHOOL_CHOICES = [
         ('', '-- Select your campus --'),
@@ -136,13 +172,23 @@ class PostRegistrationForm(forms.Form):
         help_text="Year you graduated",
         label="Year"
     )
-    course_graduated = forms.ChoiceField(
-        choices=PROGRAM_CHOICES,
+    college = forms.ChoiceField(
+        choices=COLLEGE_CHOICES,
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
         }),
-        help_text="Program you completed",
+        help_text="Select your college first",
+        label="College"
+    )
+    course_graduated = forms.ChoiceField(
+        choices=ALL_PROGRAM_CHOICES,  # Use all choices for validation
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'disabled': 'disabled',
+        }),
+        help_text="Select your college first to see available programs",
         label="Course Graduated"
     )
     present_occupation = forms.CharField(
@@ -163,16 +209,16 @@ class PostRegistrationForm(forms.Form):
         }),
         help_text="The name of the company you currently work for"
     )
-    employment_address = forms.CharField(
-        max_length=255,
-        required=True,
-        widget=forms.Textarea(attrs={
-            'class': 'form-control',
-            'placeholder': 'Enter your workplace address',
-            'rows': 3
-        }),
-        help_text="Address of your current employment"
-    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+        # Initially set course choices to be empty (will be populated by JavaScript)
+        # But keep all choices available for validation
+        if not self.data:  # Only on initial form load, not on form submission
+            self.fields['course_graduated'].widget.choices = [
+                ('', '-- Select your college first --')
+            ]
 
     def clean_graduation_year(self):
         year = self.cleaned_data['graduation_year']
@@ -180,6 +226,63 @@ class PostRegistrationForm(forms.Form):
         if year < 1970 or year > current_year:
             raise forms.ValidationError(f"Please enter a year between 1970 and {current_year}")
         return year
+
+    def clean(self):
+        cleaned_data = super().clean()
+        course = cleaned_data.get('course_graduated')
+        college = cleaned_data.get('college')
+
+        # Validate that both college and course are selected
+        if not college:
+            raise forms.ValidationError("Please select your college.")
+
+        if not course:
+            raise forms.ValidationError("Please select your course/program.")
+
+        # Validate course-college mapping for non-OTHER courses
+        if course and college and course != 'OTHER':
+            expected_college = self.COURSE_COLLEGE_MAPPING.get(course)
+            if expected_college and college != expected_college:
+                # Get college display name for better error message
+                from alumni_directory.models import Alumni
+                college_dict = dict(Alumni.COLLEGE_CHOICES)
+                expected_college_name = college_dict.get(expected_college, expected_college)
+                selected_college_name = college_dict.get(college, college)
+
+                raise forms.ValidationError(
+                    f"Invalid combination: The course '{course}' does not belong to {selected_college_name}. "
+                    f"This course belongs to {expected_college_name}. "
+                    f"Please select the correct college first, then choose your course from the available options."
+                )
+
+        # Validate that the course is available for the selected college
+        if course and college and course != 'OTHER':
+            available_courses = [course_code for course_code, _ in self.COURSES_BY_COLLEGE.get(college, [])]
+            if course not in available_courses:
+                from alumni_directory.models import Alumni
+                college_dict = dict(Alumni.COLLEGE_CHOICES)
+                college_name = college_dict.get(college, college)
+                raise forms.ValidationError(
+                    f"The course '{course}' is not available in {college_name}. "
+                    f"Please select a different course or choose 'Other Program'."
+                )
+
+        return cleaned_data
+
+    @classmethod
+    def get_courses_for_college(cls, college_code):
+        """
+        Get course choices for a specific college.
+        Useful for AJAX requests or dynamic form population.
+        """
+        if not college_code:
+            return [('', '-- Select your college first --')]
+
+        courses = cls.COURSES_BY_COLLEGE.get(college_code, [])
+        choices = [('', '-- Select your program --')]
+        choices.extend(courses)
+        choices.append(('OTHER', 'Other Program'))
+        return choices
 
     def save(self, user):
         # Update user's first and last name
@@ -201,7 +304,6 @@ class PostRegistrationForm(forms.Form):
         profile = user.profile
         profile.current_position = self.cleaned_data['present_occupation']
         profile.current_employer = self.cleaned_data['company_name']
-        profile.address = self.cleaned_data['employment_address']
         profile.has_completed_registration = True
         profile.save()
 
@@ -211,21 +313,26 @@ class PostRegistrationForm(forms.Form):
             profile=profile,
             position=self.cleaned_data['present_occupation'],
             company=self.cleaned_data['company_name'],
-            location=self.cleaned_data['employment_address'],
             start_date=datetime.date.today(),
             is_current=True,
             career_significance='REGULAR'
         )
 
         # Create or update Alumni record
+        # Auto-determine college if not explicitly selected and course is mapped
+        college = self.cleaned_data['college']
+        course = self.cleaned_data['course_graduated']
+        if not college and course in self.COURSE_COLLEGE_MAPPING:
+            college = self.COURSE_COLLEGE_MAPPING[course]
+
         Alumni.objects.update_or_create(
             user=user,
             defaults={
                 'graduation_year': self.cleaned_data['graduation_year'],
                 'course': self.cleaned_data['course_graduated'],
+                'college': college,
                 'current_company': self.cleaned_data['company_name'],
                 'job_title': self.cleaned_data['present_occupation'],
-                'address': self.cleaned_data['employment_address'],
                 'employment_status': 'EMPLOYED_FULL'  # Assuming full-time employment
             }
         )

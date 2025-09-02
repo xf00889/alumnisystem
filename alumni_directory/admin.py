@@ -5,7 +5,7 @@ from .models import Alumni
 
 @admin.register(Alumni)
 class AlumniAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'email', 'course', 'graduation_year', 'employment_status', 'mentorship_status', 'is_verified', 'is_featured')
+    list_display = ('full_name', 'email', 'college', 'course', 'graduation_year', 'employment_status', 'mentorship_status', 'is_verified', 'is_featured')
     list_filter = ('graduation_year', 'college', 'campus', 'employment_status', 'mentorship_status', 'is_verified', 'is_featured')
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'course')
     readonly_fields = ('created_at', 'updated_at')

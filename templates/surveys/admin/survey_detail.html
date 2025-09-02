@@ -1,68 +1,94 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}{{ survey.title }} - Survey Details{% endblock %}
 
-
-
 {% block content %}
-<div class="page-container py-4">
-    <div class="row">
-        <!-- Survey Overview -->
-        <div class="col-lg-8">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white d-flex justify-content-between align-items-center">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-clipboard-list me-2"></i>Survey Details
-                    </h5>
-                    <div>
-                        <span class="badge {% if survey.status == 'active' %}bg-success{% elif survey.status == 'draft' %}bg-secondary{% else %}bg-danger{% endif %}">
-                            {{ survey.get_status_display }}
-                        </span>
-                    </div>
+<div class="survey-detail-page">
+    <div class="container">
+        <!-- Survey Detail Header (Matching other pages style) -->
+        <div class="survey-header">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-clipboard-list fa-3x" style="opacity: 0.8;"></i>
                 </div>
-                <div class="card-body">
-                    <div class="row mb-4">
-                        <div class="col-md-8">
-                            <h4>{{ survey.title }}</h4>
-                            <p class="text-muted">{{ survey.description }}</p>
+                <div>
+                    <h1>{{ survey.title }}</h1>
+                    <p>{{ survey.description|default:"Survey details and management" }}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <!-- Survey Overview -->
+            <div class="col-lg-8">
+                <div class="dashboard-card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="card-title">
+                            <i class="fas fa-clipboard-list me-2"></i>Survey Details
+                        </h5>
+                        <div>
+                            <span class="badge {% if survey.status == 'active' %}bg-success{% elif survey.status == 'draft' %}bg-secondary{% else %}bg-danger{% endif %}">
+                                {{ survey.get_status_display }}
+                            </span>
                         </div>
-                        <div class="col-md-4">
-                            <div class="text-muted small">
-                                <p><i class="far fa-calendar-alt me-2"></i>Created: {{ survey.created_at|date:"M d, Y" }}</p>
-                                <p><i class="fas fa-calendar-day me-2"></i>Start: {{ survey.start_date|date:"M d, Y H:i" }}</p>
-                                <p><i class="fas fa-calendar-check me-2"></i>End: {{ survey.end_date|date:"M d, Y H:i" }}</p>
-                                <p><i class="fas fa-user me-2"></i>Created by: {{ survey.created_by.get_full_name }}</p>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-4">
+                            <div class="col-md-8">
+                                <h4 class="survey-title">{{ survey.title }}</h4>
+                                <p class="survey-description">{{ survey.description }}</p>
+                            </div>
+                            <div class="col-md-4">
+                                <div class="survey-meta">
+                                    <div class="meta-item">
+                                        <i class="far fa-calendar-alt me-2"></i>
+                                        <span>Created: {{ survey.created_at|date:"M d, Y" }}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-calendar-day me-2"></i>
+                                        <span>Start: {{ survey.start_date|date:"M d, Y H:i" }}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-calendar-check me-2"></i>
+                                        <span>End: {{ survey.end_date|date:"M d, Y H:i" }}</span>
+                                    </div>
+                                    <div class="meta-item">
+                                        <i class="fas fa-user me-2"></i>
+                                        <span>Created by: {{ survey.created_by.get_full_name }}</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
-                    </div>
 
-                    {% if survey.is_external %}
-                    <div class="alert alert-info">
-                        <i class="fas fa-external-link-alt me-2"></i>
-                        This is an external survey. Responses are collected at:
-                        <a href="{{ survey.external_url }}" target="_blank" class="alert-link">{{ survey.external_url }}</a>
-                    </div>
-                    {% else %}
-                    <!-- Questions Section -->
-                    <div class="questions-section">
-                        <h6 class="mb-3">Survey Questions</h6>
-                        {% if questions %}
-                            {% for question in questions %}
-                            <div class="card mb-3">
-                                <div class="card-body">
-                                    <div class="d-flex justify-content-between align-items-start mb-2">
-                                        <h6 class="mb-0">Q{{ forloop.counter }}. {{ question.question_text }}</h6>
+                        {% if survey.is_external %}
+                        <div class="alert alert-info">
+                            <i class="fas fa-external-link-alt me-2"></i>
+                            This is an external survey. Responses are collected at:
+                            <a href="{{ survey.external_url }}" target="_blank" class="alert-link">{{ survey.external_url }}</a>
+                        </div>
+                        {% else %}
+                        <!-- Questions Section -->
+                        <div class="questions-section">
+                            <h6 class="section-title">Survey Questions</h6>
+                            {% if questions %}
+                                {% for question in questions %}
+                                <div class="question-card">
+                                    <div class="question-header">
+                                        <div class="question-title">
+                                            <h6 class="mb-0">Q{{ forloop.counter }}. {{ question.question_text }}</h6>
+                                        </div>
                                         <span class="badge {% if question.is_required %}bg-danger{% else %}bg-secondary{% endif %}">
                                             {% if question.is_required %}Required{% else %}Optional{% endif %}
                                         </span>
                                     </div>
                                     
                                     {% if question.help_text %}
-                                    <p class="text-muted small mb-2">{{ question.help_text }}</p>
+                                    <p class="question-help">{{ question.help_text }}</p>
                                     {% endif %}
                                     
-                                    <div class="question-details small">
+                                    <div class="question-details">
                                         <span class="badge bg-light text-dark me-2">
                                             {{ question.get_question_type_display }}
                                         </span>
@@ -75,11 +101,11 @@
                                     </div>
                                     
                                     {% if question.options.exists %}
-                                    <div class="mt-2">
-                                        <p class="small mb-1">Options:</p>
-                                        <ul class="list-unstyled ms-3 mb-0">
+                                    <div class="question-options">
+                                        <p class="options-label">Options:</p>
+                                        <ul class="options-list">
                                             {% for option in question.options.all %}
-                                            <li class="small">
+                                            <li>
                                                 <i class="fas fa-circle-dot me-1"></i>
                                                 {{ option.option_text }}
                                             </li>
@@ -88,117 +114,117 @@
                                     </div>
                                     {% endif %}
                                 </div>
+                                {% endfor %}
+                            {% else %}
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                No questions have been added to this survey yet.
                             </div>
-                            {% endfor %}
-                        {% else %}
-                        <div class="alert alert-warning">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            No questions have been added to this survey yet.
+                            {% endif %}
                         </div>
                         {% endif %}
                     </div>
-                    {% endif %}
-                </div>
-                <div class="card-footer bg-white">
-                    <div class="d-flex justify-content-between align-items-center">
-                        <div>
-                            <a href="{% url 'surveys:survey_list' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-1"></i>Back to List
-                            </a>
+                    <div class="card-footer">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <a href="{% url 'surveys:survey_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-1"></i>Back to List
+                                </a>
+                            </div>
+                            <div>
+                                {% if not survey.is_external %}
+                                <a href="{% url 'surveys:question_create' survey.id %}" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-plus me-1"></i>Add Question
+                                </a>
+                                {% endif %}
+                                <a href="{% url 'surveys:survey_responses' survey.id %}" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-poll me-1"></i>View Responses
+                                </a>
+                                <a href="{% url 'surveys:survey_update' survey.id %}" class="btn btn-primary">
+                                    <i class="fas fa-edit me-1"></i>Edit Survey
+                                </a>
+                            </div>
                         </div>
-                        <div>
-                            {% if not survey.is_external %}
-                            <a href="{% url 'surveys:question_create' survey.id %}" class="btn btn-outline-primary me-2">
-                                <i class="fas fa-plus me-1"></i>Add Question
-                            </a>
-                            {% endif %}
-                            <a href="{% url 'surveys:survey_responses' survey.id %}" class="btn btn-outline-primary me-2">
-                                <i class="fas fa-poll me-1"></i>View Responses
-                            </a>
-                            <a href="{% url 'surveys:survey_update' survey.id %}" class="btn btn-primary">
-                                <i class="fas fa-edit me-1"></i>Edit Survey
-                            </a>
-                        </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Response Statistics -->
-        <div class="col-lg-4">
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-chart-bar me-2"></i>Response Statistics
-                    </h5>
-                </div>
-                <div class="card-body">
-                    <div class="text-center mb-4">
-                        <h3 class="mb-0">{{ response_count }}</h3>
-                        <p class="text-muted mb-0">Total Responses</p>
-                    </div>
-                    
-                    {% if not survey.is_external %}
-                    <div class="d-grid">
-                        <a href="javascript:void(0)" class="btn btn-outline-primary">
-                            <i class="fas fa-download me-1"></i>Export Responses
-                        </a>
-                    </div>
-                    {% endif %}
                 </div>
             </div>
             
-            <!-- Survey Status Card -->
-            <div class="card shadow-sm mb-4">
-                <div class="card-header bg-white">
-                    <h5 class="card-title mb-0">
-                        <i class="fas fa-info-circle me-2"></i>Status Information
-                    </h5>
+            <!-- Response Statistics -->
+            <div class="col-lg-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-chart-bar me-2"></i>Response Statistics
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="response-count">
+                            <h3 class="mb-0">{{ response_count }}</h3>
+                            <p class="text-muted mb-0">Total Responses</p>
+                        </div>
+                        
+                        {% if not survey.is_external %}
+                        <div class="d-grid">
+                            <a href="javascript:void(0)" class="btn btn-outline-primary">
+                                <i class="fas fa-download me-1"></i>Export Responses
+                            </a>
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
-                <div class="card-body">
-                    <ul class="list-unstyled mb-0">
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <span class="status-indicator status-{{ survey.status }}"></span>
+                
+                <!-- Survey Status Card -->
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-info-circle me-2"></i>Status Information
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <ul class="status-list">
+                            <li class="status-item">
+                                <div class="status-content">
+                                    <div class="status-icon">
+                                        <span class="status-indicator status-{{ survey.status }}"></span>
+                                    </div>
+                                    <div class="status-info">
+                                        <h6 class="mb-0">Current Status</h6>
+                                        <small class="text-muted">{{ survey.get_status_display }}</small>
+                                    </div>
                                 </div>
-                                <div class="flex-grow-1 ms-2">
-                                    <h6 class="mb-0">Current Status</h6>
-                                    <small class="text-muted">{{ survey.get_status_display }}</small>
+                            </li>
+                            <li class="status-item">
+                                <div class="status-content">
+                                    <div class="status-icon">
+                                        <i class="far fa-clock text-muted"></i>
+                                    </div>
+                                    <div class="status-info">
+                                        <h6 class="mb-0">Time Remaining</h6>
+                                        <small class="text-muted">
+                                            {% if survey.end_date|date:"U" < now|date:"U" %}
+                                                Ended
+                                            {% else %}
+                                                Ends in {{ survey.end_date|timeuntil }}
+                                            {% endif %}
+                                        </small>
+                                    </div>
                                 </div>
-                            </div>
-                        </li>
-                        <li class="mb-3">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <i class="far fa-clock text-muted"></i>
+                            </li>
+                            <li class="status-item">
+                                <div class="status-content">
+                                    <div class="status-icon">
+                                        <i class="fas fa-link text-muted"></i>
+                                    </div>
+                                    <div class="status-info">
+                                        <h6 class="mb-0">Survey Type</h6>
+                                        <small class="text-muted">
+                                            {% if survey.is_external %}External{% else %}Internal{% endif %}
+                                        </small>
+                                    </div>
                                 </div>
-                                <div class="flex-grow-1 ms-2">
-                                    <h6 class="mb-0">Time Remaining</h6>
-                                    <small class="text-muted">
-                                        {% if survey.end_date|date:"U" < now|date:"U" %}
-                                            Ended
-                                        {% else %}
-                                            Ends in {{ survey.end_date|timeuntil }}
-                                        {% endif %}
-                                    </small>
-                                </div>
-                            </div>
-                        </li>
-                        <li>
-                            <div class="d-flex align-items-center">
-                                <div class="flex-shrink-0">
-                                    <i class="fas fa-link text-muted"></i>
-                                </div>
-                                <div class="flex-grow-1 ms-2">
-                                    <h6 class="mb-0">Survey Type</h6>
-                                    <small class="text-muted">
-                                        {% if survey.is_external %}External{% else %}Internal{% endif %}
-                                    </small>
-                                </div>
-                            </div>
-                        </li>
-                    </ul>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </div>
         </div>
@@ -206,14 +232,519 @@
 </div>
 
 <style>
-.status-indicator {
-    display: inline-block;
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-}
-.status-draft { background-color: #6c757d; }
-.status-active { background-color: #28a745; }
-.status-closed { background-color: #dc3545; }
+    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+
+    .survey-detail-page {
+        font-family: 'Poppins', sans-serif;
+        padding: 1.25rem;
+        background-color: var(--ui-background);
+        min-height: calc(100vh - 60px);
+    }
+
+    /* Dashboard Header (Matching other pages style) */
+    .survey-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .survey-header h1 {
+        color: var(--text-light);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 1.5rem;
+    }
+
+    .survey-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+        color: var(--text-light);
+    }
+
+    /* Card Styling (Matching other pages) */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+
+    .dashboard-card .card-body {
+        padding: 1.5rem;
+    }
+
+    .dashboard-card .card-header {
+        background: var(--ui-hover);
+        border-bottom: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+    }
+
+    .dashboard-card .card-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin: 0;
+        font-size: 1.125rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-card .card-footer {
+        background: var(--ui-hover);
+        border-top: 1px solid var(--ui-border);
+        padding: 1rem 1.5rem;
+    }
+
+    /* Survey Content */
+    .survey-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-size: 1.25rem;
+    }
+
+    .survey-description {
+        color: var(--text-secondary);
+        margin-bottom: 0;
+        line-height: 1.5;
+    }
+
+    .survey-meta {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .meta-item {
+        display: flex;
+        align-items: center;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .meta-item i {
+        color: var(--primary-color);
+        width: 16px;
+    }
+
+    /* Questions Section */
+    .section-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--ui-border);
+    }
+
+    .question-card {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .question-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
+        border-color: var(--primary-color);
+    }
+
+    .question-card:last-child {
+        margin-bottom: 0;
+    }
+
+    .question-header {
+        display: flex;
+        justify-content: between;
+        align-items: flex-start;
+        margin-bottom: 0.75rem;
+    }
+
+    .question-title {
+        flex: 1;
+        margin-right: 1rem;
+    }
+
+    .question-title h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0;
+        line-height: 1.4;
+    }
+
+    .question-help {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+        font-style: italic;
+    }
+
+    .question-details {
+        margin-bottom: 0.75rem;
+    }
+
+    .question-options {
+        margin-top: 0.75rem;
+        padding-top: 0.75rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .options-label {
+        color: var(--text-primary);
+        font-weight: 500;
+        font-size: 0.875rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .options-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        padding-left: 1rem;
+    }
+
+    .options-list li {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+    }
+
+    .options-list li:last-child {
+        margin-bottom: 0;
+    }
+
+    .options-list i {
+        color: var(--primary-color);
+        font-size: 0.75rem;
+        margin-right: 0.5rem;
+    }
+
+    /* Response Statistics */
+    .response-count {
+        text-align: center;
+        margin-bottom: 1.5rem;
+        padding: 1rem;
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
+    }
+
+    .response-count h3 {
+        color: var(--primary-color);
+        font-weight: 700;
+        font-size: 2.5rem;
+        margin-bottom: 0.25rem;
+    }
+
+    .response-count p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 0;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 500;
+    }
+
+    /* Status Information */
+    .status-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .status-item {
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .status-item:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+
+    .status-content {
+        display: flex;
+        align-items: center;
+    }
+
+    .status-icon {
+        flex-shrink: 0;
+        margin-right: 0.75rem;
+    }
+
+    .status-info h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 0.875rem;
+    }
+
+    .status-info small {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+    }
+
+    .status-indicator {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+    }
+
+    .status-draft { background-color: var(--text-secondary); }
+    .status-active { background-color: var(--feedback-success); }
+    .status-closed { background-color: var(--feedback-error); }
+
+    /* Button Styling (Matching other pages) */
+    .btn {
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        padding: 0.5rem 1rem;
+        border: 1px solid transparent;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.2s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .btn-outline-primary {
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+
+    .btn-outline-secondary {
+        background-color: transparent;
+        border-color: var(--text-secondary);
+        color: var(--text-secondary);
+    }
+
+    .btn-outline-secondary:hover {
+        background-color: var(--text-secondary);
+        border-color: var(--text-secondary);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+
+    /* Badge Styling */
+    .badge {
+        padding: 0.5em 1em;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+    }
+
+    .bg-success {
+        background-color: var(--feedback-success) !important;
+        color: var(--text-light);
+    }
+
+    .bg-secondary {
+        background-color: var(--text-secondary) !important;
+        color: var(--text-light);
+    }
+
+    .bg-danger {
+        background-color: var(--feedback-error) !important;
+        color: var(--text-light);
+    }
+
+    .bg-light {
+        background-color: var(--ui-hover) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--ui-border);
+    }
+
+    /* Alert Styling */
+    .alert {
+        border-radius: var(--radius-sm);
+        border: 1px solid transparent;
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .alert-info {
+        background-color: rgba(66, 153, 225, 0.1);
+        border-color: var(--feedback-info);
+        color: var(--feedback-info);
+    }
+
+    .alert-warning {
+        background-color: rgba(237, 137, 54, 0.1);
+        border-color: var(--feedback-warning);
+        color: var(--feedback-warning);
+    }
+
+    .alert-link {
+        color: var(--feedback-info);
+        text-decoration: underline;
+    }
+
+    .alert-link:hover {
+        color: var(--primary-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 767.98px) {
+        .survey-detail-page {
+            padding: 0.75rem;
+        }
+
+        .survey-header {
+            padding: 1.25rem;
+        }
+
+        .survey-header h1 {
+            font-size: 1.25rem;
+        }
+
+        .dashboard-card .card-body {
+            padding: 1rem;
+        }
+
+        .dashboard-card .card-header {
+            padding: 0.75rem 1rem;
+        }
+
+        .dashboard-card .card-footer {
+            padding: 0.75rem 1rem;
+        }
+
+        .dashboard-card .card-footer .d-flex {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .dashboard-card .card-footer .btn {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .question-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+
+        .question-title {
+            margin-right: 0;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .survey-detail-page {
+            padding: 0.5rem;
+        }
+
+        .survey-header {
+            padding: 1rem;
+        }
+
+        .survey-header h1 {
+            font-size: 1.125rem;
+        }
+
+        .dashboard-card .card-body {
+            padding: 0.75rem;
+        }
+
+        .dashboard-card .card-header {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .dashboard-card .card-footer {
+            padding: 0.5rem 0.75rem;
+        }
+
+        .btn {
+            padding: 0.375rem 0.75rem;
+            font-size: 0.8rem;
+        }
+
+        .response-count h3 {
+            font-size: 2rem;
+        }
+    }
 </style>
 {% endblock %}

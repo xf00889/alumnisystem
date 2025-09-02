@@ -127,15 +127,29 @@ def conversation_detail_view(request, conversation_id):
     
     # Get messages (already ordered by created_at desc)
     messages = conversation.messages.select_related('sender__profile').all()
-    
+
     # Get the other participant
     other_user = conversation.get_other_participant(user)
-    
+
+    # Get upcoming scheduled meetings for this mentorship if it exists
+    meetings = []
+    if hasattr(conversation, 'mentorship') and conversation.mentorship:
+        from .models import MentorshipMeeting
+        from django.utils import timezone
+
+        # Only show meetings that are scheduled and in the future
+        meetings = MentorshipMeeting.objects.filter(
+            mentorship=conversation.mentorship,
+            status='SCHEDULED',
+            meeting_date__gt=timezone.now()
+        ).order_by('meeting_date')
+
     context = {
         'conversation': conversation,
         'messages': messages,
         'other_user': other_user,
-        'user': user
+        'user': user,
+        'meetings': meetings
     }
     
     # Return partial template for HTMX requests
