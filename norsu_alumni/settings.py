@@ -407,52 +407,6 @@ CKEDITOR_CONFIGS = {
 DEFAULT_HTTP_PROTOCOL = 'http'
 
 # Rate Limiting Settings
-RATELIMIT_ENABLE = True
-RATELIMIT_USE_CACHE = 'default'
-RATELIMIT_FAIL_OPEN = False
-
-# REST Framework Settings
-REST_FRAMEWORK = {
-    'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.SessionAuthentication',
-    ],
-    'DEFAULT_PERMISSION_CLASSES': [
-        'rest_framework.permissions.IsAuthenticated',
-    ],
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
-}
-
-# LinkedIn API Configuration
-LINKEDIN_API_KEY = '77tv3vq5x7741r'  # Client ID
-LINKEDIN_API_SECRET = 'WPL_AP1.pue5kGHVINjPJdby.3C8JzA=='  # Client Secret
-
-# LinkedIn OAuth2 Settings
-LINKEDIN_OAUTH2_SETTINGS = {
-    'AUTHORIZATION_URL': 'https://www.linkedin.com/oauth/v2/authorization',
-    'TOKEN_URL': 'https://www.linkedin.com/oauth/v2/accessToken',
-    'SCOPE': ['r_liteprofile', 'r_emailaddress', 'w_member_social', 'r_organization_social'],
-    'REDIRECT_URI': 'http://localhost:8000/linkedin/callback/',
-}
-
-# CKEditor Settings
-CKEDITOR_UPLOAD_PATH = 'uploads/'
-CKEDITOR_IMAGE_BACKEND = 'pillow'
-CKEDITOR_JQUERY_URL = '//ajax.googleapis.com/ajax/libs/jquery/2.1.1/jquery.min.js'
-CKEDITOR_CONFIGS = {
-    'default': {
-        'toolbar': 'Custom',
-        'toolbar_Custom': [
-            ['Bold', 'Italic', 'Underline'],
-            ['NumberedList', 'BulletedList', '-', 'Outdent', 'Indent', '-', 'JustifyLeft', 'JustifyCenter', 'JustifyRight', 'JustifyBlock'],
-            ['Link', 'Unlink'],
-            ['RemoveFormat', 'Source']
-        ],
-        'height': 300,
-        'width': '100%',
-    },
-}
-
 # Session Settings
 SESSION_COOKIE_DOMAIN = None
 SESSION_COOKIE_PATH = '/'
