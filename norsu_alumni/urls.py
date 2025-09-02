@@ -45,4 +45,4 @@ if settings.DEBUG:
     urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
 
 # Custom error handlers
-handler500 = 'core.views.error_handlers.handler500'
+handler500 = 'core.view_handlers.error_handlers.handler500'

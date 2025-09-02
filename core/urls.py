@@ -1,8 +1,9 @@
 from django.urls import path
-from . import views
 from . import admin_views
-from .views.error_handlers import health_check_view
+from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
+# Import views directly to avoid conflict with views directory
+import core.views as views
 
 app_name = 'core'
 
