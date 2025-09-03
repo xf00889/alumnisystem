@@ -31,7 +31,12 @@ def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
 def home(request):
+    # Handle authenticated users
     if request.user.is_authenticated:
+        # Check if user is superuser
+        if request.user.is_superuser:
+            return redirect('admin:index')
+        
         # Ensure user has a profile
         from accounts.models import Profile
         profile, created = Profile.objects.get_or_create(user=request.user)
@@ -40,122 +45,104 @@ def home(request):
         if not profile.has_completed_registration:
             return redirect('accounts:post_registration')
         
-        # Check if user is superuser
-        if request.user.is_superuser:
-            return redirect('admin:index')
-    
-    if not request.user.is_authenticated:
-        # Get the latest announcements
+        # Show authenticated home page for users who have completed registration
         try:
             from announcements.models import Announcement
             announcements = Announcement.objects.filter(
                 is_active=True
-            ).order_by('-date_posted')[:3]
+            ).order_by('-date_posted')[:5]
         except ImportError:
             announcements = []
 
-        # Get upcoming events
         try:
             from events.models import Event
             from django.utils import timezone
             upcoming_events = Event.objects.filter(
                 start_date__gte=timezone.now(),
                 status='published'
-            ).order_by('start_date')[:3]
+            ).order_by('start_date')[:5]
         except ImportError:
             upcoming_events = []
-
-        # Get featured alumni
-        try:
-            from alumni_directory.models import Alumni
-            featured_alumni = Alumni.objects.filter(
-                is_verified=True,
-                is_featured=True
-            ).order_by('?')[:3]  # Random selection
-
-            # If no featured alumni, just get some random verified alumni
-            if not featured_alumni:
-                featured_alumni = Alumni.objects.filter(
-                    is_verified=True
-                ).order_by('?')[:3]
-        except ImportError:
-            featured_alumni = []
-
-        # Get statistics
-        try:
-            alumni_count = Alumni.objects.filter(is_verified=True).count()
-        except:
-            alumni_count = None
-
-        try:
-            from alumni_groups.models import AlumniGroup
-            group_count = AlumniGroup.objects.count()
-        except:
-            group_count = None
-
-        try:
-            event_count = Event.objects.count()
-        except:
-            event_count = None
-
-        try:
-            from jobs.models import Job
-            job_count = Job.objects.count()
-        except:
-            job_count = None
 
         context = {
             'announcements': announcements,
             'upcoming_events': upcoming_events,
-            'featured_alumni': featured_alumni,
-            'alumni_count': alumni_count,
-            'group_count': group_count,
-            'event_count': event_count,
-            'job_count': job_count,
+            'user': request.user,
         }
 
-        return render(request, 'home.html', context)
-
-    # For authenticated users, check if they have completed registration
-    if request.user.is_superuser:
-        return redirect('core:admin_dashboard')  # Use consistent redirect target
-
-    # Check if user has completed registration
-    try:
-        from accounts.models import Profile
-        profile, created = Profile.objects.get_or_create(user=request.user)
-        if not profile.has_completed_registration:
-            return redirect('accounts:post_registration')
-    except:
-        # If profile doesn't exist, redirect to post registration
-        return redirect('accounts:post_registration')
-
-    # Show authenticated home page for users who have completed registration
+        return render(request, 'authenticated_home.html', context)
+    
+    # Handle unauthenticated users
+    # Get the latest announcements
     try:
         from announcements.models import Announcement
         announcements = Announcement.objects.filter(
             is_active=True
-        ).order_by('-date_posted')[:5]
+        ).order_by('-date_posted')[:3]
     except ImportError:
         announcements = []
 
+    # Get upcoming events
     try:
         from events.models import Event
         from django.utils import timezone
         upcoming_events = Event.objects.filter(
             start_date__gte=timezone.now(),
             status='published'
-        ).order_by('start_date')[:5]
+        ).order_by('start_date')[:3]
     except ImportError:
         upcoming_events = []
+
+    # Get featured alumni
+    try:
+        from alumni_directory.models import Alumni
+        featured_alumni = Alumni.objects.filter(
+            is_verified=True,
+            is_featured=True
+        ).order_by('?')[:3]  # Random selection
+
+        # If no featured alumni, just get some random verified alumni
+        if not featured_alumni:
+            featured_alumni = Alumni.objects.filter(
+                is_verified=True
+            ).order_by('?')[:3]
+    except ImportError:
+        featured_alumni = []
+
+    # Get statistics
+    try:
+        alumni_count = Alumni.objects.filter(is_verified=True).count()
+    except:
+        alumni_count = None
+
+    try:
+        from alumni_groups.models import AlumniGroup
+        group_count = AlumniGroup.objects.count()
+    except:
+        group_count = None
+
+    try:
+        event_count = Event.objects.count()
+    except:
+        event_count = None
+
+    try:
+        from jobs.models import Job
+        job_count = Job.objects.count()
+    except:
+        job_count = None
 
     context = {
         'announcements': announcements,
         'upcoming_events': upcoming_events,
-        'user': request.user,
+        'featured_alumni': featured_alumni,
+        'alumni_count': alumni_count,
+        'group_count': group_count,
+        'event_count': event_count,
+        'job_count': job_count,
     }
 
-    return render(request, 'authenticated_home.html', context)
+    return render(request, 'home.html', context)
 
 def calculate_engagement_metrics(start_date, end_date):
     """Calculate engagement metrics for the given date range"""
