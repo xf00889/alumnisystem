@@ -51,7 +51,8 @@ def home(request):
             announcements = Announcement.objects.filter(
                 is_active=True
             ).order_by('-date_posted')[:5]
-        except ImportError:
+        except (ImportError, Exception) as e:
+            logger.error(f"Error fetching announcements for authenticated user: {e}")
             announcements = []
 
         try:
@@ -61,7 +62,8 @@ def home(request):
                 start_date__gte=timezone.now(),
                 status='published'
             ).order_by('start_date')[:5]
-        except ImportError:
+        except (ImportError, Exception) as e:
+            logger.error(f"Error fetching events for authenticated user: {e}")
             upcoming_events = []
 
         context = {
@@ -79,7 +81,8 @@ def home(request):
         announcements = Announcement.objects.filter(
             is_active=True
         ).order_by('-date_posted')[:3]
-    except ImportError:
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching announcements: {e}")
         announcements = []
 
     # Get upcoming events
@@ -90,7 +93,8 @@ def home(request):
             start_date__gte=timezone.now(),
             status='published'
         ).order_by('start_date')[:3]
-    except ImportError:
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching upcoming events: {e}")
         upcoming_events = []
 
     # Get featured alumni
@@ -106,30 +110,35 @@ def home(request):
             featured_alumni = Alumni.objects.filter(
                 is_verified=True
             ).order_by('?')[:3]
-    except ImportError:
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching featured alumni: {e}")
         featured_alumni = []
 
     # Get statistics
     try:
         alumni_count = Alumni.objects.filter(is_verified=True).count()
-    except:
+    except Exception as e:
+        logger.error(f"Error fetching alumni count: {e}")
         alumni_count = None
 
     try:
         from alumni_groups.models import AlumniGroup
         group_count = AlumniGroup.objects.count()
-    except:
+    except Exception as e:
+        logger.error(f"Error fetching group count: {e}")
         group_count = None
 
     try:
         event_count = Event.objects.count()
-    except:
+    except Exception as e:
+        logger.error(f"Error fetching event count: {e}")
         event_count = None
 
     try:
         from jobs.models import Job
         job_count = Job.objects.count()
-    except:
+    except Exception as e:
+        logger.error(f"Error fetching job count: {e}")
         job_count = None
 
     context = {
