@@ -5,12 +5,13 @@ services:
     plan: free
     buildCommand: |
       pip install -r requirements.txt
+      python manage.py collectstatic --noinput
+    preDeployCommand: |
       python manage.py showmigrations --verbosity=2
       python manage.py makemigrations --verbosity=2
       python manage.py migrate --fake-initial --verbosity=2
       python manage.py migrate --verbosity=2
       python manage.py showmigrations --verbosity=2
-      python manage.py collectstatic --noinput
       python manage.py create_missing_profiles
       python manage.py health_check
     startCommand: gunicorn norsu_alumni.wsgi:application
