@@ -309,6 +309,26 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        'allauth': {  # Add logging for allauth
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'accounts': {  # Add logging for accounts app
+            'handlers': ['console'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.request': {  # Add logging for Django requests
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
+        'core.view_handlers.error_handlers': {  # Add logging for error handlers
+            'handlers': ['console'],
+            'level': 'ERROR',
+            'propagate': True,
+        },
     },
 }
 

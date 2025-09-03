@@ -12,6 +12,35 @@ def handler500(request):
     logger.error(f"User: {getattr(request, 'user', 'Anonymous')}")
     logger.error(f"Method: {request.method}")
     
+    # Log POST data for debugging (excluding sensitive fields)
+    if request.method == 'POST':
+        post_data = dict(request.POST)
+        # Remove sensitive fields
+        sensitive_fields = ['password', 'password1', 'password2', 'csrfmiddlewaretoken']
+        for field in sensitive_fields:
+            if field in post_data:
+                post_data[field] = '[REDACTED]'
+        logger.error(f"POST data: {post_data}")
+    
+    # Log session info
+    logger.error(f"Session key: {getattr(request, 'session', {}).get('_session_key', 'None')}")
+    
+    # Log headers (excluding sensitive ones)
+    headers = dict(request.META)
+    sensitive_headers = ['HTTP_AUTHORIZATION', 'HTTP_COOKIE']
+    for header in sensitive_headers:
+        if header in headers:
+            headers[header] = '[REDACTED]'
+    logger.error(f"Request headers: {headers}")
+    
+    # Log the actual exception if available
+    import sys
+    exc_info = sys.exc_info()
+    if exc_info[0] is not None:
+        logger.error(f"Exception type: {exc_info[0].__name__}")
+        logger.error(f"Exception message: {str(exc_info[1])}")
+        logger.error(f"Traceback:", exc_info=True)
+    
     if settings.DEBUG:
         # In debug mode, show detailed error
         return HttpResponse(
