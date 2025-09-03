@@ -135,11 +135,11 @@ def home(request):
         event_count = None
 
     try:
-        from jobs.models import Job
-        job_count = Job.objects.count()
+        from jobs.models import JobPosting
+        job_count = JobPosting.objects.filter(is_active=True).count()
     except Exception as e:
         logger.error(f"Error fetching job count: {e}")
-        job_count = None
+        job_count = 0
 
     context = {
         'announcements': announcements,
