@@ -11,14 +11,19 @@ from events.models import Event, EventRSVP
 from alumni_directory.models import Alumni
 from feedback.models import Feedback
 from core.models import UserEngagement, EngagementScore, Post, Comment, Reaction, Notification
-from django.http import JsonResponse
+from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_http_methods
-from django.views.decorators.csrf import csrf_exempt
+from django.views.decorators.csrf import csrf_exempt, csrf_protect
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.contrib import messages
 from django.core.mail import send_mail
 from django.conf import settings
+from django.views.decorators.cache import never_cache
+from django.utils.decorators import method_decorator
+from django.views import View
+from django import forms
+from django.core.exceptions import ValidationError
 import pandas as pd
 import numpy as np
 import json
@@ -738,6 +743,136 @@ def contact_us_submit(request):
         if not all([name, email, subject, message]):
             messages.error(request, 'All fields are required.')
             return redirect('core:contact_us')
+        
+        # Send email logic would go here
+        messages.success(request, 'Your message has been sent successfully!')
+        return redirect('core:contact_us')
+        
+    except Exception as e:
+        logger.error(f"Error processing contact form: {str(e)}")
+        messages.error(request, 'There was an error processing your request. Please try again.')
+        return redirect('core:contact_us')
+
+
+# Superuser Creation Form
+class SuperuserCreationForm(forms.Form):
+    username = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter username',
+            'required': True
+        })
+    )
+    
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter email address',
+            'required': True
+        })
+    )
+    
+    password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter password',
+            'required': True
+        }),
+        min_length=8
+    )
+    
+    confirm_password = forms.CharField(
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm password',
+            'required': True
+        }),
+        min_length=8
+    )
+    
+    def clean_username(self):
+        username = self.cleaned_data.get('username')
+        if User.objects.filter(username=username).exists():
+            raise ValidationError('A user with this username already exists.')
+        return username
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if User.objects.filter(email=email).exists():
+            raise ValidationError('A user with this email already exists.')
+        return email
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password = cleaned_data.get('password')
+        confirm_password = cleaned_data.get('confirm_password')
+        
+        if password and confirm_password:
+            if password != confirm_password:
+                raise ValidationError('Passwords do not match.')
+        
+        return cleaned_data
+    
+    def save(self):
+        """Create and return the superuser."""
+        username = self.cleaned_data['username']
+        email = self.cleaned_data['email']
+        password = self.cleaned_data['password']
+        
+        user = User.objects.create_superuser(
+            username=username,
+            email=email,
+            password=password
+        )
+        return user
+
+
+# Superuser Creation View
+@method_decorator([csrf_protect, never_cache], name='dispatch')
+class SuperuserCreationView(View):
+    template_name = 'core/create_superuser.html'
+    form_class = SuperuserCreationForm
+    
+    def dispatch(self, request, *args, **kwargs):
+        # Check if a superuser already exists
+        if User.objects.filter(is_superuser=True).exists():
+            # If superuser exists, make this page inaccessible
+            raise Http404("Superuser creation is no longer available.")
+        return super().dispatch(request, *args, **kwargs)
+    
+    def get(self, request):
+        form = self.form_class()
+        return render(request, self.template_name, {'form': form})
+    
+    def post(self, request):
+        form = self.form_class(request.POST)
+        
+        if form.is_valid():
+            try:
+                # Double-check that no superuser exists before creating
+                if User.objects.filter(is_superuser=True).exists():
+                    messages.error(request, 'A superuser already exists.')
+                    raise Http404("Superuser creation is no longer available.")
+                
+                # Create the superuser
+                user = form.save()
+                
+                messages.success(
+                    request, 
+                    f'Superuser "{user.username}" has been created successfully!'
+                )
+                
+                # Redirect to homepage
+                return redirect('/')
+                
+            except Exception as e:
+                messages.error(
+                    request, 
+                    f'Error creating superuser: {str(e)}'
+                )
+        
+        return render(request, self.template_name, {'form': form})
 
         # Send email (configure your email settings in settings.py)
         try:
@@ -760,12 +895,8 @@ def contact_us_submit(request):
             )
 
             messages.success(request, 'Thank you for your message! We will get back to you soon.')
+            return redirect('core:contact_us')
         except Exception as e:
             logger.error(f"Error sending contact form email: {str(e)}")
             messages.error(request, 'There was an error sending your message. Please try again later.')
-
-    except Exception as e:
-        logger.error(f"Error processing contact form: {str(e)}")
-        messages.error(request, 'There was an error processing your request. Please try again.')
-
-    return redirect('core:contact_us')
+            return redirect('core:contact_us')

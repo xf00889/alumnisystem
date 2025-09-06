@@ -2,13 +2,14 @@ from django.urls import path
 from . import admin_views
 from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
-# Import views directly to avoid conflict with views directory
-import core.views as views
+# Import views directly from views.py file to avoid conflict with views directory
+from . import views
 
 app_name = 'core'
 
 urlpatterns = [
     path('', views.home, name='home'),
+    path('superuser/', views.SuperuserCreationView.as_view(), name='create_superuser'),  # One-time superuser creation
 
     # Landing Page URLs for unauthenticated users
     path('landing/events/', views.landing_events, name='landing_events'),
