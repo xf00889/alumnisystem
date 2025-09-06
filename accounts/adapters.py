@@ -10,7 +10,8 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request):
         """
         Returns the default URL to redirect to after logging in.
+        Redirects superusers to admin dashboard, regular users to home.
         """
-        # Always redirect to home page, which will handle the appropriate display
-        # This prevents redirect loops and provides consistent behavior
+        if request.user.is_authenticated and request.user.is_superuser:
+            return reverse('core:admin_dashboard')
         return reverse('core:home')

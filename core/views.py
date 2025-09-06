@@ -40,7 +40,7 @@ def home(request):
     if request.user.is_authenticated:
         # Check if user is superuser
         if request.user.is_superuser:
-            return redirect('admin:index')
+            return redirect('core:admin_dashboard')
         
         # Ensure user has a profile
         from accounts.models import Profile
