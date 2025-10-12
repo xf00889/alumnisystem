@@ -197,6 +197,101 @@
         margin-bottom: 1rem;
     }
 
+    /* Content Management Styles */
+    .content-management-card {
+        background: #ffffff;
+        border-radius: 12px;
+        padding: 1.25rem;
+        border: 1px solid rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .content-management-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+        border-color: var(--primary-color);
+    }
+
+    .content-card-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+        gap: 0.75rem;
+    }
+
+    .content-icon {
+        font-size: 1.5rem;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+    }
+
+    .content-icon.text-primary {
+        background: rgba(78, 115, 223, 0.1);
+    }
+
+    .content-icon.text-success {
+        background: rgba(28, 200, 138, 0.1);
+    }
+
+    .content-icon.text-info {
+        background: rgba(54, 185, 204, 0.1);
+    }
+
+    .content-icon.text-warning {
+        background: rgba(246, 194, 62, 0.1);
+    }
+
+    .content-card-header h6 {
+        margin: 0;
+        font-weight: 600;
+        color: #2d3748;
+        flex: 1;
+    }
+
+    .content-card-header small {
+        font-size: 0.75rem;
+        color: #718096;
+    }
+
+    .content-card-body {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .content-card-body p {
+        flex: 1;
+        margin-bottom: 1rem;
+    }
+
+    .content-card-body .btn {
+        margin-top: auto;
+    }
+
+    /* Responsive adjustments for content management */
+    @media (max-width: 768px) {
+        .content-management-card {
+            margin-bottom: 1rem;
+        }
+        
+        .content-card-header {
+            flex-direction: column;
+            text-align: center;
+            gap: 0.5rem;
+        }
+        
+        .content-card-body .btn {
+            font-size: 0.875rem;
+        }
+    }
+
     .export-card {
         background: #f8f9fa;
         border-radius: 12px;
@@ -1299,6 +1394,117 @@
                                 <div class="d-flex justify-content-between align-items-center">
                                     <span class="small">Active Surveys</span>
                                     <span class="badge bg-info">{{ active_surveys }}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Content Management Section -->
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="activity-card">
+                    <h5 class="mb-3"><i class="fas fa-edit me-2"></i>Content Management</h5>
+                    <p class="text-muted mb-3">Manage dynamic content for your website pages.</p>
+
+                    <div class="row g-3">
+                        <!-- Site Configuration -->
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                            <div class="content-management-card">
+                                <div class="content-card-header">
+                                    <i class="fas fa-cog content-icon text-primary"></i>
+                                    <h6>Site Configuration</h6>
+                                    <small class="text-muted">Global settings</small>
+                                </div>
+                                <div class="content-card-body">
+                                    <p class="small text-muted mb-2">Manage site-wide settings including contact information, social media links, and general configuration.</p>
+                                    <a href="{% url 'core:manage_site_config' %}" class="btn btn-outline-primary btn-sm w-100">
+                                        <i class="fas fa-edit me-1"></i> Manage Settings
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Page Sections -->
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                            <div class="content-management-card">
+                                <div class="content-card-header">
+                                    <i class="fas fa-layer-group content-icon text-success"></i>
+                                    <h6>Page Sections</h6>
+                                    <small class="text-muted">Homepage content</small>
+                                </div>
+                                <div class="content-card-body">
+                                    <p class="small text-muted mb-2">Edit hero sections, features, call-to-action blocks, and other page components.</p>
+                                    <a href="{% url 'core:manage_page_sections' %}" class="btn btn-outline-success btn-sm w-100">
+                                        <i class="fas fa-edit me-1"></i> Edit Sections
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Testimonials -->
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                            <div class="content-management-card">
+                                <div class="content-card-header">
+                                    <i class="fas fa-quote-left content-icon text-info"></i>
+                                    <h6>Testimonials</h6>
+                                    <small class="text-muted">{{ testimonials_count|default:0 }} testimonials</small>
+                                </div>
+                                <div class="content-card-body">
+                                    <p class="small text-muted mb-2">Manage customer testimonials and reviews displayed on your website.</p>
+                                    <a href="{% url 'core:manage_testimonials' %}" class="btn btn-outline-info btn-sm w-100">
+                                        <i class="fas fa-edit me-1"></i> Manage Testimonials
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Staff Members -->
+                        <div class="col-xl-3 col-lg-4 col-md-6 col-sm-12">
+                            <div class="content-management-card">
+                                <div class="content-card-header">
+                                    <i class="fas fa-users content-icon text-warning"></i>
+                                    <h6>Staff Members</h6>
+                                    <small class="text-muted">{{ staff_count|default:0 }} members</small>
+                                </div>
+                                <div class="content-card-body">
+                                    <p class="small text-muted mb-2">Manage staff profiles and information displayed on the About Us page.</p>
+                                    <a href="{% url 'core:manage_staff_members' %}" class="btn btn-outline-warning btn-sm w-100">
+                                        <i class="fas fa-edit me-1"></i> Manage Staff
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Content Statistics -->
+                    <div class="mt-4 pt-3 border-top">
+                        <h6 class="text-muted mb-2">Content Statistics</h6>
+                        <div class="row g-2">
+                            <div class="col-md-3 col-sm-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small">Page Sections</span>
+                                    <span class="badge bg-primary">{{ page_sections_count|default:0 }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small">Active Testimonials</span>
+                                    <span class="badge bg-success">{{ active_testimonials_count|default:0 }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <span class="small">Staff Members</span>
+                                    <span class="badge bg-info">{{ staff_count|default:0 }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-sm-6">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small">Last Updated</span>
+                                    <span class="badge bg-secondary">{{ last_content_update|date:"M d"|default:"Never" }}</span>
                                 </div>
                             </div>
                         </div>

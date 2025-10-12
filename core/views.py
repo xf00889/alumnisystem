@@ -720,9 +720,15 @@ def contact_us(request):
     """
     Display Contact Us page with contact form and information
     """
+    from core.models.page_content import SiteConfiguration
+    
+    # Get site configuration for contact information
+    site_config = SiteConfiguration.objects.first()
+    
     context = {
         'page_title': 'Contact Us',
-        'page_subtitle': 'Get in touch with the NORSU Alumni Network team'
+        'page_subtitle': 'Get in touch with the NORSU Alumni Network team',
+        'site_config': site_config
     }
 
     return render(request, 'landing/contact_us.html', context)

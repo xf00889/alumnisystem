@@ -267,6 +267,13 @@
         opacity: 0.8;
         font-weight: 500;
     }
+    
+    /* Dynamic content styling */
+    .dynamic-content img {
+        max-width: 100%;
+        height: auto;
+        border-radius: var(--radius-md);
+    }
 
     /* Minimalist Features Section */
     .features-section {
@@ -706,6 +713,108 @@
         font-weight: 500;
     }
 
+    /* Staff Section */
+    .staff-section {
+        padding: 8rem 0;
+        background-color: var(--ui-surface);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .staff-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-xl);
+        padding: 2.5rem 2rem;
+        box-shadow: var(--shadow-md);
+        transition: all 0.3s ease;
+        height: 100%;
+        border: 1px solid var(--ui-border);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .staff-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .staff-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        transform: scaleX(0);
+        transition: transform 0.3s ease;
+    }
+
+    .staff-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .staff-avatar {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        margin: 0 auto 1.5rem;
+        overflow: hidden;
+        border: 4px solid var(--primary-color);
+        position: relative;
+    }
+
+    .staff-avatar img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+    }
+
+    .staff-avatar-placeholder {
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        font-size: 2.5rem;
+    }
+
+    .staff-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .staff-position {
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.25rem;
+        font-size: 0.9rem;
+    }
+
+    .staff-department {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+
+    .staff-bio {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+    }
+
+    .staff-contact .btn {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        border-radius: var(--radius-md);
+    }
+
     /* Minimalist Call to Action Section */
     .cta-section {
         padding: 10rem 0;
@@ -835,6 +944,7 @@
         .features-section,
         .announcements-section,
         .testimonials-section,
+        .staff-section,
         .cta-section {
             padding: 4rem 0;
         }
@@ -921,6 +1031,19 @@
             font-size: 1rem;
         }
 
+        .staff-card {
+            padding: 2rem 1.5rem;
+        }
+
+        .staff-avatar {
+            width: 80px;
+            height: 80px;
+        }
+
+        .staff-name {
+            font-size: 1.125rem;
+        }
+
         .stat-number {
             font-size: 2.5rem;
         }
@@ -996,34 +1119,38 @@
 <section class="hero-section">
     <div class="container">
         <div class="hero-content">
-            <img src="{% static 'images/logo_norsu.png' %}" alt="Negros Oriental State University Logo" class="hero-logo">
+            {% if site_config.logo %}
+                <img src="{{ site_config.logo.url }}" alt="{{ site_config.site_name }} Logo" class="hero-logo">
+            {% else %}
+                <img src="{% static 'images/logo_norsu.png' %}" alt="Negros Oriental State University Logo" class="hero-logo">
+            {% endif %}
             <div class="hero-badge">
                 <i class="fas fa-graduation-cap me-2"></i>
-                Official NORSU Alumni Platform
+                {% if site_config.site_tagline %}{{ site_config.site_tagline }}{% else %}Official NORSU Alumni Platform{% endif %}
             </div>
-            <h1 class="hero-title">Connect. Grow. Succeed.</h1>
-            <p class="hero-subtitle">Join 5,000+ NORSU alumni advancing their careers through meaningful professional connections and exclusive opportunities.</p>
+            <h1 class="hero-title">{% if hero_section.title %}{{ hero_section.title }}{% else %}Connect. Grow. Succeed.{% endif %}</h1>
+            <p class="hero-subtitle">{% if hero_section.subtitle %}{{ hero_section.subtitle }}{% else %}Join 5,000+ NORSU alumni advancing their careers through meaningful professional connections and exclusive opportunities.{% endif %}</p>
             <div class="hero-buttons">
                 <a href="{% url 'account_signup' %}" class="btn hero-btn hero-btn-primary">
                     <i class="fas fa-user-plus"></i>
-                    Join the Network
+                    {% if site_config.signup_button_text %}{{ site_config.signup_button_text }}{% else %}Join the Network{% endif %}
                 </a>
                 <a href="{% url 'account_login' %}" class="btn hero-btn hero-btn-outline">
                     <i class="fas fa-sign-in-alt"></i>
-                    Member Login
+                    {% if site_config.login_button_text %}{{ site_config.login_button_text }}{% else %}Member Login{% endif %}
                 </a>
             </div>
             <div class="hero-stats">
                 <div class="hero-stat">
-                    <div class="hero-stat-number">5,000+</div>
+                    <div class="hero-stat-number">{{ alumni_count_display }}</div>
                     <div class="hero-stat-label">Active Alumni</div>
                 </div>
                 <div class="hero-stat">
-                    <div class="hero-stat-number">25+</div>
+                    <div class="hero-stat-number">{{ group_count_display }}</div>
                     <div class="hero-stat-label">Industry Groups</div>
                 </div>
                 <div class="hero-stat">
-                    <div class="hero-stat-number">100+</div>
+                    <div class="hero-stat-number">{{ job_count_display }}</div>
                     <div class="hero-stat-label">Career Opportunities</div>
                 </div>
             </div>
@@ -1035,68 +1162,86 @@
 <section class="features-section">
     <div class="container">
         <div class="section-heading">
-            <div class="section-badge">Why Choose NORSU Alumni</div>
-            <h2 class="section-title">Your Professional Success Platform</h2>
-            <p class="section-subtitle">Four key benefits that accelerate your career growth and expand your professional network.</p>
+            <div class="section-badge">{% if feature_section.badge %}{{ feature_section.badge }}{% else %}Why Choose NORSU Alumni{% endif %}</div>
+            <h2 class="section-title">{% if feature_section.title %}{{ feature_section.title }}{% else %}Your Professional Success Platform{% endif %}</h2>
+            <p class="section-subtitle">{% if feature_section.subtitle %}{{ feature_section.subtitle }}{% else %}Four key benefits that accelerate your career growth and expand your professional network.{% endif %}</p>
         </div>
 
         <div class="row g-5">
-            <div class="col-md-6 col-lg-3">
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon growth" title="Career Growth Icon">
-                        <i class="fas fa-rocket" aria-hidden="true"></i>
+            {% if features %}
+                {% for feature in features %}
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card animate-on-scroll">
+                        <div class="feature-icon {{ feature.icon_class|default:'info' }}" title="{{ feature.title }} Icon">
+                            <i class="fas fa-{{ feature.icon|default:'lightbulb' }}" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="feature-title">{{ feature.title }}</h3>
+                        <div class="feature-description dynamic-content">
+                            {{ feature.content|safe }}
+                        </div>
+                        <a href="{{ feature.link_url|default:'#' }}" class="feature-link">{{ feature.link_text|default:'Learn More' }} →</a>
                     </div>
-                    <h3 class="feature-title">Career Growth</h3>
-                    <p class="feature-description">
-                        • Exclusive job opportunities<br>
-                        • Professional development resources<br>
-                        • Industry leader connections
-                    </p>
-                    <a href="{% url 'account_signup' %}" class="feature-link">Explore Opportunities →</a>
                 </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon networking" title="Global Network Icon">
-                        <i class="fas fa-network-wired" aria-hidden="true"></i>
+                {% endfor %}
+            {% else %}
+                <!-- Default features if no dynamic content is available -->
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card animate-on-scroll">
+                        <div class="feature-icon growth" title="Career Growth Icon">
+                            <i class="fas fa-rocket" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="feature-title">Career Growth</h3>
+                        <p class="feature-description">
+                            • Exclusive job opportunities<br>
+                            • Professional development resources<br>
+                            • Industry leader connections
+                        </p>
+                        <a href="{% url 'account_signup' %}" class="feature-link">Explore Opportunities →</a>
                     </div>
-                    <h3 class="feature-title">Global Network</h3>
-                    <p class="feature-description">
-                        • 5,000+ active alumni worldwide<br>
-                        • 25+ industry groups<br>
-                        • Fortune 500 connections
-                    </p>
-                    <a href="{% url 'account_signup' %}" class="feature-link">Join Network →</a>
                 </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon info" title="Expert Mentorship Icon">
-                        <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card animate-on-scroll">
+                        <div class="feature-icon networking" title="Global Network Icon">
+                            <i class="fas fa-network-wired" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="feature-title">Global Network</h3>
+                        <p class="feature-description">
+                            • 5,000+ active alumni worldwide<br>
+                            • 25+ industry groups<br>
+                            • Fortune 500 connections
+                        </p>
+                        <a href="{% url 'account_signup' %}" class="feature-link">Join Network →</a>
                     </div>
-                    <h3 class="feature-title">Expert Mentorship</h3>
-                    <p class="feature-description">
-                        • Personalized career guidance<br>
-                        • Experienced professional mentors<br>
-                        • Strategic career planning
-                    </p>
-                    <a href="{% url 'account_signup' %}" class="feature-link">Find Mentors →</a>
                 </div>
-            </div>
-            <div class="col-md-6 col-lg-3">
-                <div class="feature-card animate-on-scroll">
-                    <div class="feature-icon achievement" title="Premium Events Icon">
-                        <i class="fas fa-trophy" aria-hidden="true"></i>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card animate-on-scroll">
+                        <div class="feature-icon info" title="Expert Mentorship Icon">
+                            <i class="fas fa-lightbulb" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="feature-title">Expert Mentorship</h3>
+                        <p class="feature-description">
+                            • Personalized career guidance<br>
+                            • Experienced professional mentors<br>
+                            • Strategic career planning
+                        </p>
+                        <a href="{% url 'account_signup' %}" class="feature-link">Find Mentors →</a>
                     </div>
-                    <h3 class="feature-title">Premium Events</h3>
-                    <p class="feature-description">
-                        • Exclusive networking events<br>
-                        • Industry conferences<br>
-                        • Professional gatherings
-                    </p>
-                    <a href="{% url 'account_signup' %}" class="feature-link">View Events →</a>
                 </div>
-            </div>
+                <div class="col-md-6 col-lg-3">
+                    <div class="feature-card animate-on-scroll">
+                        <div class="feature-icon achievement" title="Premium Events Icon">
+                            <i class="fas fa-trophy" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="feature-title">Premium Events</h3>
+                        <p class="feature-description">
+                            • Exclusive networking events<br>
+                            • Industry conferences<br>
+                            • Professional gatherings
+                        </p>
+                        <a href="{% url 'account_signup' %}" class="feature-link">View Events →</a>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </section>
@@ -1155,63 +1300,134 @@
 <section class="testimonials-section">
     <div class="container">
         <div class="section-heading">
-            <div class="section-badge">Success Stories</div>
-            <h2 class="section-title">Alumni Achievements</h2>
-            <p class="section-subtitle">Real career transformations through our professional network.</p>
+            <div class="section-badge">{% if testimonial_section.badge %}{{ testimonial_section.badge }}{% else %}Success Stories{% endif %}</div>
+            <h2 class="section-title">{% if testimonial_section.title %}{{ testimonial_section.title }}{% else %}Alumni Achievements{% endif %}</h2>
+            <p class="section-subtitle">{% if testimonial_section.subtitle %}{{ testimonial_section.subtitle }}{% else %}Real career transformations through our professional network.{% endif %}</p>
         </div>
 
         <div class="row g-5">
-            <div class="col-md-6 col-lg-4">
-                <div class="testimonial-card">
-                    <div class="testimonial-quote">
-                        "Connected with a mentor who helped me transition into tech and land my dream job at Microsoft."
-                    </div>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">
-                            <img src="{% static 'images/default-avatar.png' %}" alt="Maria Santos">
+            {% if testimonials %}
+                {% for testimonial in testimonials %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            "{{ testimonial.quote }}"
                         </div>
-                        <div class="testimonial-info">
-                            <h4>Maria Santos</h4>
-                            <p>Software Engineer, Microsoft</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-                <div class="testimonial-card">
-                    <div class="testimonial-quote">
-                        "Alumni connections helped me secure funding and grow my startup from idea to successful business."
-                    </div>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">
-                            <img src="{% static 'images/default-avatar.png' %}" alt="John Dela Cruz">
-                        </div>
-                        <div class="testimonial-info">
-                            <h4>John Dela Cruz</h4>
-                            <p>CEO, TechStart Philippines</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                {% if testimonial.image %}
+                                    <img src="{{ testimonial.image.url }}" alt="{{ testimonial.name }}">
+                                {% else %}
+                                    <img src="{% static 'images/default-avatar.png' %}" alt="{{ testimonial.name }}">
+                                {% endif %}
+                            </div>
+                            <div class="testimonial-info">
+                                <h4>{{ testimonial.name }}</h4>
+                                <p>{{ testimonial.position }}{% if testimonial.company %}, {{ testimonial.company }}{% endif %}</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
-            <div class="col-md-6 col-lg-4">
-                <div class="testimonial-card">
-                    <div class="testimonial-quote">
-                        "Professional development resources and networking events advanced my career by two positions in one year."
-                    </div>
-                    <div class="testimonial-author">
-                        <div class="testimonial-avatar">
-                            <img src="{% static 'images/default-avatar.png' %}" alt="Ana Rodriguez">
+                {% endfor %}
+            {% else %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            "Connected with a mentor who helped me transition into tech and land my dream job at Microsoft."
                         </div>
-                        <div class="testimonial-info">
-                            <h4>Ana Rodriguez</h4>
-                            <p>Marketing Director, Globe Telecom</p>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <img src="{% static 'images/default-avatar.png' %}" alt="Maria Santos">
+                            </div>
+                            <div class="testimonial-info">
+                                <h4>Maria Santos</h4>
+                                <p>Software Engineer, Microsoft</p>
+                            </div>
                         </div>
                     </div>
                 </div>
-            </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            "Alumni connections helped me secure funding and grow my startup from idea to successful business."
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <img src="{% static 'images/default-avatar.png' %}" alt="John Dela Cruz">
+                            </div>
+                            <div class="testimonial-info">
+                                <h4>John Dela Cruz</h4>
+                                <p>CEO, TechStart Philippines</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-4">
+                    <div class="testimonial-card">
+                        <div class="testimonial-quote">
+                            "Professional development resources and networking events advanced my career by two positions in one year."
+                        </div>
+                        <div class="testimonial-author">
+                            <div class="testimonial-avatar">
+                                <img src="{% static 'images/default-avatar.png' %}" alt="Ana Rodriguez">
+                            </div>
+                            <div class="testimonial-info">
+                                <h4>Ana Rodriguez</h4>
+                                <p>Marketing Director, Globe Telecom</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            {% endif %}
         </div>
     </div>
 </section>
+
+<!-- Staff Section -->
+{% if staff_members %}
+<section class="staff-section">
+    <div class="container">
+        <div class="section-heading">
+            <div class="section-badge">Meet Our Team</div>
+            <h2 class="section-title">Dedicated Professionals</h2>
+            <p class="section-subtitle">Meet the team behind the NORSU Alumni Network, committed to your success and professional growth.</p>
+        </div>
+
+        <div class="row g-4">
+            {% for staff in staff_members %}
+            <div class="col-lg-3 col-md-6">
+                <div class="staff-card">
+                    <div class="staff-avatar">
+                        {% if staff.image %}
+                            <img src="{{ staff.image.url }}" alt="{{ staff.name }}" class="img-fluid">
+                        {% else %}
+                            <div class="staff-avatar-placeholder">
+                                <i class="fas fa-user"></i>
+                            </div>
+                        {% endif %}
+                    </div>
+                    <h5 class="staff-name">{{ staff.name }}</h5>
+                    <p class="staff-position">{{ staff.position }}</p>
+                    {% if staff.department %}
+                        <p class="staff-department">{{ staff.department }}</p>
+                    {% endif %}
+                    {% if staff.bio %}
+                        <p class="staff-bio">{{ staff.bio|truncatechars:80 }}</p>
+                    {% endif %}
+                    {% if staff.email %}
+                        <div class="staff-contact">
+                            <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
+                                <i class="fas fa-envelope me-1"></i>Contact
+                            </a>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <!-- Enhanced Call to Action Section -->
 <section class="cta-section">
@@ -1219,23 +1435,23 @@
         <div class="cta-content">
             <div class="cta-badge">
                 <i class="fas fa-star me-2"></i>
-                Join 5,000+ Successful Alumni
+                {% if cta_section.badge %}{{ cta_section.badge }}{% else %}Join {{ alumni_count_display|default:"5,000+" }} Successful Alumni{% endif %}
             </div>
-            <h2 class="cta-title">Start Your Success Story</h2>
-            <p class="cta-text">Join the most powerful professional network of NORSU graduates. Access career-changing opportunities, industry insights, and lifelong connections.</p>
+            <h2 class="cta-title">{% if cta_section.title %}{{ cta_section.title }}{% else %}Start Your Success Story{% endif %}</h2>
+            <p class="cta-text">{% if cta_section.content %}{{ cta_section.content|safe }}{% else %}Join the most powerful professional network of NORSU graduates. Access career-changing opportunities, industry insights, and lifelong connections.{% endif %}</p>
             <div class="cta-buttons">
                 <a href="{% url 'account_signup' %}" class="btn hero-btn hero-btn-primary">
                     <i class="fas fa-rocket me-2"></i>
-                    Start Your Journey
+                    {% if cta_section.primary_button_text %}{{ cta_section.primary_button_text }}{% else %}Start Your Journey{% endif %}
                 </a>
                 <a href="{% url 'account_login' %}" class="btn hero-btn hero-btn-outline">
                     <i class="fas fa-sign-in-alt me-2"></i>
-                    Member Access
+                    {% if cta_section.secondary_button_text %}{{ cta_section.secondary_button_text }}{% else %}Member Access{% endif %}
                 </a>
             </div>
             <div class="cta-urgency">
                 <i class="fas fa-clock me-2"></i>
-                Join today and get immediate access to our exclusive job board and networking events
+                {% if cta_section.urgency_text %}{{ cta_section.urgency_text }}{% else %}Join today and get immediate access to our exclusive job board and networking events{% endif %}
             </div>
         </div>
     </div>

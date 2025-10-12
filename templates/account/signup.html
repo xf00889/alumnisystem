@@ -16,6 +16,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
     <style>
         /* NORSU Alumni System Variables */
@@ -288,6 +290,167 @@
             padding-right: 2.5rem;
         }
 
+        /* Password Criteria Styles */
+        .password-criteria {
+            margin-top: 0.75rem;
+            padding: 1rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            display: block;
+            visibility: visible;
+        }
+
+        .criteria-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #e2e8f0;
+        }
+
+        .criteria-title {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .strength-indicator {
+            font-weight: 600;
+            padding: 0.25rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .strength-indicator.weak {
+            background: #fed7d7;
+            color: #c53030;
+        }
+
+        .strength-indicator.fair {
+            background: #fef5e7;
+            color: #dd6b20;
+        }
+
+        .strength-indicator.good {
+            background: #c6f6d5;
+            color: #2f855a;
+        }
+
+        .strength-indicator.strong {
+            background: #9ae6b4;
+            color: #22543d;
+        }
+
+        .criteria-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .criterion {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+        }
+
+        .criterion i {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .criterion i.fa-times-circle {
+            color: #e53e3e;
+            background: #fed7d7;
+        }
+
+        .criterion i.fa-check-circle {
+            color: #2f855a;
+            background: #c6f6d5;
+        }
+
+        .criterion span {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .criterion.valid span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Password Match Indicator */
+        .password-match-indicator {
+            margin-top: 0.75rem;
+            padding: 0.75rem;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+            display: block;
+            visibility: visible;
+        }
+
+        .match-status {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .match-status i {
+            width: 16px;
+            height: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            transition: all 0.3s ease;
+        }
+
+        .match-status i.fa-times-circle {
+            color: #e53e3e;
+            background: #fed7d7;
+        }
+
+        .match-status i.fa-check-circle {
+            color: #2f855a;
+            background: #c6f6d5;
+        }
+
+        .match-status span {
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+        }
+
+        .match-status.valid span {
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+
+        /* Animation for criteria updates */
+        .criterion.valid {
+            animation: criteriaSuccess 0.5s ease;
+        }
+
+        @keyframes criteriaSuccess {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.02); }
+            100% { transform: scale(1); }
+        }
+
         .form-input {
             width: 100%;
             padding: 1rem 0.75rem 0.5rem;
@@ -382,6 +545,29 @@
             color: var(--primary-dark);
         }
 
+        /* Custom SweetAlert2 Styling */
+        .terms-popup {
+            font-family: var(--font-primary) !important;
+        }
+        
+        .terms-title {
+            color: var(--primary-color) !important;
+            font-weight: 600 !important;
+        }
+        
+        .terms-content {
+            font-size: 14px !important;
+        }
+        
+        .terms-content h5 {
+            border-bottom: 2px solid var(--primary-color);
+            padding-bottom: 8px;
+        }
+        
+        .terms-content h6 {
+            font-weight: 600;
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .auth-wrapper {
@@ -438,6 +624,40 @@
             
             .auth-form-panel {
                 padding: 1.5rem 1rem;
+            }
+            
+            /* Mobile password criteria adjustments */
+            .password-criteria {
+                padding: 0.75rem;
+                font-size: 0.8rem;
+            }
+            
+            .criteria-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 0.5rem;
+            }
+            
+            .criteria-title {
+                font-size: 0.8rem;
+            }
+            
+            .strength-indicator {
+                font-size: 0.7rem;
+                padding: 0.2rem 0.4rem;
+            }
+            
+            .criterion span {
+                font-size: 0.75rem;
+            }
+            
+            .password-match-indicator {
+                padding: 0.5rem;
+                font-size: 0.8rem;
+            }
+            
+            .match-status span {
+                font-size: 0.75rem;
             }
         }
     </style>
@@ -499,7 +719,7 @@
                         </div>
                     </div>
 
-                    <!-- Signup Form -->
+                    <!-- Sign Up Form -->
                     <div class="form-container active" id="signupForm">
                         <form class="signup" method="POST" action="{% url 'account_signup' %}">
                             {% csrf_token %}
@@ -520,28 +740,72 @@
                             </div>
 
                             <div class="form-group password-field">
-                                <input type="password" class="form-input has-toggle" name="password1" placeholder=" " required id="signupPassword1">
+                                <input type="password" class="form-input has-toggle" name="password1" placeholder=" " required id="signupPassword1" oninput="validatePassword()">
                                 <label class="form-label">Password</label>
                                 <button type="button" class="password-toggle" onclick="togglePassword('signupPassword1', this)" aria-label="Toggle password visibility">
                                     <i class="fas fa-eye" aria-hidden="true"></i>
                                 </button>
+                                
+                                <!-- Password Criteria Indicator -->
+                                <div class="password-criteria" id="passwordCriteria">
+                                    <div class="criteria-header">
+                                        <span class="criteria-title">Password Requirements:</span>
+                                        <span class="strength-indicator" id="strengthIndicator">Weak</span>
+                                    </div>
+                                    <div class="criteria-list">
+                                        <div class="criterion" id="lengthCriterion">
+                                            <i class="fas fa-times-circle"></i>
+                                            <span>At least 8 characters</span>
+                                        </div>
+                                        <div class="criterion" id="uppercaseCriterion">
+                                            <i class="fas fa-times-circle"></i>
+                                            <span>One uppercase letter</span>
+                                        </div>
+                                        <div class="criterion" id="lowercaseCriterion">
+                                            <i class="fas fa-times-circle"></i>
+                                            <span>One lowercase letter</span>
+                                        </div>
+                                        <div class="criterion" id="numberCriterion">
+                                            <i class="fas fa-times-circle"></i>
+                                            <span>One number</span>
+                                        </div>
+                                        <div class="criterion" id="specialCriterion">
+                                            <i class="fas fa-times-circle"></i>
+                                            <span>One special character (!@#$%^&*)</span>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
 
                             <div class="form-group password-field">
-                                <input type="password" class="form-input has-toggle" name="password2" placeholder=" " required id="signupPassword2">
+                                <input type="password" class="form-input has-toggle" name="password2" placeholder=" " required id="signupPassword2" oninput="validatePasswordMatch()">
                                 <label class="form-label">Confirm Password</label>
                                 <button type="button" class="password-toggle" onclick="togglePassword('signupPassword2', this)" aria-label="Toggle password visibility">
                                     <i class="fas fa-eye" aria-hidden="true"></i>
                                 </button>
+                                
+                                <!-- Password Match Indicator -->
+                                <div class="password-match-indicator" id="passwordMatchIndicator">
+                                    <div class="match-status" id="matchStatus">
+                                        <i class="fas fa-times-circle"></i>
+                                        <span>Passwords must match</span>
+                                    </div>
+                                </div>
                             </div>
 
-                            <button class="btn-auth btn-auth-primary" type="submit">
+                            <button class="btn-auth btn-auth-primary" type="button" onclick="showTermsDisclaimer()">
                                 <i class="fas fa-user-plus me-2"></i>{% trans "Create Account" %}
+                                <small class="d-block mt-1" style="font-size: 0.75rem; opacity: 0.8;">* Terms & Conditions apply</small>
                             </button>
                         </form>
 
                         <div class="auth-links">
-                            <p><small>By creating an account, you agree to our Terms of Service and Privacy Policy.</small></p>
+                            <p style="background: #f8fafc; padding: 10px; border-radius: 6px; border-left: 3px solid #2b3c6b; margin: 0;">
+                                <small style="color: #4a5568; font-weight: 500;">
+                                    <i class="fas fa-info-circle me-1" style="color: #2b3c6b;"></i>
+                                    By creating an account, you agree to our Terms of Service and Privacy Policy.
+                                </small>
+                            </p>
                         </div>
                     </div>
                 </div>
@@ -585,8 +849,206 @@
             }
         }
 
+        // Password validation functions
+        function validatePassword() {
+            const password = document.getElementById('signupPassword1').value;
+            const criteria = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
+            };
+
+            // Update individual criteria
+            updateCriterion('lengthCriterion', criteria.length);
+            updateCriterion('uppercaseCriterion', criteria.uppercase);
+            updateCriterion('lowercaseCriterion', criteria.lowercase);
+            updateCriterion('numberCriterion', criteria.number);
+            updateCriterion('specialCriterion', criteria.special);
+
+            // Calculate and update strength indicator
+            const validCriteria = Object.values(criteria).filter(Boolean).length;
+            updateStrengthIndicator(validCriteria);
+
+            // Also validate password match if confirm password has value
+            if (document.getElementById('signupPassword2').value) {
+                validatePasswordMatch();
+            }
+        }
+
+        function updateCriterion(criterionId, isValid) {
+            const criterion = document.getElementById(criterionId);
+            const icon = criterion.querySelector('i');
+            
+            if (isValid) {
+                criterion.classList.add('valid');
+                icon.classList.remove('fa-times-circle');
+                icon.classList.add('fa-check-circle');
+            } else {
+                criterion.classList.remove('valid');
+                icon.classList.remove('fa-check-circle');
+                icon.classList.add('fa-times-circle');
+            }
+        }
+
+        function updateStrengthIndicator(validCriteria) {
+            const indicator = document.getElementById('strengthIndicator');
+            
+            // Remove all strength classes
+            indicator.classList.remove('weak', 'fair', 'good', 'strong');
+            
+            if (validCriteria < 2) {
+                indicator.textContent = 'Weak';
+                indicator.classList.add('weak');
+            } else if (validCriteria < 3) {
+                indicator.textContent = 'Fair';
+                indicator.classList.add('fair');
+            } else if (validCriteria < 5) {
+                indicator.textContent = 'Good';
+                indicator.classList.add('good');
+            } else {
+                indicator.textContent = 'Strong';
+                indicator.classList.add('strong');
+            }
+        }
+
+        function validatePasswordMatch() {
+            const password1 = document.getElementById('signupPassword1').value;
+            const password2 = document.getElementById('signupPassword2').value;
+            const matchStatus = document.getElementById('matchStatus');
+            const icon = matchStatus.querySelector('i');
+            const text = matchStatus.querySelector('span');
+
+            if (password2.length === 0) {
+                matchStatus.classList.remove('valid');
+                icon.classList.remove('fa-check-circle');
+                icon.classList.add('fa-times-circle');
+                text.textContent = 'Passwords must match';
+                return false;
+            }
+
+            if (password1 === password2) {
+                matchStatus.classList.add('valid');
+                icon.classList.remove('fa-times-circle');
+                icon.classList.add('fa-check-circle');
+                text.textContent = 'Passwords match';
+                return true;
+            } else {
+                matchStatus.classList.remove('valid');
+                icon.classList.remove('fa-check-circle');
+                icon.classList.add('fa-times-circle');
+                text.textContent = 'Passwords do not match';
+                return false;
+            }
+        }
+
+        // Enhanced form validation before submission
+        function validateForm() {
+            const password1 = document.getElementById('signupPassword1').value;
+            const password2 = document.getElementById('signupPassword2').value;
+            
+            // Check password criteria
+            const criteria = {
+                length: password1.length >= 8,
+                uppercase: /[A-Z]/.test(password1),
+                lowercase: /[a-z]/.test(password1),
+                number: /[0-9]/.test(password1),
+                special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password1)
+            };
+            
+            const validCriteria = Object.values(criteria).filter(Boolean).length;
+            const passwordsMatch = password1 === password2;
+            
+            if (validCriteria < 3) {
+                Swal.fire({
+                    title: 'Password Too Weak',
+                    text: 'Please ensure your password meets at least 3 of the 5 criteria listed below.',
+                    icon: 'warning',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#2b3c6b'
+                });
+                return false;
+            }
+            
+            if (!passwordsMatch) {
+                Swal.fire({
+                    title: 'Passwords Do Not Match',
+                    text: 'Please ensure both password fields contain the same password.',
+                    icon: 'error',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#2b3c6b'
+                });
+                return false;
+            }
+            
+            return true;
+        }
+
         // Handle form input animations and label positioning
         document.addEventListener('DOMContentLoaded', function() {
+            // Initialize password criteria visibility
+            const passwordCriteria = document.getElementById('passwordCriteria');
+            const passwordMatchIndicator = document.getElementById('passwordMatchIndicator');
+            
+            if (passwordCriteria) {
+                passwordCriteria.style.display = 'block';
+                passwordCriteria.style.visibility = 'visible';
+            }
+            
+            if (passwordMatchIndicator) {
+                passwordMatchIndicator.style.display = 'block';
+                passwordMatchIndicator.style.visibility = 'visible';
+            }
+            
+            // More comprehensive error detection
+            const hasErrors = document.querySelector('.alert-danger, .errorlist, .form-error, [class*="error"]');
+            const hasFormErrors = document.querySelector('.form-group .error, .form-group .invalid-feedback');
+            const hasDjangoErrors = document.querySelector('.errorlist li, .nonfield .errorlist');
+            const hasMessages = document.querySelector('.messages .alert-danger, .messages .alert-error');
+            const hasUrlErrors = window.location.search.includes('error') || window.location.search.includes('invalid');
+            
+            // Debug logging
+            console.log('Signup - Error detection:', {
+                hasErrors: !!hasErrors,
+                hasFormErrors: !!hasFormErrors,
+                hasDjangoErrors: !!hasDjangoErrors,
+                hasMessages: !!hasMessages,
+                hasUrlErrors: hasUrlErrors,
+                currentUrl: window.location.href,
+                sessionStorage: sessionStorage.getItem('norsu_terms_agreed')
+            });
+            
+            // Debug password criteria elements
+            console.log('Password criteria elements:', {
+                passwordCriteria: !!passwordCriteria,
+                passwordMatchIndicator: !!passwordMatchIndicator,
+                passwordCriteriaDisplay: passwordCriteria ? passwordCriteria.style.display : 'not found',
+                passwordMatchDisplay: passwordMatchIndicator ? passwordMatchIndicator.style.display : 'not found'
+            });
+            
+            // SMART APPROACH: Only clear session storage if there are authentication errors
+            // This preserves the user's terms agreement on normal page visits
+            const hasAgreedToTerms = sessionStorage.getItem('norsu_terms_agreed');
+            
+            // Check for authentication errors
+            const hasAuthErrors = hasErrors || hasFormErrors || hasDjangoErrors || hasMessages || hasUrlErrors;
+            
+            if (hasAuthErrors) {
+                console.log('Signup - Authentication errors detected, clearing session storage');
+                sessionStorage.removeItem('norsu_terms_agreed');
+            } else if (hasAgreedToTerms) {
+                console.log('Signup - No errors detected, preserving terms agreement');
+            } else {
+                console.log('Signup - No previous agreement, will show terms disclaimer');
+            }
+            
+            // Show terms disclaimer automatically when page loads (only if no previous agreement)
+            const finalHasAgreedToTerms = sessionStorage.getItem('norsu_terms_agreed');
+            if (!finalHasAgreedToTerms) {
+                showTermsDisclaimer();
+            }
+            
             const inputs = document.querySelectorAll('.form-input');
 
             inputs.forEach(input => {
@@ -625,6 +1087,105 @@
                 });
             });
         });
+
+        // Terms and Conditions Disclaimer
+        function showTermsDisclaimer() {
+            // Validate form before showing terms
+            if (!validateForm()) {
+                return;
+            }
+            
+            // Check if user has already agreed to terms in this session
+            const hasAgreedToTerms = sessionStorage.getItem('norsu_terms_agreed');
+            
+            if (hasAgreedToTerms) {
+                console.log('Signup - User already agreed to terms, submitting form directly');
+                // User already agreed, submit the form directly
+                document.querySelector('#signupForm form').submit();
+                return;
+            }
+            
+            console.log('Signup - Showing full terms disclaimer');
+            
+            Swal.fire({
+                title: '<strong>Terms and Conditions</strong>',
+                html: `
+                    <div style="text-align: left; max-height: 450px; overflow-y: auto; padding: 15px; font-family: 'Poppins', sans-serif;">
+                        <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 8px; border-left: 4px solid #2b3c6b;">
+                            <h5 style="color: #2b3c6b; margin: 0; font-weight: 600; font-size: 18px;">📋 NORSU Alumni Network</h5>
+                            <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px;">Terms of Service & Privacy Agreement</p>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🔐 Account Registration</h6>
+                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">By creating an account, you agree to provide accurate and complete information. You are responsible for maintaining the confidentiality of your account credentials and all activities that occur under your account.</p>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🛡️ Privacy and Data Protection</h6>
+                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">We collect and process your personal information in accordance with our Privacy Policy. Your data will be used to facilitate alumni connections, share university updates, and provide career opportunities. We never sell your personal information to third parties.</p>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🤝 Community Guidelines</h6>
+                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">Users must maintain respectful communication, avoid spam or inappropriate content, and respect the intellectual property rights of others. We foster a positive, professional environment for all alumni.</p>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🎯 Platform Usage</h6>
+                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">This platform is intended for NORSU alumni networking, career development, and university-related activities. Commercial use requires prior approval from the administration.</p>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">📄 Content and Intellectual Property</h6>
+                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">Users retain ownership of their content but grant NORSU Alumni Network a license to use, display, and distribute content within the platform for networking and educational purposes.</p>
+                        </div>
+                        
+                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">⚖️ Limitation of Liability</h6>
+                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">NORSU Alumni Network is provided "as is" without warranties. We are not liable for any damages arising from platform use, but we strive to maintain a secure and reliable service.</p>
+                        </div>
+                        
+                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #2b3c6b 0%, #1a2544 100%); border-radius: 8px; color: white;">
+                            <p style="margin: 0; font-size: 13px; font-weight: 500;"><strong>✅ By clicking "I Agree", you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.</strong></p>
+                        </div>
+                    </div>
+                `,
+                width: '650px',
+                showCancelButton: true,
+                confirmButtonText: '<i class="fas fa-check-circle"></i> I Agree & Create Account',
+                cancelButtonText: '<i class="fas fa-times-circle"></i> Cancel',
+                confirmButtonColor: '#2b3c6b',
+                cancelButtonColor: '#718096',
+                reverseButtons: true,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                focusConfirm: true,
+                customClass: {
+                    popup: 'terms-popup',
+                    title: 'terms-title',
+                    htmlContainer: 'terms-content'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // User agreed to terms, store agreement in session storage
+                    sessionStorage.setItem('norsu_terms_agreed', 'true');
+                    // Submit the form
+                    document.querySelector('#signupForm form').submit();
+                } else {
+                    // User declined, redirect to landing page
+                    Swal.fire({
+                        title: 'Registration Cancelled',
+                        text: 'You must agree to the Terms and Conditions to create an account.',
+                        icon: 'info',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2b3c6b'
+                    }).then(() => {
+                        window.location.href = '/';
+                    });
+                }
+            });
+        }
     </script>
 
     <!-- Bootstrap 5 JS -->

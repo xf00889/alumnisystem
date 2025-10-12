@@ -6,6 +6,7 @@ from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponseForbidden
 from django.core.exceptions import ValidationError
 from django.views.decorators.http import require_POST
+from django.contrib import messages
 from .models import (
     Profile, Education, Experience, Skill, Document, SkillMatch,
     MentorApplication, Mentor
@@ -430,9 +431,15 @@ def profile_update(request):
 
 @login_required
 def document_delete(request, pk):
-    document = get_object_or_404(Document, pk=pk, profile=request.user.profile)
-    document.delete()
-    return redirect('accounts:profile_detail')
+    try:
+        document = get_object_or_404(Document, pk=pk, profile=request.user.profile)
+        document_title = document.title
+        document.delete()
+        messages.success(request, f'🗑️ Document "{document_title}" has been deleted successfully!')
+        return redirect('accounts:profile_detail')
+    except Exception as e:
+        messages.error(request, f'❌ Failed to delete document: {str(e)}')
+        return redirect('accounts:profile_detail')
 
 User = get_user_model()
 
@@ -532,11 +539,22 @@ def update_skills(request):
     if request.method == 'POST':
         form = SkillForm(request.POST)
         if form.is_valid():
-            skill = form.save(commit=False)
-            skill.profile = request.user.profile
-            skill.save()
-            return JsonResponse({'status': 'success'})
-        return JsonResponse({'status': 'error', 'errors': form.errors})
+            try:
+                skill = form.save(commit=False)
+                skill.profile = request.user.profile
+                skill.save()
+                messages.success(request, f'✅ Skill "{skill.name}" has been added successfully!')
+                return redirect('accounts:profile_detail')
+            except Exception as e:
+                messages.error(request, f'❌ Failed to add skill: {str(e)}')
+                return redirect('accounts:profile_detail')
+        else:
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, f'❌ Please correct the following errors: {", ".join(error_messages)}')
+            return redirect('accounts:profile_detail')
     else:
         form = SkillForm()
         if request.GET.get('form_only'):
@@ -548,11 +566,22 @@ def update_education(request):
     if request.method == 'POST':
         form = EducationForm(request.POST)
         if form.is_valid():
-            education = form.save(commit=False)
-            education.profile = request.user.profile
-            education.save()
-            return JsonResponse({'status': 'success'})
-        return JsonResponse({'status': 'error', 'errors': form.errors})
+            try:
+                education = form.save(commit=False)
+                education.profile = request.user.profile
+                education.save()
+                messages.success(request, f'🎓 Education record for "{education.program}" has been added successfully!')
+                return redirect('accounts:profile_detail')
+            except Exception as e:
+                messages.error(request, f'❌ Failed to add education record: {str(e)}')
+                return redirect('accounts:profile_detail')
+        else:
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, f'❌ Please correct the following errors: {", ".join(error_messages)}')
+            return redirect('accounts:profile_detail')
     else:
         form = EducationForm()
         if request.GET.get('form_only'):
@@ -564,11 +593,22 @@ def update_experience(request):
     if request.method == 'POST':
         form = ExperienceForm(request.POST)
         if form.is_valid():
-            experience = form.save(commit=False)
-            experience.profile = request.user.profile
-            experience.save()
-            return JsonResponse({'status': 'success'})
-        return JsonResponse({'status': 'error', 'errors': form.errors})
+            try:
+                experience = form.save(commit=False)
+                experience.profile = request.user.profile
+                experience.save()
+                messages.success(request, f'💼 Work experience at "{experience.company}" has been added successfully!')
+                return redirect('accounts:profile_detail')
+            except Exception as e:
+                messages.error(request, f'❌ Failed to add work experience: {str(e)}')
+                return redirect('accounts:profile_detail')
+        else:
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, f'❌ Please correct the following errors: {", ".join(error_messages)}')
+            return redirect('accounts:profile_detail')
     else:
         form = ExperienceForm()
         if request.GET.get('form_only'):
@@ -580,11 +620,22 @@ def update_documents(request):
     if request.method == 'POST':
         form = DocumentUploadForm(request.POST, request.FILES)
         if form.is_valid():
-            document = form.save(commit=False)
-            document.profile = request.user.profile
-            document.save()
-            return JsonResponse({'status': 'success'})
-        return JsonResponse({'status': 'error', 'errors': form.errors})
+            try:
+                document = form.save(commit=False)
+                document.profile = request.user.profile
+                document.save()
+                messages.success(request, f'📄 Document "{document.title}" has been uploaded successfully!')
+                return redirect('accounts:profile_detail')
+            except Exception as e:
+                messages.error(request, f'❌ Failed to upload document: {str(e)}')
+                return redirect('accounts:profile_detail')
+        else:
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, f'❌ Please correct the following errors: {", ".join(error_messages)}')
+            return redirect('accounts:profile_detail')
     else:
         form = DocumentUploadForm()
         if request.GET.get('form_only'):
@@ -635,10 +686,20 @@ def edit_education(request, pk):
     if request.method == 'POST':
         form = EducationForm(request.POST, instance=education)
         if form.is_valid():
-            form.save()
-            return JsonResponse({'status': 'success'})
+            try:
+                form.save()
+                messages.success(request, f'🎓 Education record for "{education.program}" has been updated successfully!')
+                return redirect('accounts:profile_detail')
+            except Exception as e:
+                messages.error(request, f'❌ Failed to update education record: {str(e)}')
+                return redirect('accounts:profile_detail')
         else:
-            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, f'❌ Please correct the following errors: {", ".join(error_messages)}')
+            return redirect('accounts:profile_detail')
     
     if request.GET.get('form_only'):
         form = EducationForm(instance=education)
@@ -649,10 +710,15 @@ def edit_education(request, pk):
 @login_required
 def delete_education(request, pk):
     if request.method == 'POST':
-        education = get_object_or_404(Education, pk=pk, profile=request.user.profile)
-        education.delete()
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({'status': 'success'})
+        try:
+            education = get_object_or_404(Education, pk=pk, profile=request.user.profile)
+            education_program = education.program
+            education.delete()
+            messages.success(request, f'🗑️ Education record for "{education_program}" has been deleted successfully!')
+            return redirect('accounts:profile_detail')
+        except Exception as e:
+            messages.error(request, f'❌ Failed to delete education record: {str(e)}')
+            return redirect('accounts:profile_detail')
 
 @login_required
 def manage_members(request, group_id):
@@ -765,16 +831,11 @@ def add_career_path(request):
             skills_gained=data.get('skills_gained', '')
         )
         
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Career path added successfully',
-            'id': experience.id
-        })
+        messages.success(request, f'🚀 Career path at "{experience.company}" has been added successfully!')
+        return redirect('accounts:profile_detail')
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=400)
+        messages.error(request, f'❌ Failed to add career path: {str(e)}')
+        return redirect('accounts:profile_detail')
 
 @login_required
 @require_POST
@@ -843,16 +904,11 @@ def add_achievement(request):
             attachment=file
         )
         
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Achievement added successfully',
-            'id': achievement.id
-        })
+        messages.success(request, f'🏆 Achievement "{achievement.title}" has been added successfully!')
+        return redirect('accounts:profile_detail')
     except Exception as e:
-        return JsonResponse({
-            'status': 'error',
-            'message': str(e)
-        }, status=400)
+        messages.error(request, f'❌ Failed to add achievement: {str(e)}')
+        return redirect('accounts:profile_detail')
 
 @login_required
 @require_POST
@@ -1170,12 +1226,13 @@ def admin_mentor_list(request):
 def delete_experience(request, pk):
     try:
         experience = get_object_or_404(Experience, pk=pk, profile=request.user.profile)
+        experience_company = experience.company
         experience.delete()
-        messages.success(request, "Work experience deleted successfully.")
-        return JsonResponse({'status': 'success'})
+        messages.success(request, f'🗑️ Work experience at "{experience_company}" has been deleted successfully!')
+        return redirect('accounts:profile_detail')
     except Exception as e:
-        messages.error(request, f"Error deleting experience: {str(e)}")
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+        messages.error(request, f'❌ Failed to delete work experience: {str(e)}')
+        return redirect('accounts:profile_detail')
 
 @login_required
 def edit_experience(request, pk):
@@ -1184,10 +1241,20 @@ def edit_experience(request, pk):
     if request.method == 'POST':
         form = ExperienceForm(request.POST, instance=experience)
         if form.is_valid():
-            form.save()
-            return JsonResponse({'status': 'success'})
+            try:
+                form.save()
+                messages.success(request, f'💼 Work experience at "{experience.company}" has been updated successfully!')
+                return redirect('accounts:profile_detail')
+            except Exception as e:
+                messages.error(request, f'❌ Failed to update work experience: {str(e)}')
+                return redirect('accounts:profile_detail')
         else:
-            return JsonResponse({'status': 'error', 'errors': form.errors}, status=400)
+            error_messages = []
+            for field, errors in form.errors.items():
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            messages.error(request, f'❌ Please correct the following errors: {", ".join(error_messages)}')
+            return redirect('accounts:profile_detail')
     
     if request.GET.get('form_only'):
         form = ExperienceForm(instance=experience)

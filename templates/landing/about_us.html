@@ -137,19 +137,26 @@
     <!-- Staff Information -->
     <div class="row mb-5">
         <div class="col-12">
-            <h2 class="section-title">Our Team</h2>
+            <h2 class="section-title text-center mb-4">Meet Our Team</h2>
             <p class="text-muted mb-4">Meet the dedicated professionals behind the NORSU Alumni Network.</p>
         </div>
         {% for staff in staff_members %}
-        <div class="col-lg-4 col-md-6 mb-4">
-            <div class="staff-card content-card">
-                <div class="card-body p-4 text-center">
+        <div class="col-lg-3 col-md-6 mb-4">
+            <div class="staff-card content-card text-center">
+                <div class="card-body p-4">
                     <div class="staff-avatar mb-3">
-                        <i class="fas fa-user-circle fa-4x text-primary"></i>
+                        {% if staff.image %}
+                            <img src="{{ staff.image.url }}" alt="{{ staff.name }}" class="img-fluid rounded-circle">
+                        {% else %}
+                            <img src="{% static 'images/avatars/avatar-placeholder.jpg' %}" alt="{{ staff.name }}" class="img-fluid rounded-circle">
+                        {% endif %}
                     </div>
                     <h5 class="staff-name">{{ staff.name }}</h5>
                     <p class="staff-position text-primary">{{ staff.position }}</p>
                     <p class="staff-department text-muted">{{ staff.department }}</p>
+                    {% if staff.bio %}
+                        <p class="staff-bio small mb-3">{{ staff.bio|truncatechars:100 }}</p>
+                    {% endif %}
                     <div class="staff-contact">
                         <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
                             <i class="fas fa-envelope me-1"></i>Contact

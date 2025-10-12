@@ -26,6 +26,7 @@ from .analytics import UserEngagement, EngagementScore
 from .contact import Address, ContactInfo
 from .content import Post, Comment, Reaction
 from .notifications import Notification, NotificationPreference
+from .page_content import SiteConfiguration, PageSection, Testimonial, StaffMember
 
 __all__ = [
     'TimeStampedModel',
@@ -38,4 +39,8 @@ __all__ = [
     'Reaction',
     'Notification',
     'NotificationPreference',
+    'SiteConfiguration',
+    'PageSection',
+    'Testimonial',
+    'StaffMember',
 ]

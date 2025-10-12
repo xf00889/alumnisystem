@@ -1,0 +1,315 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+
+{% block title %}GCash Management - NORSU Alumni{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block donations_content %}
+<div class="col-12">
+    <!-- Welcome header consistent with dashboard -->
+    <div class="welcome-header mt-3">
+        <div class="d-flex align-items-center justify-content-between">
+            <div>
+                <h4>GCash Payment Management</h4>
+                <p>Configure and manage GCash payment settings for donations.</p>
+            </div>
+            <div>
+                <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-lg-8 mb-4">
+            <div class="dashboard-card">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-mobile-alt me-2"></i>
+                        GCash Configuration
+                    </h5>
+                    {% if config %}
+                    <span class="badge {% if config.is_active %}badge-active{% else %}badge-draft{% endif %}">
+                        {% if config.is_active %}Active{% else %}Inactive{% endif %}
+                    </span>
+                    {% endif %}
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data">
+                        {% csrf_token %}
+                        
+                        {% if form.errors %}
+                        <div class="alert alert-danger" role="alert">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Please correct the following errors:
+                            </h6>
+                            {% for field in form %}
+                                {% for error in field.errors %}
+                                    <div class="mb-1">{{ field.label }}: {{ error }}</div>
+                                {% endfor %}
+                            {% endfor %}
+                            {% for error in form.non_field_errors %}
+                                <div class="mb-1">{{ error }}</div>
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.account_name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-user me-1"></i>
+                                    Account Name
+                                </label>
+                                {{ form.account_name }}
+                                {% if form.account_name.help_text %}
+                                <div class="form-text">{{ form.account_name.help_text }}</div>
+                                {% endif %}
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                                    <i class="fas fa-phone me-1"></i>
+                                    Phone Number
+                                </label>
+                                {{ form.phone_number }}
+                                {% if form.phone_number.help_text %}
+                                <div class="form-text">{{ form.phone_number.help_text }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.qr_code_image.id_for_label }}" class="form-label">
+                                <i class="fas fa-qrcode me-1"></i>
+                                QR Code Image
+                            </label>
+                            {{ form.qr_code_image }}
+                            {% if form.qr_code_image.help_text %}
+                            <div class="form-text">{{ form.qr_code_image.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.instructions.id_for_label }}" class="form-label">
+                                <i class="fas fa-info-circle me-1"></i>
+                                Payment Instructions
+                            </label>
+                            {{ form.instructions }}
+                            {% if form.instructions.help_text %}
+                            <div class="form-text">{{ form.instructions.help_text }}</div>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-4">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    <i class="fas fa-toggle-on me-1"></i>
+                                    Activate this configuration
+                                </label>
+                                {% if form.is_active.help_text %}
+                                <div class="form-text">{{ form.is_active.help_text }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <div class="d-flex gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save me-2"></i>
+                                Save Configuration
+                            </button>
+                            <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>
+                                Cancel
+                            </a>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4">
+            <!-- Current Configuration Status -->
+            <div class="dashboard-card mb-4">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Configuration Status
+                    </h5>
+                </div>
+                <div class="card-body">
+                    {% if config %}
+                        <div class="mb-3">
+                            <div class="stat-title">Current Status</div>
+                            <div class="stat-value" style="font-size: 1.25rem;">
+                                {% if config.is_active %}
+                                    <span class="text-success">
+                                        <i class="fas fa-check-circle me-1"></i>
+                                        Active
+                                    </span>
+                                {% else %}
+                                    <span class="text-warning">
+                                        <i class="fas fa-pause-circle me-1"></i>
+                                        Inactive
+                                    </span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="stat-title">Account Name</div>
+                            <div class="stat-value" style="font-size: 1rem; color: var(--text-primary);">
+                                {{ config.account_name|default:"Not set" }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="stat-title">Phone Number</div>
+                            <div class="stat-value" style="font-size: 1rem; color: var(--text-primary);">
+                                {{ config.phone_number|default:"Not set" }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="stat-title">Last Updated</div>
+                            <div class="stat-value" style="font-size: 0.875rem; color: var(--text-secondary);">
+                                {{ config.updated_at|date:"M d, Y g:i A" }}
+                            </div>
+                        </div>
+                    {% else %}
+                        <div class="text-center py-4">
+                            <i class="fas fa-mobile-alt fa-3x mb-3" style="color: var(--text-muted);"></i>
+                            <p style="color: var(--text-secondary);">No GCash configuration found. Create one to get started.</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- QR Code Preview -->
+            {% if config and config.qr_code_image %}
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-qrcode me-2"></i>
+                        QR Code Preview
+                    </h5>
+                </div>
+                <div class="card-body text-center">
+                    <img src="{{ config.qr_code_image.url }}" 
+                         alt="GCash QR Code" 
+                         class="img-fluid rounded"
+                         style="max-width: 200px; border: 1px solid var(--ui-border);">
+                    <div class="mt-3">
+                        <small class="text-muted">
+                            This QR code will be shown to donors during the payment process.
+                        </small>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Help Information -->
+            <div class="dashboard-card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-question-circle me-2"></i>
+                        Help & Guidelines
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="mb-3">
+                        <h6 class="text-primary">
+                            <i class="fas fa-lightbulb me-1"></i>
+                            Configuration Tips
+                        </h6>
+                        <ul class="list-unstyled small">
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Use a clear, high-quality QR code image
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Ensure the phone number is correct and active
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Provide clear payment instructions
+                            </li>
+                            <li class="mb-2">
+                                <i class="fas fa-check text-success me-2"></i>
+                                Only one configuration can be active at a time
+                            </li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-info" style="font-size: 0.875rem;">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> Changes to the active configuration will immediately affect all donation processes.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Form styling to match dashboard design */
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control, .form-select {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    }
+    
+    .form-text {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .form-check-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    }
+    
+    .alert {
+        border-radius: var(--radius-sm);
+        border: none;
+        font-size: 0.875rem;
+    }
+    
+    .alert-danger {
+        background-color: #fef2f2;
+        color: #991b1b;
+        border-left: 4px solid var(--status-danger);
+    }
+    
+    .alert-info {
+        background-color: #eff6ff;
+        color: #1e40af;
+        border-left: 4px solid var(--status-info);
+    }
+</style>
+{% endblock %}

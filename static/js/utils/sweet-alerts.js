@@ -2,6 +2,9 @@
  * SweetAlert2 Utility Functions for Announcement Notifications
  * This file contains utility functions for displaying SweetAlert2 notifications
  * for announcement creation, updating, and deletion.
+ * 
+ * Updated: Fixed announcement button appearing on profile messages
+ * Version: 2.0
  */
 
 /**
@@ -198,31 +201,69 @@ function processDjangoMessages() {
         
         // Convert to SweetAlert based on message type and content
         if (messageType === 'success') {
-            if (messageText.includes('created')) {
-                showAnnouncementCreatedAlert(messageText);
-            } else if (messageText.includes('updated')) {
-                showAnnouncementUpdatedAlert(messageText);
-            } else if (messageText.includes('deleted')) {
-                showAnnouncementDeletedAlert(messageText);
+            console.log('Processing success message:', messageText);
+            
+            // Check if this is a profile-related message (should use generic alert)
+            const isProfileMessage = messageText.includes('Skill') || 
+                                   messageText.includes('Education') || 
+                                   messageText.includes('Work experience') || 
+                                   messageText.includes('Document') || 
+                                   messageText.includes('Career path') || 
+                                   messageText.includes('Achievement');
+            
+            // Only use announcement-specific alerts for actual announcement messages
+            if (!isProfileMessage && messageText.toLowerCase().includes('announcement') && (
+                messageText.includes('created') || 
+                messageText.includes('updated') || 
+                messageText.includes('deleted')
+            )) {
+                console.log('Using announcement-specific alert');
+                if (messageText.includes('created')) {
+                    showAnnouncementCreatedAlert(messageText);
+                } else if (messageText.includes('updated')) {
+                    showAnnouncementUpdatedAlert(messageText);
+                } else if (messageText.includes('deleted')) {
+                    showAnnouncementDeletedAlert(messageText);
+                }
             } else {
-                // Generic success message
+                console.log('Using generic success alert for:', isProfileMessage ? 'profile message' : 'non-announcement message');
+                // Generic success message for all other success messages
                 Swal.fire({
-                    ...defaultConfig,
                     icon: 'success',
                     title: 'Success!',
                     text: messageText,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#28a745',
+                    timer: 3000,
+                    timerProgressBar: true,
+                    showConfirmButton: true,
+                    toast: false,
+                    position: 'center'
                 });
             }
         } else if (messageType === 'error') {
-            showErrorAlert(messageText);
+            // Generic error message
+            Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: messageText,
+                confirmButtonText: 'OK',
+                confirmButtonColor: '#dc3545',
+                showConfirmButton: true,
+                toast: false,
+                position: 'center'
+            });
         } else {
             // For info and warning messages
             Swal.fire({
-                ...defaultConfig,
                 icon: messageType,
                 title: messageType.charAt(0).toUpperCase() + messageType.slice(1),
                 text: messageText,
                 confirmButtonText: 'OK',
+                confirmButtonColor: messageType === 'warning' ? '#ffc107' : '#17a2b8',
+                showConfirmButton: true,
+                toast: false,
+                position: 'center'
             });
         }
     }

@@ -40,6 +40,21 @@ urlpatterns = [
     path('bulk-export/', admin_views.bulk_export_interface, name='bulk_export_interface'),
     path('bulk-export/process/', admin_views.bulk_export_process, name='bulk_export_process'),
 
+    # Content Management URLs
+    path('cms/site-config/', admin_views.manage_site_config, name='manage_site_config'),
+    path('cms/page-sections/', admin_views.manage_page_sections, name='manage_page_sections'),
+    path('cms/page-sections/add/', admin_views.edit_page_section, name='add_page_section'),
+    path('cms/page-sections/<int:section_id>/edit/', admin_views.edit_page_section, name='edit_page_section'),
+    path('cms/page-sections/<int:section_id>/delete/', admin_views.delete_page_section, name='delete_page_section'),
+    path('cms/testimonials/', admin_views.manage_testimonials, name='manage_testimonials'),
+    path('cms/testimonials/add/', admin_views.edit_testimonial, name='add_testimonial'),
+    path('cms/testimonials/<int:testimonial_id>/edit/', admin_views.edit_testimonial, name='edit_testimonial'),
+    path('cms/testimonials/<int:testimonial_id>/delete/', admin_views.delete_testimonial, name='delete_testimonial'),
+    path('cms/staff-members/', admin_views.manage_staff_members, name='manage_staff_members'),
+    path('cms/staff-members/add/', admin_views.edit_staff_member, name='add_staff_member'),
+    path('cms/staff-members/<int:staff_id>/edit/', admin_views.edit_staff_member, name='edit_staff_member'),
+    path('cms/staff-members/<int:staff_id>/delete/', admin_views.delete_staff_member, name='delete_staff_member'),
+
     path('api/engagement-data/', views.engagement_data_api, name='engagement_data_api'),
     path('search/', views.search, name='search'),
     path('go-to-profile/', views.go_to_profile, name='go_to_profile'),
