@@ -19,13 +19,17 @@ from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
 
 class CustomLoginForm(LoginForm):
-    """Custom login form with conditional reCAPTCHA protection"""
+    """Custom login form with reCAPTCHA protection"""
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Only add reCAPTCHA if it's enabled and configured
-        if getattr(settings, 'RECAPTCHA_ENABLED', False):
+        # Only add reCAPTCHA if it's properly configured
+        if (hasattr(settings, 'RECAPTCHA_PUBLIC_KEY') and 
+            settings.RECAPTCHA_PUBLIC_KEY and 
+            hasattr(settings, 'RECAPTCHA_PRIVATE_KEY') and 
+            settings.RECAPTCHA_PRIVATE_KEY):
+            
             self.fields['captcha'] = ReCaptchaField(
                 widget=ReCaptchaV3(
                     attrs={
@@ -65,25 +69,24 @@ class CustomSignupForm(SignupForm):
         }),
         help_text="Enter the 6-digit code sent to your email"
     )
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Make password fields required for validation
         self.fields['password1'].required = True
         self.fields['password2'].required = True
-        
-        # Only add reCAPTCHA if it's enabled and configured
-        if getattr(settings, 'RECAPTCHA_ENABLED', False):
-            self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification'
-            )
 
     def clean_password1(self):
         password1 = self.cleaned_data.get('password1')

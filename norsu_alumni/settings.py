@@ -474,19 +474,16 @@ CKEDITOR_CONFIGS = {
 DEFAULT_HTTP_PROTOCOL = 'http'
 
 # reCAPTCHA Settings
-# Make reCAPTCHA conditional - only enable if properly configured
-RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='')
-RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='')
+# reCAPTCHA configuration
+RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg')
+RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='6Le7kesrAAAAAKldE5dZ2n4_Hwe1n7wmnginjNmD')
 RECAPTCHA_REQUIRED_SCORE = 0.5  # For reCAPTCHA v3
 RECAPTCHA_DOMAIN = 'www.google.com'  # Use www.recaptcha.net for China
 
-# Disable reCAPTCHA if keys are not configured or if setup is not complete
-RECAPTCHA_ENABLED = bool(RECAPTCHA_PUBLIC_KEY and RECAPTCHA_PRIVATE_KEY)
-SETUP_COMPLETE = config('SETUP_COMPLETE', default='false', cast=bool)
-
-# If setup is not complete, disable reCAPTCHA to allow admin login
-if not SETUP_COMPLETE:
-    RECAPTCHA_ENABLED = False
+# Disable reCAPTCHA in development or if keys are not properly configured
+if DEBUG or not RECAPTCHA_PUBLIC_KEY or not RECAPTCHA_PRIVATE_KEY:
+    RECAPTCHA_PUBLIC_KEY = ''
+    RECAPTCHA_PRIVATE_KEY = ''
 
 # Django Allauth Custom Forms
 ACCOUNT_FORMS = {
