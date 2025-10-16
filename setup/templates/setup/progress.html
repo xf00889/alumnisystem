@@ -1,0 +1,99 @@
+{% extends 'setup/base_setup.html' %}
+
+{% block title %}Setup Progress - Setup{% endblock %}
+
+{% block content %}
+<div class="text-center">
+    <h2 class="mb-4">
+        <i class="fas fa-tasks text-primary me-2"></i>
+        Setup Progress
+    </h2>
+    
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-cog fa-3x text-primary mb-3"></i>
+                    <h5>Environment Setup</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar {% if progress.environment_setup %}bg-success{% else %}bg-warning{% endif %}" 
+                             style="width: {% if progress.environment_setup %}100{% else %}50{% endif %}%"></div>
+                    </div>
+                    <p class="small text-muted">
+                        {% if progress.environment_setup %}
+                            <i class="fas fa-check text-success"></i> Complete
+                        {% else %}
+                            <i class="fas fa-exclamation-triangle text-warning"></i> In Progress
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-database fa-3x text-primary mb-3"></i>
+                    <h5>Database</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar {% if progress.database_available %}bg-success{% else %}bg-warning{% endif %}" 
+                             style="width: {% if progress.database_available %}100{% else %}50{% endif %}%"></div>
+                    </div>
+                    <p class="small text-muted">
+                        {% if progress.database_available %}
+                            <i class="fas fa-check text-success"></i> Connected
+                        {% else %}
+                            <i class="fas fa-exclamation-triangle text-warning"></i> Connecting
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-check-circle fa-3x text-primary mb-3"></i>
+                    <h5>Setup Complete</h5>
+                    <div class="progress mb-2">
+                        <div class="progress-bar {% if progress.setup_complete %}bg-success{% else %}bg-warning{% endif %}" 
+                             style="width: {% if progress.setup_complete %}100{% else %}0{% endif %}%"></div>
+                    </div>
+                    <p class="small text-muted">
+                        {% if progress.setup_complete %}
+                            <i class="fas fa-check text-success"></i> Complete
+                        {% else %}
+                            <i class="fas fa-clock text-warning"></i> Pending
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert alert-info">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Overall Progress:</strong> {{ progress.overall_progress|floatformat:0 }}%
+    </div>
+    
+    {% if not progress.setup_complete %}
+    <div class="mt-4">
+        <a href="{% url 'setup:welcome' %}" class="btn btn-primary">
+            <i class="fas fa-play me-2"></i>Continue Setup
+        </a>
+    </div>
+    {% else %}
+    <div class="mt-4">
+        <a href="{% url 'admin:index' %}" class="btn btn-success me-3">
+            <i class="fas fa-cog me-2"></i>Admin Panel
+        </a>
+        <a href="{% url 'core:home' %}" class="btn btn-primary">
+            <i class="fas fa-home me-2"></i>View Site
+        </a>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block navigation %}
+{% endblock %}

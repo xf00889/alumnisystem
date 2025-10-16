@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Setup - NORSU Alumni System{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .setup-container {
+            min-height: 100vh;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        .setup-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+        }
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+        }
+        .step-indicator {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 2rem;
+        }
+        .step {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 10px;
+            font-weight: bold;
+            transition: all 0.3s ease;
+        }
+        .step.active {
+            background: #007bff;
+            color: white;
+        }
+        .step.completed {
+            background: #28a745;
+            color: white;
+        }
+        .step.pending {
+            background: #e9ecef;
+            color: #6c757d;
+        }
+        .form-control:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+        }
+        .btn-primary {
+            background: linear-gradient(45deg, #007bff, #0056b3);
+            border: none;
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+        .btn-secondary {
+            border-radius: 25px;
+            padding: 12px 30px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="setup-container d-flex align-items-center justify-content-center py-5">
+        <div class="container">
+            <div class="row justify-content-center">
+                <div class="col-lg-8 col-xl-6">
+                    <div class="setup-card p-5">
+                        <!-- Header -->
+                        <div class="text-center mb-4">
+                            <h1 class="h3 mb-3">
+                                <i class="fas fa-cog text-primary me-2"></i>
+                                Setup Wizard
+                            </h1>
+                            <p class="text-muted">Configure your NORSU Alumni System</p>
+                        </div>
+
+                        <!-- Progress Bar -->
+                        {% if progress %}
+                        <div class="mb-4">
+                            <div class="d-flex justify-content-between mb-2">
+                                <small class="text-muted">Setup Progress</small>
+                                <small class="text-muted">{{ progress.overall_progress|floatformat:0 }}%</small>
+                            </div>
+                            <div class="progress">
+                                <div class="progress-bar bg-primary" role="progressbar" 
+                                     style="width: {{ progress.overall_progress }}%"></div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Step Indicator -->
+                        <div class="step-indicator">
+                            <div class="step {% if request.resolver_match.url_name == 'welcome' %}active{% elif progress.setup_complete %}completed{% else %}pending{% endif %}">
+                                <i class="fas fa-home"></i>
+                            </div>
+                            <div class="step {% if request.resolver_match.url_name == 'basic_config' %}active{% elif progress.setup_complete %}completed{% else %}pending{% endif %}">
+                                <i class="fas fa-cog"></i>
+                            </div>
+                            <div class="step {% if request.resolver_match.url_name == 'email_config' %}active{% elif progress.setup_complete %}completed{% else %}pending{% endif %}">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="step {% if request.resolver_match.url_name == 'superuser_setup' %}active{% elif progress.setup_complete %}completed{% else %}pending{% endif %}">
+                                <i class="fas fa-user-shield"></i>
+                            </div>
+                            <div class="step {% if request.resolver_match.url_name == 'complete' %}active{% elif progress.setup_complete %}completed{% else %}pending{% endif %}">
+                                <i class="fas fa-check"></i>
+                            </div>
+                        </div>
+
+                        <!-- Messages -->
+                        {% if messages %}
+                            {% for message in messages %}
+                                <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                    {{ message }}
+                                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                                </div>
+                            {% endfor %}
+                        {% endif %}
+
+                        <!-- Content -->
+                        {% block content %}
+                        {% endblock %}
+
+                        <!-- Navigation -->
+                        {% block navigation %}
+                        <div class="d-flex justify-content-between mt-4">
+                            <a href="{% url 'setup:welcome' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left me-2"></i>Back
+                            </a>
+                            <div>
+                                {% block next_button %}
+                                <a href="{% url 'setup:basic_config' %}" class="btn btn-primary">
+                                    Next<i class="fas fa-arrow-right ms-2"></i>
+                                </a>
+                                {% endblock %}
+                            </div>
+                        </div>
+                        {% endblock %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    {% block extra_js %}
+    {% endblock %}
+</body>
+</html>

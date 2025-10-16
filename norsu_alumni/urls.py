@@ -12,6 +12,8 @@ def profile_search_connected_users(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # Setup URLs - must be before other URLs to catch setup redirects
+    path('setup/', include('setup.urls')),
     # Handle old profile API endpoint by calling the accounts API view
     path('profile/api/search-connected-users/', profile_search_connected_users, name='profile_search_connected_users'),
     # Removed redundant signup page - signup is now handled in the tabbed login page

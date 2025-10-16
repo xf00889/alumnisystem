@@ -1,0 +1,111 @@
+{% extends 'setup/base_setup.html' %}
+
+{% block title %}Basic Configuration - Setup{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="mb-3">
+        <i class="fas fa-cog text-primary me-2"></i>
+        Basic Configuration
+    </h2>
+    <p class="text-muted">Configure the basic settings for your alumni system.</p>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.site_name.id_for_label }}" class="form-label">
+                <i class="fas fa-globe me-1"></i>Site Name *
+            </label>
+            {{ form.site_name }}
+            {% if form.site_name.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.site_name.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">{{ form.site_name.help_text }}</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.admin_email.id_for_label }}" class="form-label">
+                <i class="fas fa-envelope me-1"></i>Admin Email *
+            </label>
+            {{ form.admin_email }}
+            {% if form.admin_email.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.admin_email.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">{{ form.admin_email.help_text }}</div>
+        </div>
+    </div>
+    
+    <div class="mb-3">
+        <label for="{{ form.site_description.id_for_label }}" class="form-label">
+            <i class="fas fa-align-left me-1"></i>Site Description
+        </label>
+        {{ form.site_description }}
+        {% if form.site_description.errors %}
+            <div class="text-danger small mt-1">
+                {% for error in form.site_description.errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="form-text">{{ form.site_description.help_text }}</div>
+    </div>
+    
+    <div class="mb-4">
+        <label for="{{ form.timezone.id_for_label }}" class="form-label">
+            <i class="fas fa-clock me-1"></i>Timezone *
+        </label>
+        {{ form.timezone }}
+        {% if form.timezone.errors %}
+            <div class="text-danger small mt-1">
+                {% for error in form.timezone.errors %}
+                    <div>{{ error }}</div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        <div class="form-text">{{ form.timezone.help_text }}</div>
+    </div>
+    
+    <div class="alert alert-info">
+        <i class="fas fa-lightbulb me-2"></i>
+        <strong>Tip:</strong> You can change these settings later from the admin panel.
+    </div>
+</form>
+{% endblock %}
+
+{% block navigation %}
+<div class="d-flex justify-content-between mt-4">
+    <a href="{% url 'setup:welcome' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back
+    </a>
+    <button type="submit" form="{% if form %}{{ form.form_id }}{% endif %}" class="btn btn-primary">
+        Next<i class="fas fa-arrow-right ms-2"></i>
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.querySelector('form');
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Saving...';
+        });
+    }
+});
+</script>
+{% endblock %}

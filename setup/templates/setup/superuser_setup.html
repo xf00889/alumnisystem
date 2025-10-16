@@ -1,0 +1,244 @@
+{% extends 'setup/base_setup.html' %}
+
+{% block title %}Admin Account Setup - Setup{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <h2 class="mb-3">
+        <i class="fas fa-user-shield text-primary me-2"></i>
+        Admin Account Setup
+    </h2>
+    <p class="text-muted">Create your administrator account to manage the system.</p>
+</div>
+
+<form method="post" id="superuserForm">
+    {% csrf_token %}
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.username.id_for_label }}" class="form-label">
+                <i class="fas fa-user me-1"></i>Username *
+            </label>
+            {{ form.username }}
+            {% if form.username.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.username.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">{{ form.username.help_text }}</div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.email.id_for_label }}" class="form-label">
+                <i class="fas fa-envelope me-1"></i>Email Address *
+            </label>
+            {{ form.email }}
+            {% if form.email.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.email.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">{{ form.email.help_text }}</div>
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.first_name.id_for_label }}" class="form-label">
+                <i class="fas fa-id-card me-1"></i>First Name
+            </label>
+            {{ form.first_name }}
+            {% if form.first_name.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.first_name.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.last_name.id_for_label }}" class="form-label">
+                <i class="fas fa-id-card me-1"></i>Last Name
+            </label>
+            {{ form.last_name }}
+            {% if form.last_name.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.last_name.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.password1.id_for_label }}" class="form-label">
+                <i class="fas fa-lock me-1"></i>Password *
+            </label>
+            {{ form.password1 }}
+            {% if form.password1.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.password1.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">{{ form.password1.help_text }}</div>
+            
+            <!-- Password strength indicator -->
+            <div class="mt-2">
+                <div class="progress" style="height: 5px;">
+                    <div class="progress-bar" id="passwordStrength" role="progressbar" style="width: 0%"></div>
+                </div>
+                <small class="text-muted" id="passwordStrengthText">Password strength</small>
+            </div>
+        </div>
+        
+        <div class="col-md-6 mb-3">
+            <label for="{{ form.password2.id_for_label }}" class="form-label">
+                <i class="fas fa-lock me-1"></i>Confirm Password *
+            </label>
+            {{ form.password2 }}
+            {% if form.password2.errors %}
+                <div class="text-danger small mt-1">
+                    {% for error in form.password2.errors %}
+                        <div>{{ error }}</div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+            <div class="form-text">{{ form.password2.help_text }}</div>
+            
+            <!-- Password match indicator -->
+            <div class="mt-2">
+                <small id="passwordMatch" class="text-muted">Passwords must match</small>
+            </div>
+        </div>
+    </div>
+    
+    <div class="alert alert-warning">
+        <i class="fas fa-exclamation-triangle me-2"></i>
+        <strong>Important:</strong> This account will have full administrative access to your system. 
+        Make sure to use a strong password and keep it secure.
+    </div>
+    
+    <div class="alert alert-info">
+        <i class="fas fa-lightbulb me-2"></i>
+        <strong>Tip:</strong> You can create additional admin accounts later from the admin panel.
+    </div>
+</form>
+{% endblock %}
+
+{% block navigation %}
+<div class="d-flex justify-content-between mt-4">
+    <a href="{% url 'setup:email_config' %}" class="btn btn-secondary">
+        <i class="fas fa-arrow-left me-2"></i>Back
+    </a>
+    <button type="submit" form="superuserForm" class="btn btn-primary">
+        <i class="fas fa-user-plus me-2"></i>Create Admin Account
+    </button>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const password1 = document.getElementById('{{ form.password1.id_for_label }}');
+    const password2 = document.getElementById('{{ form.password2.id_for_label }}');
+    const strengthBar = document.getElementById('passwordStrength');
+    const strengthText = document.getElementById('passwordStrengthText');
+    const matchText = document.getElementById('passwordMatch');
+    const form = document.getElementById('superuserForm');
+    const submitBtn = document.querySelector('button[type="submit"]');
+    
+    // Password strength checker
+    function checkPasswordStrength(password) {
+        let strength = 0;
+        let feedback = [];
+        
+        if (password.length >= 8) strength += 20;
+        else feedback.push('at least 8 characters');
+        
+        if (/[a-z]/.test(password)) strength += 20;
+        else feedback.push('lowercase letters');
+        
+        if (/[A-Z]/.test(password)) strength += 20;
+        else feedback.push('uppercase letters');
+        
+        if (/\d/.test(password)) strength += 20;
+        else feedback.push('numbers');
+        
+        if (/[^a-zA-Z\d]/.test(password)) strength += 20;
+        else feedback.push('special characters');
+        
+        return { strength, feedback };
+    }
+    
+    // Update password strength indicator
+    password1.addEventListener('input', function() {
+        const password = this.value;
+        const result = checkPasswordStrength(password);
+        
+        strengthBar.style.width = result.strength + '%';
+        
+        if (result.strength < 40) {
+            strengthBar.className = 'progress-bar bg-danger';
+            strengthText.textContent = 'Weak password';
+        } else if (result.strength < 80) {
+            strengthBar.className = 'progress-bar bg-warning';
+            strengthText.textContent = 'Medium strength';
+        } else {
+            strengthBar.className = 'progress-bar bg-success';
+            strengthText.textContent = 'Strong password';
+        }
+        
+        if (result.feedback.length > 0) {
+            strengthText.textContent += ' (needs: ' + result.feedback.join(', ') + ')';
+        }
+    });
+    
+    // Check password match
+    function checkPasswordMatch() {
+        const p1 = password1.value;
+        const p2 = password2.value;
+        
+        if (p2.length === 0) {
+            matchText.textContent = 'Passwords must match';
+            matchText.className = 'text-muted';
+        } else if (p1 === p2) {
+            matchText.textContent = 'Passwords match';
+            matchText.className = 'text-success';
+        } else {
+            matchText.textContent = 'Passwords do not match';
+            matchText.className = 'text-danger';
+        }
+    }
+    
+    password1.addEventListener('input', checkPasswordMatch);
+    password2.addEventListener('input', checkPasswordMatch);
+    
+    // Form submission
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(e) {
+            const p1 = password1.value;
+            const p2 = password2.value;
+            
+            if (p1 !== p2) {
+                e.preventDefault();
+                matchText.textContent = 'Passwords do not match';
+                matchText.className = 'text-danger';
+                return;
+            }
+            
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+        });
+    }
+});
+</script>
+{% endblock %}

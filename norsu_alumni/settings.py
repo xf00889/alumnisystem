@@ -71,7 +71,8 @@ INSTALLED_APPS = [
     'location_tracking',
     'mentorship',
     'jobs',
-    'donations'
+    'donations',
+    'setup'  # Setup app for automated deployment configuration
 ]
 
 MIDDLEWARE = [
@@ -85,6 +86,8 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'setup.middleware.SetupProgressMiddleware',  # Add setup progress to context
+    'setup.middleware.SetupRequiredMiddleware',  # Redirect to setup if incomplete
 ]
 
 ROOT_URLCONF = 'norsu_alumni.urls'
@@ -102,6 +105,9 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.site_configuration',
                 'core.context_processors.dynamic_content',
+                'setup.context_processors.setup_status',
+                'setup.context_processors.site_config',
+                'setup.context_processors.setup_navigation',
             ],
         },
     },
