@@ -86,26 +86,3 @@ class SetupRequiredMiddleware:
             return False
 
 
-class SetupProgressMiddleware:
-    """
-    Middleware to add setup progress information to request context.
-    """
-    
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # Add setup progress to request
-        try:
-            from .utils import get_setup_progress
-            request.setup_progress = get_setup_progress()
-        except Exception as e:
-            logger.error(f"Error getting setup progress: {e}")
-            request.setup_progress = {
-                'environment_setup': False,
-                'database_available': False,
-                'setup_complete': False,
-                'overall_progress': 0
-            }
-        
-        return self.get_response(request)

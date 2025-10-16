@@ -91,34 +91,3 @@ def check_environment_setup():
     }
 
 
-def get_setup_progress():
-    """
-    Get the current setup progress.
-    Returns a dict with progress information.
-    """
-    progress = {
-        'environment_setup': False,
-        'database_available': False,
-        'setup_complete': False,
-        'overall_progress': 0
-    }
-    
-    # Check environment setup
-    env_check = check_environment_setup()
-    progress['environment_setup'] = env_check['complete']
-    
-    # Check database availability
-    progress['database_available'] = is_database_available()
-    
-    # Check setup completion
-    progress['setup_complete'] = is_setup_complete()
-    
-    # Calculate overall progress
-    completed_steps = sum([
-        progress['environment_setup'],
-        progress['database_available'],
-        progress['setup_complete']
-    ])
-    progress['overall_progress'] = (completed_steps / 3) * 100
-    
-    return progress

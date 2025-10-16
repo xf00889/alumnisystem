@@ -95,7 +95,6 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'setup.middleware.SetupProgressMiddleware',  # Add setup progress to context
     'setup.middleware.SetupRequiredMiddleware',  # Redirect to setup if incomplete
 ]
 
