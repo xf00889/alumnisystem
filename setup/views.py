@@ -154,9 +154,23 @@ class SuperuserSetupView(FormView):
             return super().form_valid(form)
             
         except Exception as e:
-            logger.error(f'Failed to create superuser: {e}')
-            messages.error(self.request, f'Failed to create superuser: {e}')
-            return self.form_invalid(form)
+            logger.warning(f'Database not ready for superuser creation: {e}')
+            
+            # Store superuser info in session for later creation
+            setup_data = self.request.session.get('setup_data', {})
+            setup_data['superuser'] = {
+                'username': form.cleaned_data['username'],
+                'email': form.cleaned_data['email'],
+                'password': form.cleaned_data['password1'],
+                'first_name': form.cleaned_data.get('first_name', ''),
+                'last_name': form.cleaned_data.get('last_name', ''),
+                'created': False,
+                'pending': True
+            }
+            self.request.session['setup_data'] = setup_data
+            
+            messages.warning(self.request, 'Superuser information saved. Will be created after database setup is complete.')
+            return super().form_valid(form)
 
 
 class SetupCompleteView(TemplateView):
@@ -190,6 +204,26 @@ class SetupCompleteView(TemplateView):
                 'completion_timestamp': timezone.now().isoformat(),
                 'completed_by': 'setup_wizard'
             }
+            
+            # Create pending superuser if needed
+            superuser_data = setup_data.get('superuser', {})
+            if superuser_data.get('pending', False):
+                try:
+                    from django.contrib.auth.models import User
+                    user = User.objects.create_superuser(
+                        username=superuser_data['username'],
+                        email=superuser_data['email'],
+                        password=superuser_data['password'],
+                        first_name=superuser_data.get('first_name', ''),
+                        last_name=superuser_data.get('last_name', '')
+                    )
+                    logger.info(f'Pending superuser "{user.username}" created successfully')
+                    # Update the setup data to reflect creation
+                    final_setup_data['superuser']['created'] = True
+                    final_setup_data['superuser']['pending'] = False
+                except Exception as e:
+                    logger.error(f'Failed to create pending superuser: {e}')
+                    messages.warning(self.request, f'Superuser creation failed: {e}')
             
             # Mark setup as complete
             setup_state.mark_complete(final_setup_data)
