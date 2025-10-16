@@ -5,6 +5,9 @@ app_name = 'jobs'
 
 urlpatterns = [
     path('', views.job_list, name='job_list'),
+    path('careers/', views.careers, name='careers'),
+    path('job/<int:job_id>/details/', views.get_job_details, name='get_job_details'),
+    path('job/<int:job_id>/check-eligibility/', views.check_job_application_eligibility, name='check_job_application_eligibility'),
     path('manage/', views.manage_jobs, name='manage_jobs'),
     path('post/', views.post_job, name='post_job'),
     path('bulk-update/', views.bulk_update_jobs, name='bulk_update_jobs'),

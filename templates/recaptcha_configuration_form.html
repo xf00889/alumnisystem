@@ -1,0 +1,393 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-hover: #1d4ed8;
+        --secondary-color: #64748b;
+        --accent-color: #0ea5e9;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --info-color: #3b82f6;
+        
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-light: #ffffff;
+        --text-muted: #94a3b8;
+        
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        
+        --ui-border: #e2e8f0;
+        --ui-hover: #f8fafc;
+        --ui-focus: #dbeafe;
+        
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+    }
+
+    .container-fluid {
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
+    .dashboard-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        background-color: var(--bg-primary);
+        transition: all 0.3s ease;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #475569;
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-cancel {
+        background: var(--text-muted);
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background: #64748b;
+        color: white;
+        text-decoration: none;
+    }
+
+    .version-info {
+        background: var(--bg-accent);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .version-info h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+    }
+
+    .version-info p {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background-color: #dbeafe;
+        border-color: #93c5fd;
+        color: #1e40af;
+    }
+
+    .alert-warning {
+        background-color: #fef3c7;
+        border-color: #fcd34d;
+        color: #92400e;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-shield-alt"></i> {{ page_title }}</h1>
+        <p>Configure reCAPTCHA settings for spam protection and security</p>
+    </div>
+
+    <!-- Configuration Form -->
+    <div class="dashboard-card">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="name">Configuration Name</label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{% if config %}{{ config.name }}{% endif %}" required>
+                <div class="help-text">A descriptive name for this reCAPTCHA configuration</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="version">reCAPTCHA Version</label>
+                <input type="text" class="form-control" id="version" name="version" value="v3" readonly>
+                <div class="help-text">reCAPTCHA v3 is the only supported version</div>
+            </div>
+
+            <div class="version-info">
+                <h6>reCAPTCHA v3</h6>
+                <p>Score-based reCAPTCHA that returns a score (0.0-1.0) without user interaction. Best for modern applications.</p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="site_key">Site Key</label>
+                <input type="text" class="form-control" id="site_key" name="site_key" 
+                       value="{% if config %}{{ config.site_key }}{% endif %}" required>
+                <div class="help-text">Your reCAPTCHA site key from Google reCAPTCHA console</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="secret_key">Secret Key</label>
+                <input type="password" class="form-control" id="secret_key" name="secret_key" 
+                       value="{% if config %}{{ config.secret_key }}{% endif %}" required>
+                <div class="help-text">Your reCAPTCHA secret key from Google reCAPTCHA console</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="threshold">Score Threshold</label>
+                <input type="number" class="form-control" id="threshold" name="threshold" 
+                       value="{% if config %}{{ config.threshold }}{% else %}0.5{% endif %}" 
+                       min="0" max="1" step="0.1" required>
+                <div class="help-text">Score threshold for reCAPTCHA v3 (0.0 to 1.0, where 1.0 is very likely a good interaction)</div>
+            </div>
+
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                       {% if not config or config.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="is_active">
+                    Active Configuration
+                </label>
+            </div>
+            <div class="help-text">Only one configuration can be active at a time. Activating this will deactivate others.</div>
+
+            <div class="form-actions">
+                <a href="{% url 'core:recaptcha_configuration_list' %}" class="btn btn-cancel">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Information Card -->
+    <div class="dashboard-card">
+        <h3 class="mb-3"><i class="fas fa-info-circle"></i> Getting reCAPTCHA v3 Keys</h3>
+        <div class="alert alert-info">
+            <h6><i class="fas fa-lightbulb"></i> How to get your reCAPTCHA v3 keys:</h6>
+            <ol class="mb-0">
+                <li>Visit the <a href="https://www.google.com/recaptcha/admin" target="_blank">Google reCAPTCHA Admin Console</a></li>
+                <li>Click "Create" to add a new site</li>
+                <li>Enter your site details:
+                    <ul>
+                        <li><strong>Label:</strong> NORSU Alumni System</li>
+                        <li><strong>reCAPTCHA type:</strong> reCAPTCHA v3</li>
+                        <li><strong>Domains:</strong> Add your domain (e.g., localhost, 127.0.0.1 for development)</li>
+                    </ul>
+                </li>
+                <li>Accept the Terms of Service and click "Submit"</li>
+                <li>Copy the Site Key and Secret Key to the form above</li>
+            </ol>
+        </div>
+        
+        <div class="alert alert-warning">
+            <h6><i class="fas fa-exclamation-triangle"></i> Important Notes:</h6>
+            <ul class="mb-0">
+                <li><strong>Score Threshold:</strong> 0.5 is recommended for most applications</li>
+                <li><strong>Lower threshold (0.3):</strong> More permissive, may allow some bots</li>
+                <li><strong>Higher threshold (0.7):</strong> More strict, may block legitimate users</li>
+                <li><strong>Testing:</strong> Use the test button to verify your configuration</li>
+            </ul>
+        </div>
+    </div>
+</div>
+
+<script>
+
+// Show alerts for Django messages
+{% if messages %}
+    {% for message in messages %}
+        {% if message.tags == 'success' %}
+            showAlert('{{ message }}', 'success');
+        {% elif message.tags == 'error' %}
+            showAlert('{{ message }}', 'danger');
+        {% elif message.tags == 'warning' %}
+            showAlert('{{ message }}', 'warning');
+        {% else %}
+            showAlert('{{ message }}', 'info');
+        {% endif %}
+    {% endfor %}
+{% endif %}
+
+function showAlert(message, type) {
+    const alertDiv = document.createElement('div');
+    alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
+    alertDiv.innerHTML = `
+        ${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    const container = document.querySelector('.container-fluid');
+    container.insertBefore(alertDiv, container.firstChild);
+    
+    // Auto-dismiss after 5 seconds
+    setTimeout(() => {
+        if (alertDiv.parentNode) {
+            alertDiv.remove();
+        }
+    }, 5000);
+}
+</script>
+{% endblock %}

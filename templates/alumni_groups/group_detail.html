@@ -785,7 +785,7 @@
                             <div class="card border-0 shadow-sm member-card">
                                 <div class="card-body p-3">
                                     <div class="d-flex align-items-center gap-3">
-                                        <img src="{% if membership.user.profile.avatar %}{{ membership.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                        <img src="{% if membership.user.profile.avatar %}{{ membership.user.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                              alt="{{ membership.user.get_full_name }}"
                                              class="member-avatar">
                                         <div class="member-info flex-grow-1">
@@ -869,7 +869,7 @@
                             <div class="card border-0 shadow-sm">
                                 <div class="card-body">
                                     <div class="d-flex gap-3">
-                                        <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                        <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                              alt="{{ user.get_full_name }}"
                                              class="rounded-circle"
                                              style="width: 40px; height: 40px;">
@@ -904,7 +904,7 @@
                                         {% if post.status == 'PENDING' %}
                                         <div class="pending-post-item mb-4" id="post-{{ post.id }}">
                                             <div class="d-flex gap-3 mb-3">
-                                                <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                                <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                                      alt="{{ post.author.get_full_name }}"
                                                      class="rounded-circle"
                                                      style="width: 48px; height: 48px;">
@@ -939,7 +939,7 @@
                             <div class="card border-0 shadow-sm mb-4 post-card" id="post-{{ post.id }}">
                                 <div class="card-body">
                                     <div class="d-flex gap-3 mb-3">
-                                        <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                        <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                              alt="{{ post.author.get_full_name }}"
                                              class="rounded-circle"
                                              style="width: 48px; height: 48px;">
@@ -967,7 +967,7 @@
                                         <div class="comments-list mb-3">
                                             {% for comment in post.comments.all %}
                                             <div class="comment d-flex gap-2 mb-2">
-                                                <img src="{% if comment.author.profile.avatar %}{{ comment.author.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                                <img src="{% if comment.author.profile.avatar %}{{ comment.author.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                                      alt="{{ comment.author.get_full_name }}"
                                                      class="rounded-circle"
                                                      style="width: 32px; height: 32px;">
@@ -985,7 +985,7 @@
                                         <form class="comment-form" data-post-id="{{ post.id }}">
                                             {% csrf_token %}
                                             <div class="d-flex gap-2">
-                                                <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                                <img src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                                      alt="{{ user.get_full_name }}"
                                                      class="rounded-circle"
                                                      style="width: 32px; height: 32px;">
@@ -1021,7 +1021,7 @@
                         <div class="chat-messages" id="chatMessages">
                             {% for message in group_messages %}
                             <div class="message {% if message.user == user %}sent{% endif %}">
-                                <img src="{% if message.user.profile.avatar %}{{ message.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                <img src="{% if message.user.profile.avatar %}{{ message.user.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                      alt="{{ message.user.get_full_name }}"
                                      class="message-avatar">
                                 <div class="message-content">
@@ -1159,13 +1159,13 @@
         // Member management functions
         async function loadMemberDetails(membershipId) {
             try {
-                const response = await fetch(`/alumni-groups/api/member/${membershipId}/`);
+                const response = await fetch(`/groups/api/member/${membershipId}/`);
                 const data = await response.json();
                 
                 // Update modal content
                 document.getElementById('modalMemberName').textContent = data.name;
                 document.getElementById('modalMemberEmail').textContent = data.email;
-                document.getElementById('modalMemberAvatar').src = data.avatar_url || '/static/images/default-avatar.jpg';
+                document.getElementById('modalMemberAvatar').src = data.avatar_url || '/static/images/default-avatar.png';
                 
                 const statusBadge = document.getElementById('modalMemberStatus');
                 statusBadge.textContent = data.status;
@@ -1207,7 +1207,7 @@
         async function updateMemberStatus(membershipId, action) {
             try {
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-                const response = await fetch(`/alumni-groups/api/member/${membershipId}/status/`, {
+                const response = await fetch(`/groups/api/member/${membershipId}/status/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -1216,10 +1216,18 @@
                     body: JSON.stringify({ action })
                 });
                 
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response received:', text);
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}. This might be a server error or permission issue.`);
+                }
+                
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Failed to update member status');
+                    throw new Error(data.message || data.error || 'Failed to update member status');
                 }
                 
                 // Show success message
@@ -1228,7 +1236,7 @@
                 // Refresh the page to show updated member list
                 window.location.reload();
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error updating member status:', error);
                 alert(error.message || 'Failed to update member status');
             }
 
@@ -1414,7 +1422,7 @@
                 button.addEventListener('click', async function() {
                     const postId = this.dataset.postId;
                     try {
-                        const response = await fetch(`/alumni-groups/api/post/${postId}/like/`, {
+                        const response = await fetch(`/groups/api/post/${postId}/like/`, {
                             method: 'POST',
                             headers: {
                                 'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
@@ -1447,7 +1455,7 @@
                     const originalContent = input.value;
                     
                     try {
-                        const response = await fetch(`/alumni-groups/api/post/${postId}/comment/`, {
+                        const response = await fetch(`/groups/api/post/${postId}/comment/`, {
                             method: 'POST',
                             body: new FormData(this),
                             headers: {
@@ -1459,7 +1467,7 @@
                             input.value = '';
                             
                             // Refresh comments
-                            const commentsResponse = await fetch(`/alumni-groups/api/post/${postId}/comments/`);
+                            const commentsResponse = await fetch(`/groups/api/post/${postId}/comments/`);
                             if (commentsResponse.ok) {
                                 const commentsHtml = await commentsResponse.text();
                                 const commentsList = document.querySelector(`#comments-${postId} .comments-list`);
@@ -1493,7 +1501,7 @@
                     
                     if (commentsSection.style.display === 'none') {
                         try {
-                            const response = await fetch(`/alumni-groups/api/post/${postId}/comments/`);
+                            const response = await fetch(`/groups/api/post/${postId}/comments/`);
                             if (response.ok) {
                                 const commentsHtml = await response.text();
                                 const commentsList = commentsSection.querySelector('.comments-list');
@@ -1523,7 +1531,7 @@
                     formData.append('action', action);
                     formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
                     
-                    const response = await fetch(`/alumni-groups/api/post/${postId}/approve/`, {
+                    const response = await fetch(`/groups/api/post/${postId}/approve/`, {
                         method: 'POST',
                         body: formData
                     });

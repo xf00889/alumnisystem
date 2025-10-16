@@ -72,6 +72,7 @@ class JobPosting(models.Model):
         ('other', 'Other')
     ]
 
+
     job_title = models.CharField(max_length=200)
     slug = models.SlugField(max_length=250, unique=True, blank=True)
     company_name = models.CharField(max_length=200)

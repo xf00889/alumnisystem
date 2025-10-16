@@ -675,6 +675,9 @@
                 </div>
 
                 <script>
+                // Cache bust: Updated 2025-01-13 - Fixed API endpoint URLs
+                // Version: 3.0 - All URLs corrected to use /accounts/api/
+                // Force cache refresh: {{ "now"|date:"Y-m-d H:i:s" }}
                 // Immediate test function
                 function toggleNewMessageInterface() {
                     console.log('=== toggleNewMessageInterface called ===');
@@ -709,7 +712,7 @@
                     }
                 }
 
-                // Search functionality
+                // Search functionality - Updated to use correct API endpoint
                 function performInlineUserSearch() {
                     console.log('=== performInlineUserSearch called ===');
 
@@ -743,8 +746,18 @@
                     searchResults.style.display = 'block';
 
                     // Make API call
-                    const apiUrl = `/profile/api/search-connected-users/?q=${encodeURIComponent(query)}`;
+                    const apiUrl = `/accounts/api/search-connected-users/?q=${encodeURIComponent(query)}`;
                     console.log('Making API call to:', apiUrl);
+                    console.log('URL should be /accounts/api/search-connected-users/ - NOT /profile/api/search-connected-users/');
+                    console.log('If you see /profile/api/ in the URL above, your browser is using cached JavaScript. Please clear cache!');
+                    
+                    // Check if we're using the wrong URL and warn user
+                    if (apiUrl.includes('/profile/api/')) {
+                        console.error('ERROR: Browser is using cached JavaScript with wrong URL!');
+                        console.error('Please clear your browser cache and refresh the page.');
+                        showToast('Browser cache issue detected. Please clear cache and refresh.', 'warning');
+                        return;
+                    }
 
                     fetch(apiUrl, {
                         method: 'GET',
@@ -1452,7 +1465,7 @@
                     resultsList.innerHTML = '<div class="text-center p-3"><div class="spinner-border spinner-border-sm" role="status"></div><span class="ms-2">Searching...</span></div>';
                     resultsContainer.style.display = 'block';
 
-                    fetch(`/profile/api/search-connected-users/?q=${encodeURIComponent(searchTerm)}`, {
+                    fetch(`/accounts/api/search-connected-users/?q=${encodeURIComponent(searchTerm)}`, {
                         method: 'GET',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -2164,7 +2177,7 @@
                     });
 
                     // Test search endpoint
-                    fetch('/profile/api/search-connected-users/?q=test', {
+                    fetch('/accounts/api/search-connected-users/?q=test', {
                         method: 'GET',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -2187,7 +2200,7 @@
 
                     // Test the endpoint directly
                     console.log('1. Testing search endpoint directly...');
-                    fetch('/profile/api/search-connected-users/?q=test', {
+                    fetch('/accounts/api/search-connected-users/?q=test', {
                         method: 'GET',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',
@@ -2397,7 +2410,7 @@
                     console.log('=== Testing Avatar System Fixes ===');
 
                     console.log('1. Testing API endpoint field names:');
-                    fetch('/profile/api/search-connected-users/?q=test', {
+                    fetch('/accounts/api/search-connected-users/?q=test', {
                         method: 'GET',
                         headers: {
                             'X-Requested-With': 'XMLHttpRequest',

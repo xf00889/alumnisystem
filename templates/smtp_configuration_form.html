@@ -1,0 +1,377 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-hover: #1d4ed8;
+        --secondary-color: #64748b;
+        --accent-color: #0ea5e9;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --info-color: #3b82f6;
+        
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-light: #ffffff;
+        --text-muted: #94a3b8;
+        
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        
+        --ui-border: #e2e8f0;
+        --ui-hover: #f8fafc;
+        --ui-focus: #dbeafe;
+        
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+    }
+
+    .container-fluid {
+        padding: 2rem;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
+    .dashboard-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .form-select {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        background-color: var(--bg-primary);
+        transition: all 0.3s ease;
+    }
+
+    .form-select:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #475569;
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-cancel {
+        background: var(--text-muted);
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background: #64748b;
+        color: white;
+        text-decoration: none;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background-color: #dbeafe;
+        border-color: #93c5fd;
+        color: #1e40af;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .hidden {
+        display: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Standard Dashboard Header -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-server"></i> {{ page_title }}</h1>
+        <p>Configure SMTP settings for email functionality</p>
+    </div>
+    
+    <!-- Configuration Form -->
+    <div class="dashboard-card">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="name">Configuration Name</label>
+                <input type="text" class="form-control" id="name" name="name" 
+                       value="{% if config %}{{ config.name }}{% endif %}" required>
+                <div class="help-text">A descriptive name for this SMTP configuration</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email_from">From Email</label>
+                <input type="email" class="form-control" id="email_from" name="email_from" 
+                       value="{% if config %}{{ config.email_from }}{% endif %}" required>
+                <div class="help-text">The email address that will appear as sender</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="host">SMTP Host</label>
+                <input type="text" class="form-control" id="host" name="host" 
+                       value="{% if config %}{{ config.host }}{% endif %}" required>
+                <div class="help-text">e.g., smtp.gmail.com, smtp-mail.outlook.com</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="port">Port</label>
+                <input type="number" class="form-control" id="port" name="port" 
+                       value="{% if config %}{{ config.port }}{% else %}587{% endif %}" required>
+                <div class="help-text">Usually 587 for TLS, 465 for SSL</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="username">Username/Email</label>
+                <input type="text" class="form-control" id="username" name="username" 
+                       value="{% if config %}{{ config.username }}{% endif %}" required>
+                <div class="help-text">Your email address or username</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password/App Password</label>
+                <input type="password" class="form-control" id="password" name="password" 
+                       value="{% if config %}{{ config.password }}{% endif %}" required>
+                <div class="help-text">Use App Password for Gmail/Yahoo</div>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="timeout">Timeout (seconds)</label>
+                <input type="number" class="form-control" id="timeout" name="timeout" 
+                       value="{% if config %}{{ config.timeout }}{% else %}10{% endif %}" 
+                       min="5" max="60">
+                <div class="help-text">Connection timeout in seconds</div>
+            </div>
+
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="use_tls" name="use_tls" 
+                       {% if config and config.use_tls %}checked{% endif %}>
+                <label class="form-check-label" for="use_tls">
+                    Use TLS (Transport Layer Security)
+                </label>
+            </div>
+            <div class="help-text">Recommended for most email providers (port 587)</div>
+
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="use_ssl" name="use_ssl" 
+                       {% if config and config.use_ssl %}checked{% endif %}>
+                <label class="form-check-label" for="use_ssl">
+                    Use SSL (Secure Sockets Layer)
+                </label>
+            </div>
+            <div class="help-text">Alternative to TLS (port 465)</div>
+
+            <div class="form-check">
+                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                       {% if not config or config.is_active %}checked{% endif %}>
+                <label class="form-check-label" for="is_active">
+                    Active Configuration
+                </label>
+            </div>
+            <div class="help-text">Only one configuration can be active at a time. Activating this will deactivate others.</div>
+
+            <div class="form-actions">
+                <a href="{% url 'core:smtp_configuration_list' %}" class="btn btn-cancel">
+                    <i class="fas fa-arrow-left"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Information Card -->
+    <div class="dashboard-card">
+        <h3 class="mb-3"><i class="fas fa-info-circle"></i> SMTP Configuration Guide</h3>
+        <div class="alert alert-info">
+            <h6><i class="fas fa-lightbulb"></i> How to configure SMTP:</h6>
+            <ol class="mb-0">
+                <li><strong>Gmail:</strong> Use smtp.gmail.com, port 587, enable 2FA and use App Password</li>
+                <li><strong>Yahoo:</strong> Use smtp.mail.yahoo.com, port 587, enable 2FA and use App Password</li>
+                <li><strong>Outlook:</strong> Use smtp-mail.outlook.com, port 587, use your regular password</li>
+                <li><strong>Custom SMTP:</strong> Contact your email provider for server details</li>
+            </ol>
+        </div>
+        
+        <div class="alert alert-info">
+            <h6><i class="fas fa-exclamation-triangle"></i> Security Notes:</h6>
+            <ul class="mb-0">
+                <li><strong>TLS (Port 587):</strong> Recommended for most providers</li>
+                <li><strong>SSL (Port 465):</strong> Alternative encryption method</li>
+                <li><strong>App Passwords:</strong> Required for Gmail/Yahoo with 2FA enabled</li>
+                <li><strong>Testing:</strong> Use the test button to verify your configuration</li>
+            </ul>
+        </div>
+    </div>
+</div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tlsCheckbox = document.getElementById('use_tls');
+    const sslCheckbox = document.getElementById('use_ssl');
+    const portInput = document.getElementById('port');
+    
+    // Handle TLS/SSL mutual exclusivity
+    if (tlsCheckbox && sslCheckbox && portInput) {
+        tlsCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                sslCheckbox.checked = false;
+                portInput.value = '587';
+            }
+        });
+        
+        sslCheckbox.addEventListener('change', function() {
+            if (this.checked) {
+                tlsCheckbox.checked = false;
+                portInput.value = '465';
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

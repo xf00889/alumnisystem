@@ -52,32 +52,57 @@
                         {% csrf_token %}
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="name" class="form-label">Full Name *</label>
-                                <input type="text" class="form-control" id="name" name="name" required>
+                                <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }} *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.name.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label for="email" class="form-label">Email Address *</label>
-                                <input type="email" class="form-control" id="email" name="email" required>
+                                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }} *</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label for="subject" class="form-label">Subject *</label>
-                            <select class="form-select" id="subject" name="subject" required>
-                                <option value="">Select a subject</option>
-                                <option value="General Inquiry">General Inquiry</option>
-                                <option value="Alumni Registration">Alumni Registration</option>
-                                <option value="Event Information">Event Information</option>
-                                <option value="Technical Support">Technical Support</option>
-                                <option value="Partnership Opportunities">Partnership Opportunities</option>
-                                <option value="Feedback/Suggestions">Feedback/Suggestions</option>
-                                <option value="Other">Other</option>
-                            </select>
+                            <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }} *</label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.subject.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
+                        <div class="mb-3">
+                            <label for="{{ form.message.id_for_label }}" class="form-label">{{ form.message.label }} *</label>
+                            {{ form.message }}
+                            {% if form.message.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.message.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- reCAPTCHA Section -->
                         <div class="mb-4">
-                            <label for="message" class="form-label">Message *</label>
-                            <textarea class="form-control" id="message" name="message" rows="6" required 
-                                      placeholder="Please provide details about your inquiry..."></textarea>
+                            <label class="form-label">{{ form.captcha.label }}</label>
+                            {{ form.captcha }}
+                            <small class="form-text text-muted">
+                                <i class="fas fa-shield-alt"></i> This helps us prevent spam and protect our system
+                            </small>
+                            {% if form.captcha.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.captcha.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
                         </div>
+                        
                         <div class="d-grid">
                             <button type="submit" class="btn btn-primary btn-lg">
                                 <i class="fas fa-paper-plane me-2"></i>Send Message
@@ -255,7 +280,7 @@
                             <ul class="quick-links">
                                 <li><a href="{% url 'core:about_us' %}"><i class="fas fa-info-circle me-2"></i>About Us</a></li>
                                 <li><a href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
-                                <li><a href="{% url 'account_signup' %}"><i class="fas fa-user-plus me-2"></i>Sign Up</a></li>
+                                <li><a href="{% url 'account_login' %}"><i class="fas fa-user-plus me-2"></i>Sign Up</a></li>
                                 <li><a href="#"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</a></li>
                             </ul>
                         </div>
@@ -346,7 +371,7 @@
                         Connect with fellow NORSU alumni, access exclusive opportunities, and be part of our growing network.
                     </p>
                     <div class="d-flex gap-3 justify-content-center">
-                        <a href="{% url 'account_signup' %}" class="btn btn-primary btn-lg">
+                        <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">
                             <i class="fas fa-user-plus me-2"></i>Sign Up Now
                         </a>
                         <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">

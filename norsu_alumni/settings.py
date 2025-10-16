@@ -25,18 +25,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-5$o7#0#k6l3z$u9s&2xd#n@f&=x#8q$j#z7$x#0#k6l3z$u9s')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG', default=True, cast=bool)
 
 # Get the base ALLOWED_HOSTS from config
 ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.134.71,10.0.1.18', cast=Csv())
 
-# Add Render domain and local IPs
-ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', '*.onrender.com']
-
-# If RENDER environment variable is set, add the specific Render URL
-RENDER_EXTERNAL_HOSTNAME = config('RENDER_EXTERNAL_HOSTNAME', default=None)
-if RENDER_EXTERNAL_HOSTNAME:
-    ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+# Add local IPs and test server
+ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', 'testserver']
 
 
 # Application definition
@@ -63,7 +58,8 @@ INSTALLED_APPS = [
     'phonenumber_field',
     'channels',
     'django_htmx',
-    'core',
+    'django_recaptcha',  # django-recaptcha
+    'core.apps.CoreConfig',  # Use app config for SMTP settings
     'accounts',
     'alumni_directory',
     'events',
@@ -186,7 +182,11 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 STATICFILES_DIRS = [os.path.join(BASE_DIR, 'static')]
 
 # Whitenoise configuration
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Use simpler storage for development to avoid manifest issues
+if DEBUG:
+    STATICFILES_STORAGE = 'django.contrib.staticfiles.storage.StaticFilesStorage'
+else:
+    STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 MEDIA_URL = config('MEDIA_URL', default='/media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
@@ -239,17 +239,18 @@ SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
-ACCOUNT_EMAIL_VERIFICATION = 'none'
+ACCOUNT_EMAIL_VERIFICATION = 'none'  # We handle email verification manually in our custom signup flow
 ACCOUNT_LOGOUT_ON_GET = True
 LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'core:home'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'account_login'
-ACCOUNT_SIGNUP_REDIRECT_URL = 'accounts:post_registration'
+# ACCOUNT_SIGNUP_REDIRECT_URL = 'accounts:custom_signup_redirect'  # Disabled - handled manually in enhanced_signup view
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_FORMS = {
     'signup': 'accounts.forms.CustomSignupForm',
+    'reset_password': 'accounts.forms.CustomPasswordResetForm',
 }
 
 # Custom account adapter for login redirection
@@ -260,8 +261,32 @@ ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'account_login'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'home'
 ACCOUNT_PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
 
+# Enhanced Security Settings
+ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5
+ACCOUNT_LOGIN_ATTEMPTS_TIMEOUT = 300  # 5 minutes
+ACCOUNT_PASSWORD_MIN_LENGTH = 8
+ACCOUNT_USER_DISPLAY = 'accounts.utils.get_user_display'
+
+# Session Security
+SESSION_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+SESSION_COOKIE_HTTPONLY = True
+SESSION_COOKIE_AGE = 86400  # 24 hours
+SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# CSRF Security
+CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
+CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = 'Strict'
+
+# Additional Security Headers
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+X_FRAME_OPTIONS = 'DENY'
+
 # Email Configuration
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Temporarily use console backend until SMTP is configured through admin interface
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'  # Uncomment when SMTP is configured
 EMAIL_HOST = config('EMAIL_HOST', default='smtp.gmail.com')
 EMAIL_PORT = config('EMAIL_PORT', default=587, cast=int)
 EMAIL_USE_TLS = config('EMAIL_USE_TLS', default=True, cast=bool)
@@ -282,12 +307,7 @@ CSRF_TRUSTED_ORIGINS = [
     'http://192.168.1.6:8005',  # Added for external access
 ]
 
-# Add Render domain to CSRF trusted origins
-if RENDER_EXTERNAL_HOSTNAME:
-    CSRF_TRUSTED_ORIGINS.extend([
-        f'https://{RENDER_EXTERNAL_HOSTNAME}',
-        f'http://{RENDER_EXTERNAL_HOSTNAME}'
-    ])
+# CSRF trusted origins configured above
 
 # Logging Configuration
 LOGGING = {
@@ -329,6 +349,16 @@ LOGGING = {
         'core.view_handlers.error_handlers': {  # Add logging for error handlers
             'handlers': ['console'],
             'level': 'ERROR',
+            'propagate': True,
+        },
+        'django_recaptcha': {  # Add logging for reCAPTCHA
+            'handlers': ['console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'recaptcha': {  # Add logging for reCAPTCHA failures
+            'handlers': ['console'],
+            'level': 'WARNING',
             'propagate': True,
         },
     },
@@ -427,6 +457,18 @@ CKEDITOR_CONFIGS = {
 
 # Email settings - force HTTP
 DEFAULT_HTTP_PROTOCOL = 'http'
+
+# reCAPTCHA Settings
+RECAPTCHA_PUBLIC_KEY = '6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg'
+RECAPTCHA_PRIVATE_KEY = '6Le7kesrAAAAAKldE5dZ2n4_Hwe1n7wmnginjNmD'
+RECAPTCHA_REQUIRED_SCORE = 0.5  # For reCAPTCHA v3
+RECAPTCHA_DOMAIN = 'www.google.com'  # Use www.recaptcha.net for China
+
+# Django Allauth Custom Forms
+ACCOUNT_FORMS = {
+    'login': 'accounts.forms.CustomLoginForm',
+    'signup': 'accounts.forms.CustomSignupForm',
+}
 
 # Rate Limiting Settings
 # Session Settings

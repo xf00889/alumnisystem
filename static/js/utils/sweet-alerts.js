@@ -188,8 +188,7 @@ function processDjangoMessages() {
         
         // Skip processing on signup-related pages
         const currentPath = window.location.pathname;
-        if (currentPath.includes('/accounts/signup/') || 
-            currentPath.includes('/accounts/post_registration/') ||
+        if (currentPath.includes('/accounts/post_registration/') ||
             currentPath.includes('/accounts/complete_registration/')) {
             // Just hide the Django message without showing SweetAlert
             document.querySelector('.messages').style.display = 'none';

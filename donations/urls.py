@@ -48,7 +48,5 @@ urlpatterns = [
     path('donation/<int:pk>/send-receipt/', views.send_donation_receipt, name='send_donation_receipt'),
     path('campaign/<int:pk>/update-status/', views.update_campaign_status, name='update_campaign_status'),
     path('campaign/<int:pk>/delete/', views.delete_campaign, name='delete_campaign'),
-    # GCash management (staff)
-    path('manage/gcash/', views.manage_gcash, name='manage_gcash'),
 
 ]

@@ -15,3 +15,10 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         if request.user.is_authenticated and request.user.is_superuser:
             return reverse('core:admin_dashboard')
         return reverse('core:home')
+    
+    def get_signup_redirect_url(self, request):
+        """
+        Override signup redirect to prevent allauth from interfering with our custom signup flow.
+        Return None to let our custom view handle the redirect.
+        """
+        return None

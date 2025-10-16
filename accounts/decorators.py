@@ -1,44 +1,78 @@
+"""
+Custom decorators for authentication and email verification
+"""
+from django.shortcuts import redirect
+from django.contrib import messages
+from django.urls import reverse
+from django.core.paginator import Paginator
 from functools import wraps
-from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 
-def paginate(items_per_page=10):
+def email_verified_required(view_func):
     """
-    Decorator to add pagination to function-based views.
-    Usage:
-    @paginate(items_per_page=10)
-    def my_view(request):
-        items = MyModel.objects.all()
-        return render(request, 'template.html', {'items': items})
+    Decorator that requires the user to be authenticated and have verified their email.
+    Redirects unverified users to the email verification page.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.warning(request, 'Please log in to access this page.')
+            return redirect('account_login')
+        
+        if not request.user.is_active:
+            messages.warning(request, 'Please verify your email address to access this page.')
+            return redirect('accounts:verify_email')
+        
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+def post_registration_required(view_func):
+    """
+    Decorator that requires the user to have completed post-registration.
+    Redirects users who haven't completed post-registration to the post-registration page.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            messages.warning(request, 'Please log in to access this page.')
+            return redirect('account_login')
+        
+        if not request.user.is_active:
+            messages.warning(request, 'Please verify your email address to access this page.')
+            return redirect('accounts:verify_email')
+        
+        # Check if user has completed post-registration
+        try:
+            profile = request.user.profile
+            if not profile.first_name or not profile.last_name:
+                messages.info(request, 'Please complete your profile to access this page.')
+                return redirect('accounts:post_registration')
+        except:
+            messages.info(request, 'Please complete your profile to access this page.')
+            return redirect('accounts:post_registration')
+        
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+def paginate(per_page=10):
+    """
+    Decorator to add pagination to a view
     """
     def decorator(view_func):
         @wraps(view_func)
-        def _wrapped_view(request, *args, **kwargs):
-            response = view_func(request, *args, **kwargs)
+        def wrapper(request, *args, **kwargs):
+            # Get the result from the view
+            result = view_func(request, *args, **kwargs)
             
-            # Only process if it's a TemplateResponse
-            if hasattr(response, 'context_data'):
-                # Find the queryset in the context
-                context = response.context_data
-                for key, value in context.items():
-                    if hasattr(value, '__iter__') and not isinstance(value, (str, bytes)):
-                        try:
-                            # Try to paginate the queryset
-                            paginator = Paginator(value, items_per_page)
-                            page = request.GET.get('page', 1)
-                            try:
-                                page_obj = paginator.page(page)
-                            except PageNotAnInteger:
-                                page_obj = paginator.page(1)
-                            except EmptyPage:
-                                page_obj = paginator.page(paginator.num_pages)
-                            
-                            # Update the context
-                            context[key] = page_obj.object_list
-                            context['page_obj'] = page_obj
-                            break
-                        except (AttributeError, TypeError):
-                            continue
+            # If it's a render response, add pagination
+            if hasattr(result, 'context_data'):
+                context = result.context_data
+                if 'applications' in context:
+                    paginator = Paginator(context['applications'], per_page)
+                    page_number = request.GET.get('page')
+                    page_obj = paginator.get_page(page_number)
+                    context['page_obj'] = page_obj
+                    context['applications'] = page_obj.object_list
             
-            return response
-        return _wrapped_view
-    return decorator 
+            return result
+        return wrapper
+    return decorator

@@ -2,9 +2,23 @@ from django import forms
 from django.core.validators import FileExtensionValidator
 from .models import Feedback
 import os
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
 
 class FeedbackForm(forms.ModelForm):
     """Form for users to submit feedback"""
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

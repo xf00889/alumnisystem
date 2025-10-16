@@ -28,6 +28,70 @@ def mentor_search(request):
     return render(request, 'mentorship/mentor_search.html')
 
 @login_required
+def requests_list(request):
+    """
+    View for listing mentorship requests
+    """
+    # Get all mentorship requests where user is either mentor or mentee
+    mentorship_requests = MentorshipRequest.objects.filter(
+        Q(mentor__user=request.user) | Q(mentee=request.user)
+    ).select_related('mentor__user', 'mentee').order_by('-created_at')
+    
+    context = {
+        'mentorship_requests': mentorship_requests,
+    }
+    return render(request, 'mentorship/requests_list.html', context)
+
+@login_required
+@require_POST
+def update_request_status(request, request_id):
+    """
+    Update the status of a mentorship request
+    """
+    try:
+        print(f"update_request_status called with request_id={request_id}")
+        print(f"Request POST data: {request.POST}")
+        print(f"Request user: {request.user}")
+        
+        mentorship_request = get_object_or_404(MentorshipRequest, id=request_id)
+        print(f"Found mentorship request: {mentorship_request.id}, mentor: {mentorship_request.mentor.user}")
+        
+        # Check if user is the mentor
+        if mentorship_request.mentor.user != request.user:
+            print("User is not the mentor")
+            return JsonResponse(
+                {"detail": "Only the mentor can update the status."},
+                status=403
+            )
+        
+        new_status = request.POST.get('status')
+        print(f"New status from POST: {new_status}")
+        print(f"Valid status choices: {dict(MentorshipRequest.STATUS_CHOICES)}")
+        
+        if not new_status or new_status not in dict(MentorshipRequest.STATUS_CHOICES):
+            print(f"Invalid status: {new_status}")
+            return JsonResponse(
+                {"detail": f"Invalid status provided. Valid choices are: {list(dict(MentorshipRequest.STATUS_CHOICES).keys())}"},
+                status=400
+            )
+        
+        mentorship_request.status = new_status
+        mentorship_request.save()
+        print(f"Status updated successfully to {new_status}")
+        
+        return JsonResponse({
+            "message": f"Request {new_status.lower()} successfully",
+            "status": new_status
+        })
+        
+    except Exception as e:
+        print(f"Exception in update_request_status: {e}")
+        return JsonResponse(
+            {"detail": f"Failed to update request status: {str(e)}"},
+            status=500
+        )
+
+@login_required
 def mentee_dashboard(request):
     """
     View for mentee's dashboard showing their mentorship requests and active mentorships
@@ -433,16 +497,25 @@ class MentorshipRequestViewSet(viewsets.ModelViewSet):
 
     @action(detail=True, methods=['post'])
     def update_status(self, request, pk=None):
+        print(f"update_status called with pk={pk}, method={request.method}")
+        print(f"Request data: {request.data}")
+        print(f"Content type: {request.content_type}")
+        
         mentorship = self.get_object()
         new_status = request.data.get('status')
         
+        print(f"Current mentorship: {mentorship.id}, status: {mentorship.status}")
+        print(f"New status: {new_status}")
+        
         if not new_status or new_status not in dict(MentorshipRequest.STATUS_CHOICES):
+            print("Invalid status provided")
             return Response(
                 {"detail": "Invalid status provided."},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         if mentorship.mentor.user != request.user:
+            print("User is not the mentor")
             return Response(
                 {"detail": "Only the mentor can update the status."},
                 status=status.HTTP_403_FORBIDDEN
@@ -451,8 +524,13 @@ class MentorshipRequestViewSet(viewsets.ModelViewSet):
         try:
             mentorship.status = new_status
             mentorship.save()
-            return Response(self.get_serializer(mentorship).data)
+            print(f"Status updated successfully to {new_status}")
+            return Response({
+                "message": f"Request {new_status.lower()} successfully",
+                "status": new_status
+            })
         except Exception as e:
+            print(f"Error updating status: {e}")
             return Response(
                 {"detail": "Failed to update request status. Please try again."},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -601,6 +679,30 @@ class MentorshipRequestViewSet(viewsets.ModelViewSet):
             progress = (completed_milestones + (in_progress_milestones * 0.5)) / total_milestones
             mentorship.progress_percentage = int(progress * 100)
             mentorship.save()
+    
+    def destroy(self, request, pk=None):
+        """Allow mentees to cancel their own pending requests"""
+        try:
+            mentorship_request = self.get_object()
+            
+            # Only allow mentees to cancel their own pending requests
+            if (mentorship_request.mentee == request.user and 
+                mentorship_request.status == 'PENDING'):
+                mentorship_request.delete()
+                return Response(
+                    {"message": "Mentorship request cancelled successfully"},
+                    status=status.HTTP_200_OK
+                )
+            else:
+                return Response(
+                    {"detail": "You can only cancel your own pending requests"},
+                    status=status.HTTP_403_FORBIDDEN
+                )
+        except Exception as e:
+            return Response(
+                {"detail": f"Failed to cancel request: {str(e)}"},
+                status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            )
 
 class MentorshipMeetingViewSet(viewsets.ModelViewSet):
     serializer_class = MentorshipMeetingSerializer

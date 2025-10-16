@@ -2,14 +2,36 @@ from django import forms
 from django.forms import inlineformset_factory
 from .models import (
     Profile, Education, Experience, Skill, Document,
-    MentorApplication, Mentor
+    MentorApplication, Mentor, EmailVerification
 )
 from django.contrib.auth.models import User
 from alumni_directory.models import Alumni
 import datetime
 from django_countries.fields import CountryField
 from django_countries import countries
-from allauth.account.forms import SignupForm
+from allauth.account.forms import SignupForm, ResetPasswordForm, LoginForm
+from .security import PasswordValidator, RateLimiter, SecurityAuditLogger
+from django.utils.crypto import get_random_string
+from django.core.mail import send_mail
+from django.conf import settings
+from django.utils import timezone
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
+
+class CustomLoginForm(LoginForm):
+    """Custom login form with reCAPTCHA protection"""
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
 
 class CustomSignupForm(SignupForm):
     first_name = forms.CharField(
@@ -28,17 +50,253 @@ class CustomSignupForm(SignupForm):
             'placeholder': 'Enter your last name'
         })
     )
+    verification_code = forms.CharField(
+        max_length=6,
+        required=False,  # Make it optional since we handle verification on server side
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter verification code',
+            'maxlength': '6',
+            'pattern': '[0-9]{6}'
+        }),
+        help_text="Enter the 6-digit code sent to your email"
+    )
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Make password fields required for validation
+        self.fields['password1'].required = True
+        self.fields['password2'].required = True
+
+    def clean_password1(self):
+        password1 = self.cleaned_data.get('password1')
+        if password1:
+            errors = PasswordValidator.validate_password_strength(password1)
+            if errors:
+                raise forms.ValidationError(errors)
+        return password1
+
+    def clean_verification_code(self):
+        verification_code = self.cleaned_data.get('verification_code')
+        email = self.cleaned_data.get('email')
+        
+        if verification_code and email:
+            from .security import SecurityCodeManager
+            is_valid, message = SecurityCodeManager.verify_code(email, verification_code, 'signup')
+            if not is_valid:
+                raise forms.ValidationError(message)
+        
+        return verification_code
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            # Check rate limiting
+            if RateLimiter.is_rate_limited(email, 'signup_attempt'):
+                raise forms.ValidationError("Too many signup attempts. Please try again later.")
+            
+            # Check if email already exists
+            if User.objects.filter(email=email).exists():
+                raise forms.ValidationError("An account with this email already exists.")
+        
+        return email
 
     def save(self, request):
-        user = super().save(request)
-        user.first_name = self.cleaned_data['first_name']
-        user.last_name = self.cleaned_data['last_name']
-        user.save()
+        # Create user manually instead of using allauth's save method
+        # to avoid allauth's built-in redirect behavior
+        from django.contrib.auth import get_user_model
+        User = get_user_model()
+        
+        user = User.objects.create_user(
+            username=self.cleaned_data['email'],  # Use email as username
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password1'],
+            first_name=self.cleaned_data['first_name'],
+            last_name=self.cleaned_data['last_name'],
+            is_active=False  # Keep user inactive until email verification
+        )
         
         # Create profile if it doesn't exist
         Profile.objects.get_or_create(user=user)
         
+        # Generate OTP
+        otp = get_random_string(length=6, allowed_chars='0123456789')
+        
+        # Create email verification record
+        EmailVerification.objects.create(user=user, otp=otp)
+        
+        # Send verification email
+        try:
+            from core.email_utils import send_email_with_smtp_config
+            from .email_utils import render_verification_email
+            
+            # Render HTML email template
+            html_message = render_verification_email(user, otp)
+            
+            send_email_with_smtp_config(
+                subject='Verify your email address - NORSU Alumni System',
+                message=f'''
+Hello {user.first_name},
+
+Welcome to the NORSU Alumni System!
+
+Your verification code is: {otp}
+
+This code will expire in 10 minutes. Please enter this code on the verification page to activate your account.
+
+If you didn't create an account with us, please ignore this email.
+
+Best regards,
+NORSU Alumni System Team
+                ''',
+                html_message=html_message,
+                recipient_list=[user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            # Log email sending error but don't fail the signup
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
+        
+        # Log account creation
+        SecurityAuditLogger.log_account_creation(user.email, self.get_client_ip(request))
+        
+        # Store user ID in session for redirect after signup
+        request.session['pending_verification_user_id'] = user.id
+        
         return user
+
+    def get_client_ip(self, request):
+        """Get client IP address"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
+
+class CustomPasswordResetForm(ResetPasswordForm):
+    """Enhanced password reset form with security features"""
+    
+    verification_code = forms.CharField(
+        max_length=6,
+        required=True,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter verification code',
+            'maxlength': '6',
+            'pattern': '[0-9]{6}'
+        }),
+        help_text="Enter the 6-digit code sent to your email"
+    )
+    
+    new_password1 = forms.CharField(
+        label="New Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new password'
+        }),
+        help_text="Password must be at least 8 characters with uppercase, lowercase, number, and special character."
+    )
+    
+    new_password2 = forms.CharField(
+        label="Confirm New Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new password'
+        })
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+
+    def clean_new_password1(self):
+        password1 = self.cleaned_data.get('new_password1')
+        if password1:
+            errors = PasswordValidator.validate_password_strength(password1)
+            if errors:
+                raise forms.ValidationError(errors)
+            
+            # Check password history if user exists
+            if self.user:
+                if not PasswordValidator.check_password_history(self.user, password1):
+                    raise forms.ValidationError("You cannot reuse a recently used password.")
+        
+        return password1
+
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('new_password1')
+        password2 = cleaned_data.get('new_password2')
+        verification_code = cleaned_data.get('verification_code')
+        email = cleaned_data.get('email')
+
+        if password1 and password2:
+            if password1 != password2:
+                raise forms.ValidationError("Passwords don't match.")
+
+        if verification_code and email:
+            from .security import SecurityCodeManager
+            is_valid, message = SecurityCodeManager.verify_code(email, verification_code, 'password_reset')
+            if not is_valid:
+                raise forms.ValidationError(message)
+
+        return cleaned_data
+
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            # Check rate limiting
+            if RateLimiter.is_rate_limited(email, 'password_reset_attempt'):
+                raise forms.ValidationError("Too many password reset attempts. Please try again later.")
+            
+            # Check if email exists
+            try:
+                user = User.objects.get(email=email)
+                self.user = user
+            except User.DoesNotExist:
+                raise forms.ValidationError("No account found with this email address.")
+        
+        return email
+
+    def save(self, request):
+        if self.user:
+            # Set new password
+            self.user.set_password(self.cleaned_data['new_password1'])
+            self.user.save()
+            
+            # Log password reset
+            SecurityAuditLogger.log_event(
+                'password_reset_success',
+                user=self.user,
+                ip_address=self.get_client_ip(request)
+            )
+            
+            return self.user
+        return None
+
+    def get_client_ip(self, request):
+        """Get client IP address"""
+        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
+        if x_forwarded_for:
+            ip = x_forwarded_for.split(',')[0]
+        else:
+            ip = request.META.get('REMOTE_ADDR')
+        return ip
 
 class PostRegistrationForm(forms.Form):
     # Import college choices from Alumni model
@@ -710,4 +968,270 @@ class MentorApplicationForm(forms.ModelForm):
                 raise forms.ValidationError('Only PDF files are allowed for training documents.')
             if training_docs.size > 5 * 1024 * 1024:  # 5MB limit
                 raise forms.ValidationError('File size must be under 5MB.')
-        return training_docs 
+        return training_docs
+
+
+# Enhanced Password Reset Forms
+
+class PasswordResetEmailForm(forms.Form):
+    """Form for requesting password reset email"""
+    
+    email = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your email address',
+            'autocomplete': 'email'
+        }),
+        help_text="Enter the email address associated with your account"
+    )
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower().strip()
+        return email
+
+
+class PasswordResetOTPForm(forms.Form):
+    """Form for entering OTP verification code"""
+    
+    verification_code = forms.CharField(
+        label="Verification Code",
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter 6-digit code',
+            'maxlength': '6',
+            'pattern': '[0-9]{6}',
+            'autocomplete': 'one-time-code'
+        }),
+        help_text="Enter the 6-digit verification code sent to your email"
+    )
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
+    
+    def clean_verification_code(self):
+        code = self.cleaned_data.get('verification_code')
+        if code and not code.isdigit():
+            raise forms.ValidationError("Verification code must contain only numbers.")
+        return code
+
+
+class PasswordResetNewPasswordForm(forms.Form):
+    """Form for setting new password"""
+    
+    new_password1 = forms.CharField(
+        label="New Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter new password',
+            'autocomplete': 'new-password'
+        }),
+        help_text="Password must be at least 8 characters with uppercase, lowercase, number, and special character."
+    )
+    
+    new_password2 = forms.CharField(
+        label="Confirm New Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm new password',
+            'autocomplete': 'new-password'
+        })
+    )
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop('user', None)
+        super().__init__(*args, **kwargs)
+    
+    def clean_new_password1(self):
+        password1 = self.cleaned_data.get('new_password1')
+        if password1:
+            errors = PasswordValidator.validate_password_strength(password1)
+            if errors:
+                raise forms.ValidationError(errors)
+            
+            # Check password history if user exists
+            if self.user:
+                if not PasswordValidator.check_password_history(self.user, password1):
+                    raise forms.ValidationError("You cannot reuse a recently used password.")
+        
+        return password1
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('new_password1')
+        password2 = cleaned_data.get('new_password2')
+        
+        if password1 and password2:
+            if password1 != password2:
+                raise forms.ValidationError("Passwords do not match.")
+        
+        return cleaned_data
+
+
+class EnhancedSignupForm(forms.Form):
+    """Enhanced signup form with email verification"""
+    
+    first_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'First Name',
+            'autocomplete': 'given-name'
+        })
+    )
+    
+    last_name = forms.CharField(
+        max_length=150,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Last Name',
+            'autocomplete': 'family-name'
+        })
+    )
+    
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Email Address',
+            'autocomplete': 'email'
+        })
+    )
+    
+    password1 = forms.CharField(
+        label="Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Password',
+            'autocomplete': 'new-password'
+        }),
+        help_text="Password must be at least 8 characters with uppercase, lowercase, number, and special character."
+    )
+    
+    password2 = forms.CharField(
+        label="Confirm Password",
+        widget=forms.PasswordInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Confirm Password',
+            'autocomplete': 'new-password'
+        })
+    )
+    
+    # captcha = ReCaptchaField()  # Temporarily disabled for testing
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            if User.objects.filter(email=email).exists():
+                raise forms.ValidationError("A user with this email already exists.")
+        return email
+    
+    def clean_password1(self):
+        password1 = self.cleaned_data.get('password1')
+        if password1:
+            errors = PasswordValidator.validate_password_strength(password1)
+            if errors:
+                raise forms.ValidationError(" ".join(errors))
+        return password1
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        password1 = cleaned_data.get('password1')
+        password2 = cleaned_data.get('password2')
+        
+        if password1 and password2:
+            if password1 != password2:
+                raise forms.ValidationError("Passwords do not match.")
+        
+        return cleaned_data
+    
+    def save(self, request=None):
+        """Create user account"""
+        email = self.cleaned_data['email']
+        password = self.cleaned_data['password1']
+        first_name = self.cleaned_data['first_name']
+        last_name = self.cleaned_data['last_name']
+        
+        # Use email as username since we're using email-based authentication
+        username = email
+        
+        user = User.objects.create_user(
+            username=username,
+            email=email,
+            password=password,
+            first_name=first_name,
+            last_name=last_name,
+            is_active=False  # Will be activated after email verification
+        )
+        
+        return user
+
+
+class EmailVerificationForm(forms.Form):
+    """Form for email verification"""
+    
+    email = forms.EmailField(
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your email address',
+            'autocomplete': 'email',
+            'required': True
+        })
+    )
+    
+    verification_code = forms.CharField(
+        max_length=6,
+        min_length=6,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control otp-input',
+            'placeholder': '000000',
+            'maxlength': '6',
+            'pattern': '[0-9]{6}',
+            'autocomplete': 'off',
+            'required': True
+        }),
+        help_text="Enter the 6-digit verification code sent to your email."
+    )
+    
+    def clean_verification_code(self):
+        code = self.cleaned_data.get('verification_code')
+        if code:
+            if not code.isdigit():
+                raise forms.ValidationError("Verification code must contain only numbers.")
+        return code

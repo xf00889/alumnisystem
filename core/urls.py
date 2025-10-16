@@ -1,5 +1,7 @@
 from django.urls import path
 from . import admin_views
+from . import smtp_admin_views
+from . import recaptcha_admin_views, recaptcha_analytics_views
 from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
@@ -58,6 +60,7 @@ urlpatterns = [
     path('api/engagement-data/', views.engagement_data_api, name='engagement_data_api'),
     path('search/', views.search, name='search'),
     path('go-to-profile/', views.go_to_profile, name='go_to_profile'),
+    path('test-recaptcha/', views.test_recaptcha, name='test_recaptcha'),
 
     # Notification API endpoints
     path('api/notifications/', views.get_notifications, name='get_notifications'),
@@ -67,4 +70,26 @@ urlpatterns = [
     
     # Health check endpoint
     path('health/', health_check_view, name='health_check'),
+    
+    # SMTP Configuration URLs
+    path('admin-dashboard/smtp/', smtp_admin_views.smtp_configuration_list, name='smtp_configuration_list'),
+    path('admin-dashboard/smtp/create/', smtp_admin_views.smtp_configuration_create, name='smtp_configuration_create'),
+    path('admin-dashboard/smtp/quick-setup/', smtp_admin_views.smtp_quick_setup, name='smtp_quick_setup'),
+    path('admin-dashboard/smtp/<int:config_id>/edit/', smtp_admin_views.smtp_configuration_edit, name='smtp_configuration_edit'),
+    path('admin-dashboard/smtp/<int:config_id>/test/', smtp_admin_views.smtp_configuration_test, name='smtp_configuration_test'),
+    path('admin-dashboard/smtp/<int:config_id>/delete/', smtp_admin_views.smtp_configuration_delete, name='smtp_configuration_delete'),
+    path('admin-dashboard/smtp/<int:config_id>/activate/', smtp_admin_views.smtp_configuration_activate, name='smtp_configuration_activate'),
+    
+    # reCAPTCHA Configuration URLs
+    path('admin-dashboard/recaptcha/', recaptcha_admin_views.recaptcha_configuration_list, name='recaptcha_configuration_list'),
+    path('admin-dashboard/recaptcha/create/', recaptcha_admin_views.recaptcha_configuration_create, name='recaptcha_configuration_create'),
+    path('admin-dashboard/recaptcha/<int:config_id>/edit/', recaptcha_admin_views.recaptcha_configuration_edit, name='recaptcha_configuration_edit'),
+    path('admin-dashboard/recaptcha/<int:config_id>/test/', recaptcha_admin_views.recaptcha_configuration_test, name='recaptcha_configuration_test'),
+    path('admin-dashboard/recaptcha/<int:config_id>/delete/', recaptcha_admin_views.recaptcha_configuration_delete, name='recaptcha_configuration_delete'),
+    path('admin-dashboard/recaptcha/<int:config_id>/activate/', recaptcha_admin_views.recaptcha_configuration_activate, name='recaptcha_configuration_activate'),
+    
+    # reCAPTCHA Analytics URLs
+    path('admin-dashboard/recaptcha/analytics/', recaptcha_analytics_views.ReCaptchaAnalyticsView.as_view(), name='recaptcha_analytics'),
+    path('admin-dashboard/recaptcha/analytics/api/', recaptcha_analytics_views.recaptcha_analytics_api, name='recaptcha_analytics_api'),
+    path('admin-dashboard/recaptcha/analytics/reset/', recaptcha_analytics_views.recaptcha_analytics_reset, name='recaptcha_analytics_reset'),
 ]

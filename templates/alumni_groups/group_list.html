@@ -867,12 +867,10 @@
             <div class="cards-container">
                 <div class="content-header">
                     <div class="header-actions">
-                        {% if user.is_staff %}
-                        <a href="{% url 'alumni_groups:group_create' %}" class="btn-create">
+                        <a href="{% url 'alumni_groups:group_create_progressive' %}" class="btn-create">
                             <i class="fas fa-plus"></i>
                             Create Group
                         </a>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -910,7 +908,7 @@
                                 {{ group.member_count }} members
                                 <div class="member-avatars">
                                     {% for member in group.memberships.all|slice:":3" %}
-                                    <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                    <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                          alt="{{ member.user.get_full_name }}"
                                          class="member-avatar">
                                     {% endfor %}
@@ -941,8 +939,8 @@
                                 There are no alumni groups available at the moment.
                             {% endif %}
                         </p>
-                        {% if user.is_staff and not request.GET %}
-                            <a href="{% url 'alumni_groups:group_create' %}" class="empty-state-action">
+                        {% if not request.GET %}
+                            <a href="{% url 'alumni_groups:group_create_progressive' %}" class="empty-state-action">
                                 <i class="fas fa-plus"></i>
                                 Create First Group
                             </a>

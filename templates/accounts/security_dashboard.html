@@ -1,0 +1,498 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Security Dashboard - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<style>
+    .security-dashboard {
+        padding: 40px 0;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .security-card {
+        background: white;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-bottom: 30px;
+        overflow: hidden;
+    }
+    
+    .security-header {
+        background: linear-gradient(135deg, #2b3c6b 0%, #4a5568 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .security-body {
+        padding: 30px;
+    }
+    
+    .security-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 20px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .security-item:last-child {
+        border-bottom: none;
+    }
+    
+    .security-info h5 {
+        margin: 0 0 5px 0;
+        color: #2d3748;
+    }
+    
+    .security-info p {
+        margin: 0;
+        color: #718096;
+        font-size: 14px;
+    }
+    
+    .security-status {
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 12px;
+        font-weight: 600;
+        text-transform: uppercase;
+    }
+    
+    .status-secure {
+        background: #c6f6d5;
+        color: #22543d;
+    }
+    
+    .status-warning {
+        background: #fef5e7;
+        color: #744210;
+    }
+    
+    .status-danger {
+        background: #fed7d7;
+        color: #742a2a;
+    }
+    
+    .btn-security {
+        background: linear-gradient(135deg, #2b3c6b 0%, #4a5568 100%);
+        border: none;
+        border-radius: 8px;
+        padding: 10px 20px;
+        color: white;
+        font-size: 14px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-security:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 15px rgba(43, 60, 107, 0.3);
+    }
+    
+    .btn-danger {
+        background: linear-gradient(135deg, #e53e3e 0%, #c53030 100%);
+    }
+    
+    .btn-danger:hover {
+        box-shadow: 0 5px 15px rgba(229, 62, 62, 0.3);
+    }
+    
+    .password-form {
+        background: #f7fafc;
+        border: 2px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 20px;
+        margin-top: 20px;
+        display: none;
+    }
+    
+    .password-form.active {
+        display: block;
+    }
+    
+    .form-group {
+        margin-bottom: 20px;
+    }
+    
+    .form-control {
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    }
+    
+    .password-strength {
+        margin-top: 5px;
+        font-size: 12px;
+    }
+    
+    .strength-weak { color: #e53e3e; }
+    .strength-medium { color: #dd6b20; }
+    .strength-strong { color: #38a169; }
+    
+    .error-message {
+        color: #e53e3e;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .success-message {
+        color: #38a169;
+        font-size: 14px;
+        margin-top: 5px;
+    }
+    
+    .activity-log {
+        max-height: 300px;
+        overflow-y: auto;
+    }
+    
+    .activity-item {
+        display: flex;
+        align-items: center;
+        padding: 15px 0;
+        border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .activity-item:last-child {
+        border-bottom: none;
+    }
+    
+    .activity-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 15px;
+        font-size: 16px;
+        color: white;
+    }
+    
+    .activity-icon.login {
+        background: #38a169;
+    }
+    
+    .activity-icon.password {
+        background: #3182ce;
+    }
+    
+    .activity-icon.security {
+        background: #e53e3e;
+    }
+    
+    .activity-info h6 {
+        margin: 0 0 5px 0;
+        color: #2d3748;
+    }
+    
+    .activity-info p {
+        margin: 0;
+        color: #718096;
+        font-size: 12px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="security-dashboard">
+    <div class="container">
+        <div class="row">
+            <div class="col-lg-8 mx-auto">
+                <!-- Security Overview -->
+                <div class="security-card">
+                    <div class="security-header">
+                        <h2 class="mb-0">Security Dashboard</h2>
+                        <p class="mb-0 mt-2">Manage your account security settings</p>
+                    </div>
+                    
+                    <div class="security-body">
+                        <!-- Account Status -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h5>Account Status</h5>
+                                <p>Your account security status</p>
+                            </div>
+                            <span class="security-status status-secure">Secure</span>
+                        </div>
+                        
+                        <!-- Email Verification -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h5>Email Verification</h5>
+                                <p>Email: {{ user.email }}</p>
+                            </div>
+                            {% if user.is_active %}
+                                <span class="security-status status-secure">Verified</span>
+                            {% else %}
+                                <span class="security-status status-warning">Pending</span>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- Password Security -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h5>Password Security</h5>
+                                <p>Last changed: {{ user.last_login|date:"M d, Y"|default:"Never" }}</p>
+                            </div>
+                            <div>
+                                <span class="security-status status-secure">Strong</span>
+                                <button class="btn btn-security ms-2" id="changePasswordBtn">
+                                    Change Password
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Two-Factor Authentication -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h5>Two-Factor Authentication</h5>
+                                <p>Add an extra layer of security to your account</p>
+                            </div>
+                            <div>
+                                <span class="security-status status-warning">Disabled</span>
+                                <button class="btn btn-security ms-2" disabled>
+                                    Enable 2FA
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- Login History -->
+                        <div class="security-item">
+                            <div class="security-info">
+                                <h5>Last Login</h5>
+                                <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
+                            </div>
+                            <span class="security-status status-secure">Active</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Change Password Form -->
+                <div class="security-card" id="passwordChangeCard" style="display: none;">
+                    <div class="security-header">
+                        <h3 class="mb-0">Change Password</h3>
+                    </div>
+                    
+                    <div class="security-body">
+                        <form id="changePasswordForm">
+                            {% csrf_token %}
+                            
+                            <div class="form-group">
+                                <label for="currentPassword" class="form-label">Current Password</label>
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="currentPassword" 
+                                       name="current_password" 
+                                       required>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newPassword1" class="form-label">New Password</label>
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="newPassword1" 
+                                       name="new_password1" 
+                                       required>
+                                <div id="passwordStrength" class="password-strength"></div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="newPassword2" class="form-label">Confirm New Password</label>
+                                <input type="password" 
+                                       class="form-control" 
+                                       id="newPassword2" 
+                                       name="new_password2" 
+                                       required>
+                                <div id="passwordMatch" class="error-message"></div>
+                            </div>
+                            
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-security">
+                                    Update Password
+                                </button>
+                                <button type="button" class="btn btn-secondary" id="cancelPasswordChange">
+                                    Cancel
+                                </button>
+                            </div>
+                            
+                            <div id="passwordChangeResult" class="mt-3"></div>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Security Activity -->
+                <div class="security-card">
+                    <div class="security-header">
+                        <h3 class="mb-0">Recent Security Activity</h3>
+                    </div>
+                    
+                    <div class="security-body">
+                        <div class="activity-log">
+                            <div class="activity-item">
+                                <div class="activity-icon login">
+                                    <i class="fas fa-sign-in-alt"></i>
+                                </div>
+                                <div class="activity-info">
+                                    <h6>Successful Login</h6>
+                                    <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }} • IP: 192.168.1.1</p>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon password">
+                                    <i class="fas fa-key"></i>
+                                </div>
+                                <div class="activity-info">
+                                    <h6>Password Changed</h6>
+                                    <p>Dec 15, 2024 14:30 • IP: 192.168.1.1</p>
+                                </div>
+                            </div>
+                            
+                            <div class="activity-item">
+                                <div class="activity-icon security">
+                                    <i class="fas fa-shield-alt"></i>
+                                </div>
+                                <div class="activity-info">
+                                    <h6>Account Created</h6>
+                                    <p>{{ user.date_joined|date:"M d, Y H:i" }} • IP: 192.168.1.1</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const changePasswordBtn = document.getElementById('changePasswordBtn');
+    const passwordChangeCard = document.getElementById('passwordChangeCard');
+    const cancelPasswordChange = document.getElementById('cancelPasswordChange');
+    const changePasswordForm = document.getElementById('changePasswordForm');
+    const newPassword1Input = document.getElementById('newPassword1');
+    const newPassword2Input = document.getElementById('newPassword2');
+    
+    // Show/hide password change form
+    changePasswordBtn.addEventListener('click', function() {
+        passwordChangeCard.style.display = 'block';
+        passwordChangeCard.scrollIntoView({ behavior: 'smooth' });
+    });
+    
+    cancelPasswordChange.addEventListener('click', function() {
+        passwordChangeCard.style.display = 'none';
+        changePasswordForm.reset();
+        clearMessages();
+    });
+    
+    // Password strength checking
+    newPassword1Input.addEventListener('input', function() {
+        checkPasswordStrength(this.value);
+    });
+    
+    // Password confirmation checking
+    newPassword2Input.addEventListener('input', function() {
+        checkPasswordMatch();
+    });
+    
+    // Form submission
+    changePasswordForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        
+        fetch('/accounts/security/change-password/', {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+            },
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            const resultDiv = document.getElementById('passwordChangeResult');
+            
+            if (data.success) {
+                resultDiv.innerHTML = '<div class="success-message">' + data.message + '</div>';
+                changePasswordForm.reset();
+                clearMessages();
+                setTimeout(() => {
+                    passwordChangeCard.style.display = 'none';
+                }, 2000);
+            } else {
+                resultDiv.innerHTML = '<div class="error-message">' + data.error + '</div>';
+            }
+        })
+        .catch(error => {
+            console.error('Error changing password:', error);
+            document.getElementById('passwordChangeResult').innerHTML = 
+                '<div class="error-message">An error occurred. Please try again.</div>';
+        });
+    });
+    
+    function checkPasswordStrength(password) {
+        const strengthDiv = document.getElementById('passwordStrength');
+        let strength = 0;
+        let feedback = [];
+        
+        if (password.length >= 8) strength++;
+        else feedback.push('At least 8 characters');
+        
+        if (/[A-Z]/.test(password)) strength++;
+        else feedback.push('One uppercase letter');
+        
+        if (/[a-z]/.test(password)) strength++;
+        else feedback.push('One lowercase letter');
+        
+        if (/[0-9]/.test(password)) strength++;
+        else feedback.push('One number');
+        
+        if (/[^A-Za-z0-9]/.test(password)) strength++;
+        else feedback.push('One special character');
+        
+        if (strength < 3) {
+            strengthDiv.className = 'password-strength strength-weak';
+            strengthDiv.textContent = 'Weak: ' + feedback.join(', ');
+        } else if (strength < 5) {
+            strengthDiv.className = 'password-strength strength-medium';
+            strengthDiv.textContent = 'Medium: ' + feedback.join(', ');
+        } else {
+            strengthDiv.className = 'password-strength strength-strong';
+            strengthDiv.textContent = 'Strong password!';
+        }
+    }
+    
+    function checkPasswordMatch() {
+        const password1 = newPassword1Input.value;
+        const password2 = newPassword2Input.value;
+        const matchDiv = document.getElementById('passwordMatch');
+        
+        if (password2 && password1 !== password2) {
+            matchDiv.textContent = 'Passwords do not match';
+        } else {
+            matchDiv.textContent = '';
+        }
+    }
+    
+    function clearMessages() {
+        document.getElementById('passwordStrength').textContent = '';
+        document.getElementById('passwordMatch').textContent = '';
+        document.getElementById('passwordChangeResult').innerHTML = '';
+    }
+});
+</script>
+{% endblock %}

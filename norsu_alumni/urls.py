@@ -1,48 +1,36 @@
-"""
-URL configuration for norsu_alumni project.
-
-The `urlpatterns` list routes URLs to views. For more information please see:
-    https://docs.djangoproject.com/en/5.1/topics/http/urls/
-Examples:
-Function views
-    1. Add an import:  from my_app import views
-    2. Add a URL to urlpatterns:  path('', views.home, name='home')
-Class-based views
-    1. Add an import:  from other_app.views import Home
-    2. Add a URL to urlpatterns:  path('', Home.as_view(), name='home')
-Including another URLconf
-    1. Import the include() function: from django.urls import include, path
-    2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
-"""
 from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
+from django.http import HttpResponseRedirect
+from accounts import security_views
+
+def profile_search_connected_users(request):
+    """Handle old profile API endpoint by calling the accounts API view"""
+    from accounts.views import search_connected_users_api
+    return search_connected_users_api(request)
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('', include('core.urls', namespace='core')),  # Core app URLs including home
-    path('accounts/', include('allauth.urls')),  # Django-allauth URLs
-    path('profile/', include('accounts.urls', namespace='accounts')),  # Custom user profile URLs
-    path('ckeditor/', include('ckeditor_uploader.urls')),
-    path('announcements/', include('announcements.urls', namespace='announcements')),
-    path('alumni-groups/', include('alumni_groups.urls', namespace='alumni_groups')),  # Alumni Groups URLs
-    path('alumni-directory/', include('alumni_directory.urls', namespace='alumni_directory')),
-    path('events/', include('events.urls', namespace='events')),  # Events app URLs
-    path('feedback/', include('feedback.urls', namespace='feedback')),  # Feedback app URLs
-    path('location/', include('location_tracking.urls', namespace='location_tracking')),  # Location tracking URLs
-    path('jobs/', include('jobs.urls', namespace='jobs')),  # Job Board URLs
-    path('mentorship/', include('mentorship.urls', namespace='mentorship')),  # Mentorship URLs
-    path('api/skills/', include('accounts.urls', namespace='skills')),  # Skill Matching API URLs
-    path('surveys/', include('surveys.urls', namespace='surveys')),  # Changed from '' to 'surveys/'
-    path('donations/', include('donations.urls', namespace='donations')),  # Donations app URLs
-    path('connections/', include('connections.urls', namespace='connections')),  # Alumni Connections URLs
-    # path('messages/', include('messaging.urls', namespace='messaging')),  # Messaging app URLs
+    # Handle old profile API endpoint by calling the accounts API view
+    path('profile/api/search-connected-users/', profile_search_connected_users, name='profile_search_connected_users'),
+    # Removed redundant signup page - signup is now handled in the tabbed login page
+    path('accounts/', include('allauth.urls')),
+    path('', include('core.urls')),
+    path('accounts/', include('accounts.urls')),
+    path('alumni/', include('alumni_directory.urls')),
+    path('groups/', include('alumni_groups.urls')),
+    path('connections/', include('connections.urls')),
+    path('jobs/', include('jobs.urls')),
+    path('location-tracking/', include(('location_tracking.urls', 'location_tracking'), namespace='location_tracking')),
+    path('announcements/', include(('announcements.urls', 'announcements'), namespace='announcements')),
+    path('events/', include(('events.urls', 'events'), namespace='events')),
+    path('feedback/', include(('feedback.urls', 'feedback'), namespace='feedback')),
+    path('donations/', include(('donations.urls', 'donations'), namespace='donations')),
+    path('mentorship/', include(('mentorship.urls', 'mentorship'), namespace='mentorship')),
+    path('surveys/', include(('surveys.urls', 'surveys'), namespace='surveys')),
 ]
 
+# Serve media files during development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
-
-# Custom error handlers
-handler500 = 'core.view_handlers.error_handlers.handler500'

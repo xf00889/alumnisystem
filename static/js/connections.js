@@ -76,7 +76,7 @@ function acceptConnectionRequest(connectionId) {
     .then(data => {
         if (data.success) {
             showToast(data.message, 'success');
-            updateConnectionButton(userId, 'connected');
+            updateConnectionButton(data.user_id, 'connected');
             // Update pending requests count
             updatePendingRequestsCount();
         } else {
@@ -102,7 +102,7 @@ function rejectConnectionRequest(connectionId) {
     .then(data => {
         if (data.success) {
             showToast(data.message, 'success');
-            updateConnectionButton(userId, 'none');
+            updateConnectionButton(data.user_id, 'none');
             // Update pending requests count
             updatePendingRequestsCount();
         } else {

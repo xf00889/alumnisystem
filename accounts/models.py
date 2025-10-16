@@ -6,9 +6,41 @@ from django_countries.fields import CountryField
 from phonenumber_field.modelfields import PhoneNumberField
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
+from django.utils import timezone
+from datetime import timedelta
 from core.models.contact import Address, ContactInfo
 
 User = get_user_model()
+
+class EmailVerification(models.Model):
+    """Model to store email verification OTP codes"""
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='email_verifications')
+    otp = models.CharField(max_length=6, help_text="6-digit verification code")
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_verified = models.BooleanField(default=False)
+    expires_at = models.DateTimeField(help_text="OTP expiration time")
+    
+    class Meta:
+        verbose_name = _("Email Verification")
+        verbose_name_plural = _("Email Verifications")
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"Email verification for {self.user.email} - {'Verified' if self.is_verified else 'Pending'}"
+    
+    def save(self, *args, **kwargs):
+        if not self.expires_at:
+            # Set expiration to 10 minutes from now
+            self.expires_at = timezone.now() + timedelta(minutes=10)
+        super().save(*args, **kwargs)
+    
+    def is_expired(self):
+        """Check if the OTP has expired"""
+        return timezone.now() > self.expires_at
+    
+    def is_valid(self):
+        """Check if the OTP is valid (not expired and not verified)"""
+        return not self.is_expired() and not self.is_verified
 
 class Profile(models.Model):
     GENDER_CHOICES = [

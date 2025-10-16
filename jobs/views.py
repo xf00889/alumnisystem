@@ -29,6 +29,140 @@ def is_hr_or_admin(user):
     """Check if user is HR or admin"""
     return user.is_superuser or user.groups.filter(name='HR').exists()
 
+def careers(request):
+    """Public careers page for job listings"""
+    jobs = JobPosting.objects.filter(is_active=True).order_by('-posted_date')
+    
+    # Get filter parameters (for future implementation)
+    job_type = request.GET.get('job_type')
+    location = request.GET.get('location')
+    category = request.GET.get('category')
+    search_query = request.GET.get('q')
+    
+    # Apply filters (prepared for future implementation)
+    if job_type:
+        jobs = jobs.filter(job_type=job_type)
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+    if category:
+        jobs = jobs.filter(category=category)
+    if search_query:
+        jobs = jobs.filter(
+            Q(job_title__icontains=search_query) |
+            Q(company_name__icontains=search_query) |
+            Q(job_description__icontains=search_query)
+        )
+    
+    # Get featured jobs
+    featured_jobs = jobs.filter(is_featured=True)[:3]
+    
+    # Get recent jobs (excluding featured ones)
+    recent_jobs = jobs.exclude(is_featured=True)[:10]
+    
+    # Get job statistics
+    stats = {
+        'total_jobs': jobs.count(),
+        'featured_jobs': featured_jobs.count(),
+        'recent_jobs': recent_jobs.count(),
+    }
+    
+    # Prepare filter options for future use
+    filter_options = {
+        'job_types': JobPosting.JOB_TYPE_CHOICES,
+        'categories': JobPosting.CATEGORY_CHOICES,
+        'locations': JobPosting.objects.filter(is_active=True).values_list('location', flat=True).distinct().order_by('location'),
+    }
+    
+    context = {
+        'featured_jobs': featured_jobs,
+        'recent_jobs': recent_jobs,
+        'stats': stats,
+        'filter_options': filter_options,
+        'current_filters': {
+            'job_type': job_type,
+            'location': location,
+            'category': category,
+            'search_query': search_query,
+        },
+        'page_title': 'Career Opportunities - NORSU Alumni',
+        'page_description': 'Discover exciting career opportunities and job postings from NORSU alumni network. Find your next career move with our exclusive job board.',
+    }
+    return render(request, 'jobs/careers.html', context)
+
+def get_job_details(request, job_id):
+    """Get job details as JSON for modal display"""
+    try:
+        job = get_object_or_404(JobPosting, id=job_id, is_active=True)
+        
+        # Prepare job data for JSON response
+        job_data = {
+            'id': job.id,
+            'job_title': job.job_title,
+            'company_name': job.company_name,
+            'location': job.location,
+            'job_type': job.get_job_type_display(),
+            'job_description': job.job_description,
+            'requirements': job.requirements,
+            'responsibilities': job.responsibilities,
+            'experience_level': job.get_experience_level_display(),
+            'skills_required': job.skills_required,
+            'education_requirements': job.education_requirements,
+            'benefits': job.benefits,
+            'salary_range': job.salary_range,
+            'application_link': job.application_link,
+            'posted_date': job.posted_date.strftime('%B %d, %Y'),
+            'is_featured': job.is_featured,
+            'category': job.get_category_display(),
+            'source_type': job.source_type,
+            'source_type_display': job.get_source_type_display(),
+            'accepts_internal_applications': job.accepts_internal_applications,
+        }
+        
+        return JsonResponse({
+            'success': True,
+            'job': job_data,
+            'user': {
+                'is_authenticated': request.user.is_authenticated,
+                'is_alumni': request.user.is_authenticated,  # For now, assume authenticated users are alumni
+            }
+        })
+        
+    except Exception as e:
+        logger.error(f"Error getting job details: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'error': 'Failed to load job details'
+        }, status=500)
+
+def check_job_application_eligibility(request, job_id):
+    """Check if user can apply for a specific job based on source_type restrictions"""
+    try:
+        job = get_object_or_404(JobPosting, id=job_id, is_active=True)
+        
+        # Check source_type restrictions
+        if job.source_type == 'INTERNAL':
+            if not request.user.is_authenticated:
+                return JsonResponse({
+                    'success': False,
+                    'eligible': False,
+                    'message': 'Please log in or register to apply for this job.',
+                    'redirect_url': '/accounts/login/'
+                })
+        
+        return JsonResponse({
+            'success': True,
+            'eligible': True,
+            'message': 'You are eligible to apply for this job.'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error checking job application eligibility: {str(e)}")
+        return JsonResponse({
+            'success': False,
+            'eligible': False,
+            'message': 'Unable to check application eligibility.'
+        }, status=500)
+
 def job_list(request):
     jobs = JobPosting.objects.filter(is_active=True)
     

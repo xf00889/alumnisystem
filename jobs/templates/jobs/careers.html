@@ -1,0 +1,1236 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+{% load jobs_extras %}
+
+{% block title %}{{ page_title }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.7;
+    }
+
+    /* Hero Section */
+    .careers-hero {
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.9)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        padding: 8rem 0 4rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .careers-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="hero-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="1000" height="1000" fill="url(%23hero-pattern)"/></svg>') repeat;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .careers-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .careers-hero h1 {
+        font-size: 3.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        line-height: 1.2;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .careers-hero p {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .careers-stats {
+        display: flex;
+        justify-content: center;
+        gap: 3rem;
+        margin-top: 2rem;
+    }
+
+    .careers-stat {
+        text-align: center;
+    }
+
+    .careers-stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        color: var(--text-light);
+    }
+
+    .careers-stat-label {
+        font-size: 0.875rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Job Listings Section */
+    .job-listings-section {
+        padding: 6rem 0;
+        background-color: var(--ui-background);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 4rem;
+    }
+
+    .section-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: var(--text-light);
+        padding: 0.625rem 1.75rem;
+        border-radius: 50px;
+        font-size: 0.8125rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        text-transform: uppercase;
+        letter-spacing: 1.5px;
+    }
+
+    .section-title {
+        font-size: 2.75rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1.5rem;
+        line-height: 1.3;
+    }
+
+    .section-subtitle {
+        font-size: 1.125rem;
+        color: var(--text-secondary);
+        max-width: 700px;
+        margin: 0 auto;
+        line-height: 1.7;
+    }
+
+    /* Job Cards */
+    .job-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .job-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .job-card.featured {
+        border: 2px solid var(--feedback-warning);
+        position: relative;
+    }
+
+    .job-card.featured::before {
+        content: 'Featured';
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--feedback-warning);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 2;
+    }
+
+    .job-card-header {
+        padding: 2rem 2rem 1rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .job-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        line-height: 1.4;
+    }
+
+    .job-company {
+        font-size: 1rem;
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.5rem;
+    }
+
+    .job-location {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .job-card-body {
+        padding: 1.5rem 2rem;
+        flex-grow: 1;
+    }
+
+    .job-description {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .job-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .job-meta-item {
+        background: var(--ui-hover);
+        color: var(--text-secondary);
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+
+    .job-card-footer {
+        padding: 1rem 2rem 2rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .job-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .job-date {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .btn-apply {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        padding: 0.625rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-apply:hover {
+        background: var(--secondary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+
+    .empty-state p {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Call to Action */
+    .cta-section {
+        padding: 6rem 0;
+        background: linear-gradient(rgba(43, 60, 107, 0.92), rgba(26, 37, 68, 0.96)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="cta-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="1000" height="1000" fill="url(%23cta-pattern)"/></svg>') repeat;
+        pointer-events: none;
+    }
+
+    .cta-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .cta-title {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        line-height: 1.3;
+    }
+
+    .cta-text {
+        font-size: 1.125rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+        line-height: 1.7;
+    }
+
+    .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-cta {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: 50px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.75rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cta-primary {
+        background: linear-gradient(135deg, var(--ui-surface) 0%, #f0f4f8 100%);
+        color: var(--primary-color);
+        border: 2px solid var(--ui-surface);
+    }
+
+    .btn-cta-primary:hover {
+        background: linear-gradient(135deg, #ffffff 0%, var(--ui-surface) 100%);
+        color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-cta-outline {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: var(--text-light);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-cta-outline:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .careers-hero h1 {
+            font-size: 2.5rem;
+        }
+
+        .careers-hero p {
+            font-size: 1rem;
+        }
+
+        .careers-stats {
+            flex-direction: column;
+            gap: 1.5rem;
+        }
+
+        .section-title {
+            font-size: 2.25rem;
+        }
+
+        .job-card-header,
+        .job-card-body,
+        .job-card-footer {
+            padding-left: 1.5rem;
+            padding-right: 1.5rem;
+        }
+
+        .cta-title {
+            font-size: 2rem;
+        }
+
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .careers-hero {
+            padding: 6rem 0 3rem;
+        }
+
+        .careers-hero h1 {
+            font-size: 2.25rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .job-card-header,
+        .job-card-body,
+        .job-card-footer {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="careers-hero">
+    <div class="container">
+        <div class="careers-hero-content">
+            <h1>Career Opportunities</h1>
+            <p>Discover exciting career opportunities and job postings from the NORSU alumni network. Find your next career move with our exclusive job board.</p>
+            <div class="careers-stats">
+                <div class="careers-stat">
+                    <div class="careers-stat-number">{{ stats.total_jobs }}</div>
+                    <div class="careers-stat-label">Active Jobs</div>
+                </div>
+                <div class="careers-stat">
+                    <div class="careers-stat-number">{{ stats.featured_jobs }}</div>
+                    <div class="careers-stat-label">Featured</div>
+                </div>
+                <div class="careers-stat">
+                    <div class="careers-stat-number">{{ stats.recent_jobs }}</div>
+                    <div class="careers-stat-label">Recent</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Job Listings Section -->
+<section class="job-listings-section">
+    <div class="container">
+        <!-- Search and Filter Section (Prepared for Future Implementation) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="search-filter-card" style="background: var(--ui-surface); border-radius: var(--radius-lg); padding: 2rem; box-shadow: var(--shadow-sm); border: 1px solid var(--ui-border);">
+                    <form method="GET" class="row g-3">
+                        <div class="col-md-4">
+                            <label for="q" class="form-label">Search Jobs</label>
+                            <input type="text" class="form-control" id="q" name="q" placeholder="Job title, company, or keywords..." value="{{ current_filters.search_query }}">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="job_type" class="form-label">Job Type</label>
+                            <select class="form-select" id="job_type" name="job_type">
+                                <option value="">All Types</option>
+                                {% for value, label in filter_options.job_types %}
+                                <option value="{{ value }}" {% if current_filters.job_type == value %}selected{% endif %}>{{ label }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="location" class="form-label">Location</label>
+                            <select class="form-select" id="location" name="location">
+                                <option value="">All Locations</option>
+                                {% for location in filter_options.locations %}
+                                <option value="{{ location }}" {% if current_filters.location == location %}selected{% endif %}>{{ location }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div class="d-grid">
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-search"></i> Search
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        <!-- Featured Jobs -->
+        {% if featured_jobs %}
+        <div class="section-header">
+            <div class="section-badge">Featured Opportunities</div>
+            <h2 class="section-title">Highlighted Positions</h2>
+            <p class="section-subtitle">Premium job opportunities handpicked by our team</p>
+        </div>
+
+        <div class="row g-4 mb-5">
+            {% for job in featured_jobs %}
+            <div class="col-lg-4 col-md-6">
+                <div class="job-card featured">
+                    <div class="job-card-header">
+                        <h3 class="job-title">{{ job.job_title|format_job_title }}</h3>
+                        <div class="job-company">{{ job.company_name }}</div>
+                        <div class="job-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ job.location }}
+                        </div>
+                    </div>
+                    <div class="job-card-body">
+                        <div class="job-description">
+                            {{ job.job_description|truncatewords:25 }}
+                        </div>
+                        <div class="job-meta">
+                            <span class="job-meta-item">{{ job.get_job_type_display }}</span>
+                            <span class="job-meta-item">{{ job.get_experience_level_display }}</span>
+                            {% if job.salary_range %}
+                            <span class="job-meta-item">{{ job.salary_range }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="job-card-footer">
+                        <div class="job-actions">
+                            <div class="job-date">
+                                <i class="fas fa-clock"></i>
+                                Posted {{ job.posted_date|timesince }} ago
+                            </div>
+                            <button class="btn-apply view-job-details" data-job-id="{{ job.id }}">
+                                <i class="fas fa-eye"></i>
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Recent Jobs -->
+        {% if recent_jobs %}
+        <div class="section-header">
+            <div class="section-badge">Latest Opportunities</div>
+            <h2 class="section-title">Recent Job Postings</h2>
+            <p class="section-subtitle">Fresh opportunities from our alumni network</p>
+        </div>
+
+        <div class="row g-4">
+            {% for job in recent_jobs %}
+            <div class="col-lg-4 col-md-6">
+                <div class="job-card">
+                    <div class="job-card-header">
+                        <h3 class="job-title">{{ job.job_title|format_job_title }}</h3>
+                        <div class="job-company">{{ job.company_name }}</div>
+                        <div class="job-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                            {{ job.location }}
+                        </div>
+                    </div>
+                    <div class="job-card-body">
+                        <div class="job-description">
+                            {{ job.job_description|truncatewords:25 }}
+                        </div>
+                        <div class="job-meta">
+                            <span class="job-meta-item">{{ job.get_job_type_display }}</span>
+                            <span class="job-meta-item">{{ job.get_experience_level_display }}</span>
+                            {% if job.salary_range %}
+                            <span class="job-meta-item">{{ job.salary_range }}</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="job-card-footer">
+                        <div class="job-actions">
+                            <div class="job-date">
+                                <i class="fas fa-clock"></i>
+                                Posted {{ job.posted_date|timesince }} ago
+                            </div>
+                            <button class="btn-apply view-job-details" data-job-id="{{ job.id }}">
+                                <i class="fas fa-eye"></i>
+                                View Details
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        <!-- Empty State -->
+        {% if not featured_jobs and not recent_jobs %}
+        <div class="empty-state">
+            <i class="fas fa-briefcase"></i>
+            <h3>No Job Postings Available</h3>
+            <p>We're currently updating our job board. Check back soon for exciting career opportunities!</p>
+            <a href="{% url 'core:home' %}" class="btn btn-primary">
+                <i class="fas fa-home"></i>
+                Return to Home
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="cta-title">Ready to Advance Your Career?</h2>
+            <p class="cta-text">Join the NORSU alumni network to access exclusive job opportunities, professional development resources, and networking events.</p>
+            <div class="cta-buttons">
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-primary">
+                    <i class="fas fa-user-plus"></i>
+                    Join the Network
+                </a>
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-outline">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Member Login
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Job Details Modal -->
+<div class="modal fade" id="jobDetailsModal" tabindex="-1" aria-labelledby="jobDetailsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="jobDetailsModalLabel">
+                    <i class="fas fa-briefcase me-2"></i>
+                    <span id="modal-job-title">Job Details</span>
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modal-loading" class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2">Loading job details...</p>
+                </div>
+                
+                <div id="modal-content" style="display: none;">
+                    <!-- Job Header -->
+                    <div class="job-modal-header mb-4">
+                        <div class="d-flex justify-content-between align-items-start mb-3">
+                            <div>
+                                <h4 id="modal-company-name" class="text-primary mb-1"></h4>
+                                <h3 id="modal-job-title-full" class="h4 mb-2"></h3>
+                                <div class="d-flex align-items-center text-muted">
+                                    <i class="fas fa-map-marker-alt me-2"></i>
+                                    <span id="modal-location"></span>
+                                </div>
+                            </div>
+                            <div class="text-end">
+                                <span id="modal-job-type" class="badge bg-primary"></span>
+                                <span id="modal-experience-level" class="badge bg-secondary ms-1"></span>
+                                <div id="modal-featured-badge" class="badge bg-warning mt-1" style="display: none;">Featured</div>
+                            </div>
+                        </div>
+                        
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-6">
+                                <div class="job-meta-item">
+                                    <i class="fas fa-calendar-alt me-2"></i>
+                                    <strong>Posted:</strong> <span id="modal-posted-date"></span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="job-meta-item">
+                                    <i class="fas fa-tag me-2"></i>
+                                    <strong>Category:</strong> <span id="modal-category"></span>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="job-meta-item">
+                                    <i class="fas fa-source me-2"></i>
+                                    <strong>Source:</strong> <span id="modal-source-type"></span>
+                                </div>
+                            </div>
+                            <div class="col-12" id="modal-salary-container" style="display: none;">
+                                <div class="job-meta-item">
+                                    <i class="fas fa-money-bill-wave me-2"></i>
+                                    <strong>Salary:</strong> <span id="modal-salary"></span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Job Description -->
+                    <div class="job-section mb-4">
+                        <h5 class="section-title">
+                            <i class="fas fa-info-circle me-2"></i>
+                            Job Description
+                        </h5>
+                        <div id="modal-description" class="job-content"></div>
+                    </div>
+
+                    <!-- Requirements -->
+                    <div class="job-section mb-4" id="modal-requirements-section" style="display: none;">
+                        <h5 class="section-title">
+                            <i class="fas fa-list-check me-2"></i>
+                            Requirements
+                        </h5>
+                        <div id="modal-requirements" class="job-content"></div>
+                    </div>
+
+                    <!-- Responsibilities -->
+                    <div class="job-section mb-4" id="modal-responsibilities-section" style="display: none;">
+                        <h5 class="section-title">
+                            <i class="fas fa-tasks me-2"></i>
+                            Responsibilities
+                        </h5>
+                        <div id="modal-responsibilities" class="job-content"></div>
+                    </div>
+
+                    <!-- Skills Required -->
+                    <div class="job-section mb-4" id="modal-skills-section" style="display: none;">
+                        <h5 class="section-title">
+                            <i class="fas fa-cogs me-2"></i>
+                            Skills Required
+                        </h5>
+                        <div id="modal-skills" class="job-content"></div>
+                    </div>
+
+                    <!-- Education Requirements -->
+                    <div class="job-section mb-4" id="modal-education-section" style="display: none;">
+                        <h5 class="section-title">
+                            <i class="fas fa-graduation-cap me-2"></i>
+                            Education Requirements
+                        </h5>
+                        <div id="modal-education" class="job-content"></div>
+                    </div>
+
+                    <!-- Benefits -->
+                    <div class="job-section mb-4" id="modal-benefits-section" style="display: none;">
+                        <h5 class="section-title">
+                            <i class="fas fa-gift me-2"></i>
+                            Benefits & Perks
+                        </h5>
+                        <div id="modal-benefits" class="job-content"></div>
+                    </div>
+
+                    <!-- Internal Job Notice -->
+                    <div class="job-section mb-4" id="modal-login-notice" style="display: none;">
+                        <div class="alert alert-info d-flex align-items-start" role="alert">
+                            <i class="fas fa-info-circle me-3 mt-1" style="font-size: 1.5rem; color: #2b3c6b;"></i>
+                            <div class="flex-grow-1">
+                                <h6 class="alert-heading mb-2" style="color: #2b3c6b; font-weight: 600;">
+                                    <i class="fas fa-building me-2"></i>NORSU Internal Position
+                                </h6>
+                                <p class="mb-2" style="color: #4a5568;">
+                                    This is an internal job posting for NORSU alumni and staff members. To apply for this position, you need to be a registered member of the NORSU Alumni Network.
+                                </p>
+                                <div class="d-flex flex-column flex-sm-row gap-2">
+                                    <a href="{% url 'account_login' %}" class="btn btn-primary btn-sm">
+                                        <i class="fas fa-sign-in-alt me-1"></i>Log In
+                                    </a>
+                                    <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-sm">
+                                        <i class="fas fa-user-plus me-1"></i>Register Now
+                                    </a>
+                                </div>
+                                <small class="text-muted mt-2 d-block">
+                                    <i class="fas fa-shield-alt me-1"></i>Secure application process for verified NORSU community members
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div id="modal-error" class="text-center py-4" style="display: none;">
+                    <i class="fas fa-exclamation-triangle text-warning mb-3" style="font-size: 2rem;"></i>
+                    <h5>Error Loading Job Details</h5>
+                    <p class="text-muted">Unable to load job details. Please try again.</p>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>
+                    Close
+                </button>
+                <a id="modal-apply-link" href="#" class="btn btn-primary" target="_blank" style="display: none;">
+                    <i class="fas fa-external-link-alt me-2"></i>
+                    Apply Now
+                </a>
+                <button id="modal-internal-apply" class="btn btn-primary" style="display: none;">
+                    <i class="fas fa-paper-plane me-2"></i>
+                    Apply Through System
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    /* Modal Styles */
+    .job-modal-header {
+        border-bottom: 2px solid var(--ui-border);
+        padding-bottom: 1.5rem;
+    }
+
+    .job-section {
+        border-left: 3px solid var(--primary-color);
+        padding-left: 1rem;
+    }
+    
+    /* Internal job notice styling */
+    #modal-login-notice .alert {
+        border: 2px solid #e3f2fd;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
+        box-shadow: 0 4px 12px rgba(43, 60, 107, 0.1);
+    }
+    
+    #modal-login-notice .alert-heading {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    #modal-login-notice .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    #modal-login-notice .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(43, 60, 107, 0.2);
+    }
+
+    .section-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    .job-content {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    .job-meta-item {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    .modal-content {
+        border: none;
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .modal-header {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: white;
+        border-bottom: none;
+        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    }
+
+    .modal-header .btn-close {
+        filter: invert(1);
+    }
+
+    .modal-title {
+        font-weight: 600;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        padding: 0.5rem 0.75rem;
+    }
+
+    .btn-apply {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        padding: 0.625rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        cursor: pointer;
+    }
+
+    .btn-apply:hover {
+        background: var(--secondary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-apply:focus {
+        outline: none;
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.25);
+    }
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('jobDetailsModal'));
+    const modalLoading = document.getElementById('modal-loading');
+    const modalContent = document.getElementById('modal-content');
+    const modalError = document.getElementById('modal-error');
+    
+    // Handle view job details button clicks
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.view-job-details')) {
+            e.preventDefault();
+            const button = e.target.closest('.view-job-details');
+            const jobId = button.getAttribute('data-job-id');
+            
+            if (jobId) {
+                console.log('Loading job details for ID:', jobId);
+                loadJobDetails(jobId);
+            } else {
+                console.error('No job ID found on button:', button);
+            }
+        }
+    });
+    
+    // Function to load job details via AJAX
+    function loadJobDetails(jobId) {
+        // Show modal and loading state
+        modal.show();
+        showLoadingState();
+        
+        // Make AJAX request to get job details
+        fetch(`/jobs/job/${jobId}/details/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                populateModal(data.job, data.user);
+                showContentState();
+            } else {
+                throw new Error(data.error || 'Failed to load job details');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading job details:', error);
+            showErrorState();
+        });
+    }
+    
+    // Function to show loading state
+    function showLoadingState() {
+        modalLoading.style.display = 'block';
+        modalContent.style.display = 'none';
+        modalError.style.display = 'none';
+    }
+    
+    // Function to show content state
+    function showContentState() {
+        modalLoading.style.display = 'none';
+        modalContent.style.display = 'block';
+        modalError.style.display = 'none';
+    }
+    
+    // Function to show error state
+    function showErrorState() {
+        modalLoading.style.display = 'none';
+        modalContent.style.display = 'none';
+        modalError.style.display = 'block';
+    }
+    
+    // Function to populate modal with job data
+    function populateModal(job, user) {
+        // Validate job data
+        if (!job || !user) {
+            console.error('Invalid job or user data:', { job, user });
+            return;
+        }
+        
+        // Basic job information
+        document.getElementById('modal-job-title').textContent = job.job_title;
+        document.getElementById('modal-job-title-full').textContent = job.job_title;
+        document.getElementById('modal-company-name').textContent = job.company_name;
+        document.getElementById('modal-location').textContent = job.location;
+        document.getElementById('modal-job-type').textContent = job.job_type;
+        document.getElementById('modal-experience-level').textContent = job.experience_level;
+        document.getElementById('modal-posted-date').textContent = job.posted_date;
+        document.getElementById('modal-category').textContent = job.category;
+        document.getElementById('modal-source-type').textContent = job.source_type_display;
+        
+        // Show featured badge if applicable
+        const featuredBadge = document.getElementById('modal-featured-badge');
+        if (job.is_featured) {
+            featuredBadge.style.display = 'block';
+        } else {
+            featuredBadge.style.display = 'none';
+        }
+        
+        // Show salary if available
+        const salaryContainer = document.getElementById('modal-salary-container');
+        const salaryElement = document.getElementById('modal-salary');
+        if (job.salary_range) {
+            salaryElement.textContent = job.salary_range;
+            salaryContainer.style.display = 'block';
+        } else {
+            salaryContainer.style.display = 'none';
+        }
+        
+        // Job description
+        document.getElementById('modal-description').textContent = job.job_description;
+        
+        // Requirements
+        const requirementsSection = document.getElementById('modal-requirements-section');
+        const requirementsElement = document.getElementById('modal-requirements');
+        if (job.requirements && job.requirements.trim()) {
+            requirementsElement.textContent = job.requirements;
+            requirementsSection.style.display = 'block';
+        } else {
+            requirementsSection.style.display = 'none';
+        }
+        
+        // Responsibilities
+        const responsibilitiesSection = document.getElementById('modal-responsibilities-section');
+        const responsibilitiesElement = document.getElementById('modal-responsibilities');
+        if (job.responsibilities && job.responsibilities.trim()) {
+            responsibilitiesElement.textContent = job.responsibilities;
+            responsibilitiesSection.style.display = 'block';
+        } else {
+            responsibilitiesSection.style.display = 'none';
+        }
+        
+        // Skills required
+        const skillsSection = document.getElementById('modal-skills-section');
+        const skillsElement = document.getElementById('modal-skills');
+        if (job.skills_required && job.skills_required.trim()) {
+            skillsElement.textContent = job.skills_required;
+            skillsSection.style.display = 'block';
+        } else {
+            skillsSection.style.display = 'none';
+        }
+        
+        // Education requirements
+        const educationSection = document.getElementById('modal-education-section');
+        const educationElement = document.getElementById('modal-education');
+        if (job.education_requirements && job.education_requirements.trim()) {
+            educationElement.textContent = job.education_requirements;
+            educationSection.style.display = 'block';
+        } else {
+            educationSection.style.display = 'none';
+        }
+        
+        // Benefits
+        const benefitsSection = document.getElementById('modal-benefits-section');
+        const benefitsElement = document.getElementById('modal-benefits');
+        if (job.benefits && job.benefits.trim()) {
+            benefitsElement.textContent = job.benefits;
+            benefitsSection.style.display = 'block';
+        } else {
+            benefitsSection.style.display = 'none';
+        }
+        
+        // Application buttons and login notice
+        const applyLink = document.getElementById('modal-apply-link');
+        const internalApply = document.getElementById('modal-internal-apply');
+        const loginNotice = document.getElementById('modal-login-notice');
+        
+        // Check if user is authenticated (passed from the backend)
+        const isAuthenticated = user ? user.is_authenticated : false;
+        const isAlumni = user ? user.is_alumni : false;
+        
+        // Debug logging
+        console.log('Job source_type:', job.source_type);
+        console.log('User authenticated:', isAuthenticated);
+        console.log('User is alumni:', isAlumni);
+        
+        // Show internal job notice for internal jobs if user is not authenticated
+        if (job.source_type === 'INTERNAL' && !isAuthenticated) {
+            console.log('Showing internal job notice - hiding apply buttons');
+            loginNotice.style.display = 'block';
+            applyLink.style.display = 'none';
+            internalApply.style.display = 'none';
+        } else {
+            console.log('Hiding internal job notice - showing apply buttons');
+            loginNotice.style.display = 'none';
+            
+            // Show appropriate application button
+            if (job.application_link && job.application_link.trim()) {
+                console.log('Showing external apply button');
+                console.log('Application link:', job.application_link);
+                
+                // Validate URL format
+                try {
+                    new URL(job.application_link);
+                    applyLink.href = job.application_link;
+                    applyLink.style.display = 'inline-flex';
+                    internalApply.style.display = 'none';
+                } catch (error) {
+                    console.error('Invalid application link URL:', job.application_link, error);
+                    applyLink.style.display = 'none';
+                    internalApply.style.display = 'none';
+                }
+                
+                // Add click handler for external application link
+                applyLink.onclick = function(e) {
+                    if (job.source_type === 'INTERNAL' && !isAuthenticated) {
+                        e.preventDefault();
+                        checkApplicationEligibility(job.id, function(eligible, message, redirectUrl) {
+                            if (!eligible) {
+                                alert(message);
+                                if (redirectUrl) {
+                                    window.location.href = redirectUrl;
+                                }
+                            } else {
+                                window.open(job.application_link, '_blank');
+                            }
+                        });
+                    }
+                };
+            } else if (job.accepts_internal_applications) {
+                applyLink.style.display = 'none';
+                internalApply.style.display = 'inline-flex';
+                // Add click handler for internal application
+                internalApply.onclick = function() {
+                    if (job.source_type === 'INTERNAL' && !isAuthenticated) {
+                        checkApplicationEligibility(job.id, function(eligible, message, redirectUrl) {
+                            if (!eligible) {
+                                alert(message);
+                                if (redirectUrl) {
+                                    window.location.href = redirectUrl;
+                                }
+                            } else {
+                                // TODO: Implement internal application functionality
+                                alert('Internal application functionality will be implemented soon!');
+                            }
+                        });
+                    } else {
+                        // TODO: Implement internal application functionality
+                        alert('Internal application functionality will be implemented soon!');
+                    }
+                };
+            } else {
+                applyLink.style.display = 'none';
+                internalApply.style.display = 'none';
+            }
+        }
+    }
+    
+    // Function to check application eligibility
+    function checkApplicationEligibility(jobId, callback) {
+        fetch(`/jobs/job/${jobId}/check-eligibility/`, {
+            method: 'GET',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+            },
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                callback(data.eligible, data.message, data.redirect_url);
+            } else {
+                callback(false, data.message || 'Unable to check eligibility', null);
+            }
+        })
+        .catch(error => {
+            console.error('Error checking eligibility:', error);
+            callback(false, 'Unable to check eligibility', null);
+        });
+    }
+    
+    // Reset modal when it's hidden
+    document.getElementById('jobDetailsModal').addEventListener('hidden.bs.modal', function() {
+        showLoadingState();
+    });
+});
+</script>
+{% endblock %}

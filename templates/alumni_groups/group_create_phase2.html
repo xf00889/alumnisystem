@@ -1,0 +1,489 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Alumni Group - Phase 2{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .dashboard-header-content {
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .progressive-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 3rem;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        margin: 0 1rem;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #718096;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+    
+    .step.active .step-number {
+        background: #2b3c6b;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .step.active .step-title {
+        color: #2b3c6b;
+    }
+    
+    .step-connector {
+        width: 60px;
+        height: 2px;
+        background: #e2e8f0;
+        margin: 0 1rem;
+    }
+    
+    .step.completed + .step-connector {
+        background: #48bb78;
+    }
+    
+    .phase-container {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .phase-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .phase-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .phase-subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    .form-control[type="file"] {
+        padding: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: #2b3c6b;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #1a2332;
+    }
+    
+    .btn-secondary {
+        background: #718096;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-right: 1rem;
+    }
+    
+    .btn-secondary:hover {
+        background: #4a5568;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+    }
+    
+    .success-info {
+        background: #f0fff4;
+        border: 2px solid #48bb78;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .success-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #2f855a;
+    }
+    
+    .success-info p {
+        margin: 0;
+        color: #2f855a;
+    }
+    
+    .interview-style {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .interview-style h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.5rem;
+    }
+    
+    .interview-style p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 0.5rem;
+        transform: scale(1.2);
+    }
+    
+    .checkbox-group label {
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    .suggested-name {
+        background: #edf2f7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #2b3c6b;
+    }
+    
+    .suggested-name h5 {
+        margin: 0 0 0.5rem 0;
+        color: #2d3748;
+    }
+    
+    .suggested-name p {
+        margin: 0;
+        color: #718096;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="dashboard-header-content">
+        <h1 class="dashboard-title">Create Alumni Group - Phase 2</h1>
+        <p class="dashboard-subtitle">Finalize your group details and settings</p>
+    </div>
+</div>
+
+<div class="progressive-container">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step completed">
+            <div class="step-number">✓</div>
+            <div class="step-title">Basic Info</div>
+        </div>
+        <div class="step-connector" style="background: #48bb78;"></div>
+        <div class="step active">
+            <div class="step-number">2</div>
+            <div class="step-title">Group Details</div>
+        </div>
+    </div>
+    
+    <!-- Success Info -->
+    <div class="success-info">
+        <h4>✅ Great! No duplicate groups found</h4>
+        <p>Your batch information is unique. Now let's create your group with some additional details.</p>
+    </div>
+    
+    <!-- Interview Style Header -->
+    <div class="interview-style">
+        <h3>🎉 Perfect! Let's Finalize Your Group</h3>
+        <p>Now I'll help you set up the group name, type, and other important settings.</p>
+    </div>
+    
+    <!-- Phase Container -->
+    <div class="phase-container">
+        <div class="phase-header">
+            <h2 class="phase-title">Phase 2: Group Details</h2>
+            <p class="phase-subtitle">Complete your group setup</p>
+        </div>
+        
+        <form method="post" action="{% url 'alumni_groups:group_create_phase2' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Suggested Group Name -->
+            <div class="suggested-name">
+                <h5>💡 Suggested Group Name</h5>
+                <p>Based on your information: <strong>{{ phase1_data.course }} {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}</strong></p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="group_name">🏷️ What should we call your group?</label>
+                <input type="text" id="group_name" name="group_name" class="form-control" 
+                       required placeholder="e.g., BSCS Batch 2020-2024" 
+                       value="{{ phase1_data.course }} {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}">
+                <small style="color: #718096; font-size: 0.875rem;">Choose a name that represents your batch and course</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="group_type">🔧 What type of group is this?</label>
+                <select id="group_type" name="group_type" class="form-control" required>
+                    <option value="">Select group type</option>
+                    <option value="AUTO">Automatic - Anyone with matching criteria can join</option>
+                    <option value="MANUAL">Manual - Admin approval required for all members</option>
+                    <option value="HYBRID">Hybrid - Some members auto-approved, others need approval</option>
+                </select>
+                <small style="color: #718096; font-size: 0.875rem;">This determines how new members can join your group</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="description">📝 Tell us about your group</label>
+                <textarea id="description" name="description" class="form-control" rows="4" 
+                          required placeholder="Describe your batch, shared experiences, goals, etc."></textarea>
+                <small style="color: #718096; font-size: 0.875rem;">Help others understand what your group is about</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="visibility">👁️ Who can see this group?</label>
+                <select id="visibility" name="visibility" class="form-control" required>
+                    <option value="">Select visibility</option>
+                    <option value="PUBLIC">Public - Everyone can see and find this group</option>
+                    <option value="PRIVATE">Private - Only members can see this group</option>
+                    <option value="RESTRICTED">Restricted - Visible but requires approval to join</option>
+                </select>
+                <small style="color: #718096; font-size: 0.875rem;">Control who can discover and access your group</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="cover_image">🖼️ Group Cover Image (Optional)</label>
+                <input type="file" id="cover_image" name="cover_image" class="form-control" accept="image/*">
+                <small style="color: #718096; font-size: 0.875rem;">Upload a cover image to make your group more attractive</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="tags">🏷️ Tags (Optional)</label>
+                <input type="text" id="tags" name="tags" class="form-control" 
+                       placeholder="e.g., alumni, computer science, batch 2020, friends">
+                <small style="color: #718096; font-size: 0.875rem;">Add tags to help people find your group (separate with commas)</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="max_members">👥 Maximum Members (Optional)</label>
+                <input type="number" id="max_members" name="max_members" class="form-control" 
+                       min="1" placeholder="e.g., 100">
+                <small style="color: #718096; font-size: 0.875rem;">Leave empty for unlimited members</small>
+            </div>
+            
+            <!-- Additional Settings -->
+            <div class="form-group">
+                <h4 style="color: #2d3748; margin-bottom: 1rem;">⚙️ Additional Settings</h4>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="requires_approval" name="requires_approval">
+                    <label for="requires_approval">Require admin approval for new members</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="has_security_questions" name="has_security_questions">
+                    <label for="has_security_questions">Use security questions for member verification</label>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'alumni_groups:group_create_phase1' %}" class="btn-secondary">← Back to Phase 1</a>
+                <button type="submit" class="btn-primary">Create Group 🎉</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Process any Django messages as SweetAlert notifications
+    if (typeof SweetAlertUtils !== 'undefined') {
+        SweetAlertUtils.processDjangoMessages();
+    }
+    
+    // Auto-fill description based on group type
+    const groupTypeSelect = document.getElementById('group_type');
+    const descriptionTextarea = document.getElementById('description');
+    
+    groupTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        let description = '';
+        
+        switch(selectedType) {
+            case 'AUTO':
+                description = 'This is an automatic group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Anyone with matching criteria can join automatically.';
+                break;
+            case 'MANUAL':
+                description = 'This is a manual group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. All new members require admin approval.';
+                break;
+            case 'HYBRID':
+                description = 'This is a hybrid group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Some members are auto-approved while others need approval.';
+                break;
+        }
+        
+        if (description && !descriptionTextarea.value) {
+            descriptionTextarea.value = description;
+        }
+    });
+    
+    // Form submission confirmation
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        Swal.fire({
+            title: 'Create Group?',
+            text: 'Are you ready to create your alumni group?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2b3c6b',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, create it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Creating Group...',
+                    text: 'Please wait while we create your group.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                // Submit the form
+                form.submit();
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

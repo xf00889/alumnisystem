@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}reCAPTCHA Test - NORSU Alumni{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h3 class="mb-0"><i class="fas fa-shield-alt"></i> reCAPTCHA Test</h3>
+                </div>
+                <div class="card-body">
+                    <p>This page tests if reCAPTCHA is properly configured and loaded.</p>
+                    
+                    <!-- Test reCAPTCHA v3 -->
+                    <div class="mb-3">
+                        <h5>reCAPTCHA v3 Test</h5>
+                        <button id="testRecaptcha" class="btn btn-primary">
+                            <i class="fas fa-shield-alt"></i> Test reCAPTCHA v3
+                        </button>
+                        <div id="recaptchaResult" class="mt-2"></div>
+                    </div>
+                    
+                    <!-- Test reCAPTCHA v2 -->
+                    <div class="mb-3">
+                        <h5>reCAPTCHA v2 Test</h5>
+                        <div class="g-recaptcha" data-sitekey="{{ RECAPTCHA_PUBLIC_KEY|default:'6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg' }}"></div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle"></i> Test Results:</h6>
+                        <ul class="mb-0">
+                            <li><strong>reCAPTCHA Script:</strong> <span id="scriptStatus">Checking...</span></li>
+                            <li><strong>Public Key:</strong> <span id="publicKeyStatus">Checking...</span></li>
+                            <li><strong>grecaptcha Object:</strong> <span id="grecaptchaStatus">Checking...</span></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if reCAPTCHA script is loaded
+    const scriptStatus = document.getElementById('scriptStatus');
+    const publicKeyStatus = document.getElementById('publicKeyStatus');
+    const grecaptchaStatus = document.getElementById('grecaptchaStatus');
+    
+    // Check script loading
+    const recaptchaScript = document.querySelector('script[src*="recaptcha"]');
+    if (recaptchaScript) {
+        scriptStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Loaded</span>';
+    } else {
+        scriptStatus.innerHTML = '<span class="text-danger"><i class="fas fa-times"></i> Not Found</span>';
+    }
+    
+    // Check public key
+    const publicKey = '{{ RECAPTCHA_PUBLIC_KEY|default:"6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg" }}';
+    if (publicKey && publicKey.length > 10) {
+        publicKeyStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> ' + publicKey.substring(0, 20) + '...</span>';
+    } else {
+        publicKeyStatus.innerHTML = '<span class="text-danger"><i class="fas fa-times"></i> Not Set</span>';
+    }
+    
+    // Check grecaptcha object
+    setTimeout(() => {
+        if (typeof grecaptcha !== 'undefined') {
+            grecaptchaStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Available</span>';
+        } else {
+            grecaptchaStatus.innerHTML = '<span class="text-danger"><i class="fas fa-times"></i> Not Available</span>';
+        }
+    }, 2000);
+    
+    // Test reCAPTCHA v3
+    document.getElementById('testRecaptcha').addEventListener('click', function() {
+        const resultDiv = document.getElementById('recaptchaResult');
+        resultDiv.innerHTML = '<div class="spinner-border spinner-border-sm" role="status"></div> Testing...';
+        
+        if (typeof grecaptcha !== 'undefined') {
+            grecaptcha.ready(function() {
+                grecaptcha.execute(publicKey, {action: 'test'}).then(function(token) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-success">
+                            <h6><i class="fas fa-check"></i> reCAPTCHA v3 Test Successful!</h6>
+                            <p><strong>Token:</strong> ${token.substring(0, 50)}...</p>
+                            <p><strong>Action:</strong> test</p>
+                        </div>
+                    `;
+                }).catch(function(error) {
+                    resultDiv.innerHTML = `
+                        <div class="alert alert-danger">
+                            <h6><i class="fas fa-times"></i> reCAPTCHA v3 Test Failed</h6>
+                            <p>Error: ${error}</p>
+                        </div>
+                    `;
+                });
+            });
+        } else {
+            resultDiv.innerHTML = `
+                <div class="alert alert-danger">
+                    <h6><i class="fas fa-times"></i> reCAPTCHA Not Available</h6>
+                    <p>grecaptcha object is not loaded</p>
+                </div>
+            `;
+        }
+    });
+});
+</script>
+{% endblock %}

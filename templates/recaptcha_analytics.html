@@ -1,0 +1,1153 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}reCAPTCHA Analytics - Admin Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Layout */
+    .dashboard-container {
+        padding: 0 0 2rem 0;
+        background-color: #f8f9fa;
+        min-height: calc(100vh - 60px);
+        overflow-x: hidden;
+        width: 100%;
+        box-sizing: border-box;
+    }
+
+    .dashboard-container .container-fluid {
+        padding-left: 15px;
+        padding-right: 15px;
+        max-width: 100%;
+        overflow-x: hidden;
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .dashboard-header-content {
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .dashboard-header-controls {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        min-width: 0;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    /* Analytics Cards */
+    .analytics-card {
+        border-radius: 16px;
+        padding: 1.25rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        margin-bottom: 0.75rem;
+        background-color: #fff;
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        height: 140px;
+        display: flex;
+        align-items: center;
+        position: relative;
+        overflow: hidden;
+        cursor: pointer;
+    }
+
+    .analytics-card:hover {
+        transform: translateY(-4px) scale(1.02);
+        box-shadow: 0 12px 32px rgba(0, 0, 0, 0.15);
+    }
+
+    .analytics-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--secondary-color));
+        opacity: 0;
+        transition: opacity 0.3s ease;
+    }
+
+    .analytics-card:hover::before {
+        opacity: 1;
+    }
+
+    .analytics-card-content {
+        flex: 1;
+        z-index: 2;
+    }
+
+    .analytics-metric {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.25rem;
+        color: #1a202c;
+        line-height: 1;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .analytics-title {
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        color: #718096;
+        margin-bottom: 0.5rem;
+        letter-spacing: 0.5px;
+        line-height: 1.2;
+    }
+
+    .analytics-icon {
+        font-size: 2.75rem;
+        opacity: 0.25;
+        position: absolute;
+        right: 1rem;
+        top: 50%;
+        transform: translateY(-50%);
+        z-index: 1;
+        transition: all 0.3s ease;
+        filter: brightness(1.1);
+        text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    .analytics-card:hover .analytics-icon {
+        opacity: 0.35;
+        transform: translateY(-50%) scale(1.1);
+        filter: brightness(1.2);
+    }
+
+    .analytics-subtitle {
+        font-size: 0.7rem;
+        color: #a0aec0;
+        margin-top: 0.25rem;
+        line-height: 1.3;
+        font-weight: 500;
+    }
+
+    /* Chart Containers */
+    .chart-container {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 1rem;
+        height: 420px;
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .chart-container:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .doughnut-chart-container {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 1rem;
+        position: relative;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+        aspect-ratio: 1;
+        height: auto;
+        min-height: 420px;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .doughnut-chart-container:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .doughnut-chart-wrapper {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        min-height: 280px;
+    }
+
+    .chart-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        line-height: 1.3;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .chart-canvas {
+        height: 320px !important;
+        width: 100% !important;
+    }
+
+    .doughnut-chart-wrapper .chart-canvas {
+        max-width: 100%;
+        max-height: 100%;
+        width: auto !important;
+        height: auto !important;
+    }
+
+    /* Action Buttons */
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border: 1px solid transparent;
+        cursor: pointer;
+        background: none;
+        font-family: inherit;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .action-btn.btn-outline-secondary {
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        color: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+    }
+
+    .action-btn.btn-outline-secondary:hover {
+        background: rgba(255, 255, 255, 0.2);
+        border-color: rgba(255, 255, 255, 0.5);
+        color: white;
+    }
+
+    .action-btn.btn-outline-danger {
+        background: rgba(220, 53, 69, 0.1);
+        border: 1px solid rgba(220, 53, 69, 0.3);
+        color: rgba(220, 53, 69, 0.9);
+    }
+
+    .action-btn.btn-outline-danger:hover {
+        background: rgba(220, 53, 69, 0.2);
+        border-color: rgba(220, 53, 69, 0.5);
+        color: #dc3545;
+    }
+
+    /* Table Styles */
+    .analytics-table {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .analytics-table:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .table {
+        margin-bottom: 0;
+    }
+
+    .table thead th {
+        border-bottom: 2px solid #e2e8f0;
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        padding: 1rem 0.75rem;
+    }
+
+    .table tbody td {
+        border-bottom: 1px solid #f1f3f4;
+        padding: 0.75rem;
+        vertical-align: middle;
+    }
+
+    .table tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+
+    .badge {
+        font-size: 0.75rem;
+        font-weight: 600;
+        padding: 0.375rem 0.75rem;
+        border-radius: 6px;
+    }
+
+    /* Summary Section */
+    .summary-section {
+        background: white;
+        border-radius: 16px;
+        padding: 1.5rem;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(0, 0, 0, 0.04);
+        margin-bottom: 1rem;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        overflow: hidden;
+    }
+
+    .summary-section:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+
+    .summary-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #1a202c;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .summary-metric {
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .summary-metric h3 {
+        font-size: 2rem;
+        font-weight: 800;
+        margin-bottom: 0.5rem;
+        color: #1a202c;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .summary-metric p {
+        font-size: 0.875rem;
+        color: #718096;
+        margin: 0;
+        font-weight: 500;
+    }
+
+    /* Mobile Responsiveness */
+    @media (max-width: 768px) {
+        .dashboard-container {
+            padding: 0 0 0.75rem 0;
+            overflow-x: hidden;
+        }
+
+        .row.g-2 {
+            --bs-gutter-x: 0.5rem;
+        }
+
+        .col-xl-3, .col-lg-3, .col-md-6 {
+            flex: 0 0 100%;
+            max-width: 100%;
+            margin-bottom: 0.75rem;
+        }
+
+        .analytics-card {
+            height: 120px;
+            padding: 1rem;
+            margin-bottom: 0.75rem;
+            border-radius: 12px;
+        }
+
+        .analytics-metric {
+            font-size: 1.75rem;
+        }
+
+        .analytics-icon {
+            font-size: 2.25rem;
+            right: 0.75rem;
+            opacity: 0.3 !important;
+        }
+
+        .analytics-card:hover .analytics-icon {
+            opacity: 0.45 !important;
+        }
+
+        .chart-container {
+            padding: 1rem;
+            height: 300px;
+            margin-bottom: 1rem;
+        }
+
+        .chart-canvas {
+            height: 200px !important;
+            width: 100% !important;
+        }
+
+        .doughnut-chart-container {
+            padding: 1rem;
+            min-height: 300px;
+        }
+
+        .doughnut-chart-wrapper {
+            min-height: 200px;
+        }
+
+        .chart-title {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+        }
+
+        .dashboard-header {
+            padding: 1.25rem;
+            margin-bottom: 1.5rem;
+            flex-direction: column;
+            text-align: center;
+            gap: 1.5rem;
+            border-radius: 0;
+            width: 100%;
+            box-sizing: border-box;
+        }
+
+        .dashboard-header-content {
+            text-align: center;
+            width: 100%;
+        }
+
+        .dashboard-header-controls {
+            width: 100%;
+            justify-content: center;
+        }
+
+        .dashboard-title {
+            font-size: 1.5rem;
+        }
+
+        .dashboard-subtitle {
+            font-size: 0.875rem;
+        }
+
+        .analytics-subtitle {
+            display: none;
+        }
+
+        .chart-title small {
+            display: none;
+        }
+    }
+
+    @media (max-width: 992px) and (min-width: 769px) {
+        .analytics-card {
+            height: 130px;
+        }
+
+        .chart-container {
+            height: 380px;
+        }
+
+        .chart-canvas {
+            height: 280px !important;
+        }
+
+        .doughnut-chart-container {
+            min-height: 380px;
+        }
+
+        .doughnut-chart-wrapper {
+            min-height: 280px;
+        }
+
+        .dashboard-header {
+            padding: 1.75rem;
+            flex-direction: row;
+            text-align: left;
+        }
+
+        .dashboard-header-content {
+            text-align: left;
+        }
+
+        .dashboard-header-controls {
+            width: auto;
+            justify-content: flex-end;
+        }
+
+        .dashboard-title {
+            font-size: 1.75rem;
+        }
+    }
+
+    @media (min-width: 1200px) {
+        .analytics-card {
+            height: 150px;
+        }
+
+        .chart-container {
+            height: 450px;
+        }
+
+        .chart-canvas {
+            height: 350px !important;
+        }
+
+        .doughnut-chart-container {
+            min-height: 450px;
+        }
+
+        .doughnut-chart-wrapper {
+            min-height: 350px;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .dashboard-container .container-fluid {
+            padding-left: 10px;
+            padding-right: 10px;
+        }
+
+        .dashboard-header {
+            padding: 1rem;
+            gap: 1rem;
+        }
+
+        .analytics-icon {
+            font-size: 2rem;
+            right: 0.5rem;
+            opacity: 0.32 !important;
+        }
+
+        .analytics-card:hover .analytics-icon {
+            opacity: 0.5 !important;
+        }
+    }
+
+    /* Accessibility improvements */
+    @media (prefers-reduced-motion: reduce) {
+        .analytics-card,
+        .chart-container,
+        .analytics-table,
+        .summary-section {
+            transition: none;
+        }
+
+        .analytics-icon {
+            transition: none;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="container-fluid">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="dashboard-header-content">
+                <h1 class="dashboard-title">reCAPTCHA Analytics Dashboard</h1>
+                <p class="dashboard-subtitle">Monitor reCAPTCHA performance, security metrics, and spam protection effectiveness.</p>
+            </div>
+            <div class="dashboard-header-controls">
+                <button class="action-btn btn-outline-secondary" onclick="refreshData()">
+                    <i class="fas fa-sync-alt"></i>Refresh
+                </button>
+                <button class="action-btn btn-outline-danger" onclick="resetData()">
+                    <i class="fas fa-trash"></i>Reset Data
+                </button>
+            </div>
+        </div>
+
+        <!-- Key Metrics Cards Row 1 -->
+        <div class="row g-2 mb-4">
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Total successful reCAPTCHA validations">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Successful Validations</div>
+                        <div class="analytics-metric">{{ metrics.overall.success|intcomma }}</div>
+                        <div class="analytics-subtitle">All time</div>
+                    </div>
+                    <div class="analytics-icon text-success">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Total failed reCAPTCHA validations">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Failed Validations</div>
+                        <div class="analytics-metric">{{ metrics.overall.failure|intcomma }}</div>
+                        <div class="analytics-subtitle">Blocked attempts</div>
+                    </div>
+                    <div class="analytics-icon text-warning">
+                        <i class="fas fa-times-circle"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Overall reCAPTCHA success rate percentage">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Success Rate</div>
+                        <div class="analytics-metric">{{ success_rate|floatformat:1 }}%</div>
+                        <div class="analytics-subtitle">Validation accuracy</div>
+                    </div>
+                    <div class="analytics-icon text-info">
+                        <i class="fas fa-percentage"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-xl-3 col-lg-3 col-md-6 col-sm-12">
+                <div class="analytics-card" data-tooltip="Total spam attempts blocked by reCAPTCHA">
+                    <div class="analytics-card-content">
+                        <div class="analytics-title">Spam Blocked</div>
+                        <div class="analytics-metric">{{ spam_reduction.spam_blocked|intcomma }}</div>
+                        <div class="analytics-subtitle">Security protection</div>
+                    </div>
+                    <div class="analytics-icon text-primary">
+                        <i class="fas fa-shield-alt"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row g-3 mb-4">
+            <!-- Hourly Activity Chart -->
+            <div class="col-xl-8 col-lg-7 col-md-12">
+                <div class="chart-container">
+                    <div class="chart-title">
+                        <span><i class="fas fa-chart-line me-2"></i>Hourly Activity (Last 24 Hours)</span>
+                        <small class="text-muted">Real-time monitoring</small>
+                    </div>
+                    <canvas id="hourlyChart" class="chart-canvas"></canvas>
+                </div>
+            </div>
+
+            <!-- Overall Distribution Chart -->
+            <div class="col-xl-4 col-lg-5 col-md-12">
+                <div class="doughnut-chart-container">
+                    <div class="chart-title">
+                        <span><i class="fas fa-chart-pie me-2"></i>Overall Distribution</span>
+                        <small class="text-muted">Success vs Failure</small>
+                    </div>
+                    <div class="doughnut-chart-wrapper">
+                        <canvas id="overallChart" class="chart-canvas"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Form Performance Table -->
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="analytics-table">
+                    <div class="chart-title">
+                        <span><i class="fas fa-table me-2"></i>Form Performance</span>
+                        <small class="text-muted">Individual form statistics</small>
+                    </div>
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Form</th>
+                                    <th>Success</th>
+                                    <th>Failure</th>
+                                    <th>Error</th>
+                                    <th>Success Rate</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for form, data in metrics.forms.items %}
+                                <tr>
+                                    <td><strong>{{ form|title }}</strong></td>
+                                    <td><span class="badge bg-success">{{ data.success|intcomma }}</span></td>
+                                    <td><span class="badge bg-warning">{{ data.failure|intcomma }}</span></td>
+                                    <td><span class="badge bg-danger">{{ data.error|intcomma }}</span></td>
+                                    <td>
+                                        {% if data.success|add:data.failure > 0 %}
+                                            {% widthratio data.success data.success|add:data.failure 100 %}%
+                                        {% else %}
+                                            0%
+                                        {% endif %}
+                                    </td>
+                                    <td><strong>{{ data.success|add:data.failure|add:data.error|intcomma }}</strong></td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Spam Reduction Summary -->
+        <div class="row g-3 mb-4">
+            <div class="col-12">
+                <div class="summary-section">
+                    <div class="summary-title">
+                        <i class="fas fa-shield-alt"></i>
+                        Spam Reduction Summary
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="summary-metric">
+                                <h3 class="text-success">{{ spam_reduction.spam_blocked|intcomma }}</h3>
+                                <p>Spam Attempts Blocked</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="summary-metric">
+                                <h3 class="text-info">{{ spam_reduction.total_attempts|intcomma }}</h3>
+                                <p>Total Attempts</p>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="summary-metric">
+                                <h3 class="text-primary">{{ spam_reduction.reduction_percentage }}%</h3>
+                                <p>Spam Reduction Rate</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block page_specific_js %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Chart data from Django context
+    const chartData = {{ chart_data|safe }};
+
+    // Enhanced chart configurations with cleaner styling
+    const baseChartOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        aspectRatio: 2.5,
+        plugins: {
+            legend: {
+                display: true,
+                position: 'top',
+                labels: {
+                    usePointStyle: true,
+                    padding: 20,
+                    font: {
+                        size: 12,
+                        family: 'Poppins, sans-serif',
+                        weight: '500'
+                    },
+                    color: '#4a5568',
+                    boxWidth: 12,
+                    boxHeight: 12
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(26, 32, 44, 0.95)',
+                titleColor: '#fff',
+                bodyColor: '#e2e8f0',
+                borderColor: 'rgba(255, 255, 255, 0.1)',
+                borderWidth: 1,
+                cornerRadius: 12,
+                displayColors: true,
+                titleFont: {
+                    size: 13,
+                    weight: '600'
+                },
+                bodyFont: {
+                    size: 12
+                },
+                padding: 12,
+                caretPadding: 8
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                grid: {
+                    color: 'rgba(0, 0, 0, 0.03)',
+                    lineWidth: 0.5,
+                    drawBorder: false
+                },
+                ticks: {
+                    maxTicksLimit: 5,
+                    font: {
+                        size: 11,
+                        family: 'Poppins, sans-serif'
+                    },
+                    color: '#8e9ba7',
+                    padding: 12
+                }
+            },
+            x: {
+                grid: {
+                    display: false
+                },
+                ticks: {
+                    maxTicksLimit: 6,
+                    font: {
+                        size: 11,
+                        family: 'Poppins, sans-serif'
+                    },
+                    color: '#8e9ba7',
+                    padding: 12
+                }
+            }
+        },
+        elements: {
+            point: {
+                radius: 4,
+                hoverRadius: 6,
+                borderWidth: 2,
+                backgroundColor: '#fff'
+            },
+            line: {
+                borderWidth: 3,
+                tension: 0.4
+            }
+        },
+        animation: {
+            duration: 1200,
+            easing: 'easeInOutQuart',
+            delay: (context) => {
+                return context.type === 'data' && context.mode === 'default' ? context.dataIndex * 50 : 0;
+            }
+        },
+        interaction: {
+            intersect: false,
+            mode: 'index'
+        }
+    };
+
+    // Specific options for line charts with smooth curves
+    const lineChartOptions = {
+        ...baseChartOptions,
+        elements: {
+            ...baseChartOptions.elements,
+            line: {
+                tension: 0.45,
+                borderWidth: 2.5
+            }
+        }
+    };
+
+    // Specific options for doughnut charts
+    const doughnutChartOptions = {
+        responsive: true,
+        maintainAspectRatio: true,
+        aspectRatio: 1,
+        plugins: {
+            legend: {
+                position: 'bottom',
+                labels: {
+                    padding: 15,
+                    usePointStyle: true,
+                    font: {
+                        size: 11,
+                        family: 'Poppins, sans-serif'
+                    },
+                    color: '#8e9ba7',
+                    boxWidth: 12,
+                    boxHeight: 12
+                }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(0, 0, 0, 0.9)',
+                titleColor: '#fff',
+                bodyColor: '#fff',
+                cornerRadius: 8,
+                displayColors: false,
+                padding: 12,
+                titleFont: {
+                    size: 12,
+                    weight: '600'
+                },
+                bodyFont: {
+                    size: 11
+                }
+            }
+        },
+        cutout: '60%',
+        elements: {
+            arc: {
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverBorderWidth: 3
+            }
+        },
+        animation: {
+            duration: 1000,
+            easing: 'easeInOutQuart'
+        },
+        layout: {
+            padding: {
+                top: 10,
+                bottom: 10,
+                left: 10,
+                right: 10
+            }
+        }
+    };
+
+    // Hourly Activity Chart - Enhanced Line Chart
+    const hourlyCtx = document.getElementById('hourlyChart').getContext('2d');
+    new Chart(hourlyCtx, {
+        type: 'line',
+        data: {
+            labels: chartData.hourly.map(item => {
+                const date = new Date(item.hour);
+                return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit' });
+            }),
+            datasets: [
+                {
+                    label: 'Success',
+                    data: chartData.hourly.map(item => item.success),
+                    borderColor: '#1cc88a',
+                    backgroundColor: 'rgba(28, 200, 138, 0.06)',
+                    borderWidth: 2.5,
+                    fill: true,
+                    tension: 0.45,
+                    pointBackgroundColor: '#1cc88a',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: '#1cc88a',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2
+                },
+                {
+                    label: 'Failure',
+                    data: chartData.hourly.map(item => item.failure),
+                    borderColor: '#f6c23e',
+                    backgroundColor: 'rgba(246, 194, 62, 0.06)',
+                    borderWidth: 2.5,
+                    fill: false,
+                    tension: 0.45,
+                    pointBackgroundColor: '#f6c23e',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: '#f6c23e',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2
+                },
+                {
+                    label: 'Error',
+                    data: chartData.hourly.map(item => item.error),
+                    borderColor: '#e74a3b',
+                    backgroundColor: 'rgba(231, 74, 59, 0.06)',
+                    borderWidth: 2.5,
+                    fill: false,
+                    tension: 0.45,
+                    pointBackgroundColor: '#e74a3b',
+                    pointBorderColor: '#ffffff',
+                    pointBorderWidth: 2,
+                    pointRadius: 3,
+                    pointHoverRadius: 5,
+                    pointHoverBackgroundColor: '#e74a3b',
+                    pointHoverBorderColor: '#ffffff',
+                    pointHoverBorderWidth: 2
+                }
+            ]
+        },
+        options: {
+            ...lineChartOptions,
+            plugins: {
+                ...lineChartOptions.plugins,
+                tooltip: {
+                    ...lineChartOptions.plugins.tooltip,
+                    callbacks: {
+                        label: function(context) {
+                            return `${context.dataset.label}: ${context.parsed.y}`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Overall Distribution Chart - Enhanced Doughnut Chart
+    const overallCtx = document.getElementById('overallChart').getContext('2d');
+    new Chart(overallCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Success', 'Failure', 'Error'],
+            datasets: [{
+                data: [
+                    chartData.overall.success,
+                    chartData.overall.failure,
+                    chartData.overall.error
+                ],
+                backgroundColor: [
+                    '#1cc88a',
+                    '#f6c23e',
+                    '#e74a3b'
+                ],
+                borderWidth: 2,
+                borderColor: '#ffffff',
+                hoverBorderWidth: 3,
+                hoverOffset: 6
+            }]
+        },
+        options: {
+            ...doughnutChartOptions,
+            plugins: {
+                ...doughnutChartOptions.plugins,
+                tooltip: {
+                    ...doughnutChartOptions.plugins.tooltip,
+                    callbacks: {
+                        label: function(context) {
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = ((context.parsed / total) * 100).toFixed(1);
+                            return `${context.label}: ${context.parsed} (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
+
+    // Refresh data function
+    function refreshData() {
+        Swal.fire({
+            title: 'Refreshing Data...',
+            text: 'Updating reCAPTCHA analytics data.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        setTimeout(() => {
+            location.reload();
+        }, 1000);
+    }
+
+    // Reset data function with SweetAlert
+    function resetData() {
+        Swal.fire({
+            title: 'Reset Analytics Data?',
+            text: 'This will permanently delete all reCAPTCHA analytics data. This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Yes, reset data!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                Swal.fire({
+                    title: 'Resetting Data...',
+                    text: 'Please wait while we reset the analytics data.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                fetch('{% url "core:recaptcha_analytics_reset" %}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Data Reset Successfully!',
+                            text: 'All reCAPTCHA analytics data has been reset.',
+                            confirmButtonText: 'OK'
+                        }).then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Reset Failed',
+                            text: 'Error resetting data: ' + data.message,
+                            confirmButtonText: 'OK'
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Reset Failed',
+                        text: 'Error resetting data. Please try again.',
+                        confirmButtonText: 'OK'
+                    });
+                });
+            }
+        });
+    }
+
+    // Make functions globally available
+    window.refreshData = refreshData;
+    window.resetData = resetData;
+});
+</script>
+{% endblock %}

@@ -7,6 +7,9 @@ urlpatterns = [
     # Group List and Creation
     path('', views.GroupListView.as_view(), name='group_list'),
     path('create/', views.GroupCreateView.as_view(), name='group_create'),
+    path('create-progressive/', views.GroupCreateProgressiveView.as_view(), name='group_create_progressive'),
+    path('create-phase1/', views.GroupCreatePhase1View.as_view(), name='group_create_phase1'),
+    path('create-phase2/', views.GroupCreatePhase2View.as_view(), name='group_create_phase2'),
     path('map/', views.group_map_view, name='group_map'),
     
     # Group Detail and Management

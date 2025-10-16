@@ -1,0 +1,541 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .form-container {
+        max-width: 800px;
+        margin: 0 auto;
+    }
+    
+    .form-card {
+        border: none;
+        border-radius: 15px;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        margin-bottom: 20px;
+        overflow: hidden;
+    }
+    
+    .form-header {
+        background: linear-gradient(135deg, #2b3c6b 0%, #4a5568 100%);
+        color: white;
+        padding: 30px;
+        text-align: center;
+    }
+    
+    .form-body {
+        padding: 40px;
+    }
+    
+    .form-section {
+        margin-bottom: 40px;
+    }
+    
+    .section-title {
+        font-size: 18px;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 20px;
+        padding-bottom: 10px;
+        border-bottom: 2px solid #e9ecef;
+    }
+    
+    .form-group {
+        margin-bottom: 25px;
+    }
+    
+    .form-label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 8px;
+        display: block;
+    }
+    
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 8px;
+        padding: 12px 15px;
+        font-size: 16px;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .form-control:focus {
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+        outline: none;
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 15px;
+    }
+    
+    .form-check-input {
+        margin-right: 10px;
+        transform: scale(1.2);
+    }
+    
+    .form-check-label {
+        font-weight: 500;
+        color: #2d3748;
+    }
+    
+    .btn-save {
+        background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+        border: none;
+        border-radius: 10px;
+        padding: 15px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        margin-right: 15px;
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(40, 167, 69, 0.3);
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        border: none;
+        border-radius: 10px;
+        padding: 15px 30px;
+        font-size: 16px;
+        font-weight: 600;
+        color: white;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-block;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .predefined-configs {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+        margin-bottom: 30px;
+    }
+    
+    .predefined-config {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 20px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: white;
+    }
+    
+    .predefined-config:hover {
+        border-color: #2b3c6b;
+        box-shadow: 0 5px 15px rgba(43, 60, 107, 0.1);
+    }
+    
+    .predefined-config.selected {
+        border-color: #2b3c6b;
+        background: #f8f9ff;
+    }
+    
+    .config-name {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 10px;
+    }
+    
+    .config-details {
+        font-size: 12px;
+        color: #6c757d;
+        margin-bottom: 10px;
+    }
+    
+    .config-help {
+        font-size: 11px;
+        color: #495057;
+        background: #f8f9fa;
+        padding: 8px;
+        border-radius: 5px;
+    }
+    
+    .help-text {
+        font-size: 12px;
+        color: #6c757d;
+        margin-top: 5px;
+    }
+    
+    .alert {
+        border-radius: 8px;
+        padding: 15px;
+        margin-bottom: 20px;
+    }
+    
+    .alert-info {
+        background: #d1ecf1;
+        border: 1px solid #bee5eb;
+        color: #0c5460;
+    }
+    
+    .alert-warning {
+        background: #fff3cd;
+        border: 1px solid #ffeaa7;
+        color: #856404;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="form-container">
+                <!-- Form Header -->
+                <div class="form-card">
+                    <div class="form-header">
+                        <h2 class="mb-0"><i class="fas fa-server me-3"></i>{{ page_title }}</h2>
+                        <p class="mb-0 mt-2">Configure SMTP settings for email functionality</p>
+                    </div>
+                </div>
+                
+                <!-- Configuration Form -->
+                <div class="form-card">
+                    <div class="form-body">
+                        <form method="post" id="smtpForm">
+                            {% csrf_token %}
+                            
+                            <!-- Predefined Configurations -->
+                            {% if predefined_configs %}
+                            <div class="form-section">
+                                <h4 class="section-title">Quick Setup Templates</h4>
+                                <p class="text-muted mb-3">Click on a template to auto-fill the form, or configure manually below.</p>
+                                
+                                <div class="predefined-configs">
+                                    {% for key, config in predefined_configs.items %}
+                                    <div class="predefined-config" data-config="{{ key }}">
+                                        <div class="config-name">{{ config.name }}</div>
+                                        <div class="config-details">{{ config.host }}:{{ config.port }}</div>
+                                        <div class="config-help">{{ config.help_text }}</div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            
+                            <!-- Basic Information -->
+                            <div class="form-section">
+                                <h4 class="section-title">Basic Information</h4>
+                                
+                                <div class="form-group">
+                                    <label for="name" class="form-label">Configuration Name</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="name" 
+                                           name="name" 
+                                           value="{{ config.name|default:'' }}"
+                                           placeholder="e.g., Gmail, Outlook, Custom"
+                                           required>
+                                    <div class="help-text">A friendly name to identify this configuration</div>
+                                </div>
+                            </div>
+                            
+                            <!-- SMTP Server Settings -->
+                            <div class="form-section">
+                                <h4 class="section-title">SMTP Server Settings</h4>
+                                
+                                <div class="row">
+                                    <div class="col-md-8">
+                                        <div class="form-group">
+                                            <label for="host" class="form-label">SMTP Host</label>
+                                            <input type="text" 
+                                                   class="form-control" 
+                                                   id="host" 
+                                                   name="host" 
+                                                   value="{{ config.host|default:'' }}"
+                                                   placeholder="smtp.gmail.com"
+                                                   required>
+                                            <div class="help-text">The SMTP server hostname</div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <div class="form-group">
+                                            <label for="port" class="form-label">Port</label>
+                                            <input type="number" 
+                                                   class="form-control" 
+                                                   id="port" 
+                                                   name="port" 
+                                                   value="{{ config.port|default:'587' }}"
+                                                   min="1" 
+                                                   max="65535"
+                                                   required>
+                                            <div class="help-text">SMTP server port</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" 
+                                                   class="form-check-input" 
+                                                   id="use_tls" 
+                                                   name="use_tls"
+                                                   {% if config.use_tls %}checked{% endif %}>
+                                            <label class="form-check-label" for="use_tls">
+                                                Use TLS Encryption
+                                            </label>
+                                        </div>
+                                        <div class="help-text">Recommended for port 587</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-check">
+                                            <input type="checkbox" 
+                                                   class="form-check-input" 
+                                                   id="use_ssl" 
+                                                   name="use_ssl"
+                                                   {% if config.use_ssl %}checked{% endif %}>
+                                            <label class="form-check-label" for="use_ssl">
+                                                Use SSL Encryption
+                                            </label>
+                                        </div>
+                                        <div class="help-text">Required for port 465</div>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- Authentication -->
+                            <div class="form-section">
+                                <h4 class="section-title">Authentication</h4>
+                                
+                                <div class="form-group">
+                                    <label for="username" class="form-label">Username</label>
+                                    <input type="email" 
+                                           class="form-control" 
+                                           id="username" 
+                                           name="username" 
+                                           value="{{ config.username|default:'' }}"
+                                           placeholder="your-email@example.com"
+                                           required>
+                                    <div class="help-text">Usually your email address</div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="password" class="form-label">Password</label>
+                                    <input type="password" 
+                                           class="form-control" 
+                                           id="password" 
+                                           name="password" 
+                                           value="{{ config.password|default:'' }}"
+                                           placeholder="Your password or app password"
+                                           required>
+                                    <div class="help-text">Use App Password for Gmail/Yahoo (not your regular password)</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Email Settings -->
+                            <div class="form-section">
+                                <h4 class="section-title">Email Settings</h4>
+                                
+                                <div class="form-group">
+                                    <label for="from_email" class="form-label">From Email</label>
+                                    <input type="email" 
+                                           class="form-control" 
+                                           id="from_email" 
+                                           name="from_email" 
+                                           value="{{ config.from_email|default:'' }}"
+                                           placeholder="noreply@example.com"
+                                           required>
+                                    <div class="help-text">Default sender email address</div>
+                                </div>
+                                
+                                <div class="form-group">
+                                    <label for="from_name" class="form-label">From Name (Optional)</label>
+                                    <input type="text" 
+                                           class="form-control" 
+                                           id="from_name" 
+                                           name="from_name" 
+                                           value="{{ config.from_name|default:'' }}"
+                                           placeholder="NORSU Alumni">
+                                    <div class="help-text">Display name for outgoing emails</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Configuration Status -->
+                            <div class="form-section">
+                                <h4 class="section-title">Configuration Status</h4>
+                                
+                                <div class="form-check">
+                                    <input type="checkbox" 
+                                           class="form-check-input" 
+                                           id="is_active" 
+                                           name="is_active"
+                                           {% if config.is_active %}checked{% endif %}>
+                                    <label class="form-check-label" for="is_active">
+                                        Activate this configuration
+                                    </label>
+                                </div>
+                                <div class="help-text">Only one configuration can be active at a time</div>
+                            </div>
+                            
+                            <!-- Help Information -->
+                            <div class="alert alert-info">
+                                <h6><i class="fas fa-info-circle me-2"></i>Common SMTP Settings</h6>
+                                <ul class="mb-0">
+                                    <li><strong>Gmail:</strong> smtp.gmail.com:587 (TLS) - Use App Password</li>
+                                    <li><strong>Outlook:</strong> smtp-mail.outlook.com:587 (TLS)</li>
+                                    <li><strong>Yahoo:</strong> smtp.mail.yahoo.com:587 (TLS) - Use App Password</li>
+                                    <li><strong>Custom:</strong> Check with your email provider</li>
+                                </ul>
+                            </div>
+                            
+                            <!-- Form Actions -->
+                            <div class="d-flex justify-content-between">
+                                <a href="{% url 'core:smtp_configuration_list' %}" class="btn-cancel">
+                                    <i class="fas fa-arrow-left me-2"></i>Cancel
+                                </a>
+                                <button type="submit" class="btn-save">
+                                    <i class="fas fa-save me-2"></i>Save Configuration
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const predefinedConfigs = document.querySelectorAll('.predefined-config');
+    const form = document.getElementById('smtpForm');
+    
+    // Predefined configuration templates
+    const configTemplates = {
+        'gmail': {
+            name: 'Gmail',
+            host: 'smtp.gmail.com',
+            port: 587,
+            use_tls: true,
+            use_ssl: false
+        },
+        'outlook': {
+            name: 'Outlook',
+            host: 'smtp-mail.outlook.com',
+            port: 587,
+            use_tls: true,
+            use_ssl: false
+        },
+        'yahoo': {
+            name: 'Yahoo',
+            host: 'smtp.mail.yahoo.com',
+            port: 587,
+            use_tls: true,
+            use_ssl: false
+        },
+        'custom': {
+            name: 'Custom SMTP',
+            host: '',
+            port: 587,
+            use_tls: true,
+            use_ssl: false
+        }
+    };
+    
+    // Handle predefined configuration selection
+    predefinedConfigs.forEach(config => {
+        config.addEventListener('click', function() {
+            const configKey = this.dataset.config;
+            const template = configTemplates[configKey];
+            
+            if (template) {
+                // Remove selected class from all configs
+                predefinedConfigs.forEach(c => c.classList.remove('selected'));
+                
+                // Add selected class to clicked config
+                this.classList.add('selected');
+                
+                // Fill form with template data
+                document.getElementById('name').value = template.name;
+                document.getElementById('host').value = template.host;
+                document.getElementById('port').value = template.port;
+                document.getElementById('use_tls').checked = template.use_tls;
+                document.getElementById('use_ssl').checked = template.use_ssl;
+                
+                // Focus on username field
+                document.getElementById('username').focus();
+            }
+        });
+    });
+    
+    // Handle TLS/SSL mutual exclusivity
+    const useTlsCheckbox = document.getElementById('use_tls');
+    const useSslCheckbox = document.getElementById('use_ssl');
+    
+    useTlsCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            useSslCheckbox.checked = false;
+        }
+    });
+    
+    useSslCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            useTlsCheckbox.checked = false;
+        }
+    });
+    
+    // Auto-update port based on encryption
+    useTlsCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('port').value = 587;
+        }
+    });
+    
+    useSslCheckbox.addEventListener('change', function() {
+        if (this.checked) {
+            document.getElementById('port').value = 465;
+        }
+    });
+    
+    // Form validation
+    form.addEventListener('submit', function(e) {
+        const useTls = useTlsCheckbox.checked;
+        const useSsl = useSslCheckbox.checked;
+        const port = parseInt(document.getElementById('port').value);
+        
+        // Validate TLS/SSL combination
+        if (useTls && useSsl) {
+            e.preventDefault();
+            alert('Cannot use both TLS and SSL. Please choose one encryption method.');
+            return;
+        }
+        
+        // Validate port and encryption combination
+        if (port === 465 && !useSsl) {
+            e.preventDefault();
+            alert('Port 465 requires SSL encryption. Please enable SSL or use port 587 with TLS.');
+            return;
+        }
+        
+        if (port === 587 && !useTls) {
+            e.preventDefault();
+            alert('Port 587 requires TLS encryption. Please enable TLS or use port 465 with SSL.');
+            return;
+        }
+    });
+});
+</script>
+{% endblock %}

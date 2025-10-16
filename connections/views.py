@@ -167,7 +167,8 @@ def accept_connection_request(request, connection_id):
     connection.accept()
     return JsonResponse({
         'success': True,
-        'message': f'You are now connected with {connection.requester.get_full_name() or connection.requester.username}.'
+        'message': f'You are now connected with {connection.requester.get_full_name() or connection.requester.username}.',
+        'user_id': connection.requester.id
     })
 
 
@@ -185,7 +186,8 @@ def reject_connection_request(request, connection_id):
     connection.reject()
     return JsonResponse({
         'success': True,
-        'message': 'Connection request rejected.'
+        'message': 'Connection request rejected.',
+        'user_id': connection.requester.id
     })
 
 

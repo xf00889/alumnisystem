@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView, TemplateView
+from django.views import View
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.db.models import Q, Count, Avg
@@ -204,9 +205,52 @@ class GroupCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     success_url = reverse_lazy('alumni_groups:group_list')
 
     def test_func(self):
-        return self.request.user.is_staff
+        # Allow all authenticated users to create groups
+        return True
 
     def form_valid(self, form):
+        print("DEBUG: form_valid method called!")
+        # Check for duplicate groups based on the specified criteria
+        batch_start_year = form.cleaned_data.get('batch_start_year')
+        batch_end_year = form.cleaned_data.get('batch_end_year')
+        course = form.cleaned_data.get('course')
+        campus = form.cleaned_data.get('campus')
+        
+        # Debug logging
+        print(f"DEBUG: Checking for duplicates with criteria:")
+        print(f"  batch_start_year: {batch_start_year}")
+        print(f"  batch_end_year: {batch_end_year}")
+        print(f"  course: {course}")
+        print(f"  campus: {campus}")
+        
+        # Debug: Show all existing groups with similar criteria
+        all_groups = AlumniGroup.objects.all()
+        print(f"DEBUG: All existing groups:")
+        for group in all_groups:
+            print(f"  - {group.name}: batch={group.batch_start_year}-{group.batch_end_year}, course={group.course}, campus={group.campus}")
+        
+        # Check if a group with the same criteria already exists
+        existing_group = AlumniGroup.objects.filter(
+            batch_start_year=batch_start_year,
+            batch_end_year=batch_end_year,
+            course=course,
+            campus=campus
+        ).first()
+        
+        print(f"DEBUG: Found existing group: {existing_group}")
+        
+        if existing_group:
+            # Group with same criteria already exists
+            print(f"DEBUG: Duplicate found! Blocking creation.")
+            messages.error(
+                self.request, 
+                f'A group with the same batch years ({batch_start_year}-{batch_end_year}), '
+                f'course ({course}), and campus ({existing_group.get_campus_display()}) already exists. '
+                f'Please check the existing group: "{existing_group.name}"'
+            )
+            return self.form_invalid(form)
+        
+        # No duplicate found, proceed with normal group creation
         form.instance.created_by = self.request.user
         response = super().form_valid(form)
         
@@ -231,6 +275,158 @@ class GroupCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         
         messages.success(self.request, 'Group created successfully!')
         return response
+    
+    def form_invalid(self, form):
+        print("DEBUG: form_invalid method called!")
+        print(f"DEBUG: Form errors: {form.errors}")
+        return super().form_invalid(form)
+
+class GroupCreateProgressiveView(LoginRequiredMixin, UserPassesTestMixin, TemplateView):
+    """Main progressive group creation view"""
+    template_name = 'alumni_groups/group_create_progressive.html'
+
+    def test_func(self):
+        # Allow all authenticated users to create groups
+        return True
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['current_step'] = self.request.GET.get('step', '1')
+        return context
+
+class GroupCreatePhase1View(LoginRequiredMixin, View):
+    """Phase 1: Collect batch years, college, course, and campus"""
+    
+    def get(self, request):
+        return render(request, 'alumni_groups/group_create_phase1.html')
+    
+    def post(self, request):
+        batch_start_year = request.POST.get('batch_start_year')
+        batch_end_year = request.POST.get('batch_end_year')
+        course = request.POST.get('course')
+        campus = request.POST.get('campus')
+        
+        # Validate required fields
+        if not all([batch_start_year, batch_end_year, course, campus]):
+            messages.error(request, 'All fields are required.')
+            return render(request, 'alumni_groups/group_create_phase1.html')
+        
+        # Check for duplicate groups
+        existing_group = AlumniGroup.objects.filter(
+            batch_start_year=int(batch_start_year),
+            batch_end_year=int(batch_end_year),
+            course=course,
+            campus=campus
+        ).first()
+        
+        if existing_group:
+            # Duplicate found - show error and suggest existing group
+            messages.error(
+                request,
+                f'A group with the same batch years ({batch_start_year}-{batch_end_year}), '
+                f'course ({course}), and campus ({existing_group.get_campus_display()}) already exists. '
+                f'Please check the existing group: "{existing_group.name}"'
+            )
+            return render(request, 'alumni_groups/group_create_phase1.html')
+        
+        # No duplicate found - store data in session and proceed to phase 2
+        request.session['group_creation_data'] = {
+            'batch_start_year': int(batch_start_year),
+            'batch_end_year': int(batch_end_year),
+            'course': course,
+            'campus': campus
+        }
+        
+        return redirect('alumni_groups:group_create_phase2')
+
+class GroupCreatePhase2View(LoginRequiredMixin, View):
+    """Phase 2: Group details, type, visibility, and finalization"""
+    
+    def get(self, request):
+        # Check if phase 1 data exists
+        if 'group_creation_data' not in request.session:
+            messages.error(request, 'Please start from the beginning.')
+            return redirect('alumni_groups:group_create_phase1')
+        
+        context = {
+            'phase1_data': request.session['group_creation_data']
+        }
+        return render(request, 'alumni_groups/group_create_phase2.html', context)
+    
+    def post(self, request):
+        # Check if phase 1 data exists
+        if 'group_creation_data' not in request.session:
+            messages.error(request, 'Please start from the beginning.')
+            return redirect('alumni_groups:group_create_phase1')
+        
+        phase1_data = request.session['group_creation_data']
+        
+        # Get phase 2 data
+        group_name = request.POST.get('group_name')
+        group_type = request.POST.get('group_type')
+        description = request.POST.get('description')
+        visibility = request.POST.get('visibility')
+        tags = request.POST.get('tags', '')
+        cover_image = request.FILES.get('cover_image')
+        requires_approval = request.POST.get('requires_approval') == 'on'
+        has_security_questions = request.POST.get('has_security_questions') == 'on'
+        max_members = request.POST.get('max_members')
+        
+        # Validate required fields
+        if not all([group_name, group_type, description, visibility]):
+            messages.error(request, 'All required fields must be filled.')
+            return self.get(request)
+        
+        # Create the group
+        try:
+            group = AlumniGroup.objects.create(
+                name=group_name,
+                description=description,
+                group_type=group_type,
+                visibility=visibility,
+                batch_start_year=phase1_data['batch_start_year'],
+                batch_end_year=phase1_data['batch_end_year'],
+                course=phase1_data['course'],
+                campus=phase1_data['campus'],
+                created_by=request.user,
+                requires_approval=requires_approval,
+                has_security_questions=has_security_questions,
+                max_members=int(max_members) if max_members else None,
+                cover_image=cover_image
+            )
+            
+            # Add tags if provided
+            if tags:
+                group.tags.set(*[tag.strip() for tag in tags.split(',') if tag.strip()])
+            
+            # Create initial membership for creator
+            GroupMembership.objects.create(
+                group=group,
+                user=request.user,
+                role='ADMIN',
+                status='APPROVED'
+            )
+            
+            # Create analytics entry
+            GroupAnalytics.objects.get_or_create(group=group)
+            
+            # Record activity
+            GroupActivity.objects.create(
+                group=group,
+                user=request.user,
+                activity_type='UPDATE',
+                description=f'Group "{group.name}" was created'
+            )
+            
+            # Clear session data
+            del request.session['group_creation_data']
+            
+            messages.success(request, f'Group "{group.name}" created successfully!')
+            return redirect('alumni_groups:group_detail', slug=group.slug)
+            
+        except Exception as e:
+            messages.error(request, f'Error creating group: {str(e)}')
+            return self.get(request)
 
 class GroupUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = AlumniGroup
@@ -670,7 +866,11 @@ def update_member_status(request, membership_id):
     
     logger = logging.getLogger(__name__)
     logger.info(f"Attempting to update member status for membership_id: {membership_id}")
+    logger.info(f"Request method: {request.method}")
+    logger.info(f"Request user: {request.user}")
+    logger.info(f"Request headers: {dict(request.headers)}")
     
+    # Ensure we return JSON response
     try:
         # Log the raw request body for debugging
         logger.debug(f"Raw request body: {request.body.decode('utf-8')}")
@@ -683,6 +883,13 @@ def update_member_status(request, membership_id):
         return JsonResponse({
             'status': 'error',
             'message': 'Invalid JSON data',
+            'details': str(e)
+        }, status=400)
+    except Exception as e:
+        logger.error(f"Unexpected error parsing request: {str(e)}")
+        return JsonResponse({
+            'status': 'error',
+            'message': 'Error processing request',
             'details': str(e)
         }, status=400)
     

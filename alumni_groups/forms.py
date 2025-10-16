@@ -94,6 +94,9 @@ class AlumniGroupForm(forms.ModelForm):
         batch_start = cleaned_data.get('batch_start_year')
         batch_end = cleaned_data.get('batch_end_year')
         
+        print(f"DEBUG: Form clean method called!")
+        print(f"DEBUG: batch_start: {batch_start}, batch_end: {batch_end}")
+        
         if batch_start and batch_end and batch_start > batch_end:
             raise ValidationError('Start year must be less than or equal to end year.')
         

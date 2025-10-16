@@ -433,6 +433,17 @@ def go_to_profile(request):
     """
     return redirect('accounts:profile_detail')
 
+def test_recaptcha(request):
+    """
+    Test page for reCAPTCHA configuration
+    """
+    from django.conf import settings
+    context = {
+        'page_title': 'reCAPTCHA Test',
+        'recaptcha_public_key': getattr(settings, 'RECAPTCHA_PUBLIC_KEY', ''),
+    }
+    return render(request, 'test_recaptcha.html', context)
+
 
 # Notification Views
 @login_required
@@ -721,14 +732,19 @@ def contact_us(request):
     Display Contact Us page with contact form and information
     """
     from core.models.page_content import SiteConfiguration
+    from .forms import ContactForm
     
     # Get site configuration for contact information
     site_config = SiteConfiguration.objects.first()
     
+    # Create form instance
+    form = ContactForm()
+    
     context = {
         'page_title': 'Contact Us',
         'page_subtitle': 'Get in touch with the NORSU Alumni Network team',
-        'site_config': site_config
+        'site_config': site_config,
+        'form': form
     }
 
     return render(request, 'landing/contact_us.html', context)
@@ -737,24 +753,50 @@ def contact_us(request):
 @require_http_methods(["POST"])
 def contact_us_submit(request):
     """
-    Handle contact form submission
+    Handle contact form submission with reCAPTCHA validation
     """
+    from .forms import ContactForm
+    from .recaptcha_monitoring import log_recaptcha_success, log_recaptcha_failure, log_recaptcha_error
+    
     try:
-        name = request.POST.get('name', '').strip()
-        email = request.POST.get('email', '').strip()
-        subject = request.POST.get('subject', '').strip()
-        message = request.POST.get('message', '').strip()
-
-        # Basic validation
-        if not all([name, email, subject, message]):
-            messages.error(request, 'All fields are required.')
+        form = ContactForm(request.POST)
+        
+        if form.is_valid():
+            # Extract form data
+            name = form.cleaned_data['name']
+            email = form.cleaned_data['email']
+            subject = form.cleaned_data['subject']
+            message = form.cleaned_data['message']
+            
+            # Log successful reCAPTCHA validation
+            user_ip = request.META.get('REMOTE_ADDR', 'unknown')
+            log_recaptcha_success('contact', user_ip)
+            
+            # TODO: Send email logic would go here
+            # For now, just log the contact form submission
+            logger.info(f"Contact form submission from {name} ({email}): {subject}")
+            
+            messages.success(request, 'Your message has been sent successfully! We will get back to you soon.')
+            return redirect('core:contact_us')
+        else:
+            # Handle form validation errors
+            user_ip = request.META.get('REMOTE_ADDR', 'unknown')
+            
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == 'captcha':
+                        # Log reCAPTCHA failure
+                        log_recaptcha_failure('contact', user_ip, str(error))
+                        messages.error(request, 'Security verification failed. Please try again.')
+                    else:
+                        messages.error(request, f"{field}: {error}")
             return redirect('core:contact_us')
         
-        # Send email logic would go here
-        messages.success(request, 'Your message has been sent successfully!')
-        return redirect('core:contact_us')
-        
     except Exception as e:
+        # Log reCAPTCHA error
+        user_ip = request.META.get('REMOTE_ADDR', 'unknown')
+        log_recaptcha_error('contact', user_ip, str(e))
+        
         logger.error(f"Error processing contact form: {str(e)}")
         messages.error(request, 'There was an error processing your request. Please try again.')
         return redirect('core:contact_us')

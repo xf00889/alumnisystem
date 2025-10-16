@@ -106,7 +106,7 @@ def is_admin(user):
     return user.is_authenticated and user.is_staff
 
 @login_required
-@paginate(items_per_page=12)  # Show 12 alumni per page
+@paginate(per_page=12)  # Show 12 alumni per page
 def alumni_list(request):
     try:
         # Get all unique values for filters

@@ -348,7 +348,7 @@
                             {% for post in pending_posts %}
                             <div class="post-item mb-4" id="post-{{ post.id }}">
                                 <div class="d-flex gap-3 mb-3">
-                                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                          alt="{{ post.author.get_full_name }}"
                                          class="rounded-circle"
                                          style="width: 48px; height: 48px;">
@@ -383,7 +383,7 @@
                             {% for post in approved_posts %}
                             <div class="post-item mb-4">
                                 <div class="d-flex gap-3 mb-3">
-                                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                          alt="{{ post.author.get_full_name }}"
                                          class="rounded-circle"
                                          style="width: 48px; height: 48px;">
@@ -416,7 +416,7 @@
                             {% for post in rejected_posts %}
                             <div class="post-item mb-4">
                                 <div class="d-flex gap-3 mb-3">
-                                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.jpg{% endif %}" 
+                                    <img src="{% if post.author.profile.avatar %}{{ post.author.profile.avatar.url }}{% else %}/static/images/default-avatar.png{% endif %}" 
                                          alt="{{ post.author.get_full_name }}"
                                          class="rounded-circle"
                                          style="width: 48px; height: 48px;">
@@ -513,7 +513,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             try {
-                const response = await fetch(`/alumni-groups/api/member/${membershipId}/status/`, {
+                const response = await fetch(`/groups/api/member/${membershipId}/status/`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -522,17 +522,25 @@ document.addEventListener('DOMContentLoaded', function() {
                     body: JSON.stringify({ action })
                 });
 
+                // Check if response is JSON
+                const contentType = response.headers.get('content-type');
+                if (!contentType || !contentType.includes('application/json')) {
+                    const text = await response.text();
+                    console.error('Non-JSON response received:', text);
+                    throw new Error(`Server returned ${response.status}: ${response.statusText}. This might be a server error or permission issue.`);
+                }
+
                 const data = await response.json();
                 
                 if (!response.ok) {
-                    throw new Error(data.error || 'Failed to update member status');
+                    throw new Error(data.message || data.error || 'Failed to update member status');
                 }
 
                 // Show success message and reload page
                 alert(data.message || 'Member status updated successfully');
                 window.location.reload();
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error updating member status:', error);
                 alert(error.message || 'Failed to update member status');
             }
         });
@@ -544,7 +552,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const membershipId = this.dataset.membershipId;
 
             try {
-                const response = await fetch(`/alumni-groups/api/member/${membershipId}/security-answers/`);
+                const response = await fetch(`/groups/api/member/${membershipId}/security-answers/`);
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -583,7 +591,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 formData.append('action', action);
                 formData.append('csrfmiddlewaretoken', document.querySelector('[name=csrfmiddlewaretoken]').value);
 
-                const response = await fetch(`/alumni-groups/api/post/${postId}/approve/`, {
+                const response = await fetch(`/groups/api/post/${postId}/approve/`, {
                     method: 'POST',
                     body: formData
                 });

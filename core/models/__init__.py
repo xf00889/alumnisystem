@@ -27,6 +27,8 @@ from .contact import Address, ContactInfo
 from .content import Post, Comment, Reaction
 from .notifications import Notification, NotificationPreference
 from .page_content import SiteConfiguration, PageSection, Testimonial, StaffMember
+from .smtp_config import SMTPConfig
+from .recaptcha_config import ReCaptchaConfig
 
 __all__ = [
     'TimeStampedModel',
@@ -43,4 +45,6 @@ __all__ = [
     'PageSection',
     'Testimonial',
     'StaffMember',
+    'SMTPConfig',
+    'ReCaptchaConfig',
 ]

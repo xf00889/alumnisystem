@@ -2,6 +2,8 @@ from django import forms
 from .models import Event, EventRSVP
 from alumni_groups.models import AlumniGroup
 from django.utils import timezone
+from django_recaptcha.fields import ReCaptchaField
+from django_recaptcha.widgets import ReCaptchaV3
 
 class EventForm(forms.ModelForm):
     notified_groups = forms.ModelMultipleChoiceField(
@@ -78,6 +80,19 @@ class PublicEventForm(EventForm):
     """
     A simplified form for public events that sets status to published automatically
     """
+    
+    # reCAPTCHA field for spam protection
+    captcha = ReCaptchaField(
+        widget=ReCaptchaV3(
+            attrs={
+                'data-callback': 'onRecaptchaSuccess',
+                'data-expired-callback': 'onRecaptchaExpired',
+                'data-error-callback': 'onRecaptchaError',
+            }
+        ),
+        label='Security Verification'
+    )
+    
     class Meta(EventForm.Meta):
         fields = [
             'title', 'description', 'start_date', 'end_date',

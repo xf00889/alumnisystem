@@ -1,0 +1,622 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}SMTP Configuration - NORSU Alumni Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-hover: #1d4ed8;
+        --secondary-color: #64748b;
+        --accent-color: #0ea5e9;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --info-color: #3b82f6;
+        
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-light: #ffffff;
+        --text-muted: #94a3b8;
+        
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        
+        --ui-border: #e2e8f0;
+        --ui-hover: #f8fafc;
+        --ui-focus: #dbeafe;
+        
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+    }
+
+    .container-fluid {
+        padding: 2rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
+    .dashboard-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+    }
+
+    .config-item {
+        background: var(--bg-primary);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+        transition: all 0.3s ease;
+    }
+
+    .config-item:hover {
+        border-color: var(--primary-color);
+        box-shadow: var(--shadow-md);
+    }
+
+    .config-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .config-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .config-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+        color: white;
+        background: var(--primary-color);
+    }
+
+    .config-details h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 0.25rem 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .config-meta {
+        display: flex;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .config-host {
+        font-weight: 500;
+    }
+
+    .config-encryption {
+        background: var(--bg-accent);
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .config-status {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        align-items: flex-end;
+    }
+
+    .status-badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-md);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+
+    .status-active {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--success-color);
+        border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+
+    .status-verified {
+        background: rgba(14, 165, 233, 0.1);
+        color: var(--accent-color);
+        border: 1px solid rgba(14, 165, 233, 0.2);
+    }
+
+    .status-pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--warning-color);
+        border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .config-actions {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: flex-end;
+        flex-wrap: wrap;
+        padding-top: 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
+    .btn-outline-primary:hover {
+        background: var(--primary-color);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-warning {
+        background: var(--warning-color);
+        color: white;
+    }
+
+    .btn-warning:hover {
+        background: #d97706;
+        color: white;
+    }
+
+    .btn-success {
+        background: var(--success-color);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #059669;
+        color: white;
+    }
+
+    .btn-danger {
+        background: var(--danger-color);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #dc2626;
+        color: white;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 2rem;
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        margin-bottom: 1rem;
+        color: var(--ui-border);
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state p {
+        margin-bottom: 2rem;
+        color: var(--text-muted);
+    }
+
+    .btn-lg {
+        padding: 0.75rem 1.5rem;
+        font-size: 1rem;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background-color: #dbeafe;
+        border-color: #93c5fd;
+        color: #1e40af;
+    }
+
+    .text-muted {
+        color: var(--text-muted) !important;
+    }
+
+    .mb-1 { margin-bottom: 0.25rem !important; }
+    .mb-3 { margin-bottom: 1rem !important; }
+    .mt-3 { margin-top: 1rem !important; }
+    .mb-0 { margin-bottom: 0 !important; }
+    .mt-2 { margin-top: 0.5rem !important; }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+
+        .dashboard-header {
+            padding: 1.5rem;
+        }
+
+        .dashboard-header h1 {
+            font-size: 1.25rem;
+        }
+
+        .config-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .config-status {
+            align-items: flex-start;
+        }
+
+        .config-actions {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .btn {
+            justify-content: center;
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-server"></i> SMTP Configuration</h1>
+        <p>Manage email server settings for the system</p>
+    </div>
+
+    <!-- Configuration List -->
+    <div class="dashboard-card">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <div>
+                <h2 class="mb-1">SMTP Configurations</h2>
+                <p class="text-muted mb-0">Configure email server settings for sending emails</p>
+            </div>
+            <a href="{% url 'core:smtp_configuration_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add Configuration
+            </a>
+        </div>
+        {% if configs %}
+            {% for config in configs %}
+            <div class="config-item">
+                <div class="config-header">
+                    <div class="config-info">
+                        <div class="config-icon">
+                            <i class="fas fa-server"></i>
+                        </div>
+                        <div class="config-details">
+                            <h3 class="config-name">{{ config.name }}</h3>
+                            <div class="config-meta">
+                                <span class="config-host">{{ config.host }}:{{ config.port }}</span>
+                                <span class="config-encryption">
+                                    {% if config.use_ssl %}SSL{% elif config.use_tls %}TLS{% else %}None{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="config-status">
+                        {% if config.is_active %}
+                            <span class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> Active
+                            </span>
+                        {% endif %}
+                        {% if config.is_verified %}
+                            <span class="status-badge status-verified">
+                                <i class="fas fa-shield-alt"></i> Verified
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-pending">
+                                <i class="fas fa-exclamation-triangle"></i> Not Tested
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="config-actions">
+                    <a href="{% url 'core:smtp_configuration_edit' config.id %}" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    
+                    <button type="button" class="btn btn-sm btn-warning test-smtp-btn" data-config-id="{{ config.id }}">
+                        <i class="fas fa-vial"></i> Test
+                    </button>
+                    
+                    {% if not config.is_active %}
+                    <button type="button" class="btn btn-sm btn-success activate-smtp-btn" data-config-id="{{ config.id }}">
+                        <i class="fas fa-play"></i> Activate
+                    </button>
+                    {% endif %}
+                    
+                    <button type="button" class="btn btn-sm btn-danger delete-smtp-btn" data-config-id="{{ config.id }}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-server"></i>
+                <h3>No SMTP Configurations</h3>
+                <p>You need to configure SMTP settings to enable email functionality.</p>
+                <a href="{% url 'core:smtp_configuration_create' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus"></i> Create Configuration
+                </a>
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Information Card -->
+    <div class="dashboard-card">
+        <h3 class="mb-3"><i class="fas fa-info-circle"></i> About SMTP Configuration</h3>
+        <div class="row">
+            <div class="col-md-12">
+                <p class="text-muted mb-3">SMTP (Simple Mail Transfer Protocol) configuration allows the system to send emails for notifications, password resets, and other automated communications.</p>
+                <h5>Key Features:</h5>
+                <ul class="text-muted">
+                    <li><strong>Secure Connection:</strong> Support for TLS and SSL encryption</li>
+                    <li><strong>Multiple Providers:</strong> Works with Gmail, Yahoo, Outlook, and custom SMTP servers</li>
+                    <li><strong>Test Functionality:</strong> Verify configuration before activation</li>
+                    <li><strong>Active Management:</strong> Only one configuration can be active at a time</li>
+                    <li><strong>Reliable Delivery:</strong> Ensures emails reach recipients successfully</li>
+                </ul>
+                <div class="alert alert-info mt-3">
+                    <strong>Security Note:</strong>
+                    <ul class="mb-0 mt-2">
+                        <li>For Gmail/Yahoo: Enable 2FA and use App Passwords</li>
+                        <li>For Outlook: Use your regular password or App Password</li>
+                        <li>Always use TLS (port 587) or SSL (port 465) for security</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Test SMTP connection
+    document.querySelectorAll('.test-smtp-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            
+            // Show SweetAlert dialog for test email
+            Swal.fire({
+                title: 'Test SMTP Configuration',
+                input: 'email',
+                inputLabel: 'Enter recipient email for test',
+                inputPlaceholder: 'test@example.com',
+                showCancelButton: true,
+                confirmButtonText: 'Send Test Email',
+                showLoaderOnConfirm: true,
+                preConfirm: (email) => {
+                    if (!email) {
+                        Swal.showValidationMessage('Please enter a recipient email');
+                        return false;
+                    }
+                    
+                    return fetch(`/admin-dashboard/smtp/${configId}/test/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken')
+                        },
+                        body: JSON.stringify({ recipient_email: email })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { 
+                                throw new Error(err.error || 'Test failed') 
+                            });
+                        }
+                        return response.json();
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.message}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (result.value.success) {
+                        Swal.fire('Success!', result.value.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error!', result.value.message, 'error');
+                    }
+                }
+            });
+        });
+    });
+
+    // Activate SMTP configuration
+    document.querySelectorAll('.activate-smtp-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will make this SMTP configuration active and deactivate others!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, activate it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-dashboard/smtp/${configId}/activate/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Activated!', data.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error!', 'Failed to activate configuration.', 'error');
+                        console.error('Error:', error);
+                    });
+                }
+            });
+        });
+    });
+
+    // Delete SMTP configuration
+    document.querySelectorAll('.delete-smtp-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-dashboard/smtp/${configId}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken')
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Deleted!', data.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error!', 'Failed to delete configuration.', 'error');
+                        console.error('Error:', error);
+                    });
+                }
+            });
+        });
+    });
+
+    // Helper function to get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.startsWith(name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
+{% endblock page_specific_js %}

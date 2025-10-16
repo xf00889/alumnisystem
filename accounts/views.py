@@ -7,6 +7,10 @@ from django.http import JsonResponse, HttpResponseForbidden
 from django.core.exceptions import ValidationError
 from django.views.decorators.http import require_POST
 from django.contrib import messages
+from .decorators import email_verified_required
+import logging
+
+logger = logging.getLogger(__name__)
 from .models import (
     Profile, Education, Experience, Skill, Document, SkillMatch,
     MentorApplication, Mentor
@@ -45,7 +49,7 @@ from .serializers import (
 from django.contrib.auth.decorators import user_passes_test
 from .decorators import paginate
 
-@login_required
+@email_verified_required
 def post_registration(request):
     # First, ensure the user has a profile
     try:
@@ -1123,7 +1127,7 @@ def mentor_application_status(request):
         return redirect('accounts:apply_mentor')
 
 @user_passes_test(lambda u: u.is_staff)
-@paginate(items_per_page=10)
+@paginate(per_page=10)
 def review_mentor_applications(request):
     """Admin view for reviewing mentor applications"""
     applications = MentorApplication.objects.filter(status='PENDING').select_related('user')
