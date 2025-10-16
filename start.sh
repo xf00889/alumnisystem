@@ -15,19 +15,21 @@ run_migrations() {
     # Try to run migrations with retries
     for i in {1..5}; do
         echo "Migration attempt $i/5..."
-        if python manage.py migrate --noinput; then
+        if python manage.py migrate --noinput --verbosity=2; then
             echo "✅ Migrations completed successfully"
             return 0
         else
             echo "❌ Migration attempt $i failed"
             if [ $i -lt 5 ]; then
-                echo "⏳ Waiting 10 seconds before retry..."
-                sleep 10
+                echo "⏳ Waiting 15 seconds before retry..."
+                sleep 15
             fi
         fi
     done
     
     echo "❌ All migration attempts failed"
+    echo "🔍 Checking migration status..."
+    python manage.py showmigrations --verbosity=2
     return 1
 }
 
@@ -73,8 +75,19 @@ else:
     fi
 }
 
+# Function to create necessary directories
+create_directories() {
+    echo "📁 Creating necessary directories..."
+    mkdir -p sessions
+    mkdir -p staticfiles
+    echo "✅ Directories created"
+}
+
 # Main startup sequence
 echo "🔄 Starting database initialization..."
+
+# Step 0: Create necessary directories
+create_directories
 
 # Step 1: Check database connectivity
 if ! check_database; then
