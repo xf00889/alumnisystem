@@ -75,7 +75,7 @@ class EmailConfigView(FormView):
     """Email configuration setup."""
     template_name = 'setup/email_config.html'
     form_class = EmailConfigForm
-    success_url = reverse_lazy('setup:superuser_setup')
+    success_url = reverse_lazy('setup:database_setup')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -119,6 +119,133 @@ class EmailConfigView(FormView):
         return super().form_valid(form)
 
 
+class DatabaseSetupView(TemplateView):
+    """Database setup and migration step."""
+    template_name = 'setup/database_setup.html'
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['progress'] = get_setup_progress()
+        context['database_status'] = self._check_database_status()
+        context['migration_status'] = self._check_migration_status()
+        return context
+    
+    def post(self, request):
+        """Run migrations manually."""
+        try:
+            from django.core.management import call_command
+            logger.info("Starting manual migration process...")
+            call_command('migrate', verbosity=2, interactive=False)
+            
+            # Verify tables were created
+            if self._check_migration_status()['all_ready']:
+                messages.success(request, '✅ Migrations completed successfully! Database is now ready.')
+                logger.info("Manual migrations completed successfully")
+                return redirect('setup:superuser_setup')
+            else:
+                messages.warning(request, '⚠️ Migrations ran but some tables may be missing. Please check the logs.')
+                logger.warning("Migrations completed but tables verification failed")
+            
+        except Exception as e:
+            error_msg = f'❌ Migration failed: {str(e)}'
+            messages.error(request, error_msg)
+            logger.error(f"Manual migration failed: {e}")
+        
+        return redirect('setup:database_setup')
+    
+    def _check_database_status(self):
+        """Check if database is accessible."""
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+                return {
+                    'accessible': True,
+                    'message': '✅ Database connection successful'
+                }
+        except Exception as e:
+            return {
+                'accessible': False,
+                'message': f'❌ Database connection failed: {str(e)}'
+            }
+    
+    def _check_migration_status(self):
+        """Check if critical tables exist."""
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                # Check django_session table
+                if connection.vendor == 'postgresql':
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'django_session'
+                        );
+                    """)
+                    django_session_exists = cursor.fetchone()[0]
+                    
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'auth_user'
+                        );
+                    """)
+                    auth_user_exists = cursor.fetchone()[0]
+                    
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'setup_siteconfiguration'
+                        );
+                    """)
+                    setup_tables_exist = cursor.fetchone()[0]
+                    
+                elif connection.vendor == 'mysql':
+                    cursor.execute("SHOW TABLES LIKE 'django_session'")
+                    django_session_exists = cursor.fetchone() is not None
+                    
+                    cursor.execute("SHOW TABLES LIKE 'auth_user'")
+                    auth_user_exists = cursor.fetchone() is not None
+                    
+                    cursor.execute("SHOW TABLES LIKE 'setup_siteconfiguration'")
+                    setup_tables_exist = cursor.fetchone() is not None
+                else:
+                    cursor.execute("""
+                        SELECT name FROM sqlite_master 
+                        WHERE type='table' AND name='django_session'
+                    """)
+                    django_session_exists = cursor.fetchone() is not None
+                    
+                    cursor.execute("""
+                        SELECT name FROM sqlite_master 
+                        WHERE type='table' AND name='auth_user'
+                    """)
+                    auth_user_exists = cursor.fetchone() is not None
+                    
+                    cursor.execute("""
+                        SELECT name FROM sqlite_master 
+                        WHERE type='table' AND name='setup_siteconfiguration'
+                    """)
+                    setup_tables_exist = cursor.fetchone() is not None
+                
+                return {
+                    'django_session_exists': django_session_exists,
+                    'auth_user_exists': auth_user_exists,
+                    'setup_tables_exist': setup_tables_exist,
+                    'all_ready': django_session_exists and auth_user_exists and setup_tables_exist
+                }
+                
+        except Exception as e:
+            logger.error(f"Error checking migration status: {e}")
+            return {
+                'django_session_exists': False,
+                'auth_user_exists': False,
+                'setup_tables_exist': False,
+                'all_ready': False,
+                'error': str(e)
+            }
+
+
 class SuperuserSetupView(FormView):
     """Superuser creation setup."""
     template_name = 'setup/superuser_setup.html'
@@ -132,7 +259,7 @@ class SuperuserSetupView(FormView):
     
     def form_valid(self, form):
         try:
-            # Create superuser
+            # Create superuser (database should be ready at this point)
             user = User.objects.create_superuser(
                 username=form.cleaned_data['username'],
                 email=form.cleaned_data['email'],
@@ -154,23 +281,9 @@ class SuperuserSetupView(FormView):
             return super().form_valid(form)
             
         except Exception as e:
-            logger.warning(f'Database not ready for superuser creation: {e}')
-            
-            # Store superuser info in session for later creation
-            setup_data = self.request.session.get('setup_data', {})
-            setup_data['superuser'] = {
-                'username': form.cleaned_data['username'],
-                'email': form.cleaned_data['email'],
-                'password': form.cleaned_data['password1'],
-                'first_name': form.cleaned_data.get('first_name', ''),
-                'last_name': form.cleaned_data.get('last_name', ''),
-                'created': False,
-                'pending': True
-            }
-            self.request.session['setup_data'] = setup_data
-            
-            messages.warning(self.request, 'Superuser information saved. Will be created after database setup is complete.')
-            return super().form_valid(form)
+            logger.error(f'Failed to create superuser: {e}')
+            messages.error(self.request, f'Failed to create superuser: {e}')
+            return self.form_invalid(form)
 
 
 class SetupCompleteView(TemplateView):
@@ -205,25 +318,12 @@ class SetupCompleteView(TemplateView):
                 'completed_by': 'setup_wizard'
             }
             
-            # Create pending superuser if needed
+            # Superuser should already be created at this point
             superuser_data = setup_data.get('superuser', {})
-            if superuser_data.get('pending', False):
-                try:
-                    from django.contrib.auth.models import User
-                    user = User.objects.create_superuser(
-                        username=superuser_data['username'],
-                        email=superuser_data['email'],
-                        password=superuser_data['password'],
-                        first_name=superuser_data.get('first_name', ''),
-                        last_name=superuser_data.get('last_name', '')
-                    )
-                    logger.info(f'Pending superuser "{user.username}" created successfully')
-                    # Update the setup data to reflect creation
-                    final_setup_data['superuser']['created'] = True
-                    final_setup_data['superuser']['pending'] = False
-                except Exception as e:
-                    logger.error(f'Failed to create pending superuser: {e}')
-                    messages.warning(self.request, f'Superuser creation failed: {e}')
+            if superuser_data.get('created', False):
+                logger.info(f'Superuser "{superuser_data.get("username", "unknown")}" was created successfully')
+            else:
+                logger.warning('No superuser was created during setup')
             
             # Mark setup as complete
             setup_state.mark_complete(final_setup_data)

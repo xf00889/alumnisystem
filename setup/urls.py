@@ -17,6 +17,7 @@ urlpatterns = [
     path('', views.SetupWelcomeView.as_view(), name='welcome'),
     path('basic-config/', views.BasicConfigView.as_view(), name='basic_config'),
     path('email-config/', views.EmailConfigView.as_view(), name='email_config'),
+    path('database-setup/', views.DatabaseSetupView.as_view(), name='database_setup'),
     path('superuser-setup/', views.SuperuserSetupView.as_view(), name='superuser_setup'),
     path('complete/', views.SetupCompleteView.as_view(), name='complete'),
     path('progress/', views.SetupProgressView.as_view(), name='progress'),
