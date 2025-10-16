@@ -19,10 +19,25 @@ class CoreConfig(AppConfig):
             # Import here to avoid circular imports
             from django.db import connection
             
-            # Check if the SMTP config table exists
+            # Check if the SMTP config table exists (database-agnostic)
             with connection.cursor() as cursor:
-                cursor.execute("SHOW TABLES LIKE 'core_smtpconfig'")
-                table_exists = cursor.fetchone() is not None
+                if connection.vendor == 'postgresql':
+                    cursor.execute("""
+                        SELECT EXISTS (
+                            SELECT FROM information_schema.tables 
+                            WHERE table_name = 'core_smtpconfig'
+                        );
+                    """)
+                    table_exists = cursor.fetchone()[0]
+                elif connection.vendor == 'mysql':
+                    cursor.execute("SHOW TABLES LIKE 'core_smtpconfig'")
+                    table_exists = cursor.fetchone() is not None
+                else:
+                    cursor.execute("""
+                        SELECT name FROM sqlite_master 
+                        WHERE type='table' AND name='core_smtpconfig'
+                    """)
+                    table_exists = cursor.fetchone() is not None
             
             if table_exists:
                 # Check if there are any active, verified SMTP configurations
