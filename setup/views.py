@@ -49,7 +49,7 @@ class BasicConfigView(FormView):
             'basic_config': form.cleaned_data
         }
         
-        # Also save to database for persistence
+        # Also save to database for persistence (if database is ready)
         try:
             from .models import SiteConfiguration
             SiteConfiguration.set_setting('site_name', form.cleaned_data['site_name'], 'Site name')
@@ -57,7 +57,8 @@ class BasicConfigView(FormView):
             SiteConfiguration.set_setting('admin_email', form.cleaned_data['admin_email'], 'Admin email')
             SiteConfiguration.set_setting('timezone', form.cleaned_data['timezone'], 'Site timezone')
         except Exception as e:
-            logger.error(f'Failed to save site configuration: {e}')
+            logger.warning(f'Database not ready, storing in session only: {e}')
+            # Continue with session storage only
         
         messages.success(self.request, 'Basic configuration saved successfully!')
         return super().form_valid(form)
