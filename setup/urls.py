@@ -3,11 +3,16 @@ URL configuration for the setup app.
 """
 from django.urls import path
 from . import views
+from . import views_migration
 from . import api_views
 
 app_name = 'setup'
 
 urlpatterns = [
+    # Migration runner (should be first)
+    path('migrate/', views_migration.MigrationRunnerView.as_view(), name='migration_runner'),
+    path('api/database-status/', views_migration.DatabaseStatusAPIView.as_view(), name='database_status'),
+    
     # Setup flow URLs
     path('', views.SetupWelcomeView.as_view(), name='welcome'),
     path('basic-config/', views.BasicConfigView.as_view(), name='basic_config'),

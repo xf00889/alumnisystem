@@ -37,9 +37,9 @@ ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', 'testserver']
 if 'alumnisystem-6c7s.onrender.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('alumnisystem-6c7s.onrender.com')
 
-# Session configuration with database fallback
-# Use file-based sessions as fallback when database is not ready
-SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+# Session configuration - use file-based sessions during setup
+# This avoids database dependency issues during initial setup
+SESSION_ENGINE = 'django.contrib.sessions.backends.file'
 SESSION_FILE_PATH = os.path.join(BASE_DIR, 'sessions')
 
 
@@ -87,7 +87,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
-    'setup.session_fallback_middleware.DatabaseFallbackSessionMiddleware',
+    'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
