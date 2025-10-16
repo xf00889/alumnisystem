@@ -39,17 +39,8 @@ class SetupRequiredMiddleware:
         
         # Check if setup is complete
         if not self._is_setup_complete():
-            # Check if database is ready, if not redirect to database setup
-            try:
-                from django.db import connection
-                with connection.cursor() as cursor:
-                    cursor.execute("SELECT 1")
-                # Database is ready, redirect to welcome
-                setup_url = reverse('setup:welcome')
-            except Exception:
-                # Database not ready, redirect to database setup step
-                setup_url = reverse('setup:database_setup')
-            
+            # Redirect to setup page
+            setup_url = reverse('setup:welcome')
             if not request.path.startswith(setup_url):
                 logger.info(f"Redirecting to setup page from {request.path}")
                 return redirect(setup_url)

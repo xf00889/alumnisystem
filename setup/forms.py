@@ -224,18 +224,13 @@ class SuperuserForm(forms.Form):
         if not username:
             raise ValidationError("Username is required")
         
-        # Validate username format first
+        # Validate username format
         if not re.match(r'^[\w.@+-]+$', username):
             raise ValidationError("Username can only contain letters, numbers, and @/./+/-/_ characters")
         
-        # Check if username already exists (only if database is ready)
-        try:
-            if User.objects.filter(username=username).exists():
-                raise ValidationError("A user with this username already exists")
-        except Exception as e:
-            # Database not ready, skip the check for now
-            # The superuser creation will handle this during the actual creation
-            pass
+        # Check if username already exists
+        if User.objects.filter(username=username).exists():
+            raise ValidationError("A user with this username already exists")
         
         return username
 
@@ -244,14 +239,9 @@ class SuperuserForm(forms.Form):
         if not email:
             raise ValidationError("Email is required")
         
-        # Check if email already exists (only if database is ready)
-        try:
-            if User.objects.filter(email=email).exists():
-                raise ValidationError("A user with this email already exists")
-        except Exception as e:
-            # Database not ready, skip the check for now
-            # The superuser creation will handle this during the actual creation
-            pass
+        # Check if email already exists
+        if User.objects.filter(email=email).exists():
+            raise ValidationError("A user with this email already exists")
         
         return email
 

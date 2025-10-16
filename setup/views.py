@@ -75,7 +75,7 @@ class EmailConfigView(FormView):
     """Email configuration setup."""
     template_name = 'setup/email_config.html'
     form_class = EmailConfigForm
-    success_url = reverse_lazy('setup:database_setup')
+    success_url = reverse_lazy('setup:superuser_setup')
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -284,15 +284,6 @@ class SuperuserSetupView(FormView):
         if not setup_data.get('email_config'):
             messages.warning(request, 'Please complete email configuration first.')
             return redirect('setup:email_config')
-        
-        # Check if database is ready
-        try:
-            from django.db import connection
-            with connection.cursor() as cursor:
-                cursor.execute("SELECT 1")
-        except Exception:
-            messages.warning(request, 'Database is not ready. Please complete database setup first.')
-            return redirect('setup:database_setup')
         
         return super().get(request, *args, **kwargs)
     
