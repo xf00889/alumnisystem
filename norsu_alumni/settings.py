@@ -33,6 +33,10 @@ ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.16
 # Add local IPs and test server
 ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', 'testserver']
 
+# Add Render domain if not already included
+if 'alumnisystem-6c7s.onrender.com' not in ALLOWED_HOSTS:
+    ALLOWED_HOSTS.append('alumnisystem-6c7s.onrender.com')
+
 
 # Application definition
 
