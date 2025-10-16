@@ -481,7 +481,17 @@ RECAPTCHA_REQUIRED_SCORE = 0.5  # For reCAPTCHA v3
 RECAPTCHA_DOMAIN = 'www.google.com'  # Use www.recaptcha.net for China
 
 # Disable reCAPTCHA in development or if keys are not properly configured
-if DEBUG or not RECAPTCHA_PUBLIC_KEY or not RECAPTCHA_PRIVATE_KEY:
+# Also disable if using test keys
+test_keys = [
+    '6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg',  # Test public key
+    '6Le7kesrAAAAAKldE5dZ2n4_Hwe1n7wmnginjNmD'   # Test private key
+]
+
+if (DEBUG or 
+    not RECAPTCHA_PUBLIC_KEY or 
+    not RECAPTCHA_PRIVATE_KEY or
+    RECAPTCHA_PUBLIC_KEY in test_keys or
+    RECAPTCHA_PRIVATE_KEY in test_keys):
     RECAPTCHA_PUBLIC_KEY = ''
     RECAPTCHA_PRIVATE_KEY = ''
 
