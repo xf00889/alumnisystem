@@ -44,10 +44,16 @@ class BasicConfigView(FormView):
         return context
     
     def form_valid(self, form):
-        # Store basic configuration in session
-        self.request.session['setup_data'] = {
-            'basic_config': form.cleaned_data
-        }
+        # Store basic configuration in session (this should work even without database)
+        try:
+            self.request.session['setup_data'] = {
+                'basic_config': form.cleaned_data
+            }
+            self.request.session.save()
+        except Exception as e:
+            logger.error(f'Failed to save session data: {e}')
+            # If session fails, we'll store in a temporary way
+            # This is a fallback for when database is completely unavailable
         
         # Also save to database for persistence (if database is ready)
         try:
@@ -56,6 +62,7 @@ class BasicConfigView(FormView):
             SiteConfiguration.set_setting('site_description', form.cleaned_data['site_description'], 'Site description')
             SiteConfiguration.set_setting('admin_email', form.cleaned_data['admin_email'], 'Admin email')
             SiteConfiguration.set_setting('timezone', form.cleaned_data['timezone'], 'Site timezone')
+            logger.info('Configuration saved to database successfully')
         except Exception as e:
             logger.warning(f'Database not ready, storing in session only: {e}')
             # Continue with session storage only

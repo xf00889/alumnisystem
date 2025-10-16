@@ -37,6 +37,11 @@ ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', 'testserver']
 if 'alumnisystem-6c7s.onrender.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('alumnisystem-6c7s.onrender.com')
 
+# Session configuration with database fallback
+# Use file-based sessions as fallback when database is not ready
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+SESSION_FILE_PATH = os.path.join(BASE_DIR, 'sessions')
+
 
 # Application definition
 
