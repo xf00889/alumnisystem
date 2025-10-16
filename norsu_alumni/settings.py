@@ -37,10 +37,10 @@ ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', 'testserver']
 if 'alumnisystem-6c7s.onrender.com' not in ALLOWED_HOSTS:
     ALLOWED_HOSTS.append('alumnisystem-6c7s.onrender.com')
 
-# Session configuration - use file-based sessions during setup
+# Session configuration - use cache-based sessions during setup
 # This avoids database dependency issues during initial setup
-SESSION_ENGINE = 'django.contrib.sessions.backends.file'
-SESSION_FILE_PATH = os.path.join(BASE_DIR, 'sessions')
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
 
 
 # Application definition
