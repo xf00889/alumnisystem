@@ -128,7 +128,25 @@ class DatabaseSetupView(TemplateView):
         context['progress'] = get_setup_progress()
         context['database_status'] = self._check_database_status()
         context['migration_status'] = self._check_migration_status()
+        
+        # Check if user has completed previous steps
+        setup_data = self.request.session.get('setup_data', {})
+        context['has_basic_config'] = 'basic_config' in setup_data
+        context['has_email_config'] = 'email_config' in setup_data
+        
         return context
+    
+    def get(self, request, *args, **kwargs):
+        # Check if user has completed previous steps
+        setup_data = request.session.get('setup_data', {})
+        if not setup_data.get('basic_config'):
+            messages.warning(request, 'Please complete basic configuration first.')
+            return redirect('setup:basic_config')
+        if not setup_data.get('email_config'):
+            messages.warning(request, 'Please complete email configuration first.')
+            return redirect('setup:email_config')
+        
+        return super().get(request, *args, **kwargs)
     
     def post(self, request):
         """Run migrations manually."""
@@ -256,6 +274,27 @@ class SuperuserSetupView(FormView):
         context = super().get_context_data(**kwargs)
         context['progress'] = get_setup_progress()
         return context
+    
+    def get(self, request, *args, **kwargs):
+        # Check if user has completed previous steps
+        setup_data = request.session.get('setup_data', {})
+        if not setup_data.get('basic_config'):
+            messages.warning(request, 'Please complete basic configuration first.')
+            return redirect('setup:basic_config')
+        if not setup_data.get('email_config'):
+            messages.warning(request, 'Please complete email configuration first.')
+            return redirect('setup:email_config')
+        
+        # Check if database is ready
+        try:
+            from django.db import connection
+            with connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        except Exception:
+            messages.warning(request, 'Database is not ready. Please complete database setup first.')
+            return redirect('setup:database_setup')
+        
+        return super().get(request, *args, **kwargs)
     
     def form_valid(self, form):
         try:
