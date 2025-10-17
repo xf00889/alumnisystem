@@ -47,6 +47,11 @@ class ReCaptchaConfig(models.Model):
         help_text="Whether this configuration is currently active"
     )
     
+    enabled = models.BooleanField(
+        default=True,
+        help_text="Whether reCAPTCHA functionality is enabled (turn off to disable all reCAPTCHA)"
+    )
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     
@@ -61,7 +66,7 @@ class ReCaptchaConfig(models.Model):
     @classmethod
     def get_active_config(cls):
         """Get the currently active reCAPTCHA configuration"""
-        return cls.objects.filter(is_active=True).first()
+        return cls.objects.filter(is_active=True, enabled=True).first()
     
     def clean(self):
         """Validate reCAPTCHA configuration"""

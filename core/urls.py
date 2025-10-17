@@ -87,6 +87,7 @@ urlpatterns = [
     path('admin-dashboard/recaptcha/<int:config_id>/test/', recaptcha_admin_views.recaptcha_configuration_test, name='recaptcha_configuration_test'),
     path('admin-dashboard/recaptcha/<int:config_id>/delete/', recaptcha_admin_views.recaptcha_configuration_delete, name='recaptcha_configuration_delete'),
     path('admin-dashboard/recaptcha/<int:config_id>/activate/', recaptcha_admin_views.recaptcha_configuration_activate, name='recaptcha_configuration_activate'),
+    path('admin-dashboard/recaptcha/<int:config_id>/toggle-enabled/', recaptcha_admin_views.recaptcha_configuration_toggle_enabled, name='recaptcha_configuration_toggle_enabled'),
     
     # reCAPTCHA Analytics URLs
     path('admin-dashboard/recaptcha/analytics/', recaptcha_analytics_views.ReCaptchaAnalyticsView.as_view(), name='recaptcha_analytics'),

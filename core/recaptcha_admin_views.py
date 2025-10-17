@@ -42,7 +42,8 @@ def recaptcha_configuration_create(request):
                 secret_key=request.POST.get('secret_key'),
                 version='v3',  # Always use v3
                 threshold=float(request.POST.get('threshold', 0.5)),
-                is_active=request.POST.get('is_active') == 'on'
+                is_active=request.POST.get('is_active') == 'on',
+                enabled=request.POST.get('enabled') == 'on'
             )
             
             config.full_clean()
@@ -78,6 +79,7 @@ def recaptcha_configuration_edit(request, config_id):
             config.version = 'v3'  # Always use v3
             config.threshold = float(request.POST.get('threshold', 0.5))
             config.is_active = request.POST.get('is_active') == 'on'
+            config.enabled = request.POST.get('enabled') == 'on'
             
             config.full_clean()
             config.save()
@@ -178,6 +180,24 @@ def recaptcha_configuration_activate(request, config_id):
         clear_recaptcha_cache()  # Clear cache when config is activated
     except Exception as e:
         messages.error(request, f'Error activating configuration: {str(e)}')
+    
+    return redirect('core:recaptcha_configuration_list')
+
+@user_passes_test(is_admin)
+@require_POST
+def recaptcha_configuration_toggle_enabled(request, config_id):
+    """Toggle reCAPTCHA enabled status"""
+    config = get_object_or_404(ReCaptchaConfig, id=config_id)
+    
+    try:
+        config.enabled = not config.enabled
+        config.save()
+        
+        status = "enabled" if config.enabled else "disabled"
+        messages.success(request, f'reCAPTCHA functionality has been {status}!')
+        clear_recaptcha_cache()  # Clear cache when enabled status changes
+    except Exception as e:
+        messages.error(request, f'Error toggling reCAPTCHA status: {str(e)}')
     
     return redirect('core:recaptcha_configuration_list')
 

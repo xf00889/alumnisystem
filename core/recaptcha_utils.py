@@ -59,10 +59,10 @@ def get_recaptcha_version():
 
 def is_recaptcha_enabled():
     """
-    Check if reCAPTCHA is enabled (has active configuration with valid keys).
+    Check if reCAPTCHA is enabled (has active configuration with valid keys and enabled=True).
     """
     config = get_recaptcha_config()
-    return bool(config and config.site_key and config.secret_key)
+    return bool(config and config.enabled and config.site_key and config.secret_key)
 
 
 def clear_recaptcha_cache():

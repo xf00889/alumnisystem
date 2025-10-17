@@ -328,6 +328,9 @@
                         <span class="config-status {% if config.is_active %}status-active{% else %}status-inactive{% endif %}">
                             {% if config.is_active %}Active{% else %}Inactive{% endif %}
                         </span>
+                        <span class="config-status {% if config.enabled %}status-active{% else %}status-inactive{% endif %}">
+                            {% if config.enabled %}Enabled{% else %}Disabled{% endif %}
+                        </span>
                     </div>
                 </div>
 
@@ -361,6 +364,15 @@
                         </button>
                     </form>
                     {% endif %}
+                    
+                    <form method="post" action="{% url 'core:recaptcha_configuration_toggle_enabled' config.id %}" class="d-inline">
+                        {% csrf_token %}
+                        <button type="submit" class="btn {% if config.enabled %}btn-warning{% else %}btn-success{% endif %}" 
+                                onclick="return confirm('{% if config.enabled %}Disable{% else %}Enable{% endif %} reCAPTCHA functionality?')">
+                            <i class="fas {% if config.enabled %}fa-toggle-off{% else %}fa-toggle-on{% endif %}"></i> 
+                            {% if config.enabled %}Disable{% else %}Enable{% endif %}
+                        </button>
+                    </form>
                     
                     <button type="button" class="btn btn-warning" onclick="testConfiguration({{ config.id }}, this)">
                         <i class="fas fa-vial"></i> Test
