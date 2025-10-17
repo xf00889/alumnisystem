@@ -48,7 +48,7 @@ class ReCaptchaConfig(models.Model):
     )
     
     enabled = models.BooleanField(
-        default=True,
+        default=False,
         help_text="Whether reCAPTCHA functionality is enabled (turn off to disable all reCAPTCHA)"
     )
     
