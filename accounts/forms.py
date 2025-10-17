@@ -17,6 +17,7 @@ from django.conf import settings
 from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class CustomLoginForm(LoginForm):
     """Custom login form with reCAPTCHA protection"""
@@ -24,11 +25,8 @@ class CustomLoginForm(LoginForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         
-        # Only add reCAPTCHA if it's properly configured
-        if (hasattr(settings, 'RECAPTCHA_PUBLIC_KEY') and 
-            settings.RECAPTCHA_PUBLIC_KEY and 
-            hasattr(settings, 'RECAPTCHA_PRIVATE_KEY') and 
-            settings.RECAPTCHA_PRIVATE_KEY):
+        # Only add reCAPTCHA if it's properly configured in database
+        if is_recaptcha_enabled():
             
             self.fields['captcha'] = ReCaptchaField(
                 widget=ReCaptchaV3(
@@ -70,22 +68,23 @@ class CustomSignupForm(SignupForm):
         help_text="Enter the 6-digit code sent to your email"
     )
     
-    # reCAPTCHA field for spam protection
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'data-callback': 'onRecaptchaSuccess',
-                'data-expired-callback': 'onRecaptchaExpired',
-                'data-error-callback': 'onRecaptchaError',
-            }
-        ),
-        label='Security Verification'
-    )
-
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         # Make password fields required for validation
         self.fields['password1'].required = True
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
         self.fields['password2'].required = True
 
     def clean_password1(self):
@@ -994,17 +993,21 @@ class PasswordResetEmailForm(forms.Form):
         help_text="Enter the email address associated with your account"
     )
     
-    # reCAPTCHA field for spam protection
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'data-callback': 'onRecaptchaSuccess',
-                'data-expired-callback': 'onRecaptchaExpired',
-                'data-error-callback': 'onRecaptchaError',
-            }
-        ),
-        label='Security Verification'
-    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -1030,17 +1033,21 @@ class PasswordResetOTPForm(forms.Form):
         help_text="Enter the 6-digit verification code sent to your email"
     )
     
-    # reCAPTCHA field for spam protection
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'data-callback': 'onRecaptchaSuccess',
-                'data-expired-callback': 'onRecaptchaExpired',
-                'data-error-callback': 'onRecaptchaError',
-            }
-        ),
-        label='Security Verification'
-    )
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean_verification_code(self):
         code = self.cleaned_data.get('verification_code')
@@ -1071,21 +1078,22 @@ class PasswordResetNewPasswordForm(forms.Form):
         })
     )
     
-    # reCAPTCHA field for spam protection
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'data-callback': 'onRecaptchaSuccess',
-                'data-expired-callback': 'onRecaptchaExpired',
-                'data-error-callback': 'onRecaptchaError',
-            }
-        ),
-        label='Security Verification'
-    )
-    
     def __init__(self, *args, **kwargs):
         self.user = kwargs.pop('user', None)
         super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean_new_password1(self):
         password1 = self.cleaned_data.get('new_password1')
@@ -1161,7 +1169,21 @@ class EnhancedSignupForm(forms.Form):
         })
     )
     
-    # captcha = ReCaptchaField()  # Temporarily disabled for testing
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean_email(self):
         email = self.cleaned_data.get('email')

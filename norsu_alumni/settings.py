@@ -111,8 +111,7 @@ TEMPLATES = [
                 'django.template.context_processors.request',
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
-                'core.context_processors.site_configuration',
-                'core.context_processors.dynamic_content',
+                'core.context_processors.recaptcha_context',
             ],
         },
     },
@@ -470,26 +469,15 @@ CKEDITOR_CONFIGS = {
 DEFAULT_HTTP_PROTOCOL = 'http'
 
 # reCAPTCHA Settings
-# reCAPTCHA configuration
-RECAPTCHA_PUBLIC_KEY = config('RECAPTCHA_PUBLIC_KEY', default='6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg')
-RECAPTCHA_PRIVATE_KEY = config('RECAPTCHA_PRIVATE_KEY', default='6Le7kesrAAAAAKldE5dZ2n4_Hwe1n7wmnginjNmD')
-RECAPTCHA_REQUIRED_SCORE = 0.5  # For reCAPTCHA v3
-RECAPTCHA_DOMAIN = 'www.google.com'  # Use www.recaptcha.net for China
+# reCAPTCHA configuration is now handled via database (ReCaptchaConfig model)
+# No settings-based configuration needed
 
-# Disable reCAPTCHA in development or if keys are not properly configured
-# Also disable if using test keys
-test_keys = [
-    '6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg',  # Test public key
-    '6Le7kesrAAAAAKldE5dZ2n4_Hwe1n7wmnginjNmD'   # Test private key
-]
+# Django reCAPTCHA settings (required by django-recaptcha package)
+RECAPTCHA_PUBLIC_KEY = ''  # Not used - configuration comes from database
+RECAPTCHA_PRIVATE_KEY = ''  # Not used - configuration comes from database
 
-if (DEBUG or 
-    not RECAPTCHA_PUBLIC_KEY or 
-    not RECAPTCHA_PRIVATE_KEY or
-    RECAPTCHA_PUBLIC_KEY in test_keys or
-    RECAPTCHA_PRIVATE_KEY in test_keys):
-    RECAPTCHA_PUBLIC_KEY = ''
-    RECAPTCHA_PRIVATE_KEY = ''
+# Silence the test key error since we use database configuration
+SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
 
 # Django Allauth Custom Forms
 ACCOUNT_FORMS = {

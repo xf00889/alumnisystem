@@ -11,6 +11,7 @@ from events.models import Event, EventRSVP
 from alumni_directory.models import Alumni
 from feedback.models import Feedback
 from core.models import UserEngagement, EngagementScore, Post, Comment, Reaction, Notification
+from .recaptcha_utils import get_recaptcha_public_key
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -440,7 +441,7 @@ def test_recaptcha(request):
     from django.conf import settings
     context = {
         'page_title': 'reCAPTCHA Test',
-        'recaptcha_public_key': getattr(settings, 'RECAPTCHA_PUBLIC_KEY', ''),
+        'recaptcha_public_key': get_recaptcha_public_key(),
     }
     return render(request, 'test_recaptcha.html', context)
 

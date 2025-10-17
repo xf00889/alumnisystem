@@ -58,6 +58,11 @@ class ReCaptchaConfig(models.Model):
     def __str__(self):
         return f"{self.name} ({self.version})"
     
+    @classmethod
+    def get_active_config(cls):
+        """Get the currently active reCAPTCHA configuration"""
+        return cls.objects.filter(is_active=True).first()
+    
     def clean(self):
         """Validate reCAPTCHA configuration"""
         if self.version == 'v3' and not (0.0 <= self.threshold <= 1.0):

@@ -4,6 +4,7 @@ from alumni_groups.models import AlumniGroup
 from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class EventForm(forms.ModelForm):
     notified_groups = forms.ModelMultipleChoiceField(
@@ -81,24 +82,28 @@ class PublicEventForm(EventForm):
     A simplified form for public events that sets status to published automatically
     """
     
-    # reCAPTCHA field for spam protection
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'data-callback': 'onRecaptchaSuccess',
-                'data-expired-callback': 'onRecaptchaExpired',
-                'data-error-callback': 'onRecaptchaError',
-            }
-        ),
-        label='Security Verification'
-    )
-    
     class Meta(EventForm.Meta):
         fields = [
             'title', 'description', 'start_date', 'end_date',
             'location', 'is_virtual', 'virtual_link', 'max_participants',
             'image', 'notified_groups'
         ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean(self):
         cleaned_data = super().clean()

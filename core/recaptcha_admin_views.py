@@ -9,6 +9,7 @@ from django.views.decorators.http import require_POST, require_http_methods
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models.recaptcha_config import ReCaptchaConfig
+from .recaptcha_utils import clear_recaptcha_cache
 import logging
 
 logger = logging.getLogger(__name__)
@@ -48,6 +49,7 @@ def recaptcha_configuration_create(request):
             config.save()
             
             messages.success(request, f'reCAPTCHA configuration "{config.name}" created successfully!')
+            clear_recaptcha_cache()  # Clear cache when config is created
             return redirect('core:recaptcha_configuration_list')
             
         except ValidationError as e:
@@ -81,6 +83,7 @@ def recaptcha_configuration_edit(request, config_id):
             config.save()
             
             messages.success(request, f'reCAPTCHA configuration "{config.name}" updated successfully!')
+            clear_recaptcha_cache()  # Clear cache when config is updated
             return redirect('core:recaptcha_configuration_list')
             
         except ValidationError as e:
@@ -152,6 +155,7 @@ def recaptcha_configuration_delete(request, config_id):
     try:
         config.delete()
         messages.success(request, f'reCAPTCHA configuration "{config_name}" deleted successfully!')
+        clear_recaptcha_cache()  # Clear cache when config is deleted
     except Exception as e:
         messages.error(request, f'Error deleting configuration: {str(e)}')
     
@@ -171,6 +175,7 @@ def recaptcha_configuration_activate(request, config_id):
         ReCaptchaConfig.objects.filter(pk=config.pk).update(is_active=True)
         
         messages.success(request, f'reCAPTCHA configuration "{config.name}" activated successfully!')
+        clear_recaptcha_cache()  # Clear cache when config is activated
     except Exception as e:
         messages.error(request, f'Error activating configuration: {str(e)}')
     

@@ -4,21 +4,10 @@ from .models import Feedback
 import os
 from django_recaptcha.fields import ReCaptchaField
 from django_recaptcha.widgets import ReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class FeedbackForm(forms.ModelForm):
     """Form for users to submit feedback"""
-    
-    # reCAPTCHA field for spam protection
-    captcha = ReCaptchaField(
-        widget=ReCaptchaV3(
-            attrs={
-                'data-callback': 'onRecaptchaSuccess',
-                'data-expired-callback': 'onRecaptchaExpired',
-                'data-error-callback': 'onRecaptchaError',
-            }
-        ),
-        label='Security Verification'
-    )
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -27,6 +16,19 @@ class FeedbackForm(forms.ModelForm):
         self.fields['subject'].help_text = 'Brief summary of your feedback (max 200 characters)'
         self.fields['message'].help_text = 'Provide detailed information about your feedback'
         self.fields['attachment'].help_text = 'Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG (max 5MB)'
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = ReCaptchaField(
+                widget=ReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean_attachment(self):
         attachment = self.cleaned_data.get('attachment')
