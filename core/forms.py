@@ -1,5 +1,5 @@
 from django import forms
-from django_recaptcha.fields import ReCaptchaField
+from .recaptcha_fields import DatabaseReCaptchaField
 from .recaptcha_widgets import DatabaseReCaptchaV3
 from .recaptcha_utils import is_recaptcha_enabled
 
@@ -55,7 +55,7 @@ class ContactForm(forms.Form):
         
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
-            self.fields['captcha'] = ReCaptchaField(
+            self.fields['captcha'] = DatabaseReCaptchaField(
                 widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',

@@ -2,7 +2,7 @@ from django import forms
 from django.core.validators import FileExtensionValidator
 from .models import Feedback
 import os
-from django_recaptcha.fields import ReCaptchaField
+from core.recaptcha_fields import DatabaseReCaptchaField
 from core.recaptcha_widgets import DatabaseReCaptchaV3
 from core.recaptcha_utils import is_recaptcha_enabled
 
@@ -19,7 +19,7 @@ class FeedbackForm(forms.ModelForm):
         
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
-            self.fields['captcha'] = ReCaptchaField(
+            self.fields['captcha'] = DatabaseReCaptchaField(
                 widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
