@@ -26,7 +26,11 @@
                     <!-- Test reCAPTCHA v2 -->
                     <div class="mb-3">
                         <h5>reCAPTCHA v2 Test</h5>
-                        <div class="g-recaptcha" data-sitekey="{{ recaptcha_public_key|default:'' }}"></div>
+                        {% if recaptcha_enabled and recaptcha_public_key %}
+                        <div class="g-recaptcha" data-sitekey="{{ recaptcha_public_key }}"></div>
+                        {% else %}
+                        <div class="alert alert-warning">reCAPTCHA is not configured or enabled</div>
+                        {% endif %}
                     </div>
                     
                     <div class="alert alert-info">
@@ -60,6 +64,7 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Check public key
     const publicKey = '{{ recaptcha_public_key|default:"" }}';
+    const recaptchaEnabled = {{ recaptcha_enabled|yesno:"true,false" }};
     if (publicKey && publicKey.length > 10) {
         publicKeyStatus.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> ' + publicKey.substring(0, 20) + '...</span>';
     } else {

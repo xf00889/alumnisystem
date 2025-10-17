@@ -16,7 +16,7 @@ from django.core.mail import send_mail
 from django.conf import settings
 from django.utils import timezone
 from django_recaptcha.fields import ReCaptchaField
-from django_recaptcha.widgets import ReCaptchaV3
+from core.recaptcha_widgets import DatabaseReCaptchaV3
 from core.recaptcha_utils import is_recaptcha_enabled
 
 class CustomLoginForm(LoginForm):
@@ -29,7 +29,7 @@ class CustomLoginForm(LoginForm):
         if is_recaptcha_enabled():
             
             self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
+                widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
@@ -76,7 +76,7 @@ class CustomSignupForm(SignupForm):
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
             self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
+                widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
@@ -999,7 +999,7 @@ class PasswordResetEmailForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
             self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
+                widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
@@ -1039,7 +1039,7 @@ class PasswordResetOTPForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
             self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
+                widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
@@ -1085,7 +1085,7 @@ class PasswordResetNewPasswordForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
             self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
+                widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
@@ -1175,7 +1175,7 @@ class EnhancedSignupForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
             self.fields['captcha'] = ReCaptchaField(
-                widget=ReCaptchaV3(
+                widget=DatabaseReCaptchaV3(
                     attrs={
                         'data-callback': 'onRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',

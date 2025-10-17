@@ -1245,14 +1245,16 @@
             // Silently handle undefined errors - they don't affect functionality
         }
         
-        // Load reCAPTCHA after DOM is ready
+        // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
         document.addEventListener('DOMContentLoaded', function() {
+            {% if recaptcha_enabled and recaptcha_public_key %}
             // Load reCAPTCHA script dynamically
             var script = document.createElement('script');
-            script.src = 'https://www.google.com/recaptcha/api.js?render={{ recaptcha_public_key|default:"" }}';
+            script.src = 'https://www.google.com/recaptcha/api.js?render={{ recaptcha_public_key }}';
             script.async = true;
             script.defer = true;
             document.head.appendChild(script);
+            {% endif %}
         });
     </script>
 </body>
