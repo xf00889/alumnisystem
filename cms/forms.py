@@ -77,7 +77,7 @@ class PageSectionForm(ModelForm):
     
     class Meta:
         model = PageSection
-        fields = ['section_type', 'title', 'subtitle', 'content', 'image', 'order', 'is_active']
+        fields = ['title', 'section_type', 'subtitle', 'content', 'image', 'order', 'is_active']
         widgets = {
             'section_type': forms.Select(attrs={
                 'class': 'form-control',
