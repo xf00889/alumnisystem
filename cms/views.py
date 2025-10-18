@@ -156,6 +156,17 @@ class StaffMemberUpdateView(UpdateView):
         return super().form_valid(form)
 
 
+@method_decorator(login_required, name='dispatch')
+class StaffMemberDeleteView(DeleteView):
+    model = StaffMember
+    template_name = 'cms/staff_member_confirm_delete.html'
+    success_url = reverse_lazy('cms:staff_member_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Staff member deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
 # Timeline Item Views
 @method_decorator(login_required, name='dispatch')
 class TimelineItemListView(ListView):
@@ -187,6 +198,17 @@ class TimelineItemUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Timeline item updated successfully!')
         return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
+class TimelineItemDeleteView(DeleteView):
+    model = TimelineItem
+    template_name = 'cms/timeline_item_confirm_delete.html'
+    success_url = reverse_lazy('cms:timeline_item_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Timeline item deleted successfully!')
+        return super().delete(request, *args, **kwargs)
 
 
 # Contact Info Views
@@ -222,6 +244,17 @@ class ContactInfoUpdateView(UpdateView):
         return super().form_valid(form)
 
 
+@method_decorator(login_required, name='dispatch')
+class ContactInfoDeleteView(DeleteView):
+    model = ContactInfo
+    template_name = 'cms/contact_info_confirm_delete.html'
+    success_url = reverse_lazy('cms:contact_info_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Contact information deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
 # FAQ Views
 @method_decorator(login_required, name='dispatch')
 class FAQListView(ListView):
@@ -253,6 +286,17 @@ class FAQUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'FAQ updated successfully!')
         return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
+class FAQDeleteView(DeleteView):
+    model = FAQ
+    template_name = 'cms/faq_confirm_delete.html'
+    success_url = reverse_lazy('cms:faq_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'FAQ deleted successfully!')
+        return super().delete(request, *args, **kwargs)
 
 
 # Feature Views
@@ -288,6 +332,17 @@ class FeatureUpdateView(UpdateView):
         return super().form_valid(form)
 
 
+@method_decorator(login_required, name='dispatch')
+class FeatureDeleteView(DeleteView):
+    model = Feature
+    template_name = 'cms/feature_confirm_delete.html'
+    success_url = reverse_lazy('cms:feature_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Feature deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
 # Testimonial Views
 @method_decorator(login_required, name='dispatch')
 class TestimonialListView(ListView):
@@ -319,6 +374,17 @@ class TestimonialUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Testimonial updated successfully!')
         return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
+class TestimonialDeleteView(DeleteView):
+    model = Testimonial
+    template_name = 'cms/testimonial_confirm_delete.html'
+    success_url = reverse_lazy('cms:testimonial_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Testimonial deleted successfully!')
+        return super().delete(request, *args, **kwargs)
 
 
 # About Page Configuration Views

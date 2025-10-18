@@ -262,6 +262,18 @@
         text-decoration: none;
     }
 
+    .action-btn.delete {
+        background-color: var(--feedback-error);
+        color: var(--text-light);
+    }
+
+    .action-btn.delete:hover {
+        background-color: #c53030;
+        transform: translateY(-1px);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
     /* Pagination */
     .pagination-section {
         display: flex;
@@ -460,6 +472,9 @@
                     <a href="{% url 'cms:staff_member_edit' member.pk %}" class="action-btn edit">
                         <i class="fas fa-edit"></i> Edit
                     </a>
+                    <button type="button" class="action-btn delete" onclick="confirmDeleteStaffMember({{ member.pk }}, '{{ member.name|escapejs }}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
                 </div>
             </div>
             {% endfor %}
@@ -506,4 +521,16 @@
         </div>
     {% endif %}
 </div>
+
+<script>
+function confirmDeleteStaffMember(pk, name) {
+    CMSAlerts.confirmDelete(
+        'Delete Staff Member',
+        `Are you sure you want to delete "${name}"? This action cannot be undone.`,
+        function() {
+            window.location.href = `/cms/staff-members/${pk}/delete/`;
+        }
+    );
+}
+</script>
 {% endblock %}

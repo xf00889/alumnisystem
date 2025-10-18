@@ -4,6 +4,8 @@
 {% block extrahead %}
 {{ block.super }}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- SweetAlert2 CSS -->
+<link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
 <style>
     /* System Color Scheme */
     :root {
@@ -354,4 +356,126 @@
         }
     }
 </style>
+{% endblock %}
+
+{% block extrajs %}
+{{ block.super }}
+<!-- SweetAlert2 JavaScript -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+
+<script>
+// SweetAlert Configuration
+const Swal = window.Swal;
+
+// Common SweetAlert functions for CMS
+window.CMSAlerts = {
+    // Success notification
+    success: function(title, text = '') {
+        Swal.fire({
+            icon: 'success',
+            title: title,
+            text: text,
+            timer: 3000,
+            timerProgressBar: true,
+            showConfirmButton: false,
+            toast: true,
+            position: 'top-end'
+        });
+    },
+
+    // Error notification
+    error: function(title, text = '') {
+        Swal.fire({
+            icon: 'error',
+            title: title,
+            text: text,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#e53e3e'
+        });
+    },
+
+    // Warning notification
+    warning: function(title, text = '') {
+        Swal.fire({
+            icon: 'warning',
+            title: title,
+            text: text,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#ed8936'
+        });
+    },
+
+    // Info notification
+    info: function(title, text = '') {
+        Swal.fire({
+            icon: 'info',
+            title: title,
+            text: text,
+            confirmButtonText: 'OK',
+            confirmButtonColor: '#4299e1'
+        });
+    },
+
+    // Delete confirmation
+    confirmDelete: function(title, text, callback) {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e53e3e',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                callback();
+            }
+        });
+    },
+
+    // Form submission confirmation
+    confirmSubmit: function(title, text, callback) {
+        Swal.fire({
+            title: title,
+            text: text,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2b3c6b',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Yes, submit!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                callback();
+            }
+        });
+    }
+};
+
+// Auto-show Django messages as SweetAlert notifications
+document.addEventListener('DOMContentLoaded', function() {
+    // Check for Django messages
+    const messages = document.querySelectorAll('.alert, .messages .message');
+    messages.forEach(function(message) {
+        const text = message.textContent.trim();
+        const isError = message.classList.contains('alert-danger') || message.classList.contains('error');
+        const isSuccess = message.classList.contains('alert-success') || message.classList.contains('success');
+        const isWarning = message.classList.contains('alert-warning') || message.classList.contains('warning');
+        const isInfo = message.classList.contains('alert-info') || message.classList.contains('info');
+
+        if (isError) {
+            CMSAlerts.error('Error', text);
+        } else if (isSuccess) {
+            CMSAlerts.success('Success', text);
+        } else if (isWarning) {
+            CMSAlerts.warning('Warning', text);
+        } else if (isInfo) {
+            CMSAlerts.info('Info', text);
+        }
+    });
+});
+</script>
 {% endblock %}

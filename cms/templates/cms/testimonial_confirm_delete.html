@@ -1,0 +1,31 @@
+{% extends "cms/delete_confirm.html" %}
+
+{% block title %}Delete Testimonial - CMS{% endblock %}
+
+{% block delete_details %}
+<div class="testimonial-details">
+    <div class="row">
+        <div class="col-md-4">
+            {% if object.photo %}
+                <img src="{{ object.photo.url }}" alt="{{ object.name }}" class="img-fluid rounded mb-3" style="max-width: 150px;">
+            {% else %}
+                <div class="no-photo-placeholder bg-light rounded d-flex align-items-center justify-content-center mb-3" style="width: 150px; height: 150px;">
+                    <i class="fas fa-user fa-3x text-muted"></i>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-8">
+            <h5><strong>Name:</strong> {{ object.name }}</h5>
+            <p><strong>Position:</strong> {{ object.position }}</p>
+            <p><strong>Company:</strong> {{ object.company }}</p>
+            <p><strong>Testimonial:</strong> {{ object.testimonial|truncatewords:30 }}</p>
+            <p><strong>Status:</strong> 
+                <span class="badge {% if object.is_active %}badge-success{% else %}badge-secondary{% endif %}">
+                    {% if object.is_active %}Active{% else %}Inactive{% endif %}
+                </span>
+            </p>
+            <p><strong>Order:</strong> {{ object.order }}</p>
+        </div>
+    </div>
+</div>
+{% endblock %}
