@@ -60,12 +60,4 @@ urlpatterns = [
     path('alumni-statistics/<int:pk>/edit/', views.AlumniStatisticUpdateView.as_view(), name='alumni_statistic_edit'),
     path('alumni-statistics/<int:pk>/delete/', views.AlumniStatisticDeleteView.as_view(), name='alumni_statistic_delete'),
     
-    # Contact Configuration
-    path('contact-config/', views.ContactConfigUpdateView.as_view(), name='contact_config_edit'),
-    
-    # Social Media Links
-    path('social-media/', views.SocialMediaLinkListView.as_view(), name='social_media_list'),
-    path('social-media/create/', views.SocialMediaLinkCreateView.as_view(), name='social_media_create'),
-    path('social-media/<int:pk>/edit/', views.SocialMediaLinkUpdateView.as_view(), name='social_media_edit'),
-    path('social-media/<int:pk>/delete/', views.SocialMediaLinkDeleteView.as_view(), name='social_media_delete'),
 ]

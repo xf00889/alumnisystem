@@ -7,12 +7,12 @@ from django.urls import reverse_lazy
 from .models import (
     SiteConfig, PageSection, StaticPage, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic, ContactConfig, SocialMediaLink
+    AboutPageConfig, AlumniStatistic
 )
 from .forms import (
     SiteConfigForm, PageSectionForm, StaticPageForm, StaffMemberForm,
     TimelineItemForm, ContactInfoForm, FAQForm, FeatureForm, TestimonialForm,
-    AboutPageConfigForm, AlumniStatisticForm, ContactConfigForm, SocialMediaLinkForm
+    AboutPageConfigForm, AlumniStatisticForm
 )
 
 
@@ -39,8 +39,6 @@ class CMSDashboardView(TemplateView):
             'testimonials_count': Testimonial.objects.filter(is_active=True).count(),
             'about_config_count': AboutPageConfig.objects.count(),
             'alumni_statistics_count': AlumniStatistic.objects.filter(is_active=True).count(),
-            'contact_config_count': ContactConfig.objects.count(),
-            'social_media_count': SocialMediaLink.objects.filter(is_active=True).count(),
         })
         
         # Get recent content for quick access
@@ -403,62 +401,3 @@ class AlumniStatisticDeleteView(DeleteView):
         messages.success(self.request, 'Alumni statistic deleted successfully!')
         return super().delete(request, *args, **kwargs)
 
-
-# Contact Configuration Views
-@method_decorator(login_required, name='dispatch')
-class ContactConfigUpdateView(UpdateView):
-    model = ContactConfig
-    form_class = ContactConfigForm
-    template_name = 'cms/contact_config_edit.html'
-    success_url = reverse_lazy('cms:dashboard')
-    
-    def get_object(self):
-        return ContactConfig.get_contact_config()
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Contact configuration updated successfully!')
-        return super().form_valid(form)
-
-
-# Social Media Links Views
-@method_decorator(login_required, name='dispatch')
-class SocialMediaLinkListView(ListView):
-    model = SocialMediaLink
-    template_name = 'cms/social_media_list.html'
-    context_object_name = 'social_links'
-    paginate_by = 10
-
-
-@method_decorator(login_required, name='dispatch')
-class SocialMediaLinkCreateView(CreateView):
-    model = SocialMediaLink
-    form_class = SocialMediaLinkForm
-    template_name = 'cms/social_media_edit.html'
-    success_url = reverse_lazy('cms:social_media_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Social media link created successfully!')
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name='dispatch')
-class SocialMediaLinkUpdateView(UpdateView):
-    model = SocialMediaLink
-    form_class = SocialMediaLinkForm
-    template_name = 'cms/social_media_edit.html'
-    success_url = reverse_lazy('cms:social_media_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Social media link updated successfully!')
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name='dispatch')
-class SocialMediaLinkDeleteView(DeleteView):
-    model = SocialMediaLink
-    template_name = 'cms/social_media_confirm_delete.html'
-    success_url = reverse_lazy('cms:social_media_list')
-    
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, 'Social media link deleted successfully!')
-        return super().delete(request, *args, **kwargs)
