@@ -80,7 +80,8 @@ class PageSectionForm(ModelForm):
         fields = ['section_type', 'title', 'subtitle', 'content', 'image', 'order', 'is_active']
         widgets = {
             'section_type': forms.Select(attrs={
-                'class': 'form-control'
+                'class': 'form-control',
+                'id': 'section-type-select'
             }),
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -104,6 +105,26 @@ class PageSectionForm(ModelForm):
                 'class': 'form-check-input'
             }),
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Add help text for section types
+        self.fields['section_type'].help_text = self.get_section_type_help_text()
+    
+    def get_section_type_help_text(self):
+        return """
+        <div class="section-type-help">
+            <strong>Section Types Guide:</strong>
+            <ul class="section-type-list">
+                <li><strong>Hero Section:</strong> Main banner area at the top of pages with large title and call-to-action</li>
+                <li><strong>Features Section:</strong> Showcase key features or services with icons and descriptions</li>
+                <li><strong>Testimonials Section:</strong> Display customer reviews and testimonials</li>
+                <li><strong>Call to Action Section:</strong> Prominent section encouraging user action (sign up, contact, etc.)</li>
+                <li><strong>Announcements Section:</strong> Display important news, updates, or announcements</li>
+                <li><strong>Statistics Section:</strong> Show key numbers, metrics, or achievements</li>
+            </ul>
+        </div>
+        """
 
 
 

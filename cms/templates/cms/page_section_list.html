@@ -274,6 +274,18 @@
         text-decoration: none;
     }
 
+    .action-btn.preview {
+        background-color: var(--feedback-warning);
+        color: var(--text-light);
+    }
+
+    .action-btn.preview:hover {
+        background-color: #dd6b20;
+        transform: translateY(-1px);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
     /* Pagination */
     .pagination-section {
         display: flex;
@@ -364,6 +376,135 @@
 
     .breadcrumb-item.active {
         color: var(--text-secondary);
+    }
+
+    /* Preview Modal */
+    .preview-modal {
+        display: none;
+        position: fixed;
+        z-index: 1000;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(4px);
+    }
+    
+    .preview-modal-content {
+        background-color: var(--ui-surface);
+        margin: 2% auto;
+        padding: 0;
+        border-radius: var(--radius-md);
+        width: 90%;
+        max-width: 800px;
+        max-height: 90vh;
+        overflow-y: auto;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .preview-modal-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.5rem;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .preview-modal-title {
+        margin: 0;
+        font-size: 1.25rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .preview-modal-close {
+        background: none;
+        border: none;
+        color: var(--text-light);
+        font-size: 1.5rem;
+        cursor: pointer;
+        padding: 0;
+        width: 30px;
+        height: 30px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+        transition: background-color 0.3s ease;
+    }
+    
+    .preview-modal-close:hover {
+        background-color: rgba(255, 255, 255, 0.2);
+    }
+    
+    .preview-modal-body {
+        padding: 2rem;
+    }
+    
+    .preview-section {
+        border: 2px dashed var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        background: var(--ui-background);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .preview-section.hero {
+        background: linear-gradient(135deg, var(--primary-color), var(--feedback-info));
+        color: var(--text-light);
+        border: none;
+    }
+    
+    .preview-section.features {
+        background: var(--ui-surface);
+        border-color: var(--feedback-success);
+    }
+    
+    .preview-section.testimonials {
+        background: var(--ui-surface);
+        border-color: var(--feedback-warning);
+    }
+    
+    .preview-section.cta {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+    }
+    
+    .preview-section.announcements {
+        background: var(--ui-surface);
+        border-color: var(--feedback-info);
+    }
+    
+    .preview-section.stats {
+        background: var(--ui-surface);
+        border-color: var(--secondary-color);
+    }
+    
+    .preview-title {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .preview-subtitle {
+        font-size: 1.125rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.9;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .preview-content {
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
     }
 
     /* Responsive Design */
@@ -472,6 +613,9 @@
                     <a href="{% url 'cms:page_section_edit' section.pk %}" class="action-btn edit">
                         <i class="fas fa-edit"></i> Edit
                     </a>
+                    <button type="button" class="action-btn preview" onclick="previewSection('{{ section.pk }}', '{{ section.title|escapejs }}', '{{ section.subtitle|escapejs }}', '{{ section.content|escapejs }}', '{{ section.section_type }}')">
+                        <i class="fas fa-eye"></i> Preview
+                    </button>
                     <a href="{% url 'cms:page_section_delete' section.pk %}" class="action-btn delete">
                         <i class="fas fa-trash"></i> Delete
                     </a>
@@ -521,4 +665,56 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Preview Modal -->
+<div id="previewModal" class="preview-modal">
+    <div class="preview-modal-content">
+        <div class="preview-modal-header">
+            <h3 class="preview-modal-title">Section Preview</h3>
+            <button class="preview-modal-close" onclick="closePreviewModal()">&times;</button>
+        </div>
+        <div class="preview-modal-body">
+            <div id="previewSection" class="preview-section">
+                <div class="preview-title" id="previewTitle">Section Title</div>
+                <div class="preview-subtitle" id="previewSubtitle">Section subtitle or description</div>
+                <div class="preview-content" id="previewContent">Section content will appear here...</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function previewSection(pk, title, subtitle, content, sectionType) {
+    // Update preview content
+    document.getElementById('previewTitle').textContent = title || 'Section Title';
+    document.getElementById('previewSubtitle').textContent = subtitle || 'Section subtitle or description';
+    document.getElementById('previewContent').textContent = content || 'Section content will appear here...';
+    
+    // Update preview section styling based on type
+    const previewSection = document.getElementById('previewSection');
+    previewSection.className = 'preview-section ' + sectionType;
+    
+    // Show modal
+    document.getElementById('previewModal').style.display = 'block';
+}
+
+function closePreviewModal() {
+    document.getElementById('previewModal').style.display = 'none';
+}
+
+// Close modal when clicking outside
+window.onclick = function(event) {
+    const modal = document.getElementById('previewModal');
+    if (event.target === modal) {
+        closePreviewModal();
+    }
+}
+
+// Close modal with Escape key
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        closePreviewModal();
+    }
+});
+</script>
 {% endblock %}
