@@ -618,21 +618,9 @@
                     <button type="button" class="action-btn preview" onclick="previewSection('{{ section.pk }}', '{{ section.title|escapejs }}', '{{ section.subtitle|escapejs }}', '{{ section.content|escapejs }}', '{{ section.section_type }}')">
                         <i class="fas fa-eye"></i> Preview
                     </button>
-                    <button type="button" class="action-btn delete" onclick="
-                        if (typeof window.CMSAlerts !== 'undefined') {
-                            window.CMSAlerts.confirmDelete(
-                                'Delete Page Section',
-                                'Are you sure you want to delete \"{{ section.title|escapejs }}\"? This action cannot be undone.',
-                                function() {
-                                    window.location.href = '/cms/page-sections/{{ section.pk }}/delete/';
-                                }
-                            );
-                        } else {
-                            if (confirm('Are you sure you want to delete \"{{ section.title|escapejs }}\"? This action cannot be undone.')) {
-                                window.location.href = '/cms/page-sections/{{ section.pk }}/delete/';
-                            }
-                        }
-                    ">
+                    <button type="button" class="action-btn delete" 
+                            data-section-id="{{ section.pk }}" 
+                            data-section-title="{{ section.title|escapejs }}">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -740,5 +728,35 @@ document.addEventListener('keydown', function(event) {
 });
 
 // Function moved to direct script above to avoid block inheritance issues
+
+// Add event listeners for delete buttons
+document.addEventListener('DOMContentLoaded', function() {
+    // Add click event listeners to all delete buttons
+    document.querySelectorAll('.action-btn.delete').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section-id');
+            const sectionTitle = this.getAttribute('data-section-title');
+            
+            console.log('Delete button clicked for section:', sectionId, sectionTitle);
+            console.log('CMSAlerts available:', typeof window.CMSAlerts);
+            
+            if (typeof window.CMSAlerts !== 'undefined') {
+                window.CMSAlerts.confirmDelete(
+                    'Delete Page Section',
+                    'Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.',
+                    function() {
+                        window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
+                    }
+                );
+            } else {
+                if (confirm('Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.')) {
+                    window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
+                }
+            }
+        });
+    });
+    
+    console.log('Delete button event listeners attached');
+});
 </script>
 {% endblock %}
