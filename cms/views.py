@@ -81,6 +81,12 @@ class PageSectionCreateView(CreateView):
     template_name = 'cms/page_section_edit.html'
     success_url = reverse_lazy('cms:page_section_list')
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get existing sections ordered by order field
+        context['existing_sections'] = PageSection.objects.filter(is_active=True).order_by('order')
+        return context
+    
     def form_valid(self, form):
         messages.success(self.request, 'Page section created successfully!')
         return super().form_valid(form)
@@ -92,6 +98,12 @@ class PageSectionUpdateView(UpdateView):
     form_class = PageSectionForm
     template_name = 'cms/page_section_edit.html'
     success_url = reverse_lazy('cms:page_section_list')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        # Get existing sections ordered by order field (excluding current section if editing)
+        context['existing_sections'] = PageSection.objects.filter(is_active=True).exclude(pk=self.object.pk).order_by('order')
+        return context
     
     def form_valid(self, form):
         messages.success(self.request, 'Page section updated successfully!')

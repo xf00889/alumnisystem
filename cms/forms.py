@@ -110,11 +110,20 @@ class PageSectionForm(ModelForm):
         super().__init__(*args, **kwargs)
         # Add help text for section types
         self.fields['section_type'].help_text = self.get_section_type_help_text()
+        # Add help text for order
+        self.fields['order'].help_text = self.get_order_help_text()
     
     def get_section_type_help_text(self):
         return """
         <div class="section-type-help-icon">
             <i class="fas fa-question-circle" onclick="openSectionTypesModal()" title="Click for section types guide"></i>
+        </div>
+        """
+    
+    def get_order_help_text(self):
+        return """
+        <div class="order-help-icon">
+            <i class="fas fa-sort-numeric-up" onclick="openOrderGuideModal()" title="Click to see current section order"></i>
         </div>
         """
 
