@@ -107,7 +107,25 @@ if ! verify_tables; then
     exit 1
 fi
 
-# Step 4: Run system checks
+# Step 4: Ensure CMS data exists
+echo "📝 Checking CMS data..."
+if python manage.py shell -c "
+from cms.models import SiteConfig
+if not SiteConfig.objects.exists():
+    print('CMS data missing')
+    exit(1)
+else:
+    print('CMS data exists')
+    exit(0)
+"; then
+    echo "✅ CMS data verified"
+else
+    echo "⚠️ CMS data missing, populating..."
+    python manage.py populate_cms_data
+    echo "✅ CMS data populated"
+fi
+
+# Step 5: Run system checks
 echo "🔍 Running system checks..."
 if python manage.py check --deploy; then
     echo "✅ System checks passed"

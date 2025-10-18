@@ -18,9 +18,9 @@ python manage.py collectstatic --noinput
 echo "🗄️ Running database migrations..."
 python manage.py migrate --noinput
 
-# Seed CMS content (skip if already exists)
-echo "🌱 Seeding CMS content..."
-python manage.py seed_cms_content --skip-existing
+# Populate CMS data
+echo "📝 Populating CMS data..."
+python manage.py populate_cms_data
 
 # Run system checks
 echo "🔍 Running system checks..."
