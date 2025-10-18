@@ -2,7 +2,8 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from cms.models import (
     SiteConfig, PageSection, Feature, Testimonial, 
-    StaffMember, TimelineItem, ContactInfo, FAQ
+    StaffMember, TimelineItem, ContactInfo, FAQ,
+    AboutPageConfig, AlumniStatistic
 )
 
 
@@ -315,6 +316,72 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'✓ Created FAQ: {faq_item_data["question"][:50]}...'))
             else:
                 self.stdout.write(self.style.WARNING(f'FAQ "{faq_item_data["question"][:50]}..." already exists'))
+
+        # Create About Page Configuration
+        about_config, created = AboutPageConfig.objects.get_or_create(
+            defaults={
+                'university_name': 'Negros Oriental State University',
+                'university_short_name': 'NORSU',
+                'university_description': 'Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.',
+                'university_extended_description': 'Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness.',
+                'establishment_year': '2004',
+                'mission': 'To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society.',
+                'vision': 'A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.',
+                'about_page_title': 'About NORSU Alumni Network',
+                'about_page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
+            }
+        )
+        
+        if created:
+            self.stdout.write(self.style.SUCCESS('✓ Created About Page Configuration'))
+        else:
+            self.stdout.write(self.style.WARNING('About Page Configuration already exists'))
+
+        # Create Alumni Statistics
+        statistics_data = [
+            {
+                'statistic_type': 'alumni_members',
+                'value': '5,000+',
+                'label': 'Alumni Members',
+                'icon': 'fas fa-graduation-cap',
+                'icon_color': 'primary',
+                'order': 1,
+            },
+            {
+                'statistic_type': 'alumni_groups',
+                'value': '25+',
+                'label': 'Alumni Groups',
+                'icon': 'fas fa-users',
+                'icon_color': 'success',
+                'order': 2,
+            },
+            {
+                'statistic_type': 'annual_events',
+                'value': '50+',
+                'label': 'Annual Events',
+                'icon': 'fas fa-calendar-alt',
+                'icon_color': 'warning',
+                'order': 3,
+            },
+            {
+                'statistic_type': 'job_opportunities',
+                'value': '100+',
+                'label': 'Job Opportunities',
+                'icon': 'fas fa-briefcase',
+                'icon_color': 'info',
+                'order': 4,
+            },
+        ]
+
+        for stat_data in statistics_data:
+            stat, created = AlumniStatistic.objects.get_or_create(
+                statistic_type=stat_data['statistic_type'],
+                defaults=stat_data
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f'✓ Created statistic: {stat_data["label"]}'))
+            else:
+                self.stdout.write(self.style.WARNING(f'Statistic "{stat_data["label"]}" already exists'))
 
         self.stdout.write(self.style.SUCCESS('\n🎉 CMS content population completed successfully!'))
         self.stdout.write('You can now access the admin interface to manage your content.')

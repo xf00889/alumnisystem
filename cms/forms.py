@@ -2,7 +2,8 @@ from django import forms
 from django.forms import ModelForm, inlineformset_factory
 from .models import (
     SiteConfig, PageSection, StaticPage, StaffMember, 
-    TimelineItem, ContactInfo, FAQ, Feature, Testimonial
+    TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
+    AboutPageConfig, AlumniStatistic
 )
 
 
@@ -326,6 +327,96 @@ class TestimonialForm(ModelForm):
                 'class': 'form-control',
                 'rows': 4,
                 'placeholder': 'Enter testimonial quote'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+
+
+class AboutPageConfigForm(ModelForm):
+    """Form for editing About page configuration"""
+    
+    class Meta:
+        model = AboutPageConfig
+        fields = [
+            'university_name', 'university_short_name', 'university_description',
+            'university_extended_description', 'establishment_year', 'mission',
+            'vision', 'about_page_title', 'about_page_subtitle'
+        ]
+        widgets = {
+            'university_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter full university name'
+            }),
+            'university_short_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter university acronym'
+            }),
+            'university_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Enter main university description'
+            }),
+            'university_extended_description': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Enter extended university description'
+            }),
+            'establishment_year': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter establishment year (e.g., 2004)'
+            }),
+            'mission': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Enter university mission statement'
+            }),
+            'vision': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Enter university vision statement'
+            }),
+            'about_page_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter About page title'
+            }),
+            'about_page_subtitle': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Enter About page subtitle'
+            }),
+        }
+
+
+class AlumniStatisticForm(ModelForm):
+    """Form for editing alumni statistics"""
+    
+    class Meta:
+        model = AlumniStatistic
+        fields = ['statistic_type', 'value', 'label', 'icon', 'icon_color', 'order', 'is_active']
+        widgets = {
+            'statistic_type': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'value': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter statistic value (e.g., 5,000+)'
+            }),
+            'label': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter display label'
+            }),
+            'icon': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter FontAwesome icon class (e.g., fas fa-users)'
+            }),
+            'icon_color': forms.Select(attrs={
+                'class': 'form-control'
             }),
             'order': forms.NumberInput(attrs={
                 'class': 'form-control',

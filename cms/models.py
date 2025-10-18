@@ -480,6 +480,139 @@ class Testimonial(TimeStampedModel):
         return f"{self.name} - {self.position}"
 
 
+class AboutPageConfig(TimeStampedModel):
+    """
+    Model for managing About page configuration
+    """
+    # University Information
+    university_name = models.CharField(
+        max_length=200,
+        default="Negros Oriental State University",
+        help_text=_("Full name of the university")
+    )
+    university_short_name = models.CharField(
+        max_length=50,
+        default="NORSU",
+        help_text=_("Short name or acronym")
+    )
+    university_description = models.TextField(
+        default="Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.",
+        help_text=_("Main description of the university")
+    )
+    university_extended_description = models.TextField(
+        default="Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness.",
+        help_text=_("Extended description of the university")
+    )
+    establishment_year = models.CharField(
+        max_length=10,
+        default="2004",
+        help_text=_("Year the university was established")
+    )
+    
+    # Mission and Vision
+    mission = models.TextField(
+        default="To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society.",
+        help_text=_("University mission statement")
+    )
+    vision = models.TextField(
+        default="A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.",
+        help_text=_("University vision statement")
+    )
+    
+    # Page Titles
+    about_page_title = models.CharField(
+        max_length=200,
+        default="About NORSU Alumni Network",
+        help_text=_("Title for the About page")
+    )
+    about_page_subtitle = models.TextField(
+        default="Learn more about our university, mission, and the people behind our alumni community",
+        help_text=_("Subtitle for the About page")
+    )
+    
+    class Meta:
+        verbose_name = _('About Page Configuration')
+        verbose_name_plural = _('About Page Configuration')
+
+    def __str__(self):
+        return f"About Page Config - {self.university_short_name}"
+
+    @classmethod
+    def get_about_config(cls):
+        """Get or create the singleton about page configuration"""
+        obj, created = cls.objects.get_or_create(
+            defaults={
+                'university_name': 'Negros Oriental State University',
+                'university_short_name': 'NORSU',
+                'university_description': 'Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.',
+                'university_extended_description': 'Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness.',
+                'establishment_year': '2004',
+                'mission': 'To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society.',
+                'vision': 'A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.',
+                'about_page_title': 'About NORSU Alumni Network',
+                'about_page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
+            }
+        )
+        return obj
+
+
+class AlumniStatistic(TimeStampedModel):
+    """
+    Model for managing alumni network statistics
+    """
+    STATISTIC_TYPES = [
+        ('alumni_members', _('Alumni Members')),
+        ('alumni_groups', _('Alumni Groups')),
+        ('annual_events', _('Annual Events')),
+        ('job_opportunities', _('Job Opportunities')),
+        ('mentors', _('Mentors')),
+        ('scholarships', _('Scholarships')),
+        ('countries', _('Countries Represented')),
+        ('industries', _('Industries Represented')),
+    ]
+
+    statistic_type = models.CharField(
+        max_length=30,
+        choices=STATISTIC_TYPES,
+        unique=True,
+        help_text=_("Type of statistic")
+    )
+    value = models.CharField(
+        max_length=20,
+        help_text=_("Statistic value (e.g., '5,000+', '25+')")
+    )
+    label = models.CharField(
+        max_length=100,
+        help_text=_("Display label for the statistic")
+    )
+    icon = models.CharField(
+        max_length=50,
+        default="fas fa-users",
+        help_text=_("Font Awesome icon class")
+    )
+    icon_color = models.CharField(
+        max_length=20,
+        default="primary",
+        help_text=_("Bootstrap color class for the icon")
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Display order (lower numbers appear first)")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Whether this statistic should be displayed")
+    )
+
+    class Meta:
+        verbose_name = _('Alumni Statistic')
+        verbose_name_plural = _('Alumni Statistics')
+        ordering = ['order', 'statistic_type']
+
+    def __str__(self):
+        return f"{self.get_statistic_type_display()} - {self.value}"
+
+
 # Signal to automatically sync site config tagline with hero section title
 @receiver(post_save, sender=SiteConfig)
 def sync_site_tagline_with_hero(sender, instance, **kwargs):

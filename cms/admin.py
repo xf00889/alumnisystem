@@ -4,7 +4,8 @@ from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
     SiteConfig, PageSection, StaticPage, StaffMember, 
-    TimelineItem, ContactInfo, FAQ, Feature, Testimonial
+    TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
+    AboutPageConfig, AlumniStatistic
 )
 
 
@@ -268,6 +269,69 @@ class TestimonialAdmin(admin.ModelAdmin):
             )
         return "No Image"
     image_preview.short_description = "Photo"
+
+
+@admin.register(AboutPageConfig)
+class AboutPageConfigAdmin(admin.ModelAdmin):
+    """
+    Admin interface for About Page Configuration (Singleton)
+    """
+    list_display = ['university_short_name', 'university_name', 'establishment_year', 'created']
+    list_filter = ['created', 'modified']
+    search_fields = ['university_name', 'university_short_name', 'mission', 'vision']
+    
+    fieldsets = (
+        ('University Information', {
+            'fields': ('university_name', 'university_short_name', 'establishment_year')
+        }),
+        ('University Description', {
+            'fields': ('university_description', 'university_extended_description')
+        }),
+        ('Mission & Vision', {
+            'fields': ('mission', 'vision')
+        }),
+        ('Page Configuration', {
+            'fields': ('about_page_title', 'about_page_subtitle')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent adding multiple AboutPageConfig instances"""
+        return not AboutPageConfig.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deleting the AboutPageConfig instance"""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Redirect to the single instance if it exists"""
+        if AboutPageConfig.objects.exists():
+            obj = AboutPageConfig.objects.first()
+            return admin.ModelAdmin.change_view(
+                self, request, str(obj.pk), extra_context
+            )
+        return super().changelist_view(request, extra_context)
+
+
+@admin.register(AlumniStatistic)
+class AlumniStatisticAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Alumni Statistics
+    """
+    list_display = ['statistic_type', 'value', 'label', 'icon', 'icon_color', 'order', 'is_active']
+    list_filter = ['statistic_type', 'icon_color', 'is_active', 'created']
+    search_fields = ['label', 'value']
+    list_editable = ['value', 'label', 'order', 'is_active']
+    ordering = ['order', 'statistic_type']
+    
+    fieldsets = (
+        ('Statistic Information', {
+            'fields': ('statistic_type', 'value', 'label')
+        }),
+        ('Display Settings', {
+            'fields': ('icon', 'icon_color', 'order', 'is_active')
+        }),
+    )
 
 
 # Customize admin site header and title

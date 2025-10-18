@@ -769,7 +769,10 @@ def about_us(request):
 
     # Get CMS data for About page
     try:
-        from cms.models import StaffMember, TimelineItem
+        from cms.models import StaffMember, TimelineItem, AboutPageConfig, AlumniStatistic
+        
+        # Get about page configuration
+        about_config = AboutPageConfig.get_about_config()
         
         # Get staff members from CMS
         staff_members = StaffMember.objects.filter(is_active=True).order_by('order')
@@ -777,9 +780,13 @@ def about_us(request):
         # Get timeline items from CMS
         timeline_items = TimelineItem.objects.filter(is_active=True).order_by('order')
         
+        # Get alumni statistics from CMS
+        alumni_statistics = AlumniStatistic.objects.filter(is_active=True).order_by('order')
+        
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data for About page: {e}")
         # Fallback to hardcoded data if CMS fails
+        about_config = None
         staff_members = [
             {
                 'name': 'Dr. Maria Santos',
@@ -801,16 +808,19 @@ def about_us(request):
             }
         ]
         timeline_items = []
+        alumni_statistics = []
 
     context = {
-        'page_title': 'About NORSU Alumni Network',
-        'page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
+        'page_title': about_config.about_page_title if about_config else 'About NORSU Alumni Network',
+        'page_subtitle': about_config.about_page_subtitle if about_config else 'Learn more about our university, mission, and the people behind our alumni community',
+        'about_config': about_config,
         'alumni_count': alumni_count,
         'group_count': group_count,
         'event_count': event_count,
         'job_count': job_count,
         'staff_members': staff_members,
         'timeline_items': timeline_items,
+        'alumni_statistics': alumni_statistics,
     }
 
     return render(request, 'landing/about_us.html', context)

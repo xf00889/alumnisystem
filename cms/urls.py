@@ -50,4 +50,13 @@ urlpatterns = [
     path('testimonials/', views.TestimonialListView.as_view(), name='testimonial_list'),
     path('testimonials/create/', views.TestimonialCreateView.as_view(), name='testimonial_create'),
     path('testimonials/<int:pk>/edit/', views.TestimonialUpdateView.as_view(), name='testimonial_edit'),
+    
+    # About Page Configuration
+    path('about-config/', views.AboutPageConfigUpdateView.as_view(), name='about_config_edit'),
+    
+    # Alumni Statistics
+    path('alumni-statistics/', views.AlumniStatisticListView.as_view(), name='alumni_statistic_list'),
+    path('alumni-statistics/create/', views.AlumniStatisticCreateView.as_view(), name='alumni_statistic_create'),
+    path('alumni-statistics/<int:pk>/edit/', views.AlumniStatisticUpdateView.as_view(), name='alumni_statistic_edit'),
+    path('alumni-statistics/<int:pk>/delete/', views.AlumniStatisticDeleteView.as_view(), name='alumni_statistic_delete'),
 ]

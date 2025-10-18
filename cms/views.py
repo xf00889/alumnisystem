@@ -6,11 +6,13 @@ from django.contrib import messages
 from django.urls import reverse_lazy
 from .models import (
     SiteConfig, PageSection, StaticPage, StaffMember, 
-    TimelineItem, ContactInfo, FAQ, Feature, Testimonial
+    TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
+    AboutPageConfig, AlumniStatistic
 )
 from .forms import (
     SiteConfigForm, PageSectionForm, StaticPageForm, StaffMemberForm,
-    TimelineItemForm, ContactInfoForm, FAQForm, FeatureForm, TestimonialForm
+    TimelineItemForm, ContactInfoForm, FAQForm, FeatureForm, TestimonialForm,
+    AboutPageConfigForm, AlumniStatisticForm
 )
 
 
@@ -35,6 +37,8 @@ class CMSDashboardView(TemplateView):
             'faqs_count': FAQ.objects.filter(is_active=True).count(),
             'features_count': Feature.objects.filter(is_active=True).count(),
             'testimonials_count': Testimonial.objects.filter(is_active=True).count(),
+            'about_config_count': AboutPageConfig.objects.count(),
+            'alumni_statistics_count': AlumniStatistic.objects.filter(is_active=True).count(),
         })
         
         # Get recent content for quick access
@@ -336,3 +340,63 @@ class TestimonialUpdateView(UpdateView):
     def form_valid(self, form):
         messages.success(self.request, 'Testimonial updated successfully!')
         return super().form_valid(form)
+
+
+# About Page Configuration Views
+@method_decorator(login_required, name='dispatch')
+class AboutPageConfigUpdateView(UpdateView):
+    model = AboutPageConfig
+    form_class = AboutPageConfigForm
+    template_name = 'cms/about_config_edit.html'
+    success_url = reverse_lazy('cms:dashboard')
+    
+    def get_object(self):
+        return AboutPageConfig.get_about_config()
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'About page configuration updated successfully!')
+        return super().form_valid(form)
+
+
+# Alumni Statistics Views
+@method_decorator(login_required, name='dispatch')
+class AlumniStatisticListView(ListView):
+    model = AlumniStatistic
+    template_name = 'cms/alumni_statistic_list.html'
+    context_object_name = 'statistics'
+    paginate_by = 10
+
+
+@method_decorator(login_required, name='dispatch')
+class AlumniStatisticCreateView(CreateView):
+    model = AlumniStatistic
+    form_class = AlumniStatisticForm
+    template_name = 'cms/alumni_statistic_edit.html'
+    success_url = reverse_lazy('cms:alumni_statistic_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Alumni statistic created successfully!')
+        return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
+class AlumniStatisticUpdateView(UpdateView):
+    model = AlumniStatistic
+    form_class = AlumniStatisticForm
+    template_name = 'cms/alumni_statistic_edit.html'
+    success_url = reverse_lazy('cms:alumni_statistic_list')
+    
+    def form_valid(self, form):
+        messages.success(self.request, 'Alumni statistic updated successfully!')
+        return super().form_valid(form)
+
+
+@method_decorator(login_required, name='dispatch')
+class AlumniStatisticDeleteView(DeleteView):
+    model = AlumniStatistic
+    template_name = 'cms/alumni_statistic_confirm_delete.html'
+    success_url = reverse_lazy('cms:alumni_statistic_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Alumni statistic deleted successfully!')
+        return super().delete(request, *args, **kwargs)
