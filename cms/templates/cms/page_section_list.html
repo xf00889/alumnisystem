@@ -615,7 +615,12 @@
                     <a href="{% url 'cms:page_section_edit' section.pk %}" class="action-btn edit">
                         <i class="fas fa-edit"></i> Edit
                     </a>
-                    <button type="button" class="action-btn preview" onclick="previewSection('{{ section.pk }}', '{{ section.title|escapejs }}', '{{ section.subtitle|escapejs }}', '{{ section.content|escapejs }}', '{{ section.section_type }}')">
+                    <button type="button" class="action-btn preview" 
+                            data-section-id="{{ section.pk }}"
+                            data-section-title="{{ section.title|escapejs }}"
+                            data-section-subtitle="{{ section.subtitle|escapejs }}"
+                            data-section-content="{{ section.content|escapejs }}"
+                            data-section-type="{{ section.section_type }}">
                         <i class="fas fa-eye"></i> Preview
                     </button>
                     <button type="button" class="action-btn delete" 
@@ -694,19 +699,7 @@
 {% block extrajs %}
 {{ block.super }}
 <script>
-function previewSection(pk, title, subtitle, content, sectionType) {
-    // Update preview content
-    document.getElementById('previewTitle').textContent = title || 'Section Title';
-    document.getElementById('previewSubtitle').textContent = subtitle || 'Section subtitle or description';
-    document.getElementById('previewContent').textContent = content || 'Section content will appear here...';
-    
-    // Update preview section styling based on type
-    const previewSection = document.getElementById('previewSection');
-    previewSection.className = 'preview-section ' + sectionType;
-    
-    // Show modal
-    document.getElementById('previewModal').style.display = 'block';
-}
+// previewSection function moved to event listeners above
 
 function closePreviewModal() {
     document.getElementById('previewModal').style.display = 'none';
@@ -729,8 +722,35 @@ document.addEventListener('keydown', function(event) {
 
 // Function moved to direct script above to avoid block inheritance issues
 
-// Add event listeners for delete buttons
+// Add event listeners for preview and delete buttons
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, attaching event listeners...');
+    
+    // Add click event listeners to all preview buttons
+    document.querySelectorAll('.action-btn.preview').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section-id');
+            const sectionTitle = this.getAttribute('data-section-title');
+            const sectionSubtitle = this.getAttribute('data-section-subtitle');
+            const sectionContent = this.getAttribute('data-section-content');
+            const sectionType = this.getAttribute('data-section-type');
+            
+            console.log('Preview button clicked for section:', sectionId, sectionTitle);
+            
+            // Update preview content
+            document.getElementById('previewTitle').textContent = sectionTitle || 'Section Title';
+            document.getElementById('previewSubtitle').textContent = sectionSubtitle || 'Section subtitle or description';
+            document.getElementById('previewContent').textContent = sectionContent || 'Section content will appear here...';
+            
+            // Update preview section styling based on type
+            const previewSection = document.getElementById('previewSection');
+            previewSection.className = 'preview-section ' + sectionType;
+            
+            // Show modal
+            document.getElementById('previewModal').style.display = 'block';
+        });
+    });
+    
     // Add click event listeners to all delete buttons
     document.querySelectorAll('.action-btn.delete').forEach(function(button) {
         button.addEventListener('click', function() {
@@ -745,18 +765,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     'Delete Page Section',
                     'Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.',
                     function() {
+                        console.log('User confirmed deletion, redirecting...');
                         window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
                     }
                 );
             } else {
+                console.log('CMSAlerts not available, using native confirm');
                 if (confirm('Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.')) {
+                    console.log('User confirmed deletion, redirecting...');
                     window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
                 }
             }
         });
     });
     
-    console.log('Delete button event listeners attached');
+    console.log('Event listeners attached for', document.querySelectorAll('.action-btn.preview').length, 'preview buttons and', document.querySelectorAll('.action-btn.delete').length, 'delete buttons');
 });
 </script>
 {% endblock %}
