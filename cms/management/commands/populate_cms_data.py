@@ -344,7 +344,7 @@ class Command(BaseCommand):
                 'value': '5,000+',
                 'label': 'Alumni Members',
                 'icon': 'fas fa-graduation-cap',
-                'icon_color': 'primary',
+                'icon_color': '#007bff',
                 'order': 1,
             },
             {
@@ -352,7 +352,7 @@ class Command(BaseCommand):
                 'value': '25+',
                 'label': 'Alumni Groups',
                 'icon': 'fas fa-users',
-                'icon_color': 'success',
+                'icon_color': '#28a745',
                 'order': 2,
             },
             {
@@ -360,7 +360,7 @@ class Command(BaseCommand):
                 'value': '50+',
                 'label': 'Annual Events',
                 'icon': 'fas fa-calendar-alt',
-                'icon_color': 'warning',
+                'icon_color': '#ffc107',
                 'order': 3,
             },
             {
@@ -368,7 +368,7 @@ class Command(BaseCommand):
                 'value': '100+',
                 'label': 'Job Opportunities',
                 'icon': 'fas fa-briefcase',
-                'icon_color': 'info',
+                'icon_color': '#17a2b8',
                 'order': 4,
             },
         ]

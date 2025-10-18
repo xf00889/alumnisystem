@@ -590,9 +590,9 @@ class AlumniStatistic(TimeStampedModel):
         help_text=_("Font Awesome icon class")
     )
     icon_color = models.CharField(
-        max_length=20,
-        default="primary",
-        help_text=_("Bootstrap color class for the icon")
+        max_length=7,
+        default="#007bff",
+        help_text=_("Hex color code for the icon (e.g., #007bff)")
     )
     order = models.PositiveIntegerField(
         default=0,

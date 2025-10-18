@@ -415,8 +415,10 @@ class AlumniStatisticForm(ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter FontAwesome icon class (e.g., fas fa-users)'
             }),
-            'icon_color': forms.Select(attrs={
-                'class': 'form-control'
+            'icon_color': forms.TextInput(attrs={
+                'class': 'form-control',
+                'type': 'color',
+                'placeholder': 'Select icon color'
             }),
             'order': forms.NumberInput(attrs={
                 'class': 'form-control',

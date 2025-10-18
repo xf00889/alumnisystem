@@ -200,6 +200,32 @@
         color: #6c757d;
         margin: 0;
     }
+    
+    .color-picker-container {
+        position: relative;
+    }
+    
+    .color-picker-container input[type="color"] {
+        width: 100%;
+        height: 50px;
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: none;
+        padding: 0;
+    }
+    
+    .color-picker-container input[type="color"]:hover {
+        border-color: #667eea;
+        transform: scale(1.02);
+    }
+    
+    .color-picker-container input[type="color"]:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        outline: none;
+    }
 </style>
 {% endblock %}
 
@@ -286,10 +312,10 @@
                     <div class="col-md-6">
                         <div class="form-group">
                             <label for="{{ form.icon_color.id_for_label }}">Icon Color</label>
-                            {{ form.icon_color }}
-                            {% if form.icon_color.help_text %}
-                                <div class="help-text">{{ form.icon_color.help_text }}</div>
-                            {% endif %}
+                            <div class="color-picker-container">
+                                {{ form.icon_color }}
+                            </div>
+                            <div class="help-text">Click to select a color for the icon</div>
                             {% if form.icon_color.errors %}
                                 <div class="text-danger">{{ form.icon_color.errors }}</div>
                             {% endif %}
@@ -369,7 +395,13 @@
         const previewLabel = document.getElementById('preview-label');
         
         if (iconField && colorField && valueField && labelField) {
-            previewIcon.className = `${iconField.value || 'fas fa-users'} text-${colorField.value || 'primary'}`;
+            const iconClass = iconField.value || 'fas fa-users';
+            const colorValue = colorField.value || '#007bff';
+            
+            // Set icon class and color
+            previewIcon.className = iconClass;
+            previewIcon.style.color = colorValue;
+            
             previewValue.textContent = valueField.value || '5,000+';
             previewLabel.textContent = labelField.value || 'Alumni Members';
         }
