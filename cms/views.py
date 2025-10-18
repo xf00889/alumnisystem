@@ -156,6 +156,17 @@ class StaffMemberUpdateView(UpdateView):
         return super().form_valid(form)
 
 
+@method_decorator(login_required, name='dispatch')
+class StaffMemberDeleteView(DeleteView):
+    model = StaffMember
+    template_name = 'cms/staff_member_confirm_delete.html'
+    success_url = reverse_lazy('cms:staff_member_list')
+    
+    def delete(self, request, *args, **kwargs):
+        messages.success(self.request, 'Staff member deleted successfully!')
+        return super().delete(request, *args, **kwargs)
+
+
 # Timeline Item Views
 @method_decorator(login_required, name='dispatch')
 class TimelineItemListView(ListView):

@@ -20,6 +20,7 @@ urlpatterns = [
     path('staff-members/', views.StaffMemberListView.as_view(), name='staff_member_list'),
     path('staff-members/create/', views.StaffMemberCreateView.as_view(), name='staff_member_create'),
     path('staff-members/<int:pk>/edit/', views.StaffMemberUpdateView.as_view(), name='staff_member_edit'),
+    path('staff-members/<int:pk>/delete/', views.StaffMemberDeleteView.as_view(), name='staff_member_delete'),
     
     # Timeline Items
     path('timeline-items/', views.TimelineItemListView.as_view(), name='timeline_item_list'),

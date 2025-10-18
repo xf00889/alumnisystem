@@ -1,0 +1,356 @@
+{% extends "cms/base_cms.html" %}
+{% load static %}
+
+{% block title %}Delete Staff Member - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--feedback-error);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Warning Section */
+    .warning-section {
+        background: #fef5e7;
+        border: 1px solid #f6e05e;
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .warning-icon {
+        font-size: 3rem;
+        color: var(--feedback-warning);
+        margin-bottom: 1rem;
+    }
+
+    .warning-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .warning-text {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Staff Member Info */
+    .staff-info {
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid var(--feedback-error);
+    }
+
+    .staff-name {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .staff-details {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .staff-detail {
+        margin-bottom: 0.25rem;
+    }
+
+    /* Button Styles */
+    .btn-danger {
+        background-color: var(--feedback-error);
+        border-color: var(--feedback-error);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-danger:hover {
+        background-color: #c53030;
+        border-color: #c53030;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--ui-border);
+        justify-content: center;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Delete Staff Member</h1>
+        <p class="directory-subtitle">This action cannot be undone</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:staff_member_list' %}">Staff Members</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Delete Staff Member</li>
+        </ol>
+    </nav>
+
+    <!-- Form Card -->
+    <div class="form-card">
+        <!-- Warning Section -->
+        <div class="warning-section">
+            <div class="warning-icon">
+                <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <h2 class="warning-title">Are you sure you want to delete this staff member?</h2>
+            <p class="warning-text">This action cannot be undone. The staff member will be permanently removed from the system.</p>
+        </div>
+
+        <!-- Staff Member Information -->
+        <div class="staff-info">
+            <h3 class="staff-name">{{ object.name }}</h3>
+            <div class="staff-details">
+                <div class="staff-detail"><strong>Position:</strong> {{ object.position }}</div>
+                {% if object.email %}
+                <div class="staff-detail"><strong>Email:</strong> {{ object.email }}</div>
+                {% endif %}
+                {% if object.phone %}
+                <div class="staff-detail"><strong>Phone:</strong> {{ object.phone }}</div>
+                {% endif %}
+                <div class="staff-detail"><strong>Status:</strong> {% if object.is_active %}Active{% else %}Inactive{% endif %}</div>
+                <div class="staff-detail"><strong>Display Order:</strong> {{ object.order }}</div>
+            </div>
+        </div>
+
+        <!-- Form Actions -->
+        <div class="form-actions">
+            <form method="post" id="deleteForm">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" id="deleteBtn">
+                    <i class="fas fa-trash"></i> Yes, Delete Staff Member
+                </button>
+            </form>
+            <a href="{% url 'cms:staff_member_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </a>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+// Enhanced delete confirmation with SweetAlert
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteForm = document.getElementById('deleteForm');
+    const deleteBtn = document.getElementById('deleteBtn');
+    
+    if (deleteForm && deleteBtn) {
+        deleteForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const staffName = '{{ object.name|escapejs }}';
+            
+            // Show SweetAlert confirmation
+            if (typeof window.CMSAlerts !== 'undefined') {
+                window.CMSAlerts.deleteConfirm(staffName, 'staff member').then((result) => {
+                    if (result.isConfirmed) {
+                        submitDeleteForm();
+                    }
+                });
+            } else {
+                // Fallback to basic confirmation
+                if (confirm(`Are you sure you want to delete "${staffName}"? This action cannot be undone!`)) {
+                    submitDeleteForm();
+                }
+            }
+        });
+    }
+    
+    function submitDeleteForm() {
+        const deleteForm = document.getElementById('deleteForm');
+        const deleteBtn = document.getElementById('deleteBtn');
+        
+        // Show loading state
+        const originalText = deleteBtn.innerHTML;
+        deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Deleting...';
+        deleteBtn.disabled = true;
+        
+        // Submit the form
+        deleteForm.submit();
+    }
+});
+</script>
+{% endblock %}

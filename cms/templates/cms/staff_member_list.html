@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "cms/base_cms.html" %}
 {% load static %}
 
 {% block title %}Staff Members - {{ block.super }}{% endblock %}
@@ -262,6 +262,18 @@
         text-decoration: none;
     }
 
+    .action-btn.delete {
+        background-color: var(--feedback-error);
+        color: var(--text-light);
+    }
+
+    .action-btn.delete:hover {
+        background-color: #c53030;
+        transform: translateY(-1px);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
     /* Pagination */
     .pagination-section {
         display: flex;
@@ -389,8 +401,109 @@
 </style>
 {% endblock %}
 
+{% block extra_js %}
+{{ block.super }}
+<script>
+// Ensure CMSAlerts is available
+if (typeof window.CMSAlerts === 'undefined') {
+    window.CMSAlerts = class CMSAlerts {
+        static deleteConfirm(itemName, itemType = 'item') {
+            return Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete "${itemName}". This action cannot be undone!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                background: '#f8f9fa',
+                color: '#2d3748'
+            });
+        }
+    };
+}
+
+// Ensure handleDeleteClick is available
+if (typeof window.handleDeleteClick === 'undefined') {
+    window.handleDeleteClick = function(event, itemName, itemType = 'item') {
+        event.preventDefault();
+        
+        // Get delete URL from button's data attribute or closest anchor
+        let deleteUrl;
+        const button = event.target.closest('button');
+        if (button && button.dataset.deleteUrl) {
+            deleteUrl = button.dataset.deleteUrl;
+        } else {
+            const anchor = event.target.closest('a');
+            if (anchor) {
+                deleteUrl = anchor.href;
+            } else {
+                console.error('No delete URL found');
+                return;
+            }
+        }
+        
+        if (typeof window.CMSAlerts !== 'undefined') {
+            window.CMSAlerts.deleteConfirm(itemName, itemType).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form to submit the delete request
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = deleteUrl;
+                    
+                    // Add CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    if (csrfToken) {
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = csrfToken.value;
+                        form.appendChild(csrfInput);
+                    } else {
+                        console.error('CSRF token not found');
+                        alert('Security token not found. Please refresh the page and try again.');
+                        return;
+                    }
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        } else {
+            // Fallback to basic confirmation if SweetAlert is not available
+            if (confirm(`Are you sure you want to delete "${itemName}"?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = deleteUrl;
+                
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = csrfToken.value;
+                    form.appendChild(csrfInput);
+                } else {
+                    console.error('CSRF token not found');
+                    alert('Security token not found. Please refresh the page and try again.');
+                    return;
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    };
+}
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
+    <!-- Hidden CSRF token for delete operations -->
+    {% csrf_token %}
+    
     <!-- Header Section -->
     <div class="directory-header">
         <h1 class="directory-title">Staff Members</h1>
@@ -460,6 +573,9 @@
                     <a href="{% url 'cms:staff_member_edit' member.pk %}" class="action-btn edit">
                         <i class="fas fa-edit"></i> Edit
                     </a>
+                    <button type="button" class="action-btn delete" onclick="handleDeleteClick(event, '{{ member.name|escapejs }}', 'staff member')" data-delete-url="{% url 'cms:staff_member_delete' member.pk %}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
                 </div>
             </div>
             {% endfor %}

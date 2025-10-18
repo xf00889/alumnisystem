@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "cms/base_cms.html" %}
 {% load static %}
 
 {% block title %}{% if object %}Edit{% else %}Create{% endif %} Staff Member - {{ block.super }}{% endblock %}
@@ -300,6 +300,111 @@
 </style>
 {% endblock %}
 
+{% block extra_js %}
+{{ block.super }}
+<script>
+// Form submission with SweetAlert
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('staffMemberForm');
+    const submitBtn = document.getElementById('submitBtn');
+    
+    if (form && submitBtn) {
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            
+            const isEdit = {% if object %}true{% else %}false{% endif %};
+            const itemName = document.querySelector('input[name="name"]').value || 'Staff Member';
+            
+            if (isEdit) {
+                // Show update confirmation
+                if (typeof window.CMSAlerts !== 'undefined') {
+                    window.CMSAlerts.updateConfirm(itemName, 'staff member').then((result) => {
+                        if (result.isConfirmed) {
+                            submitForm();
+                        }
+                    });
+                } else {
+                    if (confirm(`Are you sure you want to update "${itemName}"?`)) {
+                        submitForm();
+                    }
+                }
+            } else {
+                // Show create confirmation
+                if (typeof window.CMSAlerts !== 'undefined') {
+                    window.CMSAlerts.confirm(
+                        'Create Staff Member',
+                        `Are you sure you want to create "${itemName}"?`,
+                        'Yes, create it!',
+                        'Cancel'
+                    ).then((result) => {
+                        if (result.isConfirmed) {
+                            submitForm();
+                        }
+                    });
+                } else {
+                    if (confirm(`Are you sure you want to create "${itemName}"?`)) {
+                        submitForm();
+                    }
+                }
+            }
+        });
+    }
+    
+    function submitForm() {
+        const form = document.getElementById('staffMemberForm');
+        const formData = new FormData(form);
+        
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.disabled = true;
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            throw new Error('Network response was not ok');
+        })
+        .then(data => {
+            const isEdit = {% if object %}true{% else %}false{% endif %};
+            const successMessage = isEdit ? 'Staff member updated successfully!' : 'Staff member created successfully!';
+            
+            if (typeof window.CMSAlerts !== 'undefined') {
+                window.CMSAlerts.success(successMessage).then(() => {
+                    window.location.href = '{% url "cms:staff_member_list" %}';
+                });
+            } else {
+                alert(successMessage);
+                window.location.href = '{% url "cms:staff_member_list" %}';
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            const errorMessage = 'Something went wrong. Please try again.';
+            
+            if (typeof window.CMSAlerts !== 'undefined') {
+                window.CMSAlerts.error('Error', errorMessage);
+            } else {
+                alert(errorMessage);
+            }
+            
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    }
+});
+</script>
+{% endblock %}
+
 {% block content %}
 <div class="container-fluid">
     <!-- Header Section -->
@@ -320,7 +425,7 @@
 
     <!-- Form Card -->
     <div class="form-card">
-        <form method="post" enctype="multipart/form-data">
+        <form method="post" enctype="multipart/form-data" id="staffMemberForm">
             {% csrf_token %}
             
             <!-- Basic Information Section -->
@@ -436,9 +541,14 @@
             
             <!-- Form Actions -->
             <div class="form-actions">
-                <button type="submit" class="btn btn-primary">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
                     <i class="fas fa-save"></i> {% if object %}Update{% else %}Create{% endif %} Staff Member
                 </button>
+                {% if object %}
+                <button type="button" class="btn btn-danger" onclick="handleDeleteClick(event, '{{ object.name|escapejs }}', 'staff member')" data-delete-url="{% url 'cms:staff_member_delete' object.pk %}">
+                    <i class="fas fa-trash"></i> Delete Staff Member
+                </button>
+                {% endif %}
                 <a href="{% url 'cms:staff_member_list' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
