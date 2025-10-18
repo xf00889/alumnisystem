@@ -3,6 +3,8 @@
 
 {% block title %}Page Sections - CMS{% endblock %}
 
+<!-- Using inline onclick handlers to avoid function definition timing issues -->
+
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -616,7 +618,21 @@
                     <button type="button" class="action-btn preview" onclick="previewSection('{{ section.pk }}', '{{ section.title|escapejs }}', '{{ section.subtitle|escapejs }}', '{{ section.content|escapejs }}', '{{ section.section_type }}')">
                         <i class="fas fa-eye"></i> Preview
                     </button>
-                    <button type="button" class="action-btn delete" onclick="confirmDeletePageSection({{ section.pk }}, '{{ section.title|escapejs }}')">
+                    <button type="button" class="action-btn delete" onclick="
+                        if (typeof window.CMSAlerts !== 'undefined') {
+                            window.CMSAlerts.confirmDelete(
+                                'Delete Page Section',
+                                'Are you sure you want to delete \"{{ section.title|escapejs }}\"? This action cannot be undone.',
+                                function() {
+                                    window.location.href = '/cms/page-sections/{{ section.pk }}/delete/';
+                                }
+                            );
+                        } else {
+                            if (confirm('Are you sure you want to delete \"{{ section.title|escapejs }}\"? This action cannot be undone.')) {
+                                window.location.href = '/cms/page-sections/{{ section.pk }}/delete/';
+                            }
+                        }
+                    ">
                         <i class="fas fa-trash"></i> Delete
                     </button>
                 </div>
@@ -685,35 +701,7 @@
 
 {% endblock %}
 
-<!-- Direct JavaScript - not using block structure -->
-<script>
-// Debug: Check if CMSAlerts is available immediately
-console.log('Script starting - CMSAlerts available:', typeof window.CMSAlerts);
-
-function confirmDeletePageSection(pk, title) {
-    console.log('confirmDeletePageSection called with:', pk, title);
-    console.log('CMSAlerts available:', typeof window.CMSAlerts);
-    
-    // Debug: Check if CMSAlerts is available
-    if (typeof window.CMSAlerts === 'undefined') {
-        console.error('CMSAlerts is not defined');
-        alert('CMSAlerts is not available. Please refresh the page.');
-        return;
-    }
-    
-    window.CMSAlerts.confirmDelete(
-        'Delete Page Section',
-        `Are you sure you want to delete "${title}"? This action cannot be undone.`,
-        function() {
-            window.location.href = `/cms/page-sections/${pk}/delete/`;
-        }
-    );
-}
-
-// Make function globally available
-window.confirmDeletePageSection = confirmDeletePageSection;
-console.log('Function made globally available:', typeof window.confirmDeletePageSection);
-</script>
+<!-- Function moved to top of template for early availability -->
 
 {% block extrajs %}
 {{ block.super }}
