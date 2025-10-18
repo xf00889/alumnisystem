@@ -1,23 +1,7 @@
 {% extends "cms/base_cms.html" %}
 {% load static %}
 
-{% block title %}Page Sections - CMS{% endblock %}
-
-<!-- Immediate debugging script -->
-<script>
-console.log('=== PAGE SECTIONS TEMPLATE LOADED ===');
-console.log('Current time:', new Date().toISOString());
-console.log('jQuery available:', typeof $ !== 'undefined');
-console.log('CMSAlerts available:', typeof window.CMSAlerts);
-
-// Test if we can find buttons immediately
-setTimeout(function() {
-    console.log('=== DELAYED CHECK ===');
-    console.log('Preview buttons found:', document.querySelectorAll('.action-btn.preview').length);
-    console.log('Delete buttons found:', document.querySelectorAll('.action-btn.delete').length);
-    console.log('Preview modal exists:', document.getElementById('previewModal') !== null);
-}, 1000);
-</script>
+{% block title %}Page Sections - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -625,24 +609,17 @@ setTimeout(function() {
                 </div>
                 {% endif %}
                 
-                <div class="alumni-actions">
-                    <a href="{% url 'cms:page_section_edit' section.pk %}" class="action-btn edit">
-                        <i class="fas fa-edit"></i> Edit
-                    </a>
-                    <button type="button" class="action-btn preview" 
-                            data-section-id="{{ section.pk }}"
-                            data-section-title="{{ section.title|escapejs }}"
-                            data-section-subtitle="{{ section.subtitle|escapejs }}"
-                            data-section-content="{{ section.content|escapejs }}"
-                            data-section-type="{{ section.section_type }}">
-                        <i class="fas fa-eye"></i> Preview
-                    </button>
-                    <button type="button" class="action-btn delete" 
-                            data-section-id="{{ section.pk }}" 
-                            data-section-title="{{ section.title|escapejs }}">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>
-                </div>
+                    <div class="alumni-actions">
+                        <a href="{% url 'cms:page_section_edit' section.pk %}" class="action-btn edit">
+                            <i class="fas fa-edit"></i> Edit
+                        </a>
+                        <button type="button" class="action-btn preview" onclick="previewSection('{{ section.pk }}', '{{ section.title|escapejs }}', '{{ section.subtitle|escapejs }}', '{{ section.content|escapejs }}', '{{ section.section_type }}')">
+                            <i class="fas fa-eye"></i> Preview
+                        </button>
+                        <button type="button" class="action-btn delete" onclick="handleDeleteClick(event, '{{ section.title|escapejs }}', 'page section')" data-delete-url="{% url 'cms:page_section_delete' section.pk %}">
+                            <i class="fas fa-trash"></i> Delete
+                        </button>
+                    </div>
             </div>
             {% endfor %}
         </div>
@@ -706,14 +683,20 @@ setTimeout(function() {
     </div>
 </div>
 
-{% endblock %}
-
-<!-- Function moved to top of template for early availability -->
-
-{% block extrajs %}
-{{ block.super }}
 <script>
-// previewSection function moved to event listeners above
+function previewSection(pk, title, subtitle, content, sectionType) {
+    // Update preview content
+    document.getElementById('previewTitle').textContent = title || 'Section Title';
+    document.getElementById('previewSubtitle').textContent = subtitle || 'Section subtitle or description';
+    document.getElementById('previewContent').textContent = content || 'Section content will appear here...';
+    
+    // Update preview section styling based on type
+    const previewSection = document.getElementById('previewSection');
+    previewSection.className = 'preview-section ' + sectionType;
+    
+    // Show modal
+    document.getElementById('previewModal').style.display = 'block';
+}
 
 function closePreviewModal() {
     document.getElementById('previewModal').style.display = 'none';
@@ -733,128 +716,5 @@ document.addEventListener('keydown', function(event) {
         closePreviewModal();
     }
 });
-
-// Function moved to direct script above to avoid block inheritance issues
-
-// Add event listeners for preview and delete buttons
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('=== DOMContentLoaded EVENT FIRED ===');
-    console.log('DOM loaded, attaching event listeners...');
-    
-    // Add click event listeners to all preview buttons
-    document.querySelectorAll('.action-btn.preview').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const sectionId = this.getAttribute('data-section-id');
-            const sectionTitle = this.getAttribute('data-section-title');
-            const sectionSubtitle = this.getAttribute('data-section-subtitle');
-            const sectionContent = this.getAttribute('data-section-content');
-            const sectionType = this.getAttribute('data-section-type');
-            
-            console.log('Preview button clicked for section:', sectionId, sectionTitle);
-            
-            // Update preview content
-            document.getElementById('previewTitle').textContent = sectionTitle || 'Section Title';
-            document.getElementById('previewSubtitle').textContent = sectionSubtitle || 'Section subtitle or description';
-            document.getElementById('previewContent').textContent = sectionContent || 'Section content will appear here...';
-            
-            // Update preview section styling based on type
-            const previewSection = document.getElementById('previewSection');
-            previewSection.className = 'preview-section ' + sectionType;
-            
-            // Show modal
-            document.getElementById('previewModal').style.display = 'block';
-        });
-    });
-    
-    // Add click event listeners to all delete buttons
-    document.querySelectorAll('.action-btn.delete').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const sectionId = this.getAttribute('data-section-id');
-            const sectionTitle = this.getAttribute('data-section-title');
-            
-            console.log('Delete button clicked for section:', sectionId, sectionTitle);
-            console.log('CMSAlerts available:', typeof window.CMSAlerts);
-            
-            if (typeof window.CMSAlerts !== 'undefined') {
-                window.CMSAlerts.confirmDelete(
-                    'Delete Page Section',
-                    'Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.',
-                    function() {
-                        console.log('User confirmed deletion, redirecting...');
-                        window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
-                    }
-                );
-            } else {
-                console.log('CMSAlerts not available, using native confirm');
-                if (confirm('Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.')) {
-                    console.log('User confirmed deletion, redirecting...');
-                    window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
-                }
-            }
-        });
-    });
-    
-    console.log('Event listeners attached for', document.querySelectorAll('.action-btn.preview').length, 'preview buttons and', document.querySelectorAll('.action-btn.delete').length, 'delete buttons');
-});
-
-// Fallback: Try to attach listeners immediately if DOM is already loaded
-if (document.readyState === 'loading') {
-    console.log('Document still loading, waiting for DOMContentLoaded...');
-} else {
-    console.log('Document already loaded, attaching listeners immediately...');
-    // Re-run the same logic
-    document.querySelectorAll('.action-btn.preview').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const sectionId = this.getAttribute('data-section-id');
-            const sectionTitle = this.getAttribute('data-section-title');
-            const sectionSubtitle = this.getAttribute('data-section-subtitle');
-            const sectionContent = this.getAttribute('data-section-content');
-            const sectionType = this.getAttribute('data-section-type');
-            
-            console.log('Preview button clicked for section:', sectionId, sectionTitle);
-            
-            // Update preview content
-            document.getElementById('previewTitle').textContent = sectionTitle || 'Section Title';
-            document.getElementById('previewSubtitle').textContent = sectionSubtitle || 'Section subtitle or description';
-            document.getElementById('previewContent').textContent = sectionContent || 'Section content will appear here...';
-            
-            // Update preview section styling based on type
-            const previewSection = document.getElementById('previewSection');
-            previewSection.className = 'preview-section ' + sectionType;
-            
-            // Show modal
-            document.getElementById('previewModal').style.display = 'block';
-        });
-    });
-    
-    document.querySelectorAll('.action-btn.delete').forEach(function(button) {
-        button.addEventListener('click', function() {
-            const sectionId = this.getAttribute('data-section-id');
-            const sectionTitle = this.getAttribute('data-section-title');
-            
-            console.log('Delete button clicked for section:', sectionId, sectionTitle);
-            console.log('CMSAlerts available:', typeof window.CMSAlerts);
-            
-            if (typeof window.CMSAlerts !== 'undefined') {
-                window.CMSAlerts.confirmDelete(
-                    'Delete Page Section',
-                    'Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.',
-                    function() {
-                        console.log('User confirmed deletion, redirecting...');
-                        window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
-                    }
-                );
-            } else {
-                console.log('CMSAlerts not available, using native confirm');
-                if (confirm('Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.')) {
-                    console.log('User confirmed deletion, redirecting...');
-                    window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
-                }
-            }
-        });
-    });
-    
-    console.log('Fallback event listeners attached for', document.querySelectorAll('.action-btn.preview').length, 'preview buttons and', document.querySelectorAll('.action-btn.delete').length, 'delete buttons');
-}
 </script>
 {% endblock %}

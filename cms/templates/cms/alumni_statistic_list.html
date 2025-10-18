@@ -1,4 +1,4 @@
-{% extends 'cms/base_cms.html' %}
+{% extends "cms/base_cms.html" %}
 {% load static %}
 
 {% block title %}Alumni Statistics - CMS{% endblock %}
@@ -252,8 +252,7 @@
                             <a href="{% url 'cms:alumni_statistic_edit' statistic.pk %}" class="btn-edit">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
-                            <button type="button" class="btn-delete" 
-                               onclick="confirmDeleteAlumniStatistic({{ statistic.pk }}, '{{ statistic.title|escapejs }}')">
+                            <button type="button" class="btn-delete" onclick="handleDeleteClick(event, '{{ statistic.statistic_type|escapejs }}', 'alumni statistic')" data-delete-url="{% url 'cms:alumni_statistic_delete' statistic.pk %}">
                                 <i class="fas fa-trash"></i> Delete
                             </button>
                         </div>
@@ -309,19 +308,4 @@
         </a>
     </div>
 </div>
-{% endblock %}
-
-{% block extrajs %}
-{{ block.super }}
-<script>
-function confirmDeleteAlumniStatistic(pk, title) {
-    CMSAlerts.confirmDelete(
-        'Delete Alumni Statistic',
-        `Are you sure you want to delete "${title}"? This action cannot be undone.`,
-        function() {
-            window.location.href = `/cms/alumni-statistics/${pk}/delete/`;
-        }
-    );
-}
-</script>
 {% endblock %}

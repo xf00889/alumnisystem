@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends "cms/base_cms.html" %}
 {% load static %}
 
 {% block title %}{% if object %}Edit{% else %}Add{% endif %} Alumni Statistic - CMS{% endblock %}
@@ -246,7 +246,7 @@
     {% endif %}
 
     <div class="form-container">
-        <form method="post" id="statisticForm">
+        <form method="post" id="alumniStatisticForm">
             {% csrf_token %}
             
             <!-- Statistic Information Section -->
@@ -372,7 +372,12 @@
                 <a href="{% url 'cms:alumni_statistic_list' %}" class="btn-cancel">
                     <i class="fas fa-arrow-left"></i> Back to List
                 </a>
-                <button type="submit" class="btn-save">
+                {% if object %}
+                <button type="button" class="btn-delete" onclick="handleDeleteClick(event, '{{ object.statistic_type|escapejs }}', 'alumni statistic')" data-delete-url="{% url 'cms:alumni_statistic_delete' object.pk %}">
+                    <i class="fas fa-trash"></i> Delete Statistic
+                </button>
+                {% endif %}
+                <button type="submit" class="btn-save" id="submitBtn">
                     <i class="fas fa-save"></i> {% if object %}Update{% else %}Create{% endif %} Statistic
                 </button>
             </div>
@@ -423,8 +428,10 @@
         updatePreview();
     });
     
-    // Form validation
-    document.getElementById('statisticForm').addEventListener('submit', function(e) {
+    // Form submission with SweetAlert
+    document.getElementById('alumniStatisticForm').addEventListener('submit', function(e) {
+        e.preventDefault();
+        
         const requiredFields = this.querySelectorAll('[required]');
         let isValid = true;
         
@@ -438,9 +445,74 @@
         });
         
         if (!isValid) {
-            e.preventDefault();
-            alert('Please fill in all required fields.');
+            CMSAlerts.error('Validation Error', 'Please fill in all required fields.');
+            return;
+        }
+        
+        const isEdit = {% if object %}true{% else %}false{% endif %};
+        const itemName = document.querySelector('input[name="statistic_type"]').value || 'Statistic';
+        
+        if (isEdit) {
+            // Show update confirmation
+            CMSAlerts.updateConfirm(itemName, 'alumni statistic').then((result) => {
+                if (result.isConfirmed) {
+                    submitForm();
+                }
+            });
+        } else {
+            // Show create confirmation
+            CMSAlerts.confirm(
+                'Create Statistic',
+                `Are you sure you want to create "${itemName}"?`,
+                'Yes, create it!',
+                'Cancel'
+            ).then((result) => {
+                if (result.isConfirmed) {
+                    submitForm();
+                }
+            });
         }
     });
+    
+    function submitForm() {
+        const form = document.getElementById('alumniStatisticForm');
+        const formData = new FormData(form);
+        
+        // Show loading state
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerHTML;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+        submitBtn.disabled = true;
+        
+        fetch(form.action, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+            }
+        })
+        .then(response => {
+            if (response.ok) {
+                return response.text();
+            }
+            throw new Error('Network response was not ok');
+        })
+        .then(data => {
+            const isEdit = {% if object %}true{% else %}false{% endif %};
+            const successMessage = isEdit ? 'Statistic updated successfully!' : 'Statistic created successfully!';
+            
+            CMSAlerts.success(successMessage).then(() => {
+                window.location.href = '{% url "cms:alumni_statistic_list" %}';
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            CMSAlerts.error('Error', 'Something went wrong. Please try again.');
+            
+            // Reset button state
+            submitBtn.innerHTML = originalText;
+            submitBtn.disabled = false;
+        });
+    }
 </script>
 {% endblock %}
