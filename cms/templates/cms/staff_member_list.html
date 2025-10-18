@@ -403,42 +403,74 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script>
-// Force define handleDeleteClick function
-window.handleDeleteClick = function(event, itemName, itemType = 'item') {
-    event.preventDefault();
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Hidden CSRF token for delete operations -->
+    {% csrf_token %}
     
-    // Get delete URL from button's data attribute
-    let deleteUrl;
-    const button = event.target.closest('button');
-    if (button && button.dataset.deleteUrl) {
-        deleteUrl = button.dataset.deleteUrl;
-    } else {
-        console.error('No delete URL found');
-        return;
-    }
-    
-    // Use SweetAlert if available, otherwise fallback to confirm
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: 'Are you sure?',
-            text: `You are about to delete "${itemName}". This action cannot be undone!`,
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#e53e3e',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, delete it!',
-            cancelButtonText: 'Cancel',
-            background: '#f8f9fa',
-            color: '#2d3748'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Create a form to submit the delete request
+    <!-- Inline JavaScript for delete functionality -->
+    <script>
+    // Define handleDeleteClick function immediately
+    window.handleDeleteClick = function(event, itemName, itemType = 'item') {
+        event.preventDefault();
+        
+        // Get delete URL from button's data attribute
+        let deleteUrl;
+        const button = event.target.closest('button');
+        if (button && button.dataset.deleteUrl) {
+            deleteUrl = button.dataset.deleteUrl;
+        } else {
+            console.error('No delete URL found');
+            return;
+        }
+        
+        // Use SweetAlert if available, otherwise fallback to confirm
+        if (typeof Swal !== 'undefined') {
+            Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete "${itemName}". This action cannot be undone!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                background: '#f8f9fa',
+                color: '#2d3748'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form to submit the delete request
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = deleteUrl;
+                    
+                    // Add CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    if (csrfToken) {
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = csrfToken.value;
+                        form.appendChild(csrfInput);
+                    } else {
+                        console.error('CSRF token not found');
+                        alert('Security token not found. Please refresh the page and try again.');
+                        return;
+                    }
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        } else {
+            // Fallback to basic confirmation if SweetAlert is not available
+            if (confirm(`Are you sure you want to delete "${itemName}"?`)) {
                 const form = document.createElement('form');
                 form.method = 'POST';
                 form.action = deleteUrl;
                 
-                // Add CSRF token
                 const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
                 if (csrfToken) {
                     const csrfInput = document.createElement('input');
@@ -455,42 +487,12 @@ window.handleDeleteClick = function(event, itemName, itemType = 'item') {
                 document.body.appendChild(form);
                 form.submit();
             }
-        });
-    } else {
-        // Fallback to basic confirmation if SweetAlert is not available
-        if (confirm(`Are you sure you want to delete "${itemName}"?`)) {
-            const form = document.createElement('form');
-            form.method = 'POST';
-            form.action = deleteUrl;
-            
-            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
-            if (csrfToken) {
-                const csrfInput = document.createElement('input');
-                csrfInput.type = 'hidden';
-                csrfInput.name = 'csrfmiddlewaretoken';
-                csrfInput.value = csrfToken.value;
-                form.appendChild(csrfInput);
-            } else {
-                console.error('CSRF token not found');
-                alert('Security token not found. Please refresh the page and try again.');
-                return;
-            }
-            
-            document.body.appendChild(form);
-            form.submit();
         }
-    }
-};
-
-// Ensure function is available immediately
-console.log('handleDeleteClick function defined:', typeof window.handleDeleteClick);
-</script>
-{% endblock %}
-
-{% block content %}
-<div class="container-fluid">
-    <!-- Hidden CSRF token for delete operations -->
-    {% csrf_token %}
+    };
+    
+    // Verify function is available
+    console.log('handleDeleteClick function defined:', typeof window.handleDeleteClick);
+    </script>
     
     <!-- Header Section -->
     <div class="directory-header">
