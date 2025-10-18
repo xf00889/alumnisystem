@@ -113,16 +113,8 @@ class PageSectionForm(ModelForm):
     
     def get_section_type_help_text(self):
         return """
-        <div class="section-type-help">
-            <strong>Section Types:</strong>
-            <ul class="section-type-list">
-                <li><strong>Hero:</strong> Main banner with title and CTA</li>
-                <li><strong>Features:</strong> Showcase key features with icons</li>
-                <li><strong>Testimonials:</strong> Customer reviews and testimonials</li>
-                <li><strong>Call to Action:</strong> Encourage user actions</li>
-                <li><strong>Announcements:</strong> News and updates</li>
-                <li><strong>Statistics:</strong> Key numbers and metrics</li>
-            </ul>
+        <div class="section-type-help-icon">
+            <i class="fas fa-question-circle" onclick="openSectionTypesModal()" title="Click for section types guide"></i>
         </div>
         """
 
