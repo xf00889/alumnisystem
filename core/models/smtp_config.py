@@ -161,7 +161,8 @@ NORSU Alumni System
             # Update test results using update() to avoid datetime field issues
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=True,
-                test_result="Connection successful. Test email sent."
+                test_result="Connection successful. Test email sent.",
+                last_tested=timezone.now()
             )
             
             return True, "SMTP configuration test successful! Test email sent."
@@ -169,21 +170,24 @@ NORSU Alumni System
         except smtplib.SMTPAuthenticationError as e:
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=False,
-                test_result=f"Authentication failed: {str(e)}"
+                test_result=f"Authentication failed: {str(e)}",
+                last_tested=timezone.now()
             )
             return False, f"Authentication failed: {str(e)}"
             
         except smtplib.SMTPConnectError as e:
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=False,
-                test_result=f"Connection failed: {str(e)}"
+                test_result=f"Connection failed: {str(e)}",
+                last_tested=timezone.now()
             )
             return False, f"Connection failed: {str(e)}"
             
         except Exception as e:
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=False,
-                test_result=f"Test failed: {str(e)}"
+                test_result=f"Test failed: {str(e)}",
+                last_tested=timezone.now()
             )
             return False, f"Test failed: {str(e)}"
     

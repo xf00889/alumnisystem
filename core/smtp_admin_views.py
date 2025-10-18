@@ -51,6 +51,10 @@ def smtp_configuration_create(request):
             config.full_clean()
             config.save()
             
+            # Clear SMTP cache to ensure new settings are loaded
+            from .smtp_settings import clear_smtp_cache
+            clear_smtp_cache()
+            
             messages.success(request, f'SMTP configuration "{config.name}" created successfully!')
             return redirect('core:smtp_configuration_list')
             
@@ -124,6 +128,10 @@ def smtp_configuration_edit(request, config_id):
             
             config.full_clean()
             config.save()
+            
+            # Clear SMTP cache to ensure updated settings are loaded
+            from .smtp_settings import clear_smtp_cache
+            clear_smtp_cache()
             
             messages.success(request, f'SMTP configuration "{config.name}" updated successfully!')
             return redirect('core:smtp_configuration_list')
@@ -220,6 +228,10 @@ def smtp_configuration_activate(request, config_id):
         # Activate this configuration
         SMTPConfig.objects.filter(pk=config.pk).update(is_active=True)
         
+        # Clear SMTP cache to ensure new active settings are loaded
+        from .smtp_settings import clear_smtp_cache
+        clear_smtp_cache()
+        
         messages.success(request, f'SMTP configuration "{config.name}" activated successfully!')
     except Exception as e:
         messages.error(request, f'Error activating configuration: {str(e)}')
@@ -285,6 +297,10 @@ def smtp_quick_setup(request):
                 config.full_clean()
                 # Save the configuration directly to avoid datetime field issues
                 config.save()
+                
+                # Clear SMTP cache to ensure new settings are loaded
+                from .smtp_settings import clear_smtp_cache
+                clear_smtp_cache()
                 
                 # Test the configuration
                 success, message = config.test_connection()
