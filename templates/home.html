@@ -713,6 +713,75 @@
         font-weight: 500;
     }
 
+    /* Statistics Section */
+    .statistics-section {
+        padding: 8rem 0;
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .stat-card {
+        background: var(--ui-surface);
+        border-radius: 20px;
+        padding: 40px 30px;
+        text-align: center;
+        box-shadow: 0 10px 40px rgba(43, 60, 107, 0.08);
+        border: 1px solid var(--ui-border);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        position: relative;
+        overflow: hidden;
+        height: 100%;
+    }
+
+    .stat-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--icon-achievement));
+        transform: scaleX(0);
+        transition: transform 0.4s ease;
+    }
+
+    .stat-card:hover {
+        transform: translateY(-10px);
+        box-shadow: 0 20px 60px rgba(43, 60, 107, 0.15);
+    }
+
+    .stat-card:hover::before {
+        transform: scaleX(1);
+    }
+
+    .stat-icon {
+        margin-bottom: 20px;
+    }
+
+    .stat-icon i {
+        font-size: 3rem;
+        transition: all 0.3s ease;
+    }
+
+    .stat-card:hover .stat-icon i {
+        transform: scale(1.1);
+    }
+
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 10px;
+        line-height: 1.2;
+    }
+
+    .stat-label {
+        font-size: 1.1rem;
+        color: var(--text-secondary);
+        margin: 0;
+        font-weight: 500;
+    }
+
     /* Staff Section */
     .staff-section {
         padding: 8rem 0;
@@ -944,6 +1013,7 @@
         .features-section,
         .announcements-section,
         .testimonials-section,
+        .statistics-section,
         .staff-section,
         .cta-section {
             padding: 4rem 0;
@@ -1382,6 +1452,33 @@
         </div>
     </div>
 </section>
+
+<!-- Alumni Network Statistics Section -->
+{% if alumni_statistics %}
+<section class="statistics-section">
+    <div class="container">
+        <div class="section-heading">
+            <div class="section-badge">Our Impact</div>
+            <h2 class="section-title">Alumni Network Statistics</h2>
+            <p class="section-subtitle">Discover the strength and reach of our growing alumni community.</p>
+        </div>
+
+        <div class="row g-4">
+            {% for stat in alumni_statistics %}
+            <div class="col-lg-3 col-md-6">
+                <div class="stat-card">
+                    <div class="stat-icon">
+                        <i class="{{ stat.icon }}" style="color: {{ stat.icon_color }};"></i>
+                    </div>
+                    <h3 class="stat-number">{{ stat.value }}</h3>
+                    <p class="stat-label">{{ stat.label }}</p>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
 
 <!-- Staff Section -->
 {% if staff_members %}

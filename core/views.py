@@ -188,8 +188,11 @@ def home(request):
         faqs = FAQ.objects.filter(is_active=True).order_by('order')[:4]
         
         # Get staff members for homepage
-        from cms.models import StaffMember
+        from cms.models import StaffMember, AlumniStatistic
         staff_members = StaffMember.objects.filter(is_active=True).order_by('order')[:4]
+        
+        # Get alumni statistics for homepage
+        alumni_statistics = AlumniStatistic.objects.filter(is_active=True).order_by('order')
         
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data: {e}")
@@ -202,6 +205,7 @@ def home(request):
         testimonials = []
         faqs = []
         staff_members = []
+        alumni_statistics = []
 
     # Format counts for display
     alumni_count_display = f"{alumni_count:,}" if alumni_count else "5,000+"
@@ -229,6 +233,7 @@ def home(request):
         'testimonials': testimonials,
         'faqs': faqs,
         'staff_members': staff_members,
+        'alumni_statistics': alumni_statistics,
     }
 
     response = render(request, 'home.html', context)
@@ -774,46 +779,19 @@ def about_us(request):
 
     # Get CMS data for About page
     try:
-        from cms.models import StaffMember, TimelineItem, AboutPageConfig, AlumniStatistic
+        from cms.models import TimelineItem, AboutPageConfig
         
         # Get about page configuration
         about_config = AboutPageConfig.get_about_config()
         
-        # Get staff members from CMS
-        staff_members = StaffMember.objects.filter(is_active=True).order_by('order')
-        
         # Get timeline items from CMS
         timeline_items = TimelineItem.objects.filter(is_active=True).order_by('order')
-        
-        # Get alumni statistics from CMS
-        alumni_statistics = AlumniStatistic.objects.filter(is_active=True).order_by('order')
         
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data for About page: {e}")
         # Fallback to hardcoded data if CMS fails
         about_config = None
-        staff_members = [
-            {
-                'name': 'Dr. Maria Santos',
-                'position': 'Alumni Relations Director',
-                'department': 'Office of Alumni Affairs',
-                'email': 'maria.santos@norsu.edu.ph'
-            },
-            {
-                'name': 'Prof. Juan Dela Cruz',
-                'position': 'Alumni Engagement Coordinator',
-                'department': 'Office of Alumni Affairs',
-                'email': 'juan.delacruz@norsu.edu.ph'
-            },
-            {
-                'name': 'Ms. Ana Rodriguez',
-                'position': 'Alumni Database Manager',
-                'department': 'Information Technology Services',
-                'email': 'ana.rodriguez@norsu.edu.ph'
-            }
-        ]
         timeline_items = []
-        alumni_statistics = []
 
     context = {
         'page_title': about_config.about_page_title if about_config else 'About NORSU Alumni Network',
@@ -823,9 +801,7 @@ def about_us(request):
         'group_count': group_count,
         'event_count': event_count,
         'job_count': job_count,
-        'staff_members': staff_members,
         'timeline_items': timeline_items,
-        'alumni_statistics': alumni_statistics,
     }
 
     return render(request, 'landing/about_us.html', context)
