@@ -685,6 +685,36 @@
 
 {% endblock %}
 
+<!-- Direct JavaScript - not using block structure -->
+<script>
+// Debug: Check if CMSAlerts is available immediately
+console.log('Script starting - CMSAlerts available:', typeof window.CMSAlerts);
+
+function confirmDeletePageSection(pk, title) {
+    console.log('confirmDeletePageSection called with:', pk, title);
+    console.log('CMSAlerts available:', typeof window.CMSAlerts);
+    
+    // Debug: Check if CMSAlerts is available
+    if (typeof window.CMSAlerts === 'undefined') {
+        console.error('CMSAlerts is not defined');
+        alert('CMSAlerts is not available. Please refresh the page.');
+        return;
+    }
+    
+    window.CMSAlerts.confirmDelete(
+        'Delete Page Section',
+        `Are you sure you want to delete "${title}"? This action cannot be undone.`,
+        function() {
+            window.location.href = `/cms/page-sections/${pk}/delete/`;
+        }
+    );
+}
+
+// Make function globally available
+window.confirmDeletePageSection = confirmDeletePageSection;
+console.log('Function made globally available:', typeof window.confirmDeletePageSection);
+</script>
+
 {% block extrajs %}
 {{ block.super }}
 <script>
@@ -721,26 +751,6 @@ document.addEventListener('keydown', function(event) {
     }
 });
 
-function confirmDeletePageSection(pk, title) {
-    // Debug: Check if CMSAlerts is available
-    if (typeof CMSAlerts === 'undefined') {
-        console.error('CMSAlerts is not defined');
-        alert('CMSAlerts is not available. Please refresh the page.');
-        return;
-    }
-    
-    CMSAlerts.confirmDelete(
-        'Delete Page Section',
-        `Are you sure you want to delete "${title}"? This action cannot be undone.`,
-        function() {
-            window.location.href = `/cms/page-sections/${pk}/delete/`;
-        }
-    );
-}
-
-// Debug: Test if function is loaded
-console.log('confirmDeletePageSection function loaded:', typeof confirmDeletePageSection);
-console.log('CMSAlerts available:', typeof window.CMSAlerts);
-console.log('Page loaded at:', new Date().toISOString());
+// Function moved to direct script above to avoid block inheritance issues
 </script>
 {% endblock %}
