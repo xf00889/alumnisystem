@@ -1,0 +1,399 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{% if object %}Edit{% else %}Add{% endif %} Social Media Link - CMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cms-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .cms-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .cms-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .cms-header p {
+        margin: 0.5rem 0 0 0;
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #f1f3f4;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .form-section h3 {
+        color: #667eea;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-section h3 i {
+        margin-right: 0.5rem;
+        font-size: 1.3rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .form-check-input {
+        margin-right: 0.75rem;
+        transform: scale(1.2);
+    }
+    
+    .form-check-label {
+        font-weight: 500;
+        color: #333;
+    }
+    
+    .btn-save {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        border: none;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-right: 1rem;
+        text-decoration: none;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+        color: white;
+        text-decoration: none;
+    }
+    
+    .help-text {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .alert {
+        border-radius: 10px;
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+    }
+    
+    .alert-danger {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+    }
+    
+    .icon-preview {
+        display: flex;
+        align-items: center;
+        margin-top: 1rem;
+        padding: 1rem;
+        background: #f8f9fa;
+        border-radius: 10px;
+        border: 2px solid #e9ecef;
+    }
+    
+    .icon-preview i {
+        font-size: 2rem;
+        margin-right: 1rem;
+        width: 50px;
+        text-align: center;
+    }
+    
+    .icon-preview .preview-text {
+        flex: 1;
+    }
+    
+    .icon-preview .preview-platform {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: #667eea;
+        margin: 0;
+    }
+    
+    .icon-preview .preview-url {
+        color: #6c757d;
+        margin: 0;
+        font-size: 0.9rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cms-container">
+    <div class="cms-header">
+        <h1><i class="fas fa-share-alt"></i> {% if object %}Edit{% else %}Add{% endif %} Social Media Link</h1>
+        <p>{% if object %}Update the social media link information{% else %}Create a new social media link{% endif %}</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %}"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-container">
+        <form method="post" id="socialMediaForm">
+            {% csrf_token %}
+            
+            <!-- Social Media Information Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-info-circle"></i> Social Media Information</h3>
+                
+                <div class="form-group">
+                    <label for="{{ form.platform.id_for_label }}">Platform</label>
+                    {{ form.platform }}
+                    {% if form.platform.help_text %}
+                        <div class="help-text">{{ form.platform.help_text }}</div>
+                    {% endif %}
+                    {% if form.platform.errors %}
+                        <div class="text-danger">{{ form.platform.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.url.id_for_label }}">Profile URL</label>
+                    {{ form.url }}
+                    {% if form.url.help_text %}
+                        <div class="help-text">{{ form.url.help_text }}</div>
+                    {% endif %}
+                    {% if form.url.errors %}
+                        <div class="text-danger">{{ form.url.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Display Settings Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-palette"></i> Display Settings</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.icon_class.id_for_label }}">Icon Class</label>
+                            {{ form.icon_class }}
+                            {% if form.icon_class.help_text %}
+                                <div class="help-text">{{ form.icon_class.help_text }}</div>
+                            {% endif %}
+                            {% if form.icon_class.errors %}
+                                <div class="text-danger">{{ form.icon_class.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.color_class.id_for_label }}">Color Class</label>
+                            {{ form.color_class }}
+                            {% if form.color_class.help_text %}
+                                <div class="help-text">{{ form.color_class.help_text }}</div>
+                            {% endif %}
+                            {% if form.color_class.errors %}
+                                <div class="text-danger">{{ form.color_class.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.order.id_for_label }}">Display Order</label>
+                            {{ form.order }}
+                            {% if form.order.help_text %}
+                                <div class="help-text">{{ form.order.help_text }}</div>
+                            {% endif %}
+                            {% if form.order.errors %}
+                                <div class="text-danger">{{ form.order.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <div class="form-check">
+                                {{ form.is_active }}
+                                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                    Active (display on website)
+                                </label>
+                            </div>
+                            {% if form.is_active.help_text %}
+                                <div class="help-text">{{ form.is_active.help_text }}</div>
+                            {% endif %}
+                            {% if form.is_active.errors %}
+                                <div class="text-danger">{{ form.is_active.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-eye"></i> Preview</h3>
+                <div class="icon-preview" id="preview">
+                    <i class="fab fa-facebook text-primary" id="preview-icon"></i>
+                    <div class="preview-text">
+                        <div class="preview-platform" id="preview-platform">Facebook</div>
+                        <div class="preview-url" id="preview-url">https://facebook.com/example</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="text-center mt-4">
+                <a href="{% url 'cms:social_media_list' %}" class="btn-cancel">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+                <button type="submit" class="btn-save">
+                    <i class="fas fa-save"></i> {% if object %}Update{% else %}Create{% endif %} Social Media Link
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Update preview when form fields change
+    function updatePreview() {
+        const platformField = document.getElementById('{{ form.platform.id_for_label }}');
+        const iconField = document.getElementById('{{ form.icon_class.id_for_label }}');
+        const colorField = document.getElementById('{{ form.color_class.id_for_label }}');
+        const urlField = document.getElementById('{{ form.url.id_for_label }}');
+        
+        const previewIcon = document.getElementById('preview-icon');
+        const previewPlatform = document.getElementById('preview-platform');
+        const previewUrl = document.getElementById('preview-url');
+        
+        if (platformField && iconField && colorField && urlField) {
+            previewIcon.className = `${iconField.value || 'fab fa-facebook'} text-${colorField.value || 'primary'}`;
+            previewPlatform.textContent = platformField.options[platformField.selectedIndex].text || 'Facebook';
+            previewUrl.textContent = urlField.value || 'https://facebook.com/example';
+        }
+    }
+    
+    // Add event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+        const fields = ['{{ form.platform.id_for_label }}', '{{ form.icon_class.id_for_label }}', '{{ form.color_class.id_for_label }}', '{{ form.url.id_for_label }}'];
+        
+        fields.forEach(fieldId => {
+            const field = document.getElementById(fieldId);
+            if (field) {
+                field.addEventListener('input', updatePreview);
+                field.addEventListener('change', updatePreview);
+            }
+        });
+        
+        // Initial preview update
+        updatePreview();
+    });
+    
+    // Form validation
+    document.getElementById('socialMediaForm').addEventListener('submit', function(e) {
+        const requiredFields = this.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+</script>
+{% endblock %}
