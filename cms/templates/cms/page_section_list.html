@@ -3,7 +3,21 @@
 
 {% block title %}Page Sections - CMS{% endblock %}
 
-<!-- Using inline onclick handlers to avoid function definition timing issues -->
+<!-- Immediate debugging script -->
+<script>
+console.log('=== PAGE SECTIONS TEMPLATE LOADED ===');
+console.log('Current time:', new Date().toISOString());
+console.log('jQuery available:', typeof $ !== 'undefined');
+console.log('CMSAlerts available:', typeof window.CMSAlerts);
+
+// Test if we can find buttons immediately
+setTimeout(function() {
+    console.log('=== DELAYED CHECK ===');
+    console.log('Preview buttons found:', document.querySelectorAll('.action-btn.preview').length);
+    console.log('Delete buttons found:', document.querySelectorAll('.action-btn.delete').length);
+    console.log('Preview modal exists:', document.getElementById('previewModal') !== null);
+}, 1000);
+</script>
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -724,6 +738,7 @@ document.addEventListener('keydown', function(event) {
 
 // Add event listeners for preview and delete buttons
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('=== DOMContentLoaded EVENT FIRED ===');
     console.log('DOM loaded, attaching event listeners...');
     
     // Add click event listeners to all preview buttons
@@ -781,5 +796,65 @@ document.addEventListener('DOMContentLoaded', function() {
     
     console.log('Event listeners attached for', document.querySelectorAll('.action-btn.preview').length, 'preview buttons and', document.querySelectorAll('.action-btn.delete').length, 'delete buttons');
 });
+
+// Fallback: Try to attach listeners immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+    console.log('Document still loading, waiting for DOMContentLoaded...');
+} else {
+    console.log('Document already loaded, attaching listeners immediately...');
+    // Re-run the same logic
+    document.querySelectorAll('.action-btn.preview').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section-id');
+            const sectionTitle = this.getAttribute('data-section-title');
+            const sectionSubtitle = this.getAttribute('data-section-subtitle');
+            const sectionContent = this.getAttribute('data-section-content');
+            const sectionType = this.getAttribute('data-section-type');
+            
+            console.log('Preview button clicked for section:', sectionId, sectionTitle);
+            
+            // Update preview content
+            document.getElementById('previewTitle').textContent = sectionTitle || 'Section Title';
+            document.getElementById('previewSubtitle').textContent = sectionSubtitle || 'Section subtitle or description';
+            document.getElementById('previewContent').textContent = sectionContent || 'Section content will appear here...';
+            
+            // Update preview section styling based on type
+            const previewSection = document.getElementById('previewSection');
+            previewSection.className = 'preview-section ' + sectionType;
+            
+            // Show modal
+            document.getElementById('previewModal').style.display = 'block';
+        });
+    });
+    
+    document.querySelectorAll('.action-btn.delete').forEach(function(button) {
+        button.addEventListener('click', function() {
+            const sectionId = this.getAttribute('data-section-id');
+            const sectionTitle = this.getAttribute('data-section-title');
+            
+            console.log('Delete button clicked for section:', sectionId, sectionTitle);
+            console.log('CMSAlerts available:', typeof window.CMSAlerts);
+            
+            if (typeof window.CMSAlerts !== 'undefined') {
+                window.CMSAlerts.confirmDelete(
+                    'Delete Page Section',
+                    'Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.',
+                    function() {
+                        console.log('User confirmed deletion, redirecting...');
+                        window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
+                    }
+                );
+            } else {
+                console.log('CMSAlerts not available, using native confirm');
+                if (confirm('Are you sure you want to delete "' + sectionTitle + '"? This action cannot be undone.')) {
+                    console.log('User confirmed deletion, redirecting...');
+                    window.location.href = '/cms/page-sections/' + sectionId + '/delete/';
+                }
+            }
+        });
+    });
+    
+    console.log('Fallback event listeners attached for', document.querySelectorAll('.action-btn.preview').length, 'preview buttons and', document.querySelectorAll('.action-btn.delete').length, 'delete buttons');
+}
 </script>
 {% endblock %}
