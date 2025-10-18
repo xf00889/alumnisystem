@@ -1,53 +1,102 @@
-{% extends 'base.html' %}
+{% extends "base.html" %}
 {% load static %}
 
-{% block title %}Delete Social Media Link - CMS{% endblock %}
+{% block title %}Delete Social Media Link - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    .cms-container {
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        --primary-hover: #1e2a4a;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
         max-width: 600px;
         margin: 0 auto;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--feedback-error);
+        color: var(--text-light);
         padding: 2rem;
-        background: #f8f9fa;
-        min-height: 100vh;
-    }
-    
-    .cms-header {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-    }
-    
-    .cms-header h1 {
-        margin: 0;
-        font-size: 2.5rem;
-        font-weight: 700;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    
-    .cms-header p {
-        margin: 0.5rem 0 0 0;
-        font-size: 1.1rem;
-        opacity: 0.9;
-    }
-    
-    .confirmation-card {
-        background: white;
-        border-radius: 15px;
-        padding: 2rem;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
         text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Confirmation Card */
+    .confirmation-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
     }
     
     .social-preview {
-        background: #f8f9fa;
-        border: 2px solid #e9ecef;
-        border-radius: 15px;
+        background: var(--ui-hover);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
         padding: 2rem;
         margin: 2rem 0;
         display: flex;
@@ -58,29 +107,32 @@
     .social-preview i {
         font-size: 3rem;
         margin-right: 1.5rem;
-        color: #667eea;
+        color: var(--primary-color);
     }
     
     .social-preview .preview-content h3 {
         font-size: 1.5rem;
         font-weight: 700;
-        color: #667eea;
+        color: var(--primary-color);
         margin: 0;
+        font-family: 'Poppins', sans-serif;
     }
     
     .social-preview .preview-content p {
-        color: #6c757d;
+        color: var(--text-muted);
         margin: 0.5rem 0 0 0;
         font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
     }
     
     .warning-message {
-        background: linear-gradient(135deg, #fff3cd 0%, #ffeaa7 100%);
-        border: 2px solid #ffc107;
-        border-radius: 10px;
+        background: #fff3cd;
+        border: 1px solid #ffc107;
+        border-radius: var(--radius-sm);
         padding: 1.5rem;
         margin: 2rem 0;
         color: #856404;
+        font-family: 'Poppins', sans-serif;
     }
     
     .warning-message i {
@@ -88,59 +140,71 @@
         margin-right: 0.5rem;
         color: #ffc107;
     }
-    
-    .btn-delete {
-        background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
-        border: none;
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 10px;
-        font-size: 1.1rem;
+
+    /* Button Styles */
+    .btn-danger {
+        background-color: var(--feedback-error);
+        border-color: var(--feedback-error);
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
         transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(220, 53, 69, 0.3);
         margin-right: 1rem;
     }
-    
-    .btn-delete:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(220, 53, 69, 0.4);
+
+    .btn-danger:hover {
+        background-color: #c53030;
+        border-color: #c53030;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
     }
-    
-    .btn-cancel {
-        background: #6c757d;
-        border: none;
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 10px;
-        font-size: 1.1rem;
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
         transition: all 0.3s ease;
         text-decoration: none;
     }
-    
-    .btn-cancel:hover {
-        background: #5a6268;
-        transform: translateY(-2px);
-        color: white;
+
+    .btn-secondary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
         text-decoration: none;
     }
-    
+
+    /* Form Container */
     .form-container {
-        background: white;
-        border-radius: 15px;
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
         padding: 2rem;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="cms-container">
-    <div class="cms-header">
-        <h1><i class="fas fa-exclamation-triangle"></i> Delete Social Media Link</h1>
-        <p>This action cannot be undone</p>
+<div class="container-fluid">
+    <div class="directory-header">
+        <h1 class="directory-title"><i class="fas fa-exclamation-triangle"></i> Delete Social Media Link</h1>
+        <p class="directory-subtitle">This action cannot be undone</p>
     </div>
 
     <div class="confirmation-card">
@@ -164,10 +228,10 @@
         <form method="post">
             {% csrf_token %}
             <div class="text-center">
-                <a href="{% url 'cms:social_media_list' %}" class="btn-cancel">
+                <a href="{% url 'cms:social_media_list' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Cancel
                 </a>
-                <button type="submit" class="btn-delete">
+                <button type="submit" class="btn btn-danger">
                     <i class="fas fa-trash"></i> Yes, Delete Social Media Link
                 </button>
             </div>
