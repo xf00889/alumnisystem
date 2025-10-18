@@ -152,7 +152,7 @@ def home(request):
 
     # Get CMS data
     try:
-        from cms.models import SiteConfig, PageSection, Feature, Testimonial
+        from cms.models import SiteConfig, PageSection, Feature, Testimonial, FAQ
         
         # Get site configuration
         site_config = SiteConfig.get_site_config()
@@ -184,6 +184,9 @@ def home(request):
         # Get testimonials
         testimonials = Testimonial.objects.filter(is_active=True).order_by('order')[:3]
         
+        # Get FAQs for Home page
+        faqs = FAQ.objects.filter(is_active=True).order_by('order')[:4]
+        
         # Get staff members for homepage
         from cms.models import StaffMember
         staff_members = StaffMember.objects.filter(is_active=True).order_by('order')[:4]
@@ -197,6 +200,7 @@ def home(request):
         cta_section = None
         features = []
         testimonials = []
+        faqs = []
         staff_members = []
 
     # Format counts for display
@@ -223,6 +227,7 @@ def home(request):
         'cta_section': cta_section,
         'features': features,
         'testimonials': testimonials,
+        'faqs': faqs,
         'staff_members': staff_members,
     }
 
@@ -837,7 +842,10 @@ def contact_us(request):
     
     # Get CMS data for Contact page
     try:
-        from cms.models import ContactInfo, FAQ
+        from cms.models import ContactInfo, FAQ, ContactConfig, SocialMediaLink
+        
+        # Get contact configuration from CMS
+        contact_config = ContactConfig.get_contact_config()
         
         # Get contact information from CMS
         contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
@@ -845,17 +853,24 @@ def contact_us(request):
         # Get FAQs from CMS
         faqs = FAQ.objects.filter(is_active=True).order_by('order')
         
+        # Get social media links from CMS
+        social_media_links = SocialMediaLink.objects.filter(is_active=True).order_by('order')
+        
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data for Contact page: {e}")
+        contact_config = None
         contact_info = []
         faqs = []
+        social_media_links = []
     
     context = {
         'page_title': 'Contact Us',
         'page_subtitle': 'Get in touch with the NORSU Alumni Network team',
         'form': form,
+        'contact_config': contact_config,
         'contact_info': contact_info,
         'faqs': faqs,
+        'social_media_links': social_media_links,
     }
 
     return render(request, 'landing/contact_us.html', context)

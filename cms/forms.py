@@ -3,7 +3,7 @@ from django.forms import ModelForm, inlineformset_factory
 from .models import (
     SiteConfig, PageSection, StaticPage, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic
+    AboutPageConfig, AlumniStatistic, ContactConfig, SocialMediaLink
 )
 
 
@@ -416,6 +416,95 @@ class AlumniStatisticForm(ModelForm):
                 'placeholder': 'Enter FontAwesome icon class (e.g., fas fa-users)'
             }),
             'icon_color': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'order': forms.NumberInput(attrs={
+                'class': 'form-control',
+                'min': 0
+            }),
+            'is_active': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+        }
+
+
+class ContactConfigForm(ModelForm):
+    """Form for editing contact configuration"""
+    
+    class Meta:
+        model = ContactConfig
+        fields = [
+            'office_name', 'address_line1', 'address_line2', 'address_line3',
+            'primary_phone', 'secondary_phone', 'primary_email', 'secondary_email',
+            'weekday_hours', 'saturday_hours', 'sunday_hours'
+        ]
+        widgets = {
+            'office_name': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter office/university name'
+            }),
+            'address_line1': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter address line 1'
+            }),
+            'address_line2': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter address line 2'
+            }),
+            'address_line3': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter address line 3'
+            }),
+            'primary_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter primary phone number'
+            }),
+            'secondary_phone': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter secondary phone number (optional)'
+            }),
+            'primary_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter primary email address'
+            }),
+            'secondary_email': forms.EmailInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter secondary email address (optional)'
+            }),
+            'weekday_hours': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter weekday office hours'
+            }),
+            'saturday_hours': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter Saturday office hours'
+            }),
+            'sunday_hours': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter Sunday office hours'
+            }),
+        }
+
+
+class SocialMediaLinkForm(ModelForm):
+    """Form for editing social media links"""
+    
+    class Meta:
+        model = SocialMediaLink
+        fields = ['platform', 'url', 'icon_class', 'color_class', 'order', 'is_active']
+        widgets = {
+            'platform': forms.Select(attrs={
+                'class': 'form-control'
+            }),
+            'url': forms.URLInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter social media profile URL'
+            }),
+            'icon_class': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter FontAwesome icon class (e.g., fab fa-facebook)'
+            }),
+            'color_class': forms.Select(attrs={
                 'class': 'form-control'
             }),
             'order': forms.NumberInput(attrs={

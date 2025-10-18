@@ -3,7 +3,7 @@ from django.utils import timezone
 from cms.models import (
     SiteConfig, PageSection, Feature, Testimonial, 
     StaffMember, TimelineItem, ContactInfo, FAQ,
-    AboutPageConfig, AlumniStatistic
+    AboutPageConfig, AlumniStatistic, ContactConfig, SocialMediaLink
 )
 
 
@@ -382,6 +382,77 @@ class Command(BaseCommand):
                 self.stdout.write(self.style.SUCCESS(f'✓ Created statistic: {stat_data["label"]}'))
             else:
                 self.stdout.write(self.style.WARNING(f'Statistic "{stat_data["label"]}" already exists'))
+
+        # Create Contact Configuration
+        contact_config, created = ContactConfig.objects.get_or_create(
+            defaults={
+                'office_name': 'Negros Oriental State University',
+                'address_line1': 'Kagawasan, Ave. Rizal',
+                'address_line2': 'Dumaguete City, 6200',
+                'address_line3': 'Negros Oriental, Philippines',
+                'primary_phone': '+63 35 422 6002',
+                'secondary_phone': '+63 35 225 2376',
+                'primary_email': 'alumni@norsu.edu.ph',
+                'secondary_email': 'info@norsu.edu.ph',
+                'weekday_hours': 'Monday - Friday: 8:00 AM - 5:00 PM',
+                'saturday_hours': 'Saturday: 8:00 AM – 12:00 PM',
+                'sunday_hours': 'Sunday: Closed',
+            }
+        )
+        
+        if created:
+            self.stdout.write(self.style.SUCCESS('✓ Created Contact Configuration'))
+        else:
+            self.stdout.write(self.style.WARNING('Contact Configuration already exists'))
+
+        # Create Social Media Links
+        social_media_data = [
+            {
+                'platform': 'facebook',
+                'url': 'https://facebook.com/norsualumni',
+                'icon_class': 'fab fa-facebook',
+                'color_class': 'primary',
+                'order': 1,
+            },
+            {
+                'platform': 'twitter',
+                'url': 'https://twitter.com/norsualumni',
+                'icon_class': 'fab fa-twitter',
+                'color_class': 'info',
+                'order': 2,
+            },
+            {
+                'platform': 'instagram',
+                'url': 'https://instagram.com/norsualumni',
+                'icon_class': 'fab fa-instagram',
+                'color_class': 'danger',
+                'order': 3,
+            },
+            {
+                'platform': 'linkedin',
+                'url': 'https://linkedin.com/company/norsualumni',
+                'icon_class': 'fab fa-linkedin',
+                'color_class': 'primary',
+                'order': 4,
+            },
+            {
+                'platform': 'youtube',
+                'url': 'https://youtube.com/norsualumni',
+                'icon_class': 'fab fa-youtube',
+                'color_class': 'danger',
+                'order': 5,
+            },
+        ]
+
+        for social_data in social_media_data:
+            social_link, created = SocialMediaLink.objects.get_or_create(
+                platform=social_data['platform'],
+                defaults=social_data
+            )
+            if created:
+                self.stdout.write(self.style.SUCCESS(f'✓ Created social media link: {social_data["platform"]}'))
+            else:
+                self.stdout.write(self.style.WARNING(f'Social media link "{social_data["platform"]}" already exists'))
 
         self.stdout.write(self.style.SUCCESS('\n🎉 CMS content population completed successfully!'))
         self.stdout.write('You can now access the admin interface to manage your content.')

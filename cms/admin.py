@@ -5,7 +5,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     SiteConfig, PageSection, StaticPage, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic
+    AboutPageConfig, AlumniStatistic, ContactConfig, SocialMediaLink
 )
 
 
@@ -330,6 +330,66 @@ class AlumniStatisticAdmin(admin.ModelAdmin):
         }),
         ('Display Settings', {
             'fields': ('icon', 'icon_color', 'order', 'is_active')
+        }),
+    )
+
+
+@admin.register(ContactConfig)
+class ContactConfigAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Contact Configuration (Singleton)
+    """
+    list_display = ['office_name', 'primary_phone', 'primary_email', 'created']
+    list_filter = ['created', 'modified']
+    search_fields = ['office_name', 'primary_phone', 'primary_email']
+    
+    fieldsets = (
+        ('Office Information', {
+            'fields': ('office_name', 'address_line1', 'address_line2', 'address_line3')
+        }),
+        ('Contact Information', {
+            'fields': ('primary_phone', 'secondary_phone', 'primary_email', 'secondary_email')
+        }),
+        ('Office Hours', {
+            'fields': ('weekday_hours', 'saturday_hours', 'sunday_hours')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent adding multiple ContactConfig instances"""
+        return not ContactConfig.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deleting the ContactConfig instance"""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Redirect to the single instance if it exists"""
+        if ContactConfig.objects.exists():
+            obj = ContactConfig.objects.first()
+            return admin.ModelAdmin.change_view(
+                self, request, str(obj.pk), extra_context
+            )
+        return super().changelist_view(request, extra_context)
+
+
+@admin.register(SocialMediaLink)
+class SocialMediaLinkAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Social Media Links
+    """
+    list_display = ['platform', 'url', 'icon_class', 'color_class', 'order', 'is_active']
+    list_filter = ['platform', 'color_class', 'is_active', 'created']
+    search_fields = ['platform', 'url']
+    list_editable = ['url', 'order', 'is_active']
+    ordering = ['order', 'platform']
+    
+    fieldsets = (
+        ('Social Media Information', {
+            'fields': ('platform', 'url')
+        }),
+        ('Display Settings', {
+            'fields': ('icon_class', 'color_class', 'order', 'is_active')
         }),
     )
 
