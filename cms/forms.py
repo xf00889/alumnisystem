@@ -1,7 +1,7 @@
 from django import forms
 from django.forms import ModelForm, inlineformset_factory
 from .models import (
-    SiteConfig, PageSection, StaticPage, StaffMember, 
+    SiteConfig, PageSection, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
     AboutPageConfig, AlumniStatistic
 )
@@ -106,34 +106,6 @@ class PageSectionForm(ModelForm):
         }
 
 
-class StaticPageForm(ModelForm):
-    """Form for editing static pages"""
-    
-    class Meta:
-        model = StaticPage
-        fields = ['page_type', 'title', 'content', 'meta_description', 'is_published']
-        widgets = {
-            'page_type': forms.Select(attrs={
-                'class': 'form-control'
-            }),
-            'title': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter page title'
-            }),
-            'content': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 10,
-                'placeholder': 'Enter page content'
-            }),
-            'meta_description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Enter meta description'
-            }),
-            'is_published': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
-            }),
-        }
 
 
 class StaffMemberForm(ModelForm):

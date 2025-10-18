@@ -163,51 +163,6 @@ class PageSection(TimeStampedModel):
         return f"{self.get_section_type_display()} - {self.title}"
 
 
-class StaticPage(TimeStampedModel):
-    """
-    Model for managing static pages like About, Contact, Privacy Policy, etc.
-    """
-    PAGE_TYPE_CHOICES = [
-        ('about', _('About Us')),
-        ('contact', _('Contact Us')),
-        ('privacy', _('Privacy Policy')),
-        ('terms', _('Terms of Service')),
-        ('faq', _('FAQ')),
-        ('help', _('Help')),
-    ]
-
-    page_type = models.CharField(
-        max_length=20,
-        choices=PAGE_TYPE_CHOICES,
-        unique=True,
-        help_text=_("Type of page")
-    )
-    title = models.CharField(
-        max_length=200,
-        help_text=_("Page title")
-    )
-    content = models.TextField(
-        help_text=_("Page content (HTML allowed)")
-    )
-    meta_description = models.TextField(
-        blank=True,
-        max_length=160,
-        help_text=_("Meta description for SEO")
-    )
-    is_published = models.BooleanField(
-        default=True,
-        help_text=_("Whether this page is published and visible")
-    )
-
-    class Meta:
-        verbose_name = _('Static Page')
-        verbose_name_plural = _('Static Pages')
-        ordering = ['page_type']
-
-    def __str__(self):
-        return f"{self.get_page_type_display()} - {self.title}"
-
-
 class StaffMember(TimeStampedModel):
     """
     Model for managing staff members displayed on About page

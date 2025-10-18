@@ -3,7 +3,7 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
-    SiteConfig, PageSection, StaticPage, StaffMember, 
+    SiteConfig, PageSection, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
     AboutPageConfig, AlumniStatistic
 )
@@ -81,28 +81,6 @@ class PageSectionAdmin(admin.ModelAdmin):
         return super().get_queryset(request).order_by('section_type', 'order')
 
 
-@admin.register(StaticPage)
-class StaticPageAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Static Pages
-    """
-    list_display = ['title', 'page_type', 'is_published', 'created']
-    list_filter = ['page_type', 'is_published', 'created']
-    search_fields = ['title', 'content', 'meta_description']
-    list_editable = ['is_published']
-    
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('page_type', 'title', 'content')
-        }),
-        ('SEO', {
-            'fields': ('meta_description',),
-            'classes': ('collapse',)
-        }),
-        ('Settings', {
-            'fields': ('is_published',)
-        }),
-    )
 
 
 @admin.register(StaffMember)

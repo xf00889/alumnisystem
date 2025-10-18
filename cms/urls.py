@@ -16,11 +16,6 @@ urlpatterns = [
     path('page-sections/<int:pk>/edit/', views.PageSectionUpdateView.as_view(), name='page_section_edit'),
     path('page-sections/<int:pk>/delete/', views.PageSectionDeleteView.as_view(), name='page_section_delete'),
     
-    # Static Pages
-    path('static-pages/', views.StaticPageListView.as_view(), name='static_page_list'),
-    path('static-pages/create/', views.StaticPageCreateView.as_view(), name='static_page_create'),
-    path('static-pages/<int:pk>/edit/', views.StaticPageUpdateView.as_view(), name='static_page_edit'),
-    
     # Staff Members
     path('staff-members/', views.StaffMemberListView.as_view(), name='staff_member_list'),
     path('staff-members/create/', views.StaffMemberCreateView.as_view(), name='staff_member_create'),

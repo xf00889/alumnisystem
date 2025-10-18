@@ -5,12 +5,12 @@ from django.views.generic import TemplateView, ListView, CreateView, UpdateView,
 from django.contrib import messages
 from django.urls import reverse_lazy
 from .models import (
-    SiteConfig, PageSection, StaticPage, StaffMember, 
+    SiteConfig, PageSection, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
     AboutPageConfig, AlumniStatistic
 )
 from .forms import (
-    SiteConfigForm, PageSectionForm, StaticPageForm, StaffMemberForm,
+    SiteConfigForm, PageSectionForm, StaffMemberForm,
     TimelineItemForm, ContactInfoForm, FAQForm, FeatureForm, TestimonialForm,
     AboutPageConfigForm, AlumniStatisticForm
 )
@@ -30,7 +30,6 @@ class CMSDashboardView(TemplateView):
         context.update({
             'site_config_count': SiteConfig.objects.count(),
             'page_sections_count': PageSection.objects.filter(is_active=True).count(),
-            'static_pages_count': StaticPage.objects.filter(is_published=True).count(),
             'staff_members_count': StaffMember.objects.filter(is_active=True).count(),
             'timeline_items_count': TimelineItem.objects.filter(is_active=True).count(),
             'contact_info_count': ContactInfo.objects.filter(is_active=True).count(),
@@ -44,7 +43,6 @@ class CMSDashboardView(TemplateView):
         # Get recent content for quick access
         context.update({
             'recent_page_sections': PageSection.objects.filter(is_active=True).order_by('-modified')[:5],
-            'recent_static_pages': StaticPage.objects.filter(is_published=True).order_by('-modified')[:5],
             'recent_faqs': FAQ.objects.filter(is_active=True).order_by('-modified')[:5],
         })
         
@@ -111,37 +109,6 @@ class PageSectionDeleteView(DeleteView):
         return super().delete(request, *args, **kwargs)
 
 
-# Static Page Views
-@method_decorator(login_required, name='dispatch')
-class StaticPageListView(ListView):
-    model = StaticPage
-    template_name = 'cms/static_page_list.html'
-    context_object_name = 'pages'
-    paginate_by = 10
-
-
-@method_decorator(login_required, name='dispatch')
-class StaticPageCreateView(CreateView):
-    model = StaticPage
-    form_class = StaticPageForm
-    template_name = 'cms/static_page_edit.html'
-    success_url = reverse_lazy('cms:static_page_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Static page created successfully!')
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name='dispatch')
-class StaticPageUpdateView(UpdateView):
-    model = StaticPage
-    form_class = StaticPageForm
-    template_name = 'cms/static_page_edit.html'
-    success_url = reverse_lazy('cms:static_page_list')
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Static page updated successfully!')
-        return super().form_valid(form)
 
 
 # Staff Member Views
