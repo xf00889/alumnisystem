@@ -544,6 +544,9 @@
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Hidden CSRF token for delete operations -->
+    {% csrf_token %}
+    
     <!-- Header Section -->
     <div class="directory-header">
         <h1 class="directory-title">Page Sections</h1>
@@ -773,6 +776,10 @@ if (typeof window.handleDeleteClick === 'undefined') {
                         csrfInput.name = 'csrfmiddlewaretoken';
                         csrfInput.value = csrfToken.value;
                         form.appendChild(csrfInput);
+                    } else {
+                        console.error('CSRF token not found');
+                        alert('Security token not found. Please refresh the page and try again.');
+                        return;
                     }
                     
                     document.body.appendChild(form);
@@ -793,6 +800,10 @@ if (typeof window.handleDeleteClick === 'undefined') {
                     csrfInput.name = 'csrfmiddlewaretoken';
                     csrfInput.value = csrfToken.value;
                     form.appendChild(csrfInput);
+                } else {
+                    console.error('CSRF token not found');
+                    alert('Security token not found. Please refresh the page and try again.');
+                    return;
                 }
                 
                 document.body.appendChild(form);
