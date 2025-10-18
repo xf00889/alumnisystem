@@ -716,5 +716,90 @@ document.addEventListener('keydown', function(event) {
         closePreviewModal();
     }
 });
+
+// Ensure CMSAlerts is available
+if (typeof window.CMSAlerts === 'undefined') {
+    window.CMSAlerts = class CMSAlerts {
+        static deleteConfirm(itemName, itemType = 'item') {
+            return Swal.fire({
+                title: 'Are you sure?',
+                text: `You are about to delete "${itemName}". This action cannot be undone!`,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, delete it!',
+                cancelButtonText: 'Cancel',
+                background: '#f8f9fa',
+                color: '#2d3748'
+            });
+        }
+    };
+}
+
+// Ensure handleDeleteClick is available
+if (typeof window.handleDeleteClick === 'undefined') {
+    window.handleDeleteClick = function(event, itemName, itemType = 'item') {
+        event.preventDefault();
+        
+        // Get delete URL from button's data attribute or closest anchor
+        let deleteUrl;
+        const button = event.target.closest('button');
+        if (button && button.dataset.deleteUrl) {
+            deleteUrl = button.dataset.deleteUrl;
+        } else {
+            const anchor = event.target.closest('a');
+            if (anchor) {
+                deleteUrl = anchor.href;
+            } else {
+                console.error('No delete URL found');
+                return;
+            }
+        }
+        
+        if (typeof window.CMSAlerts !== 'undefined') {
+            window.CMSAlerts.deleteConfirm(itemName, itemType).then((result) => {
+                if (result.isConfirmed) {
+                    // Create a form to submit the delete request
+                    const form = document.createElement('form');
+                    form.method = 'POST';
+                    form.action = deleteUrl;
+                    
+                    // Add CSRF token
+                    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                    if (csrfToken) {
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = csrfToken.value;
+                        form.appendChild(csrfInput);
+                    }
+                    
+                    document.body.appendChild(form);
+                    form.submit();
+                }
+            });
+        } else {
+            // Fallback to basic confirmation if SweetAlert is not available
+            if (confirm(`Are you sure you want to delete "${itemName}"?`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = deleteUrl;
+                
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = csrfToken.value;
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    };
+}
 </script>
 {% endblock %}
