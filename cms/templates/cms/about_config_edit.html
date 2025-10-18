@@ -1,0 +1,342 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}About Page Configuration - CMS{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cms-container {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 2rem;
+        background: #f8f9fa;
+        min-height: 100vh;
+    }
+    
+    .cms-header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    }
+    
+    .cms-header h1 {
+        margin: 0;
+        font-size: 2.5rem;
+        font-weight: 700;
+        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+    }
+    
+    .cms-header p {
+        margin: 0.5rem 0 0 0;
+        font-size: 1.1rem;
+        opacity: 0.9;
+    }
+    
+    .form-container {
+        background: white;
+        border-radius: 15px;
+        padding: 2rem;
+        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .form-section {
+        margin-bottom: 2rem;
+        padding-bottom: 2rem;
+        border-bottom: 2px solid #f1f3f4;
+    }
+    
+    .form-section:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .form-section h3 {
+        color: #667eea;
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .form-section h3 i {
+        margin-right: 0.5rem;
+        font-size: 1.3rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-group label {
+        font-weight: 600;
+        color: #333;
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+    
+    .form-control {
+        border: 2px solid #e9ecef;
+        border-radius: 10px;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+    }
+    
+    .btn-save {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        border: none;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .btn-save:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
+    }
+    
+    .btn-cancel {
+        background: #6c757d;
+        border: none;
+        color: white;
+        padding: 1rem 2rem;
+        border-radius: 10px;
+        font-size: 1.1rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        margin-right: 1rem;
+    }
+    
+    .btn-cancel:hover {
+        background: #5a6268;
+        transform: translateY(-2px);
+    }
+    
+    .help-text {
+        font-size: 0.9rem;
+        color: #6c757d;
+        margin-top: 0.5rem;
+    }
+    
+    .alert {
+        border-radius: 10px;
+        border: none;
+        padding: 1rem 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-success {
+        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        color: #155724;
+    }
+    
+    .alert-danger {
+        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        color: #721c24;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cms-container">
+    <div class="cms-header">
+        <h1><i class="fas fa-info-circle"></i> About Page Configuration</h1>
+        <p>Configure university information, mission, vision, and page settings</p>
+    </div>
+
+    {% if messages %}
+        {% for message in messages %}
+            <div class="alert alert-{{ message.tags }}">
+                <i class="fas fa-{% if message.tags == 'success' %}check-circle{% else %}exclamation-triangle{% endif %}"></i>
+                {{ message }}
+            </div>
+        {% endfor %}
+    {% endif %}
+
+    <div class="form-container">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- University Information Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-university"></i> University Information</h3>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.university_name.id_for_label }}">University Name</label>
+                            {{ form.university_name }}
+                            {% if form.university_name.help_text %}
+                                <div class="help-text">{{ form.university_name.help_text }}</div>
+                            {% endif %}
+                            {% if form.university_name.errors %}
+                                <div class="text-danger">{{ form.university_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label for="{{ form.university_short_name.id_for_label }}">University Short Name</label>
+                            {{ form.university_short_name }}
+                            {% if form.university_short_name.help_text %}
+                                <div class="help-text">{{ form.university_short_name.help_text }}</div>
+                            {% endif %}
+                            {% if form.university_short_name.errors %}
+                                <div class="text-danger">{{ form.university_short_name.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.establishment_year.id_for_label }}">Establishment Year</label>
+                    {{ form.establishment_year }}
+                    {% if form.establishment_year.help_text %}
+                        <div class="help-text">{{ form.establishment_year.help_text }}</div>
+                    {% endif %}
+                    {% if form.establishment_year.errors %}
+                        <div class="text-danger">{{ form.establishment_year.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- University Description Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-file-alt"></i> University Description</h3>
+                
+                <div class="form-group">
+                    <label for="{{ form.university_description.id_for_label }}">Main Description</label>
+                    {{ form.university_description }}
+                    {% if form.university_description.help_text %}
+                        <div class="help-text">{{ form.university_description.help_text }}</div>
+                    {% endif %}
+                    {% if form.university_description.errors %}
+                        <div class="text-danger">{{ form.university_description.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.university_extended_description.id_for_label }}">Extended Description</label>
+                    {{ form.university_extended_description }}
+                    {% if form.university_extended_description.help_text %}
+                        <div class="help-text">{{ form.university_extended_description.help_text }}</div>
+                    {% endif %}
+                    {% if form.university_extended_description.errors %}
+                        <div class="text-danger">{{ form.university_extended_description.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Mission & Vision Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-bullseye"></i> Mission & Vision</h3>
+                
+                <div class="form-group">
+                    <label for="{{ form.mission.id_for_label }}">Mission Statement</label>
+                    {{ form.mission }}
+                    {% if form.mission.help_text %}
+                        <div class="help-text">{{ form.mission.help_text }}</div>
+                    {% endif %}
+                    {% if form.mission.errors %}
+                        <div class="text-danger">{{ form.mission.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.vision.id_for_label }}">Vision Statement</label>
+                    {{ form.vision }}
+                    {% if form.vision.help_text %}
+                        <div class="help-text">{{ form.vision.help_text }}</div>
+                    {% endif %}
+                    {% if form.vision.errors %}
+                        <div class="text-danger">{{ form.vision.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Page Configuration Section -->
+            <div class="form-section">
+                <h3><i class="fas fa-cog"></i> Page Configuration</h3>
+                
+                <div class="form-group">
+                    <label for="{{ form.about_page_title.id_for_label }}">About Page Title</label>
+                    {{ form.about_page_title }}
+                    {% if form.about_page_title.help_text %}
+                        <div class="help-text">{{ form.about_page_title.help_text }}</div>
+                    {% endif %}
+                    {% if form.about_page_title.errors %}
+                        <div class="text-danger">{{ form.about_page_title.errors }}</div>
+                    {% endif %}
+                </div>
+                
+                <div class="form-group">
+                    <label for="{{ form.about_page_subtitle.id_for_label }}">About Page Subtitle</label>
+                    {{ form.about_page_subtitle }}
+                    {% if form.about_page_subtitle.help_text %}
+                        <div class="help-text">{{ form.about_page_subtitle.help_text }}</div>
+                    {% endif %}
+                    {% if form.about_page_subtitle.errors %}
+                        <div class="text-danger">{{ form.about_page_subtitle.errors }}</div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="text-center mt-4">
+                <a href="{% url 'cms:dashboard' %}" class="btn btn-cancel">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+                <button type="submit" class="btn btn-save">
+                    <i class="fas fa-save"></i> Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Auto-resize textareas
+    document.querySelectorAll('textarea').forEach(textarea => {
+        textarea.addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = this.scrollHeight + 'px';
+        });
+    });
+    
+    // Form validation
+    document.querySelector('form').addEventListener('submit', function(e) {
+        const requiredFields = this.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (!isValid) {
+            e.preventDefault();
+            alert('Please fill in all required fields.');
+        }
+    });
+</script>
+{% endblock %}
