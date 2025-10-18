@@ -13,7 +13,7 @@
 <!-- CMS Alert Utility -->
 <script>
 // CMS Alert Utility - Reusable alert handling for all CMS pages
-class CMSAlerts {
+window.CMSAlerts = class CMSAlerts {
     // Success alert
     static success(title, text = '', timer = 3000) {
         return Swal.fire({
@@ -148,9 +148,23 @@ class CMSAlerts {
 }
 
 // Enhanced delete button handler
-function handleDeleteClick(event, itemName, itemType = 'item') {
+window.handleDeleteClick = function(event, itemName, itemType = 'item') {
     event.preventDefault();
-    const deleteUrl = event.target.closest('a').href;
+    
+    // Get delete URL from button's data attribute or closest anchor
+    let deleteUrl;
+    const button = event.target.closest('button');
+    if (button && button.dataset.deleteUrl) {
+        deleteUrl = button.dataset.deleteUrl;
+    } else {
+        const anchor = event.target.closest('a');
+        if (anchor) {
+            deleteUrl = anchor.href;
+        } else {
+            console.error('No delete URL found');
+            return;
+        }
+    }
     
     CMSAlerts.deleteConfirm(itemName, itemType).then((result) => {
         if (result.isConfirmed) {
