@@ -574,7 +574,6 @@ class AlumniStatistic(TimeStampedModel):
     statistic_type = models.CharField(
         max_length=30,
         choices=STATISTIC_TYPES,
-        unique=True,
         help_text=_("Type of statistic")
     )
     value = models.CharField(
