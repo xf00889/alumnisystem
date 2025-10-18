@@ -1,0 +1,528 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Contact Information - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        --primary-hover: #1e2a4a;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* List Card */
+    .list-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* List Header */
+    .list-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+    .list-header h1 {
+        color: var(--text-primary);
+        margin: 0;
+        font-size: 1.8rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .list-header p {
+        color: var(--text-secondary);
+        margin: 0.5rem 0 0 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Card Grid */
+    .card-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Individual Cards */
+    .card {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-title i {
+        color: var(--primary-color);
+        font-size: 1.2rem;
+    }
+
+    .contact-type-badge {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .primary-badge {
+        background: #fff3cd;
+        color: #856404;
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        margin-left: 0.5rem;
+    }
+
+    .card-body {
+        margin-bottom: 1rem;
+    }
+
+    .card-text {
+        color: var(--text-secondary);
+        line-height: 1.5;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding-top: 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .card-meta {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .card-meta i {
+        color: var(--primary-color);
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: var(--text-light);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .status-badge.active {
+        background-color: var(--feedback-success);
+    }
+
+    .status-badge.inactive {
+        background-color: var(--text-muted);
+    }
+
+    .card-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Button Styles */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
+    }
+
+    .btn-secondary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    /* Pagination */
+    .pagination {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .pagination .page-item .page-link {
+        border: 1px solid var(--ui-border);
+        color: var(--text-primary);
+        background-color: var(--ui-surface);
+        padding: 0.5rem 1rem;
+        margin: 0 0.25rem;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        text-decoration: none;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .pagination .page-item .page-link:hover {
+        background-color: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .list-header {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        
+        .list-header h1 {
+            margin-bottom: 1rem;
+        }
+        
+        .card-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+        
+        .card-footer {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .card-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Contact Information</h1>
+        <p class="directory-subtitle">Manage your organization's contact details</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Contact Information</li>
+        </ol>
+    </nav>
+
+    <!-- List Card -->
+    <div class="list-card">
+        <div class="list-header">
+            <div>
+                <h1><i class="fas fa-address-book" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Contact Information</h1>
+                <p>Manage your organization's contact details</p>
+            </div>
+            <a href="{% url 'cms:contact_info_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus"></i> Add New Contact Info
+            </a>
+        </div>
+        
+        {% if contact_info %}
+            <div class="card-grid">
+                {% for info in contact_info %}
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            {% if info.contact_type == 'address' %}
+                                <i class="fas fa-map-marker-alt"></i>
+                            {% elif info.contact_type == 'phone' %}
+                                <i class="fas fa-phone"></i>
+                            {% elif info.contact_type == 'email' %}
+                                <i class="fas fa-envelope"></i>
+                            {% elif info.contact_type == 'hours' %}
+                                <i class="fas fa-clock"></i>
+                            {% else %}
+                                <i class="fas fa-info-circle"></i>
+                            {% endif %}
+                            {{ info.get_contact_type_display }}
+                        </h5>
+                        <div>
+                            {% if info.is_primary %}
+                                <span class="primary-badge">Primary</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <p class="card-text">{{ info.value|linebreaksbr }}</p>
+                    </div>
+                    <div class="card-footer">
+                        <div class="card-meta">
+                            <span><i class="fas fa-sort-numeric-up"></i> Order: {{ info.order }}</span>
+                            <span><i class="fas fa-clock"></i> {{ info.modified|timesince }} ago</span>
+                        </div>
+                        <div class="card-actions">
+                            <span class="status-badge {% if info.is_active %}active{% else %}inactive{% endif %}">
+                                {% if info.is_active %}Active{% else %}Inactive{% endif %}
+                            </span>
+                            <a href="{% url 'cms:contact_info_edit' info.pk %}" class="btn btn-secondary">
+                                <i class="fas fa-edit"></i> Edit
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            
+            {% if is_paginated %}
+                <nav aria-label="Page navigation">
+                    <ul class="pagination">
+                        {% if page_obj.has_previous %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page=1">&laquo; First</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                            </li>
+                        {% endif %}
+                        
+                        <li class="page-item active">
+                            <span class="page-link">
+                                Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                            </span>
+                        </li>
+                        
+                        {% if page_obj.has_next %}
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                            </li>
+                            <li class="page-item">
+                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                            </li>
+                        {% endif %}
+                    </ul>
+                </nav>
+            {% endif %}
+        {% else %}
+            <div class="empty-state">
+                <i class="fas fa-address-book"></i>
+                <h3>No Contact Information Found</h3>
+                <p>Get started by adding your first contact information.</p>
+                <a href="{% url 'cms:contact_info_create' %}" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Add First Contact Info
+                </a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

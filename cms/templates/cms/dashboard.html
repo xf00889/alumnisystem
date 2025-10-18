@@ -1,0 +1,374 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}CMS Dashboard - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Statistics Section */
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        border-left: 3px solid var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1;
+        display: block;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
+        display: block;
+    }
+
+    /* Quick Actions Section */
+    .search-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .cms-action-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 1.5rem;
+        margin-top: 1.5rem;
+    }
+
+    .cms-action-btn {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .cms-action-btn:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .cms-action-btn i {
+        font-size: 1.5rem;
+        color: var(--primary-color);
+    }
+
+    /* Recent Content Section */
+    .cms-recent-content {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .cms-recent-content h2 {
+        margin-top: 0;
+        color: var(--text-primary);
+        border-bottom: 2px solid var(--primary-color);
+        padding-bottom: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+    }
+
+    .cms-recent-item {
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .cms-recent-item:last-child {
+        border-bottom: none;
+    }
+
+    .cms-recent-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .cms-recent-item a:hover {
+        text-decoration: underline;
+    }
+
+    .cms-recent-meta {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Responsive Design */
+     @media (max-width: 768px) {
+         .container-fluid {
+             padding: 1rem;
+         }
+        
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr);
+        }
+        
+        .cms-action-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Content Management System</h1>
+        <p class="directory-subtitle">Manage all your website content from this central dashboard</p>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="stat-card">
+            <span class="stat-number">{{ site_config.id|default:"1" }}</span>
+            <span class="stat-label">Site Configuration</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ active_page_sections }}</span>
+            <span class="stat-label">Active Page Sections</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ published_static_pages }}</span>
+            <span class="stat-label">Published Pages</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ total_staff_members }}</span>
+            <span class="stat-label">Staff Members</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ total_timeline_items }}</span>
+            <span class="stat-label">Timeline Items</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ total_contact_info }}</span>
+            <span class="stat-label">Contact Info</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ total_faqs }}</span>
+            <span class="stat-label">FAQs</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ total_features }}</span>
+            <span class="stat-label">Features</span>
+        </div>
+        <div class="stat-card">
+            <span class="stat-number">{{ total_testimonials }}</span>
+            <span class="stat-label">Testimonials</span>
+        </div>
+    </div>
+
+    <!-- Quick Actions Section -->
+    <div class="search-section">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+            <h2 style="margin: 0; color: var(--text-primary); font-family: 'Poppins', sans-serif; font-weight: 600;"><i class="fas fa-bolt" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Quick Actions</h2>
+            <a href="{% url 'admin:index' %}" style="background-color: var(--secondary-color); color: white; padding: 0.75rem 1.5rem; border-radius: var(--radius-sm); text-decoration: none; font-weight: 600; font-family: 'Poppins', sans-serif; transition: all 0.3s ease;">
+                <i class="fas fa-cogs"></i> Django Admin
+            </a>
+        </div>
+        <div class="cms-action-grid">
+            <a href="{% url 'cms:site_config_edit' %}" class="cms-action-btn">
+                <i class="fas fa-cog"></i> Site Configuration
+            </a>
+            <a href="{% url 'cms:page_section_list' %}" class="cms-action-btn">
+                <i class="fas fa-layer-group"></i> Page Sections
+            </a>
+            <a href="{% url 'cms:static_page_list' %}" class="cms-action-btn">
+                <i class="fas fa-file-alt"></i> Static Pages
+            </a>
+            <a href="{% url 'cms:staff_member_list' %}" class="cms-action-btn">
+                <i class="fas fa-users"></i> Staff Members
+            </a>
+            <a href="{% url 'cms:timeline_item_list' %}" class="cms-action-btn">
+                <i class="fas fa-history"></i> Timeline
+            </a>
+            <a href="{% url 'cms:contact_info_list' %}" class="cms-action-btn">
+                <i class="fas fa-address-book"></i> Contact Info
+            </a>
+            <a href="{% url 'cms:faq_list' %}" class="cms-action-btn">
+                <i class="fas fa-question-circle"></i> FAQs
+            </a>
+            <a href="{% url 'cms:feature_list' %}" class="cms-action-btn">
+                <i class="fas fa-star"></i> Features
+            </a>
+            <a href="{% url 'cms:testimonial_list' %}" class="cms-action-btn">
+                <i class="fas fa-quote-left"></i> Testimonials
+            </a>
+        </div>
+    </div>
+
+    <!-- Recent Content Section -->
+    <div class="cms-recent-content">
+        <h2><i class="fas fa-clock" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Recent Content</h2>
+        
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem;">
+            <div>
+                <h3 style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; font-family: 'Poppins', sans-serif;">Recent Page Sections</h3>
+                {% for section in recent_page_sections %}
+                <div class="cms-recent-item">
+                    <a href="{% url 'cms:page_section_edit' section.pk %}">{{ section.title }}</a>
+                    <div class="cms-recent-meta">{{ section.section_type|title }} • Modified {{ section.modified|timesince }} ago</div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-secondary); font-family: 'Poppins', sans-serif;">No page sections found.</p>
+                {% endfor %}
+            </div>
+            
+            <div>
+                <h3 style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; font-family: 'Poppins', sans-serif;">Recent Static Pages</h3>
+                {% for page in recent_static_pages %}
+                <div class="cms-recent-item">
+                    <a href="{% url 'cms:static_page_edit' page.pk %}">{{ page.title }}</a>
+                    <div class="cms-recent-meta">{{ page.page_type|title }} • Modified {{ page.modified|timesince }} ago</div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-secondary); font-family: 'Poppins', sans-serif;">No static pages found.</p>
+                {% endfor %}
+            </div>
+            
+            <div>
+                <h3 style="color: var(--text-primary); font-size: 1.1rem; margin-bottom: 1rem; font-weight: 600; font-family: 'Poppins', sans-serif;">Recent FAQs</h3>
+                {% for faq in recent_faqs %}
+                <div class="cms-recent-item">
+                    <a href="{% url 'cms:faq_edit' faq.pk %}">{{ faq.question|truncatechars:50 }}</a>
+                    <div class="cms-recent-meta">Modified {{ faq.modified|timesince }} ago</div>
+                </div>
+                {% empty %}
+                <p style="color: var(--text-secondary); font-family: 'Poppins', sans-serif;">No FAQs found.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

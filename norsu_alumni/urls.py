@@ -31,6 +31,7 @@ urlpatterns = [
     path('donations/', include(('donations.urls', 'donations'), namespace='donations')),
     path('mentorship/', include(('mentorship.urls', 'mentorship'), namespace='mentorship')),
     path('surveys/', include(('surveys.urls', 'surveys'), namespace='surveys')),
+    path('cms/', include(('cms.urls', 'cms'), namespace='cms')),
 ]
 
 # Serve media files during development

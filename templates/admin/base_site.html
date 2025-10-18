@@ -90,6 +90,61 @@
             font-size: 1.1rem;
         }
     }
+    
+    /* Submenu styles */
+    .has-submenu {
+        position: relative;
+    }
+    
+    .has-submenu > a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .submenu-toggle {
+        transition: transform 0.3s ease;
+        font-size: 12px;
+    }
+    
+    .has-submenu.active .submenu-toggle {
+        transform: rotate(90deg);
+    }
+    
+    .submenu {
+        display: none;
+        padding-left: 20px;
+        background: rgba(0, 0, 0, 0.05);
+        margin-top: 5px;
+        border-radius: 4px;
+    }
+    
+    .submenu.active {
+        display: block;
+    }
+    
+    .submenu li {
+        margin: 0;
+    }
+    
+    .submenu a {
+        padding: 8px 15px;
+        font-size: 13px;
+        color: #666;
+        border-left: 3px solid transparent;
+    }
+    
+    .submenu a:hover {
+        background: rgba(0, 0, 0, 0.1);
+        border-left-color: #007cba;
+        color: #007cba;
+    }
+    
+    .submenu a i {
+        margin-right: 8px;
+        width: 12px;
+        text-align: center;
+    }
 </style>
 {% endblock %}
 
@@ -439,6 +494,24 @@
         </div>
         <div class="sidebar-category-content" id="admin">
             <ul>
+                <li class="has-submenu">
+                    <a href="{% url 'cms:dashboard' %}" data-item-name="CMS" data-item-type="cms">
+                        <i class="fas fa-edit"></i> CMS
+                        <i class="fas fa-chevron-right submenu-toggle"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'cms:dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                        <li><a href="{% url 'admin:cms_siteconfig_changelist' %}"><i class="fas fa-cog"></i> Site Config</a></li>
+                        <li><a href="{% url 'admin:cms_pagesection_changelist' %}"><i class="fas fa-layer-group"></i> Page Sections</a></li>
+                        <li><a href="{% url 'admin:cms_staticpage_changelist' %}"><i class="fas fa-file-alt"></i> Static Pages</a></li>
+                        <li><a href="{% url 'admin:cms_staffmember_changelist' %}"><i class="fas fa-users"></i> Staff Members</a></li>
+                        <li><a href="{% url 'admin:cms_timelineitem_changelist' %}"><i class="fas fa-history"></i> Timeline</a></li>
+                        <li><a href="{% url 'admin:cms_contactinfo_changelist' %}"><i class="fas fa-address-book"></i> Contact Info</a></li>
+                        <li><a href="{% url 'admin:cms_faq_changelist' %}"><i class="fas fa-question-circle"></i> FAQs</a></li>
+                        <li><a href="{% url 'admin:cms_feature_changelist' %}"><i class="fas fa-star"></i> Features</a></li>
+                        <li><a href="{% url 'admin:cms_testimonial_changelist' %}"><i class="fas fa-quote-left"></i> Testimonials</a></li>
+                    </ul>
+                </li>
                 <li>
                     <a href="{% url 'admin:sites_site_changelist' %}" data-item-name="Site Settings" data-item-type="site-settings">
                         <i class="fas fa-globe"></i> Site Settings
@@ -681,6 +754,24 @@
                 
                 // Make headers focusable
                 header.setAttribute('tabindex', '0');
+            });
+            
+            // Setup submenu functionality
+            const submenuToggles = document.querySelectorAll('.submenu-toggle');
+            submenuToggles.forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const parentLi = this.closest('.has-submenu');
+                    const submenu = parentLi.querySelector('.submenu');
+                    
+                    if (submenu) {
+                        const isExpanding = !submenu.classList.contains('active');
+                        submenu.classList.toggle('active');
+                        parentLi.classList.toggle('active');
+                    }
+                });
             });
             
             // Setup search functionality

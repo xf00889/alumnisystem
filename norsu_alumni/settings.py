@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     'mentorship',
     'jobs',
     'donations',
+    'cms.apps.CmsConfig',  # Content Management System
     'setup'  # Setup app for automated deployment configuration
 ]
 

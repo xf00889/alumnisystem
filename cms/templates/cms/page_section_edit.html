@@ -1,0 +1,408 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{% if object %}Edit{% else %}Create{% endif %} Page Section - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Section Headers */
+    .section-header {
+        background: var(--ui-hover);
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-sm);
+        margin: 2rem 0 1.5rem 0;
+        border-left: 4px solid var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .section-header h4 {
+        margin: 0;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1.1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .form-control {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    /* Textarea specific styling */
+    .form-control[rows] {
+        min-height: 120px;
+        resize: vertical;
+    }
+
+    /* Checkbox styling */
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-top: 1rem;
+    }
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin: 0;
+        cursor: pointer;
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Help text styling */
+    .form-text {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Button Styles */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    /* Error Messages */
+    .text-danger {
+        color: var(--feedback-error);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">{% if object %}Edit{% else %}Create{% endif %} Page Section</h1>
+        <p class="directory-subtitle">{% if object %}Update the page section{% else %}Add a new content section for your website{% endif %}</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:page_section_list' %}">Page Sections</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% if object %}Edit{% else %}Create{% endif %} Page Section</li>
+        </ol>
+    </nav>
+
+    <!-- Form Card -->
+    <div class="form-card">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Basic Information Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-info-circle" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Basic Information</h4>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-8">
+                    <div class="form-group">
+                        <label for="{{ form.title.id_for_label }}">Section Title</label>
+                        {{ form.title }}
+                        {% if form.title.errors %}
+                            <div class="text-danger">{{ form.title.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text">The main title for this section</small>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="{{ form.section_type.id_for_label }}">Section Type</label>
+                        {{ form.section_type }}
+                        {% if form.section_type.errors %}
+                            <div class="text-danger">{{ form.section_type.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text">Type of content section</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Content Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-edit" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Content</h4>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.subtitle.id_for_label }}">Subtitle</label>
+                {{ form.subtitle }}
+                {% if form.subtitle.errors %}
+                    <div class="text-danger">{{ form.subtitle.errors.0 }}</div>
+                {% endif %}
+                <small class="form-text">Optional subtitle or description</small>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.content.id_for_label }}">Content</label>
+                {{ form.content }}
+                {% if form.content.errors %}
+                    <div class="text-danger">{{ form.content.errors.0 }}</div>
+                {% endif %}
+                <small class="form-text">Main content for this section</small>
+            </div>
+            
+            <!-- Settings Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-cog" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Settings</h4>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.order.id_for_label }}">Display Order</label>
+                        {{ form.order }}
+                        {% if form.order.errors %}
+                            <div class="text-danger">{{ form.order.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text">Lower numbers appear first</small>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <div class="form-check">
+                            {{ form.is_active }}
+                            <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                                Active
+                            </label>
+                        </div>
+                        {% if form.is_active.errors %}
+                            <div class="text-danger">{{ form.is_active.errors.0 }}</div>
+                        {% endif %}
+                        <small class="form-text">Only active sections will be displayed</small>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> {% if object %}Update{% else %}Create{% endif %} Section
+                </button>
+                <a href="{% url 'cms:page_section_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to List
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

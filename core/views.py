@@ -37,6 +37,9 @@ def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
 def home(request):
+    # Add cache-busting headers to prevent caching issues
+    response = None
+    
     # Handle authenticated users
     if request.user.is_authenticated:
         # Check if user is superuser
@@ -147,6 +150,60 @@ def home(request):
         logger.error(f"Error fetching job count: {e}")
         job_count = 0
 
+    # Get CMS data
+    try:
+        from cms.models import SiteConfig, PageSection, Feature, Testimonial
+        
+        # Get site configuration
+        site_config = SiteConfig.get_site_config()
+        
+        # Get page sections
+        hero_section = PageSection.objects.filter(
+            section_type='hero', 
+            is_active=True
+        ).first()
+        
+        feature_section = PageSection.objects.filter(
+            section_type='features', 
+            is_active=True
+        ).first()
+        
+        testimonial_section = PageSection.objects.filter(
+            section_type='testimonials', 
+            is_active=True
+        ).first()
+        
+        cta_section = PageSection.objects.filter(
+            section_type='cta', 
+            is_active=True
+        ).first()
+        
+        # Get features
+        features = Feature.objects.filter(is_active=True).order_by('order')[:4]
+        
+        # Get testimonials
+        testimonials = Testimonial.objects.filter(is_active=True).order_by('order')[:3]
+        
+        # Get staff members for homepage
+        from cms.models import StaffMember
+        staff_members = StaffMember.objects.filter(is_active=True).order_by('order')[:4]
+        
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching CMS data: {e}")
+        site_config = None
+        hero_section = None
+        feature_section = None
+        testimonial_section = None
+        cta_section = None
+        features = []
+        testimonials = []
+        staff_members = []
+
+    # Format counts for display
+    alumni_count_display = f"{alumni_count:,}" if alumni_count else "5,000+"
+    group_count_display = f"{group_count:,}" if group_count else "25+"
+    job_count_display = f"{job_count:,}" if job_count else "100+"
+
     context = {
         'announcements': announcements,
         'upcoming_events': upcoming_events,
@@ -155,9 +212,26 @@ def home(request):
         'group_count': group_count,
         'event_count': event_count,
         'job_count': job_count,
+        'alumni_count_display': alumni_count_display,
+        'group_count_display': group_count_display,
+        'job_count_display': job_count_display,
+        # CMS data
+        'site_config': site_config,
+        'hero_section': hero_section,
+        'feature_section': feature_section,
+        'testimonial_section': testimonial_section,
+        'cta_section': cta_section,
+        'features': features,
+        'testimonials': testimonials,
+        'staff_members': staff_members,
     }
 
-    return render(request, 'home.html', context)
+    response = render(request, 'home.html', context)
+    # Add cache-busting headers
+    response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response['Pragma'] = 'no-cache'
+    response['Expires'] = '0'
+    return response
 
 def calculate_engagement_metrics(start_date, end_date):
     """Calculate engagement metrics for the given date range"""
@@ -693,27 +767,40 @@ def about_us(request):
     except:
         job_count = 0
 
-    # Sample staff information (this could be moved to a model later)
-    staff_members = [
-        {
-            'name': 'Dr. Maria Santos',
-            'position': 'Alumni Relations Director',
-            'department': 'Office of Alumni Affairs',
-            'email': 'maria.santos@norsu.edu.ph'
-        },
-        {
-            'name': 'Prof. Juan Dela Cruz',
-            'position': 'Alumni Engagement Coordinator',
-            'department': 'Office of Alumni Affairs',
-            'email': 'juan.delacruz@norsu.edu.ph'
-        },
-        {
-            'name': 'Ms. Ana Rodriguez',
-            'position': 'Alumni Database Manager',
-            'department': 'Information Technology Services',
-            'email': 'ana.rodriguez@norsu.edu.ph'
-        }
-    ]
+    # Get CMS data for About page
+    try:
+        from cms.models import StaffMember, TimelineItem
+        
+        # Get staff members from CMS
+        staff_members = StaffMember.objects.filter(is_active=True).order_by('order')
+        
+        # Get timeline items from CMS
+        timeline_items = TimelineItem.objects.filter(is_active=True).order_by('order')
+        
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching CMS data for About page: {e}")
+        # Fallback to hardcoded data if CMS fails
+        staff_members = [
+            {
+                'name': 'Dr. Maria Santos',
+                'position': 'Alumni Relations Director',
+                'department': 'Office of Alumni Affairs',
+                'email': 'maria.santos@norsu.edu.ph'
+            },
+            {
+                'name': 'Prof. Juan Dela Cruz',
+                'position': 'Alumni Engagement Coordinator',
+                'department': 'Office of Alumni Affairs',
+                'email': 'juan.delacruz@norsu.edu.ph'
+            },
+            {
+                'name': 'Ms. Ana Rodriguez',
+                'position': 'Alumni Database Manager',
+                'department': 'Information Technology Services',
+                'email': 'ana.rodriguez@norsu.edu.ph'
+            }
+        ]
+        timeline_items = []
 
     context = {
         'page_title': 'About NORSU Alumni Network',
@@ -723,6 +810,7 @@ def about_us(request):
         'event_count': event_count,
         'job_count': job_count,
         'staff_members': staff_members,
+        'timeline_items': timeline_items,
     }
 
     return render(request, 'landing/about_us.html', context)
@@ -732,20 +820,32 @@ def contact_us(request):
     """
     Display Contact Us page with contact form and information
     """
-    from core.models.page_content import SiteConfiguration
     from .forms import ContactForm
-    
-    # Get site configuration for contact information
-    site_config = SiteConfiguration.objects.first()
     
     # Create form instance
     form = ContactForm()
     
+    # Get CMS data for Contact page
+    try:
+        from cms.models import ContactInfo, FAQ
+        
+        # Get contact information from CMS
+        contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
+        
+        # Get FAQs from CMS
+        faqs = FAQ.objects.filter(is_active=True).order_by('order')
+        
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching CMS data for Contact page: {e}")
+        contact_info = []
+        faqs = []
+    
     context = {
         'page_title': 'Contact Us',
         'page_subtitle': 'Get in touch with the NORSU Alumni Network team',
-        'site_config': site_config,
-        'form': form
+        'form': form,
+        'contact_info': contact_info,
+        'faqs': faqs,
     }
 
     return render(request, 'landing/contact_us.html', context)

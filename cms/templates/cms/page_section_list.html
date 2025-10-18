@@ -1,0 +1,524 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Page Sections - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Search Section */
+    .search-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .search-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-title {
+        margin: 0;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+        font-weight: 600;
+        font-size: 1.5rem;
+    }
+
+    .add-btn {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .add-btn:hover {
+        background-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    /* Alumni Cards Grid */
+    .alumni-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .alumni-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .alumni-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+
+    .alumni-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: linear-gradient(90deg, var(--primary-color), var(--feedback-info));
+    }
+
+    .alumni-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+
+    .alumni-name {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.3;
+    }
+
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 12px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .status-badge.active {
+        background-color: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .status-badge.inactive {
+        background-color: var(--text-muted);
+        color: var(--text-light);
+    }
+
+    .status-badge.type-badge {
+        background-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .alumni-details {
+        margin-bottom: 1rem;
+    }
+
+    .alumni-detail {
+        display: flex;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .alumni-detail i {
+        width: 16px;
+        margin-right: 0.5rem;
+        color: var(--primary-color);
+    }
+
+    .alumni-description {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.5;
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .alumni-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: auto;
+    }
+
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        text-decoration: none;
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .action-btn.edit {
+        background-color: var(--feedback-info);
+        color: var(--text-light);
+    }
+
+    .action-btn.edit:hover {
+        background-color: #3182ce;
+        transform: translateY(-1px);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .action-btn.delete {
+        background-color: var(--feedback-error);
+        color: var(--text-light);
+    }
+
+    .action-btn.delete:hover {
+        background-color: #c53030;
+        transform: translateY(-1px);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    /* Pagination */
+    .pagination-section {
+        display: flex;
+        justify-content: center;
+        margin-top: 2rem;
+    }
+
+    .pagination {
+        display: flex;
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        gap: 0.5rem;
+    }
+
+    .page-item {
+        display: flex;
+    }
+
+    .page-link {
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        color: var(--text-primary);
+        text-decoration: none;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        background: var(--ui-surface);
+    }
+
+    .page-link:hover {
+        background-color: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1.5rem;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .search-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .alumni-grid {
+            grid-template-columns: 1fr;
+        }
+        
+        .alumni-actions {
+            flex-direction: column;
+        }
+        
+        .action-btn {
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Page Sections</h1>
+        <p class="directory-subtitle">Manage content sections for your website pages</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Page Sections</li>
+        </ol>
+    </nav>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-header">
+            <h2 class="search-title">All Page Sections</h2>
+            <a href="{% url 'cms:page_section_create' %}" class="add-btn">
+                <i class="fas fa-plus"></i> Add New Section
+            </a>
+        </div>
+    </div>
+
+    <!-- Alumni Grid -->
+    {% if sections %}
+        <div class="alumni-grid">
+            {% for section in sections %}
+            <div class="alumni-card">
+                <div class="alumni-header">
+                    <h3 class="alumni-name">{{ section.title }}</h3>
+                    <div style="display: flex; flex-direction: column; gap: 0.5rem; align-items: flex-end;">
+                        <span class="status-badge type-badge">{{ section.section_type|title }}</span>
+                        <span class="status-badge {% if section.is_active %}active{% else %}inactive{% endif %}">
+                            {% if section.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="alumni-details">
+                    {% if section.subtitle %}
+                    <div class="alumni-detail">
+                        <i class="fas fa-quote-left"></i>
+                        <span><strong>Subtitle:</strong> {{ section.subtitle|truncatechars:80 }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="alumni-detail">
+                        <i class="fas fa-sort-numeric-up"></i>
+                        <span>Order: {{ section.order }}</span>
+                    </div>
+                    
+                    <div class="alumni-detail">
+                        <i class="fas fa-clock"></i>
+                        <span>Modified {{ section.modified|timesince }} ago</span>
+                    </div>
+                </div>
+                
+                {% if section.content %}
+                <div class="alumni-description">
+                    {{ section.content|truncatechars:120 }}
+                </div>
+                {% endif %}
+                
+                <div class="alumni-actions">
+                    <a href="{% url 'cms:page_section_edit' section.pk %}" class="action-btn edit">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    <a href="{% url 'cms:page_section_delete' section.pk %}" class="action-btn delete">
+                        <i class="fas fa-trash"></i> Delete
+                    </a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <div class="pagination-section">
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1">&laquo; First</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Previous</a>
+                    </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">
+                        Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}
+                    </span>
+                </li>
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}">Next</a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">Last &raquo;</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+    {% else %}
+        <div class="empty-state">
+            <i class="fas fa-layer-group"></i>
+            <h3>No Page Sections Found</h3>
+            <p>Get started by creating your first page section.</p>
+            <a href="{% url 'cms:page_section_create' %}" class="add-btn">
+                <i class="fas fa-plus"></i> Create First Section
+            </a>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

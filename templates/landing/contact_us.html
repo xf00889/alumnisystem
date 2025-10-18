@@ -121,64 +121,89 @@
                         <i class="fas fa-info-circle text-primary me-2"></i>Contact Information
                     </h4>
                     
-                    <div class="contact-item mb-4">
-                        <div class="contact-icon">
-                            <i class="fas fa-map-marker-alt"></i>
+                    {% if contact_info %}
+                        {% for info in contact_info %}
+                        <div class="contact-item mb-4">
+                            <div class="contact-icon">
+                                {% if info.contact_type == 'address' %}
+                                    <i class="fas fa-map-marker-alt"></i>
+                                {% elif info.contact_type == 'phone' %}
+                                    <i class="fas fa-phone"></i>
+                                {% elif info.contact_type == 'email' %}
+                                    <i class="fas fa-envelope"></i>
+                                {% elif info.contact_type == 'hours' %}
+                                    <i class="fas fa-clock"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="contact-details">
+                                <h6>{{ info.get_contact_type_display }}</h6>
+                                <p>{{ info.value|linebreaksbr }}</p>
+                            </div>
                         </div>
-                        <div class="contact-details">
-                            <h6>Office Address</h6>
-                            <p>{% if site_config.contact_address %}
-                                {{ site_config.contact_address|linebreaksbr }}
-                               {% else %}
-                                Negros Oriental State University<br>
-                                Kagawasan, Ave. Rizal<br>
-                                Dumaguete City, 6200<br>
-                                Negros Oriental, Philippines
-                               {% endif %}</p>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Fallback contact information if no CMS data -->
+                        <div class="contact-item mb-4">
+                            <div class="contact-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Office Address</h6>
+                                <p>{% if site_config.contact_address %}
+                                    {{ site_config.contact_address|linebreaksbr }}
+                                   {% else %}
+                                    Negros Oriental State University<br>
+                                    Kagawasan, Ave. Rizal<br>
+                                    Dumaguete City, 6200<br>
+                                    Negros Oriental, Philippines
+                                   {% endif %}</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="contact-item mb-4">
-                        <div class="contact-icon">
-                            <i class="fas fa-phone"></i>
+                        
+                        <div class="contact-item mb-4">
+                            <div class="contact-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Phone Number</h6>
+                                <p>{% if site_config.contact_phone %}
+                                    {{ site_config.contact_phone }}
+                                   {% else %}
+                                    +63 35 422 6002<br>
+                                    +63 35 225 2376
+                                   {% endif %}</p>
+                            </div>
                         </div>
-                        <div class="contact-details">
-                            <h6>Phone Number</h6>
-                            <p>{% if site_config.contact_phone %}
-                                {{ site_config.contact_phone }}
-                               {% else %}
-                                +63 35 422 6002<br>
-                                +63 35 225 2376
-                               {% endif %}</p>
+                        
+                        <div class="contact-item mb-4">
+                            <div class="contact-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Email Address</h6>
+                                <p>{% if site_config.contact_email %}
+                                    {{ site_config.contact_email }}
+                                   {% else %}
+                                    alumni@norsu.edu.ph<br>
+                                    info@norsu.edu.ph
+                                   {% endif %}</p>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <div class="contact-item mb-4">
-                        <div class="contact-icon">
-                            <i class="fas fa-envelope"></i>
+                        
+                        <div class="contact-item mb-4">
+                            <div class="contact-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Office Hours</h6>
+                                <p>Monday - Friday: 8:00 AM - 5:00 PM<br>
+                                   Saturday: 8:00 AM - 12:00 PM<br>
+                                   Sunday: Closed</p>
+                            </div>
                         </div>
-                        <div class="contact-details">
-                            <h6>Email Address</h6>
-                            <p>{% if site_config.contact_email %}
-                                {{ site_config.contact_email }}
-                               {% else %}
-                                alumni@norsu.edu.ph<br>
-                                info@norsu.edu.ph
-                               {% endif %}</p>
-                        </div>
-                    </div>
-                    
-                    <div class="contact-item mb-4">
-                        <div class="contact-icon">
-                            <i class="fas fa-clock"></i>
-                        </div>
-                        <div class="contact-details">
-                            <h6>Office Hours</h6>
-                            <p>Monday - Friday: 8:00 AM - 5:00 PM<br>
-                               Saturday: 8:00 AM - 12:00 PM<br>
-                               Sunday: Closed</p>
-                        </div>
-                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
@@ -300,61 +325,79 @@
                     </h3>
                     
                     <div class="accordion" id="faqAccordion">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="faq1">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
-                                    How do I register for the alumni network?
-                                </button>
-                            </h2>
-                            <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Click on the "Sign Up" button in the navigation menu and fill out the registration form with your details. 
-                                    You'll need to provide your graduation year, course, and other relevant information for verification.
+                        {% if faqs %}
+                            {% for faq in faqs %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq{{ forloop.counter }}">
+                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+                                        {{ faq.question }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        {{ faq.answer|linebreaks }}
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="faq2">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
-                                    How can I update my profile information?
-                                </button>
-                            </h2>
-                            <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    After logging in, go to your profile page where you can edit your personal information, 
-                                    contact details, professional background, and other profile settings.
+                            {% endfor %}
+                        {% else %}
+                            <!-- Fallback FAQs if no CMS data -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq1">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                        How do I register for the alumni network?
+                                    </button>
+                                </h2>
+                                <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Click on the "Sign Up" button in the navigation menu and fill out the registration form with your details. 
+                                        You'll need to provide your graduation year, course, and other relevant information for verification.
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="faq3">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
-                                    How do I find and connect with other alumni?
-                                </button>
-                            </h2>
-                            <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Use the Alumni Directory to search for classmates and colleagues. You can filter by graduation year, 
-                                    course, location, or industry. Send connection requests to build your professional network.
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq2">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                        How can I update my profile information?
+                                    </button>
+                                </h2>
+                                <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        After logging in, go to your profile page where you can edit your personal information, 
+                                        contact details, professional background, and other profile settings.
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                        
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="faq4">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
-                                    Can I post job opportunities on the platform?
-                                </button>
-                            </h2>
-                            <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    Yes! Registered alumni can post job opportunities through the Job Board. 
-                                    This helps fellow alumni find career opportunities and strengthens our professional network.
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq3">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                        How do I find and connect with other alumni?
+                                    </button>
+                                </h2>
+                                <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Use the Alumni Directory to search for classmates and colleagues. You can filter by graduation year, 
+                                        course, location, or industry. Send connection requests to build your professional network.
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq4">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                                        Can I post job opportunities on the platform?
+                                    </button>
+                                </h2>
+                                <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Yes! Registered alumni can post job opportunities through the Job Board. 
+                                        This helps fellow alumni find career opportunities and strengthens our professional network.
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
