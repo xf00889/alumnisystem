@@ -6,6 +6,9 @@ from .models import (
     GroupDiscussionComment, GroupFile, SecurityQuestion,
     SecurityQuestionAnswer
 )
+from core.recaptcha_fields import DatabaseReCaptchaField
+from core.recaptcha_widgets import DatabaseReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class SecurityQuestionForm(forms.ModelForm):
     class Meta:
@@ -47,8 +50,25 @@ class AlumniGroupForm(forms.ModelForm):
             'name', 'description', 'group_type', 'visibility',
             'batch_start_year', 'batch_end_year', 'course', 'campus',
             'requires_approval', 'has_security_questions', 'max_members', 
-            'tags', 'cover_image'
+            'tags', 'cover_image', 'profile_photo'
         ]
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = DatabaseReCaptchaField(
+                widget=DatabaseReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
+    
         widgets = {
             'name': forms.TextInput(attrs={'class': 'form-control'}),
             'description': forms.Textarea(attrs={
@@ -78,6 +98,10 @@ class AlumniGroupForm(forms.ModelForm):
                 'data-role': 'tagsinput'
             }),
             'cover_image': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            }),
+            'profile_photo': forms.FileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*'
             }),

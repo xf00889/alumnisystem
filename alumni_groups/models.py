@@ -63,6 +63,7 @@ class AlumniGroup(models.Model):
     # Additional Features
     tags = TaggableManager(blank=True)
     cover_image = models.ImageField(upload_to='group_covers/%Y/%m/', blank=True, null=True)
+    profile_photo = models.ImageField(upload_to='group_profiles/%Y/%m/', blank=True, null=True)
     
     class Meta:
         ordering = ['-created_at']

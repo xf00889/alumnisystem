@@ -204,7 +204,7 @@
                 <h5 class="card-title mb-0">{% trans "Make a Donation" %}</h5>
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" id="donation-form">
                     {% csrf_token %}
                     
                     {% if form.non_field_errors %}
@@ -311,6 +311,7 @@
                         </div>
                         {% endif %}
                     </div>
+                    
                     {% endif %}
                     
                     <div class="mb-3">
@@ -379,12 +380,6 @@
                     {% trans "FAQ & Help Guide" %}
                 </a>
             </li>
-            <li>
-                <a class="dropdown-item" href="{% url 'donations:donation_status_tracker' %}">
-                    <i class="fas fa-search me-2"></i>
-                    {% trans "Track Your Donation" %}
-                </a>
-            </li>
             <li><hr class="dropdown-divider"></li>
             <li>
                 <a class="dropdown-item" href="mailto:alumni@norsu.edu.ph">
@@ -430,8 +425,10 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
 
-        // Form submission validation
+        // Form submission validation with SweetAlert confirmation
         form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
             let isValid = true;
             inputs.forEach(input => {
                 if (!validateField(input)) {
@@ -440,14 +437,52 @@ document.addEventListener('DOMContentLoaded', function() {
             });
 
             if (!isValid) {
-                e.preventDefault();
                 // Scroll to first invalid field
                 const firstInvalid = form.querySelector('.is-invalid');
                 if (firstInvalid) {
                     firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
                     firstInvalid.focus();
                 }
+                return;
             }
+            
+            // Get form data for confirmation
+            const formData = new FormData(form);
+            const amount = formData.get('amount');
+            const donorName = formData.get('donor_name') || 'Anonymous';
+            const isAnonymous = formData.get('is_anonymous') === 'on';
+            const message = formData.get('message') || 'No message';
+            
+            // Show SweetAlert confirmation
+            Swal.fire({
+                title: '{% trans "Confirm Your Donation" %}',
+                html: `
+                    <div class="text-start">
+                        <div class="alert alert-info mb-3">
+                            <h6 class="alert-heading">{% trans "Donation Summary" %}</h6>
+                            <hr>
+                            <p class="mb-1"><strong>{% trans "Amount:" %}</strong> ₱${parseFloat(amount).toLocaleString()}</p>
+                            <p class="mb-1"><strong>{% trans "Donor:" %}</strong> ${isAnonymous ? 'Anonymous' : donorName}</p>
+                            ${message !== 'No message' ? `<p class="mb-0"><strong>{% trans "Message:" %}</strong> ${message}</p>` : ''}
+                        </div>
+                        <p class="text-muted small">
+                            {% trans "Please review your donation details above. Once submitted, you will be redirected to payment instructions." %}
+                        </p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '{% trans "Yes, Submit Donation" %}',
+                cancelButtonText: '{% trans "Cancel" %}',
+                confirmButtonColor: '#2b3c6b',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Submit the form
+                    form.submit();
+                }
+            });
         });
     }
 

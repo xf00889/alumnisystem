@@ -39,6 +39,11 @@ class Campaign(models.Model):
         ('cancelled', _('Cancelled')),
     )
     
+    VISIBILITY_CHOICES = (
+        ('registered_alumni', _('Registered Alumni')),
+        ('public', _('Public')),
+    )
+    
     name = models.CharField(_("Name"), max_length=200)
     slug = models.SlugField(_("Slug"), max_length=220, unique=True)
     campaign_type = models.ForeignKey(
@@ -55,7 +60,18 @@ class Campaign(models.Model):
     start_date = models.DateTimeField(_("Start Date"), default=timezone.now)
     end_date = models.DateTimeField(_("End Date"), blank=True, null=True)
     status = models.CharField(_("Status"), max_length=20, choices=STATUS_CHOICES, default='draft')
+    visibility = models.CharField(_("Visibility"), max_length=20, choices=VISIBILITY_CHOICES, default='registered_alumni')
     is_featured = models.BooleanField(_("Featured"), default=False)
+    allow_donations = models.BooleanField(_("Allow Donations"), default=False, help_text=_("Enable donations for this campaign"))
+    gcash_config = models.ForeignKey(
+        'GCashConfig',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='campaigns',
+        verbose_name=_("GCash Configuration"),
+        help_text=_("Select which GCash account will receive donations")
+    )
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
@@ -119,6 +135,19 @@ class Campaign(models.Model):
     @property
     def donors_count(self):
         return self.donations.filter(status='completed').count()
+    
+    @property
+    def is_ended(self):
+        """Check if the campaign has ended"""
+        # Campaign is ended if status is completed or cancelled
+        if self.status in ['completed', 'cancelled']:
+            return True
+        
+        # Campaign is ended if it has an end date that has passed
+        if self.end_date and timezone.now() > self.end_date:
+            return True
+            
+        return False
 
 
 class CampaignUpdate(models.Model):
@@ -191,7 +220,7 @@ class Donation(models.Model):
     message = models.TextField(_("Message"), blank=True)
 
     # Enhanced reference and verification fields
-    reference_number = models.CharField(_("Reference Number"), max_length=30, unique=True, blank=True)
+    reference_number = models.CharField(_("Reference Number"), max_length=100, blank=True, null=True, help_text=_("Enter the reference number from your GCash receipt (alphanumeric and symbols allowed)"))
     payment_proof = models.ImageField(_("Payment Proof"), upload_to='payment_proofs/', blank=True, null=True)
     gcash_transaction_id = models.CharField(_("GCash Transaction ID"), max_length=50, blank=True)
     verification_notes = models.TextField(_("Verification Notes"), blank=True)
@@ -244,9 +273,7 @@ class Donation(models.Model):
         return reference
     
     def save(self, *args, **kwargs):
-        # Generate reference number if not set
-        if not self.reference_number:
-            self.reference_number = self.generate_reference_number()
+        # Reference number is now provided by user from GCash receipt
 
         # If this is a completed donation and it's a new record or the status has changed
         is_new = self.pk is None

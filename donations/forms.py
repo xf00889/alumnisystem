@@ -1,6 +1,9 @@
 from django import forms
 from django.utils.translation import gettext_lazy as _
 from .models import Donation, Campaign, CampaignType, GCashConfig
+from core.recaptcha_fields import DatabaseReCaptchaField
+from core.recaptcha_widgets import DatabaseReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class DonationForm(forms.ModelForm):
     """Form for making donations"""
@@ -48,9 +51,23 @@ class DonationForm(forms.ModelForm):
             self.fields['donor_name'].required = False
             self.fields['donor_email'].required = False
         else:
-            # If user is not authenticated, make donor_name and donor_email required
-            self.fields['donor_name'].required = True
-            self.fields['donor_email'].required = True
+            # If user is not authenticated, make donor_name and donor_email not required by default
+            # We'll handle validation in the clean method based on anonymous status
+            self.fields['donor_name'].required = False
+            self.fields['donor_email'].required = False
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = DatabaseReCaptchaField(
+                widget=DatabaseReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
 
     def clean(self):
         cleaned_data = super().clean()
@@ -60,16 +77,19 @@ class DonationForm(forms.ModelForm):
         if amount and amount <= 0:
             self.add_error('amount', _('Amount must be greater than zero.'))
 
-        # If anonymous user, ensure donor_name and donor_email are provided
+        # If anonymous user, ensure donor_name and donor_email are provided (unless anonymous)
         if not self.user or not self.user.is_authenticated:
+            is_anonymous = cleaned_data.get('is_anonymous', False)
             donor_name = cleaned_data.get('donor_name')
             donor_email = cleaned_data.get('donor_email')
 
-            if not donor_name:
-                self.add_error('donor_name', _('Please provide your name.'))
+            # Only require name and email if not anonymous
+            if not is_anonymous:
+                if not donor_name:
+                    self.add_error('donor_name', _('Please provide your name.'))
 
-            if not donor_email:
-                self.add_error('donor_email', _('Please provide your email.'))
+                if not donor_email:
+                    self.add_error('donor_email', _('Please provide your email.'))
 
         return cleaned_data
 
@@ -117,6 +137,12 @@ class CampaignFilterForm(forms.Form):
         widget=forms.Select(attrs={'class': 'form-select'})
     )
 
+    visibility = forms.ChoiceField(
+        required=False,
+        choices=[('', _('All Visibility'))] + list(Campaign.VISIBILITY_CHOICES),
+        widget=forms.Select(attrs={'class': 'form-select'})
+    )
+
     sort = forms.ChoiceField(
         required=False,
         choices=[
@@ -146,7 +172,7 @@ class CampaignForm(forms.ModelForm):
         fields = [
             'name', 'campaign_type', 'short_description', 'description',
             'featured_image', 'goal_amount', 'start_date', 'end_date',
-            'status', 'is_featured'
+            'status', 'visibility', 'is_featured', 'allow_donations', 'gcash_config'
         ]
         widgets = {
             'name': forms.TextInput(attrs={
@@ -185,8 +211,19 @@ class CampaignForm(forms.ModelForm):
             'status': forms.Select(attrs={
                 'class': 'form-select'
             }),
+            'visibility': forms.Select(attrs={
+                'class': 'form-select'
+            }),
             'is_featured': forms.CheckboxInput(attrs={
                 'class': 'form-check-input'
+            }),
+            'allow_donations': forms.CheckboxInput(attrs={
+                'class': 'form-check-input',
+                'id': 'id_allow_donations'
+            }),
+            'gcash_config': forms.Select(attrs={
+                'class': 'form-select',
+                'id': 'id_gcash_config'
             })
         }
 
@@ -199,11 +236,18 @@ class CampaignForm(forms.ModelForm):
             self.fields['is_featured'].widget = forms.HiddenInput()
             self.fields['is_featured'].required = False
 
+        # Populate GCash config choices
+        self.fields['gcash_config'].queryset = GCashConfig.objects.filter(is_active=True)
+        self.fields['gcash_config'].empty_label = _("Select GCash Account")
+        self.fields['gcash_config'].required = False
+
     def clean(self):
         cleaned_data = super().clean()
         start_date = cleaned_data.get('start_date')
         end_date = cleaned_data.get('end_date')
         goal_amount = cleaned_data.get('goal_amount')
+        allow_donations = cleaned_data.get('allow_donations')
+        gcash_config = cleaned_data.get('gcash_config')
 
         # Validate end date is after start date
         if start_date and end_date and end_date <= start_date:
@@ -212,6 +256,10 @@ class CampaignForm(forms.ModelForm):
         # Validate goal amount is positive
         if goal_amount and goal_amount <= 0:
             self.add_error('goal_amount', _('Goal amount must be greater than zero.'))
+
+        # Validate GCash config is required when donations are allowed
+        if allow_donations and not gcash_config:
+            self.add_error('gcash_config', _('GCash configuration is required when donations are enabled.'))
 
         return cleaned_data
 
@@ -230,35 +278,40 @@ class CampaignForm(forms.ModelForm):
 
 class PaymentProofForm(forms.ModelForm):
     """Form for uploading payment proof"""
+    
+    # Add donor_email as a hidden field for unauthenticated users
+    donor_email = forms.EmailField(required=False, widget=forms.HiddenInput())
 
     class Meta:
         model = Donation
-        fields = ['payment_proof', 'gcash_transaction_id']
+        fields = ['payment_proof', 'reference_number', 'donor_email']
         widgets = {
             'payment_proof': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
                 'accept': 'image/*',
                 'help_text': _('Upload a screenshot of your GCash payment confirmation')
             }),
-            'gcash_transaction_id': forms.TextInput(attrs={
+            'reference_number': forms.TextInput(attrs={
                 'class': 'form-control',
-                'placeholder': _('Enter GCash Transaction ID (optional)'),
-                'help_text': _('Transaction ID from your GCash receipt')
-            })
+                'placeholder': _('Enter GCash transaction reference number (required)')
+            }),
         }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        # Set the donor_email value from the instance
+        if self.instance and self.instance.donor_email:
+            self.fields['donor_email'].initial = self.instance.donor_email
         self.fields['payment_proof'].required = True
-        self.fields['gcash_transaction_id'].required = False
+        self.fields['reference_number'].required = True
 
         # Add help text
         self.fields['payment_proof'].help_text = _(
             'Please upload a clear screenshot of your GCash payment confirmation. '
             'Make sure the amount, date, and reference number are visible.'
         )
-        self.fields['gcash_transaction_id'].help_text = _(
-            'Optional: Enter the transaction ID from your GCash receipt for faster verification.'
+        self.fields['reference_number'].help_text = _(
+            'Required: Enter the reference number from your GCash transaction receipt.'
         )
 
     def clean_payment_proof(self):
@@ -273,6 +326,16 @@ class PaymentProofForm(forms.ModelForm):
                 raise forms.ValidationError(_('Please upload an image file.'))
 
         return proof
+
+    def clean(self):
+        cleaned_data = super().clean()
+        reference_number = cleaned_data.get('reference_number')
+        
+        # Require reference number for authenticated users
+        if not reference_number:
+            self.add_error('reference_number', _('Reference number is required. Please enter your GCash transaction reference number.'))
+        
+        return cleaned_data
 
 
 class DonationVerificationForm(forms.ModelForm):

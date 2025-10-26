@@ -11,7 +11,31 @@
 
 {% block extra_css %}
 {{ block.super }}
-<link rel="stylesheet" href="{% static 'css/flatpickr.min.css' %}">
+<script>
+// Define the function immediately when the page loads
+function toggleGCash() {
+  console.log('toggleGCash function called');
+  const gcashSection = document.getElementById('gcash-section');
+  const toggle = document.querySelector('input[name="allow_donations"]');
+  
+  console.log('GCash section found:', !!gcashSection);
+  console.log('Toggle found:', !!toggle);
+  console.log('Toggle checked:', toggle ? toggle.checked : 'N/A');
+  
+  if (gcashSection && toggle) {
+    if (toggle.checked) {
+      console.log('Showing GCash field');
+      gcashSection.style.display = 'block';
+    } else {
+      console.log('Hiding GCash field');
+      gcashSection.style.display = 'none';
+    }
+  }
+}
+
+// Make it globally available
+window.toggleGCash = toggleGCash;
+</script>
 <style>
   /* Inputs consistent with authenticated_home design */
   input.form-control, select.form-select, textarea.form-control {
@@ -25,6 +49,30 @@
   label.form-label { color: var(--text-primary); font-weight: 600; font-size: 0.95rem; }
   .form-text { color: var(--text-secondary); }
   .invalid-feedback.d-block { color: var(--feedback-error); font-size: 0.875rem; }
+  
+  /* Donation Settings Styling */
+  .form-switch .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+  }
+  
+  #gcash-section {
+    transition: all 0.3s ease;
+  }
+  
+  #gcash-container {
+    transition: all 0.3s ease;
+  }
+  
+  #gcash-section:not([style*="display: none"]) #gcash-container {
+    border-color: var(--primary-color);
+    background-color: rgba(43, 60, 107, 0.05);
+  }
+  
+  /* Hide GCash section by default */
+  #gcash-section {
+    display: none;
+  }
 </style>
 {% endblock %}
 
@@ -144,7 +192,7 @@
                         </div>
 
                         <div class="row mb-4">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="{{ form.status.id_for_label }}" class="form-label">{% trans "Campaign Status" %} <span class="text-danger">*</span></label>
                                     {{ form.status }}
@@ -153,7 +201,17 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.visibility.id_for_label }}" class="form-label">{% trans "Visibility" %} <span class="text-danger">*</span></label>
+                                    {{ form.visibility }}
+                                    {% if form.visibility.errors %}
+                                    <div class="invalid-feedback d-block">{% for error in form.visibility.errors %}{{ error }}{% endfor %}</div>
+                                    {% endif %}
+                                    <div class="form-text">{% trans "Choose who can see this campaign." %}</div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3 mt-4">
                                     <div class="form-check">
                                         {{ form.is_featured }}
@@ -162,6 +220,66 @@
                                         <div class="invalid-feedback d-block">{% for error in form.is_featured.errors %}{{ error }}{% endfor %}</div>
                                         {% endif %}
                                         <div class="form-text">{% trans "Featured campaigns appear prominently in the listings." %}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Donation Settings Section -->
+                        <div class="card mt-4 border-primary">
+                            <div class="card-header bg-light">
+                                <h5 class="card-title mb-0 text-primary">
+                                    <i class="fas fa-donate me-2"></i>
+                                    {% trans "Donation Settings" %}
+                                </h5>
+                                <small class="text-muted">{% trans "Configure donation options for this campaign" %}</small>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <!-- Allow Donations Toggle -->
+                                    <div class="col-12">
+                                        <div class="d-flex align-items-center justify-content-between p-3 border rounded bg-light">
+                                            <div>
+                                                <label for="{{ form.allow_donations.id_for_label }}" class="form-label fw-bold mb-1">
+                                                    {% trans "Enable Donations" %}
+                                                </label>
+                                                <p class="text-muted small mb-0">{% trans "Allow users to make donations to this campaign" %}</p>
+                                            </div>
+                                            <div class="form-check form-switch">
+                                                <input type="checkbox" name="allow_donations" id="{{ form.allow_donations.id_for_label }}" class="form-check-input" onchange="toggleGCash()">
+                                                <label for="{{ form.allow_donations.id_for_label }}" class="form-check-label"></label>
+                                            </div>
+                                        </div>
+                                        {% if form.allow_donations.errors %}
+                                            <div class="invalid-feedback d-block mt-2">
+                                                {% for error in form.allow_donations.errors %}
+                                                    {{ error }}
+                                                {% endfor %}
+                                            </div>
+                                        {% endif %}
+                                    </div>
+                                    
+                                    <!-- GCash Account Selection -->
+                                    <div class="col-12" id="gcash-section">
+                                        <div class="p-3 border rounded" id="gcash-container">
+                                            <label for="{{ form.gcash_config.id_for_label }}" class="form-label fw-bold">
+                                                <i class="fas fa-mobile-alt me-2 text-success"></i>
+                                                {% trans "GCash Account" %}
+                                                <span class="text-danger">*</span>
+                                            </label>
+                                            {{ form.gcash_config }}
+                                            {% if form.gcash_config.errors %}
+                                                <div class="invalid-feedback d-block mt-2">
+                                                    {% for error in form.gcash_config.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                            <div class="form-text mt-2">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                {% trans "Select which GCash account will receive donations for this campaign" %}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -185,11 +303,15 @@
 
 {% block extra_js %}
 {{ block.super }}
-<script src="{% static 'js/flatpickr.min.js' %}"></script>
 <script>
   document.addEventListener('DOMContentLoaded', function() {
-    flatpickr("#{{ form.start_date.id_for_label }}", { enableTime: true, dateFormat: "Y-m-d H:i" });
-    flatpickr("#{{ form.end_date.id_for_label }}", { enableTime: true, dateFormat: "Y-m-d H:i" });
+    // Initialize date pickers if flatpickr is available
+    if (typeof flatpickr !== 'undefined') {
+      flatpickr("#{{ form.start_date.id_for_label }}", { enableTime: true, dateFormat: "Y-m-d H:i" });
+      flatpickr("#{{ form.end_date.id_for_label }}", { enableTime: true, dateFormat: "Y-m-d H:i" });
+    }
+    
+    // Initialize rich text editor if available
     if (typeof ClassicEditor !== 'undefined') {
       ClassicEditor.create(document.querySelector('#{{ form.description.id_for_label }}')).catch(console.error);
     }

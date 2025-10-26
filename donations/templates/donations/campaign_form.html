@@ -181,7 +181,7 @@
                         </div>
                         
                         <div class="row mb-4">
-                            <div class="col-md-6">
+                            <div class="col-md-4">
                                 <div class="mb-3">
                                     <label for="{{ form.status.id_for_label }}" class="form-label">
                                         {% trans "Campaign Status" %} <span class="text-danger">*</span>
@@ -196,7 +196,25 @@
                                     {% endif %}
                                 </div>
                             </div>
-                            <div class="col-md-6">
+                            <div class="col-md-4">
+                                <div class="mb-3">
+                                    <label for="{{ form.visibility.id_for_label }}" class="form-label">
+                                        {% trans "Visibility" %} <span class="text-danger">*</span>
+                                    </label>
+                                    {{ form.visibility }}
+                                    {% if form.visibility.errors %}
+                                        <div class="invalid-feedback d-block">
+                                            {% for error in form.visibility.errors %}
+                                                {{ error }}
+                                            {% endfor %}
+                                        </div>
+                                    {% endif %}
+                                    <div class="form-text">
+                                        {% trans "Choose who can see this campaign." %}
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
                                 <div class="mb-3 mt-4">
                                     <div class="form-check">
                                         {{ form.is_featured }}
@@ -212,6 +230,58 @@
                                         {% endif %}
                                         <div class="form-text">
                                             {% trans "Featured campaigns appear prominently in the listings." %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Donation Settings Section -->
+                        <div class="card mt-4">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">
+                                    <i class="fas fa-donate me-2"></i>
+                                    {% trans "Donation Settings" %}
+                                </h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="mb-3">
+                                            <div class="form-check form-switch">
+                                                {{ form.allow_donations }}
+                                                <label for="{{ form.allow_donations.id_for_label }}" class="form-check-label">
+                                                    <strong>{% trans "Allow Donations" %}</strong>
+                                                </label>
+                                                {% if form.allow_donations.errors %}
+                                                    <div class="invalid-feedback d-block">
+                                                        {% for error in form.allow_donations.errors %}
+                                                            {{ error }}
+                                                        {% endfor %}
+                                                    </div>
+                                                {% endif %}
+                                                <div class="form-text">
+                                                    {% trans "Enable donations for this campaign" %}
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="mb-3" id="gcash-config-field" style="display: none;">
+                                            <label for="{{ form.gcash_config.id_for_label }}" class="form-label">
+                                                <strong>{% trans "GCash Account" %} <span class="text-danger">*</span></strong>
+                                            </label>
+                                            {{ form.gcash_config }}
+                                            {% if form.gcash_config.errors %}
+                                                <div class="invalid-feedback d-block">
+                                                    {% for error in form.gcash_config.errors %}
+                                                        {{ error }}
+                                                    {% endfor %}
+                                                </div>
+                                            {% endif %}
+                                            <div class="form-text">
+                                                {% trans "Select which GCash account will receive donations" %}
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -262,6 +332,28 @@
                         console.error(error);
                     });
             }
+            
+            // Handle donation toggle
+            const allowDonationsToggle = document.getElementById('{{ form.allow_donations.id_for_label }}');
+            const gcashConfigField = document.getElementById('gcash-config-field');
+            const gcashConfigSelect = document.getElementById('{{ form.gcash_config.id_for_label }}');
+            
+            function toggleGCashField() {
+                if (allowDonationsToggle.checked) {
+                    gcashConfigField.style.display = 'block';
+                    gcashConfigSelect.required = true;
+                } else {
+                    gcashConfigField.style.display = 'none';
+                    gcashConfigSelect.required = false;
+                    gcashConfigSelect.value = '';
+                }
+            }
+            
+            // Initialize on page load
+            toggleGCashField();
+            
+            // Listen for changes
+            allowDonationsToggle.addEventListener('change', toggleGCashField);
         });
     </script>
 {% endblock %} 

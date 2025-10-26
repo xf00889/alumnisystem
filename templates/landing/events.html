@@ -4,137 +4,821 @@
 
 {% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
 
-{% block page_header %}
-<div class="page-header">
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.7;
+    }
+
+    /* Hero Section */
+    .events-hero {
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.9)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        padding: 4rem 0 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .events-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="hero-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="1000" height="1000" fill="url(%23hero-pattern)"/></svg>') repeat;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .events-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .events-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .events-hero p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .events-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .events-stat {
+        text-align: center;
+    }
+
+    .events-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        color: var(--text-light);
+    }
+
+    .events-stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Events Section */
+    .events-section {
+        padding: 4rem 0;
+        background-color: var(--ui-background);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .section-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: var(--text-light);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .section-title {
+        font-size: 2.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .section-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Event/Campaign Cards */
+    .event-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .event-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .event-card.featured {
+        border: 2px solid var(--feedback-warning);
+        position: relative;
+    }
+
+    .event-card.featured::before {
+        content: 'Featured';
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        background: var(--feedback-warning);
+        color: white;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        z-index: 2;
+    }
+
+    .event-card-header {
+        padding: 1.5rem 1.5rem 0.75rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .event-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+    }
+
+    .event-type {
+        font-size: 0.95rem;
+        color: var(--primary-color);
+        font-weight: 500;
+        margin-bottom: 0.4rem;
+    }
+
+    .event-location {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .event-card-body {
+        padding: 1.25rem 1.5rem;
+        flex-grow: 1;
+    }
+
+    .event-description {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        line-height: 1.5;
+        margin-bottom: 1.25rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 3;
+        line-clamp: 3;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .event-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.25rem;
+    }
+
+    .event-meta-item {
+        background: var(--ui-hover);
+        color: var(--text-secondary);
+        padding: 0.3rem 0.6rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .campaign-progress {
+        margin-bottom: 1.25rem;
+    }
+
+    .progress-label {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+    }
+
+    .progress-label small {
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        font-weight: 500;
+    }
+
+    .progress {
+        height: 6px;
+        border-radius: var(--radius-sm);
+        background-color: var(--ui-hover);
+    }
+
+    .progress-bar {
+        background: linear-gradient(90deg, var(--feedback-success), #34d399);
+        border-radius: var(--radius-sm);
+    }
+
+    .progress-amounts {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 0.5rem;
+    }
+
+    .progress-amounts small {
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+    }
+
+    .event-card-footer {
+        padding: 0.75rem 1.5rem 1.5rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .event-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .event-date {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+
+    .btn-event {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .btn-event:hover {
+        background: var(--secondary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .btn-campaign {
+        background: var(--feedback-error);
+        color: var(--text-light);
+        border: none;
+        padding: 0.5rem 1.25rem;
+        border-radius: var(--radius-md);
+        font-weight: 600;
+        font-size: 0.8rem;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        cursor: pointer;
+    }
+
+    .btn-campaign:hover {
+        background: #c53030;
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        color: var(--text-secondary);
+    }
+
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1.5rem;
+    }
+
+    .empty-state h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+        color: var(--text-primary);
+    }
+
+    .empty-state p {
+        font-size: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Call to Action */
+    .cta-section {
+        padding: 4rem 0;
+        background: linear-gradient(rgba(43, 60, 107, 0.92), rgba(26, 37, 68, 0.96)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="cta-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="1000" height="1000" fill="url(%23cta-pattern)"/></svg>') repeat;
+        pointer-events: none;
+    }
+
+    .cta-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .cta-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .cta-text {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-cta {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 50px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cta-primary {
+        background: linear-gradient(135deg, var(--ui-surface) 0%, #f0f4f8 100%);
+        color: var(--primary-color);
+        border: 2px solid var(--ui-surface);
+    }
+
+    .btn-cta-primary:hover {
+        background: linear-gradient(135deg, #ffffff 0%, var(--ui-surface) 100%);
+        color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-cta-outline {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: var(--text-light);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-cta-outline:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    /* Pagination */
+    .pagination {
+        justify-content: center;
+        margin-top: 3rem;
+    }
+
+    .pagination .page-link {
+        color: var(--primary-color);
+        border-color: var(--ui-border);
+        padding: 0.75rem 1rem;
+        font-weight: 500;
+    }
+
+    .pagination .page-item.active .page-link {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .pagination .page-link:hover {
+        color: var(--primary-color);
+        background-color: var(--ui-hover);
+        border-color: var(--ui-border);
+    }
+
+    /* Feedback Form Styles */
+    .feedback-section {
+        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+    }
+    
+    .feedback-form-container {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: 2rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .feedback-form .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .feedback-form .form-control,
+    .feedback-form .form-select {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    
+    .feedback-form .form-control:focus,
+    .feedback-form .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    }
+    
+    .feedback-form .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    
+    .feedback-form .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.3);
+    }
+    
+    .feedback-form .form-text {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    /* reCAPTCHA styling */
+    .feedback-form .g-recaptcha {
+        margin: 1rem 0;
+    }
+    
+    .feedback-form .g-recaptcha > div {
+        margin: 0 auto;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .events-hero {
+            padding: 3rem 0 1.5rem;
+        }
+
+        .events-hero h1 {
+            font-size: 2rem;
+        }
+
+        .events-hero p {
+            font-size: 0.9rem;
+        }
+
+        .events-stats {
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .event-card-header,
+        .event-card-body,
+        .event-card-footer {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .cta-title {
+            font-size: 1.8rem;
+        }
+
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .events-hero {
+            padding: 2.5rem 0 1rem;
+        }
+
+        .events-hero h1 {
+            font-size: 1.8rem;
+        }
+
+        .events-hero p {
+            font-size: 0.85rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="events-hero">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h1 class="page-title">{{ page_title }}</h1>
-                <p class="page-subtitle">{{ page_subtitle }}</p>
+        <div class="events-hero-content">
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_subtitle }}</p>
+            <div class="events-stats">
+                <div class="events-stat">
+                    <div class="events-stat-number">{{ items.paginator.count }}</div>
+                    <div class="events-stat-label">Total Items</div>
             </div>
-            <div class="col-lg-4 text-lg-end">
-                <div class="header-stats">
-                    <div class="stat-item">
-                        <span class="stat-number">{{ events.paginator.count }}</span>
-                        <span class="stat-label">Upcoming Events</span>
+                <div class="events-stat">
+                    <div class="events-stat-number">{{ items|length }}</div>
+                    <div class="events-stat-label">This Page</div>
                     </div>
+                <div class="events-stat">
+                    <div class="events-stat-number">{% if items %}{{ items.number }}{% else %}0{% endif %}</div>
+                    <div class="events-stat-label">Current Page</div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock page_header %}
+</section>
 
-{% block content %}
-<div class="container py-4">
-    {% if events %}
+<!-- Events Section -->
+<section class="events-section">
+    <div class="container">
+        {% if items %}
+            <div class="section-header">
+                <div class="section-badge">Community Events & Campaigns</div>
+                <h2 class="section-title">Discover What's Happening</h2>
+                <p class="section-subtitle">Join our community events and support meaningful fundraising campaigns</p>
+</div>
+
         <div class="row g-4">
-            {% for event in events %}
+                {% for item in items %}
             <div class="col-lg-4 col-md-6">
-                <div class="content-card h-100">
-                    {% if event.image %}
+                    <div class="event-card {% if item.item.is_featured %}featured{% endif %}">
+                        {% if item.image %}
                     <div class="card-image">
-                        <img src="{{ event.image.url }}" alt="{{ event.title }}" class="img-fluid" style="width: 100%; height: 200px; object-fit: cover;">
+                            <img src="{{ item.image.url }}" alt="{{ item.title }}" class="img-fluid" style="width: 100%; height: 200px; object-fit: cover;">
                     </div>
                     {% endif %}
-                    <div class="card-body">
-                        <div class="event-meta mb-3">
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-calendar-alt text-primary me-2"></i>
-                                <span class="text-muted">{{ event.start_date|date:"M d, Y" }}</span>
-                            </div>
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-clock text-primary me-2"></i>
-                                <span class="text-muted">{{ event.start_date|time:"g:i A" }}</span>
-                            </div>
-                            {% if event.location %}
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-map-marker-alt text-primary me-2"></i>
-                                <span class="text-muted">{{ event.location }}</span>
-                            </div>
-                            {% endif %}
-                            {% if event.is_virtual %}
-                            <div class="d-flex align-items-center mb-2">
-                                <i class="fas fa-video text-success me-2"></i>
-                                <span class="badge bg-success">Virtual Event</span>
-                            </div>
-                            {% endif %}
-                        </div>
                         
-                        <h5 class="card-title">{{ event.title }}</h5>
-                        <p class="card-text">{{ event.description|striptags|truncatewords:20 }}</p>
-                        
-                        {% if event.max_participants %}
-                        <div class="event-capacity mb-3">
-                            <small class="text-muted">
-                                <i class="fas fa-users me-1"></i>
-                                Max Participants: {{ event.max_participants }}
-                            </small>
-                        </div>
-                        {% endif %}
-                        
-                        <div class="d-flex justify-content-between align-items-center">
-                            <span class="badge bg-primary">{{ event.get_status_display }}</span>
-                            <small class="text-muted">
-                                {% if event.is_past_event %}
-                                    <i class="fas fa-check-circle text-success me-1"></i>Completed
-                                {% elif event.is_ongoing %}
-                                    <i class="fas fa-play-circle text-warning me-1"></i>Ongoing
-                                {% else %}
-                                    <i class="fas fa-clock text-info me-1"></i>Upcoming
+                        <div class="event-card-header">
+                            <h3 class="event-title">{{ item.title }}</h3>
+                            <div class="event-type">
+                                {% if item.type == 'event' %}
+                                    <i class="fas fa-calendar-alt me-1"></i>Event
+                                {% elif item.type == 'campaign' %}
+                                    <i class="fas fa-heart me-1"></i>Fundraising Campaign
                                 {% endif %}
-                            </small>
+                            </div>
+                            <div class="event-location">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                {{ item.date|date:"M d, Y" }}
+                                {% if item.type == 'event' %}
+                                    at {{ item.date|time:"g:i A" }}
+                                {% endif %}
+                            </div>
+                            {% if item.type == 'event' and item.location %}
+                            <div class="event-location">
+                                <i class="fas fa-map-marker-alt me-1"></i>
+                                {{ item.location }}
+                            </div>
+                            {% endif %}
                         </div>
+                        
+                        <div class="event-card-body">
+                            <div class="event-description">
+                                {{ item.description|striptags|truncatewords:25 }}
+                            </div>
+                            
+                            <div class="event-meta">
+                                {% if item.type == 'event' %}
+                                    <span class="event-meta-item">{{ item.item.get_status_display }}</span>
+                                    {% if item.is_virtual %}
+                                        <span class="event-meta-item">Virtual</span>
+                                    {% endif %}
+                                    {% if item.item.max_participants %}
+                                        <span class="event-meta-item">Max {{ item.item.max_participants }}</span>
+                                    {% endif %}
+                                {% elif item.type == 'campaign' %}
+                                    <span class="event-meta-item">{{ item.item.get_status_display }}</span>
+                                    <span class="event-meta-item">Active Campaign</span>
+                                {% endif %}
+                            </div>
+
+                            {% if item.type == 'campaign' %}
+                            <div class="campaign-progress">
+                                <div class="progress-label">
+                                    <small>Progress</small>
+                                    <small>{{ item.progress_percentage }}%</small>
+                                </div>
+                                <div class="progress">
+                                    <div class="progress-bar" role="progressbar" data-width="{{ item.progress_percentage }}"></div>
+                                </div>
+                                <div class="progress-amounts">
+                                    <small>₱{{ item.current_amount|floatformat:0 }}</small>
+                                    <small>₱{{ item.goal_amount|floatformat:0 }}</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="event-card-footer">
+                            <div class="event-actions">
+                                <div class="event-date">
+                                    <i class="fas fa-clock me-1"></i>
+                                    {% if item.type == 'event' %}
+                                        {% if item.item.is_past_event %}
+                                            Completed
+                                        {% elif item.item.is_ongoing %}
+                                            Ongoing
+                                        {% else %}
+                                            Upcoming
+                                        {% endif %}
+                                    {% elif item.type == 'campaign' %}
+                                        Active Campaign
+                                    {% endif %}
+                        </div>
+                                {% if item.type == 'event' %}
+                                <button type="button" class="btn-event" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#eventModal"
+                                    data-event-title="{{ item.title }}"
+                                    data-event-description="{{ item.description|striptags }}"
+                                    data-event-date="{{ item.date|date:'M d, Y' }}"
+                                    data-event-time="{{ item.date|time:'g:i A' }}"
+                                    data-event-location="{{ item.location }}"
+                                    data-event-status="{{ item.item.get_status_display }}"
+                                    data-event-url="{{ item.url }}"
+                                    {% if item.image %}data-event-image="{{ item.image.url }}"{% endif %}>
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Details
+                                </button>
+                                {% elif item.type == 'campaign' %}
+                                <button type="button" class="btn-campaign" 
+                                    data-bs-toggle="modal" 
+                                    data-bs-target="#campaignModal"
+                                    data-campaign-title="{{ item.title }}"
+                                    data-campaign-description="{{ item.description|striptags }}"
+                                    data-campaign-goal="{{ item.goal_amount|floatformat:0 }}"
+                                    data-campaign-current="{{ item.current_amount|floatformat:0 }}"
+                                    data-campaign-progress="{{ item.progress_percentage }}"
+                                    data-campaign-status="{{ item.item.get_status_display }}"
+                                    data-campaign-date="{{ item.date|date:'M d, Y' }}"
+                                    data-campaign-url="{{ item.url }}"
+                                    {% if item.image %}data-campaign-image="{{ item.image.url }}"{% endif %}>
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Details
+                                </button>
+                                {% endif %}
                     </div>
-                    <div class="card-footer bg-transparent">
-                        <div class="d-grid">
-                            <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
-                                <i class="fas fa-sign-in-alt me-1"></i>Login to View Details
-                            </a>
                         </div>
                     </div>
                 </div>
-            </div>
-            {% endfor %}
+                {% endfor %}
         </div>
         
         <!-- Pagination -->
-        {% if events.has_other_pages %}
-        <nav aria-label="Events pagination" class="mt-5">
-            <ul class="pagination justify-content-center">
-                {% if events.has_previous %}
+            {% if items.has_other_pages %}
+            <nav aria-label="Events & Campaigns pagination">
+                <ul class="pagination">
+                    {% if items.has_previous %}
                     <li class="page-item">
                         <a class="page-link" href="?page=1" aria-label="First">
                             <span aria-hidden="true">&laquo;&laquo;</span>
                         </a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ events.previous_page_number }}" aria-label="Previous">
+                            <a class="page-link" href="?page={{ items.previous_page_number }}" aria-label="Previous">
                             <span aria-hidden="true">&laquo;</span>
                         </a>
                     </li>
                 {% endif %}
                 
-                {% for num in events.paginator.page_range %}
-                    {% if events.number == num %}
+                    {% for num in items.paginator.page_range %}
+                        {% if items.number == num %}
                         <li class="page-item active">
                             <span class="page-link">{{ num }}</span>
                         </li>
-                    {% elif num > events.number|add:'-3' and num < events.number|add:'3' %}
+                        {% elif num > items.number|add:'-3' and num < items.number|add:'3' %}
                         <li class="page-item">
                             <a class="page-link" href="?page={{ num }}">{{ num }}</a>
                         </li>
                     {% endif %}
                 {% endfor %}
                 
-                {% if events.has_next %}
+                    {% if items.has_next %}
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ events.next_page_number }}" aria-label="Next">
+                            <a class="page-link" href="?page={{ items.next_page_number }}" aria-label="Next">
                             <span aria-hidden="true">&raquo;</span>
                         </a>
                     </li>
                     <li class="page-item">
-                        <a class="page-link" href="?page={{ events.paginator.num_pages }}" aria-label="Last">
+                            <a class="page-link" href="?page={{ items.paginator.num_pages }}" aria-label="Last">
                             <span aria-hidden="true">&raquo;&raquo;</span>
                         </a>
                     </li>
@@ -144,98 +828,368 @@
         {% endif %}
         
     {% else %}
-        <!-- No Events -->
-        <div class="row">
-            <div class="col-12">
-                <div class="text-center py-5">
-                    <i class="fas fa-calendar-times fa-4x text-muted mb-4"></i>
-                    <h3 class="text-muted">No Upcoming Events</h3>
-                    <p class="text-muted">Check back soon for exciting events and activities!</p>
-                    <a href="{% url 'core:home' %}" class="btn btn-primary mt-3">
+            <!-- Empty State -->
+            <div class="empty-state">
+                <i class="fas fa-calendar-times"></i>
+                <h3>No Events or Campaigns</h3>
+                <p>Check back soon for exciting events and fundraising campaigns!</p>
+                <a href="{% url 'core:home' %}" class="btn btn-primary">
                         <i class="fas fa-home me-1"></i>Back to Home
                     </a>
+            </div>
+        {% endif %}
+        </div>
+</section>
+
+<!-- Feedback Section -->
+{% if feedback_form %}
+<section class="feedback-section" style="padding: 4rem 0; background-color: var(--ui-background);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="section-header text-center mb-4">
+                    <div class="section-badge">Share Your Thoughts</div>
+                    <h2 class="section-title">Feedback & Suggestions</h2>
+                    <p class="section-subtitle">Help us improve our events and campaigns by sharing your feedback</p>
+                </div>
+                
+                <div class="feedback-form-container">
+                    <form method="post" enctype="multipart/form-data" class="feedback-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="feedback_submit" value="1">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ feedback_form.category.id_for_label }}" class="form-label">Category</label>
+                                {{ feedback_form.category }}
+                                {% if feedback_form.category.errors %}
+                                    <div class="text-danger small">{{ feedback_form.category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ feedback_form.priority.id_for_label }}" class="form-label">Priority</label>
+                                {{ feedback_form.priority }}
+                                {% if feedback_form.priority.errors %}
+                                    <div class="text-danger small">{{ feedback_form.priority.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ feedback_form.subject.id_for_label }}" class="form-label">Subject</label>
+                            {{ feedback_form.subject }}
+                            {% if feedback_form.subject.errors %}
+                                <div class="text-danger small">{{ feedback_form.subject.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ feedback_form.message.id_for_label }}" class="form-label">Message</label>
+                            {{ feedback_form.message }}
+                            {% if feedback_form.message.errors %}
+                                <div class="text-danger small">{{ feedback_form.message.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ feedback_form.attachment.id_for_label }}" class="form-label">Attachment (Optional)</label>
+                            {{ feedback_form.attachment }}
+                            {% if feedback_form.attachment.errors %}
+                                <div class="text-danger small">{{ feedback_form.attachment.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG (max 5MB)</div>
+                        </div>
+                        
+                        {% if feedback_form.captcha %}
+                        <div class="mb-3">
+                            <label class="form-label">Security Verification</label>
+                            {{ feedback_form.captcha }}
+                            {% if feedback_form.captcha.errors %}
+                                <div class="text-danger small">{{ feedback_form.captcha.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Submit Feedback
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-    {% endif %}
-    
-    <!-- Call to Action -->
-    <div class="row mt-5">
-        <div class="col-12">
-            <div class="content-card text-center">
-                <div class="card-body py-5">
-                    <h3 class="mb-3">Want to Stay Updated?</h3>
-                    <p class="text-muted mb-4">Join our alumni network to receive event notifications and connect with fellow alumni.</p>
-                    <div class="d-flex gap-3 justify-content-center">
-                        <a href="{% url 'account_login' %}" class="btn btn-primary">
-                            <i class="fas fa-user-plus me-1"></i>Sign Up Now
-                        </a>
-                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary">
-                            <i class="fas fa-sign-in-alt me-1"></i>Login
-                        </a>
+    </div>
+</section>
+{% endif %}
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="cta-title">Ready to Join Our Community?</h2>
+            <p class="cta-text">Join the NORSU alumni network to access exclusive events, fundraising campaigns, and networking opportunities.</p>
+            <div class="cta-buttons">
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-primary">
+                    <i class="fas fa-user-plus"></i>
+                    Join the Network
+                </a>
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-outline">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Member Login
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Campaign Details Modal -->
+<div class="modal fade" id="campaignModal" tabindex="-1" aria-labelledby="campaignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="campaignModalLabel">Campaign Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="campaignImageContainer" class="mb-3" style="display: none;">
+                    <img id="campaignImage" src="" alt="Campaign" class="img-fluid rounded" style="width: 200px; height: 200px; object-fit: cover; border-radius: 8px; display: block; margin: 0 auto;">
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-success me-2" id="campaignStatus"></span>
+                        <small class="text-muted" id="campaignDate"></small>
                     </div>
                 </div>
+                <h4 class="mb-3 fw-bold text-dark" id="campaignTitle"></h4>
+                <p class="text-muted mb-4 lh-base" id="campaignDescription"></p>
+                
+                <div class="campaign-progress-modal mb-4 p-3 bg-light rounded">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="fw-bold text-dark">Progress</small>
+                        <small class="fw-bold text-success" id="campaignProgress"></small>
+                    </div>
+                    <div class="progress mb-3" style="height: 12px; border-radius: 6px;">
+                        <div class="progress-bar bg-success" role="progressbar" id="campaignProgressBar" style="width: 0%; border-radius: 6px;"></div>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="text-center">
+                                <small class="text-muted d-block">Raised</small>
+                                <strong class="text-success fs-6" id="campaignCurrent">₱0</strong>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="text-center">
+                                <small class="text-muted d-block">Goal</small>
+                                <strong class="text-dark fs-6" id="campaignGoal">₱0</strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-success">
+                    <i class="fas fa-hand-holding-heart me-2"></i>
+                    <strong>Ready to contribute?</strong> Click "Donate Now" to support this campaign. No login required!
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Close
+                </button>
+                <a href="javascript:void(0)" id="campaignDonateLink" class="btn btn-danger px-4">
+                    <i class="fas fa-heart me-2"></i>Donate Now
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Event Details Modal -->
+<div class="modal fade" id="eventModal" tabindex="-1" aria-labelledby="eventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="eventModalLabel">Event Details</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="eventImageContainer" class="mb-3" style="display: none;">
+                    <img id="eventImage" src="" alt="Event" class="img-fluid rounded" style="width: 200px; height: 200px; object-fit: cover; border-radius: 8px; display: block; margin: 0 auto;">
+                </div>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <div>
+                        <span class="badge bg-primary me-2" id="eventStatus"></span>
+                        <small class="text-muted" id="eventDate"></small>
+                    </div>
+                </div>
+                <h4 class="mb-3 fw-bold text-dark" id="eventTitle"></h4>
+                <p class="text-muted mb-4 lh-base" id="eventDescription"></p>
+                
+                <div class="event-details mb-4 p-3 bg-light rounded">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-calendar-alt me-3 text-primary fs-5"></i>
+                                <div>
+                                    <small class="text-muted d-block">Date</small>
+                                    <div class="fw-bold text-dark" id="eventDateDetail"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-clock me-3 text-primary fs-5"></i>
+                                <div>
+                                    <small class="text-muted d-block">Time</small>
+                                    <div class="fw-bold text-dark" id="eventTimeDetail"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="eventLocationRow" style="display: none;">
+                        <div class="col-12">
+                            <div class="d-flex align-items-center">
+                                <i class="fas fa-map-marker-alt me-3 text-primary fs-5"></i>
+                                <div>
+                                    <small class="text-muted d-block">Location</small>
+                                    <div class="fw-bold text-dark" id="eventLocationDetail"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="alert alert-info">
+                    <i class="fas fa-info-circle me-2"></i>
+                    <strong>Want to participate?</strong> Login to join this event and connect with fellow alumni.
+                </div>
+            </div>
+            <div class="modal-footer border-0 pt-0">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-1"></i>Close
+                </button>
+                <a href="{% url 'account_login' %}" class="btn btn-primary px-4">
+                    <i class="fas fa-sign-in-alt me-2"></i>Login to Join
+                </a>
             </div>
         </div>
     </div>
 </div>
 {% endblock content %}
 
-{% block extra_css %}
-<style>
-    .header-stats .stat-item {
-        text-align: center;
-        padding: 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        border-radius: var(--radius-md);
-    }
+{% block extra_js %}
+<!-- reCAPTCHA Script -->
+{% if feedback_form and feedback_form.captcha %}
+<script src="https://www.google.com/recaptcha/api.js?render={{ feedback_form.captcha.widget.attrs.data_site_key|default:'' }}"></script>
+{% endif %}
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Set progress bar widths
+    document.querySelectorAll('.progress-bar[data-width]').forEach(function(bar) {
+        const width = bar.getAttribute('data-width');
+        bar.style.width = width + '%';
+    });
     
-    .header-stats .stat-number {
-        display: block;
-        font-size: 2rem;
-        font-weight: 600;
-        color: var(--text-light);
-        margin-bottom: 0.25rem;
-    }
+    // Campaign Modal
+    const campaignModal = document.getElementById('campaignModal');
     
-    .header-stats .stat-label {
-        font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.8);
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
+    campaignModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        
+        // Extract data from button attributes
+        const title = button.getAttribute('data-campaign-title');
+        const description = button.getAttribute('data-campaign-description');
+        const goal = button.getAttribute('data-campaign-goal');
+        const current = button.getAttribute('data-campaign-current');
+        const progress = button.getAttribute('data-campaign-progress');
+        const status = button.getAttribute('data-campaign-status');
+        const date = button.getAttribute('data-campaign-date');
+        const url = button.getAttribute('data-campaign-url');
+        const image = button.getAttribute('data-campaign-image');
+        
+        // Update modal content
+        document.getElementById('campaignTitle').textContent = title;
+        document.getElementById('campaignDescription').textContent = description;
+        document.getElementById('campaignGoal').textContent = '₱' + goal;
+        document.getElementById('campaignCurrent').textContent = '₱' + current;
+        document.getElementById('campaignProgress').textContent = progress + '%';
+        document.getElementById('campaignStatus').textContent = status;
+        document.getElementById('campaignDate').innerHTML = '<i class="fas fa-calendar-alt me-1"></i>' + date;
+        document.getElementById('campaignProgressBar').style.width = progress + '%';
+        
+        // Set the donate link URL
+        const donateLink = document.getElementById('campaignDonateLink');
+        if (url) {
+            donateLink.href = url;
+        } else {
+            donateLink.href = 'javascript:void(0)';
+        }
+        
+        // Handle campaign image
+        if (image) {
+            document.getElementById('campaignImage').src = image;
+            document.getElementById('campaignImageContainer').style.display = 'block';
+        } else {
+            document.getElementById('campaignImageContainer').style.display = 'none';
+        }
+    });
     
-    .event-meta {
-        border-bottom: 1px solid var(--ui-border);
-        padding-bottom: 1rem;
-    }
+    // Event Modal
+    const eventModal = document.getElementById('eventModal');
     
-    .card-image {
-        position: relative;
-        overflow: hidden;
-    }
+    eventModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        
+        // Extract data from button attributes
+        const title = button.getAttribute('data-event-title');
+        const description = button.getAttribute('data-event-description');
+        const date = button.getAttribute('data-event-date');
+        const time = button.getAttribute('data-event-time');
+        const location = button.getAttribute('data-event-location');
+        const status = button.getAttribute('data-event-status');
+        const image = button.getAttribute('data-event-image');
+        
+        // Update modal content
+        document.getElementById('eventTitle').textContent = title;
+        document.getElementById('eventDescription').textContent = description;
+        document.getElementById('eventDate').innerHTML = '<i class="fas fa-calendar-alt me-1"></i>' + date;
+        document.getElementById('eventDateDetail').textContent = date;
+        document.getElementById('eventTimeDetail').textContent = time;
+        document.getElementById('eventStatus').textContent = status;
+        
+        // Handle location
+        if (location && location.trim() !== '') {
+            document.getElementById('eventLocationDetail').textContent = location;
+            document.getElementById('eventLocationRow').style.display = 'block';
+        } else {
+            document.getElementById('eventLocationRow').style.display = 'none';
+        }
+        
+        // Handle event image
+        if (image) {
+            document.getElementById('eventImage').src = image;
+            document.getElementById('eventImageContainer').style.display = 'block';
+        } else {
+            document.getElementById('eventImageContainer').style.display = 'none';
+        }
+    });
     
-    .card-image img {
-        transition: transform 0.3s ease;
-    }
+    // reCAPTCHA callbacks
+    window.onRecaptchaSuccess = function(token) {
+        console.log('reCAPTCHA verification successful');
+    };
     
-    .content-card:hover .card-image img {
-        transform: scale(1.05);
-    }
+    window.onRecaptchaExpired = function() {
+        console.log('reCAPTCHA token expired');
+    };
     
-    .pagination .page-link {
-        color: var(--primary-color);
-        border-color: var(--ui-border);
-    }
+    window.onRecaptchaError = function() {
+        console.log('reCAPTCHA error occurred');
+    };
     
-    .pagination .page-item.active .page-link {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    
-    .pagination .page-link:hover {
-        color: var(--primary-dark);
-        background-color: var(--ui-hover);
-    }
-</style>
-{% endblock extra_css %}
+});
+</script>
+{% endblock extra_js %}

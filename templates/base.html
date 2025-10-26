@@ -596,7 +596,7 @@
                     <a class="nav-link {% if request.resolver_match.url_name == 'job_scraper' %}active{% endif %}"
                        href="{% url 'jobs:job_scraper' %}">
                         <i class="fas fa-search"></i>
-                        <span>Job Scraper</span>
+                        <span>Quick Job Search</span>
                     </a>
                 </div>
             </li>
@@ -608,10 +608,10 @@
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
                 <div class="nav-group collapse show" id="donations">
-                    <a class="nav-link {% if request.resolver_match.app_name == 'donations' and request.resolver_match.url_name == 'dashboard' %}active{% endif %}"
-                       href="{% url 'donations:dashboard' %}">
-                        <i class="fas fa-tachometer-alt"></i>
-                        <span>Donations Dashboard</span>
+                    <a class="nav-link {% if request.resolver_match.app_name == 'donations' and request.resolver_match.url_name == 'verification_dashboard' %}active{% endif %}"
+                       href="{% url 'donations:verification_dashboard' %}">
+                        <i class="fas fa-check-circle"></i>
+                        <span>Donation Verification</span>
                     </a>
                     <a class="nav-link {% if request.resolver_match.app_name == 'donations' and request.resolver_match.url_name == 'manage_campaigns' %}active{% endif %}"
                        href="{% url 'donations:manage_campaigns' %}">
@@ -1127,18 +1127,38 @@
                         <div class="footer-section">
                             <h5 class="footer-title">Stay Connected</h5>
                             <div class="contact-info">
-                                <div class="contact-item">
-                                    <i class="fas fa-map-marker-alt"></i>
-                                    <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
-                                </div>
-                                <div class="contact-item">
-                                    <i class="fas fa-envelope"></i>
-                                    <span>alumni@norsu.edu.ph</span>
-                                </div>
-                                <div class="contact-item">
-                                    <i class="fas fa-phone"></i>
-                                    <span>+63 35 422 6002</span>
-                                </div>
+                                {% load cms_tags %}
+                                {% get_contact_info as cms_contact_info %}
+                                {% if cms_contact_info %}
+                                    {% for info in cms_contact_info %}
+                                        {% if info.contact_type == 'address' or info.contact_type == 'email' or info.contact_type == 'phone' %}
+                                        <div class="contact-item">
+                                            {% if info.contact_type == 'address' %}
+                                                <i class="fas fa-map-marker-alt"></i>
+                                            {% elif info.contact_type == 'email' %}
+                                                <i class="fas fa-envelope"></i>
+                                            {% elif info.contact_type == 'phone' %}
+                                                <i class="fas fa-phone"></i>
+                                            {% endif %}
+                                            <span>{{ info.value|linebreaksbr }}</span>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Fallback contact information -->
+                                    <div class="contact-item">
+                                        <i class="fas fa-map-marker-alt"></i>
+                                        <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-envelope"></i>
+                                        <span>alumni@norsu.edu.ph</span>
+                                    </div>
+                                    <div class="contact-item">
+                                        <i class="fas fa-phone"></i>
+                                        <span>+63 35 422 6002</span>
+                                    </div>
+                                {% endif %}
                             </div>
                             <div class="social-section">
                                 <h6 class="social-title">Follow Us</h6>

@@ -342,7 +342,7 @@ def profile_update(request):
                                             title=doc.title,
                                             document_type=document_type_mapping.get(doc.document_type, 'OTHER'),
                                             file=doc.file,
-                                            description=doc.description,
+                                            description='',  # Document model doesn't have description, so use empty string
                                             is_verified=False
                                         )
                                     except Alumni.DoesNotExist:
@@ -351,7 +351,11 @@ def profile_update(request):
                     return JsonResponse({'status': 'success'})
 
                 except Exception as e:
-                    return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+                    logger.error(f"Error saving profile: {str(e)}")
+                    return JsonResponse({
+                        'status': 'error', 
+                        'message': f'An error occurred while saving your profile: {str(e)}'
+                    }, status=500)
             else:
                 errors = {}
                 # Handle form errors
@@ -384,7 +388,11 @@ def profile_update(request):
                 }, status=400)
                 
         except Exception as e:
-            return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+            logger.error(f"Error processing profile update request: {str(e)}")
+            return JsonResponse({
+                'status': 'error', 
+                'message': f'An error occurred while processing your request: {str(e)}'
+            }, status=500)
 
     else:  # GET request
         user_form = UserUpdateForm(instance=request.user)

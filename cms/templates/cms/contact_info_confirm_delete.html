@@ -1,0 +1,124 @@
+{% extends "cms/base_cms.html" %}
+{% load static %}
+
+{% block title %}Delete Contact Information - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% csrf_token %}
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Delete Contact Information</h1>
+        <p class="directory-subtitle">Confirm deletion of contact information</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:contact_info_list' %}">Contact Information</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Delete</li>
+        </ol>
+    </nav>
+
+    <!-- Confirmation Card -->
+    <div class="list-card">
+        <div class="list-header">
+            <div>
+                <h1><i class="fas fa-exclamation-triangle" style="color: var(--feedback-warning); margin-right: 0.5rem;"></i> Confirm Deletion</h1>
+                <p>Are you sure you want to delete this contact information?</p>
+            </div>
+        </div>
+        
+        <div class="card-grid">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title">
+                        {% if object.contact_type == 'address' %}
+                            <i class="fas fa-map-marker-alt"></i>
+                        {% elif object.contact_type == 'phone' %}
+                            <i class="fas fa-phone"></i>
+                        {% elif object.contact_type == 'email' %}
+                            <i class="fas fa-envelope"></i>
+                        {% elif object.contact_type == 'hours' %}
+                            <i class="fas fa-clock"></i>
+                        {% else %}
+                            <i class="fas fa-info-circle"></i>
+                        {% endif %}
+                        {{ object.get_contact_type_display }}
+                    </h5>
+                    <div>
+                        {% if object.is_primary %}
+                            <span class="primary-badge">Primary</span>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">{{ object.value|linebreaksbr }}</p>
+                </div>
+                <div class="card-footer">
+                    <div class="card-meta">
+                        <span><i class="fas fa-sort-numeric-up"></i> Order: {{ object.order }}</span>
+                        <span><i class="fas fa-clock"></i> {{ object.modified|timesince }} ago</span>
+                    </div>
+                    <div class="card-actions">
+                        <span class="status-badge {% if object.is_active %}active{% else %}inactive{% endif %}">
+                            {% if object.is_active %}Active{% else %}Inactive{% endif %}
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="alert alert-warning" style="margin-top: 2rem;">
+            <i class="fas fa-exclamation-triangle"></i>
+            <strong>Warning:</strong> This action cannot be undone. The contact information will be permanently deleted.
+        </div>
+        
+        <div class="d-flex justify-content-between" style="margin-top: 2rem;">
+            <a href="{% url 'cms:contact_info_list' %}" class="btn btn-secondary">
+                <i class="fas fa-arrow-left"></i> Cancel
+            </a>
+            <form method="post" style="display: inline;">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger" onclick="return confirmDelete()">
+                    <i class="fas fa-trash"></i> Delete Contact Information
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function confirmDelete() {
+    return Swal.fire({
+        title: 'Are you absolutely sure?',
+        text: 'This will permanently delete the contact information. This action cannot be undone!',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the contact information.',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            return true;
+        }
+        return false;
+    });
+}
+</script>
+{% endblock %}

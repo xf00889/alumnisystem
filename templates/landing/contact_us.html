@@ -3,42 +3,612 @@
 
 {% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
 
-{% block page_header %}
-<div class="page-header">
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.7;
+    }
+
+    /* Hero Section */
+    .contact-hero {
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.9)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        padding: 4rem 0 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .contact-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="hero-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="1000" height="1000" fill="url(%23hero-pattern)"/></svg>') repeat;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .contact-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .contact-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .contact-hero p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .contact-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .contact-stat {
+        text-align: center;
+    }
+
+    .contact-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        color: var(--text-light);
+    }
+
+    .contact-stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Contact Section */
+    .contact-section {
+        padding: 4rem 0;
+        background-color: var(--ui-background);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .section-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: var(--text-light);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .section-title {
+        font-size: 2.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .section-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Contact Cards */
+    .contact-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .contact-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .contact-card-header {
+        padding: 1.5rem 1.5rem 0.75rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .contact-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .contact-card-body {
+        padding: 1.25rem 1.5rem;
+        flex-grow: 1;
+    }
+
+    /* Contact Items */
+    .contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+    }
+
+    .contact-item:last-child {
+        border-bottom: none;
+    }
+
+    .contact-item:hover {
+        background: var(--ui-hover);
+        margin: 0 -1.5rem;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+    }
+
+    .contact-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+        font-size: 1rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .contact-details h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 0.95rem;
+    }
+
+    .contact-details p {
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.5;
+        font-size: 0.9rem;
+    }
+
+    /* Social Links */
+    .social-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+        max-width: 450px;
+        margin: 0 auto;
+    }
+
+    .social-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        justify-content: center;
+        font-size: 0.85rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .social-link.facebook {
+        background: linear-gradient(135deg, #1877f2, #0d5bb8);
+    }
+
+    .social-link.twitter {
+        background: linear-gradient(135deg, #1da1f2, #0d8bd9);
+    }
+
+    .social-link.instagram {
+        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    }
+
+    .social-link.linkedin {
+        background: linear-gradient(135deg, #0077b5, #005885);
+    }
+
+    .social-link.youtube {
+        background: linear-gradient(135deg, #ff0000, #cc0000);
+    }
+
+    .social-link:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        color: white;
+    }
+
+    /* Quick Links */
+    .quick-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .quick-links li {
+        margin-bottom: 0.5rem;
+    }
+
+    .quick-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+    }
+
+    .quick-links a:hover {
+        color: var(--primary-color);
+        background: var(--ui-hover);
+        transform: translateX(8px);
+    }
+
+    /* Form Enhancements */
+    .form-control, .form-select {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 0.6rem 0.8rem;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+        background: #fafbfc;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.3rem;
+        font-size: 0.9rem;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.9rem;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    }
+
+    /* Accordion */
+    .accordion-button {
+        font-weight: 500;
+        color: var(--text-primary);
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--ui-border);
+        margin-bottom: 0.5rem;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, rgba(43, 60, 107, 0.1), rgba(43, 60, 107, 0.05));
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.15);
+    }
+
+    .accordion-item {
+        border: none;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Call to Action */
+    .cta-section {
+        padding: 4rem 0;
+        background: linear-gradient(rgba(43, 60, 107, 0.92), rgba(26, 37, 68, 0.96)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="cta-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="1000" height="1000" fill="url(%23cta-pattern)"/></svg>') repeat;
+        pointer-events: none;
+    }
+
+    .cta-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .cta-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .cta-text {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-cta {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 50px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cta-primary {
+        background: linear-gradient(135deg, var(--ui-surface) 0%, #f0f4f8 100%);
+        color: var(--primary-color);
+        border: 2px solid var(--ui-surface);
+    }
+
+    .btn-cta-primary:hover {
+        background: linear-gradient(135deg, #ffffff 0%, var(--ui-surface) 100%);
+        color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-cta-outline {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: var(--text-light);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-cta-outline:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .contact-hero {
+            padding: 3rem 0 1.5rem;
+        }
+
+        .contact-hero h1 {
+            font-size: 2rem;
+        }
+
+        .contact-hero p {
+            font-size: 0.9rem;
+        }
+
+        .contact-stats {
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .contact-card-header,
+        .contact-card-body {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .contact-item {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .contact-icon {
+            margin: 0 auto;
+        }
+
+        .social-links {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .social-link {
+            min-width: 200px;
+            margin: 0 auto;
+        }
+
+        .quick-links a:hover {
+            transform: none;
+        }
+
+        .cta-title {
+            font-size: 1.8rem;
+        }
+
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .contact-hero {
+            padding: 2.5rem 0 1rem;
+        }
+
+        .contact-hero h1 {
+            font-size: 1.8rem;
+        }
+
+        .contact-hero p {
+            font-size: 0.85rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="contact-hero">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h1 class="page-title">{{ page_title }}</h1>
-                <p class="page-subtitle">{{ page_subtitle }}</p>
+        <div class="contact-hero-content">
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_subtitle }}</p>
+            <div class="contact-stats">
+                <div class="contact-stat">
+                    <div class="contact-stat-number">24/7</div>
+                    <div class="contact-stat-label">Support Available</div>
             </div>
-            <div class="col-lg-4 text-lg-end">
-                <div class="header-contact">
-                    <div class="contact-highlight">
-                        <i class="fas fa-phone fa-2x mb-2"></i>
-                        <div>
-                            <strong>+63 35 422 6002</strong>
-                            <br><small>Office Hours: 8AM - 5PM</small>
+                <div class="contact-stat">
+                    <div class="contact-stat-number">< 24h</div>
+                    <div class="contact-stat-label">Response Time</div>
                         </div>
-                    </div>
+                <div class="contact-stat">
+                    <div class="contact-stat-number">100%</div>
+                    <div class="contact-stat-label">Satisfaction</div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock page_header %}
+</section>
 
-{% block content %}
-<div class="container py-4">
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-badge">Get in Touch</div>
+            <h2 class="section-title">We're Here to Help</h2>
+            <p class="section-subtitle">Have questions or need assistance? We're just a message away.</p>
+</div>
+
     <!-- Contact Form and Info -->
-    <div class="row mb-5">
+        <div class="row mb-4">
         <!-- Contact Form -->
-        <div class="col-lg-8 mb-4">
-            <div class="content-card">
-                <div class="card-body p-3">
-                    <h3 class="mb-4">
-                        <i class="fas fa-envelope text-primary me-2"></i>Send us a Message
+            <div class="col-lg-6 mb-3">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-envelope"></i>Send us a Message
                     </h3>
-                    
+                    </div>
+                    <div class="contact-card-body">
                     {% if messages %}
                         {% for message in messages %}
                             <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
@@ -51,7 +621,7 @@
                     <form method="post" action="{% url 'core:contact_us_submit' %}" id="contactForm">
                         {% csrf_token %}
                         <div class="row">
-                            <div class="col-md-6 mb-3">
+                                <div class="col-md-6 mb-2">
                                 <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }} *</label>
                                 {{ form.name }}
                                 {% if form.name.errors %}
@@ -60,7 +630,7 @@
                                     </div>
                                 {% endif %}
                             </div>
-                            <div class="col-md-6 mb-3">
+                                <div class="col-md-6 mb-2">
                                 <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }} *</label>
                                 {{ form.email }}
                                 {% if form.email.errors %}
@@ -70,7 +640,7 @@
                                 {% endif %}
                             </div>
                         </div>
-                        <div class="mb-3">
+                            <div class="mb-2">
                             <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }} *</label>
                             {{ form.subject }}
                             {% if form.subject.errors %}
@@ -79,7 +649,7 @@
                                 </div>
                             {% endif %}
                         </div>
-                        <div class="mb-3">
+                            <div class="mb-2">
                             <label for="{{ form.message.id_for_label }}" class="form-label">{{ form.message.label }} *</label>
                             {{ form.message }}
                             {% if form.message.errors %}
@@ -90,7 +660,7 @@
                         </div>
                         
                         <!-- reCAPTCHA Section -->
-                        <div class="mb-4">
+                            <div class="mb-3">
                             <label class="form-label">{{ form.captcha.label }}</label>
                             {{ form.captcha }}
                             <small class="form-text text-muted">
@@ -114,16 +684,17 @@
         </div>
         
         <!-- Contact Information -->
-        <div class="col-lg-4">
-            <div class="content-card h-100">
-                <div class="card-body p-3">
-                    <h4 class="mb-4">
-                        <i class="fas fa-info-circle text-primary me-2"></i>Contact Information
-                    </h4>
-                    
+            <div class="col-lg-6">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-info-circle"></i>Contact Information
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
                     {% if contact_info %}
                         {% for info in contact_info %}
-                        <div class="contact-item mb-4">
+                            <div class="contact-item">
                             <div class="contact-icon">
                                 {% if info.contact_type == 'address' %}
                                     <i class="fas fa-map-marker-alt"></i>
@@ -145,7 +716,7 @@
                         {% endfor %}
                     {% else %}
                         <!-- Fallback contact information if no CMS data -->
-                        <div class="contact-item mb-4">
+                            <div class="contact-item">
                             <div class="contact-icon">
                                 <i class="fas fa-map-marker-alt"></i>
                             </div>
@@ -162,7 +733,7 @@
                             </div>
                         </div>
                         
-                        <div class="contact-item mb-4">
+                            <div class="contact-item">
                             <div class="contact-icon">
                                 <i class="fas fa-phone"></i>
                             </div>
@@ -177,7 +748,7 @@
                             </div>
                         </div>
                         
-                        <div class="contact-item mb-4">
+                            <div class="contact-item">
                             <div class="contact-icon">
                                 <i class="fas fa-envelope"></i>
                             </div>
@@ -192,7 +763,7 @@
                             </div>
                         </div>
                         
-                        <div class="contact-item mb-4">
+                            <div class="contact-item">
                             <div class="contact-icon">
                                 <i class="fas fa-clock"></i>
                             </div>
@@ -210,15 +781,17 @@
     </div>
     
     <!-- Social Media and Additional Info -->
-    <div class="row mb-5">
+        <div class="row mb-4">
         <!-- Social Media -->
-        <div class="col-lg-6 mb-4">
-            <div class="content-card">
-                <div class="card-body p-4 text-center">
-                    <h4 class="mb-4">
-                        <i class="fas fa-share-alt text-primary me-2"></i>Follow Us
-                    </h4>
-                    <p class="text-muted mb-4">Stay connected with us on social media for the latest updates and news.</p>
+            <div class="col-lg-6 mb-3">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-share-alt"></i>Follow Us
+                        </h3>
+                    </div>
+                    <div class="contact-card-body text-center">
+                        <p class="text-muted mb-3">Stay connected with us on social media for the latest updates and news.</p>
                     
                     <div class="social-links">
                         {% if site_config.facebook_url %}
@@ -286,12 +859,14 @@
         </div>
         
         <!-- Quick Links -->
-        <div class="col-lg-6 mb-4">
-            <div class="content-card">
-                <div class="card-body p-3">
-                    <h4 class="mb-4">
-                        <i class="fas fa-link text-primary me-2"></i>Quick Links
-                    </h4>
+            <div class="col-lg-6 mb-3">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-link"></i>Quick Links
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
                     <div class="row">
                         <div class="col-6">
                             <ul class="quick-links">
@@ -316,14 +891,15 @@
     </div>
     
     <!-- FAQ Section -->
-    <div class="row mb-5">
+        <div class="row mb-4">
         <div class="col-12">
-            <div class="content-card">
-                <div class="card-body p-3">
-                    <h3 class="mb-4">
-                        <i class="fas fa-question-circle text-primary me-2"></i>Frequently Asked Questions
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-question-circle"></i>Frequently Asked Questions
                     </h3>
-                    
+                    </div>
+                    <div class="contact-card-body">
                     <div class="accordion" id="faqAccordion">
                         {% if faqs %}
                             {% for faq in faqs %}
@@ -403,185 +979,26 @@
             </div>
         </div>
     </div>
-    
-    <!-- Call to Action -->
-    <div class="row">
-        <div class="col-12">
-            <div class="content-card text-center">
-                <div class="card-body py-5">
-                    <h3 class="mb-3">Ready to Join Our Community?</h3>
-                    <p class="text-muted mb-4">
-                        Connect with fellow NORSU alumni, access exclusive opportunities, and be part of our growing network.
-                    </p>
-                    <div class="d-flex gap-3 justify-content-center">
-                        <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-user-plus me-2"></i>Sign Up Now
-                        </a>
-                        <a href="{% url 'account_login' %}" class="btn btn-outline-primary btn-lg">
-                            <i class="fas fa-sign-in-alt me-2"></i>Login
-                        </a>
-                    </div>
-                </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="cta-title">Ready to Join Our Community?</h2>
+            <p class="cta-text">Connect with fellow NORSU alumni, access exclusive opportunities, and be part of our growing network.</p>
+            <div class="cta-buttons">
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-primary">
+                    <i class="fas fa-user-plus"></i>
+                    Join the Network
+                </a>
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-outline">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Member Login
+                </a>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock content %}
-
-{% block extra_css %}
-<style>
-    .header-contact .contact-highlight {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        background: rgba(255, 255, 255, 0.1);
-        padding: 1rem;
-        border-radius: var(--radius-md);
-        color: var(--text-light);
-        text-align: left;
-    }
-    
-    .contact-item {
-        display: flex;
-        align-items: flex-start;
-        gap: 1rem;
-        padding: 1rem 0;
-        border-bottom: 1px solid var(--ui-border);
-    }
-    
-    .contact-item:last-child {
-        border-bottom: none;
-    }
-    
-    .contact-icon {
-        width: 40px;
-        height: 40px;
-        background: var(--primary-color);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        flex-shrink: 0;
-    }
-    
-    .contact-details h6 {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    
-    .contact-details p {
-        color: var(--text-secondary);
-        margin: 0;
-        line-height: 1.5;
-    }
-    
-    .social-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 1rem;
-        justify-content: center;
-    }
-    
-    .social-link {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.75rem 1.5rem;
-        border-radius: var(--radius-md);
-        text-decoration: none;
-        color: white;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        min-width: 120px;
-        justify-content: center;
-    }
-    
-    .social-link.facebook {
-        background: #1877f2;
-    }
-    
-    .social-link.twitter {
-        background: #1da1f2;
-    }
-    
-    .social-link.instagram {
-        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
-    }
-    
-    .social-link.linkedin {
-        background: #0077b5;
-    }
-    
-    .social-link.youtube {
-        background: #ff0000;
-    }
-    
-    .social-link:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        color: white;
-    }
-    
-    .quick-links {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-    
-    .quick-links li {
-        margin-bottom: 0.75rem;
-    }
-    
-    .quick-links a {
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-    }
-    
-    .quick-links a:hover {
-        color: var(--primary-color);
-        transform: translateX(5px);
-    }
-    
-    .accordion-button {
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-    
-    .accordion-button:not(.collapsed) {
-        background-color: var(--ui-hover);
-        color: var(--primary-color);
-    }
-    
-    .accordion-button:focus {
-        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.25);
-    }
-    
-    .form-control:focus,
-    .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.25);
-    }
-    
-    @media (max-width: 768px) {
-        .header-contact .contact-highlight {
-            flex-direction: column;
-            text-align: center;
-            gap: 0.5rem;
-        }
-        
-        .social-links {
-            flex-direction: column;
-            align-items: center;
-        }
-        
-        .social-link {
-            min-width: 200px;
-        }
-    }
-</style>
-{% endblock extra_css %}

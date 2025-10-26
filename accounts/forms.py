@@ -631,8 +631,36 @@ class ProfileUpdateForm(forms.ModelForm):
     country = forms.ChoiceField(
         choices=[('', 'Select Country')] + list(countries),
         required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-select'}),
+        help_text="Select your country (optional)"
     )
+    
+    def clean_country(self):
+        country = self.cleaned_data.get('country')
+        if country and country not in [code for code, name in countries]:
+            raise forms.ValidationError("Please select a valid country.")
+        return country
+    
+    def clean_phone_number(self):
+        phone_number = self.cleaned_data.get('phone_number')
+        if phone_number:
+            # Convert PhoneNumber object to string if needed
+            if hasattr(phone_number, 'as_e164'):
+                phone_number = phone_number.as_e164
+            elif hasattr(phone_number, 'as_national'):
+                phone_number = phone_number.as_national
+            elif hasattr(phone_number, 'as_international'):
+                phone_number = phone_number.as_international
+            else:
+                phone_number = str(phone_number)
+            
+            # Basic phone number validation - allow various formats
+            import re
+            # Remove all non-digit characters except + at the beginning
+            cleaned_phone = re.sub(r'[^\d+]', '', phone_number)
+            if len(cleaned_phone) < 10:
+                raise forms.ValidationError("Please enter a valid phone number.")
+        return phone_number
 
     class Meta:
         model = Profile
@@ -658,14 +686,35 @@ class ProfileUpdateForm(forms.ModelForm):
             'is_public'
         ]
         widgets = {
-            'birth_date': forms.DateInput(attrs={'type': 'date'}),
-            'bio': forms.Textarea(attrs={'rows': 4}),
-            'address': forms.Textarea(attrs={'rows': 2}),
-            'current_position': forms.TextInput(attrs={'placeholder': 'e.g. Software Engineer'}),
-            'current_employer': forms.TextInput(attrs={'placeholder': 'e.g. Tech Company Inc.'}),
-            'industry': forms.TextInput(attrs={'placeholder': 'e.g. Information Technology'}),
+            'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'bio': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
+            'gender': forms.Select(attrs={'class': 'form-select'}),
+            'phone_number': forms.TextInput(attrs={'placeholder': '+1-555-123-4567', 'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Enter your full address', 'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'placeholder': 'e.g. New York', 'class': 'form-control'}),
+            'state': forms.TextInput(attrs={'placeholder': 'e.g. New York', 'class': 'form-control'}),
+            'postal_code': forms.TextInput(attrs={'placeholder': 'e.g. 10001', 'class': 'form-control'}),
+            'linkedin_profile': forms.URLInput(attrs={'placeholder': 'https://linkedin.com/in/yourprofile', 'class': 'form-control'}),
+            'facebook_profile': forms.URLInput(attrs={'placeholder': 'https://facebook.com/yourprofile', 'class': 'form-control'}),
+            'twitter_profile': forms.URLInput(attrs={'placeholder': 'https://twitter.com/yourprofile', 'class': 'form-control'}),
+            'current_position': forms.TextInput(attrs={'placeholder': 'e.g. Software Engineer', 'class': 'form-control'}),
+            'current_employer': forms.TextInput(attrs={'placeholder': 'e.g. Tech Company Inc.', 'class': 'form-control'}),
+            'industry': forms.TextInput(attrs={'placeholder': 'e.g. Information Technology', 'class': 'form-control'}),
+            'employment_status': forms.Select(attrs={'class': 'form-select'}),
+            'salary_range': forms.Select(attrs={'class': 'form-select'}),
+            'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
+            'gender': 'Gender',
+            'phone_number': 'Phone Number',
+            'address': 'Address',
+            'city': 'City',
+            'state': 'State/Province',
+            'country': 'Country',
+            'postal_code': 'ZIP/Postal Code',
+            'linkedin_profile': 'LinkedIn Profile',
+            'facebook_profile': 'Facebook Profile', 
+            'twitter_profile': 'Twitter Profile',
             'current_position': 'Current Position',
             'current_employer': 'Current Employer',
             'industry': 'Industry',
@@ -673,6 +722,16 @@ class ProfileUpdateForm(forms.ModelForm):
             'salary_range': 'Salary Range',
         }
         help_texts = {
+            'gender': 'Select your gender (optional)',
+            'phone_number': 'Your phone number (optional)',
+            'address': 'Your full address (optional)',
+            'city': 'Your city (optional)',
+            'state': 'Your state or province (optional)',
+            'country': 'Select your country (optional)',
+            'postal_code': 'Your ZIP or postal code (optional)',
+            'linkedin_profile': 'Your LinkedIn profile URL (optional)',
+            'facebook_profile': 'Your Facebook profile URL (optional)',
+            'twitter_profile': 'Your Twitter profile URL (optional)',
             'salary_range': 'This information will be kept private and used for statistical purposes only.',
             'employment_status': 'Select your current employment status',
             'industry': 'Enter the industry you currently work in',
@@ -742,7 +801,7 @@ class ExperienceForm(forms.ModelForm):
             'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
             'career_significance': forms.Select(attrs={'class': 'form-select'}),
             'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-            'salary_range': forms.TextInput(attrs={'class': 'form-control'}),
+            'salary_range': forms.Select(attrs={'class': 'form-select'}),
             'skills_gained': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
         }
         help_texts = {
@@ -866,7 +925,7 @@ EducationFormSet = inlineformset_factory(
     Profile,
     Education,
     form=EducationForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     fields=['program', 'major', 'school', 'graduation_year', 'achievements'],
     widgets={
@@ -879,7 +938,7 @@ ExperienceFormSet = inlineformset_factory(
     Profile,
     Experience,
     form=ExperienceForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     fields=[
         'company', 'position', 'location', 'start_date', 'end_date', 
@@ -896,7 +955,7 @@ ExperienceFormSet = inlineformset_factory(
         'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         'career_significance': forms.Select(attrs={'class': 'form-select'}),
         'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
-        'salary_range': forms.TextInput(attrs={'class': 'form-control'}),
+        'salary_range': forms.Select(attrs={'class': 'form-select'}),
         'skills_gained': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
     }
 )
@@ -905,7 +964,7 @@ SkillFormSet = inlineformset_factory(
     Profile,
     Skill,
     form=SkillForm,
-    extra=1,
+    extra=0,
     can_delete=True,
     validate_min=False,
     fields=['name', 'skill_type', 'proficiency_level']
@@ -957,6 +1016,22 @@ class MentorApplicationForm(forms.ModelForm):
     class Meta:
         model = MentorApplication
         fields = ['expertise_areas', 'years_of_experience', 'certifications', 'training_documents', 'competency_summary']
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = DatabaseReCaptchaField(
+                widget=DatabaseReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
         
     def clean_certifications(self):
         certifications = self.cleaned_data.get('certifications')

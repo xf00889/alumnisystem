@@ -9,6 +9,7 @@ from django.db.models import Q, Case, When, IntegerField
 from django.utils import timezone
 from accounts.models import Mentor, MentorshipRequest
 from .models import MentorshipMeeting, MentorshipMessage, MentorshipProgress, TimelineMilestone
+from .forms import MentorshipRequestForm
 from .serializers import (
     MentorSerializer, MentorshipRequestSerializer, MentorshipMeetingSerializer,
     MentorshipMessageSerializer, MentorshipProgressSerializer, TimelineMilestoneSerializer
@@ -179,29 +180,28 @@ def request_mentorship(request, mentor_id):
         return redirect('alumni_directory:alumni_detail', pk=mentor_id)
     
     if request.method == 'POST':
-        # Process the form submission
-        skills_seeking = request.POST.get('skills_seeking', '')
-        goals = request.POST.get('goals', '')
-        message = request.POST.get('message', '')
-        
-        if not skills_seeking or not goals or not message:
-            messages.error(request, "Please fill out all required fields.")
-        else:
+        form = MentorshipRequestForm(request.POST)
+        if form.is_valid():
             # Create the mentorship request
             mentorship_request = MentorshipRequest.objects.create(
                 mentor=mentor,
                 mentee=request.user,
-                skills_seeking=skills_seeking,
-                goals=goals,
-                message=message,
+                skills_seeking=form.cleaned_data['skills_seeking'],
+                goals=form.cleaned_data['goals'],
+                message=form.cleaned_data['message'],
                 status='PENDING'
             )
             
             messages.success(request, "Your mentorship request has been submitted successfully and is awaiting approval from the mentor. You will be notified when they respond.")
             return redirect('mentorship:mentor_search')
+        else:
+            messages.error(request, "Please correct the errors below.")
+    else:
+        form = MentorshipRequestForm()
     
     context = {
         'mentor': mentor,
+        'form': form,
     }
     return render(request, 'mentorship/request_mentorship.html', context)
 

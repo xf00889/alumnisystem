@@ -1,19 +1,27 @@
 /**
  * Donations App JavaScript
+ * Version: 1.1 - Fixed .closest() null reference errors
  */
 document.addEventListener('DOMContentLoaded', function() {
     // Initialize donation amount buttons if they exist
-    const donationAmountBtns = document.querySelectorAll('.donation-amount-btn');
+    const donationAmountBtns = document.querySelectorAll('.donation-amount-btn, .amount-btn');
     const amountInput = document.querySelector('#id_amount');
     const customAmountBtn = document.querySelector('#custom-amount-btn');
 
     if (donationAmountBtns.length > 0 && amountInput) {
         // Handle preset amount buttons
         donationAmountBtns.forEach(btn => {
+            // Skip custom button
+            if (btn.id === 'custom-amount-btn' || btn.classList.contains('custom')) {
+                return;
+            }
+            
             btn.addEventListener('click', function(e) {
                 e.preventDefault();
                 const amount = this.dataset.amount;
-                amountInput.value = amount;
+                if (amountInput) {
+                    amountInput.value = amount;
+                }
 
                 // Remove active class from all buttons
                 donationAmountBtns.forEach(b => {
@@ -49,9 +57,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 // Remove active state from preset buttons
                 donationAmountBtns.forEach(b => {
-                    b.classList.remove('active');
-                    b.classList.remove('btn-primary');
-                    b.classList.add('btn-outline-primary');
+                    if (b.id !== 'custom-amount-btn' && !b.classList.contains('custom')) {
+                        b.classList.remove('active');
+                        b.classList.remove('btn-primary');
+                        b.classList.add('btn-outline-primary');
+                    }
                 });
 
                 // Activate custom button
@@ -60,70 +70,121 @@ document.addEventListener('DOMContentLoaded', function() {
                 this.classList.add('btn-secondary');
 
                 // Focus on amount input
-                amountInput.focus();
-                amountInput.select();
+                if (amountInput) {
+                    amountInput.focus();
+                    amountInput.select();
+                }
             });
         }
 
         // Handle manual input changes
-        amountInput.addEventListener('input', function() {
-            const currentValue = parseFloat(this.value);
-            let matchFound = false;
+        if (amountInput) {
+            amountInput.addEventListener('input', function() {
+                const currentValue = parseFloat(this.value);
+                let matchFound = false;
 
-            // Check if current value matches any preset
-            donationAmountBtns.forEach(btn => {
-                const btnAmount = parseFloat(btn.dataset.amount);
-                if (currentValue === btnAmount) {
-                    btn.click();
-                    matchFound = true;
-                }
-            });
-
-            // If no match, activate custom button
-            if (!matchFound && customAmountBtn) {
-                donationAmountBtns.forEach(b => {
-                    b.classList.remove('active');
-                    b.classList.remove('btn-primary');
-                    b.classList.add('btn-outline-primary');
+                // Check if current value matches any preset
+                donationAmountBtns.forEach(btn => {
+                    if (btn.id !== 'custom-amount-btn' && !btn.classList.contains('custom') && btn.dataset.amount) {
+                        const btnAmount = parseFloat(btn.dataset.amount);
+                        if (currentValue === btnAmount) {
+                            btn.click();
+                            matchFound = true;
+                        }
+                    }
                 });
 
-                customAmountBtn.classList.add('active');
-                customAmountBtn.classList.remove('btn-outline-secondary');
-                customAmountBtn.classList.add('btn-secondary');
-            }
-        });
+                // If no match, activate custom button
+                if (!matchFound && customAmountBtn) {
+                    donationAmountBtns.forEach(b => {
+                        if (b.id !== 'custom-amount-btn' && !b.classList.contains('custom')) {
+                            b.classList.remove('active');
+                            b.classList.remove('btn-primary');
+                            b.classList.add('btn-outline-primary');
+                        }
+                    });
+
+                    customAmountBtn.classList.add('active');
+                    customAmountBtn.classList.remove('btn-outline-secondary');
+                    customAmountBtn.classList.add('btn-secondary');
+                }
+            });
+        }
 
         // Format amount input with commas
-        amountInput.addEventListener('blur', function() {
-            const value = parseFloat(this.value);
-            if (!isNaN(value)) {
-                this.value = value.toFixed(2);
-            }
-        });
+        if (amountInput) {
+            amountInput.addEventListener('blur', function() {
+                const value = parseFloat(this.value);
+                if (!isNaN(value)) {
+                    this.value = value.toFixed(2);
+                }
+            });
+        }
     }
     
     // Handle anonymous donation checkbox
     const anonymousCheckbox = document.querySelector('#id_is_anonymous');
-    const donorNameField = document.querySelector('#id_donor_name').closest('.mb-3');
-    const donorEmailField = document.querySelector('#id_donor_email').closest('.mb-3');
+    const donorNameFieldElement = document.querySelector('#id_donor_name');
+    const donorEmailFieldElement = document.querySelector('#id_donor_email');
+    const donorFields = document.querySelector('#donor-fields');
     
-    if (anonymousCheckbox && donorNameField && donorEmailField) {
-        // Function to toggle donor fields visibility
-        const toggleDonorFields = () => {
-            if (anonymousCheckbox.checked) {
-                donorNameField.style.display = 'none';
-                donorEmailField.style.display = 'none';
-            } else {
-                donorNameField.style.display = 'block';
-                donorEmailField.style.display = 'block';
-            }
-        };
+    // Check if elements exist before trying to access their properties
+    if (anonymousCheckbox && donorNameFieldElement && donorEmailFieldElement) {
+        // Use a more robust approach - work directly with the elements
+        const hasDonorFields = document.querySelector('#donor-fields');
         
-        // Initial state
-        toggleDonorFields();
-        
-        // Listen for changes
-        anonymousCheckbox.addEventListener('change', toggleDonorFields);
+        if (hasDonorFields || (donorNameFieldElement && donorEmailFieldElement)) {
+            // Function to toggle donor fields visibility/state
+            const toggleDonorFields = () => {
+                if (anonymousCheckbox.checked) {
+                    // For minimal form, disable fields instead of hiding
+                    if (donorFields) {
+                        donorNameFieldElement.disabled = true;
+                        donorEmailFieldElement.disabled = true;
+                        donorNameFieldElement.value = '';
+                        donorEmailFieldElement.value = '';
+                        donorNameFieldElement.removeAttribute('required');
+                        donorEmailFieldElement.removeAttribute('required');
+                        donorFields.classList.add('disabled');
+                    } else {
+                        // For authenticated form, hide fields
+                        if (donorNameFieldElement) {
+                            const nameParent = donorNameFieldElement.parentElement;
+                            if (nameParent) nameParent.style.display = 'none';
+                        }
+                        if (donorEmailFieldElement) {
+                            const emailParent = donorEmailFieldElement.parentElement;
+                            if (emailParent) emailParent.style.display = 'none';
+                        }
+                    }
+                } else {
+                    // For minimal form, enable fields
+                    if (donorFields) {
+                        donorNameFieldElement.disabled = false;
+                        donorEmailFieldElement.disabled = false;
+                        donorNameFieldElement.setAttribute('required', 'required');
+                        donorEmailFieldElement.setAttribute('required', 'required');
+                        donorFields.classList.remove('disabled');
+                    } else {
+                        // For authenticated form, show fields
+                        if (donorNameFieldElement) {
+                            const nameParent = donorNameFieldElement.parentElement;
+                            if (nameParent) nameParent.style.display = 'block';
+                        }
+                        if (donorEmailFieldElement) {
+                            const emailParent = donorEmailFieldElement.parentElement;
+                            if (emailParent) emailParent.style.display = 'block';
+                        }
+                    }
+                }
+            };
+            
+            // Initial state
+            toggleDonorFields();
+            
+            // Listen for changes
+            anonymousCheckbox.addEventListener('change', toggleDonorFields);
+        }
     }
     
     // Campaign progress animation

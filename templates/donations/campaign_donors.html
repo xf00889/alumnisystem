@@ -4,6 +4,35 @@
 
 {% block title %}Donors - {{ campaign.name }}{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    .donor-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .donor-avatar i {
+        font-size: 1.2rem;
+    }
+    
+    .donor-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+</style>
+{% endblock %}
+
 {% block page_header %}{% endblock %}
 
 {% block breadcrumbs %}
@@ -44,9 +73,11 @@
                     <div>
                         <h5 class="alert-heading mb-1">About This List</h5>
                         <p class="mb-0">
-                            This list shows all non-anonymous donors who have contributed to this campaign.
-                            {% if anonymous_count > 0 %}
-                            Additionally, there {{ anonymous_count|pluralize:"is,are" }} {{ anonymous_count }} anonymous donor{{ anonymous_count|pluralize }} who {{ anonymous_count|pluralize:"has,have" }} contributed to this campaign.
+                            This list shows all donors who have contributed to this campaign.
+                            {% if anonymous_count > 0 and non_anonymous_count > 0 %}
+                            There {{ non_anonymous_count|pluralize:"is,are" }} {{ non_anonymous_count }} non-anonymous donor{{ non_anonymous_count|pluralize }} and {{ anonymous_count }} anonymous donor{{ anonymous_count|pluralize }}.
+                            {% elif anonymous_count > 0 %}
+                            All {{ anonymous_count }} donor{{ anonymous_count|pluralize }} {{ anonymous_count|pluralize:"is,are" }} anonymous.
                             {% endif %}
                         </p>
                     </div>
@@ -69,14 +100,22 @@
                             <td>
                                 <div class="d-flex align-items-center">
                                     <div class="donor-avatar me-3">
-                                        {% if donation.donor.profile.avatar %}
-                                        <img src="{{ donation.donor.profile.avatar.url }}" alt="{{ donation.donor.get_full_name }}">
+                                        {% if donation.is_anonymous %}
+                                            <i class="fas fa-user-secret"></i>
+                                        {% elif donation.donor.profile.avatar %}
+                                            <img src="{{ donation.donor.profile.avatar.url }}" alt="{% if donation.is_anonymous %}Anonymous{% else %}{{ donation.donor.get_full_name|default:'Anonymous' }}{% endif %}">
                                         {% else %}
-                                        {{ donation.donor.get_full_name|first }}
+                                            {% if donation.is_anonymous %}A{% else %}{{ donation.donor.get_full_name|first }}{% endif %}
                                         {% endif %}
                                     </div>
                                     <div>
-                                        <div class="fw-bold">{{ donation.donor.get_full_name }}</div>
+                                        <div class="fw-bold">
+                                            {% if donation.is_anonymous %}
+                                                Anonymous
+                                            {% else %}
+                                                {{ donation.donor.get_full_name|default:"Anonymous" }}
+                                            {% endif %}
+                                        </div>
                                         {% if donation.message %}
                                         <div class="small text-muted">
                                             <i class="fas fa-quote-left me-1 opacity-50"></i>
@@ -100,7 +139,7 @@
                     <i class="fas fa-users text-muted" style="font-size: 4rem;"></i>
                 </div>
                 <h4>No Donors Yet</h4>
-                <p class="text-muted">This campaign doesn't have any non-anonymous donors yet.</p>
+                <p class="text-muted">This campaign doesn't have any donors yet.</p>
                 <a href="{% url 'donations:campaign_detail' slug=campaign.slug %}" class="btn btn-primary mt-3">
                     <i class="fas fa-hand-holding-heart me-2"></i>Be the First to Donate
                 </a>

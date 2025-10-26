@@ -18,7 +18,7 @@ from alumni_groups.models import AlumniGroup
 
 class EventListView(LoginRequiredMixin, ListView):
     model = Event
-    template_name = 'events/event_list.html'
+    template_name = 'events/event_list_new.html'
     context_object_name = 'events'
     paginate_by = 12
     login_url = 'account_login'
@@ -92,6 +92,28 @@ class EventListView(LoginRequiredMixin, ListView):
 class EventDetailView(LoginRequiredMixin, DetailView):
     model = Event
     template_name = 'events/event_detail.html'
+    context_object_name = 'event'
+    login_url = 'account_login'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_authenticated:
+            context['user_rsvp'] = EventRSVP.objects.filter(
+                event=self.object,
+                user=self.request.user
+            ).first()
+            context['rsvp_form'] = EventRSVPForm(instance=context['user_rsvp'])
+        context['rsvp_counts'] = {
+            'attending': self.object.rsvps.filter(status='yes').count(),
+            'not_attending': self.object.rsvps.filter(status='no').count(),
+            'maybe': self.object.rsvps.filter(status='maybe').count(),
+        }
+        return context
+
+class EventModalView(LoginRequiredMixin, DetailView):
+    """View for loading event details in modal"""
+    model = Event
+    template_name = 'events/event_detail_modal.html'
     context_object_name = 'event'
     login_url = 'account_login'
 

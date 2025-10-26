@@ -1,0 +1,374 @@
+{% extends "donations/base_donation_form.html" %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}Payment Instructions - {{ donation.campaign.name }}{% endblock %}
+
+{% block donation_header %}
+<h1><i class="fas fa-credit-card me-2"></i>Payment Instructions</h1>
+<p>Complete your donation using GCash</p>
+{% endblock %}
+
+{% block donation_content %}
+<!-- Donation Summary -->
+<div class="campaign-info">
+    <h5><i class="fas fa-receipt me-2"></i>Donation Summary</h5>
+    <div class="row">
+        <div class="col-md-6">
+            <p><strong>Campaign:</strong> {{ donation.campaign.name }}</p>
+            <p><strong>Amount:</strong> ₱{{ donation.amount|floatformat:2 }}</p>
+        </div>
+        <div class="col-md-6">
+            <p><strong>Date:</strong> {{ donation.donation_date|date:"F d, Y" }}</p>
+            <p><strong>Status:</strong> <span class="badge bg-warning">{{ donation.get_status_display }}</span></p>
+        </div>
+    </div>
+</div>
+
+<!-- GCash Payment Information -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h5 class="mb-0"><i class="fas fa-mobile-alt me-2"></i>GCash Payment Information</h5>
+    </div>
+    <div class="card-body">
+        <!-- QR Code Section -->
+        {% if gcash_config.qr_code_image %}
+        <div class="text-center mb-4">
+            <h6 class="fw-bold mb-3">Scan QR Code with GCash App</h6>
+            <div class="qr-code-container mb-3 position-relative d-inline-block">
+                <div class="qr-code-wrapper p-3 bg-white border rounded-3 shadow-sm">
+                    <img src="{{ gcash_config.qr_code_image.url }}"
+                         alt="GCash QR Code"
+                         class="qr-code-image"
+                         style="max-width: min(250px, 80vw); width: 100%; height: auto;">
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- GCash Number -->
+        <div class="alert alert-primary border-2 mb-3">
+            <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between">
+                <div class="mb-2 mb-md-0">
+                    <strong class="d-block">GCash Number:</strong>
+                    <span class="fs-4 fw-bold text-primary font-monospace">{{ gcash_config.gcash_number }}</span>
+                </div>
+                <button class="btn btn-primary btn-lg"
+                        onclick="copyToClipboard('{{ gcash_config.gcash_number }}')"
+                        style="min-height: 48px;">
+                    <i class="fas fa-copy me-2"></i>Copy Number
+                </button>
+            </div>
+        </div>
+
+        <!-- Account Name -->
+        <div class="alert alert-info border-2 mb-4">
+            <div class="text-center">
+                <strong class="d-block mb-1">Account Name:</strong>
+                <span class="fs-5 fw-bold">{{ gcash_config.account_name }}</span>
+            </div>
+        </div>
+
+        <!-- Payment Instructions -->
+        <div class="mb-4">
+            <h6 class="fw-bold mb-3">How to Pay:</h6>
+            <div class="list-group list-group-flush">
+                <div class="list-group-item border-0 px-0 py-2">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-success rounded-circle p-2 me-3" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                1
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0"><strong>Open GCash App</strong> and scan the QR code above OR manually enter the GCash number</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-group-item border-0 px-0 py-2">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-success rounded-circle p-2 me-3" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                2
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0"><strong>Send Payment</strong> for ₱{{ donation.amount|floatformat:2 }} to {{ gcash_config.account_name }}</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="list-group-item border-0 px-0 py-2">
+                    <div class="d-flex align-items-start">
+                        <div class="flex-shrink-0">
+                            <span class="badge bg-success rounded-circle p-2 me-3" style="width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 12px;">
+                                3
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <p class="mb-0"><strong>Take Screenshot</strong> of the payment confirmation and note the reference number</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Additional Instructions -->
+        {% if gcash_config.instructions %}
+        <div class="alert alert-warning">
+            <h6>Important Notes:</h6>
+            {{ gcash_config.instructions|linebreaks }}
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+
+                <!-- Complete Payment Information -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-credit-card me-2"></i>Complete Payment Information</h5>
+                    </div>
+                    <div class="card-body">
+                        <p class="text-muted mb-4">Please enter your payment reference number and upload your payment proof to complete your donation.</p>
+                        
+                        <form method="post" id="payment-form" enctype="multipart/form-data">
+                            {% csrf_token %}
+                            
+                            <!-- Reference Number -->
+                            <div class="mb-4">
+                                <label for="reference_number" class="form-label">
+                                    <strong>GCash Reference Number *</strong>
+                                </label>
+                                <input type="text" 
+                                       class="form-control" 
+                                       name="reference_number" 
+                                       id="reference_number" 
+                                       placeholder="Enter reference number from your GCash receipt (e.g., ABC123-XYZ789)"
+                                       maxlength="100"
+                                       required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i>
+                                    Enter the exact reference number from your GCash payment confirmation
+                                </div>
+                            </div>
+                            
+                            <!-- Payment Proof Upload -->
+                            <div class="mb-4">
+                                <label for="payment_proof" class="form-label">
+                                    <strong>Payment Proof (Screenshot/Photo) *</strong>
+                                </label>
+                                <input type="file" 
+                                       class="form-control" 
+                                       name="payment_proof" 
+                                       id="payment_proof" 
+                                       accept="image/*"
+                                       required>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i>
+                                    Upload a clear screenshot or photo of your GCash payment confirmation
+                                </div>
+                            </div>
+                            
+                            <!-- Preview -->
+                            <div id="image-preview" class="mb-4" style="display: none;">
+                                <label class="form-label"><strong>Preview:</strong></label>
+                                <div class="text-center">
+                                    <img id="preview-img" src="" alt="Payment proof preview" class="img-fluid rounded" style="max-height: 300px;">
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2">
+                                <button type="submit" class="btn btn-success btn-lg">
+                                    <i class="fas fa-check-circle me-2"></i>
+                                    <span class="fw-bold">Complete Donation</span>
+                                    <div class="small mt-1">Save reference number and upload payment proof</div>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+
+<!-- Important Notes -->
+<div class="alert alert-warning">
+    <h6><i class="fas fa-exclamation-triangle me-2"></i>Important Notes</h6>
+    <ul class="mb-0">
+        <li>After making your payment, enter your reference number and upload payment proof in the form above</li>
+        <li>Your donation will be verified within 24 hours after submission</li>
+        <li>You will receive an email confirmation once your donation is verified</li>
+        <li>Keep your payment receipt for your records</li>
+    </ul>
+</div>
+
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+    
+    
+    // Auto-refresh page every 30 seconds to check for updates (same as authenticated users)
+    let refreshInterval = setInterval(function() {
+        // Only refresh if user hasn't interacted recently
+        if (document.hidden === false) {
+            const lastActivity = localStorage.getItem('lastActivity');
+            const now = Date.now();
+            if (!lastActivity || (now - parseInt(lastActivity)) > 30000) {
+                location.reload();
+            }
+        }
+    }, 30000);
+
+    // Track user activity
+    document.addEventListener('click', function() {
+        localStorage.setItem('lastActivity', Date.now().toString());
+    });
+
+    document.addEventListener('keypress', function() {
+        localStorage.setItem('lastActivity', Date.now().toString());
+    });
+    
+        // Handle payment form submission (reference number + payment proof)
+        const paymentForm = document.getElementById('payment-form');
+        
+        if (paymentForm) {
+            paymentForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const formData = new FormData(this);
+                const referenceNumber = formData.get('reference_number').trim();
+                const paymentProof = formData.get('payment_proof');
+                
+                if (!referenceNumber) {
+                    alert('Please enter a reference number.');
+                    return;
+                }
+                
+                if (!paymentProof || paymentProof.size === 0) {
+                    alert('Please select a payment proof file.');
+                    return;
+                }
+                
+                // Show loading state
+                const submitBtn = this.querySelector('button[type="submit"]');
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                submitBtn.disabled = true;
+                
+                // Submit the form via AJAX
+                fetch(window.location.href, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // Show success message and redirect
+                        Swal.fire({
+                            title: 'Donation Complete!',
+                            text: 'Your donation has been submitted successfully. You will receive an email confirmation once verified.',
+                            icon: 'success',
+                            confirmButtonText: 'View Campaign',
+                            showCancelButton: true,
+                            cancelButtonText: 'Stay Here'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                // Redirect to campaign page
+                                window.location.href = data.redirect_url || '{% url "donations:campaign_detail" donation.campaign.slug %}';
+                            } else {
+                                // Reload the page to show updated information
+                                location.reload();
+                            }
+                        });
+                    } else {
+                        throw new Error(data.error || 'Failed to complete donation');
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error completing donation: ' + error.message);
+                    
+                    // Reset button
+                    submitBtn.innerHTML = originalText;
+                    submitBtn.disabled = false;
+                });
+            });
+        }
+        
+        // Handle image preview
+        const paymentProofInput = document.getElementById('payment_proof');
+        const imagePreview = document.getElementById('image-preview');
+        const previewImg = document.getElementById('preview-img');
+        
+        if (paymentProofInput && imagePreview && previewImg) {
+            paymentProofInput.addEventListener('change', function(e) {
+                const file = e.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        previewImg.src = e.target.result;
+                        imagePreview.style.display = 'block';
+                    };
+                    reader.readAsDataURL(file);
+                } else {
+                    imagePreview.style.display = 'none';
+                }
+            });
+        }
+});
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(function() {
+        showToast('Copied to clipboard!', 'success');
+    }).catch(function(err) {
+        console.error('Could not copy text: ', err);
+        // Fallback for older browsers
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        document.body.appendChild(textArea);
+        textArea.select();
+        try {
+            document.execCommand('copy');
+            showToast('Copied to clipboard!', 'success');
+        } catch (err) {
+            showToast('Could not copy to clipboard. Please copy manually.', 'error');
+        }
+        document.body.removeChild(textArea);
+    });
+}
+
+function showToast(message, type = 'success') {
+    const toast = document.createElement('div');
+    const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
+    toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
+    toast.style.zIndex = '9999';
+    toast.innerHTML = `
+        <div class="d-flex">
+            <div class="toast-body">
+                <i class="fas fa-${type === 'success' ? 'check' : 'exclamation-triangle'} me-2"></i>${message}
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    `;
+    document.body.appendChild(toast);
+    const bsToast = new bootstrap.Toast(toast);
+    bsToast.show();
+
+    // Remove toast after it's hidden
+    toast.addEventListener('hidden.bs.toast', function() {
+        document.body.removeChild(toast);
+    });
+}
+</script>
+{% endblock %}

@@ -1,6 +1,7 @@
 {% extends 'donations/base_donations.html' %}
 {% load static %}
 {% load humanize %}
+{% load i18n %}
 
 {% block title %}{{ campaign.name }} - Fundraising Campaign{% endblock %}
 
@@ -11,245 +12,707 @@
 <li class="breadcrumb-item active">{{ campaign.name }}</li>
 {% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+
+    /* Header Section */
+    .campaign-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .campaign-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .campaign-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Campaign Image */
+    .campaign-image {
+        width: 100%;
+        height: 400px;
+        object-fit: cover;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* Content Cards */
+    .content-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .content-title {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .content-text {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Sidebar */
+    .campaign-sidebar {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        position: sticky;
+        top: 2rem;
+    }
+    
+    /* Status Badge */
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        text-transform: uppercase;
+        letter-spacing: 0.025em;
+        display: inline-block;
+        margin-bottom: 1rem;
+    }
+    
+    .status-active { background: #10b981; color: var(--text-light); }
+    .status-completed { background: #3b82f6; color: var(--text-light); }
+    .status-draft { background: #6b7280; color: var(--text-light); }
+    .status-paused { background: #f59e0b; color: var(--text-light); }
+    
+    /* Progress Section */
+    .progress-section {
+        margin-bottom: 2rem;
+    }
+    
+    .progress-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .progress-amounts {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .current-amount {
+        font-size: 1.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .goal-amount {
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .progress {
+        height: 12px;
+        border-radius: var(--radius-sm);
+        background-color: var(--ui-border);
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+    
+    .progress-bar {
+        background: linear-gradient(90deg, var(--feedback-success), #10b981);
+        transition: width 0.3s ease;
+    }
+    
+    .progress-stats {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Timeline */
+    .timeline-section {
+        margin-bottom: 2rem;
+    }
+    
+    .timeline-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .timeline-icon {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1rem;
+    }
+    
+    .timeline-content {
+        flex: 1;
+    }
+    
+    .timeline-label {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .timeline-value {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Donation Form */
+    .donation-form {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-control {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+    
+    .btn-donate {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        border-radius: var(--radius-sm);
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+    
+    .btn-donate:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    /* Donor List */
+    .donor-list {
+        margin-top: 1rem;
+    }
+    
+    .donor-item {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        background: var(--ui-hover);
+        border-radius: var(--radius-sm);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .donor-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        color: var(--text-light);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .donor-avatar i {
+        font-size: 1.2rem;
+    }
+    
+    .donor-avatar img {
+        width: 100%;
+        height: 100%;
+        border-radius: 50%;
+        object-fit: cover;
+    }
+    
+    .donor-info {
+        flex: 1;
+    }
+    
+    .donor-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .donor-date {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .donor-amount {
+        font-weight: 700;
+        color: var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Update Items */
+    .update-item {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .update-item:last-child {
+        border-bottom: none;
+        margin-bottom: 0;
+    }
+    
+    .update-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .update-date {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .update-content {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .update-image {
+        margin-top: 1rem;
+    }
+    
+    .update-image img {
+        width: 100%;
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* Alert Styles */
+    .alert {
+        border-radius: var(--radius-sm);
+        border: none;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .alert-info {
+        background: #e6f3ff;
+        color: #0066cc;
+    }
+    
+    .alert-warning {
+        background: #fff3cd;
+        color: #856404;
+    }
+    
+    .alert-secondary {
+        background: var(--ui-hover);
+        color: var(--text-secondary);
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .campaign-header {
+            padding: 1.5rem;
+        }
+        
+        .campaign-title {
+            font-size: 1.5rem;
+        }
+        
+        .content-card,
+        .campaign-sidebar {
+            padding: 1.5rem;
+        }
+        
+        .campaign-image {
+            height: 250px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block donations_content %}
-<div class="col-lg-8">
-    <!-- Welcome Header for Donation Page -->
-    <div class="welcome-header mt-3">
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="campaign-header">
         <div class="d-flex align-items-center justify-content-between">
             <div>
-                <h4>{{ campaign.name }}</h4>
-                <p>Support this campaign by making a donation.</p>
+                <h1 class="campaign-title">{{ campaign.name }}</h1>
+                <p class="campaign-subtitle">{% trans "Support this campaign by making a donation" %}</p>
             </div>
             <div>
                 <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Campaigns
+                    <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Campaigns" %}
                 </a>
             </div>
         </div>
     </div>
 
     <!-- Campaign Image -->
-    <div class="campaign-detail-image">
-        {% if campaign.featured_image %}
-        <img src="{{ campaign.featured_image.url }}" alt="{{ campaign.name }}">
-        {% else %}
-        {% endif %}
-    </div>
+    {% if campaign.featured_image %}
+    <img src="{{ campaign.featured_image.url }}" alt="{{ campaign.name }}" class="campaign-image">
+    {% endif %}
     
-    <!-- Campaign Description -->
-    <div class="dashboard-card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">About This Campaign</h5>
-        </div>
-        <div class="card-body">
-            <div class="campaign-description">
-                {{ campaign.description|safe }}
+    <div class="row">
+        <div class="col-lg-8">
+            <!-- Campaign Description -->
+            <div class="content-card">
+                <h2 class="content-title">{% trans "About This Campaign" %}</h2>
+                <div class="content-text">
+                    {{ campaign.description|safe }}
+                </div>
+                {% if campaign.beneficiaries %}
+                <div class="mt-4">
+                    <h3 class="content-title">{% trans "Beneficiaries" %}</h3>
+                    <div class="content-text">
+                        {{ campaign.beneficiaries|safe }}
+                    </div>
+                </div>
+                {% endif %}
             </div>
-            <div class="mt-4">
-                <h6>Beneficiaries</h6>
-                <p>{{ campaign.beneficiaries|safe }}</p>
-            </div>
-            <div class="mt-4">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h6 class="mb-0">Recent Donors</h6>
-                    <a href="{% url 'donations:campaign_donors' slug=campaign.slug %}" class="btn btn-sm btn-outline-primary">View All Donors</a>
+
+            <!-- Recent Donors -->
+            <div class="content-card">
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h2 class="content-title mb-0">{% trans "Recent Donors" %}</h2>
+                    <a href="{% url 'donations:campaign_donors' slug=campaign.slug %}" class="btn btn-outline-primary btn-sm">
+                        {% trans "View All Donors" %}
+                    </a>
                 </div>
                 <div class="donor-list">
                     {% for donation in recent_donations %}
                     <div class="donor-item">
-                        <div class="donor-avatar me-3">
-                            {% if donation.donor.profile.avatar %}
-                            <img src="{{ donation.donor.profile.avatar.url }}" alt="{{ donation.donor.get_full_name }}">
+                        <div class="donor-avatar">
+                            {% if donation.is_anonymous %}
+                                <i class="fas fa-user-secret"></i>
+                            {% elif donation.donor.profile.avatar %}
+                                <img src="{{ donation.donor.profile.avatar.url }}" alt="{% if donation.is_anonymous %}Anonymous{% else %}{{ donation.donor.get_full_name|default:'Anonymous' }}{% endif %}">
                             {% else %}
-                            {{ donation.donor.get_full_name|first }}
+                                {% if donation.is_anonymous %}A{% else %}{{ donation.donor.get_full_name|first }}{% endif %}
                             {% endif %}
                         </div>
                         <div class="donor-info">
-                            <div class="donor-name">{{ donation.donor.get_full_name }}</div>
-                            <div class="small text-muted">{{ donation.donation_date|date:"F j, Y" }}</div>
+                            <div class="donor-name">
+                                {% if donation.is_anonymous %}
+                                    Anonymous
+                                {% else %}
+                                    {{ donation.donor.get_full_name|default:"Anonymous" }}
+                                {% endif %}
+                            </div>
+                            <div class="donor-date">{{ donation.donation_date|date:"F j, Y" }}</div>
                         </div>
                         <div class="donor-amount">₱{{ donation.amount|intcomma }}</div>
                     </div>
                     {% empty %}
-                    <div class="text-center py-3">
-                        <p class="text-muted">No donations yet. Be the first to donate!</p>
+                    <div class="text-center py-4">
+                        <i class="fas fa-heart fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">{% trans "No donations yet. Be the first to donate!" %}</p>
                     </div>
                     {% endfor %}
                 </div>
             </div>
-        </div>
-    </div>
 
-    <!-- Campaign Updates -->
-    {% if updates %}
-    <div class="dashboard-card">
-        <div class="card-header">
-            <h5 class="card-title mb-0">Campaign Updates</h5>
-        </div>
-        <div class="card-body">
-            {% for update in updates %}
-            <div class="update-item">
-                <h4 class="update-title">{{ update.title }}</h4>
-                <div class="update-date">{{ update.created|date:"F j, Y" }}</div>
-                <div class="update-content">{{ update.content|safe }}</div>
-                {% if update.image %}
-                <div class="update-image">
-                    <img src="{{ update.image.url }}" alt="{{ update.title }}">
-                </div>
-                {% endif %}
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-    {% endif %}
-</div>
-
-<div class="col-lg-4">
-    <!-- Campaign Sidebar -->
-    <div class="campaign-sidebar dashboard-card">
-        <div class="campaign-status mb-3">
-            {% if campaign.is_active %}
-            <span class="badge bg-success">Active Campaign</span>
-            {% elif campaign.status == 'completed' %}
-            <span class="badge bg-info">Completed Campaign</span>
-            {% elif campaign.status == 'draft' %}
-            <span class="badge bg-secondary">Draft Campaign</span>
-            {% else %}
-            <span class="badge bg-warning">{{ campaign.get_status_display }}</span>
-            {% endif %}
-            
-            <span class="badge bg-primary ms-2">{{ campaign.campaign_type.name }}</span>
-        </div>
-        
-        <div class="campaign-progress mb-4">
-            <div class="d-flex justify-content-between align-items-center mb-2">
-                <span class="fw-bold">₱{{ donation_stats.total_amount|intcomma }}</span>
-                <span class="text-muted">of ₱{{ campaign.goal_amount|intcomma }}</span>
-            </div>
-            
-            <div class="progress mb-2">
-                <div class="progress-bar" role="progressbar" style="width: {{ donation_stats.progress_percentage }}%"
-                     aria-valuenow="{{ donation_stats.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
-            </div>
-            
-            <div class="d-flex justify-content-between small text-muted">
-                <span>{{ donation_stats.progress_percentage }}% Complete</span>
-                <span>{{ donation_stats.total_donors }} Donors</span>
-            </div>
-        </div>
-        
-        {% if campaign.days_remaining is not None %}
-        <div class="campaign-timeline mb-4">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <div class="small text-muted">Started</div>
-                    <div>{{ campaign.start_date|date:"M j, Y" }}</div>
-                </div>
-                
-                {% if campaign.end_date %}
-                <div class="text-end">
-                    <div class="small text-muted">Ends</div>
-                    <div>{{ campaign.end_date|date:"M j, Y" }}</div>
-                </div>
-                {% endif %}
-            </div>
-            
-            {% if campaign.days_remaining > 0 %}
-            <div class="alert alert-warning mt-3 mb-0 text-center">
-                <i class="fas fa-clock me-2"></i>{{ campaign.days_remaining }} days remaining
-            </div>
-            {% else %}
-            <div class="alert alert-secondary mt-3 mb-0 text-center">
-                <i class="fas fa-check-circle me-2"></i>Campaign ended
-            </div>
-            {% endif %}
-        </div>
-        {% endif %}
-        
-        {% if campaign.is_active %}
-        <div class="donation-form">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title mb-0">Make a Donation</h5>
-                </div>
-                <div class="card-body">
-
-            <form method="post" action="">
-                {% csrf_token %}
-                
-                <div class="mb-3">
-                    <label for="{{ form.amount.id_for_label }}" class="form-label">Donation Amount (₱)</label>
-                    {{ form.amount }}
-                    {% if form.amount.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.amount.errors.0 }}
+            <!-- Campaign Updates -->
+            {% if updates %}
+            <div class="content-card">
+                <h2 class="content-title">{% trans "Campaign Updates" %}</h2>
+                {% for update in updates %}
+                <div class="update-item">
+                    <h3 class="update-title">{{ update.title }}</h3>
+                    <div class="update-date">{{ update.created|date:"F j, Y" }}</div>
+                    <div class="update-content">{{ update.content|safe }}</div>
+                    {% if update.image %}
+                    <div class="update-image">
+                        <img src="{{ update.image.url }}" alt="{{ update.title }}">
                     </div>
                     {% endif %}
                 </div>
-                
-                <div class="mb-3 form-check">
-                    {{ form.is_anonymous }}
-                    <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">
-                        Make this donation anonymous
-                    </label>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="col-lg-4">
+            <!-- Campaign Sidebar -->
+            <div class="campaign-sidebar">
+                <!-- Status Badge -->
+                <div class="mb-4">
+                    {% if campaign.is_active %}
+                    <span class="status-badge status-active">{% trans "Active Campaign" %}</span>
+                    {% elif campaign.status == 'completed' %}
+                    <span class="status-badge status-completed">{% trans "Completed Campaign" %}</span>
+                    {% elif campaign.status == 'draft' %}
+                    <span class="status-badge status-draft">{% trans "Draft Campaign" %}</span>
+                    {% else %}
+                    <span class="status-badge status-paused">{{ campaign.get_status_display }}</span>
+                    {% endif %}
+                    
+                    <span class="badge bg-primary ms-2">{{ campaign.campaign_type.name }}</span>
                 </div>
                 
-                <div class="mb-3">
-                    <label for="{{ form.message.id_for_label }}" class="form-label">Message (Optional)</label>
-                    {{ form.message }}
+                <!-- Progress Section -->
+                <div class="progress-section">
+                    <h3 class="progress-title">{% trans "Campaign Progress" %}</h3>
+                    <div class="progress-amounts">
+                        <span class="current-amount">₱{{ donation_stats.total_amount|intcomma }}</span>
+                        <span class="goal-amount">of ₱{{ campaign.goal_amount|intcomma }}</span>
+                    </div>
+                    
+                    <div class="progress">
+                        <div class="progress-bar" role="progressbar" style="width: {{ donation_stats.progress_percentage }}%"
+                             aria-valuenow="{{ donation_stats.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"></div>
+                    </div>
+                    
+                    <div class="progress-stats">
+                        <span>{{ donation_stats.progress_percentage }}% {% trans "Complete" %}</span>
+                        <span>{{ donation_stats.total_donors }} {% trans "Donors" %}</span>
+                    </div>
                 </div>
-                
-                {% if not user.is_authenticated %}
-                <div class="alert alert-info mb-3">
-                    <p class="mb-0">You are not logged in. Please provide your information below:</p>
-                </div>
-                
-                <div class="mb-3">
-                    <label for="{{ form.donor_name.id_for_label }}" class="form-label">Your Name</label>
-                    {{ form.donor_name }}
-                    {% if form.donor_name.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.donor_name.errors.0 }}
+        
+                <!-- Timeline Section -->
+                {% if campaign.days_remaining is not None %}
+                <div class="timeline-section">
+                    <h3 class="progress-title">{% trans "Campaign Timeline" %}</h3>
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-play"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-label">{% trans "Started" %}</div>
+                            <div class="timeline-value">{{ campaign.start_date|date:"M j, Y" }}</div>
+                        </div>
+                    </div>
+                    
+                    {% if campaign.end_date %}
+                    <div class="timeline-item">
+                        <div class="timeline-icon">
+                            <i class="fas fa-flag-checkered"></i>
+                        </div>
+                        <div class="timeline-content">
+                            <div class="timeline-label">{% trans "Ends" %}</div>
+                            <div class="timeline-value">{{ campaign.end_date|date:"M j, Y" }}</div>
+                        </div>
                     </div>
                     {% endif %}
-                </div>
-                
-                <div class="mb-3">
-                    <label for="{{ form.donor_email.id_for_label }}" class="form-label">Your Email</label>
-                    {{ form.donor_email }}
-                    {% if form.donor_email.errors %}
-                    <div class="invalid-feedback d-block">
-                        {{ form.donor_email.errors.0 }}
+                    
+                    {% if campaign.days_remaining > 0 %}
+                    <div class="alert alert-warning mt-3 mb-0 text-center">
+                        <i class="fas fa-clock me-2"></i>{{ campaign.days_remaining }} {% trans "days remaining" %}
+                    </div>
+                    {% else %}
+                    <div class="alert alert-secondary mt-3 mb-0 text-center">
+                        <i class="fas fa-check-circle me-2"></i>{% trans "Campaign ended" %}
                     </div>
                     {% endif %}
                 </div>
                 {% endif %}
-                
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-heart me-2"></i>Donate Now
-                </button>
-            </form>
-                </div>
-            </div>
-        </div>
-        {% else %}
-        <div class="alert alert-info text-center">
-            <i class="fas fa-info-circle me-2"></i>
-            {% if campaign.status == 'completed' %}
-            This campaign has been completed. Thank you for your interest!
-            {% elif campaign.status == 'draft' %}
-            This campaign is not yet active. Please check back later.
-            {% else %}
-            This campaign is currently {{ campaign.get_status_display|lower }}. Donations are not being accepted at this time.
-            {% endif %}
-        </div>
-        {% endif %}
         
-        <div class="mt-4">
-            <div class="d-flex justify-content-center">
-                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-primary">
-                    <i class="fas fa-arrow-left me-2"></i>Back to Campaigns
-                </a>
+                <!-- Donation Form -->
+                {% if campaign.is_active %}
+                <div class="donation-form">
+                    <h3 class="progress-title">{% trans "Make a Donation" %}</h3>
+                    <form method="post" action="">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.amount.id_for_label }}" class="form-label">{% trans "Donation Amount (₱)" %}</label>
+                            {{ form.amount }}
+                            {% if form.amount.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.amount.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            {{ form.is_anonymous }}
+                            <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">
+                                {% trans "Make this donation anonymous" %}
+                            </label>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.message.id_for_label }}" class="form-label">{% trans "Message (Optional)" %}</label>
+                            {{ form.message }}
+                        </div>
+                        
+                        {% if not user.is_authenticated %}
+                        <div class="alert alert-info mb-3">
+                            <p class="mb-0">{% trans "You are not logged in. Please provide your information below:" %}</p>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.donor_name.id_for_label }}" class="form-label">{% trans "Your Name" %}</label>
+                            {{ form.donor_name }}
+                            {% if form.donor_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.donor_name.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ form.donor_email.id_for_label }}" class="form-label">{% trans "Your Email" %}</label>
+                            {{ form.donor_email }}
+                            {% if form.donor_email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.donor_email.errors.0 }}
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <button type="submit" class="btn-donate">
+                            <i class="fas fa-heart me-2"></i>{% trans "Donate Now" %}
+                        </button>
+                    </form>
+                </div>
+                {% else %}
+                <div class="alert alert-info text-center">
+                    <i class="fas fa-info-circle me-2"></i>
+                    {% if campaign.status == 'completed' %}
+                    {% trans "This campaign has been completed. Thank you for your interest!" %}
+                    {% elif campaign.status == 'draft' %}
+                    {% trans "This campaign is not yet active. Please check back later." %}
+                    {% else %}
+                    {% trans "This campaign is currently" %} {{ campaign.get_status_display|lower }}. {% trans "Donations are not being accepted at this time." %}
+                    {% endif %}
+                </div>
+                {% endif %}
+                
+                <!-- Back Button -->
+                <div class="mt-4">
+                    <div class="d-flex justify-content-center">
+                        <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-primary">
+                            <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Campaigns" %}
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </div>

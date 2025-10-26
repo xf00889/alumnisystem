@@ -9,16 +9,21 @@
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-   /* System Color Scheme */
+    /* NORSU Alumni System - Feedback Management Design */
     :root {
-        /* Secondary Colors */
+        /* NORSU Brand Colors */
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
         --secondary-color: #4a5568;
+        --accent-color: #c8a882;
         
-        /* UI Colors */
-        --ui-background: #f7fafc;
+        /* UI Colors - Consistent with system */
+        --ui-background: #f8f9fa;
         --ui-surface: #ffffff;
         --ui-border: #e2e8f0;
         --ui-hover: #edf2f7;
+        --ui-selected: #e3f2fd;
         
         /* Text Colors */
         --text-primary: #2d3748;
@@ -26,53 +31,176 @@
         --text-muted: #a0aec0;
         --text-light: #ffffff;
         
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
+        /* Feedback Colors - NORSU Theme */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
         
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        /* Priority Colors - Professional Theme */
+        --priority-urgent: #dc3545;
+        --priority-high: #fd7e14;
+        --priority-medium: #17a2b8;
+        --priority-low: #28a745;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
         
         /* Border Radius */
         --radius-sm: 0.25rem;
         --radius-md: 0.375rem;
         --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 300ms ease;
     }
-    
-    .dashboard-card {
-        background: var(--ui-surface);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        border: 1px solid var(--ui-border);
-        font-size: 1rem;
+
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
         font-family: 'Poppins', sans-serif;
     }
     
-    .dashboard-header {
+    .container-fluid {
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Search Section */
+    .search-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr 1fr;
+        gap: 2rem;
+        align-items: end;
+    }
+    
+    .search-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-select, .form-control {
+        padding: 0.75rem 1rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        transition: all var(--transition-normal);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-select:focus, .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    .action-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 1rem;
+    }
+    
+    .btn {
+        padding: 0.375rem 0.75rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
         background: var(--primary-color);
         color: var(--text-light);
-        padding: 1.75rem;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: var(--text-light);
+    }
+
+    .btn-secondary {
+        background: var(--ui-hover);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--ui-border);
+        color: var(--text-primary);
+        text-decoration: none;
+    }
+    
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
         border-radius: var(--radius-md);
-        margin-bottom: 1.25rem;
+        margin-bottom: 1.5rem;
         box-shadow: var(--shadow-sm);
-        font-size: 0.875rem;
+        text-align: center;
         font-family: 'Poppins', sans-serif;
     }
     
-    .dashboard-header h1 {
-        font-size: 1.5rem;
+    .directory-title {
+        font-size: 2rem;
         font-weight: 600;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
     }
     
-    .dashboard-header p {
+    .directory-subtitle {
         opacity: 0.9;
-        font-size: 0.875rem;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
     }
     .card {
         border: none;
@@ -166,7 +294,26 @@
         border-radius: 0.5rem;
     }
 
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .search-form {
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        .action-group {
+            grid-column: 1 / -1;
+            justify-self: start;
+            margin-top: 1rem;
+        }
+    }
+
     @media (max-width: 768px) {
+        .search-form {
+            grid-template-columns: 1fr;
+            gap: 1.5rem;
+        }
+        
         .card-body {
             padding: 1rem;
         }
@@ -184,23 +331,16 @@
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
-    <!-- Dashboard Header -->
-    <div class="dashboard-header">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="mb-2"><i class="fas fa-comments me-3"></i>Manage Feedbacks</h1>
-                <p class="mb-0">View and manage user feedbacks.</p>
-            </div>
-            <div class="col-md-4 text-end">
-                <!-- Optional content or filters if needed -->
-            </div>
-        </div>
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Manage Feedbacks</h1>
+        <p class="directory-subtitle">View and manage user feedbacks and suggestions</p>
     </div>
-    <!-- Filters Card -->
-    <div class="dashboard-card">
-        <form method="get" class="row g-3">
-            <div class="col-md-3">
+    <!-- Search Section -->
+    <div class="search-section">
+        <form method="get" class="search-form">
+            <div class="search-group">
                 <label class="form-label">Status</label>
                 <select name="status" class="form-select">
                     <option value="">All Statuses</option>
@@ -212,7 +352,7 @@
                 </select>
             </div>
             
-            <div class="col-md-3">
+            <div class="search-group">
                 <label class="form-label">Category</label>
                 <select name="category" class="form-select">
                     <option value="">All Categories</option>
@@ -224,7 +364,7 @@
                 </select>
             </div>
             
-            <div class="col-md-3">
+            <div class="search-group">
                 <label class="form-label">Priority</label>
                 <select name="priority" class="form-select">
                     <option value="">All Priorities</option>
@@ -236,22 +376,17 @@
                 </select>
             </div>
             
-            <div class="col-md-3">
+            <div class="search-group">
                 <label class="form-label">Search</label>
-                <div class="input-group">
-                    <input type="text" name="search" class="form-control" 
-                               value="{{ current_filters.search }}" placeholder="Search feedbacks...">
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-search"></i>
-                    </button>
-                </div>
+                <input type="text" name="search" class="form-control" 
+                       value="{{ current_filters.search }}" placeholder="Search feedbacks...">
             </div>
             
-            <div class="col-12 mt-3">
+            <div class="action-group">
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-filter me-2"></i>Apply Filters
                 </button>
-                <a href="{% url 'feedback:manage_feedbacks' %}" class="btn btn-outline-secondary ms-2">
+                <a href="{% url 'feedback:manage_feedbacks' %}" class="btn btn-secondary">
                     <i class="fas fa-times me-2"></i>Clear Filters
                 </a>
             </div>

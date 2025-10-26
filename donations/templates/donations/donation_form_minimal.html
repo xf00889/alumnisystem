@@ -1,0 +1,361 @@
+{% extends 'donations/base_donation_form.html' %}
+{% load static %}
+{% load i18n %}
+{% load humanize %}
+
+{% block title %}{% trans "Donate to" %} {{ campaign.name }} - NORSU Alumni{% endblock title %}
+
+{% block donation_header %}
+<div class="text-center">
+    <h2 class="h5 mb-2"><i class="fas fa-heart me-2"></i>Donate to {{ campaign.name }}</h2>
+    <p class="small mb-3">{{ campaign.short_description }}</p>
+</div>
+{% endblock %}
+
+{% block donation_content %}
+<div class="card">
+    <div class="card-header bg-success text-white">
+        <h5 class="card-title mb-0">{% trans "Make a Donation" %}</h5>
+    </div>
+    <div class="card-body">
+        <form method="post" id="donation-form">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                {% for error in form.non_field_errors %}
+                    {{ error }}
+                {% endfor %}
+            </div>
+            {% endif %}
+            
+            <!-- Amount Selection -->
+            <div class="mb-3">
+                <label for="{{ form.amount.id_for_label }}" class="form-label fw-bold">
+                    <i class="fas fa-peso-sign me-2"></i>{% trans "Donation Amount" %}
+                </label>
+
+                <!-- Amount Input -->
+                <div class="input-group">
+                    <span class="input-group-text">₱</span>
+                    {{ form.amount }}
+                </div>
+                <div class="form-text">
+                    <i class="fas fa-info-circle me-1"></i>
+                    {% trans "Enter your donation amount" %}
+                </div>
+
+                {% if form.amount.errors %}
+                <div class="invalid-feedback d-block">
+                    {% for error in form.amount.errors %}
+                        {{ error }}
+                    {% endfor %}
+                </div>
+                {% endif %}
+            </div>
+    
+            <!-- Donor Information -->
+            <div class="row mb-3" id="donor-fields">
+                <div class="col-md-6">
+                    <label for="{{ form.donor_name.id_for_label }}" class="form-label">
+                        {% trans "Your Name" %}
+                        <i class="fas fa-info-circle text-muted ms-1"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="{% trans 'Enter your full name as you want it to appear on the donor list (if not anonymous)' %}"></i>
+                    </label>
+                    {{ form.donor_name }}
+                    {% if form.donor_name.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.donor_name.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+                
+                <div class="col-md-6">
+                    <label for="{{ form.donor_email.id_for_label }}" class="form-label">
+                        {% trans "Your Email" %}
+                        <i class="fas fa-info-circle text-muted ms-1"
+                           data-bs-toggle="tooltip"
+                           data-bs-placement="top"
+                           title="{% trans 'We will send donation confirmations and receipts to this email address' %}"></i>
+                    </label>
+                    {{ form.donor_email }}
+                    {% if form.donor_email.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.donor_email.errors %}
+                            {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+    
+            <!-- Message -->
+            <div class="mb-3">
+                <label for="{{ form.message.id_for_label }}" class="form-label">{% trans "Message (Optional)" %}</label>
+                {{ form.message }}
+            </div>
+            
+            <!-- Anonymous Checkbox -->
+            <div class="mb-3 form-check">
+                {{ form.is_anonymous }}
+                <label class="form-check-label" for="{{ form.is_anonymous.id_for_label }}">
+                    {% trans "Make this donation anonymous" %}
+                    <i class="fas fa-info-circle text-muted ms-1"
+                       data-bs-toggle="tooltip"
+                       data-bs-placement="top"
+                       title="{% trans 'Anonymous donations will not show your name publicly, but you will still receive a receipt' %}"></i>
+                </label>
+            </div>
+            
+            <!-- Submit Button -->
+            <button type="submit" class="btn btn-success w-100 btn-lg py-3" id="donate-btn">
+                <i class="fas fa-heart me-2"></i>
+                <span class="fw-bold">{% trans "Donate Now" %}</span>
+                <div class="small mt-1">
+                    {% trans "Secure GCash Payment" %}
+                </div>
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock donation_content %}
+
+{% block extra_css %}
+<style>
+    /* Additional styling for donation form */
+    
+    
+    .card {
+        border: none;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .card-header {
+        border-radius: 8px 8px 0 0 !important;
+    }
+    
+    .form-control, .form-select {
+        font-size: 0.9rem;
+    }
+    
+    .btn-lg {
+        font-size: 1rem;
+    }
+    
+    @media (max-width: 768px) {
+        .btn-lg {
+            font-size: 0.9rem;
+            padding: 0.75rem 1rem;
+        }
+    }
+
+    .donor-fields.disabled {
+        opacity: 0.5;
+        pointer-events: none;
+    }
+
+    .btn-donate {
+        background: linear-gradient(135deg, #28a745, #20c997);
+        border: none;
+        color: white;
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        border-radius: 10px;
+        width: 100%;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(40, 167, 69, 0.3);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-donate:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(40, 167, 69, 0.4);
+        background: linear-gradient(135deg, #20c997, #28a745);
+    }
+
+    .btn-donate:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+        transform: none;
+    }
+
+    .btn-donate.loading {
+        position: relative;
+        color: transparent;
+    }
+
+    .btn-donate.loading::after {
+        content: '';
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        border: 2px solid transparent;
+        border-top: 2px solid white;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 768px) {
+        .amount-buttons {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+
+    @media (max-width: 576px) {
+        .amount-buttons {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock extra_css %}
+
+{% block extra_js %}
+<script src="{% static 'donations/js/donations.js' %}?v=1.1"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Initialize tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Amount button functionality (handled by donations.js)
+    // The donations.js file will handle the amount button functionality
+
+    // Anonymous checkbox functionality (handled by donations.js)
+    // The donations.js file will handle the anonymous checkbox functionality
+
+    // Form validation
+    const form = document.querySelector('#donation-form');
+    if (form) {
+        const inputs = form.querySelectorAll('input[required], select[required], textarea[required]');
+
+        inputs.forEach(input => {
+            input.addEventListener('blur', function() {
+                validateField(this);
+            });
+
+            input.addEventListener('input', function() {
+                if (this.classList.contains('is-invalid') || this.classList.contains('is-valid')) {
+                    validateField(this);
+                }
+            });
+        });
+
+        // Form submission validation with SweetAlert confirmation
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            let isValid = true;
+            inputs.forEach(input => {
+                if (!validateField(input)) {
+                    isValid = false;
+                }
+            });
+
+            if (!isValid) {
+                // Scroll to first invalid field
+                const firstInvalid = form.querySelector('.is-invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
+                return;
+            }
+            
+            // Get form data for confirmation
+            const formData = new FormData(form);
+            const amount = formData.get('amount');
+            const donorName = formData.get('donor_name') || 'Anonymous';
+            const isAnonymous = formData.get('is_anonymous') === 'on';
+            const message = formData.get('message') || 'No message';
+            const donorEmail = formData.get('donor_email') || 'Not provided';
+            
+            // Show SweetAlert confirmation
+            Swal.fire({
+                title: '{% trans "Confirm Your Donation" %}',
+                html: `
+                    <div class="text-start">
+                        <div class="alert alert-info mb-3">
+                            <h6 class="alert-heading">{% trans "Donation Summary" %}</h6>
+                            <hr>
+                            <p class="mb-1"><strong>{% trans "Amount:" %}</strong> ₱${parseFloat(amount).toLocaleString()}</p>
+                            <p class="mb-1"><strong>{% trans "Donor:" %}</strong> ${isAnonymous ? 'Anonymous' : donorName}</p>
+                            <p class="mb-1"><strong>{% trans "Email:" %}</strong> ${donorEmail}</p>
+                            ${message !== 'No message' ? `<p class="mb-0"><strong>{% trans "Message:" %}</strong> ${message}</p>` : ''}
+                        </div>
+                        <p class="text-muted small">
+                            {% trans "Please review your donation details above. Once submitted, you will be redirected to payment instructions." %}
+                        </p>
+                    </div>
+                `,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: '{% trans "Yes, Submit Donation" %}',
+                cancelButtonText: '{% trans "Cancel" %}',
+                confirmButtonColor: '#2b3c6b',
+                cancelButtonColor: '#6c757d',
+                reverseButtons: true
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    const submitBtn = document.querySelector('#donate-btn');
+                    submitBtn.classList.add('loading');
+                    submitBtn.disabled = true;
+                    
+                    // Submit the form
+                    form.submit();
+                }
+            });
+        });
+    }
+
+    function validateField(field) {
+        const value = field.value.trim();
+        let isValid = true;
+
+        // Remove existing validation classes
+        field.classList.remove('is-valid', 'is-invalid');
+
+        // Check if required field is empty
+        if (field.hasAttribute('required') && !value) {
+            isValid = false;
+        }
+
+        // Email validation
+        if (field.type === 'email' && value) {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(value)) {
+                isValid = false;
+            }
+        }
+
+        // Amount validation
+        if (field.name === 'amount' && value) {
+            const amount = parseFloat(value);
+            if (isNaN(amount) || amount <= 0) {
+                isValid = false;
+            }
+        }
+
+        // Add validation class
+        field.classList.add(isValid ? 'is-valid' : 'is-invalid');
+
+        return isValid;
+    }
+});
+</script>
+{% endblock extra_js %}

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "cms/base_cms.html" %}
 {% load static %}
 
 {% block title %}Timeline Items - {{ block.super }}{% endblock %}
@@ -398,8 +398,123 @@
 </style>
 {% endblock %}
 
+{% block extra_js %}
+{{ block.super }}
+<script>
+console.log('Timeline template extra_js loaded');
+console.log('handleDeleteClick function exists:', typeof window.handleDeleteClick !== 'undefined');
+
+        // Fallback function if handleDeleteClick is not defined
+        if (typeof window.handleDeleteClick === 'undefined') {
+            console.log('handleDeleteClick not found, defining fallback');
+            window.handleDeleteClick = function(event, itemName, itemType = 'item') {
+                event.preventDefault();
+                
+                // Get delete URL from button's data attribute
+                const button = event.target.closest('button');
+                if (button && button.dataset.deleteUrl) {
+                    const deleteUrl = button.dataset.deleteUrl;
+                    
+                    // Simple confirmation
+                    if (confirm(`Are you sure you want to delete "${itemName}"? This action cannot be undone!`)) {
+                        // Create a form to submit the delete request
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = deleteUrl;
+                        
+                        // Add CSRF token
+                        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                        if (csrfToken) {
+                            const csrfInput = document.createElement('input');
+                            csrfInput.type = 'hidden';
+                            csrfInput.name = 'csrfmiddlewaretoken';
+                            csrfInput.value = csrfToken.value;
+                            form.appendChild(csrfInput);
+                        }
+                        
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                }
+            };
+        }
+
+        // Simple delete function for timeline items
+        window.deleteTimelineItem = function(itemName, deleteUrl) {
+            if (confirm('Are you sure you want to delete "' + itemName + '"? This action cannot be undone!')) {
+                // Create a form to submit the delete request
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = deleteUrl;
+                
+                // Add CSRF token
+                const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+                if (csrfToken) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrfmiddlewaretoken';
+                    csrfInput.value = csrfToken.value;
+                    form.appendChild(csrfInput);
+                }
+                
+                document.body.appendChild(form);
+                form.submit();
+            }
+        };
+</script>
+{% endblock %}
+
 {% block content %}
+<script>
+// SweetAlert delete function for timeline items
+window.deleteTimelineItem = function(itemName, deleteUrl) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to delete "${itemName}". This action cannot be undone!`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the timeline item.',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Create a form to submit the delete request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = deleteUrl;
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = csrfToken.value;
+                form.appendChild(csrfInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+};
+</script>
 <div class="container-fluid">
+    {% csrf_token %}
     <!-- Header Section -->
     <div class="directory-header">
         <h1 class="directory-title">Timeline Items</h1>
@@ -455,6 +570,9 @@
                             <a href="{% url 'cms:timeline_item_edit' item.pk %}" class="btn btn-secondary">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
+                            <button type="button" class="btn btn-secondary" style="background-color: var(--feedback-error);" onclick="deleteTimelineItem('{{ item.title|escapejs }}', '{% url 'cms:timeline_item_delete' item.pk %}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                         </div>
                     </div>
                 </div>

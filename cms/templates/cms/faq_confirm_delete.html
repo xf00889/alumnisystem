@@ -1,0 +1,59 @@
+{% extends "cms/base_cms.html" %}
+{% load static %}
+
+{% block title %}Delete FAQ - {{ block.super }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    {% csrf_token %}
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Delete FAQ</h1>
+        <p class="directory-subtitle">Confirm deletion of frequently asked question</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:faq_list' %}">FAQs</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Delete</li>
+        </ol>
+    </nav>
+
+    <div class="card shadow mb-4">
+        <div class="card-header py-3">
+            <h6 class="m-0 font-weight-bold text-primary">Confirm Deletion</h6>
+        </div>
+        <div class="card-body">
+            <p>Are you sure you want to delete the FAQ:</p>
+            <div class="alert alert-warning">
+                <h5><i class="fas fa-question-circle"></i> {{ object.question }}</h5>
+                <p><strong>Answer:</strong> {{ object.answer|truncatewords:20 }}</p>
+            </div>
+            <p><strong>This action cannot be undone.</strong></p>
+            <form method="post">
+                {% csrf_token %}
+                <button type="submit" class="btn btn-danger">
+                    <i class="fas fa-trash"></i> Yes, Delete FAQ
+                </button>
+                <a href="{% url 'cms:faq_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // This script is for the dedicated delete confirmation page.
+        // The SweetAlert for list view is handled by the deleteFAQ function in faq_list.html
+        // This page provides a fallback/direct confirmation if accessed directly.
+    });
+</script>
+{% endblock %}

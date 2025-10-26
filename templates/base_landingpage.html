@@ -757,9 +757,8 @@
                 font-size: 0.875rem;
             }
         }
-
-        {% block extra_css %}{% endblock extra_css %}
     </style>
+    {% block extra_css %}{% endblock %}
 </head>
 <body>
     <!-- Landing Page Navbar -->
@@ -796,12 +795,6 @@
                         <a class="nav-link {% if request.resolver_match.url_name == 'landing_events' %}active{% endif %}" href="{% url 'core:landing_events' %}">
                             <i class="fas fa-calendar-alt"></i>
                             <span>Events</span>
-                        </a>
-                    </li>
-                    <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'landing_news' %}active{% endif %}" href="{% url 'core:landing_news' %}">
-                            <i class="fas fa-newspaper"></i>
-                            <span>News</span>
                         </a>
                     </li>
                     <li class="nav-item">
@@ -870,7 +863,6 @@
                                 <li><a href="{% url 'core:home' %}"><i class="fas fa-home"></i>Home</a></li>
                                 <li><a href="{% url 'core:landing_events' %}"><i class="fas fa-calendar-alt"></i>Events</a></li>
                                 <li><a href="{% url 'core:landing_announcements' %}"><i class="fas fa-bullhorn"></i>Announcements</a></li>
-                                <li><a href="{% url 'core:landing_news' %}"><i class="fas fa-newspaper"></i>News</a></li>
                             </ul>
                         </div>
                     </div>
@@ -893,18 +885,38 @@
                         <div class="footer-section">
                             <h6 class="footer-title">Contact Info</h6>
                             <div class="contact-info">
-                                <div class="contact-item mb-3">
-                                    <i class="fas fa-map-marker-alt me-2"></i>
-                                    <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
-                                </div>
-                                <div class="contact-item mb-3">
-                                    <i class="fas fa-phone me-2"></i>
-                                    <span>+63 35 422 6002</span>
-                                </div>
-                                <div class="contact-item mb-3">
-                                    <i class="fas fa-envelope me-2"></i>
-                                    <span>alumni@norsu.edu.ph</span>
-                                </div>
+                                {% load cms_tags %}
+                                {% get_contact_info as cms_contact_info %}
+                                {% if cms_contact_info %}
+                                    {% for info in cms_contact_info %}
+                                        {% if info.contact_type == 'address' or info.contact_type == 'email' or info.contact_type == 'phone' %}
+                                        <div class="contact-item mb-3">
+                                            {% if info.contact_type == 'address' %}
+                                                <i class="fas fa-map-marker-alt me-2"></i>
+                                            {% elif info.contact_type == 'email' %}
+                                                <i class="fas fa-envelope me-2"></i>
+                                            {% elif info.contact_type == 'phone' %}
+                                                <i class="fas fa-phone me-2"></i>
+                                            {% endif %}
+                                            <span>{{ info.value|linebreaksbr }}</span>
+                                        </div>
+                                        {% endif %}
+                                    {% endfor %}
+                                {% else %}
+                                    <!-- Fallback contact information -->
+                                    <div class="contact-item mb-3">
+                                        <i class="fas fa-map-marker-alt me-2"></i>
+                                        <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
+                                    </div>
+                                    <div class="contact-item mb-3">
+                                        <i class="fas fa-phone me-2"></i>
+                                        <span>+63 35 422 6002</span>
+                                    </div>
+                                    <div class="contact-item mb-3">
+                                        <i class="fas fa-envelope me-2"></i>
+                                        <span>alumni@norsu.edu.ph</span>
+                                    </div>
+                                {% endif %}
                             </div>
                         </div>
                     </div>

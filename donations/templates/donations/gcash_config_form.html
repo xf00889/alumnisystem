@@ -1,0 +1,153 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load i18n %}
+
+{% block title %}{% trans "GCash Configuration" %} - NORSU Alumni{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block donations_content %}
+<div class="col-12">
+  <!-- Welcome Header -->
+  <div class="welcome-header mt-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4>{% trans "GCash Configuration" %}</h4>
+        <p>{% trans "Configure GCash payment settings for donations." %}</p>
+      </div>
+      <div>
+        <a href="{% url 'donations:manage_gcash' %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-arrow-left me-2"></i>{% trans "Back to Configurations" %}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="col-lg-8 mx-auto">
+      <div class="dashboard-card">
+        <div class="card-header">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-mobile-alt me-2"></i>
+            {% trans "GCash Configuration Details" %}
+          </h5>
+        </div>
+        <div class="card-body">
+          <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Configuration Name -->
+            <div class="mb-4">
+              <label for="{{ form.name.id_for_label }}" class="form-label">
+                <strong>{% trans "Configuration Name" %} *</strong>
+              </label>
+              {{ form.name }}
+              {% if form.name.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.name.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">{% trans "Enter a descriptive name for this GCash configuration" %}</div>
+            </div>
+
+            <!-- Account Information -->
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <label for="{{ form.account_name.id_for_label }}" class="form-label">
+                  <strong>{% trans "Account Name" %} *</strong>
+                </label>
+                {{ form.account_name }}
+                {% if form.account_name.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.account_name.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+                <div class="form-text">{% trans "Name associated with the GCash account" %}</div>
+              </div>
+              <div class="col-md-6">
+                <label for="{{ form.gcash_number.id_for_label }}" class="form-label">
+                  <strong>{% trans "GCash Number" %} *</strong>
+                </label>
+                {{ form.gcash_number }}
+                {% if form.gcash_number.errors %}
+                  <div class="text-danger small mt-1">
+                    {% for error in form.gcash_number.errors %}{{ error }}{% endfor %}
+                  </div>
+                {% endif %}
+                <div class="form-text">{% trans "GCash mobile number (e.g., 09123456789)" %}</div>
+              </div>
+            </div>
+
+            <!-- QR Code Image -->
+            <div class="mb-4">
+              <label for="{{ form.qr_code_image.id_for_label }}" class="form-label">
+                <strong>{% trans "QR Code Image" %} *</strong>
+              </label>
+              {{ form.qr_code_image }}
+              {% if form.qr_code_image.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.qr_code_image.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">{% trans "Upload the QR code image for this GCash account" %}</div>
+              
+              <!-- Current QR Code Preview -->
+              {% if form.instance.qr_code_image %}
+              <div class="mt-3">
+                <label class="form-label">{% trans "Current QR Code:" %}</label>
+                <div class="text-center">
+                  <img src="{{ form.instance.qr_code_image.url }}" 
+                       alt="Current QR Code" 
+                       class="img-fluid rounded border" 
+                       style="max-width: 200px; max-height: 200px;">
+                </div>
+              </div>
+              {% endif %}
+            </div>
+
+            <!-- Payment Instructions -->
+            <div class="mb-4">
+              <label for="{{ form.instructions.id_for_label }}" class="form-label">
+                <strong>{% trans "Payment Instructions" %}</strong>
+              </label>
+              {{ form.instructions }}
+              {% if form.instructions.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.instructions.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">{% trans "Additional instructions for donors (optional)" %}</div>
+            </div>
+
+            <!-- Active Status -->
+            <div class="mb-4">
+              <div class="form-check">
+                {{ form.is_active }}
+                <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                  <strong>{% trans "Active Configuration" %}</strong>
+                </label>
+              </div>
+              {% if form.is_active.errors %}
+                <div class="text-danger small mt-1">
+                  {% for error in form.is_active.errors %}{{ error }}{% endfor %}
+                </div>
+              {% endif %}
+              <div class="form-text">{% trans "Only active configurations can be selected for campaigns" %}</div>
+            </div>
+
+            <!-- Form Actions -->
+            <div class="d-flex gap-3">
+              <button type="submit" class="btn btn-primary">
+                <i class="fas fa-save me-2"></i>{% trans "Save Configuration" %}
+              </button>
+              <a href="{% url 'donations:manage_gcash' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-times me-2"></i>{% trans "Cancel" %}
+              </a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "cms/base_cms.html" %}
 {% load static %}
 
 {% block title %}Testimonials - {{ block.super }}{% endblock %}
@@ -420,7 +420,56 @@
 {% endblock %}
 
 {% block content %}
+<script>
+// SweetAlert delete function for Testimonials
+window.deleteTestimonial = function(testimonialName, deleteUrl) {
+    Swal.fire({
+        title: 'Are you sure?',
+        text: `You are about to delete "${testimonialName}". This action cannot be undone!`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#d33',
+        cancelButtonColor: '#3085d6',
+        confirmButtonText: 'Yes, delete it!',
+        cancelButtonText: 'Cancel',
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: 'Deleting...',
+                text: 'Please wait while we delete the testimonial.',
+                icon: 'info',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            // Create a form to submit the delete request
+            const form = document.createElement('form');
+            form.method = 'POST';
+            form.action = deleteUrl;
+            
+            // Add CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]');
+            if (csrfToken) {
+                const csrfInput = document.createElement('input');
+                csrfInput.type = 'hidden';
+                csrfInput.name = 'csrfmiddlewaretoken';
+                csrfInput.value = csrfToken.value;
+                form.appendChild(csrfInput);
+            }
+            
+            document.body.appendChild(form);
+            form.submit();
+        }
+    });
+};
+</script>
 <div class="container-fluid">
+    {% csrf_token %}
     <!-- Header Section -->
     <div class="directory-header">
         <h1 class="directory-title">Testimonials</h1>
@@ -478,6 +527,9 @@
                             <a href="{% url 'cms:testimonial_edit' testimonial.pk %}" class="btn btn-secondary">
                                 <i class="fas fa-edit"></i> Edit
                             </a>
+                            <button type="button" class="btn btn-secondary" style="background-color: var(--feedback-error);" onclick="deleteTestimonial('{{ testimonial.name|escapejs }}', '{% url 'cms:testimonial_delete' testimonial.pk %}')">
+                                <i class="fas fa-trash"></i> Delete
+                            </button>
                         </div>
                     </div>
                 </div>

@@ -19,16 +19,11 @@ urlpatterns = [
     path('payment-instructions/<int:pk>/', views.payment_instructions, name='payment_instructions'),
     path('upload-proof/<int:pk>/', views.upload_payment_proof, name='upload_payment_proof'),
 
-    # Status tracking
-    path('track/', views.donation_status_tracker, name='donation_status_tracker'),
-    path('track/<str:reference_number>/', views.donation_status_tracker, name='donation_status_tracker'),
-    path('api/status/<int:pk>/', views.donation_status_api, name='donation_status_api'),
 
     # Help and FAQ
     path('faq/', views.donation_faq, name='donation_faq'),
 
     # Admin views
-    path('dashboard/', views.dashboard, name='dashboard'),
     path('verification/', views.verification_dashboard, name='verification_dashboard'),
     path('analytics/', views.analytics_dashboard, name='analytics_dashboard'),
     path('fraud-monitoring/', views.fraud_monitoring_dashboard, name='fraud_monitoring_dashboard'),
@@ -39,6 +34,9 @@ urlpatterns = [
     path('manage/donations/', views.manage_donations, name='manage_donations'),
     # GCash management (custom interface)
     path('manage/gcash/', views.manage_gcash, name='manage_gcash'),
+    path('manage/gcash/create/', views.gcash_config_create, name='gcash_config_create'),
+    path('manage/gcash/<int:pk>/', views.gcash_config_detail, name='gcash_config_detail'),
+    path('manage/gcash/<int:pk>/toggle/', views.toggle_gcash_config, name='toggle_gcash_config'),
 
     path('manage/campaigns/', views.manage_campaigns, name='manage_campaigns'),
     path('donation/<int:pk>/update-status/', views.update_donation_status, name='update_donation_status'),

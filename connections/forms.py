@@ -1,5 +1,8 @@
 from django import forms
 from .models import DirectMessage, DirectConversation
+from core.recaptcha_fields import DatabaseReCaptchaField
+from core.recaptcha_widgets import DatabaseReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 
 class DirectMessageForm(forms.ModelForm):
@@ -29,6 +32,19 @@ class DirectMessageForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields['content'].required = True
         self.fields['attachment'].required = False
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = DatabaseReCaptchaField(
+                widget=DatabaseReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
     
     def clean_content(self):
         content = self.cleaned_data.get('content')

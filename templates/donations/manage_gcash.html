@@ -15,8 +15,8 @@
                 <p>Configure and manage GCash payment settings for donations.</p>
             </div>
             <div>
-                <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Campaigns
                 </a>
             </div>
         </div>
@@ -60,6 +60,18 @@
 
                         <div class="row">
                             <div class="col-md-6 mb-3">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">
+                                    <i class="fas fa-cog me-1"></i>
+                                    Configuration Name
+                                </label>
+                                {{ form.name }}
+                                {% if form.name.help_text %}
+                                <div class="form-text">{{ form.name.help_text }}</div>
+                                {% endif %}
+                                <div class="form-text">Enter a name for this GCash configuration</div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
                                 <label for="{{ form.account_name.id_for_label }}" class="form-label">
                                     <i class="fas fa-user me-1"></i>
                                     Account Name
@@ -69,16 +81,19 @@
                                 <div class="form-text">{{ form.account_name.help_text }}</div>
                                 {% endif %}
                             </div>
-                            
+                        </div>
+                        
+                        <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label for="{{ form.phone_number.id_for_label }}" class="form-label">
+                                <label for="{{ form.gcash_number.id_for_label }}" class="form-label">
                                     <i class="fas fa-phone me-1"></i>
                                     Phone Number
                                 </label>
-                                {{ form.phone_number }}
-                                {% if form.phone_number.help_text %}
-                                <div class="form-text">{{ form.phone_number.help_text }}</div>
+                                {{ form.gcash_number }}
+                                {% if form.gcash_number.help_text %}
+                                <div class="form-text">{{ form.gcash_number.help_text }}</div>
                                 {% endif %}
+                                <div class="form-text">Enter your GCash mobile number (e.g., 09123456789)</div>
                             </div>
                         </div>
 
@@ -122,7 +137,7 @@
                                 <i class="fas fa-save me-2"></i>
                                 Save Configuration
                             </button>
-                            <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-secondary">
+                            <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-secondary">
                                 <i class="fas fa-times me-2"></i>
                                 Cancel
                             </a>
@@ -162,6 +177,13 @@
                         </div>
                         
                         <div class="mb-3">
+                            <div class="stat-title">Configuration Name</div>
+                            <div class="stat-value" style="font-size: 1rem; color: var(--text-primary);">
+                                {{ config.name|default:"Not set" }}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
                             <div class="stat-title">Account Name</div>
                             <div class="stat-value" style="font-size: 1rem; color: var(--text-primary);">
                                 {{ config.account_name|default:"Not set" }}
@@ -171,7 +193,7 @@
                         <div class="mb-3">
                             <div class="stat-title">Phone Number</div>
                             <div class="stat-value" style="font-size: 1rem; color: var(--text-primary);">
-                                {{ config.phone_number|default:"Not set" }}
+                                {{ config.gcash_number|default:"Not set" }}
                             </div>
                         </div>
                         

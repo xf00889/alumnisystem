@@ -14,8 +14,8 @@ class CampaignTypeAdmin(admin.ModelAdmin):
 @admin.register(Campaign)
 class CampaignAdmin(admin.ModelAdmin):
     list_display = ('name', 'campaign_type', 'goal_amount', 'current_amount', 
-                    'progress_percentage', 'start_date', 'end_date', 'status', 'is_featured')
-    list_filter = ('status', 'campaign_type', 'is_featured', 'start_date')
+                    'progress_percentage', 'start_date', 'end_date', 'status', 'visibility', 'is_featured')
+    list_filter = ('status', 'visibility', 'campaign_type', 'is_featured', 'start_date')
     search_fields = ('name', 'description', 'short_description')
     prepopulated_fields = {'slug': ('name',)}
     readonly_fields = ('created_at', 'updated_at')
@@ -31,7 +31,7 @@ class CampaignAdmin(admin.ModelAdmin):
             'fields': ('start_date', 'end_date', 'status')
         }),
         (_('Display Options'), {
-            'fields': ('is_featured',)
+            'fields': ('visibility', 'is_featured')
         }),
         (_('System Information'), {
             'fields': ('created_at', 'updated_at'),

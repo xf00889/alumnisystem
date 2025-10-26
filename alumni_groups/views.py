@@ -368,6 +368,7 @@ class GroupCreatePhase2View(LoginRequiredMixin, View):
         visibility = request.POST.get('visibility')
         tags = request.POST.get('tags', '')
         cover_image = request.FILES.get('cover_image')
+        profile_photo = request.FILES.get('profile_photo')
         requires_approval = request.POST.get('requires_approval') == 'on'
         has_security_questions = request.POST.get('has_security_questions') == 'on'
         max_members = request.POST.get('max_members')
@@ -392,7 +393,8 @@ class GroupCreatePhase2View(LoginRequiredMixin, View):
                 requires_approval=requires_approval,
                 has_security_questions=has_security_questions,
                 max_members=int(max_members) if max_members else None,
-                cover_image=cover_image
+                cover_image=cover_image,
+                profile_photo=profile_photo
             )
             
             # Add tags if provided

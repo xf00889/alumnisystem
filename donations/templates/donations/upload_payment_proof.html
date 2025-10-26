@@ -109,8 +109,6 @@
                             <strong>{% trans "Amount:" %}</strong> ₱{{ donation.amount|intcomma }}<br>
                         </div>
                         <div class="col-md-6">
-                            <strong>{% trans "Reference Number:" %}</strong> 
-                            <span class="badge bg-dark fs-6">{{ donation.reference_number }}</span><br>
                             <strong>{% trans "Status:" %}</strong> 
                             <span class="badge bg-warning">{{ donation.get_status_display }}</span>
                         </div>
@@ -150,17 +148,20 @@
                     </div>
 
                     <div class="mb-4">
-                        <label for="{{ form.gcash_transaction_id.id_for_label }}" class="form-label">
-                            <strong>{% trans "GCash Transaction ID" %}</strong> 
-                            <small class="text-muted">({% trans "Optional" %})</small>
+                        <label for="{{ form.reference_number.id_for_label }}" class="form-label">
+                            <strong>{% trans "Reference Number" %} *</strong>
+                            <i class="fas fa-info-circle text-muted ms-1"
+                               data-bs-toggle="tooltip"
+                               data-bs-placement="top"
+                               title="{% trans 'Enter your GCash transaction reference number (required)' %}"></i>
                         </label>
-                        {{ form.gcash_transaction_id }}
-                        {% if form.gcash_transaction_id.help_text %}
-                            <div class="form-text">{{ form.gcash_transaction_id.help_text }}</div>
+                        {{ form.reference_number }}
+                        {% if form.reference_number.help_text %}
+                            <div class="form-text">{{ form.reference_number.help_text }}</div>
                         {% endif %}
-                        {% if form.gcash_transaction_id.errors %}
+                        {% if form.reference_number.errors %}
                             <div class="invalid-feedback d-block">
-                                {% for error in form.gcash_transaction_id.errors %}
+                                {% for error in form.reference_number.errors %}
                                     {{ error }}
                                 {% endfor %}
                             </div>
@@ -204,15 +205,26 @@ document.addEventListener('DOMContentLoaded', function() {
         if (file) {
             // Check file size (5MB limit)
             if (file.size > 5 * 1024 * 1024) {
-                alert('{% trans "File size must be less than 5MB." %}');
+                Swal.fire({
+                    title: '{% trans "File Too Large" %}',
+                    text: '{% trans "Please select a file smaller than 5MB" %}',
+                    icon: 'error',
+                    confirmButtonColor: '#2b3c6b'
+                });
                 fileInput.value = '';
                 imagePreview.style.display = 'none';
                 return;
             }
 
             // Check file type
-            if (!file.type.startsWith('image/')) {
-                alert('{% trans "Please select an image file." %}');
+            const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/gif'];
+            if (!allowedTypes.includes(file.type)) {
+                Swal.fire({
+                    title: '{% trans "Invalid File Type" %}',
+                    text: '{% trans "Please select a JPG, PNG, or GIF image file" %}',
+                    icon: 'error',
+                    confirmButtonColor: '#2b3c6b'
+                });
                 fileInput.value = '';
                 imagePreview.style.display = 'none';
                 return;
@@ -230,14 +242,131 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Form validation
+    // Form validation and submission
     const form = document.querySelector('.needs-validation');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    
     form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
         if (!form.checkValidity()) {
-            e.preventDefault();
-            e.stopPropagation();
+            form.classList.add('was-validated');
+            return;
         }
-        form.classList.add('was-validated');
+        
+        // Get form data for confirmation
+        const formData = new FormData(form);
+        const paymentProof = formData.get('payment_proof');
+        const referenceNumber = formData.get('reference_number') || 'Not provided';
+        const fileName = paymentProof ? paymentProof.name : 'No file selected';
+        
+        // Show SweetAlert confirmation
+        Swal.fire({
+            title: '{% trans "Confirm Payment Proof Upload" %}',
+            html: `
+                <div class="text-start">
+                    <div class="alert alert-info mb-3">
+                        <h6 class="alert-heading">{% trans "Upload Summary" %}</h6>
+                        <hr>
+                        <p class="mb-1"><strong>{% trans "File:" %}</strong> ${fileName}</p>
+                        <p class="mb-1"><strong>{% trans "Reference Number:" %}</strong> ${referenceNumber}</p>
+                        <p class="mb-0"><strong>{% trans "Status:" %}</strong> {% trans "Pending Verification" %}</p>
+                    </div>
+                    <p class="text-muted small">
+                        {% trans "Please review your payment proof details above. Once submitted, your donation will be queued for verification within 24 hours." %}
+                    </p>
+                </div>
+            `,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '{% trans "Yes, Upload Payment Proof" %}',
+            cancelButtonText: '{% trans "Cancel" %}',
+            confirmButtonColor: '#2b3c6b',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Disable submit button and show loading state
+                submitBtn.disabled = true;
+                const originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>{% trans "Uploading..." %}';
+                
+                // Send AJAX request
+                fetch(form.action, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    console.log('Response data:', data);
+                    
+                    if (data.success) {
+                        // Show success SweetAlert
+                        Swal.fire({
+                            title: '🎉 Payment Proof Uploaded Successfully!',
+                            html: `
+                                <div class="text-center">
+                                    <i class="fas fa-check-circle text-success mb-3" style="font-size: 4rem;"></i>
+                                    <p class="mb-3">${data.message}</p>
+                                    <div class="alert alert-info">
+                                        <strong>Thank you for your generous donation!</strong><br>
+                                        Your contribution makes a real difference in our community.
+                                    </div>
+                                    <p class="text-muted small">
+                                        Your donation will be verified within 24 hours.<br>
+                                        <strong>You will receive an email confirmation once verified.</strong>
+                                    </p>
+                                </div>
+                            `,
+                            icon: 'success',
+                            confirmButtonText: '{% trans "Continue" %}',
+                            confirmButtonColor: '#2b3c6b',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: true,
+                            timer: null
+                        }).then(() => {
+                            // Redirect to confirmation page
+                            if (data.redirect_url) {
+                                window.location.href = data.redirect_url;
+                            } else {
+                                window.location.reload();
+                            }
+                        });
+                    } else {
+                        // Show error SweetAlert
+                        Swal.fire({
+                            title: '{% trans "Upload Failed" %}',
+                            text: data.message || '{% trans "Please try again" %}',
+                            icon: 'error',
+                            confirmButtonColor: '#2b3c6b'
+                        });
+                        
+                        // Reset button
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Upload error:', error);
+                    
+                    // Show error SweetAlert
+                    Swal.fire({
+                        title: '{% trans "Upload Failed" %}',
+                        text: '{% trans "An error occurred while uploading. Please try again." %}',
+                        icon: 'error',
+                        confirmButtonColor: '#2b3c6b'
+                    });
+                    
+                    // Reset button
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                });
+            }
+        });
     });
 });
 </script>

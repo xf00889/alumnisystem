@@ -776,7 +776,19 @@ function resolveAlert(alertId, status) {
         },
         body: `status=${status}&notes=${encodeURIComponent(notes || '')}`
     })
-    .then(response => response.json())
+    .then(response => {
+        // Check if response is ok and content type is JSON
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const contentType = response.headers.get('content-type');
+        if (!contentType || !contentType.includes('application/json')) {
+            throw new Error('Response is not JSON');
+        }
+        
+        return response.json();
+    })
     .then(data => {
         if (data.status === 'success') {
             location.reload();

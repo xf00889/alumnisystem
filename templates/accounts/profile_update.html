@@ -107,10 +107,12 @@
         background: rgba(43, 60, 107, 0.02);
         border: 1px solid rgba(43, 60, 107, 0.1);
         border-radius: 15px;
-        padding: calc(var(--spacing-unit) * 1.5);
-        margin-bottom: calc(var(--spacing-unit) * 1.2);
+        padding: 1.5rem;
+        padding-right: 6rem; /* Even more space for delete button */
+        margin-bottom: 1.5rem;
         position: relative;
         transition: all 0.3s ease;
+        min-height: 160px; /* Further increased minimum height */
     }
 
     .formset-item:hover {
@@ -124,6 +126,7 @@
         right: 1rem;
     }
 
+    /* Style for existing Django formset delete checkboxes */
     .formset-item .delete-row .form-check {
         padding: 0;
         margin: 0;
@@ -137,18 +140,101 @@
         display: none;
     }
 
+    /* Create delete button for existing formsets */
     .formset-item .delete-row::after {
         content: '\f2ed';
         font-family: 'Font Awesome 5 Free';
         font-weight: 900;
-        color: var(--text-secondary);
-        font-size: 1.2rem;
+        color: #dc3545;
+        font-size: 1rem;
         cursor: pointer;
-        transition: color 0.3s ease;
+        transition: all 0.3s ease;
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 10;
+        background: #fff;
+        border: 1px solid #dc3545;
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
     }
 
     .formset-item .delete-row:hover::after {
+        color: #fff;
+        background-color: #dc3545;
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+    }
+
+    /* Styles for dynamically created delete buttons (with .btn class) */
+    .formset-item .delete-row {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 10;
+        display: block !important;
+    }
+
+    .formset-item .delete-row .btn {
+        border-radius: 50%;
+        width: 40px;
+        height: 40px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        border: 1px solid #dc3545;
+        background-color: #fff;
         color: #dc3545;
+        margin: 0;
+    }
+
+    .formset-item .delete-row .btn:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+    .formset-item .delete-row .btn i {
+        font-size: 1rem;
+    }
+
+    /* Ensure form fields don't interfere with delete button */
+    .formset-item .row {
+        margin-right: 0;
+        max-width: calc(100% - 3rem); /* Leave adequate space for delete button */
+    }
+
+    .formset-item .col-md-6:last-child {
+        padding-right: 0;
+    }
+
+    /* Make sure form controls don't extend into delete button area */
+    .formset-item .form-control,
+    .formset-item .form-select {
+        max-width: 100%;
+        margin-right: 0;
+        width: 100%;
+    }
+
+    /* Specific positioning for form fields to avoid delete button */
+    .formset-item .col-md-6 {
+        max-width: calc(50% - 0.5rem);
+        margin-right: 0;
+    }
+
+    /* Ensure dropdowns don't extend into delete button area */
+    .formset-item .form-select {
+        background-position: right 0.75rem center;
+        padding-right: 2rem;
     }
 
     .add-form {
@@ -667,8 +753,209 @@
         addButton.addEventListener('click', function(e) {
             e.preventDefault();
             
+            // Show confirmation dialog for adding new form
+            const formsetTypeName = formsetPrefix.charAt(0).toUpperCase() + formsetPrefix.slice(1);
+            
+            Swal.fire({
+                title: `Add New ${formsetTypeName}?`,
+                text: `Do you want to add a new ${formsetPrefix} entry?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2b3c6b',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, add it!',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true
+            }).then((result) => {
+                if (!result.isConfirmed) {
+                    return;
+                }
+            
             const formCount = parseInt(totalForms.value);
-            const newForm = container.querySelector('.formset-item').cloneNode(true);
+                const existingForm = container.querySelector('.formset-item');
+            
+            // Check if there's an existing form to clone, otherwise create a new one
+            let newForm;
+            if (existingForm) {
+                newForm = existingForm.cloneNode(true);
+            } else {
+                // Create a new form element if no existing form to clone
+                newForm = document.createElement('div');
+                newForm.className = 'formset-item';
+                
+                // Define options based on formset type
+                let skillTypeOptions = '';
+                let proficiencyOptions = '';
+                let programOptions = '';
+                let schoolOptions = '';
+                let careerSignificanceOptions = '';
+                let salaryRangeOptions = '';
+                
+                if (formsetPrefix === 'skill') {
+                    skillTypeOptions = `
+                        <option value="">---------</option>
+                        <option value="TECH">Technical</option>
+                        <option value="SOFT">Soft Skills</option>
+                        <option value="LANG">Language</option>
+                        <option value="CERT">Certification</option>
+                        <option value="DOMAIN">Domain Knowledge</option>
+                        <option value="TOOL">Tools & Software</option>
+                        <option value="OTHER">Other</option>
+                    `;
+                    proficiencyOptions = `
+                        <option value="">---------</option>
+                        <option value="1">Beginner</option>
+                        <option value="2">Elementary</option>
+                        <option value="3">Intermediate</option>
+                        <option value="4">Advanced</option>
+                        <option value="5">Expert</option>
+                    `;
+                } else if (formsetPrefix === 'education') {
+                    programOptions = `
+                        <option value="">---------</option>
+                        <option value="BSIT">BS in Information Technology</option>
+                        <option value="BSCS">BS in Computer Science</option>
+                        <option value="BSA">BS in Accountancy</option>
+                        <option value="BSBA-FM">BSBA in Financial Management</option>
+                        <option value="BSBA-MM">BSBA in Marketing Management</option>
+                        <option value="BEED">Bachelor of Elementary Education</option>
+                        <option value="BSED-ENG">BS in Education - English</option>
+                        <option value="BSN">BS in Nursing</option>
+                        <option value="BSCRIM">BS in Criminology</option>
+                        <option value="BSCE">BS in Civil Engineering</option>
+                        <option value="OTHER">Other Program</option>
+                    `;
+                    schoolOptions = `
+                        <option value="">---------</option>
+                        <option value="NORSU-MAIN">Main Campus I & II (Dumaguete)</option>
+                        <option value="NORSU-BAIS">Bais Campus I & II</option>
+                        <option value="NORSU-GUI">Guihulngan Campus</option>
+                        <option value="NORSU-MAB">Mabinay Campus</option>
+                        <option value="NORSU-BSC">Bayawan-Sta. Catalina Campus</option>
+                        <option value="NORSU-SIA">Siaton Campus</option>
+                        <option value="NORSU-PAM">Pamplona Campus</option>
+                        <option value="OTHER">Other Campus</option>
+                    `;
+                } else if (formsetPrefix === 'experience') {
+                    careerSignificanceOptions = `
+                        <option value="">---------</option>
+                        <option value="REGULAR">Regular Position</option>
+                        <option value="PROMOTION">Promotion</option>
+                        <option value="LATERAL">Lateral Move</option>
+                        <option value="NEW_ROLE">New Role</option>
+                        <option value="COMPANY_CHANGE">Company Change</option>
+                    `;
+                    salaryRangeOptions = `
+                        <option value="">Prefer not to say</option>
+                        <option value="0-15K">Below ₱15,000</option>
+                        <option value="15K-30K">₱15,000 - ₱30,000</option>
+                        <option value="30K-50K">₱30,000 - ₱50,000</option>
+                        <option value="50K-80K">₱50,000 - ₱80,000</option>
+                        <option value="80K-100K">₱80,000 - ₱100,000</option>
+                        <option value="100K+">Above ₱100,000</option>
+                    `;
+                }
+                
+                // Generate form HTML based on formset type
+                let formHTML = '';
+                
+                if (formsetPrefix === 'skill') {
+                    formHTML = `
+                        <div class="delete-row"></div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Skill Name</label>
+                                <input type="text" name="${formsetPrefix}-${formCount}-name" class="form-control" placeholder="Enter skill name" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Skill Type</label>
+                                <select name="${formsetPrefix}-${formCount}-skill_type" class="form-control">
+                                    ${skillTypeOptions}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Proficiency Level</label>
+                                <select name="${formsetPrefix}-${formCount}-proficiency_level" class="form-control">
+                                    ${proficiencyOptions}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                } else if (formsetPrefix === 'education') {
+                    formHTML = `
+                        <div class="delete-row"></div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Program</label>
+                                <select name="${formsetPrefix}-${formCount}-program" class="form-control">
+                                    ${programOptions}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">School/Campus</label>
+                                <select name="${formsetPrefix}-${formCount}-school" class="form-control">
+                                    ${schoolOptions}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Graduation Year</label>
+                                <input type="number" name="${formsetPrefix}-${formCount}-graduation_year" class="form-control" placeholder="YYYY" min="1970" max="${new Date().getFullYear()}" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Major/Specialization</label>
+                                <input type="text" name="${formsetPrefix}-${formCount}-major" class="form-control" placeholder="Enter major or specialization" />
+                            </div>
+                        </div>
+                    `;
+                } else if (formsetPrefix === 'experience') {
+                    formHTML = `
+                        <div class="delete-row"></div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Company</label>
+                                <input type="text" name="${formsetPrefix}-${formCount}-company" class="form-control" placeholder="Enter company name" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Position</label>
+                                <input type="text" name="${formsetPrefix}-${formCount}-position" class="form-control" placeholder="Enter job title" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Start Date</label>
+                                <input type="date" name="${formsetPrefix}-${formCount}-start_date" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">End Date</label>
+                                <input type="date" name="${formsetPrefix}-${formCount}-end_date" class="form-control" />
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Career Significance</label>
+                                <select name="${formsetPrefix}-${formCount}-career_significance" class="form-control">
+                                    ${careerSignificanceOptions}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Salary Range</label>
+                                <select name="${formsetPrefix}-${formCount}-salary_range" class="form-control">
+                                    ${salaryRangeOptions}
+                                </select>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    // Generic fallback for other formsets
+                    formHTML = `
+                        <div class="delete-row"></div>
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Name</label>
+                                <input type="text" name="${formsetPrefix}-${formCount}-name" class="form-control" />
+                            </div>
+                        </div>
+                    `;
+                }
+                
+                newForm.innerHTML = formHTML;
+            }
             
             // Update form index
             newForm.innerHTML = newForm.innerHTML.replaceAll(
@@ -697,27 +984,72 @@
             
             // Update total forms count
             totalForms.value = formCount + 1;
+            
+            // Show success message
+            Swal.fire({
+                title: 'Added!',
+                text: `New ${formsetPrefix} entry has been added.`,
+                icon: 'success',
+                timer: 2000,
+                timerProgressBar: true,
+                showConfirmButton: false
+            });
+            });
         });
 
-        // Handle delete row clicks
+        // Handle delete row clicks with SweetAlert confirmation
         document.addEventListener('click', function(e) {
             if (e.target.closest('.delete-row')) {
+                e.preventDefault();
+                e.stopPropagation();
+                
                 const deleteRow = e.target.closest('.delete-row');
                 const formsetItem = deleteRow.closest('.formset-item');
                 const checkbox = deleteRow.querySelector('input[type="checkbox"]');
                 
+                // Get formset type for better confirmation message
+                const formsetType = formsetItem.closest('[id$="-forms"]').id.replace('-forms', '');
+                const formsetTypeName = formsetType.charAt(0).toUpperCase() + formsetType.slice(1);
+                
+                Swal.fire({
+                    title: `Delete ${formsetTypeName}?`,
+                    text: `Are you sure you want to delete this ${formsetType} entry? This action cannot be undone.`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e53e3e',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel',
+                    reverseButtons: true
+                }).then((result) => {
+                    if (result.isConfirmed) {
                 if (checkbox) {
                     checkbox.checked = true;
+                        }
+                        
+                        // Animate deletion
                     formsetItem.style.transition = 'all 0.3s ease';
                     formsetItem.style.opacity = '0';
                     formsetItem.style.transform = 'translateY(-20px)';
+                        
                     setTimeout(() => {
                         formsetItem.style.height = '0';
                         formsetItem.style.margin = '0';
                         formsetItem.style.padding = '0';
                         formsetItem.style.overflow = 'hidden';
                     }, 300);
-                }
+                        
+                        // Show success message
+                        Swal.fire({
+                            title: 'Deleted!',
+                            text: `The ${formsetType} entry has been deleted.`,
+                            icon: 'success',
+                            timer: 2000,
+                            timerProgressBar: true,
+                            showConfirmButton: false
+                        });
+                    }
+                });
             }
         });
     }
@@ -727,6 +1059,7 @@
         initFormset('add-education', 'education');
         initFormset('add-experience', 'experience');
         initFormset('add-skill', 'skill');
+        addFieldValidation();
 
         const form = document.getElementById('profileForm');
         const loadingOverlay = document.getElementById('loadingOverlay');
@@ -756,26 +1089,160 @@
             form.querySelectorAll('.alert').forEach(alert => alert.remove());
         }
 
-        // Display error messages
+        // Show field-specific validation errors
+        function showFieldError(fieldName, errorMessage) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Please Check This Field',
+                text: `${fieldName}: ${errorMessage}`,
+                confirmButtonText: 'Got It',
+                confirmButtonColor: '#ffc107'
+            });
+        }
+
+        // Add real-time validation for critical fields
+        function addFieldValidation() {
+            // Email validation
+            const emailField = document.getElementById('id_email');
+            if (emailField) {
+                emailField.addEventListener('blur', function() {
+                    const email = this.value.trim();
+                    if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                        showFieldError('Email Address', 'Please enter a valid email address (e.g., john@example.com)');
+                        this.focus();
+                    }
+                });
+            }
+
+            // Phone validation
+            const phoneField = document.getElementById('id_phone_number');
+            if (phoneField) {
+                phoneField.addEventListener('blur', function() {
+                    const phone = this.value.trim();
+                    if (phone && !/^[\+]?[0-9\s\-\(\)]{10,}$/.test(phone)) {
+                        showFieldError('Phone Number', 'Please enter a valid phone number (e.g., +1-555-123-4567)');
+                        this.focus();
+                    }
+                });
+            }
+
+            // Date validation
+            const birthDateField = document.getElementById('id_birth_date');
+            if (birthDateField) {
+                birthDateField.addEventListener('blur', function() {
+                    const date = this.value;
+                    if (date) {
+                        const birthDate = new Date(date);
+                        const today = new Date();
+                        const age = today.getFullYear() - birthDate.getFullYear();
+                        
+                        if (age < 16) {
+                            showFieldError('Birth Date', 'You must be at least 16 years old to use this service');
+                            this.focus();
+                        } else if (age > 100) {
+                            showFieldError('Birth Date', 'Please enter a valid birth date');
+                            this.focus();
+                        }
+                    }
+                });
+            }
+        }
+
+        // Display error messages using SweetAlert
         function displayErrors(errors) {
             clearErrors();
             
-            const errorHtml = `
-                <div class="alert alert-danger alert-dismissible fade show" role="alert">
-                    <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Please correct the following errors:</h5>
-                    <ul class="mb-0">
-                        ${Object.entries(errors).map(([field, error]) => `<li>${field}: ${error}</li>`).join('')}
-                    </ul>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            form.insertAdjacentHTML('afterbegin', errorHtml);
-            
-            // Scroll to error message
-            window.scrollTo({
-                top: form.offsetTop - 100,
-                behavior: 'smooth'
+            // Format errors for SweetAlert
+            let errorList = '';
+            Object.entries(errors).forEach(([field, error]) => {
+                // Handle different error formats and make them user-friendly
+                let errorText = '';
+                if (typeof error === 'string') {
+                    errorText = error;
+                } else if (Array.isArray(error)) {
+                    errorText = error.join(', ');
+                } else if (typeof error === 'object' && error !== null) {
+                    // Handle nested objects (like formset errors)
+                    if (error.non_field_errors) {
+                        errorText = error.non_field_errors.join(', ');
+                    } else {
+                        // Extract meaningful error messages from nested objects
+                        const errorMessages = [];
+                        Object.entries(error).forEach(([subField, subError]) => {
+                            if (Array.isArray(subError)) {
+                                errorMessages.push(...subError);
+                            } else if (typeof subError === 'string') {
+                                errorMessages.push(subError);
+                            }
+                        });
+                        errorText = errorMessages.length > 0 ? errorMessages.join(', ') : 'Please check your input';
+                    }
+                } else {
+                    errorText = String(error);
+                }
+                
+                // Clean up error text to be more user-friendly
+                errorText = errorText.replace(/\[object Object\]/g, 'Please check your input');
+                errorText = errorText.replace(/This field is required\./g, 'This field is required');
+                errorText = errorText.replace(/Enter a valid email address\./g, 'Please enter a valid email address');
+                errorText = errorText.replace(/Enter a valid date\./g, 'Please enter a valid date');
+                errorText = errorText.replace(/Enter a valid number\./g, 'Please enter a valid number');
+                
+                // Format field name for better readability
+                const fieldName = getFieldDisplayName(field);
+                errorList += `<li><strong>${fieldName}:</strong> ${errorText}</li>`;
             });
+            
+            // Show SweetAlert with formatted errors
+            Swal.fire({
+                icon: 'error',
+                title: 'Please Fix These Issues',
+                html: `
+                    <div class="text-start">
+                        <p class="mb-3">We found some issues with your information. Please review and correct them:</p>
+                        <ul class="list-unstyled mb-0">${errorList}</ul>
+                    </div>
+                `,
+                confirmButtonText: 'I\'ll Fix These',
+                confirmButtonColor: '#e53e3e',
+                customClass: {
+                    htmlContainer: 'text-start'
+                }
+            });
+        }
+
+        // Get user-friendly field display names
+        function getFieldDisplayName(field) {
+            const fieldNames = {
+                'first_name': 'First Name',
+                'last_name': 'Last Name',
+                'email': 'Email Address',
+                'phone_number': 'Phone Number',
+                'birth_date': 'Birth Date',
+                'address': 'Address',
+                'city': 'City',
+                'state': 'State/Province',
+                'country': 'Country',
+                'zip_code': 'ZIP/Postal Code',
+                'bio': 'Biography',
+                'avatar': 'Profile Picture',
+                'experience': 'Work Experience',
+                'education': 'Education',
+                'skill': 'Skills',
+                'company': 'Company',
+                'position': 'Job Title',
+                'start_date': 'Start Date',
+                'end_date': 'End Date',
+                'description': 'Description',
+                'institution': 'School/Institution',
+                'degree': 'Degree',
+                'field_of_study': 'Field of Study',
+                'graduation_year': 'Graduation Year',
+                'skill_name': 'Skill Name',
+                'proficiency_level': 'Proficiency Level'
+            };
+            
+            return fieldNames[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
         // Form submission
@@ -785,7 +1252,31 @@
             
             // Validate form
             if (!form.checkValidity()) {
+                // Show SweetAlert for validation errors
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Missing Required Information',
+                    text: 'Please fill in all required fields (marked with *) before submitting your profile.',
+                    confirmButtonText: 'I\'ll Complete Them',
+                    confirmButtonColor: '#ffc107'
+                });
                 form.reportValidity();
+                return;
+            }
+
+            // Show confirmation dialog
+            const result = await Swal.fire({
+                title: 'Update Profile?',
+                text: 'Are you sure you want to update your profile information?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2b3c6b',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Yes, update it!',
+                cancelButtonText: 'Cancel'
+            });
+            
+            if (!result.isConfirmed) {
                 return;
             }
 
@@ -832,8 +1323,18 @@
                 }
 
                 if (data.status === 'success') {
-                    // Handle success
-                    window.location.href = "{% url 'accounts:profile_detail' %}";
+                    // Show success alert
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Profile Updated!',
+                        text: 'Your profile has been updated successfully.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2b3c6b',
+                        timer: 3000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        window.location.href = "{% url 'accounts:profile_detail' %}";
+                    });
                 } else {
                     // Handle validation errors
                     displayErrors(data.errors || {'Error': data.message});
@@ -841,8 +1342,14 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                // Handle error
-                displayErrors({'Error': error.message});
+                // Show error alert
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Update Failed!',
+                    text: error.message || 'An error occurred while updating your profile. Please try again.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#e53e3e'
+                });
             } finally {
                 loadingOverlay.classList.remove('active');
                 saveButton.disabled = false;
@@ -863,14 +1370,26 @@
             if (file) {
                 // Validate file type
                 if (!file.type.startsWith('image/')) {
-                    alert('Please select an image file');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Invalid File Type',
+                        text: 'Please select an image file (JPG, PNG, GIF, etc.)',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#ffc107'
+                    });
                     this.value = '';
                     return;
                 }
 
                 // Validate file size (5MB)
                 if (file.size > 5 * 1024 * 1024) {
-                    alert('File size should not exceed 5MB');
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'File Too Large',
+                        text: 'File size should not exceed 5MB. Please choose a smaller image.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#ffc107'
+                    });
                     this.value = '';
                     return;
                 }
@@ -907,25 +1426,47 @@
         // Handle avatar removal
         function setupRemoveButton(btn) {
             btn.addEventListener('click', function() {
-                if (confirm('Are you sure you want to remove your profile picture?')) {
-                    // Clear file input
-                    avatarInput.value = '';
-                    
-                    // Set remove flag
-                    removeAvatarInput.value = 'true';
-                    
-                    // Replace img with no-avatar div
-                    const noAvatar = document.createElement('div');
-                    noAvatar.className = 'no-avatar';
-                    noAvatar.id = 'avatarPreview';
-                    noAvatar.innerHTML = '<i class="fas fa-user"></i>';
-                    
-                    const currentPreview = document.getElementById('avatarPreview');
-                    currentPreview.parentNode.replaceChild(noAvatar, currentPreview);
-                    
-                    // Remove the remove button
-                    btn.remove();
-                }
+                Swal.fire({
+                    title: 'Remove Profile Picture?',
+                    text: 'Are you sure you want to remove your profile picture?',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e53e3e',
+                    cancelButtonColor: '#6c757d',
+                    confirmButtonText: 'Yes, remove it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Clear file input
+                        avatarInput.value = '';
+                        
+                        // Set remove flag
+                        removeAvatarInput.value = 'true';
+                        
+                        // Replace img with no-avatar div
+                        const noAvatar = document.createElement('div');
+                        noAvatar.className = 'no-avatar';
+                        noAvatar.id = 'avatarPreview';
+                        noAvatar.innerHTML = '<i class="fas fa-user"></i>';
+                        
+                        const currentPreview = document.getElementById('avatarPreview');
+                        currentPreview.parentNode.replaceChild(noAvatar, currentPreview);
+                        
+                        // Remove the remove button
+                        btn.remove();
+                        
+                        // Show success message
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Profile Picture Removed!',
+                            text: 'Your profile picture has been removed successfully.',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#2b3c6b',
+                            timer: 2000,
+                            timerProgressBar: true
+                        });
+                    }
+                });
             });
         }
 

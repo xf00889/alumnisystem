@@ -5,6 +5,9 @@ from .models import (
     Survey, SurveyQuestion, QuestionOption, SurveyResponse, 
     ResponseAnswer, EmploymentRecord, Achievement, Report
 )
+from core.recaptcha_fields import DatabaseReCaptchaField
+from core.recaptcha_widgets import DatabaseReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class SurveyForm(forms.ModelForm):
     external_url = forms.URLField(
@@ -106,6 +109,19 @@ class ResponseAnswerForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         question = kwargs.pop('question', None)
         super().__init__(*args, **kwargs)
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = DatabaseReCaptchaField(
+                widget=DatabaseReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
         
         if question:
             self.fields['question'].initial = question.id

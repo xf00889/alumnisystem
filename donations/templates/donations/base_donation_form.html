@@ -1,0 +1,268 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Donation Form{% endblock %}</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{% static 'donations/css/donations.css' %}">
+    
+    {% block extra_css %}{% endblock %}
+    
+    <style>
+        /* Compact donation form with background image */
+        body {
+            background: url('{% static "images/bg.jpg" %}') center/cover no-repeat fixed;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            position: relative;
+        }
+        
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(43, 60, 107, 0.85);
+            z-index: -1;
+        }
+        
+        .donation-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem 1rem;
+        }
+        
+        .donation-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
+            overflow: hidden;
+            max-width: 800px;
+            width: 100%;
+            margin: 0 auto;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .donation-header {
+            background: linear-gradient(135deg, #2b3c6b, #1e2a4a);
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            position: relative;
+        }
+        
+        .donation-header h1 {
+            margin: 0;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .donation-header p {
+            margin: 0.25rem 0 0 0;
+            opacity: 0.9;
+            font-size: 0.8rem;
+        }
+        
+        .donation-body {
+            padding: 1rem;
+        }
+        
+        .back-button-container {
+            text-align: center;
+            margin-top: 1rem;
+            padding: 1rem 0;
+        }
+        
+        .back-button-container .btn {
+            border-radius: 8px;
+            padding: 0.75rem 2rem;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            color: white;
+        }
+        
+        .back-button-container .btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.5);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        .form-control, .form-select {
+            border-radius: 8px;
+            border: 2px solid #e9ecef;
+            padding: 0.6rem 0.8rem;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus, .form-select:focus {
+            border-color: #2b3c6b;
+            box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+        }
+        
+        .form-control:disabled {
+            background-color: #f8f9fa !important;
+            color: #6c757d;
+            cursor: not-allowed;
+            opacity: 0.7;
+        }
+        
+        .form-label {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: #2b3c6b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-label.disabled {
+            color: #6c757d;
+        }
+        
+        .btn-primary {
+            background: linear-gradient(135deg, #2b3c6b, #1e2a4a);
+            border: none;
+            border-radius: 8px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 8px 15px rgba(43, 60, 107, 0.3);
+        }
+        
+        .btn-secondary {
+            border-radius: 8px;
+            padding: 0.6rem 1.5rem;
+            font-weight: 600;
+            font-size: 0.9rem;
+        }
+        
+        .campaign-info {
+            background: rgba(248, 249, 250, 0.8);
+            border-radius: 10px;
+            padding: 1rem;
+            margin-bottom: 1.5rem;
+            border: 1px solid rgba(43, 60, 107, 0.1);
+        }
+        
+        .campaign-info h5 {
+            color: #2b3c6b;
+            margin-bottom: 0.75rem;
+            font-size: 1rem;
+        }
+        
+        .progress {
+            height: 6px;
+            border-radius: 8px;
+            background: rgba(233, 236, 239, 0.8);
+        }
+        
+        .progress-bar {
+            background: linear-gradient(90deg, #28a745, #20c997);
+            border-radius: 8px;
+        }
+        
+        .campaign-progress {
+            margin-top: 1rem;
+        }
+        
+        .campaign-progress .d-flex {
+            font-size: 0.85rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        @media (max-width: 992px) {
+            .donation-card {
+                max-width: 90%;
+            }
+        }
+        
+        @media (max-width: 768px) {
+            .donation-container {
+                padding: 1rem 0.5rem;
+            }
+            
+            .back-button-container {
+                margin-top: 0.75rem;
+                padding: 0.75rem 0;
+            }
+            
+            .donation-card {
+                max-width: 100%;
+                border-radius: 10px;
+                margin: 0 0.5rem;
+            }
+            
+            .donation-header {
+                padding: 0.75rem;
+            }
+            
+            .donation-header h1 {
+                font-size: 1.1rem;
+            }
+            
+            .donation-body {
+                padding: 0.75rem;
+            }
+            
+            .form-control, .form-select {
+                padding: 0.5rem 0.7rem;
+                font-size: 0.85rem;
+            }
+            
+            .btn-primary, .btn-secondary {
+                padding: 0.5rem 1rem;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="donation-container">
+        <div class="donation-card">
+            <div class="donation-header">
+                {% block donation_header %}
+                <h1><i class="fas fa-heart me-2"></i>Make a Donation</h1>
+                <p>Support our cause and make a difference</p>
+                {% endblock %}
+            </div>
+            <div class="donation-body">
+                {% block donation_content %}{% endblock %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Back Button - Below the form container -->
+    <div class="back-button-container">
+        <a href="{% url 'core:landing_events' %}" class="btn btn-outline-light">
+            <i class="fas fa-arrow-left me-2"></i>Back to Campaigns
+        </a>
+    </div>
+    
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- SweetAlert2 -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

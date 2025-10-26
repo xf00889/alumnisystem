@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donation Confirmation - NORSU Alumni System</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            line-height: 1.6;
+        }
+        
+        .email-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .header {
+            background: linear-gradient(135deg, #2b3c6b 0%, #4a5568 100%);
+            padding: 40px 30px;
+            text-align: center;
+            color: white;
+            position: relative;
+        }
+        
+        .header::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="25" cy="25" r="1" fill="white" opacity="0.1"/><circle cx="75" cy="75" r="1" fill="white" opacity="0.1"/><circle cx="50" cy="10" r="0.5" fill="white" opacity="0.1"/><circle cx="10" cy="60" r="0.5" fill="white" opacity="0.1"/><circle cx="90" cy="40" r="0.5" fill="white" opacity="0.1"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>');
+            opacity: 0.3;
+        }
+        
+        .logo-text {
+            font-size: 36px;
+            font-weight: 800;
+            margin-bottom: 8px;
+            text-align: center;
+            color: white;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+            letter-spacing: 3px;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header h1 {
+            margin: 0;
+            font-size: 22px;
+            font-weight: 600;
+            opacity: 0.95;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .header p {
+            margin: 8px 0 0 0;
+            font-size: 14px;
+            opacity: 0.9;
+            position: relative;
+            z-index: 1;
+        }
+        
+        .content {
+            padding: 40px 35px;
+        }
+        
+        .greeting {
+            font-size: 24px;
+            color: #2b3c6b;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        .thank-you-message {
+            font-size: 16px;
+            color: #4a5568;
+            margin-bottom: 30px;
+            line-height: 1.7;
+        }
+        
+        .donation-details {
+            background: linear-gradient(135deg, #2b3c6b 0%, #4a5568 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 12px;
+            text-align: center;
+            margin: 30px 0;
+            box-shadow: 0 8px 20px rgba(43, 60, 107, 0.3);
+        }
+        
+        .donation-details h2 {
+            margin: 0 0 20px 0;
+            font-size: 20px;
+            font-weight: 600;
+        }
+        
+        .amount {
+            font-size: 36px;
+            font-weight: 800;
+            letter-spacing: 2px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            background: rgba(255, 255, 255, 0.15);
+            padding: 20px 25px;
+            border-radius: 8px;
+            display: inline-block;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .campaign-info {
+            background-color: #f8fafc;
+            border-left: 4px solid #2b3c6b;
+            padding: 25px;
+            margin: 30px 0;
+            border-radius: 0 8px 8px 0;
+        }
+        
+        .campaign-info h3 {
+            margin: 0 0 15px 0;
+            color: #2b3c6b;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .campaign-info p {
+            margin: 10px 0;
+            color: #4a5568;
+            font-size: 15px;
+        }
+        
+        .status-info {
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+            border: 1px solid #f59e0b;
+            color: #92400e;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 25px 0;
+            text-align: center;
+            font-weight: 600;
+            font-size: 15px;
+        }
+        
+        .next-steps {
+            background-color: #f1f5f9;
+            padding: 30px;
+            border-radius: 12px;
+            margin: 30px 0;
+        }
+        
+        .next-steps h3 {
+            margin: 0 0 20px 0;
+            color: #2b3c6b;
+            font-size: 20px;
+            font-weight: 600;
+            text-align: center;
+        }
+        
+        .steps-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .steps-list li {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+        }
+        
+        .step-number {
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #2b3c6b 0%, #4a5568 100%);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 14px;
+            font-weight: bold;
+            flex-shrink: 0;
+        }
+        
+        .step-text {
+            color: #4a5568;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .footer {
+            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+            padding: 30px;
+            text-align: center;
+            border-top: 1px solid #e2e8f0;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+            color: #6c757d;
+            font-size: 14px;
+        }
+        
+        .footer .signature {
+            color: #2b3c6b;
+            font-weight: 600;
+            margin-top: 20px;
+            font-size: 16px;
+        }
+        
+        .social-links {
+            margin: 20px 0;
+        }
+        
+        .social-links a {
+            display: inline-block;
+            margin: 0 15px;
+            color: #2b3c6b;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+        }
+        
+        .social-links a:hover {
+            text-decoration: underline;
+        }
+        
+        .disclaimer {
+            font-size: 12px;
+            color: #9ca3af;
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+        
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                margin: 0;
+                box-shadow: none;
+                border-radius: 0;
+            }
+            
+            .content {
+                padding: 30px 25px;
+            }
+            
+            .header {
+                padding: 30px 20px;
+            }
+            
+            .amount {
+                font-size: 28px;
+                letter-spacing: 1px;
+                padding: 15px 20px;
+            }
+            
+            .greeting {
+                font-size: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <!-- Header -->
+        <div class="header">
+            <div class="logo-text">NORSU</div>
+            <h1>Alumni System</h1>
+            <p>Thank You for Your Generous Donation</p>
+        </div>
+        
+        <!-- Main Content -->
+        <div class="content">
+            <div class="greeting">
+                Thank You, {{ donor_name }}! 🙏
+            </div>
+            
+            <div class="thank-you-message">
+                We are deeply grateful for your generous donation to support our cause. Your contribution makes a real difference and helps us continue our mission of connecting and supporting NORSU alumni worldwide.
+            </div>
+            
+            <div class="donation-details">
+                <h2>💝 Your Donation Details</h2>
+                <div class="amount">₱{{ amount|floatformat:2 }}</div>
+                <p style="margin: 0; font-size: 14px; opacity: 0.9;">Reference: {{ reference_number }}</p>
+            </div>
+            
+            <div class="campaign-info">
+                <h3>🎯 Campaign Information</h3>
+                <p><strong>Campaign:</strong> {{ campaign_name }}</p>
+                <p><strong>Description:</strong> {{ campaign_description|truncatewords:20 }}</p>
+                <p><strong>Donation Date:</strong> {{ donation_date|date:"F d, Y \a\t g:i A" }}</p>
+                {% if not is_anonymous %}
+                <p><strong>Donor:</strong> {{ donor_name }}</p>
+                {% endif %}
+            </div>
+            
+            <div class="status-info">
+                📋 <strong>Status:</strong> {{ status_display }} - Your donation is being processed and will be verified within 24 hours.
+            </div>
+            
+            <div class="next-steps">
+                <h3>📋 What Happens Next?</h3>
+                <ul class="steps-list">
+                    <li>
+                        <div class="step-number">1</div>
+                        <div class="step-text">Our team will verify your payment within 24 hours</div>
+                    </li>
+                    <li>
+                        <div class="step-number">2</div>
+                        <div class="step-text">You'll receive a confirmation email once verified</div>
+                    </li>
+                    <li>
+                        <div class="step-number">3</div>
+                        <div class="step-text">Your contribution will be reflected in the campaign progress</div>
+                    </li>
+                    <li>
+                        <div class="step-number">4</div>
+                        <div class="step-text">You can track your donation status anytime</div>
+                    </li>
+                </ul>
+            </div>
+            
+            {% if message %}
+            <div class="campaign-info">
+                <h3>💬 Your Message</h3>
+                <p style="font-style: italic; color: #4a5568;">"{{ message }}"</p>
+            </div>
+            {% endif %}
+            
+            <div class="thank-you-message">
+                <strong>Your Impact:</strong> Every donation, no matter the size, helps us build stronger connections within the NORSU alumni community and support meaningful initiatives that benefit all graduates.
+            </div>
+        </div>
+        
+        <!-- Footer -->
+        <div class="footer">
+            <p><strong>NORSU Alumni System</strong></p>
+            <p>Negros Oriental State University</p>
+            <p>Building bridges between past, present, and future</p>
+            
+            <div class="social-links">
+                <a href="#">Website</a>
+                <a href="#">Facebook</a>
+                <a href="#">LinkedIn</a>
+            </div>
+            
+            <div class="signature">
+                With heartfelt gratitude,<br>
+                The NORSU Alumni System Team
+            </div>
+            
+            <div class="disclaimer">
+                <p>This email was sent to {{ donor_email }}. If you have any questions about your donation, please contact our support team.</p>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,5 +1,6 @@
 {% extends 'donations/base_donations.html' %}
 {% load static %}
+{% load i18n %}
 
 {% block title %}Donations Management - NORSU Alumni{% endblock %}
 
@@ -15,8 +16,8 @@
                 <p class="lead mb-0">View, filter, and manage all donation transactions.</p>
             </div>
             <div>
-                <a href="{% url 'donations:dashboard' %}" class="btn btn-outline-light btn-sm">
-                    <i class="fas fa-arrow-left me-2"></i> Back to Dashboard
+                <a href="{% url 'donations:campaign_list' %}" class="btn btn-outline-light btn-sm">
+                    <i class="fas fa-arrow-left me-2"></i> Back to Campaigns
                 </a>
             </div>
         </div>
@@ -743,20 +744,42 @@
 <script>
     // Function to update donation status
     function updateDonationStatus(donationId, status) {
-        if (confirm('Are you sure you want to update this donation status?')) {
-            // Here you would typically make an AJAX call to update the status
-            // For now, we'll just redirect to a URL that would handle this
-            window.location.href = `/donations/update-status/${donationId}/${status}/`;
-        }
+        Swal.fire({
+            title: '{% trans "Confirm Status Update" %}',
+            text: '{% trans "Are you sure you want to update this donation status?" %}',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: '{% trans "Yes, update" %}',
+            cancelButtonText: '{% trans "Cancel" %}',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Here you would typically make an AJAX call to update the status
+                // For now, we'll just redirect to a URL that would handle this
+                window.location.href = `/donations/update-status/${donationId}/${status}/`;
+            }
+        });
     }
     
     // Function to delete donation
     function deleteDonation(donationId) {
-        if (confirm('Are you sure you want to delete this donation? This action cannot be undone.')) {
-            // Here you would typically make an AJAX call to delete the donation
-            // For now, we'll just redirect to a URL that would handle this
-            window.location.href = `/donations/delete/${donationId}/`;
-        }
+        Swal.fire({
+            title: '{% trans "Confirm Deletion" %}',
+            text: '{% trans "Are you sure you want to delete this donation? This action cannot be undone." %}',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: '{% trans "Yes, delete" %}',
+            cancelButtonText: '{% trans "Cancel" %}',
+            confirmButtonColor: '#dc3545',
+            cancelButtonColor: '#6c757d'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Here you would typically make an AJAX call to delete the donation
+                // For now, we'll just redirect to a URL that would handle this
+                window.location.href = `/donations/delete/${donationId}/`;
+            }
+        });
     }
     
     // Function to export donations

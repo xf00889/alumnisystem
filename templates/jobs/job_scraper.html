@@ -1,26 +1,28 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Job Scraper - NORSU Alumni System{% endblock %}
+{% block title %}Quick Job Search - NORSU Alumni System{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- HTMX -->
 <script src="https://unpkg.com/htmx.org@1.9.10"></script>
 <style>
-    /* System Color Scheme */
+    /* NORSU Alumni System - Job Scraper Design */
     :root {
-        /* Primary Colors */
+        /* NORSU Brand Colors */
         --primary-color: #2b3c6b;
-        
-        /* Secondary Colors */
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
         --secondary-color: #4a5568;
+        --accent-color: #c8a882;
         
-        /* UI Colors */
-        --ui-background: #f7fafc;
+        /* UI Colors - Consistent with system */
+        --ui-background: #f8f9fa;
         --ui-surface: #ffffff;
         --ui-border: #e2e8f0;
         --ui-hover: #edf2f7;
+        --ui-selected: #e3f2fd;
         
         /* Text Colors */
         --text-primary: #2d3748;
@@ -28,49 +30,80 @@
         --text-muted: #a0aec0;
         --text-light: #ffffff;
         
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
+        /* Feedback Colors - NORSU Theme */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
         
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        /* Priority Colors - Professional Theme */
+        --priority-urgent: #dc3545;
+        --priority-high: #fd7e14;
+        --priority-medium: #17a2b8;
+        --priority-low: #28a745;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
         
         /* Border Radius */
         --radius-sm: 0.25rem;
         --radius-md: 0.375rem;
         --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 300ms ease;
     }
-    
+
     body {
         background-color: var(--ui-background);
-        font-family: 'Poppins', sans-serif;
         font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
     }
     
-    .scraper-header {
+    .container-fluid {
+        padding: 1.5rem;
+        max-width: 1200px;
+        margin: 0 auto;
+    }
+    
+    /* Header Section */
+    .directory-header {
         background: var(--primary-color);
         color: var(--text-light);
-        padding: 1.75rem;
+        padding: 2rem;
         border-radius: var(--radius-md);
-        margin-bottom: 1.25rem;
+        margin-bottom: 1.5rem;
         box-shadow: var(--shadow-sm);
+        text-align: center;
         font-family: 'Poppins', sans-serif;
     }
     
-    .scraper-header h1 {
-        font-size: 1.5rem;
+    .directory-title {
+        font-size: 2rem;
         font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: var(--text-light);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
     }
     
-    .scraper-header p {
+    .directory-subtitle {
         opacity: 0.9;
-        font-size: 0.875rem;
-        margin-bottom: 0;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
     }
     
     .scraper-card {
@@ -87,71 +120,100 @@
         box-shadow: var(--shadow-md);
     }
     
-    .search-form {
+    /* Search Section */
+    .search-section {
         background: var(--ui-surface);
-        border-radius: var(--radius-md);
         padding: 2rem;
+        border-radius: var(--radius-md);
         margin-bottom: 1.5rem;
-        border: 1px solid var(--ui-border);
         box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-section .text-center {
+        padding: 2rem;
+    }
+    
+    .btn-lg {
+        padding: 1rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        transition: all var(--transition-normal);
+    }
+    
+    .btn-lg:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
     }
     
     .form-control {
-        border-radius: var(--radius-md);
-        border: 1px solid var(--ui-border);
         padding: 0.75rem 1rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
         font-size: 0.875rem;
+        transition: all var(--transition-normal);
+        background: var(--ui-surface);
+        color: var(--text-primary);
         font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
     }
     
     .form-control:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
         outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
     }
     
     .form-label {
-        font-weight: 600;
+        font-weight: 500;
         color: var(--text-primary);
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
         font-family: 'Poppins', sans-serif;
     }
     
-    .btn-primary {
-        background: linear-gradient(135deg, var(--primary-color), #3d4f7a);
-        border: none;
-        border-radius: var(--radius-md);
-        padding: 0.75rem 2rem;
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .btn-primary:hover {
-        background: linear-gradient(135deg, #3d4f7a, var(--primary-color));
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .btn-outline-primary {
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
-        background: transparent;
-        border-radius: var(--radius-md);
+    .btn {
         padding: 0.75rem 1.5rem;
-        font-weight: 600;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
         font-family: 'Poppins', sans-serif;
+        cursor: pointer;
         transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        justify-content: center;
+        white-space: nowrap;
     }
-    
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: var(--text-light);
+    }
+
+    .btn-outline-primary {
+        background: transparent;
+        color: var(--primary-color);
+        border: 1px solid var(--primary-color);
+    }
+
     .btn-outline-primary:hover {
         background: var(--primary-color);
         color: var(--text-light);
         transform: translateY(-1px);
-        box-shadow: var(--shadow-sm);
+        text-decoration: none;
     }
     
     .job-card {
@@ -330,92 +392,41 @@
         color: var(--feedback-error);
         border-left: 4px solid var(--feedback-error);
     }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .search-section .text-center {
+            padding: 1.5rem;
+        }
+        
+        .btn-lg {
+            padding: 0.875rem 1.5rem;
+            font-size: 0.875rem;
+        }
+    }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="container-fluid">
-    <!-- Scraper Header -->
-    <div class="scraper-header">
-        <div class="row align-items-center">
-            <div class="col-md-8">
-                <h1 class="mb-2"><i class="fas fa-search me-3"></i>Job Scraper</h1>
-                <p class="mb-0">Find live job postings from BossJob.ph and discover new opportunities.</p>
-            </div>
-            <div class="col-md-4 text-end">
-                <a href="{% url 'jobs:job_list' %}" class="btn btn-outline-light">
-                    <i class="fas fa-list me-2"></i>View All Jobs
-                </a>
-            </div>
-        </div>
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Quick Job Search</h1>
+        <p class="directory-subtitle">Find live job postings from BossJob.ph and discover new opportunities</p>
     </div>
     
-    <!-- Search Form -->
-    <div class="row">
-        <div class="col-12">
-            <div class="search-form">
-                <h5 class="mb-3"><i class="fas fa-filter me-2"></i>Search Filters</h5>
-                <form hx-post="{% url 'jobs:job_scraper_results' %}" 
-                      hx-target="#results-container" 
-                      hx-indicator="#loading-indicator"
-                      hx-swap="innerHTML"
-                      class="row g-3">
-                    {% csrf_token %}
-                    
-                    <div class="col-md-5">
-                        <label for="{{ form.keyword.id_for_label }}" class="form-label">
-                            <i class="fas fa-briefcase me-2"></i>Job Keyword
-                        </label>
-                        {{ form.keyword }}
-                        {% if form.keyword.help_text %}
-                            <div class="form-text">{{ form.keyword.help_text }}</div>
-                        {% endif %}
-                        {% if form.keyword.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.keyword.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-5">
-                        <label for="{{ form.location.id_for_label }}" class="form-label">
-                            <i class="fas fa-map-marker-alt me-2"></i>Location
-                        </label>
-                        {{ form.location }}
-                        {% if form.location.help_text %}
-                            <div class="form-text">{{ form.location.help_text }}</div>
-                        {% endif %}
-                        {% if form.location.errors %}
-                            <div class="text-danger small mt-1">
-                                {% for error in form.location.errors %}
-                                    <div>{{ error }}</div>
-                                {% endfor %}
-                            </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="submit" class="btn btn-primary w-100">
-                            <span class="btn-text">
-                                <i class="fas fa-search me-2"></i>Search Jobs
-                            </span>
-                            <span class="loading-spinner">
-                                <i class="fas fa-spinner fa-spin me-2"></i>Searching...
-                            </span>
-                        </button>
-                    </div>
-                </form>
-                
-                <!-- Loading Indicator -->
-                <div id="loading-indicator" class="loading-indicator" style="display: none;">
-                    <div class="spinner-border" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                    <p class="mt-2">Fetching jobs from BossJob.ph...</p>
-                </div>
-            </div>
+    <!-- Quick Search Section -->
+    <div class="search-section">
+        <div class="text-center">
+            <h4 class="mb-3" style="color: var(--text-primary); font-family: 'Poppins', sans-serif;">
+                <i class="fas fa-briefcase me-2"></i>Quick Job Search
+            </h4>
+            <p class="mb-4" style="color: var(--text-secondary); font-family: 'Poppins', sans-serif;">
+                Search for the latest job postings from BossJob.ph with our intelligent job scraper
+            </p>
+            <button id="quick-search-btn" class="btn btn-primary btn-lg">
+                <i class="fas fa-search me-2"></i>Perform Quick Search
+            </button>
         </div>
     </div>
 
@@ -427,38 +438,7 @@
                 <div class="quick-search-section">
                     <i class="fas fa-search fa-3x text-muted mb-3"></i>
                     <h4>Ready to Search</h4>
-                    <p>Enter a job keyword and location above to start searching for jobs on BossJob.ph</p>
-                    
-                    <!-- Quick Search Examples -->
-                    <div class="mt-4">
-                        <h6 class="text-muted mb-3">Popular Searches:</h6>
-                        <div class="d-flex flex-wrap justify-content-center gap-2">
-                            <button class="btn btn-outline-secondary quick-search" 
-                                    data-keyword="software developer" data-location="manila">
-                                Software Developer - Manila
-                            </button>
-                            <button class="btn btn-outline-secondary quick-search" 
-                                    data-keyword="data analyst" data-location="cebu">
-                                Data Analyst - Cebu
-                            </button>
-                            <button class="btn btn-outline-secondary quick-search" 
-                                    data-keyword="web developer" data-location="davao">
-                                Web Developer - Davao
-                            </button>
-                            <button class="btn btn-outline-secondary quick-search" 
-                                    data-keyword="python" data-location="makati">
-                                Python - Makati
-                            </button>
-                            <button class="btn btn-outline-secondary quick-search" 
-                                    data-keyword="marketing" data-location="quezon city">
-                                Marketing - Quezon City
-                            </button>
-                            <button class="btn btn-outline-secondary quick-search" 
-                                    data-keyword="accounting" data-location="taguig">
-                                Accounting - Taguig
-                            </button>
-                        </div>
-                    </div>
+                    <p>Click "Perform Quick Search" above to find the latest job postings from BossJob.ph</p>
                 </div>
             </div>
         </div>
@@ -466,58 +446,132 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block page_specific_js %}
 <script>
-// Quick search functionality
-document.addEventListener('DOMContentLoaded', function() {
-    const quickSearchButtons = document.querySelectorAll('.quick-search');
-    const keywordInput = document.getElementById('{{ form.keyword.id_for_label }}');
-    const locationInput = document.getElementById('{{ form.location.id_for_label }}');
-    const searchForm = document.querySelector('form');
+// Quick search functionality with SweetAlert
+function initQuickSearch() {
+    console.log('Initializing quick search...');
+    const quickSearchBtn = document.getElementById('quick-search-btn');
     
-    quickSearchButtons.forEach(button => {
-        button.addEventListener('click', function() {
-            const keyword = this.getAttribute('data-keyword');
-            const location = this.getAttribute('data-location');
-            
-            keywordInput.value = keyword;
-            locationInput.value = location;
-            
-            // Trigger the form submission
-            htmx.trigger(searchForm, 'submit');
+    if (!quickSearchBtn) {
+        console.error('Button not found!');
+        return;
+    }
+    
+    console.log('Button found, adding event listener...');
+    
+    quickSearchBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        console.log('Quick search button clicked!');
+        
+        // Show loading alert
+        Swal.fire({
+            title: 'Searching Jobs...',
+            text: 'Fetching latest job postings from BossJob.ph',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            showConfirmButton: false,
+            showCancelButton: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
         });
+        
+        // Make AJAX request to job scraper
+        fetch('{% url "jobs:job_scraper_results" %}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-CSRFToken': '{{ csrf_token }}'
+            },
+            body: 'keyword=general&location=philippines'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Close loading alert first
+            Swal.close();
+            
+            // Update results container
+            document.getElementById('results-container').innerHTML = html;
+            
+            // Show success alert
+            Swal.fire({
+                title: 'Search Complete!',
+                text: 'Job listings have been successfully loaded',
+                icon: 'success',
+                confirmButtonText: 'Great!',
+                confirmButtonColor: '#2b3c6b'
+            });
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            
+            // Close loading alert first
+            Swal.close();
+            
+            // Show error alert
+            Swal.fire({
+                title: 'Search Failed',
+                text: 'Unable to fetch job listings. Please try again later.',
+                icon: 'error',
+                confirmButtonText: 'Try Again',
+                confirmButtonColor: '#dc3545'
+            });
+        });
+    });
+}
+
+// Initialize when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initQuickSearch);
+} else {
+    initQuickSearch();
+}
+
+// Add fade-in animation to results when they load
+function addFadeInAnimation() {
+    const resultsContainer = document.getElementById('results-container');
+    if (resultsContainer) {
+        resultsContainer.classList.add('fade-in');
+        setTimeout(() => {
+            resultsContainer.classList.remove('fade-in');
+        }, 500);
+    }
+}
+
+// Listen for when results are updated
+const observer = new MutationObserver(function(mutations) {
+    mutations.forEach(function(mutation) {
+        if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+            addFadeInAnimation();
+        }
     });
 });
 
-// HTMX event listeners
-document.addEventListener('htmx:beforeRequest', function(event) {
-    console.log('Starting job search...');
-});
-
-document.addEventListener('htmx:afterRequest', function(event) {
-    console.log('Job search completed');
-    
-    // Add fade-in animation to results
+// Start observing when DOM is ready
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function() {
+        const resultsContainer = document.getElementById('results-container');
+        if (resultsContainer) {
+            observer.observe(resultsContainer, {
+                childList: true,
+                subtree: true
+            });
+        }
+    });
+} else {
     const resultsContainer = document.getElementById('results-container');
-    resultsContainer.classList.add('fade-in');
-    
-    // Remove animation class after animation completes
-    setTimeout(() => {
-        resultsContainer.classList.remove('fade-in');
-    }, 500);
-});
-
-document.addEventListener('htmx:responseError', function(event) {
-    console.error('Error during job search:', event.detail);
-    
-    // Show error message
-    const resultsContainer = document.getElementById('results-container');
-    resultsContainer.innerHTML = `
-        <div class="alert alert-danger" role="alert">
-            <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>Error:</strong> Unable to fetch job listings. Please try again later.
-        </div>
-    `;
-});
+    if (resultsContainer) {
+        observer.observe(resultsContainer, {
+            childList: true,
+            subtree: true
+        });
+    }
+}
 </script>
 {% endblock %}

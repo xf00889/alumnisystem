@@ -10,6 +10,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import cache_page
 from django.contrib import messages
 from .models import Announcement, Category
+from .forms import AnnouncementForm, AnnouncementUpdateForm, PublicAnnouncementForm
 from .utils import send_announcement_notification
 from django.views.decorators.csrf import csrf_protect
 from django.views.decorators.cache import cache_control
@@ -182,8 +183,8 @@ class AnnouncementDetailView(LoginRequiredMixin, DetailView):
 ], name='dispatch')
 class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, CreateView):
     model = Announcement
+    form_class = AnnouncementForm
     template_name = 'announcements/announcement_form.html'
-    fields = ['title', 'content', 'category', 'priority_level', 'target_audience']
     success_message = "Announcement was created successfully!"
     success_url = reverse_lazy('announcements:announcement-list')
     
@@ -200,7 +201,6 @@ class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
         # Normalize newlines and escape content, then convert newlines to <br>
         content = escape(normalize_newlines(form.instance.content))
         form.instance.content = content.replace('\n', '<br>')
-        form.instance.author = self.request.user
         
         # No need to modify category handling as the form will properly set
         # the category based on the selected predefined option
@@ -220,8 +220,8 @@ class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
 ], name='dispatch')
 class AnnouncementUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, UpdateView):
     model = Announcement
+    form_class = AnnouncementUpdateForm
     template_name = 'announcements/announcement_form.html'
-    fields = ['title', 'content', 'category', 'priority_level', 'target_audience', 'is_active']
     success_message = "Announcement was updated successfully!"
     success_url = reverse_lazy('announcements:announcement-list')
     
@@ -351,8 +351,8 @@ def announcement_search(request):
 ], name='dispatch')
 class PublicAnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMessageMixin, CreateView):
     model = Announcement
+    form_class = PublicAnnouncementForm
     template_name = 'announcements/public_announcement_form.html'
-    fields = ['title', 'content', 'category', 'priority_level']
     success_message = "Public announcement was created successfully!"
     success_url = reverse_lazy('announcements:public-announcement-list')
     
@@ -369,7 +369,6 @@ class PublicAnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, Succ
         # Normalize newlines and escape content, then convert newlines to <br>
         content = escape(normalize_newlines(form.instance.content))
         form.instance.content = content.replace('\n', '<br>')
-        form.instance.author = self.request.user
         
         # Force target audience to "ALL" for public announcements
         form.instance.target_audience = 'ALL'

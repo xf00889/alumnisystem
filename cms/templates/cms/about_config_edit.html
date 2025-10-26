@@ -1,52 +1,102 @@
 {% extends "cms/base_cms.html" %}
 {% load static %}
 
-{% block title %}About Page Configuration - CMS{% endblock %}
+{% block title %}About Page Configuration - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    .cms-container {
-        max-width: 1200px;
-        margin: 0 auto;
+    /* System Color Scheme */
+    :root {
+        /* Primary Colors */
+        --primary-color: #2b3c6b;
+        --primary-hover: #1e2a4a;
+        
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         max-width: 1200px;
+         margin: 0 auto;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
         padding: 2rem;
-        background: #f8f9fa;
-        min-height: 100vh;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
     }
     
-    .cms-header {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        color: white;
-        padding: 2rem;
-        border-radius: 15px;
-        margin-bottom: 2rem;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
     }
     
-    .cms-header h1 {
-        margin: 0;
-        font-size: 2.5rem;
-        font-weight: 700;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.3);
-    }
-    
-    .cms-header p {
-        margin: 0.5rem 0 0 0;
-        font-size: 1.1rem;
+    .directory-subtitle {
         opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
     }
-    
-    .form-container {
-        background: white;
-        border-radius: 15px;
+
+    /* Form Card */
+    .form-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
         padding: 2rem;
-        box-shadow: 0 5px 20px rgba(0,0,0,0.1);
-        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
     }
-    
+
+    /* Form Section */
     .form-section {
         margin-bottom: 2rem;
         padding-bottom: 2rem;
-        border-bottom: 2px solid #f1f3f4;
+        border-bottom: 2px solid var(--ui-border);
     }
     
     .form-section:last-child {
@@ -55,12 +105,13 @@
     }
     
     .form-section h3 {
-        color: #667eea;
+        color: var(--primary-color);
         font-size: 1.5rem;
         font-weight: 600;
         margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
+        font-family: 'Poppins', sans-serif;
     }
     
     .form-section h3 i {
@@ -74,90 +125,171 @@
     
     .form-group label {
         font-weight: 600;
-        color: #333;
+        color: var(--text-primary);
         margin-bottom: 0.5rem;
         display: block;
+        font-family: 'Poppins', sans-serif;
     }
     
     .form-control {
-        border: 2px solid #e9ecef;
-        border-radius: 10px;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
         padding: 0.75rem 1rem;
         font-size: 1rem;
         transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
     }
     
     .form-control:focus {
-        border-color: #667eea;
-        box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+        outline: none;
     }
     
-    .btn-save {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 10px;
-        font-size: 1.1rem;
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        padding: 0.75rem 1.5rem;
         font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
         transition: all 0.3s ease;
-        box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
-    }
-    
-    .btn-save:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
-    }
-    
-    .btn-cancel {
-        background: #6c757d;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
         border: none;
-        color: white;
-        padding: 1rem 2rem;
-        border-radius: 10px;
-        font-size: 1.1rem;
-        font-weight: 600;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
         transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.875rem;
         margin-right: 1rem;
     }
-    
-    .btn-cancel:hover {
-        background: #5a6268;
-        transform: translateY(-2px);
+
+    .btn-secondary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
     }
     
     .help-text {
         font-size: 0.9rem;
-        color: #6c757d;
+        color: var(--text-muted);
         margin-top: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .text-danger {
+        color: var(--feedback-error);
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+        font-family: 'Poppins', sans-serif;
     }
     
     .alert {
-        border-radius: 10px;
+        border-radius: var(--radius-sm);
         border: none;
         padding: 1rem 1.5rem;
         margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
     }
     
     .alert-success {
-        background: linear-gradient(135deg, #d4edda 0%, #c3e6cb 100%);
+        background-color: #d4edda;
         color: #155724;
+        border-left: 4px solid var(--feedback-success);
     }
     
     .alert-danger {
-        background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+        background-color: #f8d7da;
         color: #721c24;
+        border-left: 4px solid var(--feedback-error);
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .form-card {
+            padding: 1.5rem;
+        }
+        
+        .form-section h3 {
+            font-size: 1.25rem;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="cms-container">
-    <div class="cms-header">
-        <h1><i class="fas fa-info-circle"></i> About Page Configuration</h1>
-        <p>Configure university information, mission, vision, and page settings</p>
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">About Page Configuration</h1>
+        <p class="directory-subtitle">Configure university information, mission, vision, and page settings</p>
     </div>
 
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">About Configuration</li>
+        </ol>
+    </nav>
+
+    <!-- Messages -->
     {% if messages %}
         {% for message in messages %}
             <div class="alert alert-{{ message.tags }}">
@@ -167,7 +299,8 @@
         {% endfor %}
     {% endif %}
 
-    <div class="form-container">
+    <!-- Form Card -->
+    <div class="form-card">
         <form method="post" enctype="multipart/form-data" id="aboutConfigForm">
             {% csrf_token %}
             
@@ -297,10 +430,10 @@
 
             <!-- Form Actions -->
             <div class="text-center mt-4">
-                <a href="{% url 'cms:dashboard' %}" class="btn btn-cancel">
+                <a href="{% url 'cms:dashboard' %}" class="btn btn-secondary">
                     <i class="fas fa-arrow-left"></i> Back to Dashboard
                 </a>
-                <button type="submit" class="btn btn-save" id="submitBtn">
+                <button type="submit" class="btn btn-primary" id="submitBtn">
                     <i class="fas fa-save"></i> Save Configuration
                 </button>
             </div>
@@ -310,6 +443,7 @@
 {% endblock %}
 
 {% block extra_js %}
+{{ block.super }}
 <script>
     // Auto-resize textareas
     document.querySelectorAll('textarea').forEach(textarea => {
@@ -336,17 +470,27 @@
         });
         
         if (!isValid) {
-            CMSAlerts.error('Validation Error', 'Please fill in all required fields.');
+            Swal.fire({
+                title: 'Validation Error',
+                text: 'Please fill in all required fields.',
+                icon: 'error',
+                confirmButtonColor: '#2b3c6b'
+            });
             return;
         }
         
         // Show save confirmation
-        CMSAlerts.confirm(
-            'Save Configuration',
-            'Are you sure you want to save the About page configuration?',
-            'Yes, save it!',
-            'Cancel'
-        ).then((result) => {
+        Swal.fire({
+            title: 'Save Configuration',
+            text: 'Are you sure you want to save the About page configuration?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2b3c6b',
+            cancelButtonColor: '#4a5568',
+            confirmButtonText: 'Yes, save it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
             if (result.isConfirmed) {
                 submitForm();
             }
@@ -377,13 +521,23 @@
             throw new Error('Network response was not ok');
         })
         .then(data => {
-            CMSAlerts.success('Configuration saved successfully!').then(() => {
+            Swal.fire({
+                title: 'Success!',
+                text: 'Configuration saved successfully!',
+                icon: 'success',
+                confirmButtonColor: '#2b3c6b'
+            }).then(() => {
                 window.location.href = '{% url "cms:dashboard" %}';
             });
         })
         .catch(error => {
             console.error('Error:', error);
-            CMSAlerts.error('Error', 'Something went wrong. Please try again.');
+            Swal.fire({
+                title: 'Error',
+                text: 'Something went wrong. Please try again.',
+                icon: 'error',
+                confirmButtonColor: '#2b3c6b'
+            });
             
             // Reset button state
             submitBtn.innerHTML = originalText;

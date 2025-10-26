@@ -152,7 +152,7 @@ def home(request):
 
     # Get CMS data
     try:
-        from cms.models import SiteConfig, PageSection, Feature, Testimonial, FAQ
+        from cms.models import SiteConfig, PageSection, Feature, Testimonial, FAQ, ContactInfo
         
         # Get site configuration
         site_config = SiteConfig.get_site_config()
@@ -194,6 +194,9 @@ def home(request):
         # Get alumni statistics for homepage
         alumni_statistics = AlumniStatistic.objects.filter(is_active=True).order_by('order')
         
+        # Get contact information for footer
+        cms_contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
+        
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data: {e}")
         site_config = None
@@ -206,6 +209,7 @@ def home(request):
         faqs = []
         staff_members = []
         alumni_statistics = []
+        cms_contact_info = []
 
     # Format counts for display
     alumni_count_display = f"{alumni_count:,}" if alumni_count else "5,000+"
@@ -234,6 +238,7 @@ def home(request):
         'faqs': faqs,
         'staff_members': staff_members,
         'alumni_statistics': alumni_statistics,
+        'cms_contact_info': cms_contact_info,
     }
 
     response = render(request, 'home.html', context)
@@ -668,21 +673,102 @@ def get_unread_count(request):
 
 def landing_events(request):
     """
-    Display published events for unauthenticated users with pagination
+    Display published events and public campaigns for unauthenticated users with pagination
     """
+    # Get published events
     events_list = Event.objects.filter(
         status='published',
         start_date__gte=timezone.now()
     ).order_by('start_date')
 
-    paginator = Paginator(events_list, 9)  # Show 9 events per page
+    # Get public campaigns that are not ended
+    try:
+        from donations.models import Campaign
+        campaigns_list = Campaign.objects.filter(
+            visibility='public',
+            status='active'
+        ).order_by('-created_at')
+        
+        # Filter out ended campaigns
+        campaigns_list = [campaign for campaign in campaigns_list if not campaign.is_ended]
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching campaigns: {e}")
+        campaigns_list = []
+
+    # Combine events and campaigns for display
+    all_items = []
+    
+    # Add events
+    for event in events_list:
+        all_items.append({
+            'type': 'event',
+            'item': event,
+            'date': event.start_date,
+            'title': event.title,
+            'description': event.description,
+            'image': event.image,
+            'location': event.location,
+            'is_virtual': event.is_virtual,
+            'url': event.get_absolute_url() if hasattr(event, 'get_absolute_url') else f'/events/{event.id}/'
+        })
+    
+    # Add campaigns
+    for campaign in campaigns_list:
+        all_items.append({
+            'type': 'campaign',
+            'item': campaign,
+            'date': campaign.start_date,
+            'title': campaign.name,
+            'description': campaign.short_description,
+            'image': campaign.featured_image,
+            'location': None,
+            'is_virtual': None,
+            'url': campaign.get_absolute_url() if hasattr(campaign, 'get_absolute_url') else f'/donations/campaigns/{campaign.slug}/',
+            'goal_amount': campaign.goal_amount,
+            'current_amount': campaign.current_amount,
+            'progress_percentage': campaign.progress_percentage,
+            'visibility': campaign.visibility
+        })
+
+    # Sort by date (most recent first)
+    all_items.sort(key=lambda x: x['date'], reverse=True)
+
+    # Paginate the combined items
+    paginator = Paginator(all_items, 9)  # Show 9 items per page
     page_number = request.GET.get('page')
-    events = paginator.get_page(page_number)
+    items = paginator.get_page(page_number)
+
+    # Initialize feedback form
+    feedback_form = None
+    if request.method == 'POST' and 'feedback_submit' in request.POST:
+        try:
+            from feedback.forms import FeedbackForm
+            feedback_form = FeedbackForm(request.POST, request.FILES)
+            if feedback_form.is_valid():
+                feedback = feedback_form.save(commit=False)
+                feedback.submitted_by = request.user if request.user.is_authenticated else None
+                feedback.save()
+                messages.success(request, 'Thank you for your feedback! We will review it and get back to you soon.')
+                return redirect('core:landing_events')
+            else:
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            logger.error(f"Error processing feedback: {e}")
+            messages.error(request, 'There was an error submitting your feedback. Please try again.')
+    else:
+        try:
+            from feedback.forms import FeedbackForm
+            feedback_form = FeedbackForm()
+        except Exception as e:
+            logger.error(f"Error initializing feedback form: {e}")
+            feedback_form = None
 
     context = {
-        'events': events,
-        'page_title': 'Upcoming Events',
-        'page_subtitle': 'Discover exciting events and activities in the NORSU alumni community'
+        'items': items,
+        'events': items,  # Keep for backward compatibility
+        'page_title': 'Events & Campaigns',
+        'page_subtitle': 'Discover exciting events and fundraising campaigns in the NORSU alumni community',
+        'feedback_form': feedback_form
     }
 
     return render(request, 'landing/events.html', context)
@@ -818,10 +904,7 @@ def contact_us(request):
     
     # Get CMS data for Contact page
     try:
-        from cms.models import ContactInfo, FAQ, ContactConfig, SocialMediaLink
-        
-        # Get contact configuration from CMS
-        contact_config = ContactConfig.get_contact_config()
+        from cms.models import ContactInfo, FAQ
         
         # Get contact information from CMS
         contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
@@ -829,8 +912,9 @@ def contact_us(request):
         # Get FAQs from CMS
         faqs = FAQ.objects.filter(is_active=True).order_by('order')
         
-        # Get social media links from CMS
-        social_media_links = SocialMediaLink.objects.filter(is_active=True).order_by('order')
+        # Set default values for removed models
+        contact_config = None
+        social_media_links = []
         
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data for Contact page: {e}")

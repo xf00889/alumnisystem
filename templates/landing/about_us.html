@@ -4,78 +4,622 @@
 
 {% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
 
-{% block page_header %}
-<div class="page-header">
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.7;
+    }
+
+    /* Hero Section */
+    .about-hero {
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.9)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        padding: 4rem 0 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .about-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="hero-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="1000" height="1000" fill="url(%23hero-pattern)"/></svg>') repeat;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .about-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .about-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .about-hero p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .about-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .about-stat {
+        text-align: center;
+    }
+
+    .about-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        color: var(--text-light);
+    }
+
+    .about-stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* About Section */
+    .about-section {
+        padding: 4rem 0;
+        background-color: var(--ui-background);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .section-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: var(--text-light);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .section-title {
+        font-size: 2.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .section-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Content Cards */
+    .content-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .content-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .content-card-header {
+        padding: 1.5rem 1.5rem 0.75rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .content-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+    }
+
+    .content-card-body {
+        padding: 1.25rem 1.5rem;
+        flex-grow: 1;
+    }
+
+    /* University Overview */
+    .university-overview {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: var(--text-light);
+        border-radius: var(--radius-lg);
+        padding: 2rem;
+        margin-bottom: 2rem;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .university-overview::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        right: 0;
+        width: 200px;
+        height: 200px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        transform: translate(50%, -50%);
+    }
+
+    .university-overview h2 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .university-overview p {
+        font-size: 1rem;
+        line-height: 1.6;
+        margin-bottom: 1rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .university-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+        position: relative;
+        z-index: 2;
+    }
+
+    .university-stat {
+        text-align: center;
+    }
+
+    .university-stat-number {
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        color: var(--text-light);
+    }
+
+    .university-stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Mission and Vision */
+    .mission-vision-header {
+        text-align: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .mission-vision-header i {
+        color: var(--primary-color);
+        margin-bottom: 0.5rem;
+    }
+
+    .mission-vision-header h3 {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin: 0;
+    }
+
+    /* Timeline */
+    .timeline {
+        position: relative;
+        padding-left: 2rem;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 1rem;
+        top: 0;
+        bottom: 0;
+        width: 2px;
+        background: linear-gradient(to bottom, var(--primary-color), var(--feedback-info));
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 2rem;
+        padding-left: 2rem;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -2.5rem;
+        top: 0;
+        width: 2.5rem;
+        height: 2.5rem;
+        background: var(--primary-color);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1rem;
+        box-shadow: var(--shadow-md);
+        border: 3px solid var(--ui-surface);
+    }
+
+    .timeline-content {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+    }
+
+    .timeline-content:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .timeline-content h5 {
+        color: var(--primary-color);
+        font-weight: 600;
+        font-size: 1.25rem;
+        margin-bottom: 0.2rem;
+    }
+
+    .timeline-content h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.4rem;
+        font-size: 1rem;
+    }
+
+    .timeline-content p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.9rem;
+        line-height: 1.5;
+    }
+
+    /* Call to Action */
+    .cta-section {
+        padding: 4rem 0;
+        background: linear-gradient(rgba(43, 60, 107, 0.92), rgba(26, 37, 68, 0.96)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="cta-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="1000" height="1000" fill="url(%23cta-pattern)"/></svg>') repeat;
+        pointer-events: none;
+    }
+
+    .cta-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .cta-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .cta-text {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-cta {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 50px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cta-primary {
+        background: linear-gradient(135deg, var(--ui-surface) 0%, #f0f4f8 100%);
+        color: var(--primary-color);
+        border: 2px solid var(--ui-surface);
+    }
+
+    .btn-cta-primary:hover {
+        background: linear-gradient(135deg, #ffffff 0%, var(--ui-surface) 100%);
+        color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-cta-outline {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: var(--text-light);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-cta-outline:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .about-hero {
+            padding: 3rem 0 1.5rem;
+        }
+
+        .about-hero h1 {
+            font-size: 2rem;
+        }
+
+        .about-hero p {
+            font-size: 0.9rem;
+        }
+
+        .about-stats {
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .university-overview {
+            padding: 1.5rem;
+        }
+
+        .university-overview h2 {
+            font-size: 1.5rem;
+        }
+
+        .university-stats {
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .timeline {
+            padding-left: 1rem;
+        }
+
+        .timeline::before {
+            left: 0.5rem;
+        }
+
+        .timeline-marker {
+            left: -1.25rem;
+            width: 2rem;
+            height: 2rem;
+            font-size: 0.9rem;
+        }
+
+        .timeline-item {
+            padding-left: 1.5rem;
+        }
+
+        .timeline-content {
+            padding: 1rem;
+        }
+
+        .cta-title {
+            font-size: 1.8rem;
+        }
+
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .about-hero {
+            padding: 2.5rem 0 1rem;
+        }
+
+        .about-hero h1 {
+            font-size: 1.8rem;
+        }
+
+        .about-hero p {
+            font-size: 0.85rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+        }
+
+        .university-overview {
+            padding: 1rem;
+        }
+
+        .university-overview h2 {
+            font-size: 1.25rem;
+        }
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="about-hero">
     <div class="container">
-        <div class="row align-items-center">
-            <div class="col-lg-8">
-                <h1 class="page-title">{{ page_title }}</h1>
-                <p class="page-subtitle">{{ page_subtitle }}</p>
+        <div class="about-hero-content">
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_subtitle }}</p>
+            <div class="about-stats">
+                <div class="about-stat">
+                    <div class="about-stat-number">{{ alumni_count|default:"5,000+" }}</div>
+                    <div class="about-stat-label">Alumni</div>
+                </div>
+                <div class="about-stat">
+                    <div class="about-stat-number">{{ group_count|default:"25+" }}</div>
+                    <div class="about-stat-label">Groups</div>
             </div>
-            <div class="col-lg-4 text-lg-end">
-                <div class="header-logo">
-                    <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="img-fluid" style="max-height: 80px;">
+                <div class="about-stat">
+                    <div class="about-stat-number">{{ event_count|default:"100+" }}</div>
+                    <div class="about-stat-label">Events</div>
                 </div>
             </div>
         </div>
     </div>
-</div>
-{% endblock page_header %}
+</section>
 
-
-{% block content %}
-<div class="container py-4">
+<!-- About Section -->
+<section class="about-section">
+    <div class="container">
     <!-- University Overview -->
-    <div class="row mb-5">
-        <div class="col-12">
-            <div class="content-card">
-                <div class="card-body p-4">
-                    <div class="row align-items-center">
-                        <div class="col-lg-8">
-                            <h2 class="section-title">About {{ about_config.university_name|default:"Negros Oriental State University" }}</h2>
-                            <p class="lead">
+        <div class="university-overview">
+            <h2>About {{ about_config.university_name|default:"Negros Oriental State University" }}</h2>
+            <p>
                                 {{ about_config.university_description|default:"Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services." }}
                             </p>
                             <p>
                                 {{ about_config.university_extended_description|default:"Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness." }}
                             </p>
-                        </div>
-                        <div class="col-lg-4 text-center">
                             <div class="university-stats">
-                                <div class="stat-circle">
-                                    <span class="stat-year">{{ about_config.establishment_year|default:"2004" }}</span>
-                                    <small>Established</small>
+                <div class="university-stat">
+                    <div class="university-stat-number">{{ about_config.establishment_year|default:"2004" }}</div>
+                    <div class="university-stat-label">Established</div>
                                 </div>
+                <div class="university-stat">
+                    <div class="university-stat-number">20+</div>
+                    <div class="university-stat-label">Years of Excellence</div>
                             </div>
-                        </div>
-                    </div>
-                </div>
+                <div class="university-stat">
+                    <div class="university-stat-number">50+</div>
+                    <div class="university-stat-label">Programs</div>
             </div>
         </div>
     </div>
 
     <!-- Mission and Vision -->
-    <div class="row mb-5">
-        <div class="col-lg-6 mb-4">
-            <div class="content-card h-100">
-                <div class="card-body p-4">
-                    <div class="mission-vision-header mb-3">
-                        <i class="fas fa-bullseye fa-2x text-primary mb-2"></i>
+        <div class="row mb-4">
+            <div class="col-lg-6 mb-3">
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <div class="mission-vision-header">
+                            <i class="fas fa-bullseye fa-2x"></i>
                         <h3>Our Mission</h3>
+                        </div>
                     </div>
+                    <div class="content-card-body">
                     <p>
                         {{ about_config.mission|default:"To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society." }}
                     </p>
                 </div>
             </div>
         </div>
-        <div class="col-lg-6 mb-4">
-            <div class="content-card h-100">
-                <div class="card-body p-4">
-                    <div class="mission-vision-header mb-3">
-                        <i class="fas fa-eye fa-2x text-primary mb-2"></i>
+            <div class="col-lg-6 mb-3">
+                <div class="content-card">
+                    <div class="content-card-header">
+                        <div class="mission-vision-header">
+                            <i class="fas fa-eye fa-2x"></i>
                         <h3>Our Vision</h3>
+                        </div>
                     </div>
+                    <div class="content-card-body">
                     <p>
                         {{ about_config.vision|default:"A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities." }}
                     </p>
@@ -84,11 +628,15 @@
         </div>
     </div>
 
-
     <!-- Timeline -->
-    <div class="row mb-5">
+        <div class="row mb-4">
         <div class="col-12">
-            <h2 class="section-title">Our Journey</h2>
+                <div class="section-header">
+                    <div class="section-badge">Our Journey</div>
+                    <h2 class="section-title">University Timeline</h2>
+                    <p class="section-subtitle">Key milestones in our university's history and growth</p>
+                </div>
+                
             <div class="timeline">
                 {% if timeline_items %}
                     {% for item in timeline_items %}
@@ -149,203 +697,26 @@
             </div>
         </div>
     </div>
+    </div>
+</section>
 
-    <!-- Call to Action -->
-    <div class="row">
-        <div class="col-12">
-            <div class="content-card text-center">
-                <div class="card-body py-5">
-                    <h3 class="mb-3">Join Our Growing Community</h3>
-                    <p class="text-muted mb-4">
-                        Be part of the NORSU Alumni Network and connect with fellow graduates worldwide. 
-                        Access exclusive opportunities, events, and resources designed for your professional growth.
-                    </p>
-                    <div class="d-flex gap-3 justify-content-center">
-                        <a href="{% url 'account_login' %}" class="btn btn-primary btn-lg">
-                            <i class="fas fa-user-plus me-2"></i>Join Now
-                        </a>
-                        <a href="{% url 'core:contact_us' %}" class="btn btn-outline-primary btn-lg">
-                            <i class="fas fa-envelope me-2"></i>Contact Us
-                        </a>
-                    </div>
-                </div>
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="cta-title">Join Our Growing Community</h2>
+            <p class="cta-text">Be part of the NORSU Alumni Network and connect with fellow graduates worldwide. Access exclusive opportunities, events, and resources designed for your professional growth.</p>
+            <div class="cta-buttons">
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-primary">
+                    <i class="fas fa-user-plus"></i>
+                    Join Now
+                </a>
+                <a href="{% url 'core:contact_us' %}" class="btn-cta btn-cta-outline">
+                    <i class="fas fa-envelope"></i>
+                    Contact Us
+                </a>
             </div>
         </div>
     </div>
-</div>
+</section>
 {% endblock content %}
-
-{% block extra_css %}
-<style>
-    .section-title {
-        font-size: 2rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 1.5rem;
-        position: relative;
-        padding-bottom: 0.5rem;
-    }
-    
-    .section-title::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 50px;
-        height: 3px;
-        background: linear-gradient(45deg, var(--primary-color), var(--feedback-info));
-        border-radius: 2px;
-    }
-    
-    .university-stats .stat-circle {
-        width: 120px;
-        height: 120px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, var(--primary-color), var(--feedback-info));
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        margin: 0 auto;
-    }
-    
-    .university-stats .stat-year {
-        font-size: 2rem;
-        font-weight: 600;
-        line-height: 1;
-    }
-    
-    .mission-vision-header {
-        text-align: center;
-    }
-    
-    .mission-vision-header h3 {
-        color: var(--text-primary);
-        font-weight: 600;
-    }
-    
-    .stat-card {
-        transition: all 0.3s ease;
-    }
-    
-    .stat-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-    }
-    
-    .stat-number {
-        font-size: 2.5rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-    
-    .stat-label {
-        color: var(--text-secondary);
-        font-weight: 500;
-        margin: 0;
-    }
-    
-    .staff-card {
-        transition: all 0.3s ease;
-    }
-    
-    .staff-card:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .staff-name {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    
-    .staff-position {
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-    }
-    
-    .staff-department {
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-    }
-    
-    .timeline {
-        position: relative;
-        padding-left: 2rem;
-    }
-    
-    .timeline::before {
-        content: '';
-        position: absolute;
-        left: 1rem;
-        top: 0;
-        bottom: 0;
-        width: 2px;
-        background: linear-gradient(to bottom, var(--primary-color), var(--feedback-info));
-    }
-    
-    .timeline-item {
-        position: relative;
-        margin-bottom: 2rem;
-        padding-left: 2rem;
-    }
-    
-    .timeline-marker {
-        position: absolute;
-        left: -2.5rem;
-        top: 0;
-        width: 3rem;
-        height: 3rem;
-        background: var(--primary-color);
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: white;
-        font-size: 1.2rem;
-        box-shadow: var(--shadow-md);
-    }
-    
-    .timeline-content h5 {
-        color: var(--primary-color);
-        font-weight: 600;
-        font-size: 1.5rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .timeline-content h6 {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    
-    .timeline-content p {
-        color: var(--text-secondary);
-        margin: 0;
-    }
-    
-    @media (max-width: 768px) {
-        .timeline {
-            padding-left: 1rem;
-        }
-        
-        .timeline::before {
-            left: 0.5rem;
-        }
-        
-        .timeline-marker {
-            left: -1.25rem;
-            width: 2rem;
-            height: 2rem;
-            font-size: 1rem;
-        }
-        
-        .timeline-item {
-            padding-left: 1.5rem;
-        }
-    }
-</style>
-{% endblock extra_css %}

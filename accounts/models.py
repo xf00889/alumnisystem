@@ -246,6 +246,16 @@ class Experience(models.Model):
         ('COMPANY_CHANGE', 'Company Change'),
     ]
     
+    SALARY_RANGE_CHOICES = [
+        ('', 'Prefer not to say'),
+        ('0-15K', 'Below ₱15,000'),
+        ('15K-30K', '₱15,000 - ₱30,000'),
+        ('30K-50K', '₱30,000 - ₱50,000'),
+        ('50K-80K', '₱50,000 - ₱80,000'),
+        ('80K-100K', '₱80,000 - ₱100,000'),
+        ('100K+', 'Above ₱100,000'),
+    ]
+    
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='experience')
     company = models.CharField(max_length=100)
     position = models.CharField(max_length=100)
@@ -258,7 +268,7 @@ class Experience(models.Model):
     # Fields from CareerPath model
     achievements = models.TextField(blank=True)
     career_significance = models.CharField(max_length=20, choices=CAREER_SIGNIFICANCE_CHOICES, default='REGULAR')
-    salary_range = models.CharField(max_length=100, blank=True)
+    salary_range = models.CharField(max_length=20, choices=SALARY_RANGE_CHOICES, blank=True, default='')
     skills_gained = models.TextField(blank=True, help_text="Comma-separated list of skills gained in this role")
     
     created_at = models.DateTimeField(auto_now_add=True)

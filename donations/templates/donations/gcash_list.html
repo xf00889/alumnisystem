@@ -1,0 +1,218 @@
+{% extends 'donations/base_donations.html' %}
+{% load static %}
+{% load humanize %}
+{% load i18n %}
+
+{% block title %}{% trans "GCash Configuration Management" %} - NORSU Alumni{% endblock %}
+
+{% block page_header %}{% endblock %}
+
+{% block donations_content %}
+<div class="col-12">
+  <!-- Welcome Header -->
+  <div class="welcome-header mt-3">
+    <div class="d-flex align-items-center justify-content-between">
+      <div>
+        <h4>{% trans "GCash Configuration Management" %}</h4>
+        <p>{% trans "Manage GCash payment configurations for donations." %}</p>
+      </div>
+      <div>
+        <a href="{% url 'donations:gcash_config_create' %}" class="btn btn-primary btn-sm">
+          <i class="fas fa-plus me-2"></i>{% trans "Add New Configuration" %}
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- Statistics Section -->
+  <div class="row mb-4">
+    <div class="col-md-3">
+      <div class="dashboard-card">
+        <div class="card-body text-center">
+          <h3 class="text-primary">{{ total_configs }}</h3>
+          <p class="text-muted mb-0">{% trans "Total Configurations" %}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="dashboard-card">
+        <div class="card-body text-center">
+          <h3 class="text-success">{{ active_configs }}</h3>
+          <p class="text-muted mb-0">{% trans "Active" %}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="dashboard-card">
+        <div class="card-body text-center">
+          <h3 class="text-warning">{{ inactive_configs }}</h3>
+          <p class="text-muted mb-0">{% trans "Inactive" %}</p>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="dashboard-card">
+        <div class="card-body text-center">
+          <h3 class="text-info">{{ active_configs }}</h3>
+          <p class="text-muted mb-0">{% trans "Active Configurations" %}</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GCash Configurations Grid -->
+  {% if gcash_configs %}
+  <div class="row">
+    {% for config in gcash_configs %}
+    <div class="col-lg-6 col-xl-4 mb-4">
+      <div class="dashboard-card h-100">
+        <div class="card-header d-flex align-items-center justify-content-between">
+          <h5 class="card-title mb-0">
+            <i class="fas fa-mobile-alt me-2"></i>
+            {{ config.name }}
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            {% if config.is_active %}
+              <span class="badge bg-success">{% trans "Active" %}</span>
+            {% else %}
+              <span class="badge bg-secondary">{% trans "Inactive" %}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Account Information -->
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-user me-2 text-primary"></i>
+              <strong>{% trans "Account Name:" %}</strong>
+            </div>
+            <p class="mb-0">{{ config.account_name }}</p>
+          </div>
+
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-phone me-2 text-primary"></i>
+              <strong>{% trans "GCash Number:" %}</strong>
+            </div>
+            <p class="mb-0 font-monospace">{{ config.gcash_number }}</p>
+          </div>
+
+          <!-- QR Code Preview -->
+          {% if config.qr_code_image %}
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-qrcode me-2 text-primary"></i>
+              <strong>{% trans "QR Code:" %}</strong>
+            </div>
+            <div class="text-center">
+              <img src="{{ config.qr_code_image.url }}" 
+                   alt="QR Code" 
+                   class="img-fluid rounded" 
+                   style="max-width: 120px; max-height: 120px;">
+            </div>
+          </div>
+          {% endif %}
+
+          <!-- Usage Statistics -->
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-chart-bar me-2 text-primary"></i>
+              <strong>{% trans "Usage:" %}</strong>
+            </div>
+            <p class="mb-0">
+              <span class="badge bg-info">{{ config.usage_count }} {% trans "campaigns" %}</span>
+            </p>
+          </div>
+
+          <!-- Instructions Preview -->
+          {% if config.instructions %}
+          <div class="mb-3">
+            <div class="d-flex align-items-center mb-2">
+              <i class="fas fa-info-circle me-2 text-primary"></i>
+              <strong>{% trans "Instructions:" %}</strong>
+            </div>
+            <p class="mb-0 text-muted small">{{ config.instructions|truncatewords:15 }}</p>
+          </div>
+          {% endif %}
+
+          <!-- Timestamps -->
+          <div class="mb-3">
+            <small class="text-muted">
+              <i class="fas fa-clock me-1"></i>
+              {% trans "Created:" %} {{ config.created_at|date:"M d, Y" }}
+              {% if config.updated_at != config.created_at %}
+                <br>
+                <i class="fas fa-edit me-1"></i>
+                {% trans "Updated:" %} {{ config.updated_at|date:"M d, Y" }}
+              {% endif %}
+            </small>
+          </div>
+        </div>
+        <div class="card-footer">
+          <div class="d-flex gap-2 justify-content-center">
+            <a href="{% url 'donations:gcash_config_detail' config.pk %}" 
+               class="btn btn-primary btn-sm">
+              <i class="fas fa-edit me-1"></i>{% trans "Edit" %}
+            </a>
+            <button class="btn {% if config.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm" 
+                    onclick="toggleConfigStatus({{ config.pk }}, {% if config.is_active %}false{% else %}true{% endif %})">
+              {% if config.is_active %}
+                <i class="fas fa-pause me-1"></i>{% trans "Deactivate" %}
+              {% else %}
+                <i class="fas fa-play me-1"></i>{% trans "Activate" %}
+              {% endif %}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <!-- Empty State -->
+  <div class="dashboard-card">
+    <div class="card-body text-center py-5">
+      <i class="fas fa-mobile-alt fa-3x text-muted mb-3"></i>
+      <h5>{% trans "No GCash Configurations" %}</h5>
+      <p class="text-muted mb-4">{% trans "You haven't created any GCash configurations yet." %}</p>
+      <a href="{% url 'donations:gcash_config_create' %}" class="btn btn-primary">
+        <i class="fas fa-plus me-2"></i>{% trans "Create First Configuration" %}
+      </a>
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+<!-- JavaScript for toggle functionality -->
+<script>
+function toggleConfigStatus(configId, currentStatus) {
+    const newStatus = !currentStatus;
+    const action = newStatus ? 'activate' : 'deactivate';
+    
+    if (confirm(`Are you sure you want to ${action} this GCash configuration?`)) {
+        fetch(`{% url 'donations:toggle_gcash_config' 0 %}`.replace('0', configId), {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                'is_active': newStatus
+            })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error: ' + data.message);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        });
+    }
+}
+</script>
+{% endblock %}

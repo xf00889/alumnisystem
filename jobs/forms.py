@@ -1,6 +1,9 @@
 from django import forms
 from django.forms import inlineformset_factory
 from .models import JobPosting, JobApplication, RequiredDocument
+from core.recaptcha_fields import DatabaseReCaptchaField
+from core.recaptcha_widgets import DatabaseReCaptchaV3
+from core.recaptcha_utils import is_recaptcha_enabled
 
 class RequiredDocumentForm(forms.ModelForm):
     class Meta:
@@ -114,6 +117,19 @@ class JobApplicationForm(forms.ModelForm):
                         help_text=f"{doc.description} (Allowed types: {doc.file_types})",
                         required=True
                     )
+        
+        # Add reCAPTCHA field if enabled in database
+        if is_recaptcha_enabled():
+            self.fields['captcha'] = DatabaseReCaptchaField(
+                widget=DatabaseReCaptchaV3(
+                    attrs={
+                        'data-callback': 'onRecaptchaSuccess',
+                        'data-expired-callback': 'onRecaptchaExpired',
+                        'data-error-callback': 'onRecaptchaError',
+                    }
+                ),
+                label='Security Verification'
+            )
 
     def clean_resume(self):
         resume = self.cleaned_data.get('resume')
