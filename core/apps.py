@@ -49,15 +49,24 @@ class CoreConfig(AppConfig):
                     # Update email settings from database
                     update_django_email_settings()
                 else:
-                    # No active config, ensure console backend
+                    # No active config, use appropriate backend based on DEBUG setting
                     from django.conf import settings
-                    settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-                    logger.info("No active SMTP configuration found, using console backend")
+                    if settings.DEBUG:
+                        settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                        logger.info("No active SMTP configuration found, using console backend for development")
+                    else:
+                        settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+                        logger.info("No active SMTP configuration found, using SMTP backend for production")
             else:
                 logger.info("SMTP config table not found, skipping database settings load")
             
         except Exception as e:
             logger.warning(f"Could not load SMTP settings on startup: {str(e)}")
-            # Ensure console backend on any error
+            # Use appropriate backend based on DEBUG setting
             from django.conf import settings
-            settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+            if settings.DEBUG:
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                logger.info("Using console backend for development due to error")
+            else:
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+                logger.info("Using SMTP backend for production despite error")
