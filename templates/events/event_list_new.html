@@ -1321,9 +1321,8 @@ function openEventModal(eventId) {
                 };
                 
                 modalDeleteBtn.onclick = () => {
-                    if (confirm('Are you sure you want to delete this event?')) {
-                        window.location.href = `/events/${eventId}/delete/`;
-                    }
+                    const eventTitle = document.querySelector('#eventModal .modal-title').textContent;
+                    deleteEvent(eventId, eventTitle);
                 };
             }
         })
@@ -1438,5 +1437,61 @@ function copyToClipboard(text) {
         SweetAlertUtils.error('Error', 'Failed to copy link');
     });
 }
+
+// Delete event functionality with SweetAlert
+function deleteEvent(eventId, eventTitle) {
+    Swal.fire({
+        title: 'Delete Event',
+        html: `Are you sure you want to delete <strong>"${eventTitle}"</strong>?<br><br><small class="text-muted">This action cannot be undone.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i>Yes, delete it!',
+        cancelButtonText: '<i class="fas fa-times me-1"></i>Cancel',
+        reverseButtons: true,
+        focusCancel: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Deleting Event...',
+                text: 'Please wait while we delete the event.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Redirect to delete URL
+            window.location.href = `/events/${eventId}/delete/`;
+        }
+    });
+}
+
+// Initialize delete button event handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle card view delete buttons
+    document.querySelectorAll('.event-card .btn-danger').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const eventId = this.getAttribute('href').split('/').slice(-2, -1)[0];
+            const eventTitle = this.closest('.event-card').querySelector('.event-title a').textContent;
+            deleteEvent(eventId, eventTitle);
+        });
+    });
+    
+    // Handle table view delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const eventId = this.getAttribute('data-event-id');
+            const eventTitle = this.closest('tr').querySelector('.table-title').textContent;
+            deleteEvent(eventId, eventTitle);
+        });
+    });
+});
 </script>
 {% endblock %}

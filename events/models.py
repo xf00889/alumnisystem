@@ -10,6 +10,11 @@ class Event(models.Model):
         ('cancelled', 'Cancelled'),
         ('completed', 'Completed'),
     ]
+    
+    VISIBILITY_CHOICES = [
+        ('public', 'Public'),
+        ('private', 'Private'),
+    ]
 
     title = models.CharField(max_length=200)
     description = models.TextField()
@@ -20,6 +25,7 @@ class Event(models.Model):
     virtual_link = models.URLField(blank=True, null=True)
     max_participants = models.PositiveIntegerField(null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='draft')
+    visibility = models.CharField(max_length=10, choices=VISIBILITY_CHOICES, default='private')
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)

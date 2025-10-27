@@ -141,7 +141,7 @@ class EventCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
         return self.request.user.is_staff
     
     def get_success_url(self):
-        return reverse_lazy('events:event_detail', kwargs={'pk': self.object.pk})
+        return reverse_lazy('events:event_list')
     
     def form_valid(self, form):
         try:

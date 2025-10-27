@@ -19,7 +19,7 @@ class EventForm(forms.ModelForm):
         fields = [
             'title', 'description', 'start_date', 'end_date',
             'location', 'is_virtual', 'virtual_link', 'max_participants',
-            'status', 'image', 'notified_groups'
+            'status', 'visibility', 'image', 'notified_groups'
         ]
         widgets = {
             'start_date': forms.DateTimeInput(
@@ -86,7 +86,7 @@ class PublicEventForm(EventForm):
         fields = [
             'title', 'description', 'start_date', 'end_date',
             'location', 'is_virtual', 'virtual_link', 'max_participants',
-            'image', 'notified_groups'
+            'visibility', 'image', 'notified_groups'
         ]
     
     def __init__(self, *args, **kwargs):

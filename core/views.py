@@ -673,11 +673,12 @@ def get_unread_count(request):
 
 def landing_events(request):
     """
-    Display published events and public campaigns for unauthenticated users with pagination
+    Display published events, public campaigns, and public announcements for unauthenticated users with pagination
     """
-    # Get published events
+    # Get published public events
     events_list = Event.objects.filter(
         status='published',
+        visibility='public',
         start_date__gte=timezone.now()
     ).order_by('start_date')
 
@@ -695,7 +696,18 @@ def landing_events(request):
         logger.error(f"Error fetching campaigns: {e}")
         campaigns_list = []
 
-    # Combine events and campaigns for display
+    # Get public announcements
+    try:
+        from announcements.models import Announcement
+        announcements_list = Announcement.objects.filter(
+            is_active=True,
+            target_audience='ALL'
+        ).order_by('-date_posted')
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching announcements: {e}")
+        announcements_list = []
+
+    # Combine events, campaigns, and announcements for display
     all_items = []
     
     # Add events
@@ -728,6 +740,22 @@ def landing_events(request):
             'current_amount': campaign.current_amount,
             'progress_percentage': campaign.progress_percentage,
             'visibility': campaign.visibility
+        })
+    
+    # Add announcements
+    for announcement in announcements_list:
+        all_items.append({
+            'type': 'announcement',
+            'item': announcement,
+            'date': announcement.date_posted,
+            'title': announcement.title,
+            'description': announcement.content,
+            'image': None,
+            'location': None,
+            'is_virtual': None,
+            'url': f'/announcements/{announcement.id}/',
+            'priority_level': announcement.priority_level,
+            'category': announcement.category.name if announcement.category else 'General'
         })
 
     # Sort by date (most recent first)

@@ -4,22 +4,133 @@
 {% block title %}Manage Security Questions - {{ group.name }}{% endblock %}
 
 {% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
-    /* Mobile-first styles */
+    /* Core Design System - Consistent with alumni templates */
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-light: #4a5568;
+        --primary-dark: #1a202c;
+        --secondary-color: #3182ce;
+        --accent-color: #38a169;
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-light: #ffffff;
+        --text-muted: #a0aec0;
+        --success-color: #38a169;
+        --warning-color: #dd6b20;
+        --danger-color: #e53e3e;
+        --info-color: #3182ce;
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+    }
+
+    body {
+        background: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .container-fluid {
+        padding: 1.5rem;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Security Questions Container */
     .security-questions-container {
-        padding: 1rem;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
     }
 
-    @media (min-width: 768px) {
-        .security-questions-container {
-            padding: 2rem;
-        }
+    .security-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid var(--ui-border);
     }
 
+    .security-title h3 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 0.25rem 0;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .security-title h3 i {
+        color: var(--primary-color);
+    }
+
+    .security-title p {
+        color: var(--text-secondary);
+        margin: 0;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .security-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    /* Question Form */
     .question-form {
         display: flex;
         flex-direction: column;
         gap: 1rem;
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        background: var(--ui-background);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
     }
 
     @media (min-width: 768px) {
@@ -39,6 +150,8 @@
 
     .add-button {
         width: 100%;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
     }
 
     @media (min-width: 768px) {
@@ -47,11 +160,27 @@
         }
     }
 
+    /* Question List */
+    .questions-list {
+        margin-top: 1rem;
+    }
+
     .question-item {
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        padding: 1rem;
+        padding: 1.5rem;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        box-shadow: var(--shadow-sm);
+        transition: all 0.2s ease;
+    }
+
+    .question-item:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-1px);
     }
 
     @media (min-width: 768px) {
@@ -64,6 +193,14 @@
 
     .question-content {
         flex: 1;
+    }
+
+    .question-text {
+        font-size: 0.875rem;
+        color: var(--text-primary);
+        margin: 0 0 0.5rem 0;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.5;
     }
 
     .question-actions {
@@ -79,108 +216,260 @@
     }
 
     .badge {
-        display: inline-block;
-        margin-top: 0.25rem;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
     }
 
-    @media (min-width: 768px) {
-        .badge {
-            margin-top: 0;
-            margin-left: 0.5rem;
+    .badge.bg-danger {
+        background-color: var(--danger-color) !important;
+        color: white;
+    }
+
+    .badge.bg-secondary {
+        background-color: var(--text-secondary) !important;
+        color: white;
+    }
+
+    /* Button Styles */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+
+    .btn-danger {
+        background-color: var(--danger-color);
+        border-color: var(--danger-color);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .btn-secondary {
+        background-color: var(--text-secondary);
+        border-color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .btn-light {
+        background: rgba(255, 255, 255, 0.9);
+        color: var(--primary-color);
+        border: none;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .btn-light:hover {
+        background: var(--text-light);
+        color: var(--primary-color);
+    }
+
+    /* Alert Styles */
+    .alert {
+        border-radius: var(--radius-md);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .alert-info {
+        background-color: #e3f2fd;
+        border-color: var(--info-color);
+        color: var(--primary-color);
+    }
+
+    .alert-warning {
+        background-color: #fff3cd;
+        border-color: var(--warning-color);
+        color: var(--primary-color);
+    }
+
+    /* Form Styles */
+    .form-control {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .form-check-label {
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-primary);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: var(--space-4);
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .security-questions-container {
+            padding: 1rem;
+        }
+        
+        .security-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+        
+        .security-actions {
+            width: 100%;
+            justify-content: flex-start;
+        }
+        
+        .question-form {
+            padding: 1rem;
+        }
+        
+        .question-item {
+            padding: 1rem;
         }
     }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="security-questions-container">
-    <div class="row justify-content-center">
-        <div class="col-12 col-md-10 col-lg-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-2">
-                        <h5 class="mb-0">Security Questions for {{ group.name }}</h5>
-                        <form method="post" class="w-100 w-md-auto">
-                            {% csrf_token %}
-                            <input type="hidden" name="action" value="toggle_security">
-                            <button type="submit" class="btn btn-light btn-sm w-100 w-md-auto">
-                                {% if group.has_security_questions %}
-                                    Disable Security Questions
-                                {% else %}
-                                    Enable Security Questions
-                                {% endif %}
-                            </button>
-                        </form>
-                    </div>
-                </div>
-                
-                <div class="card-body">
-                    {% if group.has_security_questions %}
-                        <div class="mb-4">
-                            <h6 class="card-subtitle mb-3">Add New Question</h6>
-                            <form method="post" class="question-form">
-                                {% csrf_token %}
-                                <input type="hidden" name="action" value="add_question">
-                                <div class="question-input">
-                                    {{ form.question|as_crispy_field }}
-                                </div>
-                                <div class="required-toggle">
-                                    {{ form.is_required|as_crispy_field }}
-                                </div>
-                                <div class="add-button-container">
-                                    <button type="submit" class="btn btn-primary add-button">Add Question</button>
-                                </div>
-                            </form>
-                        </div>
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Security Questions</h1>
+        <p class="directory-subtitle">{{ group.name }}</p>
+    </div>
 
-                        <h6 class="card-subtitle mb-3">Current Questions</h6>
-                        {% if questions %}
-                            <div class="list-group">
-                                {% for question in questions %}
-                                    <div class="list-group-item question-item">
-                                        <div class="question-content">
-                                            <p class="mb-1">{{ question.question }}</p>
-                                            <small class="text-muted">
-                                                {% if question.is_required %}
-                                                    <span class="badge bg-danger">Required</span>
-                                                {% else %}
-                                                    <span class="badge bg-secondary">Optional</span>
-                                                {% endif %}
-                                            </small>
-                                        </div>
-                                        <div class="question-actions">
-                                            <form method="post">
-                                                {% csrf_token %}
-                                                <input type="hidden" name="action" value="delete_question">
-                                                <input type="hidden" name="question_id" value="{{ question.id }}">
-                                                <button type="submit" class="btn btn-danger btn-sm">
-                                                    <i class="fas fa-trash"></i>
-                                                    <span class="d-none d-md-inline ms-1">Delete</span>
-                                                </button>
-                                            </form>
-                                        </div>
-                                    </div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <div class="alert alert-info">
-                                No security questions have been added yet.
-                            </div>
-                        {% endif %}
-                    {% else %}
-                        <div class="alert alert-warning">
-                            Security questions are currently disabled. Enable them to add questions.
-                        </div>
-                    {% endif %}
-                </div>
+    <!-- Security Questions Container -->
+    <div class="security-questions-container">
+        <!-- Security Header -->
+        <div class="security-header">
+            <div class="security-title">
+                <h3><i class="fas fa-shield-alt"></i> Security Questions Management</h3>
+                <p>Configure security questions for group membership</p>
             </div>
-
-            <div class="text-center mt-3">
-                <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="btn btn-secondary w-100 w-md-auto">
-                    <i class="fas fa-arrow-left"></i> Back to Group
-                </a>
+            <div class="security-actions">
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="toggle_security">
+                    <button type="submit" class="btn btn-light btn-sm">
+                        {% if group.has_security_questions %}
+                            <i class="fas fa-toggle-on"></i> Disable Security Questions
+                        {% else %}
+                            <i class="fas fa-toggle-off"></i> Enable Security Questions
+                        {% endif %}
+                    </button>
+                </form>
             </div>
         </div>
+        {% if group.has_security_questions %}
+            <!-- Add New Question Form -->
+            <div class="question-form">
+                <h6 class="mb-3" style="color: var(--text-primary); font-family: 'Poppins', sans-serif; font-weight: 600;">Add New Question</h6>
+                <form method="post">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add_question">
+                    <div class="question-input">
+                        {{ form.question|as_crispy_field }}
+                    </div>
+                    <div class="required-toggle">
+                        {{ form.is_required|as_crispy_field }}
+                    </div>
+                    <div class="add-button-container">
+                        <button type="submit" class="btn btn-primary add-button">
+                            <i class="fas fa-plus"></i> Add Question
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Current Questions List -->
+            <div class="questions-list">
+                <h6 class="mb-3" style="color: var(--text-primary); font-family: 'Poppins', sans-serif; font-weight: 600;">Current Questions</h6>
+                {% if questions %}
+                    {% for question in questions %}
+                        <div class="question-item">
+                            <div class="question-content">
+                                <p class="question-text">{{ question.question }}</p>
+                                <div>
+                                    {% if question.is_required %}
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-exclamation-circle"></i> Required
+                                        </span>
+                                    {% else %}
+                                        <span class="badge bg-secondary">
+                                            <i class="fas fa-info-circle"></i> Optional
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            <div class="question-actions">
+                                <form method="post">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="action" value="delete_question">
+                                    <input type="hidden" name="question_id" value="{{ question.id }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">
+                                        <i class="fas fa-trash"></i>
+                                        <span class="d-none d-md-inline ms-1">Delete</span>
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle"></i>
+                        No security questions have been added yet.
+                    </div>
+                {% endif %}
+            </div>
+        {% else %}
+            <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle"></i>
+                Security questions are currently disabled. Enable them to add questions.
+            </div>
+        {% endif %}
+    </div>
+
+    <!-- Back Button -->
+    <div class="text-center mt-3">
+        <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to Group
+        </a>
     </div>
 </div>
 {% endblock %} 

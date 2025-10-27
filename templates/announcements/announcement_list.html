@@ -1777,9 +1777,8 @@ function openAnnouncementModal(announcementId) {
                 modalDeleteBtn.style.display = 'inline-flex';
                 modalEditBtn.onclick = () => window.location.href = `/announcements/${announcementId}/edit/`;
                 modalDeleteBtn.onclick = () => {
-                    if (confirm('Are you sure you want to delete this announcement?')) {
-                        window.location.href = `/announcements/${announcementId}/delete/`;
-                    }
+                    const announcementTitle = document.querySelector('#announcementModal .modal-title').textContent;
+                    deleteAnnouncement(announcementId, announcementTitle);
                 };
                     }
                 })
@@ -2030,5 +2029,61 @@ function testShareFunctionality(event) {
     SweetAlertUtils.success('Test Passed', 'Share functionality is working correctly!');
     return true;
 }
+
+// Delete announcement functionality with SweetAlert
+function deleteAnnouncement(announcementId, announcementTitle) {
+    Swal.fire({
+        title: 'Delete Announcement',
+        html: `Are you sure you want to delete <strong>"${announcementTitle}"</strong>?<br><br><small class="text-muted">This action cannot be undone.</small>`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: '<i class="fas fa-trash me-1"></i>Yes, delete it!',
+        cancelButtonText: '<i class="fas fa-times me-1"></i>Cancel',
+        reverseButtons: true,
+        focusCancel: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading
+            Swal.fire({
+                title: 'Deleting Announcement...',
+                text: 'Please wait while we delete the announcement.',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            // Redirect to delete URL
+            window.location.href = `/announcements/${announcementId}/delete/`;
+        }
+    });
+}
+
+// Initialize delete button event handlers
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle card view delete buttons
+    document.querySelectorAll('.announcement-card .btn-danger').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const announcementId = this.getAttribute('href').split('/').slice(-2, -1)[0];
+            const announcementTitle = this.closest('.announcement-card').querySelector('.announcement-title a').textContent;
+            deleteAnnouncement(announcementId, announcementTitle);
+        });
+    });
+    
+    // Handle table view delete buttons
+    document.querySelectorAll('.delete-btn').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const announcementId = this.getAttribute('data-id');
+            const announcementTitle = this.closest('tr').querySelector('.table-title').textContent;
+            deleteAnnouncement(announcementId, announcementTitle);
+        });
+    });
+});
 </script>
 {% endblock %}
