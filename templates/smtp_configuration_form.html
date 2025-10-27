@@ -40,7 +40,7 @@
 
     .container-fluid {
         padding: 2rem;
-        max-width: 800px;
+        max-width: 900px;
         margin: 0 auto;
     }
 
@@ -75,6 +75,72 @@
         margin-bottom: 1.5rem;
     }
 
+    .provider-selector {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .provider-card {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        padding: 1.5rem;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-align: center;
+    }
+
+    .provider-card:hover {
+        border-color: var(--accent-color);
+        box-shadow: var(--shadow-md);
+    }
+
+    .provider-card.selected {
+        border-color: var(--accent-color);
+        background-color: var(--ui-focus);
+    }
+
+    .provider-icon {
+        font-size: 2rem;
+        margin-bottom: 0.5rem;
+        color: var(--accent-color);
+    }
+
+    .provider-name {
+        font-weight: 600;
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+    }
+
+    .provider-description {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.5rem;
+    }
+
+    .provider-help {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        font-style: italic;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        background: var(--bg-secondary);
+    }
+
+    .form-section h3 {
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
     .form-group {
         margin-bottom: 1.5rem;
     }
@@ -96,22 +162,6 @@
     }
 
     .form-control:focus {
-        outline: none;
-        border-color: var(--accent-color);
-        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
-    }
-
-    .form-select {
-        width: 100%;
-        padding: 0.75rem;
-        border: 2px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        font-size: 0.875rem;
-        background-color: var(--bg-primary);
-        transition: all 0.3s ease;
-    }
-
-    .form-select:focus {
         outline: none;
         border-color: var(--accent-color);
         box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
@@ -208,6 +258,12 @@
         color: #1e40af;
     }
 
+    .alert-warning {
+        background-color: #fef3c7;
+        border-color: #fcd34d;
+        color: #92400e;
+    }
+
     .form-actions {
         display: flex;
         gap: 1rem;
@@ -220,6 +276,34 @@
     .hidden {
         display: none;
     }
+
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 2rem;
+    }
+
+    .step {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem 1rem;
+        border-radius: var(--radius-md);
+        background: var(--bg-secondary);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+
+    .step.active {
+        background: var(--accent-color);
+        color: white;
+    }
+
+    .step.completed {
+        background: var(--success-color);
+        color: white;
+    }
 </style>
 {% endblock %}
 
@@ -228,94 +312,177 @@
     <!-- Standard Dashboard Header -->
     <div class="dashboard-header">
         <h1><i class="fas fa-server"></i> {{ page_title }}</h1>
-        <p>Configure SMTP settings for email functionality</p>
+        <p>Configure SMTP settings for email functionality - Choose your email provider for easy setup</p>
+    </div>
+    
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active" id="step-provider">
+            <i class="fas fa-envelope"></i> Choose Provider
+        </div>
+        <div class="step" id="step-details">
+            <i class="fas fa-cog"></i> Configure Details
+        </div>
+        <div class="step" id="step-test">
+            <i class="fas fa-check"></i> Test & Save
+        </div>
+    </div>
+    
+    <!-- Provider Selection -->
+    <div class="dashboard-card" id="provider-selection">
+        <h3><i class="fas fa-envelope"></i> Choose Your Email Provider</h3>
+        <p class="text-muted mb-3">Select your email provider for automatic configuration:</p>
+        
+        <div class="provider-selector">
+            <div class="provider-card" data-provider="gmail">
+                <div class="provider-icon">
+                    <i class="fab fa-google"></i>
+                </div>
+                <div class="provider-name">Gmail</div>
+                <div class="provider-description">Google's email service</div>
+                <div class="provider-help">Requires App Password (2FA enabled)</div>
+            </div>
+            
+            <div class="provider-card" data-provider="outlook">
+                <div class="provider-icon">
+                    <i class="fab fa-microsoft"></i>
+                </div>
+                <div class="provider-name">Outlook/Hotmail</div>
+                <div class="provider-description">Microsoft's email service</div>
+                <div class="provider-help">Use your regular password</div>
+            </div>
+            
+            <div class="provider-card" data-provider="yahoo">
+                <div class="provider-icon">
+                    <i class="fab fa-yahoo"></i>
+                </div>
+                <div class="provider-name">Yahoo Mail</div>
+                <div class="provider-description">Yahoo's email service</div>
+                <div class="provider-help">Requires App Password (2FA enabled)</div>
+            </div>
+            
+            <div class="provider-card" data-provider="custom">
+                <div class="provider-icon">
+                    <i class="fas fa-cog"></i>
+                </div>
+                <div class="provider-name">Custom SMTP</div>
+                <div class="provider-description">Other email providers</div>
+                <div class="provider-help">Manual configuration required</div>
+            </div>
+        </div>
+        
+        <div class="alert alert-info">
+            <h6><i class="fas fa-lightbulb"></i> Quick Setup Tips:</h6>
+            <ul class="mb-0">
+                <li><strong>Gmail/Yahoo:</strong> Enable 2-Factor Authentication and create an App Password</li>
+                <li><strong>Outlook:</strong> Use your regular email password</li>
+                <li><strong>Custom:</strong> Contact your email provider for SMTP settings</li>
+            </ul>
+        </div>
     </div>
     
     <!-- Configuration Form -->
-    <div class="dashboard-card">
-        <form method="post">
+    <div class="dashboard-card hidden" id="configuration-form">
+        <form method="post" id="smtp-form">
             {% csrf_token %}
             
-            <div class="form-group">
-                <label class="form-label" for="name">Configuration Name</label>
-                <input type="text" class="form-control" id="name" name="name" 
-                       value="{% if config %}{{ config.name }}{% endif %}" required>
-                <div class="help-text">A descriptive name for this SMTP configuration</div>
-            </div>
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                
+                <div class="form-group">
+                    <label class="form-label" for="name">Configuration Name</label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                           value="{% if config %}{{ config.name }}{% endif %}" required>
+                    <div class="help-text">A descriptive name for this SMTP configuration</div>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label" for="from_email">From Email</label>
-                <input type="email" class="form-control" id="from_email" name="from_email" 
-                       value="{% if config %}{{ config.from_email }}{% endif %}" required>
-                <div class="help-text">The email address that will appear as sender</div>
-            </div>
+                <div class="form-group">
+                    <label class="form-label" for="from_email">Your Email Address</label>
+                    <input type="email" class="form-control" id="from_email" name="from_email" 
+                           value="{% if config %}{{ config.from_email }}{% endif %}" required>
+                    <div class="help-text">The email address that will appear as sender</div>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label" for="from_name">From Name (Optional)</label>
-                <input type="text" class="form-control" id="from_name" name="from_name" 
-                       value="{% if config %}{{ config.from_name }}{% endif %}">
-                <div class="help-text">The name that will appear as sender (e.g., "NORSU Alumni")</div>
+                <div class="form-group">
+                    <label class="form-label" for="from_name">Sender Name (Optional)</label>
+                    <input type="text" class="form-control" id="from_name" name="from_name" 
+                           value="{% if config %}{{ config.from_name }}{% else %}NORSU Alumni{% endif %}">
+                    <div class="help-text">The name that will appear as sender (e.g., "NORSU Alumni")</div>
+                </div>
             </div>
+            
+            <!-- SMTP Settings -->
+            <div class="form-section">
+                <h3><i class="fas fa-server"></i> SMTP Server Settings</h3>
+                
+                <div class="form-group">
+                    <label class="form-label" for="host">SMTP Server</label>
+                    <input type="text" class="form-control" id="host" name="host" 
+                           value="{% if config %}{{ config.host }}{% endif %}" required>
+                    <div class="help-text">Automatically filled based on your provider selection</div>
+                </div>
 
-            <div class="form-group">
-                <label class="form-label" for="host">SMTP Host</label>
-                <input type="text" class="form-control" id="host" name="host" 
-                       value="{% if config %}{{ config.host }}{% endif %}" required>
-                <div class="help-text">e.g., smtp.gmail.com, smtp-mail.outlook.com</div>
+                <div class="form-group">
+                    <label class="form-label" for="port">Port</label>
+                    <input type="number" class="form-control" id="port" name="port" 
+                           value="{% if config %}{{ config.port }}{% else %}587{% endif %}" required>
+                    <div class="help-text">Usually 587 for TLS, 465 for SSL</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="username">Username/Email</label>
+                    <input type="text" class="form-control" id="username" name="username" 
+                           value="{% if config %}{{ config.username }}{% endif %}" required>
+                    <div class="help-text">Usually the same as your email address</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="password">Password/App Password</label>
+                    <input type="password" class="form-control" id="password" name="password" 
+                           value="{% if config %}{{ config.password }}{% endif %}" required>
+                    <div class="help-text" id="password-help">Use App Password for Gmail/Yahoo</div>
+                </div>
             </div>
+            
+            <!-- Security Settings -->
+            <div class="form-section">
+                <h3><i class="fas fa-shield-alt"></i> Security Settings</h3>
+                
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="use_tls" name="use_tls" 
+                           {% if config and config.use_tls %}checked{% else %}checked{% endif %}>
+                    <label class="form-check-label" for="use_tls">
+                        Use TLS (Transport Layer Security)
+                    </label>
+                </div>
+                <div class="help-text">Recommended for most email providers (port 587)</div>
 
-            <div class="form-group">
-                <label class="form-label" for="port">Port</label>
-                <input type="number" class="form-control" id="port" name="port" 
-                       value="{% if config %}{{ config.port }}{% else %}587{% endif %}" required>
-                <div class="help-text">Usually 587 for TLS, 465 for SSL</div>
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="use_ssl" name="use_ssl" 
+                           {% if config and config.use_ssl %}checked{% endif %}>
+                    <label class="form-check-label" for="use_ssl">
+                        Use SSL (Secure Sockets Layer)
+                    </label>
+                </div>
+                <div class="help-text">Alternative to TLS (port 465)</div>
+
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                           {% if not config or config.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                        Make this configuration active
+                    </label>
+                </div>
+                <div class="help-text">Only one configuration can be active at a time</div>
             </div>
-
-            <div class="form-group">
-                <label class="form-label" for="username">Username/Email</label>
-                <input type="text" class="form-control" id="username" name="username" 
-                       value="{% if config %}{{ config.username }}{% endif %}" required>
-                <div class="help-text">Your email address or username</div>
-            </div>
-
-            <div class="form-group">
-                <label class="form-label" for="password">Password/App Password</label>
-                <input type="password" class="form-control" id="password" name="password" 
-                       value="{% if config %}{{ config.password }}{% endif %}" required>
-                <div class="help-text">Use App Password for Gmail/Yahoo</div>
-            </div>
-
-
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="use_tls" name="use_tls" 
-                       {% if config and config.use_tls %}checked{% endif %}>
-                <label class="form-check-label" for="use_tls">
-                    Use TLS (Transport Layer Security)
-                </label>
-            </div>
-            <div class="help-text">Recommended for most email providers (port 587)</div>
-
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="use_ssl" name="use_ssl" 
-                       {% if config and config.use_ssl %}checked{% endif %}>
-                <label class="form-check-label" for="use_ssl">
-                    Use SSL (Secure Sockets Layer)
-                </label>
-            </div>
-            <div class="help-text">Alternative to TLS (port 465)</div>
-
-            <div class="form-check">
-                <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
-                       {% if not config or config.is_active %}checked{% endif %}>
-                <label class="form-check-label" for="is_active">
-                    Active Configuration
-                </label>
-            </div>
-            <div class="help-text">Only one configuration can be active at a time. Activating this will deactivate others.</div>
 
             <div class="form-actions">
+                <button type="button" class="btn btn-cancel" id="back-to-provider">
+                    <i class="fas fa-arrow-left"></i> Back to Provider Selection
+                </button>
                 <a href="{% url 'core:smtp_configuration_list' %}" class="btn btn-cancel">
-                    <i class="fas fa-arrow-left"></i> Cancel
+                    <i class="fas fa-times"></i> Cancel
                 </a>
                 <button type="submit" class="btn btn-primary">
                     <i class="fas fa-save"></i> Save Configuration
@@ -323,40 +490,110 @@
             </div>
         </form>
     </div>
-
-    <!-- Information Card -->
-    <div class="dashboard-card">
-        <h3 class="mb-3"><i class="fas fa-info-circle"></i> SMTP Configuration Guide</h3>
-        <div class="alert alert-info">
-            <h6><i class="fas fa-lightbulb"></i> How to configure SMTP:</h6>
-            <ol class="mb-0">
-                <li><strong>Gmail:</strong> Use smtp.gmail.com, port 587, enable 2FA and use App Password</li>
-                <li><strong>Yahoo:</strong> Use smtp.mail.yahoo.com, port 587, enable 2FA and use App Password</li>
-                <li><strong>Outlook:</strong> Use smtp-mail.outlook.com, port 587, use your regular password</li>
-                <li><strong>Custom SMTP:</strong> Contact your email provider for server details</li>
-            </ol>
-        </div>
-        
-        <div class="alert alert-info">
-            <h6><i class="fas fa-exclamation-triangle"></i> Security Notes:</h6>
-            <ul class="mb-0">
-                <li><strong>TLS (Port 587):</strong> Recommended for most providers</li>
-                <li><strong>SSL (Port 465):</strong> Alternative encryption method</li>
-                <li><strong>App Passwords:</strong> Required for Gmail/Yahoo with 2FA enabled</li>
-                <li><strong>Testing:</strong> Use the test button to verify your configuration</li>
-            </ul>
-        </div>
-    </div>
-</div>
 </div>
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    const providerCards = document.querySelectorAll('.provider-card');
+    const providerSelection = document.getElementById('provider-selection');
+    const configurationForm = document.getElementById('configuration-form');
+    const backToProviderBtn = document.getElementById('back-to-provider');
+    
+    const stepProvider = document.getElementById('step-provider');
+    const stepDetails = document.getElementById('step-details');
+    const stepTest = document.getElementById('step-test');
+    
+    // Provider configurations
+    const providerConfigs = {
+        gmail: {
+            name: 'Gmail Configuration',
+            host: 'smtp.gmail.com',
+            port: 587,
+            use_tls: true,
+            use_ssl: false,
+            passwordHelp: 'Use App Password (not your regular password). Enable 2FA and create App Password in Google Account settings.'
+        },
+        outlook: {
+            name: 'Outlook Configuration',
+            host: 'smtp-mail.outlook.com',
+            port: 587,
+            use_tls: true,
+            use_ssl: false,
+            passwordHelp: 'Use your regular Outlook/Hotmail password.'
+        },
+        yahoo: {
+            name: 'Yahoo Configuration',
+            host: 'smtp.mail.yahoo.com',
+            port: 587,
+            use_tls: true,
+            use_ssl: false,
+            passwordHelp: 'Use App Password (not your regular password). Enable 2FA and create App Password in Yahoo Account settings.'
+        },
+        custom: {
+            name: 'Custom SMTP Configuration',
+            host: '',
+            port: 587,
+            use_tls: true,
+            use_ssl: false,
+            passwordHelp: 'Contact your email provider for the correct password.'
+        }
+    };
+    
+    // Handle provider selection
+    providerCards.forEach(card => {
+        card.addEventListener('click', function() {
+            // Remove selected class from all cards
+            providerCards.forEach(c => c.classList.remove('selected'));
+            
+            // Add selected class to clicked card
+            this.classList.add('selected');
+            
+            // Get provider type
+            const provider = this.dataset.provider;
+            const config = providerConfigs[provider];
+            
+            // Fill form with provider configuration
+            document.getElementById('name').value = config.name;
+            document.getElementById('host').value = config.host;
+            document.getElementById('port').value = config.port;
+            document.getElementById('use_tls').checked = config.use_tls;
+            document.getElementById('use_ssl').checked = config.use_ssl;
+            document.getElementById('password-help').textContent = config.passwordHelp;
+            
+            // Auto-fill username with from_email if it's empty
+            const fromEmail = document.getElementById('from_email').value;
+            const username = document.getElementById('username');
+            if (!username.value && fromEmail) {
+                username.value = fromEmail;
+            }
+            
+            // Show configuration form
+            providerSelection.classList.add('hidden');
+            configurationForm.classList.remove('hidden');
+            
+            // Update step indicator
+            stepProvider.classList.remove('active');
+            stepProvider.classList.add('completed');
+            stepDetails.classList.add('active');
+        });
+    });
+    
+    // Handle back to provider selection
+    backToProviderBtn.addEventListener('click', function() {
+        configurationForm.classList.add('hidden');
+        providerSelection.classList.remove('hidden');
+        
+        // Update step indicator
+        stepProvider.classList.add('active');
+        stepProvider.classList.remove('completed');
+        stepDetails.classList.remove('active');
+    });
+    
+    // Handle TLS/SSL mutual exclusivity
     const tlsCheckbox = document.getElementById('use_tls');
     const sslCheckbox = document.getElementById('use_ssl');
     const portInput = document.getElementById('port');
     
-    // Handle TLS/SSL mutual exclusivity
     if (tlsCheckbox && sslCheckbox && portInput) {
         tlsCheckbox.addEventListener('change', function() {
             if (this.checked) {
@@ -372,6 +609,16 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     }
+    
+    // Auto-fill username when from_email changes
+    const fromEmailInput = document.getElementById('from_email');
+    const usernameInput = document.getElementById('username');
+    
+    fromEmailInput.addEventListener('input', function() {
+        if (!usernameInput.value) {
+            usernameInput.value = this.value;
+        }
+    });
 });
 </script>
 {% endblock %}
