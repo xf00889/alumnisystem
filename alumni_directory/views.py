@@ -438,20 +438,28 @@ Click here to update your profile: {request.build_absolute_uri(reverse('accounts
 Best regards,
 The Alumni Team"""
 
-        send_mail(
-            subject,
-            message,
-            settings.DEFAULT_FROM_EMAIL,
-            [alumni.email],
-            fail_silently=False,
+        from core.email_utils import send_email_with_smtp_config
+        
+        success = send_email_with_smtp_config(
+            subject=subject,
+            message=message,
+            recipient_list=[alumni.email],
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            fail_silently=False
         )
         
-        logger.info(f"Profile completion reminder sent to alumni ID: {pk}")
-        
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Reminder sent successfully'
-        })
+        if success:
+            logger.info(f"Profile completion reminder sent to alumni ID: {pk}")
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Reminder sent successfully'
+            })
+        else:
+            logger.error(f"Failed to send profile completion reminder to alumni ID: {pk}")
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Failed to send reminder'
+            })
         
     except Alumni.DoesNotExist:
         logger.error(f"Alumni with ID {pk} not found")

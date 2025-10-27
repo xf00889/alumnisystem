@@ -1148,15 +1148,20 @@ class SuperuserCreationView(View):
             {message}
             """
 
-            send_mail(
-                email_subject,
-                email_message,
-                settings.DEFAULT_FROM_EMAIL,
-                ['alumni@norsu.edu.ph'],  # Replace with actual email
-                fail_silently=False,
+            from core.email_utils import send_email_with_smtp_config
+            
+            success = send_email_with_smtp_config(
+                subject=email_subject,
+                message=email_message,
+                recipient_list=['alumni@norsu.edu.ph'],  # Replace with actual email
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                fail_silently=False
             )
-
-            messages.success(request, 'Thank you for your message! We will get back to you soon.')
+            
+            if success:
+                messages.success(request, 'Thank you for your message! We will get back to you soon.')
+            else:
+                messages.warning(request, 'Your message was received but we could not send a confirmation email.')
             return redirect('core:contact_us')
         except Exception as e:
             logger.error(f"Error sending contact form email: {str(e)}")

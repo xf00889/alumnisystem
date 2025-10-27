@@ -105,19 +105,24 @@ def send_announcement_notification(announcement, recipient_list=None):
             connection.open()
             logger.info("Successfully established connection to email server")
             
-            # Send email
-            send_mail(
+            # Send email using Render-compatible system
+            from core.email_utils import send_email_with_smtp_config
+            
+            success = send_email_with_smtp_config(
                 subject=subject,
                 message=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=recipient_list,
+                from_email=settings.DEFAULT_FROM_EMAIL,
                 html_message=html_message,
-                fail_silently=False,
-                connection=connection
+                fail_silently=False
             )
             
-            logger.info("Email sent successfully")
-            return True
+            if success:
+                logger.info("Email sent successfully")
+                return True
+            else:
+                logger.error("Failed to send email")
+                return False
             
         except BadHeaderError as e:
             logger.error(f"Invalid header found in email: {str(e)}", exc_info=True)

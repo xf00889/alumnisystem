@@ -599,15 +599,24 @@ def send_application_email(request, application_id):
                 'error': 'Subject and message are required.'
             }, status=400)
         
-        # Send email
+        # Send email using Render-compatible system
         try:
-            send_mail(
+            from core.email_utils import send_email_with_smtp_config
+            
+            success = send_email_with_smtp_config(
                 subject=subject,
                 message=message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[application.applicant.email],
-                fail_silently=False,
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                fail_silently=False
             )
+            
+            if not success:
+                return JsonResponse({
+                    'success': False,
+                    'error': 'Failed to send email'
+                }, status=500)
+                
         except Exception as e:
             return JsonResponse({
                 'success': False,

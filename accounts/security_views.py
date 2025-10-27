@@ -68,20 +68,40 @@ def enhanced_signup(request):
                 
                 # Send HTML email
                 html_content = render_verification_email(user, verification_code)
-                from django.core.mail import EmailMultiAlternatives
-                from django.conf import settings
+                from core.email_utils import send_email_with_smtp_config
                 
-                msg = EmailMultiAlternatives(
-                    subject='NORSU Alumni - Email Verification Code',
-                    body=f'Your verification code is: {verification_code}',
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[user.email]
-                )
-                msg.attach_alternative(html_content, "text/html")
+                # Send verification email using Render-compatible system
+                plain_message = f"""
+Hello!
+
+Thank you for signing up for the NORSU Alumni Network. To complete your registration, please use the following verification code:
+
+Verification Code: {verification_code}
+
+This code will expire in 15 minutes.
+
+If you didn't request this code, please ignore this email.
+
+Best regards,
+NORSU Alumni Network Team
+                """
                 
                 try:
-                    msg.send()
-                    logger.info(f"Verification email sent successfully to {user.email}")
+                    success = send_email_with_smtp_config(
+                        subject='NORSU Alumni - Email Verification Code',
+                        message=plain_message,
+                        recipient_list=[user.email],
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        html_message=html_content,
+                        fail_silently=False
+                    )
+                    
+                    if success:
+                        logger.info(f"Verification email sent successfully to {user.email}")
+                    else:
+                        logger.error(f"Failed to send email to {user.email}")
+                        messages.warning(request, 'Account created but email could not be sent. Please contact support.')
+                        
                 except Exception as email_error:
                     logger.error(f"Failed to send email to {user.email}: {str(email_error)}")
                     # Don't fail the signup if email sending fails
@@ -181,19 +201,39 @@ def resend_verification_code(request):
                 verification_code = SecurityCodeManager.generate_code()
                 SecurityCodeManager.store_code(email, verification_code, 'signup')
                 
-                # Send HTML email
+                # Send HTML email using Render-compatible system
                 html_content = render_resend_verification_email(user, verification_code)
-                from django.core.mail import EmailMultiAlternatives
-                from django.conf import settings
+                from core.email_utils import send_email_with_smtp_config
                 
-                msg = EmailMultiAlternatives(
+                plain_message = f"""
+Hello!
+
+You have requested a new verification code for your NORSU Alumni Network account. Please use the following code to complete your registration:
+
+New Verification Code: {verification_code}
+
+This code will expire in 15 minutes.
+
+If you didn't request this code, please ignore this email.
+
+Best regards,
+NORSU Alumni Network Team
+                """
+                
+                success = send_email_with_smtp_config(
                     subject='NORSU Alumni - New Verification Code',
-                    body=f'Your new verification code is: {verification_code}',
+                    message=plain_message,
+                    recipient_list=[email],
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[email]
+                    html_message=html_content,
+                    fail_silently=False
                 )
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
+                
+                if not success:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Failed to send verification code. Please try again later.'
+                    })
                 
                 # In development mode, also log the new verification code to console
                 from django.conf import settings
@@ -256,19 +296,37 @@ def password_reset_email(request):
                 verification_code = SecurityCodeManager.generate_code()
                 SecurityCodeManager.store_code(email, verification_code, 'password_reset')
                 
-                # Send HTML email
+                # Send HTML email using Render-compatible system
                 html_content = render_password_reset_email(user, verification_code)
-                from django.core.mail import EmailMultiAlternatives
-                from django.conf import settings
+                from core.email_utils import send_email_with_smtp_config
                 
-                msg = EmailMultiAlternatives(
+                plain_message = f"""
+Hello!
+
+You have requested to reset your password for the NORSU Alumni Network. Please use the following code to reset your password:
+
+Password Reset Code: {verification_code}
+
+This code will expire in 15 minutes.
+
+If you didn't request this password reset, please ignore this email and your password will remain unchanged.
+
+Best regards,
+NORSU Alumni Network Team
+                """
+                
+                success = send_email_with_smtp_config(
                     subject='NORSU Alumni - Password Reset Code',
-                    body=f'Your password reset code is: {verification_code}',
+                    message=plain_message,
+                    recipient_list=[email],
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[email]
+                    html_message=html_content,
+                    fail_silently=False
                 )
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
+                
+                if not success:
+                    messages.error(request, 'Failed to send password reset code. Please try again later.')
+                    return render(request, 'accounts/password_reset_email.html', {'form': form})
                 
                 # Log password reset request
                 SecurityAuditLogger.log_password_reset_request(email, request.META.get('REMOTE_ADDR'))
@@ -369,19 +427,39 @@ def resend_password_reset_otp(request):
                 verification_code = SecurityCodeManager.generate_code()
                 SecurityCodeManager.store_code(email, verification_code, 'password_reset')
                 
-                # Send HTML email
+                # Send HTML email using Render-compatible system
                 html_content = render_password_reset_email(user, verification_code)
-                from django.core.mail import EmailMultiAlternatives
-                from django.conf import settings
+                from core.email_utils import send_email_with_smtp_config
                 
-                msg = EmailMultiAlternatives(
+                plain_message = f"""
+Hello!
+
+You have requested a new password reset code for your NORSU Alumni Network account. Please use the following code to reset your password:
+
+New Password Reset Code: {verification_code}
+
+This code will expire in 15 minutes.
+
+If you didn't request this password reset, please ignore this email and your password will remain unchanged.
+
+Best regards,
+NORSU Alumni Network Team
+                """
+                
+                success = send_email_with_smtp_config(
                     subject='NORSU Alumni - New Password Reset Code',
-                    body=f'Your new password reset code is: {verification_code}',
+                    message=plain_message,
+                    recipient_list=[email],
                     from_email=settings.DEFAULT_FROM_EMAIL,
-                    to=[email]
+                    html_message=html_content,
+                    fail_silently=False
                 )
-                msg.attach_alternative(html_content, "text/html")
-                msg.send()
+                
+                if not success:
+                    return JsonResponse({
+                        'success': False,
+                        'error': 'Failed to send password reset code. Please try again later.'
+                    })
                 
                 # Record attempt
                 RateLimiter.record_attempt(email, 'password_reset_attempt')

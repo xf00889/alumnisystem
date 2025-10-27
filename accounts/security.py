@@ -121,18 +121,24 @@ NORSU Alumni Network Team
             else:
                 return False
             
-            # Send HTML email with plain text fallback
-            msg = EmailMultiAlternatives(
-                subject=subject,
-                body=plain_message,
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                to=[email]
-            )
-            msg.attach_alternative(html_content, "text/html")
-            msg.send()
+            # Send HTML email with plain text fallback using Render-compatible system
+            from core.email_utils import send_email_with_smtp_config
             
-            logger.info(f"Security code sent to {email} for {purpose}")
-            return True
+            success = send_email_with_smtp_config(
+                subject=subject,
+                message=plain_message,
+                recipient_list=[email],
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                html_message=html_content,
+                fail_silently=False
+            )
+            
+            if success:
+                logger.info(f"Security code sent to {email} for {purpose}")
+                return True
+            else:
+                logger.error(f"Failed to send security code to {email}")
+                return False
         except Exception as e:
             logger.error(f"Failed to send security code to {email}: {str(e)}")
             return False
