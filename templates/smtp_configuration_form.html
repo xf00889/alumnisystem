@@ -281,28 +281,53 @@
         display: flex;
         justify-content: center;
         margin-bottom: 2rem;
+        gap: 1rem;
     }
 
     .step {
         display: flex;
         align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem 1rem;
-        border-radius: var(--radius-md);
+        gap: 0.75rem;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-lg);
         background: var(--bg-secondary);
         color: var(--text-secondary);
         font-size: 0.875rem;
-        font-weight: 500;
+        font-weight: 600;
+        border: 2px solid var(--ui-border);
+        transition: all 0.3s ease;
+        min-width: 160px;
+        justify-content: center;
+    }
+
+    .step:hover {
+        border-color: var(--accent-color);
+        box-shadow: var(--shadow-sm);
     }
 
     .step.active {
         background: var(--accent-color);
         color: white;
+        border-color: var(--accent-color);
+        box-shadow: var(--shadow-md);
     }
 
     .step.completed {
         background: var(--success-color);
         color: white;
+        border-color: var(--success-color);
+        box-shadow: var(--shadow-md);
+    }
+
+    .step.pending {
+        background: var(--bg-secondary);
+        color: var(--text-muted);
+        border-color: var(--ui-border);
+        opacity: 0.6;
+    }
+
+    .step-icon {
+        font-size: 1.1rem;
     }
 </style>
 {% endblock %}
@@ -318,13 +343,13 @@
     <!-- Step Indicator -->
     <div class="step-indicator">
         <div class="step active" id="step-provider">
-            <i class="fas fa-envelope"></i> Choose Provider
+            <i class="fas fa-envelope step-icon"></i> Choose Provider
         </div>
-        <div class="step" id="step-details">
-            <i class="fas fa-cog"></i> Configure Details
+        <div class="step pending" id="step-details">
+            <i class="fas fa-cog step-icon"></i> Configure Details
         </div>
-        <div class="step" id="step-test">
-            <i class="fas fa-check"></i> Test & Save
+        <div class="step pending" id="step-test">
+            <i class="fas fa-check step-icon"></i> Test & Save
         </div>
     </div>
     
@@ -574,6 +599,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Update step indicator
             stepProvider.classList.remove('active');
             stepProvider.classList.add('completed');
+            stepDetails.classList.remove('pending');
             stepDetails.classList.add('active');
         });
     });
@@ -587,6 +613,7 @@ document.addEventListener('DOMContentLoaded', function() {
         stepProvider.classList.add('active');
         stepProvider.classList.remove('completed');
         stepDetails.classList.remove('active');
+        stepDetails.classList.add('pending');
     });
     
     // Handle TLS/SSL mutual exclusivity
@@ -619,6 +646,18 @@ document.addEventListener('DOMContentLoaded', function() {
             usernameInput.value = this.value;
         }
     });
+    
+    // Handle form submission - update step indicator
+    const smtpForm = document.getElementById('smtp-form');
+    if (smtpForm) {
+        smtpForm.addEventListener('submit', function() {
+            // Update step indicator to show we're in the test/save phase
+            stepDetails.classList.remove('active');
+            stepDetails.classList.add('completed');
+            stepTest.classList.remove('pending');
+            stepTest.classList.add('active');
+        });
+    }
 });
 </script>
 {% endblock %}
