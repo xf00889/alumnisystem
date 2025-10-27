@@ -22,13 +22,20 @@ def send_email_with_smtp_config(subject, message, recipient_list, from_email=Non
         html_message: HTML version of the message (optional)
     """
     try:
-        # Load SMTP settings from database if available
-        update_django_email_settings()
+        # Always try to load SMTP settings from database if available
+        try:
+            update_django_email_settings()
+            logger.info("Updated Django email settings from database configuration")
+        except Exception as e:
+            logger.warning(f"Could not update email settings from database: {str(e)}")
+            # Continue with Django settings
         
         # Get the current from_email (either from database or settings)
         smtp_settings = get_smtp_settings()
         if from_email is None:
             from_email = smtp_settings.get('from_email', settings.DEFAULT_FROM_EMAIL)
+        
+        logger.info(f"Sending email from {from_email} using backend {settings.EMAIL_BACKEND}")
         
         # Send the email with HTML support if html_message is provided
         if html_message:
