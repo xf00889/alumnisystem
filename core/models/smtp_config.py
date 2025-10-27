@@ -112,7 +112,7 @@ class SMTPConfig(models.Model):
                 'use_tls': 'Port 587 requires TLS encryption'
             })
     
-    def test_connection(self, recipient_email=None):
+    def test_connection(self, recipient_email=None, send_test_email=False):
         """
         Test SMTP connection and authentication
         """
@@ -131,18 +131,55 @@ class SMTPConfig(models.Model):
             # Authenticate
             server.login(self.username, self.password)
             
-            # For testing, we'll just verify the connection without sending an email
-            # This prevents issues with email delivery on Render
-            server.quit()
-            
-            # Update test results using update() to avoid datetime field issues
-            SMTPConfig.objects.filter(pk=self.pk).update(
-                is_verified=True,
-                test_result="Connection and authentication successful.",
-                last_tested=timezone.now()
-            )
-            
-            return True, "SMTP configuration test successful! Connection and authentication verified."
+            if send_test_email:
+                # Send actual test email
+                msg = MIMEMultipart()
+                msg['From'] = f"{self.from_name} <{self.from_email}>" if self.from_name else self.from_email
+                msg['To'] = recipient_email
+                msg['Subject'] = "NORSU Alumni - SMTP Configuration Test"
+                
+                body = f"""
+This is a test email to verify your SMTP configuration.
+
+Configuration Details:
+- Host: {self.host}
+- Port: {self.port}
+- TLS: {self.use_tls}
+- SSL: {self.use_ssl}
+- Username: {self.username}
+
+If you receive this email, your SMTP configuration is working correctly!
+
+Best regards,
+NORSU Alumni System
+                """
+                
+                msg.attach(MIMEText(body, 'plain'))
+                
+                # Send test email
+                server.send_message(msg)
+                server.quit()
+                
+                # Update test results
+                SMTPConfig.objects.filter(pk=self.pk).update(
+                    is_verified=True,
+                    test_result="Connection successful. Test email sent.",
+                    last_tested=timezone.now()
+                )
+                
+                return True, f"SMTP configuration test successful! Test email sent to {recipient_email}."
+            else:
+                # Just test connection without sending email
+                server.quit()
+                
+                # Update test results
+                SMTPConfig.objects.filter(pk=self.pk).update(
+                    is_verified=True,
+                    test_result="Connection and authentication successful.",
+                    last_tested=timezone.now()
+                )
+                
+                return True, "SMTP configuration test successful! Connection and authentication verified."
             
         except smtplib.SMTPAuthenticationError as e:
             error_msg = f"Authentication failed: {str(e)}"

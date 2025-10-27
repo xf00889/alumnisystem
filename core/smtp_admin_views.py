@@ -162,10 +162,12 @@ def smtp_configuration_test(request, config_id):
             import json
             data = json.loads(request.body)
             recipient_email = data.get('recipient_email', config.username)
+            send_test_email = data.get('send_test_email', True)  # Default to sending email
         else:
             recipient_email = request.POST.get('recipient_email', config.username)
+            send_test_email = request.POST.get('send_test_email', 'on') == 'on'
         
-        success, message = config.test_connection(recipient_email)
+        success, message = config.test_connection(recipient_email, send_test_email)
         
         # Check if this is an AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
