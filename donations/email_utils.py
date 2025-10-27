@@ -28,6 +28,9 @@ def send_donation_confirmation_email(donation):
             logger.warning(f"No email address for donation {donation.pk}")
             return False
         
+        # Log email attempt
+        logger.info(f"Attempting to send confirmation email for donation {donation.pk} to {donor_email}")
+        
         # Prepare context
         context = {
             'donor_name': donor_name,
