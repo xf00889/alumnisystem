@@ -25,6 +25,7 @@ from .forms import (
 )
 from .security import SecurityCodeManager, RateLimiter, SecurityAuditLogger
 from .email_utils import render_verification_email, render_resend_verification_email, render_password_reset_email
+from core.recaptcha_utils import is_recaptcha_enabled, get_recaptcha_public_key
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -500,3 +501,20 @@ class SecurityDashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         return context
+
+
+def custom_login_view(request):
+    """Custom login view that includes reCAPTCHA context"""
+    from django.contrib.auth.forms import AuthenticationForm
+    
+    # Create the login form
+    form = AuthenticationForm()
+    
+    # Add reCAPTCHA context
+    context = {
+        'form': form,
+        'recaptcha_enabled': is_recaptcha_enabled(),
+        'recaptcha_public_key': get_recaptcha_public_key(),
+    }
+    
+    return render(request, 'account/login.html', context)

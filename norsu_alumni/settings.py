@@ -331,6 +331,8 @@ CSP_CONNECT_SRC = (
     "'self'",
     "https://www.google.com",
     "https://www.recaptcha.net",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
 )
 CSP_FRAME_SRC = (
     "'self'",

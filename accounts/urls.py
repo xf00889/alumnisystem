@@ -51,6 +51,9 @@ urlpatterns = [
     # Enhanced signup endpoint for tabbed login page
     path('enhanced-signup/', security_views.enhanced_signup, name='enhanced_signup'),
     
+    # Custom login view with reCAPTCHA context
+    path('login/', security_views.custom_login_view, name='custom_login'),
+    
     # Email verification endpoints
     path('verify-email/', security_views.verify_email, name='verify_email'),
     path('resend-verification-code/', security_views.resend_verification_code, name='resend_verification_code'),
