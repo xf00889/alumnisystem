@@ -40,39 +40,48 @@ class CoreConfig(AppConfig):
                     """)
                     table_exists = cursor.fetchone() is not None
             
-            if table_exists:
-                # Check if there are any active, verified SMTP configurations
-                from .models import SMTPConfig
-                active_config = SMTPConfig.objects.filter(is_active=True, is_verified=True).first()
-                
-                if active_config:
-                    from .smtp_settings import update_django_email_settings
-                    # Update email settings from database
-                    update_django_email_settings()
+                if table_exists:
+                    # Check if there are any active, verified SMTP configurations
+                    from .models import SMTPConfig
+                    active_config = SMTPConfig.objects.filter(is_active=True, is_verified=True).first()
                     
-                    # Override backend for development if needed
-                    if settings.DEBUG:
-                        settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-                        logger.info("Database SMTP config found but using console backend for development")
+                    # Check if we're on Render hosting
+                    import os
+                    is_render = os.getenv('RENDER') is not None
+                    
+                    if active_config:
+                        from .smtp_settings import update_django_email_settings
+                        # Update email settings from database
+                        update_django_email_settings()
+                        
+                        # The update_django_email_settings() function now handles Render detection
+                        logger.info("Database SMTP config found and email settings updated")
                     else:
-                        logger.info("Database SMTP config found and using SMTP backend for production")
+                        # No active config, use appropriate backend based on DEBUG setting and Render detection
+                        if settings.DEBUG or is_render:
+                            settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                            if is_render:
+                                logger.info("No active SMTP configuration found, using console backend for Render hosting")
+                            else:
+                                logger.info("No active SMTP configuration found, using console backend for development")
+                        else:
+                            settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+                            logger.info("No active SMTP configuration found, using SMTP backend for production")
                 else:
-                    # No active config, use appropriate backend based on DEBUG setting
-                    if settings.DEBUG:
-                        settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-                        logger.info("No active SMTP configuration found, using console backend for development")
-                    else:
-                        settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-                        logger.info("No active SMTP configuration found, using SMTP backend for production")
-            else:
-                logger.info("SMTP config table not found, skipping database settings load")
+                    logger.info("SMTP config table not found, skipping database settings load")
             
         except Exception as e:
             logger.warning(f"Could not load SMTP settings on startup: {str(e)}")
-            # Use appropriate backend based on DEBUG setting
-            if settings.DEBUG:
+            # Use appropriate backend based on DEBUG setting and Render detection
+            import os
+            is_render = os.getenv('RENDER') is not None
+            
+            if settings.DEBUG or is_render:
                 settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-                logger.info("Using console backend for development due to error")
+                if is_render:
+                    logger.info("Using console backend for Render hosting due to error")
+                else:
+                    logger.info("Using console backend for development due to error")
             else:
                 settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
                 logger.info("Using SMTP backend for production despite error")

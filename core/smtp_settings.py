@@ -62,11 +62,15 @@ def update_django_email_settings():
     """
     try:
         smtp_settings = get_smtp_settings()
-        
+
         # Check if we have valid database settings (not just Django fallback)
         from .models import SMTPConfig
         active_config = SMTPConfig.objects.filter(is_active=True, is_verified=True).first()
-        
+
+        # Check if we're on Render hosting
+        import os
+        is_render = os.getenv('RENDER') is not None
+
         if active_config and smtp_settings.get('username') and smtp_settings.get('password'):
             # Update Django settings with database configuration
             settings.EMAIL_HOST = smtp_settings['host']
@@ -76,10 +80,16 @@ def update_django_email_settings():
             settings.EMAIL_HOST_USER = smtp_settings['username']
             settings.EMAIL_HOST_PASSWORD = smtp_settings['password']
             settings.DEFAULT_FROM_EMAIL = smtp_settings['from_email']
-            
-            # Always set SMTP backend when using database configuration
-            settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-            
+
+            # On Render, always use console backend to prevent SMTP connection attempts
+            if is_render:
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                logger.info("Render hosting detected - using console backend to prevent SMTP connection errors")
+            else:
+                # For local development, use SMTP backend
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+                logger.info("Local development - using SMTP backend")
+
             logger.info("Django email settings updated from database configuration")
         else:
             # Use console backend for development or if no valid database settings
@@ -88,16 +98,29 @@ def update_django_email_settings():
                 logger.info("Using console backend for development")
             else:
                 # For production, try to use Django settings if no database config
-                settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-                logger.info("Using Django settings for production (no database SMTP config)")
-        
+                if is_render:
+                    # On Render, always use console backend to prevent SMTP connection errors
+                    settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                    logger.info("Render hosting detected - using console backend (no database SMTP config)")
+                else:
+                    settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+                    logger.info("Using Django settings for production (no database SMTP config)")
+
     except Exception as e:
         logger.error(f"Error updating Django email settings: {str(e)}")
-        # Fallback based on DEBUG setting
-        if settings.DEBUG:
+        # Fallback based on DEBUG setting and Render detection
+        import os
+        is_render = os.getenv('RENDER') is not None
+        
+        if settings.DEBUG or is_render:
             settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+            if is_render:
+                logger.info("Using console backend for Render hosting due to error")
+            else:
+                logger.info("Using console backend for development due to error")
         else:
             settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+            logger.info("Using SMTP backend for production despite error")
 
 def clear_smtp_cache():
     """
