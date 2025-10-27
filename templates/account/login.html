@@ -822,18 +822,7 @@
                                 </label>
                             </div>
 
-                            <!-- reCAPTCHA Section for Signup -->
-                            {% if recaptcha_enabled and recaptcha_public_key %}
-                            <div class="form-group">
-                                <label class="form-label">Security Verification</label>
-                                <div id="signup-recaptcha"></div>
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-shield-alt"></i> This helps us prevent spam and protect your account
-                                </small>
-                            </div>
-                            {% endif %}
-
-                            <button class="btn-auth btn-auth-primary" type="submit" onclick="handleSignupSubmit(event)">
+                            <button class="btn-auth btn-auth-primary" type="submit" id="signupSubmitBtn">
                                 <i class="fas fa-user-plus me-2"></i>{% trans "Create Account" %}
                             </button>
                         </form>
@@ -1256,32 +1245,6 @@
             // Silently handle undefined errors - they don't affect functionality
         }
         
-        // Handle signup form submission with reCAPTCHA
-        function handleSignupSubmit(event) {
-            {% if recaptcha_enabled and recaptcha_public_key %}
-            event.preventDefault();
-            
-            const form = event.target.closest('form');
-            const recaptchaDiv = document.getElementById('signup-recaptcha');
-            const token = recaptchaDiv ? recaptchaDiv.getAttribute('data-token') : null;
-            
-            if (!token) {
-                alert('Please complete the security verification.');
-                return false;
-            }
-            
-            // Add reCAPTCHA token to form
-            const tokenInput = document.createElement('input');
-            tokenInput.type = 'hidden';
-            tokenInput.name = 'captcha';
-            tokenInput.value = token;
-            form.appendChild(tokenInput);
-            
-            // Submit the form
-            form.submit();
-            {% endif %}
-        }
-
         // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
         document.addEventListener('DOMContentLoaded', function() {
             {% if recaptcha_enabled and recaptcha_public_key %}
@@ -1292,29 +1255,34 @@
             script.defer = true;
             document.head.appendChild(script);
             
-            // Initialize reCAPTCHA for signup form
-            script.onload = function() {
-                if (typeof grecaptcha !== 'undefined') {
+            // Handle signup form submission with reCAPTCHA
+            const signupForm = document.querySelector('#signupForm form');
+            const signupSubmitBtn = document.getElementById('signupSubmitBtn');
+            
+            if (signupForm && signupSubmitBtn) {
+                signupForm.addEventListener('submit', function(e) {
+                    e.preventDefault();
+                    
+                    // Execute reCAPTCHA
                     grecaptcha.ready(function() {
-                        grecaptcha.render('signup-recaptcha', {
-                            'sitekey': '{{ recaptcha_public_key }}',
-                            'callback': function(token) {
-                                console.log('Signup reCAPTCHA token:', token);
-                                // Store token for form submission
-                                document.getElementById('signup-recaptcha').setAttribute('data-token', token);
-                            },
-                            'expired-callback': function() {
-                                console.log('Signup reCAPTCHA expired');
-                                document.getElementById('signup-recaptcha').removeAttribute('data-token');
-                            },
-                            'error-callback': function() {
-                                console.log('Signup reCAPTCHA error');
-                                document.getElementById('signup-recaptcha').removeAttribute('data-token');
-                            }
+                        grecaptcha.execute('{{ recaptcha_public_key }}', {action: 'signup'}).then(function(token) {
+                            // Add the token to the form
+                            const tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'captcha';
+                            tokenInput.value = token;
+                            signupForm.appendChild(tokenInput);
+                            
+                            // Submit the form
+                            signupForm.submit();
+                        }).catch(function(error) {
+                            console.error('reCAPTCHA execution failed:', error);
+                            // Still submit the form if reCAPTCHA fails
+                            signupForm.submit();
                         });
                     });
-                }
-            };
+                });
+            }
             {% endif %}
         });
     </script>

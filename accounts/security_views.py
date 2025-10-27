@@ -25,10 +25,31 @@ from .forms import (
 )
 from .security import SecurityCodeManager, RateLimiter, SecurityAuditLogger
 from .email_utils import render_verification_email, render_resend_verification_email, render_password_reset_email
-from core.recaptcha_utils import is_recaptcha_enabled, get_recaptcha_public_key
+from core.recaptcha_utils import get_recaptcha_public_key, is_recaptcha_enabled
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
+
+
+def custom_login_view(request):
+    """Custom login view that includes reCAPTCHA context"""
+    from allauth.account.views import LoginView
+    
+    # Get reCAPTCHA context
+    context = {
+        'recaptcha_enabled': is_recaptcha_enabled(),
+        'recaptcha_public_key': get_recaptcha_public_key(),
+    }
+    
+    # Use Allauth's LoginView but with custom context
+    view = LoginView.as_view()
+    response = view(request)
+    
+    # If it's a render response, add our context
+    if hasattr(response, 'context_data'):
+        response.context_data.update(context)
+    
+    return response
 
 
 def enhanced_signup(request):
@@ -83,16 +104,16 @@ def enhanced_signup(request):
                 logger.error(f"Signup error: {str(e)}", exc_info=True)
                 messages.error(request, f'An error occurred during signup: {str(e)}')
                 # Redirect back to login page with error message
-                return redirect('account_login')
+                return redirect('accounts:custom_login')
         else:
             # Form is not valid - redirect back to login page with error messages
             for field, errors in form.errors.items():
                 for error in errors:
                     messages.error(request, f"{field}: {error}")
-            return redirect('account_login')
+            return redirect('accounts:custom_login')
     else:
         # GET request - redirect to login page
-        return redirect('account_login')
+        return redirect('accounts:custom_login')
 
 
 def verify_email(request):
@@ -501,20 +522,3 @@ class SecurityDashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         return context
-
-
-def custom_login_view(request):
-    """Custom login view that includes reCAPTCHA context"""
-    from django.contrib.auth.forms import AuthenticationForm
-    
-    # Create the login form
-    form = AuthenticationForm()
-    
-    # Add reCAPTCHA context
-    context = {
-        'form': form,
-        'recaptcha_enabled': is_recaptcha_enabled(),
-        'recaptcha_public_key': get_recaptcha_public_key(),
-    }
-    
-    return render(request, 'account/login.html', context)
