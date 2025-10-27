@@ -10,11 +10,15 @@ logger = logging.getLogger(__name__)
 @receiver(post_save, sender=Donation)
 def send_donation_emails(sender, instance, created, **kwargs):
     """
-    Send appropriate emails when donation status changes
+    Send appropriate emails when donation is created or status changes
     """
     try:
-        # Only send emails when status changes, not on initial creation
-        if not created and hasattr(instance, '_old_status') and instance._old_status != instance.status:
+        if created:
+            # Send confirmation email when donation is first created
+            logger.info(f"Sending confirmation email for new donation {instance.pk}")
+            send_donation_confirmation_email(instance)
+        elif hasattr(instance, '_old_status') and instance._old_status != instance.status:
+            # Send emails when status changes
             logger.info(f"Donation {instance.pk} status changed from {instance._old_status} to {instance.status}")
             
             # Send confirmation email when payment proof is submitted (status changes to pending_verification)
