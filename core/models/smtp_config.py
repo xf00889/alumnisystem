@@ -118,78 +118,67 @@ class SMTPConfig(models.Model):
         """
         if recipient_email is None:
             recipient_email = self.username
+        
         try:
-            # Create SMTP connection
+            # Create SMTP connection with timeout
             if self.use_ssl:
-                server = smtplib.SMTP_SSL(self.host, self.port)
+                server = smtplib.SMTP_SSL(self.host, self.port, timeout=10)
             else:
-                server = smtplib.SMTP(self.host, self.port)
+                server = smtplib.SMTP(self.host, self.port, timeout=10)
                 if self.use_tls:
                     server.starttls()
             
             # Authenticate
             server.login(self.username, self.password)
             
-            # Test sending a simple email
-            msg = MIMEMultipart()
-            msg['From'] = f"{self.from_name} <{self.from_email}>" if self.from_name else self.from_email
-            msg['To'] = recipient_email  # Send test email to specified recipient
-            msg['Subject'] = "NORSU Alumni - SMTP Configuration Test"
-            
-            body = f"""
-This is a test email to verify your SMTP configuration.
-
-Configuration Details:
-- Host: {self.host}
-- Port: {self.port}
-- TLS: {self.use_tls}
-- SSL: {self.use_ssl}
-- Username: {self.username}
-
-If you receive this email, your SMTP configuration is working correctly!
-
-Best regards,
-NORSU Alumni System
-            """
-            
-            msg.attach(MIMEText(body, 'plain'))
-            
-            # Send test email
-            server.send_message(msg)
+            # For testing, we'll just verify the connection without sending an email
+            # This prevents issues with email delivery on Render
             server.quit()
             
             # Update test results using update() to avoid datetime field issues
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=True,
-                test_result="Connection successful. Test email sent.",
+                test_result="Connection and authentication successful.",
                 last_tested=timezone.now()
             )
             
-            return True, "SMTP configuration test successful! Test email sent."
+            return True, "SMTP configuration test successful! Connection and authentication verified."
             
         except smtplib.SMTPAuthenticationError as e:
+            error_msg = f"Authentication failed: {str(e)}"
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=False,
-                test_result=f"Authentication failed: {str(e)}",
+                test_result=error_msg,
                 last_tested=timezone.now()
             )
-            return False, f"Authentication failed: {str(e)}"
+            return False, error_msg
             
         except smtplib.SMTPConnectError as e:
+            error_msg = f"Connection failed: {str(e)}"
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=False,
-                test_result=f"Connection failed: {str(e)}",
+                test_result=error_msg,
                 last_tested=timezone.now()
             )
-            return False, f"Connection failed: {str(e)}"
+            return False, error_msg
+            
+        except smtplib.SMTPException as e:
+            error_msg = f"SMTP error: {str(e)}"
+            SMTPConfig.objects.filter(pk=self.pk).update(
+                is_verified=False,
+                test_result=error_msg,
+                last_tested=timezone.now()
+            )
+            return False, error_msg
             
         except Exception as e:
+            error_msg = f"Test failed: {str(e)}"
             SMTPConfig.objects.filter(pk=self.pk).update(
                 is_verified=False,
-                test_result=f"Test failed: {str(e)}",
+                test_result=error_msg,
                 last_tested=timezone.now()
             )
-            return False, f"Test failed: {str(e)}"
+            return False, error_msg
     
     def get_connection_params(self):
         """

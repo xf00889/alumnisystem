@@ -154,9 +154,9 @@ def smtp_configuration_edit(request, config_id):
 @require_POST
 def smtp_configuration_test(request, config_id):
     """Test SMTP configuration"""
-    config = get_object_or_404(SMTPConfig, id=config_id)
-    
     try:
+        config = get_object_or_404(SMTPConfig, id=config_id)
+        
         # Get recipient email from request
         if request.content_type == 'application/json':
             import json
@@ -189,6 +189,7 @@ def smtp_configuration_test(request, config_id):
             
     except Exception as e:
         error_message = f'Test failed: {str(e)}'
+        logger.error(f"SMTP test error: {error_message}")
         
         # Check if this is an AJAX request
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
@@ -204,16 +205,35 @@ def smtp_configuration_test(request, config_id):
 @require_POST
 def smtp_configuration_delete(request, config_id):
     """Delete SMTP configuration"""
-    config = get_object_or_404(SMTPConfig, id=config_id)
-    config_name = config.name
-    
     try:
+        config = get_object_or_404(SMTPConfig, id=config_id)
+        config_name = config.name
+        
         config.delete()
-        messages.success(request, f'SMTP configuration "{config_name}" deleted successfully!')
+        
+        # Check if this is an AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({
+                'success': True,
+                'message': f'SMTP configuration "{config_name}" deleted successfully!'
+            })
+        else:
+            messages.success(request, f'SMTP configuration "{config_name}" deleted successfully!')
+            return redirect('core:smtp_configuration_list')
+            
     except Exception as e:
-        messages.error(request, f'Error deleting configuration: {str(e)}')
-    
-    return redirect('core:smtp_configuration_list')
+        error_message = f'Error deleting configuration: {str(e)}'
+        logger.error(f"SMTP delete error: {error_message}")
+        
+        # Check if this is an AJAX request
+        if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+            return JsonResponse({
+                'success': False,
+                'message': error_message
+            })
+        else:
+            messages.error(request, error_message)
+            return redirect('core:smtp_configuration_list')
 
 @user_passes_test(is_admin)
 @require_POST
