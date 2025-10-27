@@ -88,6 +88,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
+    'csp.middleware.CSPMiddleware',  # Add CSP middleware
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -294,6 +295,53 @@ CSRF_COOKIE_SAMESITE = 'Strict'
 SECURE_BROWSER_XSS_FILTER = True
 SECURE_CONTENT_TYPE_NOSNIFF = True
 X_FRAME_OPTIONS = 'DENY'
+
+# Content Security Policy (CSP) Configuration
+CSP_DEFAULT_SRC = ("'self'",)
+CSP_SCRIPT_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "'unsafe-eval'",  # Required for reCAPTCHA
+    "https://www.google.com",
+    "https://www.gstatic.com",
+    "https://www.recaptcha.net",
+    "https://cdn.jsdelivr.net",  # For Bootstrap and other CDN scripts
+    "https://cdnjs.cloudflare.com",
+)
+CSP_STYLE_SRC = (
+    "'self'",
+    "'unsafe-inline'",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+)
+CSP_FONT_SRC = (
+    "'self'",
+    "https://fonts.gstatic.com",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
+)
+CSP_IMG_SRC = (
+    "'self'",
+    "data:",
+    "https:",
+    "blob:",
+)
+CSP_CONNECT_SRC = (
+    "'self'",
+    "https://www.google.com",
+    "https://www.recaptcha.net",
+)
+CSP_FRAME_SRC = (
+    "'self'",
+    "https://www.google.com",
+    "https://www.recaptcha.net",
+)
+CSP_WORKER_SRC = (
+    "'self'",
+    "https://www.google.com",
+    "blob:",
+)
 
 # Email Configuration
 # Use SMTP backend for production, console for development
