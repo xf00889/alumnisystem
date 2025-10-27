@@ -307,6 +307,8 @@ CSP_SCRIPT_SRC = (
     "https://www.recaptcha.net",
     "https://cdn.jsdelivr.net",  # For Bootstrap and other CDN scripts
     "https://cdnjs.cloudflare.com",
+    "https://code.jquery.com",  # For jQuery
+    "https://unpkg.com",  # For HTMX and other packages
 )
 CSP_STYLE_SRC = (
     "'self'",
@@ -333,6 +335,8 @@ CSP_CONNECT_SRC = (
     "https://www.recaptcha.net",
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
+    "https://code.jquery.com",
+    "https://unpkg.com",
 )
 CSP_FRAME_SRC = (
     "'self'",
