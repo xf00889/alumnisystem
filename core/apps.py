@@ -2,6 +2,7 @@
 Core app configuration
 """
 from django.apps import AppConfig
+from django.conf import settings
 import logging
 
 logger = logging.getLogger(__name__)
@@ -48,9 +49,15 @@ class CoreConfig(AppConfig):
                     from .smtp_settings import update_django_email_settings
                     # Update email settings from database
                     update_django_email_settings()
+                    
+                    # Override backend for development if needed
+                    if settings.DEBUG:
+                        settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                        logger.info("Database SMTP config found but using console backend for development")
+                    else:
+                        logger.info("Database SMTP config found and using SMTP backend for production")
                 else:
                     # No active config, use appropriate backend based on DEBUG setting
-                    from django.conf import settings
                     if settings.DEBUG:
                         settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
                         logger.info("No active SMTP configuration found, using console backend for development")

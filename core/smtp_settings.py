@@ -77,9 +77,8 @@ def update_django_email_settings():
             settings.EMAIL_HOST_PASSWORD = smtp_settings['password']
             settings.DEFAULT_FROM_EMAIL = smtp_settings['from_email']
             
-            # Force SMTP backend for production
-            if not settings.DEBUG:
-                settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+            # Always set SMTP backend when using database configuration
+            settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
             
             logger.info("Django email settings updated from database configuration")
         else:
