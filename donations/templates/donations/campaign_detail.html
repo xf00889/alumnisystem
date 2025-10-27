@@ -479,8 +479,34 @@ document.addEventListener('DOMContentLoaded', function() {
                 reverseButtons: true
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Submit the form
-                    form.submit();
+                    // Show loading state
+                    const submitBtn = document.querySelector('#donate-btn');
+                    if (submitBtn) {
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Processing...';
+                    }
+                    
+                    // Execute reCAPTCHA if enabled
+                    if (typeof grecaptcha !== 'undefined' && grecaptcha.execute) {
+                        grecaptcha.execute('{{ recaptcha_public_key }}', {action: 'donation'}).then(function(token) {
+                            // Add the token to the form
+                            const tokenInput = document.createElement('input');
+                            tokenInput.type = 'hidden';
+                            tokenInput.name = 'captcha';
+                            tokenInput.value = token;
+                            form.appendChild(tokenInput);
+                            
+                            // Submit the form normally
+                            form.submit();
+                        }).catch(function(error) {
+                            console.error('reCAPTCHA error:', error);
+                            // Submit anyway if reCAPTCHA fails
+                            form.submit();
+                        });
+                    } else {
+                        // No reCAPTCHA, submit normally
+                        form.submit();
+                    }
                 }
             });
         });

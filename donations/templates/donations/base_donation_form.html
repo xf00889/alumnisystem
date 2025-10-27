@@ -263,6 +263,27 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
+    <!-- reCAPTCHA Script -->
+    {% if recaptcha_enabled and recaptcha_public_key %}
+    <script>
+        // Load reCAPTCHA script
+        var script = document.createElement('script');
+        script.src = 'https://www.google.com/recaptcha/api.js?render={{ recaptcha_public_key }}';
+        script.async = true;
+        script.defer = true;
+        document.head.appendChild(script);
+        
+        // Initialize reCAPTCHA when loaded
+        script.onload = function() {
+            if (typeof grecaptcha !== 'undefined') {
+                grecaptcha.ready(function() {
+                    console.log('reCAPTCHA loaded successfully');
+                });
+            }
+        };
+    </script>
+    {% endif %}
+    
     {% block extra_js %}{% endblock %}
 </body>
 </html>
