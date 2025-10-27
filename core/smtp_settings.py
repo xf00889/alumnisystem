@@ -63,9 +63,12 @@ def update_django_email_settings():
     try:
         smtp_settings = get_smtp_settings()
         
-        # Only update if we have valid database settings
-        if smtp_settings.get('username') and smtp_settings.get('password'):
-            # Update Django settings
+        # Check if we have valid database settings (not just Django fallback)
+        from .models import SMTPConfig
+        active_config = SMTPConfig.objects.filter(is_active=True, is_verified=True).first()
+        
+        if active_config and smtp_settings.get('username') and smtp_settings.get('password'):
+            # Update Django settings with database configuration
             settings.EMAIL_HOST = smtp_settings['host']
             settings.EMAIL_PORT = smtp_settings['port']
             settings.EMAIL_USE_TLS = smtp_settings['use_tls']
@@ -74,19 +77,28 @@ def update_django_email_settings():
             settings.EMAIL_HOST_PASSWORD = smtp_settings['password']
             settings.DEFAULT_FROM_EMAIL = smtp_settings['from_email']
             
-            # Switch to SMTP backend if we have valid settings
-            settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+            # Force SMTP backend for production
+            if not settings.DEBUG:
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
             
             logger.info("Django email settings updated from database configuration")
         else:
-            # Keep console backend if no valid database settings
-            settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-            logger.info("No valid SMTP configuration found, using console backend")
+            # Use console backend for development or if no valid database settings
+            if settings.DEBUG:
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+                logger.info("Using console backend for development")
+            else:
+                # For production, try to use Django settings if no database config
+                settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+                logger.info("Using Django settings for production (no database SMTP config)")
         
     except Exception as e:
         logger.error(f"Error updating Django email settings: {str(e)}")
-        # Fallback to console backend on error
-        settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        # Fallback based on DEBUG setting
+        if settings.DEBUG:
+            settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+        else:
+            settings.EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
 
 def clear_smtp_cache():
     """
