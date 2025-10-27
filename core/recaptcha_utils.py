@@ -24,19 +24,29 @@ def get_recaptcha_config():
 def get_recaptcha_public_key():
     """
     Get the reCAPTCHA public key from database configuration.
-    Returns empty string if no active configuration found.
+    Falls back to Django settings if no database configuration found.
     """
     config = get_recaptcha_config()
-    return config.site_key if config else ''
+    if config and config.site_key:
+        return config.site_key
+    
+    # Fallback to Django settings
+    from django.conf import settings
+    return getattr(settings, 'RECAPTCHA_PUBLIC_KEY', '')
 
 
 def get_recaptcha_private_key():
     """
     Get the reCAPTCHA private key from database configuration.
-    Returns empty string if no active configuration found.
+    Falls back to Django settings if no database configuration found.
     """
     config = get_recaptcha_config()
-    return config.secret_key if config else ''
+    if config and config.secret_key:
+        return config.secret_key
+    
+    # Fallback to Django settings
+    from django.conf import settings
+    return getattr(settings, 'RECAPTCHA_PRIVATE_KEY', '')
 
 
 def get_recaptcha_threshold():
@@ -60,9 +70,17 @@ def get_recaptcha_version():
 def is_recaptcha_enabled():
     """
     Check if reCAPTCHA is enabled (has active configuration with valid keys and enabled=True).
+    Falls back to Django settings if no database configuration found.
     """
     config = get_recaptcha_config()
-    return bool(config and config.enabled and config.site_key and config.secret_key)
+    if config and config.enabled and config.site_key and config.secret_key:
+        return True
+    
+    # Fallback to Django settings
+    from django.conf import settings
+    public_key = getattr(settings, 'RECAPTCHA_PUBLIC_KEY', '')
+    private_key = getattr(settings, 'RECAPTCHA_PRIVATE_KEY', '')
+    return bool(public_key and private_key)
 
 
 def clear_recaptcha_cache():
