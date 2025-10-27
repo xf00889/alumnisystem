@@ -70,7 +70,6 @@ class CoreConfig(AppConfig):
         except Exception as e:
             logger.warning(f"Could not load SMTP settings on startup: {str(e)}")
             # Use appropriate backend based on DEBUG setting
-            from django.conf import settings
             if settings.DEBUG:
                 settings.EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
                 logger.info("Using console backend for development due to error")
