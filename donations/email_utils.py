@@ -5,7 +5,7 @@ from django.core.mail import EmailMultiAlternatives
 from django.template.loader import render_to_string
 from django.conf import settings
 from django.utils import timezone
-from core.email_utils import send_email_with_smtp_config
+from core.email_utils import send_email_with_provider
 import logging
 
 logger = logging.getLogger(__name__)
@@ -71,7 +71,7 @@ The NORSU Alumni System Team
         """
         
         # Send email
-        result = send_email_with_smtp_config(
+        result = send_email_with_provider(
             subject=subject,
             message=text_content,
             recipient_list=[donor_email],
@@ -173,7 +173,7 @@ The NORSU Alumni System Team
         """
         
         # Send email
-        result = send_email_with_smtp_config(
+        result = send_email_with_provider(
             subject=subject,
             message=text_content,
             recipient_list=[donor_email],
@@ -257,7 +257,7 @@ The NORSU Alumni System Team
         """
         
         # Send email
-        result = send_email_with_smtp_config(
+        result = send_email_with_provider(
             subject=subject,
             message=text_content,
             recipient_list=[donor_email],

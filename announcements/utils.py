@@ -105,10 +105,10 @@ def send_announcement_notification(announcement, recipient_list=None):
             connection.open()
             logger.info("Successfully established connection to email server")
             
-            # Send email using Render-compatible system
-            from core.email_utils import send_email_with_smtp_config
+            # Send email using unified email system
+            from core.email_utils import send_email_with_provider
             
-            success = send_email_with_smtp_config(
+            success = send_email_with_provider(
                 subject=subject,
                 message=plain_message,
                 recipient_list=recipient_list,

@@ -599,11 +599,11 @@ def send_application_email(request, application_id):
                 'error': 'Subject and message are required.'
             }, status=400)
         
-        # Send email using Render-compatible system
+        # Send email using unified email system
         try:
-            from core.email_utils import send_email_with_smtp_config
+            from core.email_utils import send_email_with_provider
             
-            success = send_email_with_smtp_config(
+            success = send_email_with_provider(
                 subject=subject,
                 message=message,
                 recipient_list=[application.applicant.email],

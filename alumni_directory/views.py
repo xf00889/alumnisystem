@@ -438,9 +438,9 @@ Click here to update your profile: {request.build_absolute_uri(reverse('accounts
 Best regards,
 The Alumni Team"""
 
-        from core.email_utils import send_email_with_smtp_config
+        from core.email_utils import send_email_with_provider
         
-        success = send_email_with_smtp_config(
+        success = send_email_with_provider(
             subject=subject,
             message=message,
             recipient_list=[alumni.email],

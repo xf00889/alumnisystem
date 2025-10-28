@@ -145,13 +145,13 @@ class CustomSignupForm(SignupForm):
         
         # Send verification email
         try:
-            from core.email_utils import send_email_with_smtp_config
+            from core.email_utils import send_email_with_provider
             from .email_utils import render_verification_email
             
             # Render HTML email template
             html_message = render_verification_email(user, otp)
             
-            send_email_with_smtp_config(
+            send_email_with_provider(
                 subject='Verify your email address - NORSU Alumni System',
                 message=f'''
 Hello {user.first_name},

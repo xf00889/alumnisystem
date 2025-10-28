@@ -1148,9 +1148,9 @@ class SuperuserCreationView(View):
             {message}
             """
 
-            from core.email_utils import send_email_with_smtp_config
+            from core.email_utils import send_email_with_provider
             
-            success = send_email_with_smtp_config(
+            success = send_email_with_provider(
                 subject=email_subject,
                 message=email_message,
                 recipient_list=['alumni@norsu.edu.ph'],  # Replace with actual email
