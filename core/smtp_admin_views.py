@@ -10,6 +10,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import SMTPConfig
 import logging
+import json
 
 logger = logging.getLogger(__name__)
 
@@ -19,13 +20,23 @@ def is_admin(user):
 
 @user_passes_test(is_admin)
 def smtp_configuration_list(request):
-    """List all SMTP configurations"""
-    configs = SMTPConfig.objects.all()
+    """List all email configurations (SMTP and Brevo)"""
+    smtp_configs = SMTPConfig.objects.all()
+    
+    # Import BrevoConfig here to avoid circular imports
+    from .models.brevo_config import BrevoConfig
+    brevo_configs = BrevoConfig.objects.all()
+    
+    # Get active configurations
+    active_smtp = SMTPConfig.objects.filter(is_active=True).first()
+    active_brevo = BrevoConfig.objects.filter(is_active=True).first()
     
     context = {
-        'configs': configs,
-        'page_title': 'SMTP Configuration',
-        'active_config': SMTPConfig.objects.filter(is_active=True).first()
+        'smtp_configs': smtp_configs,
+        'brevo_configs': brevo_configs,
+        'page_title': 'Email Configuration',
+        'active_smtp': active_smtp,
+        'active_brevo': active_brevo
     }
     
     return render(request, 'smtp_configuration_list.html', context)
@@ -294,7 +305,83 @@ def smtp_quick_setup(request):
             }
         }
         
-        if provider in provider_configs:
+        if provider == 'brevo':
+            # Handle Brevo configuration
+            try:
+                api_key = request.POST.get('api_key')
+                config_name = request.POST.get('name', 'Brevo Configuration')
+                
+                if not api_key:
+                    raise ValueError('Brevo API key is required')
+                
+                # Import BrevoConfig here to avoid circular imports
+                from .models.brevo_config import BrevoConfig
+                
+                config = BrevoConfig(
+                    name=config_name,
+                    api_key=api_key,
+                    api_url='https://api.brevo.com/v3/smtp/email',
+                    from_email=email,
+                    from_name=from_name,
+                    is_active=True
+                )
+                
+                config.full_clean()
+                config.save()
+                
+                # Test the configuration
+                success, message = config.test_connection()
+                
+                # Check if this is an AJAX request
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                    if success:
+                        return JsonResponse({
+                            'success': True,
+                            'message': f'Brevo configuration created and tested successfully! {message}',
+                            'config_name': config.name,
+                            'is_active': config.is_active
+                        })
+                    else:
+                        return JsonResponse({
+                            'success': False,
+                            'message': f'Configuration created but test failed: {message}',
+                            'details': 'Please check your Brevo API key and try again.'
+                        })
+                else:
+                    # Regular form submission
+                    if success:
+                        messages.success(request, f'Brevo configuration created and tested successfully! {message}')
+                    else:
+                        messages.warning(request, f'Configuration created but test failed: {message}')
+                    
+                    return redirect('core:smtp_configuration_list')
+                
+            except ValidationError as e:
+                error_messages = []
+                for field, errors in e.message_dict.items():
+                    for error in errors:
+                        error_messages.append(f'{field}: {error}')
+                
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Validation failed',
+                        'details': '; '.join(error_messages)
+                    })
+                else:
+                    for error in error_messages:
+                        messages.error(request, error)
+            except Exception as e:
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Error creating Brevo configuration',
+                        'details': str(e)
+                    })
+                else:
+                    messages.error(request, f'Error creating Brevo configuration: {str(e)}')
+                
+        elif provider in provider_configs:
             try:
                 config_data = provider_configs[provider]
                 # Get username from form or use email as username
@@ -410,3 +497,113 @@ def smtp_quick_setup(request):
     }
     
     return render(request, 'smtp_quick_setup.html', context)
+
+# Brevo Configuration Admin Views
+@user_passes_test(is_admin)
+def brevo_configuration_test(request, config_id):
+    """Test Brevo configuration"""
+    try:
+        from .models.brevo_config import BrevoConfig
+        config = BrevoConfig.objects.get(id=config_id)
+        
+        if request.method == 'POST':
+            data = json.loads(request.body)
+            recipient_email = data.get('recipient_email')
+            send_test_email = data.get('send_test_email', False)
+            
+            if not recipient_email:
+                return JsonResponse({
+                    'success': False,
+                    'message': 'Recipient email is required'
+                })
+            
+            success, message = config.test_connection(recipient_email, send_test_email)
+            
+            return JsonResponse({
+                'success': success,
+                'message': message
+            })
+        
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid request method'
+        })
+        
+    except BrevoConfig.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Brevo configuration not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error testing configuration: {str(e)}'
+        })
+
+@user_passes_test(is_admin)
+def brevo_configuration_activate(request, config_id):
+    """Activate Brevo configuration"""
+    try:
+        from .models.brevo_config import BrevoConfig
+        config = BrevoConfig.objects.get(id=config_id)
+        
+        if request.method == 'POST':
+            # Deactivate all other configurations
+            BrevoConfig.objects.filter(is_active=True).exclude(id=config_id).update(is_active=False)
+            
+            # Activate this configuration
+            config.is_active = True
+            config.save()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Brevo configuration "{config.name}" activated successfully'
+            })
+        
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid request method'
+        })
+        
+    except BrevoConfig.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Brevo configuration not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error activating configuration: {str(e)}'
+        })
+
+@user_passes_test(is_admin)
+def brevo_configuration_delete(request, config_id):
+    """Delete Brevo configuration"""
+    try:
+        from .models.brevo_config import BrevoConfig
+        config = BrevoConfig.objects.get(id=config_id)
+        
+        if request.method == 'POST':
+            config_name = config.name
+            config.delete()
+            
+            return JsonResponse({
+                'success': True,
+                'message': f'Brevo configuration "{config_name}" deleted successfully'
+            })
+        
+        return JsonResponse({
+            'success': False,
+            'message': 'Invalid request method'
+        })
+        
+    except BrevoConfig.DoesNotExist:
+        return JsonResponse({
+            'success': False,
+            'message': 'Brevo configuration not found'
+        })
+    except Exception as e:
+        return JsonResponse({
+            'success': False,
+            'message': f'Error deleting configuration: {str(e)}'
+        })

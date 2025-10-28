@@ -130,6 +130,10 @@
         background: linear-gradient(135deg, #6001d2 0%, #7b1fa2 100%);
     }
     
+    .brevo-icon {
+        background: linear-gradient(135deg, #00a2ff 0%, #0066cc 100%);
+    }
+    
     .custom-icon {
         background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
     }
@@ -397,6 +401,23 @@
                             </div>
                             
                             <div class="col-md-6 mb-3">
+                                <div class="provider-card" data-provider="brevo">
+                                    <div class="provider-header">
+                                        <div class="provider-icon brevo-icon">
+                                            <i class="fas fa-paper-plane"></i>
+                                        </div>
+                                        <h5 class="provider-name">Brevo API</h5>
+                                    </div>
+                                    <p class="provider-description">Modern email service with high deliverability</p>
+                                    <div class="provider-settings">
+                                        <strong>Settings:</strong><br>
+                                        API Key based authentication<br>
+                                        No SMTP server needed
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="col-md-6 mb-3">
                                 <div class="provider-card" data-provider="custom">
                                     <div class="provider-header">
                                         <div class="provider-icon custom-icon">
@@ -424,10 +445,11 @@
                     <div id="step2-content" class="hidden">
                         <h4 class="mb-4">Configure Your Email Settings</h4>
                         
-                        <form id="smtp-form">
+                        <form id="email-form">
                             {% csrf_token %}
                             <input type="hidden" id="provider" name="provider" value="">
                             
+                            <!-- Common Fields -->
                             <div class="row">
                                 <div class="col-md-6">
                                     <div class="form-group">
@@ -445,60 +467,93 @@
                                 </div>
                             </div>
                             
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="host">SMTP Host</label>
-                                        <input type="text" class="form-control" id="host" name="host" required>
+                            <!-- SMTP Fields -->
+                            <div id="smtp-fields">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="host">SMTP Host</label>
+                                            <input type="text" class="form-control" id="host" name="host">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="port">Port</label>
+                                            <input type="number" class="form-control" id="port" name="port">
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="port">Port</label>
-                                        <input type="number" class="form-control" id="port" name="port" required>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="username">Username/Email</label>
+                                            <input type="text" class="form-control" id="username" name="username">
+                                        </div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="password">Password/App Password</label>
+                                            <input type="password" class="form-control" id="password" name="password">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label">Encryption</label>
+                                            <select class="form-control" id="encryption" name="encryption">
+                                                <option value="tls">TLS (Recommended)</option>
+                                                <option value="ssl">SSL</option>
+                                                <option value="none">None (Not Recommended)</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="timeout">Timeout (seconds)</label>
+                                            <input type="number" class="form-control" id="timeout" name="timeout" 
+                                                   value="10" min="5" max="60">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>For Gmail/Yahoo:</strong> You need to use an App Password instead of your regular password. 
+                                    Enable 2-factor authentication and generate an App Password in your account settings.
                                 </div>
                             </div>
                             
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="username">Username/Email</label>
-                                        <input type="text" class="form-control" id="username" name="username" required>
+                            <!-- Brevo Fields -->
+                            <div id="brevo-fields" class="hidden">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="api_key">Brevo API Key</label>
+                                            <input type="password" class="form-control" id="api_key" name="api_key" 
+                                                   placeholder="Your Brevo API key">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <div class="form-group">
+                                            <label class="form-label" for="from_name">From Name (Optional)</label>
+                                            <input type="text" class="form-control" id="from_name" name="from_name" 
+                                                   placeholder="NORSU Alumni System">
+                                        </div>
                                     </div>
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="password">Password/App Password</label>
-                                        <input type="password" class="form-control" id="password" name="password" required>
-                                    </div>
+                                
+                                <div class="alert alert-warning">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    <strong>Important:</strong> Your Brevo account needs SMTP API activation. Contact <a href="mailto:contact@brevo.com">contact@brevo.com</a> to request activation.
                                 </div>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label">Encryption</label>
-                                        <select class="form-control" id="encryption" name="encryption">
-                                            <option value="tls">TLS (Recommended)</option>
-                                            <option value="ssl">SSL</option>
-                                            <option value="none">None (Not Recommended)</option>
-                                        </select>
-                                    </div>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    <strong>For Brevo:</strong> Get your API key from Brevo dashboard → Settings → SMTP & API → API Keys. 
+                                    Make sure your sender email is verified in Brevo.
                                 </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label class="form-label" for="timeout">Timeout (seconds)</label>
-                                        <input type="number" class="form-control" id="timeout" name="timeout" 
-                                               value="10" min="5" max="60">
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="alert alert-info">
-                                <i class="fas fa-info-circle me-2"></i>
-                                <strong>For Gmail/Yahoo:</strong> You need to use an App Password instead of your regular password. 
-                                Enable 2-factor authentication and generate an App Password in your account settings.
                             </div>
                             
                             <div class="text-center mt-4">
@@ -537,7 +592,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const providerCards = document.querySelectorAll('.provider-card');
     const nextStep1Btn = document.getElementById('next-step1');
     const backStep2Btn = document.getElementById('back-step2');
-    const smtpForm = document.getElementById('smtp-form');
+    const emailForm = document.getElementById('email-form');
     
     let selectedProvider = '';
     
@@ -564,7 +619,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     
     // Form submission
-    smtpForm.addEventListener('submit', function(e) {
+    emailForm.addEventListener('submit', function(e) {
         e.preventDefault();
         testAndSaveConfiguration();
     });
@@ -613,6 +668,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 encryption: 'tls',
                 name: 'Yahoo Configuration'
             },
+            brevo: {
+                name: 'Brevo Configuration'
+            },
             custom: {
                 host: '',
                 port: 587,
@@ -624,20 +682,44 @@ document.addEventListener('DOMContentLoaded', function() {
         const config = configs[provider];
         document.getElementById('provider').value = provider;
         document.getElementById('name').value = config.name;
-        document.getElementById('host').value = config.host;
-        document.getElementById('port').value = config.port;
-        document.getElementById('encryption').value = config.encryption;
+        
+        // Show/hide appropriate fields
+        const smtpFields = document.getElementById('smtp-fields');
+        const brevoFields = document.getElementById('brevo-fields');
+        
+        if (provider === 'brevo') {
+            smtpFields.classList.add('hidden');
+            brevoFields.classList.remove('hidden');
+            // Clear SMTP fields
+            document.getElementById('host').value = '';
+            document.getElementById('port').value = '';
+            document.getElementById('username').value = '';
+            document.getElementById('password').value = '';
+        } else {
+            smtpFields.classList.remove('hidden');
+            brevoFields.classList.add('hidden');
+            // Clear Brevo fields
+            document.getElementById('api_key').value = '';
+            document.getElementById('from_name').value = '';
+            
+            // Set SMTP values
+            if (config.host) {
+                document.getElementById('host').value = config.host;
+                document.getElementById('port').value = config.port;
+                document.getElementById('encryption').value = config.encryption;
+            }
+        }
     }
     
     function testAndSaveConfiguration() {
-        const formData = new FormData(smtpForm);
-        const submitBtn = smtpForm.querySelector('button[type="submit"]');
+        const formData = new FormData(emailForm);
+        const submitBtn = emailForm.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
         
         // Show loading state
         submitBtn.innerHTML = '<span class="spinner"></span>Testing...';
         submitBtn.disabled = true;
-        smtpForm.classList.add('loading');
+        emailForm.classList.add('loading');
         
         fetch('{% url "core:smtp_quick_setup" %}', {
             method: 'POST',
@@ -674,7 +756,7 @@ document.addEventListener('DOMContentLoaded', function() {
             // Reset button state
             submitBtn.innerHTML = originalText;
             submitBtn.disabled = false;
-            smtpForm.classList.remove('loading');
+            emailForm.classList.remove('loading');
         });
     }
     

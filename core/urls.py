@@ -66,6 +66,11 @@ urlpatterns = [
     path('admin-dashboard/smtp/<int:config_id>/delete/', smtp_admin_views.smtp_configuration_delete, name='smtp_configuration_delete'),
     path('admin-dashboard/smtp/<int:config_id>/activate/', smtp_admin_views.smtp_configuration_activate, name='smtp_configuration_activate'),
     
+    # Brevo Configuration URLs
+    path('admin-dashboard/brevo/<int:config_id>/test/', smtp_admin_views.brevo_configuration_test, name='brevo_configuration_test'),
+    path('admin-dashboard/brevo/<int:config_id>/activate/', smtp_admin_views.brevo_configuration_activate, name='brevo_configuration_activate'),
+    path('admin-dashboard/brevo/<int:config_id>/delete/', smtp_admin_views.brevo_configuration_delete, name='brevo_configuration_delete'),
+    
     # reCAPTCHA Configuration URLs
     path('admin-dashboard/recaptcha/', recaptcha_admin_views.recaptcha_configuration_list, name='recaptcha_configuration_list'),
     path('admin-dashboard/recaptcha/create/', recaptcha_admin_views.recaptcha_configuration_create, name='recaptcha_configuration_create'),

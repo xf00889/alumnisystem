@@ -354,23 +354,25 @@
 <div class="container-fluid">
     <!-- Header -->
     <div class="dashboard-header">
-        <h1><i class="fas fa-server"></i> SMTP Configuration</h1>
-        <p>Manage email server settings for the system</p>
+        <h1><i class="fas fa-envelope"></i> Email Configuration</h1>
+        <p>Manage email service settings for the system (SMTP & Brevo)</p>
     </div>
 
     <!-- Configuration List -->
     <div class="dashboard-card">
         <div class="d-flex justify-content-between align-items-center mb-4">
             <div>
-                <h2 class="mb-1">SMTP Configurations</h2>
-                <p class="text-muted mb-0">Configure email server settings for sending emails</p>
+                <h2 class="mb-1">Email Configurations</h2>
+                <p class="text-muted mb-0">Configure email service settings for sending emails</p>
             </div>
             <a href="{% url 'core:smtp_configuration_create' %}" class="btn btn-primary">
                 <i class="fas fa-plus"></i> Add Configuration
             </a>
         </div>
-        {% if configs %}
-            {% for config in configs %}
+        <!-- SMTP Configurations -->
+        {% if smtp_configs %}
+            <h4 class="mb-3"><i class="fas fa-server"></i> SMTP Configurations</h4>
+            {% for config in smtp_configs %}
             <div class="config-item">
                 <div class="config-header">
                     <div class="config-info">
@@ -426,13 +428,74 @@
                 </div>
             </div>
             {% endfor %}
-        {% else %}
+        {% endif %}
+        
+        <!-- Brevo Configurations -->
+        {% if brevo_configs %}
+            <h4 class="mb-3 mt-4"><i class="fas fa-paper-plane"></i> Brevo Configurations</h4>
+            {% for config in brevo_configs %}
+            <div class="config-item">
+                <div class="config-header">
+                    <div class="config-info">
+                        <div class="config-icon" style="background: linear-gradient(135deg, #00a2ff 0%, #0066cc 100%);">
+                            <i class="fas fa-paper-plane"></i>
+                        </div>
+                        <div class="config-details">
+                            <h3 class="config-name">{{ config.name }}</h3>
+                            <div class="config-meta">
+                                <span class="config-host">{{ config.from_email }}</span>
+                                <span class="config-encryption">API</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="config-status">
+                        {% if config.is_active %}
+                            <span class="status-badge status-active">
+                                <i class="fas fa-check-circle"></i> Active
+                            </span>
+                        {% endif %}
+                        {% if config.is_verified %}
+                            <span class="status-badge status-verified">
+                                <i class="fas fa-shield-alt"></i> Verified
+                            </span>
+                        {% else %}
+                            <span class="status-badge status-pending">
+                                <i class="fas fa-exclamation-triangle"></i> Not Tested
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+                
+                <div class="config-actions">
+                    <a href="/admin/core/brevoconfig/{{ config.id }}/change/" class="btn btn-sm btn-outline-primary">
+                        <i class="fas fa-edit"></i> Edit
+                    </a>
+                    
+                    <button type="button" class="btn btn-sm btn-warning test-brevo-btn" data-config-id="{{ config.id }}">
+                        <i class="fas fa-vial"></i> Test
+                    </button>
+                    
+                    {% if not config.is_active %}
+                    <button type="button" class="btn btn-sm btn-success activate-brevo-btn" data-config-id="{{ config.id }}">
+                        <i class="fas fa-play"></i> Activate
+                    </button>
+                    {% endif %}
+                    
+                    <button type="button" class="btn btn-sm btn-danger delete-brevo-btn" data-config-id="{{ config.id }}">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>
+                </div>
+            </div>
+            {% endfor %}
+        {% endif %}
+        
+        {% if not smtp_configs and not brevo_configs %}
             <div class="empty-state">
-                <i class="fas fa-server"></i>
-                <h3>No SMTP Configurations</h3>
-                <p>You need to configure SMTP settings to enable email functionality.</p>
-                <a href="{% url 'core:smtp_configuration_create' %}" class="btn btn-primary btn-lg">
-                    <i class="fas fa-plus"></i> Create Configuration
+                <i class="fas fa-envelope"></i>
+                <h3>No Email Configurations</h3>
+                <p>You need to configure email settings to enable email functionality.</p>
+                <a href="{% url 'core:smtp_quick_setup' %}" class="btn btn-primary btn-lg">
+                    <i class="fas fa-magic"></i> Quick Setup
                 </a>
             </div>
         {% endif %}
@@ -440,24 +503,33 @@
 
     <!-- Information Card -->
     <div class="dashboard-card">
-        <h3 class="mb-3"><i class="fas fa-info-circle"></i> About SMTP Configuration</h3>
+        <h3 class="mb-3"><i class="fas fa-info-circle"></i> About Email Configuration</h3>
         <div class="row">
             <div class="col-md-12">
-                <p class="text-muted mb-3">SMTP (Simple Mail Transfer Protocol) configuration allows the system to send emails for notifications, password resets, and other automated communications.</p>
-                <h5>Key Features:</h5>
+                <p class="text-muted mb-3">Email configuration allows the system to send emails for notifications, password resets, and other automated communications. You can choose between SMTP or Brevo API.</p>
+                
+                <h5>SMTP Configuration:</h5>
                 <ul class="text-muted">
                     <li><strong>Secure Connection:</strong> Support for TLS and SSL encryption</li>
                     <li><strong>Multiple Providers:</strong> Works with Gmail, Yahoo, Outlook, and custom SMTP servers</li>
                     <li><strong>Test Functionality:</strong> Verify configuration before activation</li>
                     <li><strong>Active Management:</strong> Only one configuration can be active at a time</li>
-                    <li><strong>Reliable Delivery:</strong> Ensures emails reach recipients successfully</li>
                 </ul>
+                
+                <h5>Brevo API Configuration:</h5>
+                <ul class="text-muted">
+                    <li><strong>High Deliverability:</strong> Professional email service with better delivery rates</li>
+                    <li><strong>API-Based:</strong> No SMTP server configuration needed</li>
+                    <li><strong>Rich Analytics:</strong> Track email performance and delivery statistics</li>
+                    <li><strong>Easy Setup:</strong> Just requires API key and verified sender email</li>
+                    <li><strong>⚠️ Activation Required:</strong> Contact Brevo support to activate SMTP API</li>
+                </ul>
+                
                 <div class="alert alert-info mt-3">
-                    <strong>Security Note:</strong>
+                    <strong>Security Notes:</strong>
                     <ul class="mb-0 mt-2">
-                        <li>For Gmail/Yahoo: Enable 2FA and use App Passwords</li>
-                        <li>For Outlook: Use your regular password or App Password</li>
-                        <li>Always use TLS (port 587) or SSL (port 465) for security</li>
+                        <li><strong>SMTP:</strong> For Gmail/Yahoo: Enable 2FA and use App Passwords. For Outlook: Use your regular password or App Password. Always use TLS (port 587) or SSL (port 465) for security.</li>
+                        <li><strong>Brevo:</strong> Get your API key from Brevo dashboard → Settings → SMTP & API → API Keys. Make sure your sender email is verified in Brevo.</li>
                     </ul>
                 </div>
             </div>
@@ -624,6 +696,184 @@ document.addEventListener('DOMContentLoaded', function() {
             }).then((result) => {
                 if (result.isConfirmed) {
                     fetch(`/admin-dashboard/smtp/${configId}/delete/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Deleted!', data.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error!', 'Failed to delete configuration.', 'error');
+                        console.error('Error:', error);
+                    });
+                }
+            });
+        });
+    });
+
+    // Brevo configuration handlers
+    document.querySelectorAll('.test-brevo-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            
+            Swal.fire({
+                title: 'Test Brevo Configuration',
+                html: `
+                    <div class="mb-3">
+                        <label for="test-email" class="form-label">Recipient Email</label>
+                        <input type="email" id="test-email" class="form-control" placeholder="test@example.com" required>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="send-test-email" class="form-check-input" checked>
+                        <label class="form-check-label" for="send-test-email">
+                            Send actual test email (recommended)
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input type="checkbox" id="connection-only" class="form-check-input">
+                        <label class="form-check-label" for="connection-only">
+                            Test connection only (no email sent)
+                        </label>
+                    </div>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Test Configuration',
+                showLoaderOnConfirm: true,
+                didOpen: () => {
+                    const sendTestEmail = document.getElementById('send-test-email');
+                    const connectionOnly = document.getElementById('connection-only');
+                    
+                    sendTestEmail.addEventListener('change', function() {
+                        if (this.checked) {
+                            connectionOnly.checked = false;
+                        }
+                    });
+                    
+                    connectionOnly.addEventListener('change', function() {
+                        if (this.checked) {
+                            sendTestEmail.checked = false;
+                        }
+                    });
+                },
+                preConfirm: () => {
+                    const email = document.getElementById('test-email').value;
+                    const sendTestEmail = document.getElementById('send-test-email').checked;
+                    const connectionOnly = document.getElementById('connection-only').checked;
+                    
+                    if (!email) {
+                        Swal.showValidationMessage('Please enter a recipient email');
+                        return false;
+                    }
+                    
+                    if (!sendTestEmail && !connectionOnly) {
+                        Swal.showValidationMessage('Please select a test option');
+                        return false;
+                    }
+                    
+                    return fetch(`/admin-dashboard/brevo/${configId}/test/`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        },
+                        body: JSON.stringify({ 
+                            recipient_email: email,
+                            send_test_email: sendTestEmail
+                        })
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(err => { 
+                                throw new Error(err.error || 'Test failed') 
+                            });
+                        }
+                        return response.json();
+                    })
+                    .catch(error => {
+                        Swal.showValidationMessage(`Request failed: ${error.message}`);
+                    });
+                },
+                allowOutsideClick: () => !Swal.isLoading()
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    if (result.value.success) {
+                        Swal.fire('Success!', result.value.message, 'success').then(() => {
+                            location.reload();
+                        });
+                    } else {
+                        Swal.fire('Error!', result.value.message, 'error');
+                    }
+                }
+            });
+        });
+    });
+
+    // Activate Brevo configuration
+    document.querySelectorAll('.activate-brevo-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "This will make this Brevo configuration active and deactivate others!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Yes, activate it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-dashboard/brevo/${configId}/activate/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': getCookie('csrftoken'),
+                            'X-Requested-With': 'XMLHttpRequest'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            Swal.fire('Activated!', data.message, 'success').then(() => {
+                                location.reload();
+                            });
+                        } else {
+                            Swal.fire('Error!', data.message, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        Swal.fire('Error!', 'Failed to activate configuration.', 'error');
+                        console.error('Error:', error);
+                    });
+                }
+            });
+        });
+    });
+
+    // Delete Brevo configuration
+    document.querySelectorAll('.delete-brevo-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const configId = this.dataset.configId;
+            Swal.fire({
+                title: 'Are you sure?',
+                text: "You won't be able to revert this!",
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#d33',
+                cancelButtonColor: '#3085d6',
+                confirmButtonText: 'Yes, delete it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    fetch(`/admin-dashboard/brevo/${configId}/delete/`, {
                         method: 'POST',
                         headers: {
                             'X-CSRFToken': getCookie('csrftoken'),

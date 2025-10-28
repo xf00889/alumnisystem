@@ -68,7 +68,7 @@ def enhanced_signup(request):
                 
                 # Send HTML email
                 html_content = render_verification_email(user, verification_code)
-                from core.email_utils import send_email_with_smtp_config
+                from core.email_utils import send_email_with_provider
                 
                 # Send verification email using Render-compatible system
                 plain_message = f"""
@@ -87,7 +87,7 @@ NORSU Alumni Network Team
                 """
                 
                 try:
-                    success = send_email_with_smtp_config(
+                    success = send_email_with_provider(
                         subject='NORSU Alumni - Email Verification Code',
                         message=plain_message,
                         recipient_list=[user.email],
@@ -203,7 +203,7 @@ def resend_verification_code(request):
                 
                 # Send HTML email using Render-compatible system
                 html_content = render_resend_verification_email(user, verification_code)
-                from core.email_utils import send_email_with_smtp_config
+                from core.email_utils import send_email_with_provider
                 
                 plain_message = f"""
 Hello!
@@ -220,7 +220,7 @@ Best regards,
 NORSU Alumni Network Team
                 """
                 
-                success = send_email_with_smtp_config(
+                success = send_email_with_provider(
                     subject='NORSU Alumni - New Verification Code',
                     message=plain_message,
                     recipient_list=[email],
@@ -315,7 +315,7 @@ Best regards,
 NORSU Alumni Network Team
                 """
                 
-                success = send_email_with_smtp_config(
+                success = send_email_with_provider(
                     subject='NORSU Alumni - Password Reset Code',
                     message=plain_message,
                     recipient_list=[email],
@@ -429,7 +429,7 @@ def resend_password_reset_otp(request):
                 
                 # Send HTML email using Render-compatible system
                 html_content = render_password_reset_email(user, verification_code)
-                from core.email_utils import send_email_with_smtp_config
+                from core.email_utils import send_email_with_provider
                 
                 plain_message = f"""
 Hello!
@@ -446,7 +446,7 @@ Best regards,
 NORSU Alumni Network Team
                 """
                 
-                success = send_email_with_smtp_config(
+                success = send_email_with_provider(
                     subject='NORSU Alumni - New Password Reset Code',
                     message=plain_message,
                     recipient_list=[email],

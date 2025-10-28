@@ -27,6 +27,8 @@ from .contact import Address, ContactInfo
 from .content import Post, Comment, Reaction
 from .notifications import Notification, NotificationPreference
 from .smtp_config import SMTPConfig
+from .brevo_config import BrevoConfig
+from .email_provider import EmailProvider
 from .recaptcha_config import ReCaptchaConfig
 
 __all__ = [
@@ -41,5 +43,7 @@ __all__ = [
     'Notification',
     'NotificationPreference',
     'SMTPConfig',
+    'BrevoConfig',
+    'EmailProvider',
     'ReCaptchaConfig',
 ]
