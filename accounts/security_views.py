@@ -220,19 +220,26 @@ Best regards,
 NORSU Alumni Network Team
                 """
                 
-                success = send_email_with_provider(
-                    subject='NORSU Alumni - New Verification Code',
-                    message=plain_message,
-                    recipient_list=[email],
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    html_message=html_content,
-                    fail_silently=False
-                )
-                
-                if not success:
+                try:
+                    success = send_email_with_provider(
+                        subject='NORSU Alumni - New Verification Code',
+                        message=plain_message,
+                        recipient_list=[email],
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        html_message=html_content,
+                        fail_silently=False
+                    )
+                    
+                    if not success:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Failed to send verification code. Please try again later.'
+                        })
+                except Exception as e:
+                    logger.error(f"Error sending verification email to {email}: {str(e)}")
                     return JsonResponse({
                         'success': False,
-                        'error': 'Failed to send verification code. Please try again later.'
+                        'error': 'Failed to send verification code. Please check email configuration or try again later.'
                     })
                 
                 # In development mode, also log the new verification code to console
@@ -315,17 +322,22 @@ Best regards,
 NORSU Alumni Network Team
                 """
                 
-                success = send_email_with_provider(
-                    subject='NORSU Alumni - Password Reset Code',
-                    message=plain_message,
-                    recipient_list=[email],
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    html_message=html_content,
-                    fail_silently=False
-                )
-                
-                if not success:
-                    messages.error(request, 'Failed to send password reset code. Please try again later.')
+                try:
+                    success = send_email_with_provider(
+                        subject='NORSU Alumni - Password Reset Code',
+                        message=plain_message,
+                        recipient_list=[email],
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        html_message=html_content,
+                        fail_silently=False
+                    )
+                    
+                    if not success:
+                        messages.error(request, 'Failed to send password reset code. Please try again later.')
+                        return render(request, 'accounts/password_reset_email.html', {'form': form})
+                except Exception as e:
+                    logger.error(f"Error sending password reset email to {email}: {str(e)}")
+                    messages.error(request, 'Failed to send password reset code. Please check email configuration or try again later.')
                     return render(request, 'accounts/password_reset_email.html', {'form': form})
                 
                 # Log password reset request
@@ -446,19 +458,26 @@ Best regards,
 NORSU Alumni Network Team
                 """
                 
-                success = send_email_with_provider(
-                    subject='NORSU Alumni - New Password Reset Code',
-                    message=plain_message,
-                    recipient_list=[email],
-                    from_email=settings.DEFAULT_FROM_EMAIL,
-                    html_message=html_content,
-                    fail_silently=False
-                )
-                
-                if not success:
+                try:
+                    success = send_email_with_provider(
+                        subject='NORSU Alumni - New Password Reset Code',
+                        message=plain_message,
+                        recipient_list=[email],
+                        from_email=settings.DEFAULT_FROM_EMAIL,
+                        html_message=html_content,
+                        fail_silently=False
+                    )
+                    
+                    if not success:
+                        return JsonResponse({
+                            'success': False,
+                            'error': 'Failed to send password reset code. Please try again later.'
+                        })
+                except Exception as e:
+                    logger.error(f"Error sending password reset email to {email}: {str(e)}")
                     return JsonResponse({
                         'success': False,
-                        'error': 'Failed to send password reset code. Please try again later.'
+                        'error': 'Failed to send password reset code. Please check email configuration or try again later.'
                     })
                 
                 # Record attempt
