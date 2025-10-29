@@ -21,13 +21,16 @@ def get_brevo_settings():
             from .models.brevo_config import BrevoConfig
             
             # Get active Brevo configuration
+            # First try to get verified config, then fallback to any active config
             active_config = BrevoConfig.objects.filter(is_active=True, is_verified=True).first()
+            if not active_config:
+                active_config = BrevoConfig.objects.filter(is_active=True).first()
             
             if active_config:
                 brevo_settings = active_config.get_connection_params()
                 # Cache for 1 hour
                 cache.set('brevo_settings', brevo_settings, 3600)
-                logger.info(f"Loaded Brevo settings from database: {active_config.name}")
+                logger.info(f"Loaded Brevo settings from database: {active_config.name} (ID: {active_config.id}, Verified: {active_config.is_verified})")
             else:
                 # Fallback to Django settings
                 from django.conf import settings
@@ -38,6 +41,9 @@ def get_brevo_settings():
                     'from_name': getattr(settings, 'BREVO_FROM_NAME', 'NORSU Alumni System'),
                 }
                 logger.warning("No active Brevo configuration found, using Django settings")
+                # Debug: Log all BrevoConfig records
+                all_configs = BrevoConfig.objects.all()
+                logger.warning(f"Available BrevoConfig records: {[(c.id, c.is_active, c.is_verified, c.from_email) for c in all_configs]}")
         
         return brevo_settings
         
