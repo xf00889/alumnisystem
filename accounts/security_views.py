@@ -69,6 +69,7 @@ def enhanced_signup(request):
                 # Send HTML email
                 html_content = render_verification_email(user, verification_code)
                 from core.email_utils import send_email_with_provider
+                from django.conf import settings
                 
                 # Send verification email using Render-compatible system
                 plain_message = f"""
@@ -108,7 +109,6 @@ NORSU Alumni Network Team
                     messages.warning(request, 'Account created but email could not be sent. Please contact support.')
                 
                 # In development mode, also log the verification code to console
-                from django.conf import settings
                 if settings.DEBUG:
                     logger.info(f"DEVELOPMENT MODE: Verification code for {user.email} is: {verification_code}")
                     print(f"DEVELOPMENT MODE: Verification code for {user.email} is: {verification_code}")
