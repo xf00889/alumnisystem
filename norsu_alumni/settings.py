@@ -137,14 +137,15 @@ if DATABASE_URL:
     }
 else:
     # Development database (MySQL)
+    # Use environment variables for database configuration
     DATABASES = {
         'default': {
-            'ENGINE': 'django.db.backends.mysql',
-            'NAME': 'alumni_norsu',
-            'USER': 'root',
-            'PASSWORD': '',
-            'HOST': 'localhost',  # Or your DB host
-            'PORT': '3306',        # Default MySQL port
+            'ENGINE': config('DB_ENGINE', default='django.db.backends.mysql'),
+            'NAME': config('DB_NAME', default='alumni_norsu'),
+            'USER': config('DB_USER', default='root'),
+            'PASSWORD': config('DB_PASSWORD', default=''),
+            'HOST': config('DB_HOST', default='localhost'),
+            'PORT': config('DB_PORT', default='3306'),
             'OPTIONS': {
                 'charset': 'utf8mb4',
                 'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
