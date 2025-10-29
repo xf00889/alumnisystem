@@ -204,6 +204,7 @@ def resend_verification_code(request):
                 # Send HTML email using Render-compatible system
                 html_content = render_resend_verification_email(user, verification_code)
                 from core.email_utils import send_email_with_provider
+                from django.conf import settings
                 
                 plain_message = f"""
 Hello!
@@ -243,7 +244,6 @@ NORSU Alumni Network Team
                     })
                 
                 # In development mode, also log the new verification code to console
-                from django.conf import settings
                 if settings.DEBUG:
                     logger.info(f"DEVELOPMENT MODE: New verification code for {email} is: {verification_code}")
                     print(f"DEVELOPMENT MODE: New verification code for {email} is: {verification_code}")
@@ -305,7 +305,8 @@ def password_reset_email(request):
                 
                 # Send HTML email using Render-compatible system
                 html_content = render_password_reset_email(user, verification_code)
-                from core.email_utils import send_email_with_smtp_config
+                from core.email_utils import send_email_with_provider
+                from django.conf import settings
                 
                 plain_message = f"""
 Hello!
@@ -442,6 +443,7 @@ def resend_password_reset_otp(request):
                 # Send HTML email using Render-compatible system
                 html_content = render_password_reset_email(user, verification_code)
                 from core.email_utils import send_email_with_provider
+                from django.conf import settings
                 
                 plain_message = f"""
 Hello!
