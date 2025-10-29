@@ -1247,6 +1247,45 @@
         
         // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
         document.addEventListener('DOMContentLoaded', function() {
+            // Handle Django messages with SweetAlert
+            {% if messages %}
+                {% for message in messages %}
+                    {% if message.tags == 'error' %}
+                        Swal.fire({
+                            icon: 'error',
+                            title: 'Error',
+                            text: '{{ message|escapejs }}',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#e53e3e'
+                        });
+                    {% elif message.tags == 'warning' %}
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Warning',
+                            text: '{{ message|escapejs }}',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#ed8936'
+                        });
+                    {% elif message.tags == 'success' %}
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Success',
+                            text: '{{ message|escapejs }}',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#48bb78'
+                        });
+                    {% else %}
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'Notice',
+                            text: '{{ message|escapejs }}',
+                            confirmButtonText: 'OK',
+                            confirmButtonColor: '#4299e1'
+                        });
+                    {% endif %}
+                {% endfor %}
+            {% endif %}
+            
             {% if recaptcha_enabled and recaptcha_public_key %}
             // Load reCAPTCHA script dynamically
             var script = document.createElement('script');
@@ -1284,6 +1323,32 @@
                 });
             }
             {% endif %}
+            
+            // Handle form validation errors with SweetAlert
+            const errorElements = document.querySelectorAll('.alert-danger, .errorlist, .form-error, [class*="error"]');
+            if (errorElements.length > 0) {
+                let errorMessages = [];
+                
+                errorElements.forEach(element => {
+                    if (element.textContent && element.textContent.trim()) {
+                        errorMessages.push(element.textContent.trim());
+                    }
+                });
+                
+                if (errorMessages.length > 0) {
+                    // Remove duplicates and join messages
+                    const uniqueErrors = [...new Set(errorMessages)];
+                    const errorText = uniqueErrors.join('\n');
+                    
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Validation Error',
+                        text: errorText,
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#e53e3e'
+                    });
+                }
+            }
         });
     </script>
 </body>
