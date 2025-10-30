@@ -2,6 +2,7 @@
 Context processors for the core app
 """
 from .recaptcha_utils import get_recaptcha_public_key, is_recaptcha_enabled
+from .sri_utils import LEAFLET_SRI_HASHES
 
 
 def recaptcha_context(request):
@@ -11,6 +12,15 @@ def recaptcha_context(request):
     return {
         'recaptcha_public_key': get_recaptcha_public_key(),
         'recaptcha_enabled': is_recaptcha_enabled(),
+    }
+
+
+def sri_hashes(request):
+    """
+    Make SRI hashes available in all templates
+    """
+    return {
+        'leaflet_sri_hashes': LEAFLET_SRI_HASHES
     }
 
 

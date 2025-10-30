@@ -12,6 +12,8 @@ def profile_search_connected_users(request):
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    # CSP Report endpoint for violation monitoring
+    path('csp-report/', security_views.csp_report_view, name='csp_report'),
     # Setup URLs - must be before other URLs to catch setup redirects
     path('setup/', include('setup.urls')),
     # Handle old profile API endpoint by calling the accounts API view

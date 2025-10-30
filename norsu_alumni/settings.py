@@ -115,6 +115,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.recaptcha_context',
                 'core.context_processors.cms_contact_info',
+                'core.context_processors.sri_hashes',
             ],
         },
     },
@@ -309,11 +310,19 @@ CSP_SCRIPT_SRC = (
     "https://cdn.jsdelivr.net",  # For Bootstrap and other CDN scripts
     "https://cdnjs.cloudflare.com",
     "https://code.jquery.com",  # For jQuery
-    "https://unpkg.com",  # For HTMX and other packages
+    "https://unpkg.com",  # For HTMX and other packages (keep for HTMX only)
 )
 CSP_STYLE_SRC = (
     "'self'",
     "'unsafe-inline'",
+    "https://cdn.jsdelivr.net",
+    "https://cdnjs.cloudflare.com",
+    "https://fonts.googleapis.com",
+    # Removed unpkg.com - now using self-hosted Leaflet stylesheets
+)
+# Add style-src-elem directive for better stylesheet control
+CSP_STYLE_SRC_ELEM = (
+    "'self'",
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
     "https://fonts.googleapis.com",
@@ -337,13 +346,15 @@ CSP_CONNECT_SRC = (
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
     "https://code.jquery.com",
-    "https://unpkg.com",
+    # Removed unpkg.com - now using self-hosted Leaflet files
 )
 CSP_FRAME_SRC = (
     "'self'",
     "https://www.google.com",
     "https://www.recaptcha.net",
 )
+# Add report-uri for CSP violation monitoring
+CSP_REPORT_URI = "/csp-report/"
 CSP_WORKER_SRC = (
     "'self'",
     "https://www.google.com",

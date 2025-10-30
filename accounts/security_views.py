@@ -621,3 +621,31 @@ class SecurityDashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         return context
+
+
+@csrf_exempt
+@require_POST
+def csp_report_view(request):
+    """
+    Handle CSP violation reports for monitoring and debugging
+    """
+    try:
+        # Parse the CSP report
+        report_data = json.loads(request.body.decode('utf-8'))
+        
+        # Log the CSP violation
+        logger.warning(
+            f"CSP Violation Report: {json.dumps(report_data, indent=2)}"
+        )
+        
+        # In production, you might want to store these in a database
+        # or send them to a monitoring service like Sentry
+        
+        return JsonResponse({'status': 'received'}, status=200)
+        
+    except json.JSONDecodeError:
+        logger.error("Invalid JSON in CSP report")
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+    except Exception as e:
+        logger.error(f"Error processing CSP report: {str(e)}")
+        return JsonResponse({'error': 'Internal server error'}, status=500)

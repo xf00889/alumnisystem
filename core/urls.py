@@ -84,4 +84,9 @@ urlpatterns = [
     path('admin-dashboard/recaptcha/analytics/', recaptcha_analytics_views.ReCaptchaAnalyticsView.as_view(), name='recaptcha_analytics'),
     path('admin-dashboard/recaptcha/analytics/api/', recaptcha_analytics_views.recaptcha_analytics_api, name='recaptcha_analytics_api'),
     path('admin-dashboard/recaptcha/analytics/reset/', recaptcha_analytics_views.recaptcha_analytics_reset, name='recaptcha_analytics_reset'),
+    
+    # Test URLs
+    path('test-leaflet/', views.test_leaflet, name='test_leaflet'),
+    path('simple-leaflet-test/', views.simple_leaflet_test, name='simple_leaflet_test'),
+    path('basic-leaflet-test/', views.basic_leaflet_test, name='basic_leaflet_test'),
 ]
