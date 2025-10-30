@@ -187,6 +187,7 @@ class BossJobScraper:
                 'total_found': 0,
                 'error': 'Access blocked by source (HTTP 403). Please try again later.',
                 'message': 'The source temporarily denied access (403).',
+                'fallback_url': f"{self.search_url}/{search_path}",
                 'debug_info': error_details
             }
         except requests.exceptions.RequestException as e:
