@@ -632,15 +632,34 @@ def csp_report_view(request):
     try:
         # Parse the CSP report
         report_data = json.loads(request.body.decode('utf-8'))
-        
-        # Log the CSP violation
+        csp = report_data.get('csp-report') or report_data.get('csp_report') or {}
+
+        # Extract commonly useful fields for a concise, single-line log
+        violated = csp.get('violated-directive')
+        blocked = csp.get('blocked-uri')
+        src = csp.get('source-file')
+        line = csp.get('line-number')
+        doc = csp.get('document-uri')
+        ref = csp.get('referrer')
+        ua = request.META.get('HTTP_USER_AGENT', '-')
+
+        # Deduplicate noisy repeats for 5 minutes (in-memory cache)
+        signature = f"{violated}|{blocked}|{src}"
+        cache_key = f"csp_sig:{signature}"
+        if cache.get(cache_key):
+            # Already seen recently; keep noise down
+            return JsonResponse({'status': 'deduplicated'}, status=200)
+        cache.set(cache_key, True, timeout=300)
+
+        # Log a clean, single-line summary first
         logger.warning(
-            f"CSP Violation Report: {json.dumps(report_data, indent=2)}"
+            "CSP violation: directive=%s blocked=%s source=%s line=%s doc=%s ref=%s ua=%s",
+            violated, blocked, src, line, doc, ref, ua
         )
-        
-        # In production, you might want to store these in a database
-        # or send them to a monitoring service like Sentry
-        
+
+        # Also log full raw JSON at DEBUG level for deep dives
+        logger.debug("CSP raw: %s", json.dumps(report_data, separators=(',', ':'), ensure_ascii=False))
+
         return JsonResponse({'status': 'received'}, status=200)
         
     except json.JSONDecodeError:
