@@ -5,6 +5,7 @@ import hashlib
 import base64
 import os
 from django.conf import settings
+from django.contrib.staticfiles.storage import staticfiles_storage
 
 
 def generate_sri_hash(file_path, algorithm='sha384'):
@@ -44,6 +45,21 @@ def generate_sri_hash(file_path, algorithm='sha384'):
         return None
 
 
+def _hash_for_static(asset_path: str, algorithm: str = 'sha384'):
+    """Resolve a logical static path to its stored file and compute SRI.
+
+    Works with ManifestStaticFilesStorage/Whitenoise where filenames are hashed.
+    """
+    try:
+        real_path = staticfiles_storage.path(asset_path)
+    except Exception:
+        # Fallback to STATIC/STATIC_ROOT manual resolution
+        static_root = getattr(settings, 'STATICFILES_DIRS', [])
+        base = static_root[0] if static_root else os.path.join(settings.BASE_DIR, 'static')
+        real_path = os.path.join(base, asset_path.replace('/', os.sep))
+    return generate_sri_hash(real_path, algorithm)
+
+
 def get_leaflet_sri_hashes():
     """
     Get SRI hashes for all self-hosted Leaflet files
@@ -51,41 +67,40 @@ def get_leaflet_sri_hashes():
     Returns:
         Dictionary with file names as keys and SRI hashes as values
     """
-    static_root = getattr(settings, 'STATICFILES_DIRS', [])
-    if static_root:
-        static_path = static_root[0]
-    else:
-        static_path = os.path.join(settings.BASE_DIR, 'static')
-    
-    leaflet_files = {
-        'leaflet.css': os.path.join(static_path, 'css', 'leaflet', 'leaflet.css'),
-        'MarkerCluster.css': os.path.join(static_path, 'css', 'leaflet', 'MarkerCluster.css'),
-        'MarkerCluster.Default.css': os.path.join(static_path, 'css', 'leaflet', 'MarkerCluster.Default.css'),
-        'leaflet.js': os.path.join(static_path, 'js', 'leaflet', 'leaflet.js'),
-        'leaflet.markercluster.js': os.path.join(static_path, 'js', 'leaflet', 'leaflet.markercluster.js'),
+    assets = {
+        'leaflet.css': 'css/leaflet/leaflet.css',
+        'MarkerCluster.css': 'css/leaflet/MarkerCluster.css',
+        'MarkerCluster.Default.css': 'css/leaflet/MarkerCluster.Default.css',
+        'leaflet.js': 'js/leaflet/leaflet.js',
+        'leaflet.markercluster.js': 'js/leaflet/leaflet.markercluster.js',
     }
-    
+
     sri_hashes = {}
-    for file_name, file_path in leaflet_files.items():
-        sri_hash = generate_sri_hash(file_path)
+    for key, logical_path in assets.items():
+        sri_hash = _hash_for_static(logical_path)
         if sri_hash:
-            sri_hashes[file_name] = sri_hash
-    
+            sri_hashes[key] = sri_hash
+
     return sri_hashes
 
 
-# Pre-generate SRI hashes (these will be updated when files change)
-LEAFLET_SRI_HASHES = {
-    'leaflet_css': 'sha384-a1Ehh0uaSKXoYj3VdLeT14oR26DDhFiU6/uhWGOrIiAHLSmsfaJ92hWSyD5GNWWt',
-    'MarkerCluster_css': 'sha384-O6v6N8WWfJqWJZA3Vz39Y+Smwmv5PRYET+VyrLHv2oSbwM5tj7Z8tpmxbxwa+mxN',
-    'MarkerCluster_Default_css': 'sha384-wgw+aLYNQ7dlhK47ZPK7FRACiq7ROZwgFNg0m04avm4CaXS+Z9Y7nMu8yNjBKYC+',
-    'leaflet_js': 'sha384-cxOPjt7s7Iz04uaHJceBmS+qpjv2JkIHNVcuOrM+YHwZOmJGBXI00mdUXEq65HTH',
-    'leaflet_markercluster_js': 'sha384-Pia3L1tpt6rSjrM5hA7rqsy5t9w7ZHwMY+4/9B6aqqcNNqr8eBuA7C8Z1X9YR7tK',
-}
+# Generate SRI hashes at import time using the actual stored files
+def _initial_leaflet_sri_hashes():
+    hashes = get_leaflet_sri_hashes()
+    # Map keys to template-friendly names used in context
+    return {
+        'leaflet_css': hashes.get('leaflet.css'),
+        'MarkerCluster_css': hashes.get('MarkerCluster.css'),
+        'MarkerCluster_Default_css': hashes.get('MarkerCluster.Default.css'),
+        'leaflet_js': hashes.get('leaflet.js'),
+        'leaflet_markercluster_js': hashes.get('leaflet.markercluster.js'),
+    }
+
+LEAFLET_SRI_HASHES = _initial_leaflet_sri_hashes()
 
 # Function to update SRI hashes
 def update_sri_hashes():
     """Update the SRI hashes for all Leaflet files"""
     global LEAFLET_SRI_HASHES
-    LEAFLET_SRI_HASHES.update(get_leaflet_sri_hashes())
+    LEAFLET_SRI_HASHES = _initial_leaflet_sri_hashes()
     return LEAFLET_SRI_HASHES
