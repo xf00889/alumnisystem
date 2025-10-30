@@ -1,3 +1,4 @@
+import os
 import requests
 from bs4 import BeautifulSoup
 import time
@@ -28,6 +29,11 @@ class BossJobScraper:
         })
         self.request_delay = 2  # 2 seconds between requests
         self.last_request_time = 0
+        
+        # Optional Selenium fallback config (Remote WebDriver recommended)
+        self.enable_selenium = os.getenv('SELENIUM_ENABLE', 'false').lower() == 'true'
+        self.selenium_remote_url = os.getenv('SELENIUM_REMOTE_URL')  # e.g., http://selenium:4444/wd/hub
+        self.selenium_browser = os.getenv('SELENIUM_BROWSER', 'chrome')
     
     def _throttle_request(self):
         """Implement request throttling to be respectful to the website"""
@@ -173,6 +179,14 @@ class BossJobScraper:
                         return result
                 except requests.RequestException:
                     pass
+
+                # Selenium fallback if enabled
+                if self.enable_selenium and (self.selenium_remote_url or self.selenium_browser):
+                    selenium_result = self._selenium_fetch(full_search_url, params, keyword, location)
+                    if selenium_result and selenium_result.get('success'):
+                        if use_cache:
+                            cache.set(cache_key, selenium_result, 1800)
+                        return selenium_result
 
             error_details = {
                 'error_type': 'HTTP Error',
@@ -340,6 +354,93 @@ class BossJobScraper:
             
         return False
     
+    def _selenium_fetch(self, full_search_url: str, params: Dict, keyword: str, location: str) -> Optional[Dict]:
+        """Fetch page content using Selenium (Remote or local) and parse jobs.
+
+        Requires env: SELENIUM_ENABLE=true and either SELENIUM_REMOTE_URL or a local driver available.
+        """
+        try:
+            from selenium import webdriver
+            from selenium.webdriver.common.by import By
+            from selenium.webdriver.support.ui import WebDriverWait
+            from selenium.webdriver.support import expected_conditions as EC
+            from selenium.webdriver.chrome.options import Options as ChromeOptions
+            from selenium.webdriver.firefox.options import Options as FirefoxOptions
+        except Exception as imp_err:
+            logger.warning(f"Selenium not available: {imp_err}")
+            return None
+
+        url = f"{full_search_url}?{urljoin('', '&'.join([f'{k}={v}' for k, v in params.items()]))}"
+
+        driver = None
+        try:
+            if self.selenium_remote_url:
+                if self.selenium_browser.lower() == 'firefox':
+                    options = FirefoxOptions()
+                    options.add_argument('-headless')
+                    driver = webdriver.Remote(command_executor=self.selenium_remote_url, options=options)
+                else:
+                    options = ChromeOptions()
+                    options.add_argument('--headless=new')
+                    options.add_argument('--no-sandbox')
+                    options.add_argument('--disable-dev-shm-usage')
+                    options.add_argument('--disable-gpu')
+                    options.add_argument('--window-size=1280,800')
+                    options.add_argument(f"--user-agent={self.session.headers.get('User-Agent')}")
+                    driver = webdriver.Remote(command_executor=self.selenium_remote_url, options=options)
+            else:
+                # Attempt local Chrome if available
+                options = ChromeOptions()
+                options.add_argument('--headless=new')
+                options.add_argument('--no-sandbox')
+                options.add_argument('--disable-dev-shm-usage')
+                options.add_argument('--disable-gpu')
+                options.add_argument('--window-size=1280,800')
+                options.add_argument(f"--user-agent={self.session.headers.get('User-Agent')}")
+                driver = webdriver.Chrome(options=options)
+
+            driver.set_page_load_timeout(20)
+            driver.get(url)
+
+            # Wait for job cards or main container
+            try:
+                WebDriverWait(driver, 10).until(
+                    EC.any_of(
+                        EC.presence_of_element_located((By.CSS_SELECTOR, '.index_pc_listItem__bBJQ5')),
+                        EC.presence_of_element_located((By.CSS_SELECTOR, 'div[data-sentry-component="JobCardPc"]')),
+                        EC.presence_of_element_located((By.CSS_SELECTOR, '.job-card, .job-item')),
+                    )
+                )
+            except Exception:
+                pass
+
+            html = driver.page_source
+            soup = BeautifulSoup(html, 'html.parser')
+            jobs = self._extract_jobs(soup, keyword)
+
+            return {
+                'success': True,
+                'jobs': jobs,
+                'total_found': len(jobs),
+                'keyword': keyword,
+                'location': location,
+                'message': f"Found {len(jobs)} job(s) for '{keyword}' in '{location}' via Selenium",
+                'debug_info': {
+                    'url_accessed': url,
+                    'response_status': 200,
+                    'note': 'Fetched with Selenium WebDriver',
+                }
+            }
+        except Exception as sel_err:
+            logger.error(f"Selenium fetch failed: {sel_err}")
+            return None
+        finally:
+            try:
+                if driver:
+                    driver.quit()
+            except Exception:
+                pass
+
     def _extract_job_data(self, job_element) -> Optional[Dict]:
         """Extract individual job data from a job element"""
         try:
