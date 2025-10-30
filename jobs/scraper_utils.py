@@ -13,13 +13,18 @@ class BossJobScraper:
         self.base_url = "https://bossjob.ph"
         self.search_url = "https://bossjob.ph/en-us/jobs-hiring"
         self.session = requests.Session()
+        # Default headers tuned to look like a real browser
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36',
             'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.5',
             'Accept-Encoding': 'gzip, deflate',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+            'DNT': '1',
         })
         self.request_delay = 2  # 2 seconds between requests
         self.last_request_time = 0
@@ -95,8 +100,9 @@ class BossJobScraper:
             
             logger.info(f"Searching BossJob.ph for '{keyword}' in '{location}' using URL: {full_search_url}")
             
-            # Make the request
-            response = self.session.get(full_search_url, params=params, timeout=10)
+            # Make the request with a plausible Referer
+            headers = {'Referer': f"{self.base_url}/"}
+            response = self.session.get(full_search_url, params=params, headers=headers, timeout=12)
             response.raise_for_status()
             
             # Parse the HTML
@@ -132,6 +138,57 @@ class BossJobScraper:
             
             return result
             
+        except requests.exceptions.HTTPError as e:
+            status = getattr(e.response, 'status_code', None)
+            # If blocked (403), try a softer fallback once with different headers
+            if status == 403:
+                try:
+                    self._throttle_request()
+                    alt_headers = {
+                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                        'Accept-Language': 'en-US,en;q=0.9',
+                        'Referer': f'{self.base_url}/en-us/jobs-hiring',
+                        'Cache-Control': 'no-cache',
+                    }
+                    resp2 = self.session.get(full_search_url, params=params, headers=alt_headers, timeout=12)
+                    if resp2.status_code == 200:
+                        soup = BeautifulSoup(resp2.content, 'html.parser')
+                        jobs = self._extract_jobs(soup, keyword)
+                        result = {
+                            'success': True,
+                            'jobs': jobs,
+                            'total_found': len(jobs),
+                            'keyword': keyword,
+                            'location': location,
+                            'message': f"Found {len(jobs)} job(s) for '{keyword}' in '{location}'",
+                            'debug_info': {
+                                'url_accessed': f"{full_search_url}?{urljoin('', '&'.join([f'{k}={v}' for k, v in params.items()]))}",
+                                'response_status': resp2.status_code,
+                                'note': '403 recovered with alternate headers',
+                            }
+                        }
+                        if use_cache:
+                            cache.set(cache_key, result, 1800)
+                        return result
+                except requests.RequestException:
+                    pass
+
+            error_details = {
+                'error_type': 'HTTP Error',
+                'error_message': str(e),
+                'url_attempted': f"{full_search_url}?{urljoin('', '&'.join([f'{k}={v}' for k, v in params.items()]))}",
+                'status_code': status or 'N/A'
+            }
+            logger.error(f"HTTP error while scraping BossJob.ph: {error_details}")
+            return {
+                'success': False,
+                'jobs': [],
+                'total_found': 0,
+                'error': 'Access blocked by source (HTTP 403). Please try again later.',
+                'message': 'The source temporarily denied access (403).',
+                'debug_info': error_details
+            }
         except requests.exceptions.RequestException as e:
             error_details = {
                 'error_type': 'Connection Error',
