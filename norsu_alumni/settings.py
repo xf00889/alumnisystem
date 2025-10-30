@@ -323,6 +323,7 @@ CSP_STYLE_SRC = (
 # Add style-src-elem directive for better stylesheet control
 CSP_STYLE_SRC_ELEM = (
     "'self'",
+    "'unsafe-inline'",
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
     "https://fonts.googleapis.com",
