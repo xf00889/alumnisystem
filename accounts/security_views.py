@@ -411,26 +411,32 @@ def password_reset_new_password(request):
                 user.set_password(form.cleaned_data['new_password1'])
                 user.save()
                 
-                # Clear session
-                del request.session['password_reset_email']
-                
-                # Log password reset success
+                # Log password reset success BEFORE clearing session
                 SecurityAuditLogger.log_event(
                     'password_reset_success',
                     user=user,
                     ip_address=request.META.get('REMOTE_ADDR')
                 )
                 
+                # Clear session AFTER getting user but BEFORE redirect
+                # This ensures the redirect happens with the session cleared
+                if 'password_reset_email' in request.session:
+                    del request.session['password_reset_email']
+                
+                # Save session to ensure changes are persisted
+                request.session.save()
+                
                 messages.success(request, 'Password reset successfully! You can now sign in with your new password.')
                 return redirect('account_login')
                 
             except User.DoesNotExist:
                 messages.error(request, 'User not found.')
+                return render(request, 'accounts/password_reset_new_password.html', {'form': form, 'email': email})
     else:
         form = PasswordResetNewPasswordForm()
     
     # Use existing password reset new password template
-    return render(request, 'accounts/password_reset_new_password.html', {'form': form})
+    return render(request, 'accounts/password_reset_new_password.html', {'form': form, 'email': email})
 
 
 def resend_password_reset_otp(request):
