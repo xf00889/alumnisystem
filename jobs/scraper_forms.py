@@ -24,6 +24,19 @@ class JobScraperForm(forms.Form):
         help_text='Enter city or location'
     )
     
+    sources = forms.MultipleChoiceField(
+        required=False,
+        widget=forms.CheckboxSelectMultiple(attrs={
+            'class': 'form-check-input'
+        }),
+        help_text='Select job sources to search (leave empty to search all)'
+    )
+    
+    def __init__(self, *args, **kwargs):
+        available_sources = kwargs.pop('available_sources', [('BOSSJOB', 'BossJob.ph')])
+        super().__init__(*args, **kwargs)
+        self.fields['sources'].choices = available_sources
+    
     def clean_keyword(self):
         keyword = self.cleaned_data.get('keyword')
         if keyword:

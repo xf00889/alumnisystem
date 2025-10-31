@@ -14,6 +14,17 @@ from .models import JobPosting, JobApplication, RequiredDocument, ScrapedJob
 from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet
 from .scraper_forms import JobScraperForm
 from .scraper_utils import scraper
+
+# Initialize multi-source scraper manager - ensure it's always defined
+scraper_manager = None
+try:
+    from .scraper_manager import JobScraperManager
+    scraper_manager = JobScraperManager()
+except (ImportError, Exception) as e:
+    scraper_manager = None
+    import logging
+    logger_views = logging.getLogger(__name__)
+    logger_views.warning(f"JobScraperManager not available: {str(e)}")
 from .utils import calculate_job_match_score, get_skill_recommendations
 from accounts.models import Profile, SkillMatch
 from openpyxl import Workbook
@@ -778,10 +789,15 @@ def bulk_update_jobs(request):
 @login_required
 def job_scraper(request):
     """Job scraper main page with form"""
-    form = JobScraperForm()
+    # Get available sources for the form
+    available_sources = [('BOSSJOB', 'BossJob.ph')]  # Default
+    if scraper_manager:
+        available_sources = [(s, scraper_manager._get_source_display_name(s)) for s in scraper_manager.get_available_sources()]
+    
+    form = JobScraperForm(available_sources=available_sources)
     return render(request, 'jobs/job_scraper.html', {
         'form': form,
-        'page_title': 'Job Scraper - Find Jobs from BossJob.ph'
+        'page_title': 'Job Scraper - Find Jobs from Multiple Sources'
     })
 
 
@@ -796,8 +812,23 @@ def job_scraper_results(request):
             location = form.cleaned_data['location']
             
             try:
-                # Perform the scraping
-                results = scraper.search_jobs(keyword, location)
+                # Get selected sources from form
+                sources = form.cleaned_data.get('sources', []) or request.POST.getlist('sources', [])
+                
+                # Perform the scraping - try multi-source manager first, fallback to single source
+                
+                if scraper_manager and sources:
+                    # Use multi-source scraper
+                    logger.info(f"Using multi-source scraper for sources: {sources}")
+                    results = scraper_manager.search_jobs(keyword, location, sources=sources, use_cache=False)
+                elif scraper_manager:
+                    # Use multi-source scraper with all available sources
+                    logger.info(f"Using multi-source scraper for all available sources")
+                    results = scraper_manager.search_jobs(keyword, location, use_cache=False)
+                else:
+                    # Fallback to single source (BossJob only)
+                    logger.info(f"Using single-source scraper (BossJob.ph)")
+                    results = scraper.search_jobs(keyword, location)
                 
                 # Log the scraping activity
                 logger.info(f"User {request.user.username} scraped jobs for '{keyword}' in '{location}' - Found {results.get('total_found', 0)} jobs")
