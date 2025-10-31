@@ -85,10 +85,52 @@ def send_email_with_smtp_config(subject, message, recipient_list, from_email=Non
 def get_active_email_provider():
     """
     Get the currently active email provider
+    If no EmailProvider exists, check for active Brevo or SMTP configs and auto-create provider
     """
     try:
         from .models.email_provider import EmailProvider
         provider = EmailProvider.get_active_provider()
+        
+        # If no provider exists, check for active configurations and auto-create provider
+        if not provider:
+            logger.info("No EmailProvider found, checking for active configurations...")
+            
+            # Check for Brevo config first (preferred for Render)
+            from .models.brevo_config import BrevoConfig
+            brevo_config = BrevoConfig.objects.filter(is_active=True, is_verified=True).first()
+            
+            if brevo_config:
+                logger.info(f"Found active Brevo config (ID: {brevo_config.id}), auto-creating EmailProvider")
+                # Auto-create and activate Brevo provider
+                provider, created = EmailProvider.objects.get_or_create(
+                    provider_type='brevo',
+                    defaults={'is_active': True}
+                )
+                if not created and not provider.is_active:
+                    provider.is_active = True
+                    provider.save()
+                logger.info(f"EmailProvider for Brevo {'created' if created else 'activated'}")
+                return provider
+            
+            # Check for SMTP config as fallback
+            from .models.smtp_config import SMTPConfig
+            smtp_config = SMTPConfig.objects.filter(is_active=True, is_verified=True).first()
+            
+            if smtp_config:
+                logger.info(f"Found active SMTP config (ID: {smtp_config.id}), auto-creating EmailProvider")
+                # Auto-create and activate SMTP provider
+                provider, created = EmailProvider.objects.get_or_create(
+                    provider_type='smtp',
+                    defaults={'is_active': True}
+                )
+                if not created and not provider.is_active:
+                    provider.is_active = True
+                    provider.save()
+                logger.info(f"EmailProvider for SMTP {'created' if created else 'activated'}")
+                return provider
+            
+            logger.warning("No active email configuration found (Brevo or SMTP)")
+        
         return provider
     except Exception as e:
         logger.error(f"Error getting active email provider: {str(e)}")
@@ -113,10 +155,17 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
             provider = get_active_email_provider()
             if provider:
                 provider_type = provider.provider_type
+                logger.info(f"Using email provider: {provider_type}")
             else:
-                # Fallback to SMTP if no provider is configured
-                provider_type = 'smtp'
-                logger.warning("No active email provider found, falling back to SMTP")
+                # Last resort: check Brevo settings directly (for backward compatibility)
+                brevo_settings = get_brevo_settings()
+                if brevo_settings.get('api_key'):
+                    logger.info("No EmailProvider found, but Brevo API key exists. Using Brevo directly.")
+                    provider_type = 'brevo'
+                else:
+                    # Fallback to SMTP if no provider is configured
+                    provider_type = 'smtp'
+                    logger.warning("No active email provider found, falling back to SMTP")
         
         # Send email using the selected provider
         if provider_type == 'brevo':
