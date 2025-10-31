@@ -1041,18 +1041,23 @@
                 passwordMatchVisible: passwordMatchIndicator ? passwordMatchIndicator.classList.contains('show-element') : 'not found'
             });
             
-            // SMART APPROACH: Only clear session storage if there are authentication errors
-            // This preserves the user's terms agreement on normal page visits
+            // SMART APPROACH: Preserve terms agreement during form validation
+            // Form validation errors (password mismatch, email exists, etc.) should NOT clear terms agreement
+            // Only actual security/authentication failures should clear terms
             const hasAgreedToTerms = sessionStorage.getItem('norsu_terms_agreed');
             
-            // Check for authentication errors
-            const hasAuthErrors = hasErrors || hasFormErrors || hasDjangoErrors || hasMessages || hasUrlErrors;
+            // Check for URL-based security errors (invalid token, session expired, etc.)
+            const hasUrlSecurityError = window.location.search.includes('error=security') || 
+                                       window.location.search.includes('error=auth') ||
+                                       window.location.search.includes('session=expired');
             
-            if (hasAuthErrors) {
-                console.log('Login - Authentication errors detected, clearing session storage');
+            // Only clear terms agreement for URL-based security errors
+            // Form validation errors are normal and should preserve terms agreement
+            if (hasUrlSecurityError) {
+                console.log('Login - URL security error detected, clearing session storage');
                 sessionStorage.removeItem('norsu_terms_agreed');
             } else if (hasAgreedToTerms) {
-                console.log('Login - No errors detected, preserving terms agreement');
+                console.log('Login - Terms agreement preserved (form validation errors are normal)');
             } else {
                 console.log('Login - No previous agreement, will show terms disclaimer');
             }
