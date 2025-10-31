@@ -347,6 +347,9 @@ NORSU Alumni Network Team
                 # Record attempt
                 RateLimiter.record_attempt(email, 'password_reset_attempt')
                 
+                # Store email in session for OTP verification page
+                request.session['password_reset_email'] = email
+                
                 messages.success(request, 'Verification code sent to your email.')
                 return redirect('accounts:password_reset_otp')
                 
