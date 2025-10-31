@@ -17,6 +17,18 @@ class BossJobScraper:
         self.search_url = "https://bossjob.ph/en-us/jobs-hiring"
         self.session = requests.Session()
         
+        # Detect if running on Render or other cloud platform
+        self.is_cloud_deployment = (
+            os.getenv('RENDER') == 'true' or
+            os.getenv('DYNO') or  # Heroku
+            os.getenv('RAILWAY_ENVIRONMENT') or  # Railway
+            'render.com' in os.getenv('RENDER_EXTERNAL_URL', '').lower() or
+            'render' in os.getenv('HOSTNAME', '').lower()
+        )
+        
+        if self.is_cloud_deployment:
+            logger.info("Detected cloud deployment (Render/Heroku/Railway) - using enhanced anti-detection measures")
+        
         # Rotate through multiple user agents to avoid detection
         self.user_agents = [
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
@@ -28,7 +40,14 @@ class BossJobScraper:
         
         # Initialize with first user agent
         self._set_random_headers()
-        self.request_delay = random.uniform(4, 8)  # Random delay between 4-8 seconds to avoid patterns
+        
+        # On cloud deployments, use longer delays to avoid detection
+        if self.is_cloud_deployment:
+            self.request_delay = random.uniform(6, 12)  # 6-12 seconds for cloud
+            logger.info(f"Using longer request delays (6-12s) for cloud deployment")
+        else:
+            self.request_delay = random.uniform(4, 8)  # 4-8 seconds for local
+        
         self.last_request_time = 0
         self._initialize_session()
     
@@ -232,17 +251,56 @@ class BossJobScraper:
             except requests.exceptions.HTTPError as e:
                 # If we get 403, try with different approach - visit jobs-hiring first
                 if e.response.status_code == 403:
-                    logger.warning("Got 403, trying alternative approach - visiting jobs page first...")
-                    # Visit the main jobs page first to establish session
+                    logger.warning(f"Got 403 error (deployment: {'cloud' if self.is_cloud_deployment else 'local'}), trying alternative approach...")
+                    
+                    # On cloud deployments, use more aggressive retry strategy
+                    if self.is_cloud_deployment:
+                        logger.info("Using cloud-specific 403 recovery strategy...")
+                        
+                        # Create a completely new session with fresh cookies
+                        self.session.close()
+                        self.session = requests.Session()
+                        self._set_random_headers()
+                        
+                        # Visit homepage first
+                        self._throttle_request()
+                        try:
+                            self.session.get(self.base_url, timeout=20, allow_redirects=True)
+                            time.sleep(random.uniform(5, 8))  # Longer wait for cloud
+                        except:
+                            pass
+                        
+                        # Visit jobs page
+                        self._throttle_request()
+                        try:
+                            self.session.get(f"{self.base_url}/en-us/jobs-hiring", timeout=20)
+                            time.sleep(random.uniform(5, 8))  # Longer wait
+                        except:
+                            pass
+                        
+                        # Rotate headers again
+                        self._set_random_headers()
+                        headers = {
+                            'Referer': random.choice([self.base_url, f"{self.base_url}/", f"{self.base_url}/en-us/jobs-hiring"]),
+                            'Origin': self.base_url,
+                            'Sec-Fetch-Site': 'same-origin',
+                            'Sec-Fetch-Mode': 'navigate',
+                            'Sec-Fetch-Dest': 'document',
+                            'Sec-Fetch-User': '?1',
+                        }
+                        request_headers = {**self.session.headers, **headers}
+                    else:
+                        # Local deployment - simpler retry
+                        logger.info("Using local 403 recovery strategy...")
+                        self._throttle_request()
+                        self.session.get(f"{self.base_url}/en-us/jobs-hiring", headers=request_headers, timeout=20)
+                        time.sleep(random.uniform(3, 5))
+                        
+                        self._set_random_headers()
+                        request_headers = {**self.session.headers, **headers}
+                    
+                    # Final retry
                     self._throttle_request()
-                    self.session.get(f"{self.base_url}/en-us/jobs-hiring", headers=request_headers, timeout=20)
-                    time.sleep(random.uniform(3, 5))  # Wait a bit to simulate human behavior
-                    
-                    # Rotate headers and try again
-                    self._set_random_headers()
-                    request_headers = {**self.session.headers, **headers}
-                    
-                    # Try again with fresh headers
                     response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=25, allow_redirects=True)
                     response.raise_for_status()
                 else:
