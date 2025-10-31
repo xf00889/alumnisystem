@@ -1,0 +1,321 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-hover: #1d4ed8;
+        --secondary-color: #64748b;
+        --accent-color: #0ea5e9;
+        --success-color: #10b981;
+        --warning-color: #f59e0b;
+        --danger-color: #ef4444;
+        --info-color: #3b82f6;
+        
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --text-light: #ffffff;
+        --text-muted: #94a3b8;
+        
+        --bg-primary: #ffffff;
+        --bg-secondary: #f8fafc;
+        --bg-accent: #f1f5f9;
+        
+        --ui-border: #e2e8f0;
+        --ui-hover: #f8fafc;
+        --ui-focus: #dbeafe;
+        
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --radius-xl: 1rem;
+    }
+
+    .container-fluid {
+        padding: 2rem;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+    }
+
+    .dashboard-card {
+        background: var(--bg-primary);
+        border-radius: var(--radius-xl);
+        padding: 2rem;
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+    }
+
+    .form-section {
+        margin-bottom: 2rem;
+        padding: 1.5rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-lg);
+        background: var(--bg-secondary);
+    }
+
+    .form-section h3 {
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: block;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--accent-color);
+        box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+    }
+
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+    }
+
+    .form-check-input:checked {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+
+    .form-check-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        cursor: pointer;
+    }
+
+    .help-text {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-top: 0.5rem;
+    }
+
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-decoration: none;
+        border: none;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: white;
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-hover);
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-secondary {
+        background: var(--secondary-color);
+        color: white;
+    }
+
+    .btn-secondary:hover {
+        background: #475569;
+        color: white;
+        text-decoration: none;
+    }
+
+    .btn-cancel {
+        background: var(--text-muted);
+        color: white;
+    }
+
+    .btn-cancel:hover {
+        background: #64748b;
+        color: white;
+        text-decoration: none;
+    }
+
+    .alert {
+        padding: 1rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        border: 1px solid transparent;
+    }
+
+    .alert-info {
+        background-color: #dbeafe;
+        border-color: #93c5fd;
+        color: #1e40af;
+    }
+
+    .alert-warning {
+        background-color: #fef3c7;
+        border-color: #fcd34d;
+        color: #92400e;
+    }
+
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--ui-border);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Standard Dashboard Header -->
+    <div class="dashboard-header">
+        <h1><i class="fas fa-envelope"></i> {{ page_title }}</h1>
+        <p>Configure Brevo API settings for email functionality</p>
+    </div>
+    
+    <!-- Configuration Form -->
+    <div class="dashboard-card">
+        <form method="post" id="brevo-form">
+            {% csrf_token %}
+            
+            <!-- Basic Information -->
+            <div class="form-section">
+                <h3><i class="fas fa-info-circle"></i> Basic Information</h3>
+                
+                <div class="form-group">
+                    <label class="form-label" for="name">Configuration Name</label>
+                    <input type="text" class="form-control" id="name" name="name" 
+                           value="{{ config.name }}" required>
+                    <div class="help-text">A descriptive name for this Brevo configuration (e.g., "Brevo Production")</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="from_email">From Email Address</label>
+                    <input type="email" class="form-control" id="from_email" name="from_email" 
+                           value="{{ config.from_email }}" required>
+                    <div class="help-text">The email address that will appear as sender (must be verified in Brevo)</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="from_name">Sender Name (Optional)</label>
+                    <input type="text" class="form-control" id="from_name" name="from_name" 
+                           value="{{ config.from_name }}">
+                    <div class="help-text">The name that will appear as sender (e.g., "NORSU Alumni System")</div>
+                </div>
+            </div>
+            
+            <!-- API Settings -->
+            <div class="form-section">
+                <h3><i class="fas fa-key"></i> Brevo API Configuration</h3>
+                
+                <div class="form-group">
+                    <label class="form-label" for="api_key">Brevo API Key</label>
+                    <input type="text" class="form-control" id="api_key" name="api_key" 
+                           value="{{ config.api_key }}" required>
+                    <div class="help-text">Get your API key from Brevo dashboard → Settings → SMTP & API → API Keys</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="api_url">API URL</label>
+                    <input type="url" class="form-control" id="api_url" name="api_url" 
+                           value="{{ config.api_url }}" required>
+                    <div class="help-text">Brevo API endpoint URL (usually: https://api.brevo.com/v3/smtp/email)</div>
+                </div>
+
+                <div class="alert alert-warning">
+                    <h6><i class="fas fa-exclamation-triangle"></i> Important:</h6>
+                    <ul class="mb-0">
+                        <li>Make sure your sender email is verified in Brevo</li>
+                        <li>Contact Brevo support to activate SMTP API if needed</li>
+                        <li>Keep your API key secure and never share it publicly</li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Status Settings -->
+            <div class="form-section">
+                <h3><i class="fas fa-toggle-on"></i> Status</h3>
+                
+                <div class="form-check">
+                    <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
+                           {% if config.is_active %}checked{% endif %}>
+                    <label class="form-check-label" for="is_active">
+                        Make this configuration active
+                    </label>
+                </div>
+                <div class="help-text">Only one configuration can be active at a time</div>
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <a href="{% url 'core:smtp_configuration_list' %}" class="btn btn-cancel">
+                    <i class="fas fa-times"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Configuration
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+

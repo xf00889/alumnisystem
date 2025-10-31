@@ -67,6 +67,7 @@ urlpatterns = [
     path('admin-dashboard/smtp/<int:config_id>/activate/', smtp_admin_views.smtp_configuration_activate, name='smtp_configuration_activate'),
     
     # Brevo Configuration URLs
+    path('admin-dashboard/brevo/<int:config_id>/edit/', smtp_admin_views.brevo_configuration_edit, name='brevo_configuration_edit'),
     path('admin-dashboard/brevo/<int:config_id>/test/', smtp_admin_views.brevo_configuration_test, name='brevo_configuration_test'),
     path('admin-dashboard/brevo/<int:config_id>/activate/', smtp_admin_views.brevo_configuration_activate, name='brevo_configuration_activate'),
     path('admin-dashboard/brevo/<int:config_id>/delete/', smtp_admin_views.brevo_configuration_delete, name='brevo_configuration_delete'),

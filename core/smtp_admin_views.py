@@ -577,6 +577,46 @@ def brevo_configuration_activate(request, config_id):
         })
 
 @user_passes_test(is_admin)
+def brevo_configuration_edit(request, config_id):
+    """Edit existing Brevo configuration"""
+    from .models.brevo_config import BrevoConfig
+    config = get_object_or_404(BrevoConfig, id=config_id)
+    
+    if request.method == 'POST':
+        try:
+            config.name = request.POST.get('name')
+            config.api_key = request.POST.get('api_key')
+            config.api_url = request.POST.get('api_url', 'https://api.brevo.com/v3/smtp/email')
+            config.from_email = request.POST.get('from_email')
+            config.from_name = request.POST.get('from_name', '')
+            config.is_active = request.POST.get('is_active') == 'on'
+            
+            config.full_clean()
+            config.save()
+            
+            # Clear Brevo cache to ensure updated settings are loaded
+            from .brevo_email import clear_brevo_cache
+            clear_brevo_cache()
+            
+            messages.success(request, f'Brevo configuration "{config.name}" updated successfully!')
+            return redirect('core:smtp_configuration_list')
+            
+        except ValidationError as e:
+            for field, errors in e.message_dict.items():
+                for error in errors:
+                    messages.error(request, f'{field}: {error}')
+        except Exception as e:
+            messages.error(request, f'Error updating configuration: {str(e)}')
+    
+    context = {
+        'config': config,
+        'page_title': f'Edit {config.name}',
+        'config_type': 'brevo'
+    }
+    
+    return render(request, 'brevo_configuration_form.html', context)
+
+@user_passes_test(is_admin)
 def brevo_configuration_delete(request, config_id):
     """Delete Brevo configuration"""
     try:
