@@ -857,11 +857,27 @@ def job_scraper_results(request):
                 except Exception as e:
                     logger.error(f"Error saving scraped data to database: {str(e)}")
                 
-                # Store job URLs in cache for redirect functionality
+                # Store job URLs in session for redirect functionality (more reliable than cache)
+                job_urls = []
                 for index, job in enumerate(results.get('jobs', [])):
-                    if job.get('url') and job['url'] not in ['#', '#no-url-found', 'javascript:void(0)']:
-                        cache_key = f"job_url_{index}"
-                        cache.set(cache_key, job['url'], 3600)  # Cache for 1 hour
+                    url = job.get('url', '')
+                    if url and url not in ['#', '#no-url-found', 'javascript:void(0)', '']:
+                        # Ensure URL is absolute
+                        if not url.startswith(('http://', 'https://')):
+                            if url.startswith('/'):
+                                url = f"https://bossjob.ph{url}"
+                            else:
+                                url = f"https://bossjob.ph/{url.lstrip('/')}"
+                        job_urls.append(url)
+                        logger.debug(f"Stored job URL {index}: {url}")
+                    else:
+                        job_urls.append(None)
+                        logger.debug(f"Job {index} has no valid URL: {url}")
+                
+                # Store in session - persists across requests for the user
+                request.session['job_scraper_urls'] = job_urls
+                request.session.modified = True
+                logger.info(f"Stored {len(job_urls)} job URLs in session (user: {request.user.username})")
                 
                 # Return the results as HTML fragment for HTMX
                 return render(request, 'jobs/partials/job_scraper_results.html', {
@@ -904,109 +920,68 @@ def job_scraper_results(request):
 def job_redirect(request, job_id):
     """Redirect to the actual job URL on BossJob.ph with improved error handling"""
     try:
-        # Get the job URL from cache or database
-        cache_key = f"job_url_{job_id}"
-        job_url = cache.get(cache_key)
+        # Get the job URL from session (more reliable than cache)
+        job_urls = request.session.get('job_scraper_urls', [])
+        
+        # Debug logging
+        logger.debug(f"Job redirect called with job_id: {job_id}, session has {len(job_urls)} URLs")
+        logger.debug(f"Session URLs: {job_urls}")
+        
+        # Convert job_id to integer
+        try:
+            job_index = int(job_id)
+        except (ValueError, TypeError):
+            logger.error(f"Invalid job_id format: {job_id}")
+            messages.error(request, "Invalid job link. Please search again.")
+            return redirect('https://bossjob.ph/en-us/jobs-hiring')
+        
+        # Check if index is valid
+        if not job_urls or job_index < 0 or job_index >= len(job_urls):
+            logger.warning(f"Invalid job index: {job_index}, URLs count: {len(job_urls)}")
+            messages.warning(request, "Job link not found. Redirecting to BossJob.ph job search.")
+            return redirect('https://bossjob.ph/en-us/jobs-hiring')
+        
+        job_url = job_urls[job_index]
+        logger.debug(f"Retrieved job URL for index {job_index}: {job_url}")
         
         if not job_url:
-            # If not in cache, this might be an old or invalid job ID
-            messages.error(request, "Job link not found or has expired. Please search again.")
-            return redirect('jobs:job_scraper')
-        
-        # Handle special markers
-        if job_url in ['#no-url-found', 'javascript:void(0)', '#']:
-            messages.warning(request, "Direct job link is not available for this position. Redirecting to BossJob.ph job search.")
+            logger.warning(f"Job URL is None for index {job_index}")
+            messages.warning(request, "Job link not available. Redirecting to BossJob.ph job search.")
             return redirect('https://bossjob.ph/en-us/jobs-hiring')
         
-        # Ensure the URL is BossJob.ph specific
-        if 'bossjob.ph' not in job_url.lower():
-            messages.info(request, "Redirecting to BossJob.ph main jobs page.")
+        # Handle special markers - redirect to main bossjob page
+        if job_url in ['#no-url-found', 'javascript:void(0)', '#', '#no-url-found']:
+            logger.warning(f"Job URL is a special marker: {job_url}")
+            messages.warning(request, "Direct job link is not available. Redirecting to BossJob.ph job search.")
             return redirect('https://bossjob.ph/en-us/jobs-hiring')
         
-        # Test if the URL is accessible before redirecting
-        try:
-            import requests
-            from requests.adapters import HTTPAdapter
-            from urllib3.util.retry import Retry
-            
-            # Create a session with retry strategy
-            session = requests.Session()
-            retry_strategy = Retry(
-                total=2,
-                status_forcelist=[429, 500, 502, 503, 504],
-                method_whitelist=["HEAD", "GET", "OPTIONS"]
-            )
-            adapter = HTTPAdapter(max_retries=retry_strategy)
-            session.mount("http://", adapter)
-            session.mount("https://", adapter)
-            
-            # Test the URL with a HEAD request (faster than GET)
-            response = session.head(job_url, timeout=5, allow_redirects=True)
-            
-            # If we get a 404 or other client error, try alternative URL patterns
-            if response.status_code == 404:
-                logger.warning(f"Job URL returned 404: {job_url}")
-                
-                # Try alternative URL patterns
-                base_url = "https://bossjob.ph"
-                job_id_match = None
-                
-                # Extract job ID from the URL
-                import re
-                patterns = [
-                    r'/job/([^/?]+)',
-                    r'/position/([^/?]+)',
-                    r'/jobs/([^/?]+)',
-                    r'job[_-]?id[=:]([^&/?]+)',
-                    r'position[_-]?id[=:]([^&/?]+)'
-                ]
-                
-                for pattern in patterns:
-                    match = re.search(pattern, job_url, re.IGNORECASE)
-                    if match:
-                        job_id_match = match.group(1)
-                        break
-                
-                if job_id_match:
-                    # Try different URL patterns
-                    alternative_urls = [
-                        f"{base_url}/job/{job_id_match}",
-                        f"{base_url}/en-us/job/{job_id_match}",
-                        f"{base_url}/position/{job_id_match}",
-                        f"{base_url}/en-us/position/{job_id_match}",
-                        f"{base_url}/jobs/{job_id_match}"
-                    ]
-                    
-                    for alt_url in alternative_urls:
-                        if alt_url != job_url:  # Don't test the same URL again
-                            try:
-                                alt_response = session.head(alt_url, timeout=3, allow_redirects=True)
-                                if alt_response.status_code == 200:
-                                    logger.info(f"Found working alternative URL: {alt_url}")
-                                    # Update cache with working URL
-                                    cache.set(cache_key, alt_url, 3600)  # Cache for 1 hour
-                                    return redirect(alt_url)
-                            except:
-                                continue
-                
-                # If no alternative works, redirect to search page
-                messages.warning(request, "The specific job page is no longer available. Redirecting to job search.")
-                return redirect('https://bossjob.ph/en-us/jobs-hiring')
-            
-            elif response.status_code >= 400:
-                logger.warning(f"Job URL returned status {response.status_code}: {job_url}")
-                messages.warning(request, f"Job page is temporarily unavailable (Error {response.status_code}). Redirecting to job search.")
-                return redirect('https://bossjob.ph/en-us/jobs-hiring')
-            
-        except requests.RequestException as e:
-            logger.warning(f"Could not verify job URL {job_url}: {str(e)}")
-            # If we can't verify, still try to redirect (might be a network issue)
-            pass
+        # Validate URL format
+        if not isinstance(job_url, str) or len(job_url.strip()) == 0:
+            logger.warning(f"Job URL is invalid format: {type(job_url)} - {job_url}")
+            messages.warning(request, "Invalid job link format. Redirecting to BossJob.ph job search.")
+            return redirect('https://bossjob.ph/en-us/jobs-hiring')
         
-        # Redirect to the actual job URL
+        # Ensure the URL is a valid URL (starts with http:// or https://)
+        if not job_url.startswith(('http://', 'https://')):
+            # If it's a relative URL, prepend bossjob.ph base
+            if job_url.startswith('/'):
+                job_url = f"https://bossjob.ph{job_url}"
+            else:
+                logger.warning(f"Job URL is not absolute: {job_url}")
+                messages.warning(request, "Invalid job link. Redirecting to BossJob.ph job search.")
+                return redirect('https://bossjob.ph/en-us/jobs-hiring')
+        
+        # Log the redirect
+        logger.info(f"Redirecting to job URL: {job_url} for job_index: {job_index}")
+        
+        # Skip URL validation for now - just redirect directly
+        # URL validation was causing delays and failures
+        # The user can verify the URL themselves
+            
+        # Redirect directly to the job URL
         return redirect(job_url)
         
     except Exception as e:
-        logger.error(f"Error in job redirect: {str(e)}")
-        messages.error(request, "An error occurred while accessing the job link. Please try searching again.")
-        return redirect('jobs:job_scraper')
+        logger.error(f"Error in job redirect: {str(e)}", exc_info=True)
+        messages.error(request, "An error occurred while accessing the job link. Redirecting to BossJob.ph job search.")
+        return redirect('https://bossjob.ph/en-us/jobs-hiring')
