@@ -122,9 +122,9 @@ NORSU Alumni Network Team
                 return False
             
             # Send HTML email with plain text fallback using Render-compatible system
-            from core.email_utils import send_email_with_smtp_config
+            from core.email_utils import send_email_with_provider
             
-            success = send_email_with_smtp_config(
+            success = send_email_with_provider(
                 subject=subject,
                 message=plain_message,
                 recipient_list=[email],

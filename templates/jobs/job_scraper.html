@@ -172,12 +172,6 @@
         margin-bottom: 0.5rem;
         font-size: 0.875rem;
         font-family: 'Poppins', sans-serif;
-        display: block;
-    }
-    
-    .form-control-lg {
-        padding: 1rem 1.25rem;
-        font-size: 1rem;
     }
     
     .btn {
@@ -430,15 +424,9 @@
             <p class="mb-4" style="color: var(--text-secondary); font-family: 'Poppins', sans-serif;">
                 Search for the latest job postings from BossJob.ph with our intelligent job scraper
             </p>
-            
-            <!-- Quick Search Button -->
-            <form id="quick-search-form" class="row g-3 justify-content-center mb-4">
-                <div class="col-md-12 text-center">
-                    <button type="submit" id="quick-search-btn" class="btn btn-primary btn-lg">
-                        <i class="fas fa-search me-2"></i>Search Jobs
-                    </button>
-                </div>
-            </form>
+            <button id="quick-search-btn" class="btn btn-primary btn-lg">
+                <i class="fas fa-search me-2"></i>Perform Quick Search
+            </button>
         </div>
     </div>
 
@@ -450,7 +438,7 @@
                 <div class="quick-search-section">
                     <i class="fas fa-search fa-3x text-muted mb-3"></i>
                     <h4>Ready to Search</h4>
-                    <p>Click "Search Jobs" to find the latest job postings from multiple job sources</p>
+                    <p>Click "Perform Quick Search" above to find the latest job postings from BossJob.ph</p>
                 </div>
             </div>
         </div>
@@ -463,27 +451,23 @@
 // Quick search functionality with SweetAlert
 function initQuickSearch() {
     console.log('Initializing quick search...');
-    const quickSearchForm = document.getElementById('quick-search-form');
+    const quickSearchBtn = document.getElementById('quick-search-btn');
     
-    if (!quickSearchForm) {
-        console.error('Form not found!');
+    if (!quickSearchBtn) {
+        console.error('Button not found!');
         return;
     }
     
-    console.log('Form found, adding event listener...');
+    console.log('Button found, adding event listener...');
     
-    quickSearchForm.addEventListener('submit', function(e) {
+    quickSearchBtn.addEventListener('click', function(e) {
         e.preventDefault();
-        console.log('Quick search form submitted!');
-        
-        // Use default search parameters (general jobs in Philippines)
-        const keyword = 'general';
-        const location = 'philippines';
+        console.log('Quick search button clicked!');
         
         // Show loading alert
         Swal.fire({
             title: 'Searching Jobs...',
-            text: 'Searching for latest job listings...',
+            text: 'Fetching latest job postings from BossJob.ph',
             allowOutsideClick: false,
             allowEscapeKey: false,
             showConfirmButton: false,
@@ -493,19 +477,14 @@ function initQuickSearch() {
             }
         });
         
-        // Make AJAX request to job scraper with default parameters
-        const formData = new URLSearchParams();
-        formData.append('keyword', keyword);
-        formData.append('location', location);
-        formData.append('csrfmiddlewaretoken', '{{ csrf_token }}');
-        
+        // Make AJAX request to job scraper
         fetch('{% url "jobs:job_scraper_results" %}', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/x-www-form-urlencoded',
                 'X-CSRFToken': '{{ csrf_token }}'
             },
-            body: formData.toString()
+            body: 'keyword=general&location=philippines'
         })
         .then(response => {
             if (!response.ok) {
