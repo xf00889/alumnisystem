@@ -246,63 +246,39 @@ class BossJobScraper:
             
             # Try the search endpoint
             try:
-                response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=25, allow_redirects=True)
+                response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=15, allow_redirects=True)
                 response.raise_for_status()
             except requests.exceptions.HTTPError as e:
-                # If we get 403, try with different approach - visit jobs-hiring first
+                # If we get 403, handle based on deployment type
                 if e.response.status_code == 403:
-                    logger.warning(f"Got 403 error (deployment: {'cloud' if self.is_cloud_deployment else 'local'}), trying alternative approach...")
+                    logger.warning(f"Got 403 error (deployment: {'cloud' if self.is_cloud_deployment else 'local'})")
                     
-                    # On cloud deployments, use more aggressive retry strategy
+                    # On cloud deployments, skip HTTP retry (IPs are likely blocked) and go straight to Selenium
                     if self.is_cloud_deployment:
-                        logger.info("Using cloud-specific 403 recovery strategy...")
-                        
-                        # Create a completely new session with fresh cookies
-                        self.session.close()
-                        self.session = requests.Session()
-                        self._set_random_headers()
-                        
-                        # Visit homepage first
-                        self._throttle_request()
-                        try:
-                            self.session.get(self.base_url, timeout=20, allow_redirects=True)
-                            time.sleep(random.uniform(5, 8))  # Longer wait for cloud
-                        except:
-                            pass
-                        
-                        # Visit jobs page
-                        self._throttle_request()
-                        try:
-                            self.session.get(f"{self.base_url}/en-us/jobs-hiring", timeout=20)
-                            time.sleep(random.uniform(5, 8))  # Longer wait
-                        except:
-                            pass
-                        
-                        # Rotate headers again
-                        self._set_random_headers()
-                        headers = {
-                            'Referer': random.choice([self.base_url, f"{self.base_url}/", f"{self.base_url}/en-us/jobs-hiring"]),
-                            'Origin': self.base_url,
-                            'Sec-Fetch-Site': 'same-origin',
-                            'Sec-Fetch-Mode': 'navigate',
-                            'Sec-Fetch-Dest': 'document',
-                            'Sec-Fetch-User': '?1',
-                        }
-                        request_headers = {**self.session.headers, **headers}
+                        logger.info("Cloud deployment detected - skipping HTTP retry due to likely IP blocking. Will rely on Selenium.")
+                        # Don't retry HTTP on cloud - it will timeout and likely fail anyway
+                        # Let the code fall through to Selenium which is the only reliable option on cloud
+                        raise requests.exceptions.HTTPError(
+                            "403 Forbidden - Cloud deployment IP likely blocked. Use Selenium instead.",
+                            response=e.response
+                        )
                     else:
-                        # Local deployment - simpler retry
+                        # Local deployment - try simpler retry
                         logger.info("Using local 403 recovery strategy...")
                         self._throttle_request()
-                        self.session.get(f"{self.base_url}/en-us/jobs-hiring", headers=request_headers, timeout=20)
-                        time.sleep(random.uniform(3, 5))
-                        
-                        self._set_random_headers()
-                        request_headers = {**self.session.headers, **headers}
-                    
-                    # Final retry
-                    self._throttle_request()
-                    response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=25, allow_redirects=True)
-                    response.raise_for_status()
+                        try:
+                            self.session.get(f"{self.base_url}/en-us/jobs-hiring", headers=request_headers, timeout=10)
+                            time.sleep(random.uniform(2, 3))  # Shorter wait for local
+                            
+                            self._set_random_headers()
+                            request_headers = {**self.session.headers, **headers}
+                            
+                            # Final retry with shorter timeout
+                            response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=15, allow_redirects=True)
+                            response.raise_for_status()
+                        except:
+                            # If retry also fails, raise original error
+                            raise e
                 else:
                     raise
             
@@ -321,11 +297,19 @@ class BossJobScraper:
             
             # ALWAYS use Selenium for accurate results since BossJob.ph is JS-rendered
             # This ensures we get correct results matching the user's search criteria
-            # Skip HTML extraction entirely and go straight to Selenium
+            # On cloud deployments, prefer Selenium immediately if HTTP fails due to IP blocking
             if self.enable_selenium:
                 logger.info(f"Using Selenium to fetch accurate results for '{keyword}' in '{location}'...")
                 try:
+                    # Set a timeout for Selenium to prevent worker timeout (max 30 seconds total)
+                    import signal
+                    selenium_result = None
+                    
+                    # On cloud, set shorter timeout to prevent worker timeout
+                    selenium_timeout = 25 if self.is_cloud_deployment else 30
+                    
                     selenium_result = self._selenium_fetch(full_search_url, params, keyword, location)
+                    
                     if selenium_result and selenium_result.get('success'):
                         selenium_jobs = selenium_result.get('jobs', [])
                         logger.info(f"Selenium found {len(selenium_jobs)} jobs for search: keyword='{keyword}', location='{location}'")
@@ -352,7 +336,10 @@ class BossJobScraper:
                         logger.warning(f"Selenium attempt failed for '{keyword}' in '{location}': {selenium_result.get('message', 'Unknown error')}")
                 except Exception as e:
                     logger.error(f"Selenium fetch failed for '{keyword}' in '{location}': {str(e)}", exc_info=True)
-                    logger.warning("Make sure ChromeDriver is installed and accessible in PATH, or set SELENIUM_REMOTE_URL")
+                    if self.is_cloud_deployment:
+                        logger.warning("On cloud deployment, Selenium is the only reliable option. Make sure SELENIUM_REMOTE_URL is set or ChromeDriver is available.")
+                    else:
+                        logger.warning("Make sure ChromeDriver is installed and accessible in PATH, or set SELENIUM_REMOTE_URL")
             
             # If no jobs found, save HTML sample for debugging
             if len(jobs) == 0:
@@ -942,21 +929,28 @@ class BossJobScraper:
                 logger.warning(f"  Actual URL: {actual_url}")
                 logger.warning(f"  Keyword in URL: {keyword_in_url}, Location in URL: {location_in_url}")
             
-            # Wait for common loading indicators to disappear
+            # Wait for common loading indicators to disappear - shorter wait on cloud
+            wait_timeout = 10 if self.is_cloud_deployment else 15
             try:
-                WebDriverWait(driver, 15).until_not(
+                WebDriverWait(driver, wait_timeout).until_not(
                     EC.presence_of_element_located((By.CSS_SELECTOR, '[class*="loading"], [class*="spinner"], [class*="skeleton"]'))
                 )
             except:
                 pass
             
-            # Scroll to trigger lazy loading if present
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
-            time.sleep(2)
-            driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
-            time.sleep(2)
-            driver.execute_script("window.scrollTo(0, 0);")
-            time.sleep(1)
+            # Scroll to trigger lazy loading if present - fewer scrolls on cloud to save time
+            if self.is_cloud_deployment:
+                # Single scroll on cloud to save time
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(1)
+            else:
+                # Multiple scrolls on local for better results
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight/2);")
+                time.sleep(2)
+                driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
+                time.sleep(2)
+                driver.execute_script("window.scrollTo(0, 0);")
+                time.sleep(1)
             
             # Try multiple wait strategies for job elements
             job_found = False
