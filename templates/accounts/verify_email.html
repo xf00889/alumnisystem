@@ -620,16 +620,61 @@ document.addEventListener('DOMContentLoaded', function() {
     // Check for existing countdown on page load
     checkExistingCountdown();
     
-    // Clear error messages after 5 seconds
-    setTimeout(() => {
-        const alerts = document.querySelectorAll('.alert');
-        alerts.forEach(alert => {
-            if (alert.classList.contains('alert-danger')) {
-                alert.style.opacity = '0';
-                setTimeout(() => alert.remove(), 300);
-            }
-        });
-    }, 5000);
+    // Process Django messages - convert to SweetAlert and clear HTML alerts
+    {% if messages %}
+        // Check if there's a success message first
+        let hasSuccessMessage = false;
+        {% for message in messages %}
+            {% if message.tags == 'success' %}
+                hasSuccessMessage = true;
+            {% endif %}
+        {% endfor %}
+        
+        {% for message in messages %}
+            {% if message.tags == 'success' %}
+                // Clear any existing error alerts first
+                document.querySelectorAll('.alert').forEach(alert => alert.remove());
+                
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Email Verified!',
+                    text: '{{ message }}',
+                    confirmButtonColor: '#2b3c6b',
+                    confirmButtonText: 'OK'
+                }).then(() => {
+                    // Redirect to login page
+                    window.location.href = '{% url "account_login" %}';
+                });
+            {% elif message.tags == 'error' %}
+                // Only show error if there's no success message (verification failed)
+                if (!hasSuccessMessage) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Error',
+                        text: '{{ message }}',
+                        confirmButtonColor: '#2b3c6b',
+                        confirmButtonText: 'OK'
+                    });
+                }
+            {% endif %}
+        {% endfor %}
+        
+        // Clear HTML alerts after processing
+        setTimeout(() => {
+            document.querySelectorAll('.alert').forEach(alert => alert.remove());
+        }, 100);
+    {% else %}
+        // Clear error messages after 5 seconds if no messages to process
+        setTimeout(() => {
+            const alerts = document.querySelectorAll('.alert');
+            alerts.forEach(alert => {
+                if (alert.classList.contains('alert-danger')) {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 300);
+                }
+            });
+        }, 5000);
+    {% endif %}
 });
 </script>
 
