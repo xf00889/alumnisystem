@@ -428,9 +428,14 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
         
-        // Send resend request with email from form
-        const email = emailInput.value.trim();
+        // Send resend request with email from form or context
+        // Use user_email from template context if available, otherwise use email input field
+        const userEmail = {% if user_email %}'{{ user_email }}'{% else %}null{% endif %};
+        const emailFromInput = emailInput.value.trim();
+        const email = userEmail || emailFromInput;
+        
         if (!email) {
+            Swal.close();
             Swal.fire({
                 icon: 'warning',
                 title: 'Email Required',
@@ -438,6 +443,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 confirmButtonColor: '#2b3c6b',
                 confirmButtonText: 'OK'
             });
+            confirmResend.innerHTML = '<i class="fas fa-paper-plane"></i> Send Code';
+            confirmResend.disabled = false;
             return;
         }
         
