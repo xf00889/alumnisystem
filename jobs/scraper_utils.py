@@ -126,39 +126,37 @@ class BossJobScraper:
         
         logger.info(f"Performing FRESH search (cache disabled) for '{keyword}' in '{location}' (cache key: {cache_key})")
         
+        # Prepare search parameters (outside try block so they're available in exception handler)
+        keyword_formatted = keyword.lower().strip().replace(' ', '-')
+        location_formatted = location.lower().strip().replace(' ', '-')
+        
+        # Ensure keyword is not empty
+        if not keyword_formatted:
+            keyword_formatted = 'general'
+        
+        # Ensure location is not empty
+        if not location_formatted:
+            location_formatted = 'philippines'
+        
+        # BossJob.ph uses the /en-us/onsite-job endpoint with query parameters
+        # Format: /en-us/onsite-job?q=KEYWORD&location=X&region=Y
+        # The 'q' parameter is the keyword search
+        full_search_url = f"{self.base_url}/en-us/onsite-job"
+        
+        params = {
+            'q': keyword,  # Primary keyword parameter (used for search)
+            'location': location_formatted,
+            'region': self._get_region_from_location(location),
+        }
+        
+        # Log the exact URL being accessed
+        full_url_with_params = f"{full_search_url}?{urljoin('', '&'.join([f'{k}={v}' for k, v in params.items()]))}"
+        logger.info(f"Searching BossJob.ph - Keyword: '{keyword}' -> '{keyword_formatted}', Location: '{location}' -> '{location_formatted}'")
+        logger.info(f"Search URL: {full_url_with_params}")
+        
         try:
             # Throttle the request
             self._throttle_request()
-            
-            # Prepare search parameters using BossJob.ph URL structure
-            # BossJob.ph uses query parameters in the URL: /en-us/onsite-job?location=X&region=Y
-            # Or may use path-based: /en-us/jobs-hiring/{keyword}-jobs-in-{location}
-            keyword_formatted = keyword.lower().strip().replace(' ', '-')
-            location_formatted = location.lower().strip().replace(' ', '-')
-            
-            # Ensure keyword is not empty
-            if not keyword_formatted:
-                keyword_formatted = 'general'
-            
-            # Ensure location is not empty
-            if not location_formatted:
-                location_formatted = 'philippines'
-            
-            # BossJob.ph uses the /en-us/onsite-job endpoint with query parameters
-            # Format: /en-us/onsite-job?q=KEYWORD&location=X&region=Y
-            # The 'q' parameter is the keyword search
-            full_search_url = f"{self.base_url}/en-us/onsite-job"
-            
-            params = {
-                'q': keyword,  # Primary keyword parameter (used for search)
-                'location': location_formatted,
-                'region': self._get_region_from_location(location),
-            }
-            
-            # Log the exact URL being accessed
-            full_url_with_params = f"{full_search_url}?{urljoin('', '&'.join([f'{k}={v}' for k, v in params.items()]))}"
-            logger.info(f"Searching BossJob.ph - Keyword: '{keyword}' -> '{keyword_formatted}', Location: '{location}' -> '{location_formatted}'")
-            logger.info(f"Search URL: {full_url_with_params}")
             
             # Make the request with enhanced headers to mimic a real browser navigation
             headers = {
@@ -368,7 +366,7 @@ class BossJobScraper:
                 'total_found': 0,
                 'error': 'Access blocked by source (HTTP 403). Please try again later.',
                 'message': 'The source temporarily denied access (403).',
-                'fallback_url': f"{self.search_url}/{search_path}",
+                'fallback_url': f"{self.search_url}",
                 'debug_info': error_details
             }
         except requests.exceptions.RequestException as e:
@@ -770,8 +768,17 @@ class BossJobScraper:
                         logger.info("Using system ChromeDriver")
                 except Exception as e:
                     logger.error(f"Failed to initialize Chrome WebDriver: {str(e)}")
-                    raise
-
+                    # Don't raise - just return None so caller can fall back to HTTP requests
+                    driver = None
+                    if "cannot find Chrome binary" in str(e):
+                        logger.warning("Chrome browser not found. Selenium will be disabled for this request. Install Chrome or set SELENIUM_REMOTE_URL to use a remote Selenium server.")
+                    return None  # Return None if driver initialization failed
+            
+            # Check if driver was successfully initialized
+            if driver is None:
+                logger.warning("Selenium driver not available, skipping Selenium fetch")
+                return None
+            
             driver.set_page_load_timeout(30)
             logger.info(f"Selenium navigating to: {url}")
             logger.info(f"Search parameters - Keyword: '{keyword}', Location: '{location}'")
