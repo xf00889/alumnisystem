@@ -170,6 +170,15 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
         # Send email using the selected provider
         if provider_type == 'brevo':
             logger.info(f"Sending email via Brevo to {recipient_list}")
+            
+            # If from_email is the default placeholder, use Brevo config instead
+            # This ensures we use the verified Brevo sender email
+            if from_email and (from_email == settings.DEFAULT_FROM_EMAIL or 'example.com' in from_email.lower()):
+                brevo_settings = get_brevo_settings()
+                if brevo_settings.get('from_email'):
+                    logger.info(f"Replacing default from_email '{from_email}' with Brevo config: {brevo_settings.get('from_email')}")
+                    from_email = None  # Let Brevo use its configured email
+            
             result = send_email_with_brevo(
                 subject=subject,
                 message=message,
