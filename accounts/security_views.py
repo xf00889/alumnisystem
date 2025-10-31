@@ -347,9 +347,6 @@ NORSU Alumni Network Team
                 # Record attempt
                 RateLimiter.record_attempt(email, 'password_reset_attempt')
                 
-                # Store email in session for OTP verification step
-                request.session['password_reset_email'] = email
-                
                 messages.success(request, 'Verification code sent to your email.')
                 return redirect('accounts:password_reset_otp')
                 
@@ -364,11 +361,11 @@ NORSU Alumni Network Team
 
 def password_reset_otp(request):
     """Password reset OTP verification - uses existing template"""
-    # Get email from session or request (may be passed as query param or hidden field)
-    email = request.session.get('password_reset_email') or request.GET.get('email')
+    # Get email from URL parameter or session
+    email = request.GET.get('email') or request.session.get('password_reset_email')
     
     if not email:
-        messages.error(request, 'Email address not found. Please start the password reset process again.')
+        messages.error(request, 'Please enter your email address first.')
         return redirect('accounts:password_reset_email')
     
     if request.method == 'POST':
@@ -387,19 +384,13 @@ def password_reset_otp(request):
             else:
                 messages.error(request, message)
     else:
+        # Store email in session if it came from URL parameter
+        if email:
+            request.session['password_reset_email'] = email
         form = PasswordResetOTPForm()
     
-    # Store email in session if not already stored (from query param)
-    if not request.session.get('password_reset_email'):
-        request.session['password_reset_email'] = email
-    
-    context = {
-        'form': form,
-        'email': email
-    }
-    
     # Use existing password reset OTP template
-    return render(request, 'accounts/password_reset_otp.html', context)
+    return render(request, 'accounts/password_reset_otp.html', {'form': form, 'email': email})
 
 
 def password_reset_new_password(request):
