@@ -462,15 +462,12 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.close();
             
             if (data.success) {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Code Sent!',
-                    text: 'Verification code sent successfully! Please check your email.',
-                    confirmButtonColor: '#2b3c6b',
-                    confirmButtonText: 'OK'
-                });
+                // Hide modal first before showing success alert
                 resendModal.hide();
-                resendForm.reset();
+                
+                // Reset button state
+                confirmResend.innerHTML = '<i class="fas fa-paper-plane"></i> Send Code';
+                confirmResend.disabled = false;
                 
                 // Clear the verification code field to avoid confusion
                 document.getElementById('id_verification_code').value = '';
@@ -479,6 +476,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (data.next_resend_at) {
                     startResendCountdown(data.next_resend_at);
                 }
+                
+                // Show success alert last - no actions needed after it closes
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Code Sent!',
+                    text: 'Verification code sent successfully! Please check your email.',
+                    confirmButtonColor: '#2b3c6b',
+                    confirmButtonText: 'OK'
+                });
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -500,6 +506,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Close loading alert
             Swal.close();
             
+            // Reset button state
+            confirmResend.innerHTML = '<i class="fas fa-paper-plane"></i> Send Code';
+            confirmResend.disabled = false;
+            
             Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -509,8 +519,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         })
         .finally(() => {
-            confirmResend.innerHTML = '<i class="fas fa-paper-plane"></i> Send Code';
-            confirmResend.disabled = false;
+            // Ensure button is reset if not already done
+            if (confirmResend.innerHTML.includes('spinner') || confirmResend.disabled) {
+                confirmResend.innerHTML = '<i class="fas fa-paper-plane"></i> Send Code';
+                confirmResend.disabled = false;
+            }
         });
     });
     
