@@ -347,6 +347,9 @@ NORSU Alumni Network Team
                 # Record attempt
                 RateLimiter.record_attempt(email, 'password_reset_attempt')
                 
+                # Store email in session for OTP verification step
+                request.session['password_reset_email'] = email
+                
                 messages.success(request, 'Verification code sent to your email.')
                 return redirect('accounts:password_reset_otp')
                 
@@ -361,10 +364,16 @@ NORSU Alumni Network Team
 
 def password_reset_otp(request):
     """Password reset OTP verification - uses existing template"""
+    # Get email from session or request (may be passed as query param or hidden field)
+    email = request.session.get('password_reset_email') or request.GET.get('email')
+    
+    if not email:
+        messages.error(request, 'Email address not found. Please start the password reset process again.')
+        return redirect('accounts:password_reset_email')
+    
     if request.method == 'POST':
         form = PasswordResetOTPForm(request.POST)
         if form.is_valid():
-            email = form.cleaned_data['email']
             verification_code = form.cleaned_data['verification_code']
             
             # Verify code
@@ -380,8 +389,17 @@ def password_reset_otp(request):
     else:
         form = PasswordResetOTPForm()
     
+    # Store email in session if not already stored (from query param)
+    if not request.session.get('password_reset_email'):
+        request.session['password_reset_email'] = email
+    
+    context = {
+        'form': form,
+        'email': email
+    }
+    
     # Use existing password reset OTP template
-    return render(request, 'accounts/password_reset_otp.html', {'form': form})
+    return render(request, 'accounts/password_reset_otp.html', context)
 
 
 def password_reset_new_password(request):
