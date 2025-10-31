@@ -3,6 +3,7 @@ import requests
 from bs4 import BeautifulSoup
 import time
 import logging
+import random
 from urllib.parse import urljoin, quote_plus
 from django.core.cache import cache
 from django.conf import settings
@@ -15,27 +16,48 @@ class BossJobScraper:
         self.base_url = "https://bossjob.ph"
         self.search_url = "https://bossjob.ph/en-us/jobs-hiring"
         self.session = requests.Session()
-        # Updated headers to better mimic a real modern browser
+        
+        # Rotate through multiple user agents to avoid detection
+        self.user_agents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:132.0) Gecko/20100101 Firefox/132.0',
+        ]
+        
+        # Initialize with first user agent
+        self._set_random_headers()
+        self.request_delay = random.uniform(4, 8)  # Random delay between 4-8 seconds to avoid patterns
+        self.last_request_time = 0
+        self._initialize_session()
+    
+    def _set_random_headers(self):
+        """Set random headers to avoid detection patterns"""
+        user_agent = random.choice(self.user_agents)
+        
         self.session.headers.update({
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
+            'User-Agent': user_agent,
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8',
             'Accept-Language': 'en-US,en;q=0.9',
-            'Accept-Encoding': 'gzip, deflate, br, zstd',
+            'Accept-Encoding': 'gzip, deflate, br',
             'Connection': 'keep-alive',
             'Upgrade-Insecure-Requests': '1',
             'Sec-Fetch-Dest': 'document',
             'Sec-Fetch-Mode': 'navigate',
             'Sec-Fetch-Site': 'none',
             'Sec-Fetch-User': '?1',
-            'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
-            'sec-ch-ua-mobile': '?0',
-            'sec-ch-ua-platform': '"Windows"',
-            'DNT': '1',
             'Cache-Control': 'max-age=0',
+            'Referer': self.base_url,
         })
-        self.request_delay = 3  # Increased to 3 seconds between requests to be more respectful
-        self.last_request_time = 0
-        self._initialize_session()
+        
+        # Add Chrome-specific headers if it's a Chrome user agent
+        if 'Chrome' in user_agent:
+            self.session.headers.update({
+                'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+                'sec-ch-ua-mobile': '?0',
+                'sec-ch-ua-platform': '"Windows"',
+            })
         
         # Selenium config - Enable by default for JS-rendered content
         # Can be disabled by setting SELENIUM_ENABLE=false
@@ -48,14 +70,28 @@ class BossJobScraper:
         try:
             logger.debug("Initializing session by visiting BossJob.ph homepage...")
             self._throttle_request()
+            
+            # First visit homepage with minimal headers
+            headers = {
+                'User-Agent': self.session.headers.get('User-Agent'),
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                'Accept-Language': 'en-US,en;q=0.9',
+                'Connection': 'keep-alive',
+            }
+            
             # Visit homepage first to get cookies and establish session
             homepage_response = self.session.get(
                 self.base_url,
-                timeout=10,
+                headers=headers,
+                timeout=15,
                 allow_redirects=True
             )
+            
             if homepage_response.status_code == 200:
                 logger.debug("Session initialized successfully")
+                # Small delay to simulate human behavior
+                import random
+                time.sleep(random.uniform(1, 2))
             else:
                 logger.warning(f"Homepage returned status {homepage_response.status_code}")
         except Exception as e:
@@ -66,8 +102,15 @@ class BossJobScraper:
         """Implement request throttling to be respectful to the website"""
         current_time = time.time()
         time_since_last = current_time - self.last_request_time
-        if time_since_last < self.request_delay:
-            time.sleep(self.request_delay - time_since_last)
+        
+        # Use random delay to avoid patterns
+        delay = random.uniform(self.request_delay * 0.8, self.request_delay * 1.2)
+        
+        if time_since_last < delay:
+            sleep_time = delay - time_since_last
+            logger.debug(f"Throttling request for {sleep_time:.2f} seconds...")
+            time.sleep(sleep_time)
+        
         self.last_request_time = time.time()
     
     def _get_cache_key(self, keyword: str, location: str) -> str:
@@ -158,19 +201,52 @@ class BossJobScraper:
             # Throttle the request
             self._throttle_request()
             
+            # Randomize headers slightly to avoid patterns
+            referer = random.choice([
+                self.base_url,
+                f"{self.base_url}/",
+                f"{self.base_url}/en-us/jobs-hiring",
+            ])
+            
+            # Rotate user agent occasionally (20% chance)
+            if random.random() < 0.2:
+                self._set_random_headers()
+            
             # Make the request with enhanced headers to mimic a real browser navigation
             headers = {
-                'Referer': f"{self.base_url}/",
+                'Referer': referer,
                 'Origin': self.base_url,
                 'Sec-Fetch-Site': 'same-origin',
                 'Sec-Fetch-Mode': 'navigate',
                 'Sec-Fetch-Dest': 'document',
                 'Sec-Fetch-User': '?1',
             }
+            
             # Make request with additional headers (merge with existing session headers)
             request_headers = {**self.session.headers, **headers}
-            response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=15)
-            response.raise_for_status()
+            
+            # Try the search endpoint
+            try:
+                response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=25, allow_redirects=True)
+                response.raise_for_status()
+            except requests.exceptions.HTTPError as e:
+                # If we get 403, try with different approach - visit jobs-hiring first
+                if e.response.status_code == 403:
+                    logger.warning("Got 403, trying alternative approach - visiting jobs page first...")
+                    # Visit the main jobs page first to establish session
+                    self._throttle_request()
+                    self.session.get(f"{self.base_url}/en-us/jobs-hiring", headers=request_headers, timeout=20)
+                    time.sleep(random.uniform(3, 5))  # Wait a bit to simulate human behavior
+                    
+                    # Rotate headers and try again
+                    self._set_random_headers()
+                    request_headers = {**self.session.headers, **headers}
+                    
+                    # Try again with fresh headers
+                    response = self.session.get(full_search_url, params=params, headers=request_headers, timeout=25, allow_redirects=True)
+                    response.raise_for_status()
+                else:
+                    raise
             
             # Parse the HTML
             soup = BeautifulSoup(response.content, 'html.parser')
