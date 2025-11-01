@@ -2094,16 +2094,33 @@ document.addEventListener('DOMContentLoaded', function() {
             
             // Ensure cluster group is added to map
             if (!map.hasLayer(markerClusterGroup)) {
-                console.log('Cluster group not on map, adding it');
+                console.log('⚠️ Cluster group not on map, adding it');
                 map.addLayer(markerClusterGroup);
             }
             
+            // Force map to redraw
+            map.invalidateSize();
+            
             // Refresh the cluster group to ensure markers are visible
             try {
-                markerClusterGroup.refreshClusters();
+                if (typeof markerClusterGroup.refreshClusters === 'function') {
+                    markerClusterGroup.refreshClusters();
+                }
             } catch (e) {
                 console.warn('Error refreshing clusters:', e);
             }
+            
+            // Force a small delay then refresh again to ensure markers are visible
+            setTimeout(() => {
+                try {
+                    map.invalidateSize();
+                    if (validMarkers > 0 && typeof markerClusterGroup.refreshClusters === 'function') {
+                        markerClusterGroup.refreshClusters();
+                    }
+                } catch (e) {
+                    console.warn('Error in delayed refresh:', e);
+                }
+            }, 200);
 
             updateFilters();
             filterMarkers();
