@@ -1576,14 +1576,46 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                (position) => {
+                async (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
+                    
+                    // Send location to server
+                    try {
+                        const response = await fetch('{% url "location_tracking:update_location" %}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                latitude: lat,
+                                longitude: lng
+                            }),
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            console.log('Location updated successfully');
+                            // Refresh locations after updating
+                            setTimeout(() => updateLocations(), 500);
+                        }
+                    } catch (error) {
+                        console.error('Error sending location:', error);
+                    }
+                    
+                    // Center map on user's location
                     map.setView([lat, lng], 15);
                 },
                 (error) => {
                     console.error('Error getting location:', error);
                     alert('Unable to get your location. Please check your browser settings.');
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
                 }
             );
         } else {
@@ -1712,15 +1744,71 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    // Initial update
-    updateLocations();
+    // Function to send current user's location to server
+    function sendCurrentLocation() {
+        if (navigator.geolocation) {
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    
+                    try {
+                        // Send location to server
+                        const response = await fetch('{% url "location_tracking:update_location" %}', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRFToken': '{{ csrf_token }}'
+                            },
+                            body: JSON.stringify({
+                                latitude: lat,
+                                longitude: lng
+                            }),
+                            credentials: 'include'
+                        });
+                        
+                        const data = await response.json();
+                        if (data.status === 'success') {
+                            console.log('Location updated successfully:', data.message);
+                        } else {
+                            console.error('Failed to update location:', data.message);
+                        }
+                    } catch (error) {
+                        console.error('Error sending location:', error);
+                    }
+                },
+                (error) => {
+                    console.error('Error getting location:', error);
+                    // Don't show alert - user might have denied permission
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 10000,
+                    maximumAge: 0
+                }
+            );
+        }
+    }
+    
+    // Send current user's location on page load
+    sendCurrentLocation();
+    
+    // Initial update after a short delay to allow location to be sent
+    setTimeout(() => {
+        updateLocations();
+    }, 1000);
     
     // Periodic updates with a longer interval to avoid disruptions
     setInterval(() => {
         if (!isProcessingClick) {
-            updateLocations();
+            // Update current user's location before fetching all locations
+            sendCurrentLocation();
+            // Then update locations after a short delay
+            setTimeout(() => {
+                updateLocations();
+            }, 500);
         }
-    }, 30000); // Increase to 30 seconds to reduce interference
+    }, 30000); // Update every 30 seconds
     
     // Run setup ONCE after initial page load
     setTimeout(setupAlumniItemClicks, 1000);
