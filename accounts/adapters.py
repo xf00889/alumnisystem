@@ -45,3 +45,22 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         
         # Call parent method for default behavior
         return super().pre_authenticate(request, **credentials)
+    
+    def is_open_for_signup(self, request):
+        """
+        Check if signup is open - always return True to allow signups.
+        """
+        return True
+    
+    def can_authenticate(self, user):
+        """
+        Override to allow authentication if user is active.
+        This is called AFTER authentication but before redirecting.
+        We refresh the user from DB to get the latest state.
+        """
+        if user:
+            # Always refresh from database to get latest state
+            user.refresh_from_db()
+            # Return True if user is active, False otherwise
+            return user.is_active
+        return False
