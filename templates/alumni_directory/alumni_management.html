@@ -1014,14 +1014,21 @@
                     return;
                 }
 
-                // Show loading spinner
-                modalBody.innerHTML = `
-                    <div class="text-center">
-                        <div class="spinner-border text-primary" role="status">
-                            <span class="visually-hidden">Loading...</span>
+                // Show modal first with loading spinner
+                if (modalInstance) {
+                    // Show loading spinner before showing modal
+                    modalBody.innerHTML = `
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading alumni details...</p>
                         </div>
-                    </div>
-                `;
+                    `;
+                    
+                    // Show modal immediately with loading state
+                    modalInstance.show();
+                }
 
                 // Fetch alumni details
                 const url = `/alumni/alumni/${alumniId}/detail-modal/`;
@@ -1042,22 +1049,32 @@
                         return response.text();
                     })
                     .then(html => {
-                        modalBody.innerHTML = html;
-                        // Show modal after content is loaded
-                        if (modalInstance) {
-                            modalInstance.show();
+                        // Find modal body again (in case Bootstrap moved it)
+                        let updatedModalBody = alumniDetailModal.querySelector('#alumniDetailContent') || 
+                                             alumniDetailModal.querySelector('.modal-body') ||
+                                             document.getElementById('alumniDetailContent');
+                        
+                        if (updatedModalBody) {
+                            updatedModalBody.innerHTML = html;
+                        } else {
+                            console.error('Could not find modal body to update content');
                         }
                     })
                     .catch(error => {
-                        modalBody.innerHTML = `
-                            <div class="alert alert-danger">
-                                <i class="fas fa-exclamation-triangle me-2"></i>
-                                Error loading alumni details: ${error.message}
-                            </div>
-                        `;
-                        // Show modal even if there's an error
-                        if (modalInstance) {
-                            modalInstance.show();
+                        // Find modal body again for error message
+                        let updatedModalBody = alumniDetailModal.querySelector('#alumniDetailContent') || 
+                                             alumniDetailModal.querySelector('.modal-body') ||
+                                             document.getElementById('alumniDetailContent');
+                        
+                        if (updatedModalBody) {
+                            updatedModalBody.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Error loading alumni details: ${error.message}
+                                </div>
+                            `;
+                        } else {
+                            console.error('Could not find modal body to show error:', error);
                         }
                     });
             });
