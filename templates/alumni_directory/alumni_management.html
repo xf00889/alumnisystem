@@ -405,7 +405,7 @@
         <div class="col-12">
             <!-- Action Buttons -->
             <div class="d-flex justify-content-end mb-3">
-                <button type="button" class="btn btn-info me-2" data-bs-toggle="modal" data-bs-target="#importModal">
+                <button type="button" class="btn btn-info me-2 import-modal-trigger" data-bs-target="#importModal">
                     <i class="fas fa-file-import me-1"></i> Import Data
                 </button>
 
@@ -422,7 +422,7 @@
                         </li>
                         <li><hr class="dropdown-divider"></li>
                         <li>
-                            <a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#exportOptionsModal">
+                            <a class="dropdown-item export-options-trigger" href="#" data-bs-target="#exportOptionsModal">
                                 <i class="fas fa-cog me-2"></i> Export Options...
                             </a>
                         </li>
@@ -931,21 +931,40 @@
         }
         const csrftoken = getCookie('csrftoken');
 
+        // Wait for Bootstrap to be fully loaded
+        if (typeof bootstrap === 'undefined' || typeof bootstrap.Modal === 'undefined') {
+            console.error('Bootstrap Modal is not available');
+            return;
+        }
+
+        // Ensure modal element exists and has proper structure
+        if (!alumniDetailModal.querySelector('.modal-dialog')) {
+            console.error('Modal dialog not found in modal structure');
+            return;
+        }
+
         // Manually initialize the modal with explicit options to prevent backdrop error
         let modalInstance;
         try {
-            modalInstance = new bootstrap.Modal(alumniDetailModal, {
+            // Initialize modal with explicit options
+            const modalOptions = {
                 backdrop: true,
                 keyboard: true,
-                focus: true
-            });
+                focus: true,
+                show: false  // Don't show immediately
+            };
+            
+            modalInstance = bootstrap.Modal.getOrCreateInstance(alumniDetailModal, modalOptions);
         } catch (error) {
             console.error('Error initializing modal:', error);
-            // Try with empty options as fallback
+            console.error('Error details:', error.message, error.stack);
+            
+            // Try alternative initialization without options (uses defaults)
             try {
-                modalInstance = new bootstrap.Modal(alumniDetailModal, {});
+                modalInstance = bootstrap.Modal.getOrCreateInstance(alumniDetailModal);
             } catch (fallbackError) {
                 console.error('Error with fallback modal initialization:', fallbackError);
+                console.error('Fallback error details:', fallbackError.message, fallbackError.stack);
                 return;
             }
         }
@@ -1022,6 +1041,72 @@
         if (!exportOptionsModal) {
             console.error('Export options modal not found');
             return;
+        }
+
+        // Ensure modal structure is correct
+        if (!exportOptionsModal.querySelector('.modal-dialog')) {
+            console.error('Export modal dialog not found in modal structure');
+            return;
+        }
+
+        // Manually initialize export modal to prevent backdrop error
+        let exportModalInstance;
+        try {
+            const exportModalOptions = {
+                backdrop: true,
+                keyboard: true,
+                focus: true,
+                show: false
+            };
+            exportModalInstance = bootstrap.Modal.getOrCreateInstance(exportOptionsModal, exportModalOptions);
+        } catch (error) {
+            console.error('Error initializing export modal:', error);
+            try {
+                exportModalInstance = bootstrap.Modal.getOrCreateInstance(exportOptionsModal);
+            } catch (fallbackError) {
+                console.error('Error with fallback export modal initialization:', fallbackError);
+            }
+        }
+
+        // Handle export options trigger button
+        document.querySelectorAll('.export-options-trigger').forEach(trigger => {
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (exportModalInstance) {
+                    exportModalInstance.show();
+                }
+            });
+        });
+
+        // Initialize Import Modal to prevent backdrop error
+        const importModal = document.getElementById('importModal');
+        let importModalInstance = null;
+        if (importModal && importModal.querySelector('.modal-dialog')) {
+            try {
+                importModalInstance = bootstrap.Modal.getOrCreateInstance(importModal, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true,
+                    show: false
+                });
+            } catch (error) {
+                console.error('Error initializing import modal:', error);
+                try {
+                    importModalInstance = bootstrap.Modal.getOrCreateInstance(importModal);
+                } catch (fallbackError) {
+                    console.error('Error with fallback import modal initialization:', fallbackError);
+                }
+            }
+
+            // Handle import modal trigger button
+            document.querySelectorAll('.import-modal-trigger').forEach(trigger => {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (importModalInstance) {
+                        importModalInstance.show();
+                    }
+                });
+            });
         }
         
         const exportOptionsForm = document.getElementById('exportOptionsForm');
@@ -1269,15 +1354,12 @@
             }
 
             // Hide modal before redirecting if it exists and is visible
-            if (exportOptionsModal) {
+            if (exportModalInstance) {
                 try {
-                    const modalInstance = bootstrap.Modal.getInstance(exportOptionsModal);
-                    if (modalInstance) {
-                        modalInstance.hide();
-                    }
+                    exportModalInstance.hide();
                 } catch (error) {
                     // Modal instance might not exist, continue with redirect
-                    console.log('Modal instance not available, continuing with redirect');
+                    console.log('Error hiding modal, continuing with redirect:', error);
                 }
             }
 
