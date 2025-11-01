@@ -1313,9 +1313,31 @@ document.addEventListener('DOMContentLoaded', function() {
             isActiveAlumniVisible = filteredData.some(alumni => alumni.user === activeAlumniName);
         }
 
-        // Clear existing markers and the cluster group
+        // Clear existing markers and the cluster group completely
+        // Use removeLayer to ensure all markers are removed properly
+        try {
+            markerClusterGroup.eachLayer(function(marker) {
+                try {
+                    markerClusterGroup.removeLayer(marker);
+                } catch (e) {
+                    // Ignore errors during removal
+                }
+            });
+        } catch (e) {
+            console.warn('Error removing layers from cluster:', e);
+        }
         markerClusterGroup.clearLayers();
-        Object.keys(markers).forEach(key => delete markers[key]);
+        
+        // Clear markers object
+        Object.keys(markers).forEach(key => {
+            try {
+                if (markers[key]) {
+                    delete markers[key];
+                }
+            } catch (e) {
+                console.warn('Error deleting marker:', e);
+            }
+        });
 
         // Add new markers with custom icon to the cluster group
         let validMarkersAdded = 0;
@@ -1800,9 +1822,26 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Clear existing markers and cluster group
+            // Clear existing markers and cluster group completely
+            // Use removeLayer to ensure all markers are removed properly
+            markerClusterGroup.eachLayer(function(marker) {
+                markerClusterGroup.removeLayer(marker);
+            });
             markerClusterGroup.clearLayers();
-            Object.keys(markers).forEach(key => delete markers[key]);
+            
+            // Clear markers object
+            Object.keys(markers).forEach(key => {
+                try {
+                    if (markers[key]) {
+                        delete markers[key];
+                    }
+                } catch (e) {
+                    console.warn('Error deleting marker:', e);
+                }
+            });
+            
+            // Wait a bit to ensure cluster animations are complete
+            await new Promise(resolve => setTimeout(resolve, 100));
 
             console.log(`Processing ${alumniData.length} alumni locations`);
             
@@ -1817,8 +1856,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
                 
                 try {
-                    const lat = parseFloat(alumni.latitude);
-                    const lng = parseFloat(alumni.longitude);
+                    // Parse coordinates - ensure we have valid numbers
+                    let lat = parseFloat(alumni.latitude);
+                    let lng = parseFloat(alumni.longitude);
+                    
+                    // Validate immediately after parsing
+                    if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
+                        console.warn(`Skipping invalid (NaN or non-finite) coordinates for ${alumni.user}:`, lat, lng);
+                        return;
+                    }
                     
                     // Additional validation: check for NaN, 0, or invalid ranges
                     if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
@@ -1852,15 +1898,37 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
+                    // Validate marker position one more time before creating
+                    if (!isFinite(lat) || !isFinite(lng) || isNaN(lat) || isNaN(lng)) {
+                        console.warn(`Final validation failed for ${alumni.user}, skipping marker creation`);
+                        return;
+                    }
+                    
+                    // Create marker with validated position
                     const marker = L.marker(position, { icon: createCustomMarker(alumni) })
                         .bindPopup(createPopupContent(alumni), {
                             autoClose: false,
                             closeOnClick: false
                         });
+                    
+                    // Validate marker was created successfully and has valid position
+                    const markerLatLng = marker.getLatLng();
+                    if (!markerLatLng || isNaN(markerLatLng.lat) || isNaN(markerLatLng.lng) ||
+                        !isFinite(markerLatLng.lat) || !isFinite(markerLatLng.lng)) {
+                        console.warn(`Marker created with invalid position for ${alumni.user}, skipping`);
+                        marker.remove();
+                        return;
+                    }
                         
                     markers[alumni.user] = marker;
-                    markerClusterGroup.addLayer(marker);
-                    validMarkers++;
+                    try {
+                        markerClusterGroup.addLayer(marker);
+                        validMarkers++;
+                    } catch (e) {
+                        console.error(`Error adding marker to cluster group for ${alumni.user}:`, e);
+                        marker.remove();
+                        delete markers[alumni.user];
+                    }
                 } catch (error) {
                     console.error(`Error creating marker for ${alumni.user}:`, error, 'Coordinates:', alumni.latitude, alumni.longitude);
                 }
