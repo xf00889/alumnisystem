@@ -2069,10 +2069,27 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            console.log(`Successfully created ${validMarkers} markers out of ${alumniData.length} locations`);
-            console.log(`Skipped ${invalidCount} invalid locations`);
-            console.log(`Total markers in cluster group: ${markerClusterGroup.getLayers().length}`);
-            console.log(`Total markers in tracking object: ${Object.keys(markers).length}`);
+            console.log(`✅ Successfully created ${validMarkers} markers out of ${alumniData.length} locations`);
+            console.log(`⚠️ Skipped ${invalidCount} invalid locations`);
+            
+            // Verify markers are actually in cluster group
+            const layersInCluster = markerClusterGroup.getLayers();
+            console.log(`📍 Total layers in cluster group: ${layersInCluster.length}`);
+            console.log(`📍 Total markers in tracking object: ${Object.keys(markers).length}`);
+            
+            // Log first few markers for debugging
+            if (layersInCluster.length > 0) {
+                console.log('Sample markers in cluster:', layersInCluster.slice(0, 3).map(layer => {
+                    try {
+                        const latLng = layer.getLatLng();
+                        return { lat: latLng.lat, lng: latLng.lng };
+                    } catch (e) {
+                        return 'Error getting position';
+                    }
+                }));
+            } else {
+                console.warn('⚠️ WARNING: No markers in cluster group!');
+            }
             
             // Ensure cluster group is added to map
             if (!map.hasLayer(markerClusterGroup)) {
