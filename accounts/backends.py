@@ -54,6 +54,7 @@ class CustomModelBackend(ModelBackend):
         """
         Check if the user can authenticate.
         Always check the latest is_active status from the database.
+        If user is inactive but has a password, auto-activate them.
         """
         # Refresh user from database to ensure we have the latest state
         user.refresh_from_db()
@@ -61,7 +62,15 @@ class CustomModelBackend(ModelBackend):
         # Check if user is active
         is_active = getattr(user, 'is_active', None)
         
-        # If user is not active, check if they recently reset their password
-        # Allow authentication if they're active OR if we can't determine their status
-        return is_active is not False
+        # If user is not active but has a usable password, they likely reset password
+        # Auto-activate them to allow login
+        if not is_active and user.has_usable_password():
+            # User has a password but is inactive - likely reset password
+            # Activate them automatically
+            user.is_active = True
+            user.save(update_fields=['is_active'])
+            user.refresh_from_db()
+            return True
+        
+        return is_active is True
 
