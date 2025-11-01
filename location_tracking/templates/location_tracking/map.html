@@ -1849,7 +1849,20 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('{% url "location_tracking:get_locations" %}');
             const data = await response.json();
             
+            console.log('Received data from API:', data);
+            console.log('Number of locations:', data.locations ? data.locations.length : 0);
+            
+            // Check if we have locations
+            if (!data.locations || data.locations.length === 0) {
+                console.warn('No locations received from API');
+                // Clear existing markers
+                markerClusterGroup.clearLayers();
+                Object.keys(markers).forEach(key => delete markers[key]);
+                return;
+            }
+            
             // Filter and validate locations before processing
+            const beforeFilter = data.locations.length;
             alumniData = data.locations
                 .filter(location => {
                     // Validate coordinates exist and are valid numbers
@@ -1866,8 +1879,11 @@ document.addEventListener('DOMContentLoaded', function() {
                         return false;
                     }
                     return true;
-                })
-                .map(location => {
+                });
+            
+            console.log(`Filtered ${alumniData.length} valid locations out of ${beforeFilter} total`);
+            
+            alumniData = alumniData.map(location => {
                     // Parse coordinates as floats to ensure they're numbers
                     const lat = parseFloat(location.latitude);
                     const lng = parseFloat(location.longitude);
@@ -1924,14 +1940,17 @@ document.addEventListener('DOMContentLoaded', function() {
             }
 
             console.log(`Processing ${alumniData.length} alumni locations`);
+            console.log('Sample alumni data:', alumniData.slice(0, 3)); // Log first 3 for debugging
             
             // Add new markers with custom icon to the cluster group
             let validMarkers = 0;
+            let invalidCount = 0;
             alumniData.forEach(alumni => {
                 // Validate coordinates before creating marker
                 if (!alumni.latitude || !alumni.longitude || 
                     isNaN(alumni.latitude) || isNaN(alumni.longitude)) {
                     console.warn(`Skipping invalid coordinates for ${alumni.user}:`, alumni.latitude, alumni.longitude);
+                    invalidCount++;
                     return;
                 }
                 
@@ -2069,6 +2088,9 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             console.log(`Successfully created ${validMarkers} markers out of ${alumniData.length} locations`);
+            console.log(`Skipped ${invalidCount} invalid locations`);
+            console.log(`Total markers in cluster group: ${markerClusterGroup.getLayers().length}`);
+            console.log(`Total markers in tracking object: ${Object.keys(markers).length}`);
             
             // Ensure cluster group is added to map
             if (!map.hasLayer(markerClusterGroup)) {
