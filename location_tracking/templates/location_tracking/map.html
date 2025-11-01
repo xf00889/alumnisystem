@@ -1238,9 +1238,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
+    // Add global error handler for cluster library errors
+    window.addEventListener('error', function(event) {
+        // Check if error is from Leaflet marker cluster library
+        if (event.message && (
+            event.message.includes('Cannot read properties of undefined') ||
+            event.message.includes('reading \'lat\'') ||
+            event.filename && event.filename.includes('markercluster')
+        )) {
+            console.warn('Caught cluster library error, cleaning invalid markers:', event.message);
+            
+            // Clean up invalid markers
+            try {
+                const layers = markerClusterGroup.getLayers();
+                const invalidLayers = [];
+                layers.forEach(layer => {
+                    try {
+                        const latLng = layer.getLatLng();
+                        if (!latLng || 
+                            typeof latLng.lat === 'undefined' || 
+                            typeof latLng.lng === 'undefined' ||
+                            isNaN(latLng.lat) || isNaN(latLng.lng)) {
+                            invalidLayers.push(layer);
+                        }
+                    } catch (e) {
+                        invalidLayers.push(layer);
+                    }
+                });
+                
+                // Remove invalid layers
+                invalidLayers.forEach(layer => {
+                    try {
+                        markerClusterGroup.removeLayer(layer);
+                    } catch (e) {
+                        // Ignore removal errors
+                    }
+                });
+            } catch (e) {
+                console.warn('Error cleaning markers:', e);
+            }
+            
+            // Prevent error from breaking the page
+            event.preventDefault();
+            return true;
+        }
+    });
+    
     // Add marker cluster group to map
     map.addLayer(markerClusterGroup);
-
+    
     const markers = {};
     let alumniData = [];
     let filteredData = [];
