@@ -710,9 +710,13 @@
                  </div>
                  
                  <div class="alumni-actions">
-                     <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}" class="btn-view-profile">
-                         <i class="fas fa-user"></i> View Profile
-                     </a>
+                     <button type="button" 
+                             class="btn-view-profile" 
+                             data-bs-toggle="modal" 
+                             data-bs-target="#alumniDetailModal"
+                             data-alumni-id="{{ alumni.id }}">
+                         <i class="fas fa-user"></i> View Details
+                     </button>
                      
                      {% if user.is_authenticated and user != alumni.user %}
                          {% load connections_tags %}
@@ -792,6 +796,28 @@
          {% endif %}</div>
 </div>
 
+<!-- Alumni Detail Modal -->
+<div class="modal fade" id="alumniDetailModal" tabindex="-1" aria-labelledby="alumniDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alumniDetailModalLabel">
+                    <i class="fas fa-user me-2"></i>Alumni Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="alumniDetailContent">
+                <!-- Content will be loaded via AJAX -->
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <!-- JavaScript for filter functionality and connection requests -->
 <script>
 function removeFilter(filterType, value) {
@@ -815,8 +841,89 @@ function removeFilter(filterType, value) {
     window.location.href = url.pathname + '?' + params.toString();
 }
 
-// Connection functionality
+// Connection functionality and modal handling
 document.addEventListener('DOMContentLoaded', function() {
+    // Handle alumni detail modal
+    const alumniDetailModal = document.getElementById('alumniDetailModal');
+    
+    if (alumniDetailModal) {
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+        
+        // Add event listener for modal show event
+        alumniDetailModal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            
+            if (!button) {
+                return;
+            }
+            
+            const alumniId = button.getAttribute('data-alumni-id');
+            
+            if (!alumniId) {
+                return;
+            }
+            
+            const modalBody = document.getElementById('alumniDetailContent');
+            if (!modalBody) {
+                return;
+            }
+            
+            // Show loading spinner
+            modalBody.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            `;
+            
+            // Fetch alumni details
+            const url = `/alumni/alumni/${alumniId}/detail-modal/`;
+            
+            fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html',
+                    'X-CSRFToken': csrftoken,
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    modalBody.innerHTML = html;
+                })
+                .catch(error => {
+                    modalBody.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading alumni details: ${error.message}
+                        </div>
+                    `;
+                });
+        });
+    }
+    
     // Handle connect button clicks
     document.querySelectorAll('.btn-connect[data-user-id]').forEach(button => {
         button.addEventListener('click', function() {
