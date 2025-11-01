@@ -642,46 +642,49 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Process Django messages - convert to SweetAlert and clear HTML alerts
     {% if messages %}
-        // Check if there's a success message first
-        let hasSuccessMessage = false;
         {% for message in messages %}
             {% if message.tags == 'success' %}
-                hasSuccessMessage = true;
-            {% endif %}
-        {% endfor %}
-        
-        {% for message in messages %}
-            {% if message.tags == 'success' %}
-                // Clear any existing error alerts first
-                document.querySelectorAll('.alert').forEach(alert => alert.remove());
-                
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Email Verified!',
-                    text: '{{ message }}',
-                    confirmButtonColor: '#2b3c6b',
-                    confirmButtonText: 'OK'
-                }).then(() => {
-                    // Redirect to login page
-                    window.location.href = '{% url "account_login" %}';
-                });
-            {% elif message.tags == 'error' %}
-                // Only show error if there's no success message (verification failed)
-                if (!hasSuccessMessage) {
+                // Only show "Email Verified!" if the message explicitly says "Email verified successfully"
+                // Otherwise, it's just the signup success message - show it as info, not "Email Verified"
+                {% if 'Email verified successfully' in message %}
+                    // This is the actual verification success - show "Email Verified!" and redirect
                     Swal.fire({
-                        icon: 'error',
-                        title: 'Error',
+                        icon: 'success',
+                        title: 'Email Verified!',
                         text: '{{ message }}',
                         confirmButtonColor: '#2b3c6b',
                         confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Redirect to login page
+                        window.location.href = '{% url "account_login" %}';
                     });
-                }
+                {% else %}
+                    // This is the signup success message - just remove the HTML alert, don't show SweetAlert
+                    // The message is already shown in the HTML, we don't need to duplicate it
+                    // Remove the HTML alert after a moment
+                    setTimeout(() => {
+                        document.querySelectorAll('.alert-success').forEach(alert => {
+                            alert.style.transition = 'opacity 0.3s';
+                            alert.style.opacity = '0';
+                            setTimeout(() => alert.remove(), 300);
+                        });
+                    }, 3000);
+                {% endif %}
+            {% elif message.tags == 'error' %}
+                // Show error messages
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: '{{ message }}',
+                    confirmButtonColor: '#2b3c6b',
+                    confirmButtonText: 'OK'
+                });
             {% endif %}
         {% endfor %}
         
-        // Clear HTML alerts after processing
+        // Clear HTML alerts after processing (except signup success messages which fade out above)
         setTimeout(() => {
-            document.querySelectorAll('.alert').forEach(alert => alert.remove());
+            document.querySelectorAll('.alert-danger').forEach(alert => alert.remove());
         }, 100);
     {% else %}
         // Clear error messages after 5 seconds if no messages to process
