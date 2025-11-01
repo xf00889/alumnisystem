@@ -141,15 +141,18 @@ def update_location(request):
                     'message': 'Coordinates must be valid numbers'
                 }, status=400)
             
-            # Update or create location data
-            location, created = LocationData.objects.update_or_create(
+            # Deactivate old locations for this user (only keep the latest active)
+            LocationData.objects.filter(user=request.user, is_active=True).update(is_active=False)
+            
+            # Create new location data with fresh timestamp (always create new to update timestamp)
+            location = LocationData.objects.create(
                 user=request.user,
-                defaults={
-                    'latitude': lat,
-                    'longitude': lng,
-                    'is_active': True
-                }
+                latitude=lat,
+                longitude=lng,
+                is_active=True
             )
+            
+            created = True
             
             action = 'created' if created else 'updated'
             return JsonResponse({
