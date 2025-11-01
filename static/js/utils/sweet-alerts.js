@@ -210,51 +210,16 @@ function processDjangoMessages() {
                 messageType = 'warning';
             }
             
-            // Immediately remove/hide the HTML alert
+            // Immediately remove/hide the HTML alert - just remove, don't convert to SweetAlert
             alert.style.display = 'none';
+            alert.style.visibility = 'hidden';
+            alert.style.opacity = '0';
+            alert.style.height = '0';
+            alert.style.padding = '0';
+            alert.style.margin = '0';
             alert.remove();
             
-            // Skip showing SweetAlert for ALL messages - we just want to remove them, not convert
-            // This prevents any SweetAlert from showing for Django messages
-            return;
-            
-            // Show SweetAlert only for the first message (to avoid multiple alerts)
-            if (index === 0 && messageType === 'success') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Success!',
-                    text: messageText,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#28a745',
-                    timer: 3000,
-                    timerProgressBar: true,
-                    showConfirmButton: true,
-                    toast: false,
-                    position: 'center'
-                });
-            } else if (index === 0 && messageType === 'error') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: messageText,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: '#dc3545',
-                    showConfirmButton: true,
-                    toast: false,
-                    position: 'center'
-                });
-            } else if (index === 0) {
-                Swal.fire({
-                    icon: messageType,
-                    title: messageType.charAt(0).toUpperCase() + messageType.slice(1),
-                    text: messageText,
-                    confirmButtonText: 'OK',
-                    confirmButtonColor: messageType === 'warning' ? '#ffc107' : '#17a2b8',
-                    showConfirmButton: true,
-                    toast: false,
-                    position: 'center'
-                });
-            }
+            // Don't show SweetAlert - just remove the HTML alerts
         });
         
         // Also hide/remove the messages container if it exists
