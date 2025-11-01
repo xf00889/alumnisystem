@@ -1330,34 +1330,27 @@ document.addEventListener('DOMContentLoaded', function() {
             isActiveAlumniVisible = filteredData.some(alumni => alumni.user === activeAlumniName);
         }
 
-        // Remove and recreate cluster group for filterMarkers to ensure clean state
+        // Clear existing markers from cluster group (but don't recreate - it's already on the map)
         try {
-            // Remove cluster group from map
-            if (map.hasLayer(markerClusterGroup)) {
-                map.removeLayer(markerClusterGroup);
-            }
-            
-            // Clear all layers
+            // Clear all layers from cluster group
             markerClusterGroup.clearLayers();
+            
+            // Remove markers from cluster group
+            markerClusterGroup.getLayers().forEach(layer => {
+                try {
+                    markerClusterGroup.removeLayer(layer);
+                } catch (e) {
+                    // Ignore errors
+                }
+            });
         } catch (e) {
             console.warn('Error clearing cluster in filterMarkers:', e);
         }
         
-        // Clear markers object
+        // Clear markers from our tracking object (but keep the cluster group)
         Object.keys(markers).forEach(key => {
-            try {
-                if (markers[key] && markers[key].remove) {
-                    markers[key].remove();
-                }
-                delete markers[key];
-            } catch (e) {
-                console.warn('Error deleting marker:', e);
-            }
+            delete markers[key];
         });
-        
-        // Recreate cluster group
-        markerClusterGroup = createMarkerClusterGroup();
-        map.addLayer(markerClusterGroup);
 
         // Add new markers with custom icon to the cluster group
         let validMarkersAdded = 0;
