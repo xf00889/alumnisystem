@@ -1,5 +1,8 @@
 from allauth.account.adapter import DefaultAccountAdapter
 from django.urls import reverse
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 class CustomAccountAdapter(DefaultAccountAdapter):
     """
@@ -22,3 +25,23 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         Return None to let our custom view handle the redirect.
         """
         return None
+    
+    def pre_authenticate(self, request, **credentials):
+        """
+        Override to ensure users who just reset their password can authenticate.
+        This method is called before authentication, allowing us to refresh
+        the user from the database to get the latest is_active status.
+        """
+        email = credentials.get('email')
+        
+        if email:
+            try:
+                # Get user directly from database (bypassing any cache)
+                user = User.objects.get(email=email)
+                # Refresh to ensure we have the latest state
+                user.refresh_from_db()
+            except User.DoesNotExist:
+                pass
+        
+        # Call parent method for default behavior
+        return super().pre_authenticate(request, **credentials)

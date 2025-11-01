@@ -411,11 +411,12 @@ def password_reset_new_password(request):
                 user.set_password(form.cleaned_data['new_password1'])
                 
                 # Activate user account after successful password reset
-                # This ensures they can log in immediately after resetting password
-                if not user.is_active:
-                    user.is_active = True
+                # Use update() to ensure the database is updated immediately
+                # This prevents any transaction/caching issues during authentication
+                User.objects.filter(email=email).update(is_active=True)
                 
-                user.save()
+                # Refresh the user object to get the latest state
+                user.refresh_from_db()
                 
                 # Log password reset success BEFORE clearing session
                 SecurityAuditLogger.log_event(
