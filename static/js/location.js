@@ -32,10 +32,14 @@
                 return;
             }
 
+            // Get location update delay from NORSUAlumni config or use default (3 seconds)
+            const updateDelay = (window.NORSUAlumni && window.NORSUAlumni.config && window.NORSUAlumni.config.locationUpdateDelay) 
+                || 3000; // Default: 3 seconds
+            
             // Start tracking after delay
             setTimeout(() => {
                 this.requestPermission();
-            }, app.config.locationUpdateDelay);
+            }, updateDelay);
         },
 
         /**
@@ -66,10 +70,14 @@
 
             this.isTracking = true;
             
+            // Get location update interval from NORSUAlumni config or use default (5 minutes)
+            const updateInterval = (window.NORSUAlumni && window.NORSUAlumni.config && window.NORSUAlumni.config.locationUpdateInterval) 
+                || 300000; // Default: 5 minutes (300000 ms)
+            
             // Set up periodic updates
             this.updateInterval = setInterval(() => {
                 this.getCurrentLocation();
-            }, app.config.locationUpdateInterval);
+            }, updateInterval);
 
             console.log('Location tracking started');
         },
@@ -328,6 +336,34 @@
     // Also attach to NORSUAlumni namespace (used by main.js)
     window.NORSUAlumni = window.NORSUAlumni || {};
     window.NORSUAlumni.location = app.location;
+
+    // Auto-initialize location tracking if user is authenticated
+    // This ensures tracking starts even if main.js hasn't initialized yet
+    function autoInitLocationTracking() {
+        const userId = document.querySelector('meta[name="user-id"]');
+        const updateUrl = document.querySelector('meta[name="location-update-url"]');
+        
+        if (userId && updateUrl && window.NORSUAlumni && window.NORSUAlumni.location) {
+            // Check if already initialized by main.js
+            if (!window.NORSUAlumni.location.isTracking && !window.NORSUAlumni.location.hasOptedOut) {
+                console.log('Auto-initializing location tracking for authenticated user');
+                // Wait a bit for main.js to potentially initialize first, then auto-init if needed
+                setTimeout(() => {
+                    if (!window.NORSUAlumni.location.isTracking && !window.NORSUAlumni.location.hasOptedOut) {
+                        window.NORSUAlumni.location.init();
+                    }
+                }, 1000); // Wait 1 second to allow main.js to initialize first
+            }
+        }
+    }
+
+    // Try to auto-initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', autoInitLocationTracking);
+    } else {
+        // DOM is already ready, wait a bit then auto-init
+        setTimeout(autoInitLocationTracking, 500);
+    }
 
     // Expose opt-out function globally for easy access
     window.optOutLocation = function() {
