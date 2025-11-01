@@ -1978,11 +1978,31 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                     
                     // Create marker with validated position
-                    const marker = L.marker(position, { icon: createCustomMarker(alumni) })
-                        .bindPopup(createPopupContent(alumni), {
+                    // Use default icon first, then set custom icon (safer for cluster library)
+                    let marker;
+                    try {
+                        marker = L.marker(position);
+                        
+                        // Set custom icon after marker is created
+                        try {
+                            const customIcon = createCustomMarker(alumni);
+                            if (customIcon) {
+                                marker.setIcon(customIcon);
+                            }
+                        } catch (e) {
+                            console.warn(`Error setting custom icon for ${alumni.user}, using default:`, e);
+                            // Use default icon if custom icon fails
+                        }
+                        
+                        // Bind popup
+                        marker.bindPopup(createPopupContent(alumni), {
                             autoClose: false,
                             closeOnClick: false
                         });
+                    } catch (e) {
+                        console.error(`Error creating marker for ${alumni.user}:`, e);
+                        return;
+                    }
                     
                     // Validate marker was created successfully and has valid position
                     let markerLatLng;
