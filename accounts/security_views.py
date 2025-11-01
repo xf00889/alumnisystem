@@ -411,11 +411,13 @@ def password_reset_new_password(request):
                 user.set_password(form.cleaned_data['new_password1'])
                 
                 # Activate user account after successful password reset
-                # Use update() to ensure the database is updated immediately
-                # This prevents any transaction/caching issues during authentication
-                User.objects.filter(email=email).update(is_active=True)
+                user.is_active = True
                 
-                # Refresh the user object to get the latest state
+                # Save password and is_active together
+                user.save(update_fields=['password', 'is_active'])
+                
+                # Refresh the user object to ensure we have the latest state
+                # This prevents any caching issues during authentication
                 user.refresh_from_db()
                 
                 # Log password reset success BEFORE clearing session
