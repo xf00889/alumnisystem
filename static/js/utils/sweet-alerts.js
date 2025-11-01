@@ -214,19 +214,9 @@ function processDjangoMessages() {
             alert.style.display = 'none';
             alert.remove();
             
-            // Skip showing SweetAlert for common login/logout/signup messages that are usually redundant
-            const skipMessages = [
-                'Successfully signed in',
-                'You have signed out',
-                'Registration completed successfully',
-                'Account created successfully',
-                'Welcome'
-            ];
-            
-            const shouldSkip = skipMessages.some(skip => messageText.includes(skip));
-            if (shouldSkip) {
-                return;
-            }
+            // Skip showing SweetAlert for ALL messages - we just want to remove them, not convert
+            // This prevents any SweetAlert from showing for Django messages
+            return;
             
             // Show SweetAlert only for the first message (to avoid multiple alerts)
             if (index === 0 && messageType === 'success') {
