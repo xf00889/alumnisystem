@@ -1857,6 +1857,26 @@ document.addEventListener('DOMContentLoaded', function() {
             
             console.log(`Filtered ${alumniData.length} valid locations out of ${beforeFilter} total`);
             
+            // Smart update: track existing and new markers
+            const existingUserNames = new Set(Object.keys(markers));
+            const updatedMarkers = new Set();
+            
+            // Remove markers for users that are no longer in the data
+            existingUserNames.forEach(userName => {
+                const stillExists = alumniData.some(a => a.user === userName);
+                if (!stillExists) {
+                    try {
+                        if (markers[userName]) {
+                            markerClusterGroup.removeLayer(markers[userName]);
+                            delete markers[userName];
+                            console.log(`🗑️ Removed marker for ${userName} (no longer active)`);
+                        }
+                    } catch (e) {
+                        console.warn(`Error removing marker for ${userName}:`, e);
+                    }
+                }
+            });
+            
             alumniData = alumniData.map(location => {
                     // Parse coordinates as floats to ensure they're numbers
                     const lat = parseFloat(location.latitude);
