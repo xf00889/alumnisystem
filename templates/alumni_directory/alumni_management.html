@@ -904,6 +904,12 @@
 <script>
     // Handle alumni detail modal
     document.addEventListener('DOMContentLoaded', function() {
+        // Ensure Bootstrap is loaded
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            return;
+        }
+
         const alumniDetailModal = document.getElementById('alumniDetailModal');
 
         if (!alumniDetailModal) {
@@ -988,6 +994,12 @@
 
         // Export Options Modal Functionality
         const exportOptionsModal = document.getElementById('exportOptionsModal');
+        
+        if (!exportOptionsModal) {
+            console.error('Export options modal not found');
+            return;
+        }
+        
         const exportOptionsForm = document.getElementById('exportOptionsForm');
         const exportSummary = document.getElementById('exportSummary');
         const previewExportBtn = document.getElementById('previewExportBtn');
@@ -1232,14 +1244,22 @@
                 selectedVerification.forEach(status => params.append('export_verification_status', status));
             }
 
+            // Hide modal before redirecting if it exists and is visible
+            if (exportOptionsModal) {
+                try {
+                    const modalInstance = bootstrap.Modal.getInstance(exportOptionsModal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                } catch (error) {
+                    // Modal instance might not exist, continue with redirect
+                    console.log('Modal instance not available, continuing with redirect');
+                }
+            }
+
             // Redirect to export URL
             const exportUrl = `${baseUrl}?${params.toString()}`;
             window.location.href = exportUrl;
-
-            // Close modal after a short delay
-            setTimeout(() => {
-                bootstrap.Modal.getInstance(exportOptionsModal).hide();
-            }, 500);
         });
 
         // Handle preview button
