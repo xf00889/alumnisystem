@@ -52,10 +52,11 @@ def map_view(request):
                         batch = recent_education.graduation_year
                         course = recent_education.get_program_display() if recent_education.program else "Unknown"
             
-            # Get the latest location data for this user
+            # Get the latest location data for this user (must be within online threshold)
             latest_location = LocationData.objects.filter(
                 user=user, 
-                is_active=True
+                is_active=True,
+                timestamp__gte=online_threshold
             ).order_by('-timestamp').first()
             
             latitude = float(latest_location.latitude) if latest_location else None
@@ -66,7 +67,8 @@ def map_view(request):
             try:
                 latest_location = LocationData.objects.filter(
                     user=user, 
-                    is_active=True
+                    is_active=True,
+                    timestamp__gte=online_threshold
                 ).order_by('-timestamp').first()
                 
                 latitude = float(latest_location.latitude) if latest_location else None
@@ -74,6 +76,10 @@ def map_view(request):
             except:
                 latitude = None
                 longitude = None
+        
+        # Skip users without valid recent location data
+        if latitude is None or longitude is None:
+            continue
         
         # Add user to appropriate batch group
         if batch not in batch_groups:
