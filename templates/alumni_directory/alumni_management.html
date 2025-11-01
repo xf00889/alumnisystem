@@ -986,12 +986,29 @@
                     return;
                 }
 
-                const modalBody = document.getElementById('alumniDetailContent');
+                // Find modal body within the modal element (more reliable than getElementById)
+                let modalBody = alumniDetailModal.querySelector('#alumniDetailContent');
+                
+                // If not found, try to find it by class within modal-content
+                if (!modalBody) {
+                    const modalContent = alumniDetailModal.querySelector('.modal-content');
+                    if (modalContent) {
+                        modalBody = modalContent.querySelector('.modal-body');
+                    }
+                }
+                
+                // If still not found, try getElementById as fallback
+                if (!modalBody) {
+                    modalBody = document.getElementById('alumniDetailContent');
+                }
+
                 if (!modalBody) {
                     console.error('Modal body not found. Modal structure:', {
                         modal: alumniDetailModal,
                         hasModalDialog: !!alumniDetailModal.querySelector('.modal-dialog'),
                         hasModalContent: !!alumniDetailModal.querySelector('.modal-content'),
+                        modalBodyInModal: !!alumniDetailModal.querySelector('.modal-body'),
+                        modalBodyById: !!document.getElementById('alumniDetailContent'),
                         modalHTML: alumniDetailModal.innerHTML.substring(0, 200)
                     });
                     return;
