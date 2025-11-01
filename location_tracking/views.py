@@ -16,16 +16,31 @@ def is_admin(user):
 
 @user_passes_test(is_admin)
 def map_view(request):
-    # Define online threshold (30 minutes - alumni is considered online if location updated within last 30 minutes)
-    online_threshold = timezone.now() - timedelta(minutes=30)
+    # Define online threshold (2 hours - alumni is considered online if location updated within last 2 hours)
+    # Increased from 30 minutes to 2 hours to ensure more alumni are visible
+    online_threshold = timezone.now() - timedelta(hours=2)
     
-    # Get users with active locations updated within the last 30 minutes (online alumni)
-    users_with_locations = User.objects.filter(
-        locations__is_active=True,
-        locations__timestamp__gte=online_threshold
-    ).annotate(
-        latest_timestamp=models.Max('locations__timestamp')
-    ).order_by('-latest_timestamp').distinct()
+    # Get users with active locations updated within the threshold (online alumni)
+    # First get all recent active locations
+    recent_locations = LocationData.objects.filter(
+        is_active=True,
+        timestamp__gte=online_threshold
+    ).select_related('user', 'user__profile').prefetch_related('user__profile__education').order_by('-timestamp')
+    
+    # Get unique users from recent locations (ordered by most recent location first)
+    user_ids_with_timestamps = {}
+    for loc in recent_locations:
+        if loc.user_id not in user_ids_with_timestamps or loc.timestamp > user_ids_with_timestamps[loc.user_id]:
+            user_ids_with_timestamps[loc.user_id] = loc.timestamp
+    
+    # Sort by timestamp and get user IDs
+    sorted_user_ids = sorted(user_ids_with_timestamps.items(), key=lambda x: x[1], reverse=True)
+    user_ids = [uid for uid, _ in sorted_user_ids]
+    
+    # Get users in the same order
+    users_with_locations = User.objects.filter(id__in=user_ids).order_by(
+        models.Case(*[models.When(id=uid, then=pos) for pos, uid in enumerate(user_ids)], default=len(user_ids))
+    )
     
     # Group users by batch if education data is available
     batch_groups = {}
@@ -193,8 +208,9 @@ def update_location(request):
 
 @user_passes_test(is_admin)
 def get_all_locations(request):
-    # Define online threshold (30 minutes - alumni is considered online if location updated within last 30 minutes)
-    online_threshold = timezone.now() - timedelta(minutes=30)
+    # Define online threshold (2 hours - alumni is considered online if location updated within last 2 hours)
+    # Increased from 30 minutes to 2 hours to ensure more alumni are visible
+    online_threshold = timezone.now() - timedelta(hours=2)
     
     # Only get locations that are active and updated within the last 30 minutes (online alumni)
     locations = LocationData.objects.filter(
