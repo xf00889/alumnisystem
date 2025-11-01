@@ -1289,27 +1289,14 @@
         
         // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
         document.addEventListener('DOMContentLoaded', function() {
-            // Check for login errors first - don't remove login error alerts
+            // Check for login errors first - keep login error alerts visible
             const loginErrorAlert = document.getElementById('loginErrorAlert');
             if (loginErrorAlert) {
-                // Show login error in SweetAlert for better visibility
-                const errorText = loginErrorAlert.textContent.trim();
-                if (errorText) {
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Login Failed',
-                        html: '<p style="text-align: left;">' + errorText.replace(/\n/g, '<br>') + '</p>',
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#e53e3e',
-                        allowOutsideClick: true,
-                        allowEscapeKey: true
-                    });
-                    // Keep the alert visible in the form too
-                    loginErrorAlert.style.display = 'block';
-                    loginErrorAlert.style.visibility = 'visible';
-                    loginErrorAlert.style.opacity = '1';
-                    loginErrorAlert.style.height = 'auto';
-                }
+                // Keep the alert visible in the form (no SweetAlert popup)
+                loginErrorAlert.style.display = 'block';
+                loginErrorAlert.style.visibility = 'visible';
+                loginErrorAlert.style.opacity = '1';
+                loginErrorAlert.style.height = 'auto';
             }
             
             // Remove only non-login Django messages/alerts (preserve login errors)
@@ -1363,31 +1350,16 @@
             }
             {% endif %}
             
-            // Handle other form validation errors with SweetAlert (but not login errors - already handled above)
+            // Keep other form validation errors visible (no SweetAlert popups)
             const errorElements = document.querySelectorAll('.alert-danger:not(.login-error-alert), .errorlist, .form-error, [class*="error"]:not(.login-error-alert)');
-            if (errorElements.length > 0 && !loginErrorAlert) {
-                let errorMessages = [];
-                
-                errorElements.forEach(element => {
-                    if (element.textContent && element.textContent.trim()) {
-                        errorMessages.push(element.textContent.trim());
-                    }
-                });
-                
-                if (errorMessages.length > 0) {
-                    // Remove duplicates and join messages
-                    const uniqueErrors = [...new Set(errorMessages)];
-                    const errorText = uniqueErrors.join('\n');
-                    
-                    Swal.fire({
-                        icon: 'error',
-                        title: 'Validation Error',
-                        text: errorText,
-                        confirmButtonText: 'OK',
-                        confirmButtonColor: '#e53e3e'
-                    });
+            errorElements.forEach(element => {
+                if (element.textContent && element.textContent.trim()) {
+                    element.style.display = 'block';
+                    element.style.visibility = 'visible';
+                    element.style.opacity = '1';
+                    element.style.height = 'auto';
                 }
-            }
+            });
         });
     </script>
 </body>
