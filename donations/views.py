@@ -16,6 +16,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.db import transaction
 from django.db import models
 from .forms_gcash import GCashConfigForm
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def campaign_list(request):
@@ -894,6 +897,13 @@ def payment_instructions(request, pk):
         donation.status = 'pending_verification'  # Change status to pending verification
         donation.save()
         
+        # Explicitly send confirmation email after payment proof submission
+        try:
+            from .email_utils import send_donation_confirmation_email
+            send_donation_confirmation_email(donation)
+        except Exception as e:
+            logger.error(f"Failed to send donation confirmation email after payment proof submission: {str(e)}")
+        
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'success': True, 
@@ -998,6 +1008,15 @@ def upload_payment_proof(request, pk):
             donation.save()
             print(f"Donation after save: status={donation.status}, payment_proof={donation.payment_proof}")
             print(f"Donation saved successfully with ID: {donation.pk}")
+
+            # Explicitly send confirmation email after payment proof submission
+            try:
+                from .email_utils import send_donation_confirmation_email
+                send_donation_confirmation_email(donation)
+                print(f"Confirmation email sent for donation {donation.pk}")
+            except Exception as e:
+                logger.error(f"Failed to send donation confirmation email after payment proof upload: {str(e)}")
+                print(f"Failed to send confirmation email: {str(e)}")
 
             # Run fraud detection
             try:

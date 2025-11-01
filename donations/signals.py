@@ -16,7 +16,10 @@ def send_donation_emails(sender, instance, created, **kwargs):
         if created:
             # Send confirmation email when donation is first created
             logger.info(f"Sending confirmation email for new donation {instance.pk}")
-            send_donation_confirmation_email(instance)
+            try:
+                send_donation_confirmation_email(instance)
+            except Exception as e:
+                logger.error(f"Failed to send confirmation email for new donation {instance.pk}: {str(e)}")
         elif hasattr(instance, '_old_status') and instance._old_status != instance.status:
             # Send emails when status changes
             logger.info(f"Donation {instance.pk} status changed from {instance._old_status} to {instance.status}")
