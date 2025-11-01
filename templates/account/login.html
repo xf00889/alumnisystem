@@ -1250,44 +1250,18 @@
         
         // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
         document.addEventListener('DOMContentLoaded', function() {
-            // Handle Django messages with SweetAlert
-            {% if messages %}
-                {% for message in messages %}
-                    {% if message.tags == 'error' %}
-                        Swal.fire({
-                            icon: 'error',
-                            title: 'Error',
-                            text: '{{ message|escapejs }}',
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#e53e3e'
-                        });
-                    {% elif message.tags == 'warning' %}
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Warning',
-                            text: '{{ message|escapejs }}',
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#ed8936'
-                        });
-                    {% elif message.tags == 'success' %}
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Success',
-                            text: '{{ message|escapejs }}',
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#48bb78'
-                        });
-                    {% else %}
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Notice',
-                            text: '{{ message|escapejs }}',
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#4299e1'
-                        });
-                    {% endif %}
-                {% endfor %}
-            {% endif %}
+            // Remove all Django messages/alerts - don't show SweetAlert
+            const alerts = document.querySelectorAll('.alert, .messages, [role="alert"]');
+            alerts.forEach(alert => {
+                if (!alert.classList.contains('swal2-container') && 
+                    !alert.closest('.swal2-popup')) {
+                    alert.style.display = 'none';
+                    alert.style.visibility = 'hidden';
+                    alert.style.opacity = '0';
+                    alert.style.height = '0';
+                    alert.remove();
+                }
+            });
             
             {% if recaptcha_enabled and recaptcha_public_key %}
             // Load reCAPTCHA script dynamically
