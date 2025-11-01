@@ -2043,14 +2043,63 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
-                    // Add marker directly to cluster group
+                    // Smart update: update existing marker or add new one
                     try {
-                        markerClusterGroup.addLayer(marker);
-                        markers[alumni.user] = marker;
-                        validMarkers++;
-                        console.log(`✅ Added marker for ${alumni.user} at [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
+                        if (markers[alumni.user]) {
+                            // Update existing marker position if it changed
+                            const existingMarker = markers[alumni.user];
+                            const existingPos = existingMarker.getLatLng();
+                            
+                            // Only update if position changed (to avoid unnecessary updates)
+                            if (existingPos.lat !== lat || existingPos.lng !== lng) {
+                                try {
+                                    // Update marker position
+                                    existingMarker.setLatLng([lat, lng]);
+                                    
+                                    // Update popup content in case info changed
+                                    existingMarker.setPopupContent(createPopupContent(alumni));
+                                    
+                                    // Update icon if needed
+                                    try {
+                                        const customIcon = createCustomMarker(alumni);
+                                        if (customIcon) {
+                                            existingMarker.setIcon(customIcon);
+                                        }
+                                    } catch (e) {
+                                        // Ignore icon update errors
+                                    }
+                                    
+                                    console.log(`🔄 Updated marker for ${alumni.user} at [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
+                                    validMarkers++;
+                                    updatedMarkers.add(alumni.user);
+                                } catch (e) {
+                                    console.warn(`Error updating marker for ${alumni.user}, removing and re-adding:`, e);
+                                    // Remove broken marker and add new one
+                                    try {
+                                        markerClusterGroup.removeLayer(existingMarker);
+                                    } catch (remErr) {
+                                        // Ignore removal errors
+                                    }
+                                    markerClusterGroup.addLayer(marker);
+                                    markers[alumni.user] = marker;
+                                    validMarkers++;
+                                    updatedMarkers.add(alumni.user);
+                                }
+                            } else {
+                                // Position unchanged, just mark as updated
+                                validMarkers++;
+                                updatedMarkers.add(alumni.user);
+                            }
+                        } else {
+                            // New marker - add to cluster group
+                            markerClusterGroup.addLayer(marker);
+                            markers[alumni.user] = marker;
+                            validMarkers++;
+                            updatedMarkers.add(alumni.user);
+                            console.log(`✅ Added new marker for ${alumni.user} at [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
+                        }
                     } catch (e) {
-                        console.error(`❌ Error adding marker to cluster group for ${alumni.user}:`, e);
+                        console.error(`❌ Error adding/updating marker for ${alumni.user}:`, e);
                         invalidCount++;
                         try {
                             marker.remove();
@@ -2303,9 +2352,9 @@ document.addEventListener('DOMContentLoaded', function() {
         updateLocations();
     }, 1000);
     
-    // Periodic updates with a longer interval to avoid disruptions
+    // Real-time updates - update locations more frequently
     setInterval(() => {
-        if (!isProcessingClick) {
+        if (!isProcessingClick && !isUpdatingLocations) {
             // Update current user's location before fetching all locations
             sendCurrentLocation();
             // Then update locations after a short delay
@@ -2313,7 +2362,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 updateLocations();
             }, 500);
         }
-    }, 30000); // Update every 30 seconds
+    }, 10000); // Update every 10 seconds for real-time feel
     
     // Run setup ONCE after initial page load
     setTimeout(setupAlumniItemClicks, 1000);
