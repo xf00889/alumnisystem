@@ -160,73 +160,76 @@ function showJobCrawlingIndicator(source, category) {
 
 /**
  * Process Django messages and display them as SweetAlert notifications
- * This function can be called on page load to convert Django messages to SweetAlert
+ * This function removes all HTML alerts and converts them to SweetAlert
  */
 function processDjangoMessages() {
-    const messages = document.querySelectorAll('.messages .alert');
-    if (messages.length > 0) {
-        // Process only the first message to avoid multiple alerts
-        const firstMessage = messages[0];
-        const messageText = firstMessage.textContent.trim();
-        const messageType = firstMessage.classList.contains('alert-success') ? 'success' : 
-                           firstMessage.classList.contains('alert-danger') ? 'error' :
-                           firstMessage.classList.contains('alert-warning') ? 'warning' : 'info';
-        
-        // Skip processing signup-related success messages
-        if (messageType === 'success' && (
-            messageText.includes('Registration completed successfully') ||
-            messageText.includes('Account created successfully') ||
-            messageText.includes('Welcome') ||
-            messageText.includes('Sign up successful') ||
-            messageText.includes('Account created') ||
-            messageText.includes('Registration successful')
-        )) {
-            // Just hide the Django message without showing SweetAlert
-            document.querySelector('.messages').style.display = 'none';
-            return;
-        }
-        
-        // Skip processing on signup-related pages
-        const currentPath = window.location.pathname;
-        if (currentPath.includes('/accounts/post_registration/') ||
-            currentPath.includes('/accounts/complete_registration/')) {
-            // Just hide the Django message without showing SweetAlert
-            document.querySelector('.messages').style.display = 'none';
-            return;
-        }
-        
-        // Hide the original Django message
-        document.querySelector('.messages').style.display = 'none';
-        
-        // Convert to SweetAlert based on message type and content
-        if (messageType === 'success') {
-            console.log('Processing success message:', messageText);
+    // Find all alert elements (Django messages, Bootstrap alerts, etc.)
+    const alertSelectors = [
+        '.messages .alert',
+        '.alert-success',
+        '.alert-danger',
+        '.alert-warning',
+        '.alert-info',
+        '.alert',
+        '[role="alert"]'
+    ];
+    
+    let foundAlerts = [];
+    
+    // Collect all alerts
+    alertSelectors.forEach(selector => {
+        const alerts = document.querySelectorAll(selector);
+        alerts.forEach(alert => {
+            // Skip if already processed or if it's a SweetAlert container
+            if (!alert.classList.contains('swal2-container') && 
+                !alert.closest('.swal2-popup') &&
+                alert.textContent.trim()) {
+                foundAlerts.push(alert);
+            }
+        });
+    });
+    
+    // Remove duplicates (same element might match multiple selectors)
+    foundAlerts = foundAlerts.filter((alert, index, self) => 
+        index === self.findIndex(a => a === alert)
+    );
+    
+    if (foundAlerts.length > 0) {
+        // Process all alerts - convert to SweetAlert and remove HTML alerts
+        foundAlerts.forEach((alert, index) => {
+            const messageText = alert.textContent.trim();
+            if (!messageText) return;
             
-            // Check if this is a profile-related message (should use generic alert)
-            const isProfileMessage = messageText.includes('Skill') || 
-                                   messageText.includes('Education') || 
-                                   messageText.includes('Work experience') || 
-                                   messageText.includes('Document') || 
-                                   messageText.includes('Career path') || 
-                                   messageText.includes('Achievement');
+            // Determine message type from classes
+            let messageType = 'info';
+            if (alert.classList.contains('alert-success')) {
+                messageType = 'success';
+            } else if (alert.classList.contains('alert-danger') || alert.classList.contains('alert-error')) {
+                messageType = 'error';
+            } else if (alert.classList.contains('alert-warning')) {
+                messageType = 'warning';
+            }
             
-            // Only use announcement-specific alerts for actual announcement messages
-            if (!isProfileMessage && messageText.toLowerCase().includes('announcement') && (
-                messageText.includes('created') || 
-                messageText.includes('updated') || 
-                messageText.includes('deleted')
-            )) {
-                console.log('Using announcement-specific alert');
-                if (messageText.includes('created')) {
-                    showAnnouncementCreatedAlert(messageText);
-                } else if (messageText.includes('updated')) {
-                    showAnnouncementUpdatedAlert(messageText);
-                } else if (messageText.includes('deleted')) {
-                    showAnnouncementDeletedAlert(messageText);
-                }
-            } else {
-                console.log('Using generic success alert for:', isProfileMessage ? 'profile message' : 'non-announcement message');
-                // Generic success message for all other success messages
+            // Immediately remove/hide the HTML alert
+            alert.style.display = 'none';
+            alert.remove();
+            
+            // Skip showing SweetAlert for common login/logout/signup messages that are usually redundant
+            const skipMessages = [
+                'Successfully signed in',
+                'You have signed out',
+                'Registration completed successfully',
+                'Account created successfully',
+                'Welcome'
+            ];
+            
+            const shouldSkip = skipMessages.some(skip => messageText.includes(skip));
+            if (shouldSkip) {
+                return;
+            }
+            
+            // Show SweetAlert only for the first message (to avoid multiple alerts)
+            if (index === 0 && messageType === 'success') {
                 Swal.fire({
                     icon: 'success',
                     title: 'Success!',
@@ -239,31 +242,36 @@ function processDjangoMessages() {
                     toast: false,
                     position: 'center'
                 });
+            } else if (index === 0 && messageType === 'error') {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: messageText,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#dc3545',
+                    showConfirmButton: true,
+                    toast: false,
+                    position: 'center'
+                });
+            } else if (index === 0) {
+                Swal.fire({
+                    icon: messageType,
+                    title: messageType.charAt(0).toUpperCase() + messageType.slice(1),
+                    text: messageText,
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: messageType === 'warning' ? '#ffc107' : '#17a2b8',
+                    showConfirmButton: true,
+                    toast: false,
+                    position: 'center'
+                });
             }
-        } else if (messageType === 'error') {
-            // Generic error message
-            Swal.fire({
-                icon: 'error',
-                title: 'Error',
-                text: messageText,
-                confirmButtonText: 'OK',
-                confirmButtonColor: '#dc3545',
-                showConfirmButton: true,
-                toast: false,
-                position: 'center'
-            });
-        } else {
-            // For info and warning messages
-            Swal.fire({
-                icon: messageType,
-                title: messageType.charAt(0).toUpperCase() + messageType.slice(1),
-                text: messageText,
-                confirmButtonText: 'OK',
-                confirmButtonColor: messageType === 'warning' ? '#ffc107' : '#17a2b8',
-                showConfirmButton: true,
-                toast: false,
-                position: 'center'
-            });
+        });
+        
+        // Also hide/remove the messages container if it exists
+        const messagesContainer = document.querySelector('.messages');
+        if (messagesContainer) {
+            messagesContainer.style.display = 'none';
+            messagesContainer.remove();
         }
     }
 }

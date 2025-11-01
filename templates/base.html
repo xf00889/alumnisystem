@@ -761,9 +761,44 @@
         }
     </script>
     
+    <style>
+        /* Hide all Django/Bootstrap alerts immediately - we use SweetAlert instead */
+        .messages,
+        .alert-success,
+        .alert-danger,
+        .alert-warning,
+        .alert-info,
+        .alert[role="alert"] {
+            display: none !important;
+        }
+    </style>
+    
     <script>
-        // Process Django messages on page load
+        // Remove all HTML alerts immediately on page load (before DOMContentLoaded)
+        (function() {
+            // Remove alerts immediately
+            const alerts = document.querySelectorAll('.alert, .messages, [role="alert"]');
+            alerts.forEach(alert => {
+                // Skip SweetAlert containers
+                if (!alert.classList.contains('swal2-container') && 
+                    !alert.closest('.swal2-popup')) {
+                    alert.remove();
+                }
+            });
+        })();
+        
+        // Process Django messages on page load and convert to SweetAlert
         document.addEventListener('DOMContentLoaded', function() {
+            // Remove any remaining alerts
+            const remainingAlerts = document.querySelectorAll('.alert, .messages, [role="alert"]');
+            remainingAlerts.forEach(alert => {
+                if (!alert.classList.contains('swal2-container') && 
+                    !alert.closest('.swal2-popup')) {
+                    alert.remove();
+                }
+            });
+            
+            // Process Django messages
             processDjangoMessages();
             
             // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
