@@ -1161,36 +1161,53 @@ document.addEventListener('DOMContentLoaded', function() {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
     }).addTo(map);
 
+    // Helper function to create a safe marker cluster group
+    function createMarkerClusterGroup() {
+        return L.markerClusterGroup({
+            maxClusterRadius: function(zoom) {
+                // Adjust cluster radius based on zoom level
+                // When zoomed out, cluster more aggressively
+                if (zoom < 10) return 80;
+                if (zoom < 12) return 60;
+                if (zoom < 14) return 40;
+                if (zoom < 16) return 20;
+                return 10; // When zoomed in very close, cluster less
+            },
+            spiderfyOnMaxZoom: false, // Disable spiderfy to avoid animation issues
+            showCoverageOnHover: false,
+            zoomToBoundsOnClick: true,
+            disableClusteringAtZoom: 16, // Disable clustering at zoom level 16 and higher
+            animate: false, // Disable animations to prevent errors during zoom
+            animateAddingMarkers: false, // Disable marker adding animations
+            iconCreateFunction: function(cluster) {
+                // Create custom cluster icon with error handling
+                try {
+                    const count = cluster.getChildCount();
+                    let size = 'small';
+                    
+                    if (count > 10) size = 'medium';
+                    if (count > 20) size = 'large';
+                    
+                    return L.divIcon({
+                        html: `<div><span>${count}</span></div>`,
+                        className: `marker-cluster marker-cluster-${size}`,
+                        iconSize: L.point(40, 40)
+                    });
+                } catch (e) {
+                    console.error('Error creating cluster icon:', e);
+                    // Return a default icon if there's an error
+                    return L.divIcon({
+                        html: '<div><span>?</span></div>',
+                        className: 'marker-cluster marker-cluster-small',
+                        iconSize: L.point(40, 40)
+                    });
+                }
+            }
+        });
+    }
+    
     // Create a marker cluster group instead of individual markers
-    let markerClusterGroup = L.markerClusterGroup({
-        maxClusterRadius: function(zoom) {
-            // Adjust cluster radius based on zoom level
-            // When zoomed out, cluster more aggressively
-            if (zoom < 10) return 80;
-            if (zoom < 12) return 60;
-            if (zoom < 14) return 40;
-            if (zoom < 16) return 20;
-            return 10; // When zoomed in very close, cluster less
-        },
-        spiderfyOnMaxZoom: true,
-        showCoverageOnHover: false,
-        zoomToBoundsOnClick: true,
-        disableClusteringAtZoom: 16, // Disable clustering at zoom level 16 and higher
-        iconCreateFunction: function(cluster) {
-            // Create custom cluster icon
-            const count = cluster.getChildCount();
-            let size = 'small';
-            
-            if (count > 10) size = 'medium';
-            if (count > 20) size = 'large';
-            
-            return L.divIcon({
-                html: `<div><span>${count}</span></div>`,
-                className: `marker-cluster marker-cluster-${size}`,
-                iconSize: L.point(40, 40)
-            });
-        }
-    });
+    let markerClusterGroup = createMarkerClusterGroup();
     
     // Add marker cluster group to map
     map.addLayer(markerClusterGroup);
@@ -1313,31 +1330,34 @@ document.addEventListener('DOMContentLoaded', function() {
             isActiveAlumniVisible = filteredData.some(alumni => alumni.user === activeAlumniName);
         }
 
-        // Clear existing markers and the cluster group completely
-        // Use removeLayer to ensure all markers are removed properly
+        // Remove and recreate cluster group for filterMarkers to ensure clean state
         try {
-            markerClusterGroup.eachLayer(function(marker) {
-                try {
-                    markerClusterGroup.removeLayer(marker);
-                } catch (e) {
-                    // Ignore errors during removal
-                }
-            });
+            // Remove cluster group from map
+            if (map.hasLayer(markerClusterGroup)) {
+                map.removeLayer(markerClusterGroup);
+            }
+            
+            // Clear all layers
+            markerClusterGroup.clearLayers();
         } catch (e) {
-            console.warn('Error removing layers from cluster:', e);
+            console.warn('Error clearing cluster in filterMarkers:', e);
         }
-        markerClusterGroup.clearLayers();
         
         // Clear markers object
         Object.keys(markers).forEach(key => {
             try {
-                if (markers[key]) {
-                    delete markers[key];
+                if (markers[key] && markers[key].remove) {
+                    markers[key].remove();
                 }
+                delete markers[key];
             } catch (e) {
                 console.warn('Error deleting marker:', e);
             }
         });
+        
+        // Recreate cluster group
+        markerClusterGroup = createMarkerClusterGroup();
+        map.addLayer(markerClusterGroup);
 
         // Add new markers with custom icon to the cluster group
         let validMarkersAdded = 0;
@@ -1822,17 +1842,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Clear existing markers and cluster group completely
-            // Use removeLayer to ensure all markers are removed properly
-            markerClusterGroup.eachLayer(function(marker) {
-                markerClusterGroup.removeLayer(marker);
-            });
-            markerClusterGroup.clearLayers();
+            // Remove cluster group from map completely
+            try {
+                if (map.hasLayer(markerClusterGroup)) {
+                    map.removeLayer(markerClusterGroup);
+                }
+            } catch (e) {
+                console.warn('Error removing cluster group from map:', e);
+            }
+            
+            // Clear all markers from cluster group
+            try {
+                markerClusterGroup.clearLayers();
+                markerClusterGroup.removeLayers(markerClusterGroup.getLayers());
+            } catch (e) {
+                console.warn('Error clearing cluster layers:', e);
+            }
             
             // Clear markers object
             Object.keys(markers).forEach(key => {
                 try {
                     if (markers[key]) {
+                        if (markers[key].remove) {
+                            markers[key].remove();
+                        }
                         delete markers[key];
                     }
                 } catch (e) {
@@ -1840,12 +1873,14 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
             
-            // Wait a bit to ensure cluster animations are complete
-            // Use setTimeout instead of await to avoid async function requirement
-            await new Promise(resolve => setTimeout(resolve, 100)).catch(() => {
-                // Fallback if Promise is not supported (shouldn't happen in modern browsers)
-                setTimeout(() => {}, 100);
-            });
+            // Recreate cluster group to ensure clean state
+            markerClusterGroup = createMarkerClusterGroup();
+            
+            // Re-add cluster group to map
+            map.addLayer(markerClusterGroup);
+            
+            // Wait a bit to ensure everything is clean
+            await new Promise(resolve => setTimeout(resolve, 50));
 
             console.log(`Processing ${alumniData.length} alumni locations`);
             
@@ -1916,21 +1951,47 @@ document.addEventListener('DOMContentLoaded', function() {
                         });
                     
                     // Validate marker was created successfully and has valid position
-                    const markerLatLng = marker.getLatLng();
-                    if (!markerLatLng || isNaN(markerLatLng.lat) || isNaN(markerLatLng.lng) ||
+                    let markerLatLng;
+                    try {
+                        markerLatLng = marker.getLatLng();
+                    } catch (e) {
+                        console.warn(`Error getting marker position for ${alumni.user}:`, e);
+                        marker.remove();
+                        return;
+                    }
+                    
+                    if (!markerLatLng || 
+                        typeof markerLatLng.lat === 'undefined' || typeof markerLatLng.lng === 'undefined' ||
+                        isNaN(markerLatLng.lat) || isNaN(markerLatLng.lng) ||
                         !isFinite(markerLatLng.lat) || !isFinite(markerLatLng.lng)) {
                         console.warn(`Marker created with invalid position for ${alumni.user}, skipping`);
-                        marker.remove();
+                        try {
+                            marker.remove();
+                        } catch (e) {
+                            // Ignore removal errors
+                        }
                         return;
                     }
                         
                     markers[alumni.user] = marker;
                     try {
-                        markerClusterGroup.addLayer(marker);
-                        validMarkers++;
+                        // Double-check marker still has valid position before adding
+                        const finalCheck = marker.getLatLng();
+                        if (finalCheck && !isNaN(finalCheck.lat) && !isNaN(finalCheck.lng)) {
+                            markerClusterGroup.addLayer(marker);
+                            validMarkers++;
+                        } else {
+                            console.warn(`Marker position became invalid for ${alumni.user} before adding`);
+                            marker.remove();
+                            delete markers[alumni.user];
+                        }
                     } catch (e) {
                         console.error(`Error adding marker to cluster group for ${alumni.user}:`, e);
-                        marker.remove();
+                        try {
+                            marker.remove();
+                        } catch (remErr) {
+                            // Ignore removal errors
+                        }
                         delete markers[alumni.user];
                     }
                 } catch (error) {
