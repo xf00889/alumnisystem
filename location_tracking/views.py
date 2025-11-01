@@ -176,8 +176,15 @@ def update_location(request):
             created = True
             
             action = 'created' if created else 'updated'
+            
+            # Log successful location update for debugging
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.info(f"Location {action} for user {request.user.id} ({request.user.email or request.user.username}): lat={lat}, lng={lng}")
+            
             return JsonResponse({
                 'status': 'success',
+                'success': True,  # Also include 'success' for location.js compatibility
                 'message': f'Location {action} successfully',
                 'location': {
                     'latitude': float(location.latitude),

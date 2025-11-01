@@ -182,13 +182,25 @@
                 timestamp: new Date().toISOString()
             };
 
+            // Get CSRF token from NORSUAlumni or window.csrftoken
+            const csrfToken = (window.NORSUAlumni && window.NORSUAlumni.csrf && window.NORSUAlumni.csrf.getToken()) 
+                || window.csrftoken 
+                || (window.app && window.app.csrf && window.app.csrf.getToken())
+                || null;
+            
+            if (!csrfToken) {
+                console.error('CSRF token not available for location update');
+                return;
+            }
+            
             fetch(updateUrl, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': app.csrf.getToken()
+                    'X-CSRFToken': csrfToken
                 },
-                body: JSON.stringify(data)
+                body: JSON.stringify(data),
+                credentials: 'include'
             })
             .then(response => {
                 if (!response.ok) {
@@ -197,10 +209,10 @@
                 return response.json();
             })
             .then(data => {
-                if (data.success) {
-                    console.log('Location updated successfully');
+                if (data.success || data.status === 'success') {
+                    console.log('Location updated successfully:', data.message || 'OK');
                 } else {
-                    console.error('Location update failed:', data.error);
+                    console.error('Location update failed:', data.message || data.error || 'Unknown error');
                 }
             })
             .catch(error => {
