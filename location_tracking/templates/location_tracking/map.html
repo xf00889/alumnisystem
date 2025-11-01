@@ -2100,26 +2100,59 @@ document.addEventListener('DOMContentLoaded', function() {
             // Force map to redraw
             map.invalidateSize();
             
-            // Refresh the cluster group to ensure markers are visible
-            try {
-                if (typeof markerClusterGroup.refreshClusters === 'function') {
-                    markerClusterGroup.refreshClusters();
-                }
-            } catch (e) {
-                console.warn('Error refreshing clusters:', e);
-            }
-            
-            // Force a small delay then refresh again to ensure markers are visible
-            setTimeout(() => {
+            // Force map to redraw clusters and show markers
+            if (validMarkers > 0) {
                 try {
+                    // Force redraw by temporarily removing and re-adding cluster group
+                    console.log('Forcing map redraw to show markers...');
+                    
+                    // Method 1: Invalidate size
                     map.invalidateSize();
-                    if (validMarkers > 0 && typeof markerClusterGroup.refreshClusters === 'function') {
-                        markerClusterGroup.refreshClusters();
+                    
+                    // Method 2: Refresh clusters if method exists
+                    if (typeof markerClusterGroup.refreshClusters === 'function') {
+                        try {
+                            markerClusterGroup.refreshClusters();
+                            console.log('✅ Refreshed clusters');
+                        } catch (e) {
+                            console.warn('Error refreshing clusters:', e);
+                        }
                     }
+                    
+                    // Method 3: Force redraw by touching the map
+                    const center = map.getCenter();
+                    map.setView(center, map.getZoom());
+                    
+                    // Method 4: Add a small delay then verify markers are visible
+                    setTimeout(() => {
+                        const visibleLayers = markerClusterGroup.getLayers();
+                        console.log(`📍 After refresh: ${visibleLayers.length} layers in cluster group`);
+                        
+                        if (visibleLayers.length > 0) {
+                            // Try to fit bounds to show all markers
+                            try {
+                                const bounds = markerClusterGroup.getBounds();
+                                if (bounds && typeof bounds.isValid === 'function' && bounds.isValid()) {
+                                    const sw = bounds.getSouthWest();
+                                    const ne = bounds.getNorthEast();
+                                    if (sw && ne && 
+                                        !isNaN(sw.lat) && !isNaN(sw.lng) && 
+                                        !isNaN(ne.lat) && !isNaN(ne.lng)) {
+                                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
+                                        console.log('✅ Fitted bounds to show markers');
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Error fitting bounds:', e);
+                            }
+                        }
+                    }, 300);
                 } catch (e) {
-                    console.warn('Error in delayed refresh:', e);
+                    console.error('Error forcing map redraw:', e);
                 }
-            }, 200);
+            } else {
+                console.warn('⚠️ No valid markers to display');
+            }
 
             // Update filters but DON'T call filterMarkers - it will clear markers we just added
             // filterMarkers will be called by filter event handlers when needed
