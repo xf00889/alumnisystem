@@ -559,6 +559,40 @@
             color: var(--primary-dark);
         }
 
+        /* Login Error Alert Styling */
+        .login-error-alert {
+            background-color: #fed7d7;
+            border: 2px solid #e53e3e;
+            border-radius: var(--radius-md);
+            padding: 1rem;
+            margin-bottom: 1rem;
+            color: #c53030;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            animation: shake 0.5s ease;
+            box-shadow: 0 4px 6px rgba(229, 62, 62, 0.1);
+        }
+
+        .login-error-alert i {
+            color: #e53e3e;
+        }
+
+        .login-error-alert strong {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-size: 1rem;
+        }
+
+        .login-error-alert div {
+            margin-top: 0.25rem;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+            20%, 40%, 60%, 80% { transform: translateX(5px); }
+        }
+
         /* Responsive Design */
         @media (max-width: 768px) {
             .auth-wrapper {
@@ -682,7 +716,9 @@
                             {% csrf_token %}
 
                             {% if form.errors %}
-                            <div class="alert alert-danger" role="alert">
+                            <div class="alert alert-danger login-error-alert" role="alert" id="loginErrorAlert">
+                                <i class="fas fa-exclamation-circle me-2"></i>
+                                <strong>Login Failed:</strong>
                                 {% for field in form %}
                                     {% for error in field.errors %}
                                         <div>{{ field.label }}: {{ error }}</div>
@@ -691,6 +727,9 @@
                                 {% for error in form.non_field_errors %}
                                     <div>{{ error }}</div>
                                 {% endfor %}
+                                {% if not form.non_field_errors and not form.login.errors and not form.password.errors %}
+                                    <div>The username or password you entered is incorrect. Please try again.</div>
+                                {% endif %}
                             </div>
                             {% endif %}
 
@@ -1250,16 +1289,39 @@
         
         // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
         document.addEventListener('DOMContentLoaded', function() {
-            // Remove all Django messages/alerts - don't show SweetAlert
-            const alerts = document.querySelectorAll('.alert, .messages, [role="alert"]');
+            // Check for login errors first - don't remove login error alerts
+            const loginErrorAlert = document.getElementById('loginErrorAlert');
+            if (loginErrorAlert) {
+                // Show login error in SweetAlert for better visibility
+                const errorText = loginErrorAlert.textContent.trim();
+                if (errorText) {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Login Failed',
+                        html: '<p style="text-align: left;">' + errorText.replace(/\n/g, '<br>') + '</p>',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#e53e3e',
+                        allowOutsideClick: true,
+                        allowEscapeKey: true
+                    });
+                    // Keep the alert visible in the form too
+                    loginErrorAlert.style.display = 'block';
+                    loginErrorAlert.style.visibility = 'visible';
+                    loginErrorAlert.style.opacity = '1';
+                    loginErrorAlert.style.height = 'auto';
+                }
+            }
+            
+            // Remove only non-login Django messages/alerts (preserve login errors)
+            const alerts = document.querySelectorAll('.alert:not(.login-error-alert), .messages, [role="alert"]:not(#loginErrorAlert)');
             alerts.forEach(alert => {
                 if (!alert.classList.contains('swal2-container') && 
-                    !alert.closest('.swal2-popup')) {
+                    !alert.closest('.swal2-popup') &&
+                    !alert.classList.contains('login-error-alert')) {
                     alert.style.display = 'none';
                     alert.style.visibility = 'hidden';
                     alert.style.opacity = '0';
                     alert.style.height = '0';
-                    alert.remove();
                 }
             });
             
@@ -1301,9 +1363,9 @@
             }
             {% endif %}
             
-            // Handle form validation errors with SweetAlert
-            const errorElements = document.querySelectorAll('.alert-danger, .errorlist, .form-error, [class*="error"]');
-            if (errorElements.length > 0) {
+            // Handle other form validation errors with SweetAlert (but not login errors - already handled above)
+            const errorElements = document.querySelectorAll('.alert-danger:not(.login-error-alert), .errorlist, .form-error, [class*="error"]:not(.login-error-alert)');
+            if (errorElements.length > 0 && !loginErrorAlert) {
                 let errorMessages = [];
                 
                 errorElements.forEach(element => {
