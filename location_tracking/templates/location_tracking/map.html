@@ -1319,15 +1319,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Add new markers with custom icon to the cluster group
         filteredData.forEach(alumni => {
-            const position = [alumni.latitude, alumni.longitude];
-            const marker = L.marker(position, { icon: createCustomMarker(alumni) })
-                .bindPopup(createPopupContent(alumni), {
-                    autoClose: false,
-                    closeOnClick: false
-                });
+            // Validate coordinates before creating marker
+            if (!alumni.latitude || !alumni.longitude || 
+                isNaN(alumni.latitude) || isNaN(alumni.longitude)) {
+                console.warn(`Skipping invalid coordinates in filterMarkers for ${alumni.user}`);
+                return;
+            }
+            
+            try {
+                const lat = parseFloat(alumni.latitude);
+                const lng = parseFloat(alumni.longitude);
                 
-            markers[alumni.user] = marker;
-            markerClusterGroup.addLayer(marker);
+                // Validate coordinate ranges
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    console.warn(`Skipping out-of-range coordinates in filterMarkers for ${alumni.user}`);
+                    return;
+                }
+                
+                const position = [lat, lng];
+                const marker = L.marker(position, { icon: createCustomMarker(alumni) })
+                    .bindPopup(createPopupContent(alumni), {
+                        autoClose: false,
+                        closeOnClick: false
+                    });
+                    
+                markers[alumni.user] = marker;
+                markerClusterGroup.addLayer(marker);
+            } catch (error) {
+                console.error(`Error creating marker in filterMarkers for ${alumni.user}:`, error);
+            }
         });
 
         // Update stats
@@ -1586,7 +1606,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token }}'
+                                'X-CSRFToken': getCSRFToken()
                             },
                             body: JSON.stringify({
                                 latitude: lat,
@@ -1673,18 +1693,50 @@ document.addEventListener('DOMContentLoaded', function() {
             markerClusterGroup.clearLayers();
             Object.keys(markers).forEach(key => delete markers[key]);
 
+            console.log(`Processing ${alumniData.length} alumni locations`);
+            
             // Add new markers with custom icon to the cluster group
+            let validMarkers = 0;
             alumniData.forEach(alumni => {
-                const position = [alumni.latitude, alumni.longitude];
-                const marker = L.marker(position, { icon: createCustomMarker(alumni) })
-                    .bindPopup(createPopupContent(alumni), {
-                        autoClose: false,
-                        closeOnClick: false
-                    });
+                // Validate coordinates before creating marker
+                if (!alumni.latitude || !alumni.longitude || 
+                    isNaN(alumni.latitude) || isNaN(alumni.longitude)) {
+                    console.warn(`Skipping invalid coordinates for ${alumni.user}:`, alumni.latitude, alumni.longitude);
+                    return;
+                }
+                
+                try {
+                    const lat = parseFloat(alumni.latitude);
+                    const lng = parseFloat(alumni.longitude);
                     
-                markers[alumni.user] = marker;
-                markerClusterGroup.addLayer(marker);
+                    // Validate coordinate ranges
+                    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                        console.warn(`Skipping out-of-range coordinates for ${alumni.user}:`, lat, lng);
+                        return;
+                    }
+                    
+                    const position = [lat, lng];
+                    const marker = L.marker(position, { icon: createCustomMarker(alumni) })
+                        .bindPopup(createPopupContent(alumni), {
+                            autoClose: false,
+                            closeOnClick: false
+                        });
+                        
+                    markers[alumni.user] = marker;
+                    markerClusterGroup.addLayer(marker);
+                    validMarkers++;
+                } catch (error) {
+                    console.error(`Error creating marker for ${alumni.user}:`, error);
+                }
             });
+            
+            console.log(`Successfully created ${validMarkers} markers out of ${alumniData.length} locations`);
+            
+            // Ensure cluster group is added to map (in case it was removed)
+            if (!map.hasLayer(markerClusterGroup)) {
+                console.log('Re-adding markerClusterGroup to map');
+                map.addLayer(markerClusterGroup);
+            }
 
             updateFilters();
             filterMarkers();
@@ -1744,6 +1796,25 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
+    // Function to get CSRF token
+    function getCSRFToken() {
+        // Try to get CSRF token from cookie
+        const name = 'csrftoken';
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        // Fallback to template variable if cookie not found
+        return cookieValue || '{{ csrf_token }}';
+    }
+    
     // Function to send current user's location to server
     function sendCurrentLocation() {
         if (navigator.geolocation) {
@@ -1758,7 +1829,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             method: 'POST',
                             headers: {
                                 'Content-Type': 'application/json',
-                                'X-CSRFToken': '{{ csrf_token }}'
+                                'X-CSRFToken': getCSRFToken()
                             },
                             body: JSON.stringify({
                                 latitude: lat,
