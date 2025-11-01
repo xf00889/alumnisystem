@@ -558,9 +558,7 @@
                                     {% endwith %}
                                 </td>
                                 <td>
-                                    <button type="button" class="btn btn-primary btn-action" 
-                                            data-bs-toggle="modal" 
-                                            data-bs-target="#alumniDetailModal"
+                                    <button type="button" class="btn btn-primary btn-action view-alumni-btn" 
                                             data-alumni-id="{{ alumni.id }}">
                                         <i class="fas fa-eye"></i> View
                                     </button>
@@ -933,63 +931,89 @@
         }
         const csrftoken = getCookie('csrftoken');
 
-        // Add event listener for modal show event
-        alumniDetailModal.addEventListener('show.bs.modal', function(event) {
-            const button = event.relatedTarget;
-
-            if (!button) {
+        // Manually initialize the modal with explicit options to prevent backdrop error
+        let modalInstance;
+        try {
+            modalInstance = new bootstrap.Modal(alumniDetailModal, {
+                backdrop: true,
+                keyboard: true,
+                focus: true
+            });
+        } catch (error) {
+            console.error('Error initializing modal:', error);
+            // Try with empty options as fallback
+            try {
+                modalInstance = new bootstrap.Modal(alumniDetailModal, {});
+            } catch (fallbackError) {
+                console.error('Error with fallback modal initialization:', fallbackError);
                 return;
             }
+        }
 
-            const alumniId = button.getAttribute('data-alumni-id');
+        // Handle button clicks to show modal
+        document.querySelectorAll('.view-alumni-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const alumniId = this.getAttribute('data-alumni-id');
 
-            if (!alumniId) {
-                return;
-            }
-
-            const modalBody = document.getElementById('alumniDetailContent');
-            if (!modalBody) {
-                return;
-            }
-
-            // Show loading spinner
-            modalBody.innerHTML = `
-                <div class="text-center">
-                    <div class="spinner-border text-primary" role="status">
-                        <span class="visually-hidden">Loading...</span>
-                    </div>
-                </div>
-            `;
-
-            // Fetch alumni details
-            const url = `/alumni/alumni/${alumniId}/detail-modal/`;
-
-            fetch(url, {
-                method: 'GET',
-                credentials: 'same-origin',  // Include cookies for authentication
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'text/html',
-                    'X-CSRFToken': csrftoken,
+                if (!alumniId) {
+                    console.error('No alumni ID found on button');
+                    return;
                 }
-            })
-                .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.text();
-                })
-                .then(html => {
-                    modalBody.innerHTML = html;
-                })
-                .catch(error => {
-                    modalBody.innerHTML = `
-                        <div class="alert alert-danger">
-                            <i class="fas fa-exclamation-triangle me-2"></i>
-                            Error loading alumni details: ${error.message}
+
+                const modalBody = document.getElementById('alumniDetailContent');
+                if (!modalBody) {
+                    console.error('Modal body not found');
+                    return;
+                }
+
+                // Show loading spinner
+                modalBody.innerHTML = `
+                    <div class="text-center">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
                         </div>
-                    `;
-                });
+                    </div>
+                `;
+
+                // Fetch alumni details
+                const url = `/alumni/alumni/${alumniId}/detail-modal/`;
+
+                fetch(url, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'text/html',
+                        'X-CSRFToken': csrftoken,
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        modalBody.innerHTML = html;
+                        // Show modal after content is loaded
+                        if (modalInstance) {
+                            modalInstance.show();
+                        }
+                    })
+                    .catch(error => {
+                        modalBody.innerHTML = `
+                            <div class="alert alert-danger">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Error loading alumni details: ${error.message}
+                            </div>
+                        `;
+                        // Show modal even if there's an error
+                        if (modalInstance) {
+                            modalInstance.show();
+                        }
+                    });
+            });
         });
 
         // Export Options Modal Functionality
