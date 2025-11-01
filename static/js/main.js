@@ -357,7 +357,14 @@ window.NORSUAlumni = window.NORSUAlumni || {};
 
         // Initialize location tracking for authenticated users
         if (document.querySelector('meta[name="user-id"]') && this.location) {
+            console.log('Initializing location tracking via main.js');
             this.location.init();
+        } else {
+            if (!document.querySelector('meta[name="user-id"]')) {
+                console.log('User not authenticated - skipping location tracking');
+            } else if (!this.location) {
+                console.warn('Location module not found - make sure location.js is loaded');
+            }
         }
 
         // Initialize sidebar for superusers

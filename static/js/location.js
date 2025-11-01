@@ -18,6 +18,14 @@
          * Initialize location tracking
          */
         init: function() {
+            console.log('Location tracking init() called');
+            
+            // Check if already tracking
+            if (this.isTracking) {
+                console.log('Location tracking already active');
+                return;
+            }
+            
             // Check if user has opted out
             this.hasOptedOut = localStorage.getItem('locationOptOut') === 'true';
             
@@ -36,8 +44,11 @@
             const updateDelay = (window.NORSUAlumni && window.NORSUAlumni.config && window.NORSUAlumni.config.locationUpdateDelay) 
                 || 3000; // Default: 3 seconds
             
+            console.log(`Starting location tracking in ${updateDelay}ms`);
+            
             // Start tracking after delay
             setTimeout(() => {
+                console.log('Requesting location permission...');
                 this.requestPermission();
             }, updateDelay);
         },
@@ -46,12 +57,15 @@
          * Request geolocation permission
          */
         requestPermission: function() {
+            console.log('Requesting geolocation permission...');
             navigator.geolocation.getCurrentPosition(
                 (position) => {
+                    console.log('Location permission granted');
                     this.onLocationSuccess(position);
                     this.startTracking();
                 },
                 (error) => {
+                    console.error('Location permission denied or error:', error.message);
                     this.onLocationError(error);
                 },
                 {
@@ -180,7 +194,7 @@
         sendLocationUpdate: function(latitude, longitude) {
             const updateUrl = document.querySelector('meta[name="location-update-url"]')?.content;
             if (!updateUrl) {
-                console.error('Location update URL not found');
+                console.error('Location update URL not found - user may not be authenticated');
                 return;
             }
 
@@ -197,9 +211,11 @@
                 || null;
             
             if (!csrfToken) {
-                console.error('CSRF token not available for location update');
+                console.error('CSRF token not available for location update - request will fail');
                 return;
             }
+            
+            console.log(`Sending location update: lat=${latitude}, lng=${longitude}`);
             
             fetch(updateUrl, {
                 method: 'POST',
@@ -218,13 +234,13 @@
             })
             .then(data => {
                 if (data.success || data.status === 'success') {
-                    console.log('Location updated successfully:', data.message || 'OK');
+                    console.log('✅ Location updated successfully on server:', data.message || 'OK');
                 } else {
-                    console.error('Location update failed:', data.message || data.error || 'Unknown error');
+                    console.error('❌ Location update failed:', data.message || data.error || 'Unknown error');
                 }
             })
             .catch(error => {
-                console.error('Error updating location:', error);
+                console.error('❌ Error sending location to server:', error);
                 // Don't show error to user for background updates
             });
         },
