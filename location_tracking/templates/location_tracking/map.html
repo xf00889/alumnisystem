@@ -1162,6 +1162,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }).addTo(map);
 
     // Create a marker cluster group instead of individual markers
+    // Disable all animations and problematic features to prevent errors
     let markerClusterGroup = L.markerClusterGroup({
         maxClusterRadius: function(zoom) {
             // Adjust cluster radius based on zoom level
@@ -1174,8 +1175,9 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         spiderfyOnMaxZoom: false, // Disable spiderfy to avoid animation issues
         showCoverageOnHover: false,
-        zoomToBoundsOnClick: true,
+        zoomToBoundsOnClick: false, // Disable zoom to bounds to prevent errors
         disableClusteringAtZoom: 16, // Disable clustering at zoom level 16 and higher
+        removeOutsideVisibleBounds: true, // Remove markers outside visible bounds to prevent errors
         iconCreateFunction: function(cluster) {
             // Create custom cluster icon with error handling
             try {
@@ -1199,6 +1201,40 @@ document.addEventListener('DOMContentLoaded', function() {
                     iconSize: L.point(40, 40)
                 });
             }
+        }
+    });
+    
+    // Add error handling to cluster group's internal methods by wrapping zoom events
+    map.on('zoomstart', function() {
+        try {
+            // Validate all markers before zoom starts
+            const layers = markerClusterGroup.getLayers();
+            const invalidLayers = [];
+            layers.forEach(layer => {
+                try {
+                    const latLng = layer.getLatLng();
+                    if (!latLng || 
+                        typeof latLng.lat === 'undefined' || 
+                        typeof latLng.lng === 'undefined' ||
+                        isNaN(latLng.lat) || isNaN(latLng.lng) ||
+                        !isFinite(latLng.lat) || !isFinite(latLng.lng)) {
+                        invalidLayers.push(layer);
+                    }
+                } catch (e) {
+                    invalidLayers.push(layer);
+                }
+            });
+            
+            // Remove invalid layers before zoom
+            invalidLayers.forEach(layer => {
+                try {
+                    markerClusterGroup.removeLayer(layer);
+                } catch (e) {
+                    // Ignore removal errors
+                }
+            });
+        } catch (error) {
+            console.warn('Error validating markers before zoom:', error);
         }
     });
     
@@ -2012,24 +2048,79 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add event listener for zoom level changes to adjust marker size based on zoom
+    // Wrap in try-catch to prevent errors from breaking the map
     map.on('zoomend', function() {
-        const currentZoom = map.getZoom();
-        const markerElements = document.querySelectorAll('.marker');
-        
-        // If streets aren't visible (typically zoom < 15), make markers smaller
-        if (currentZoom < 15) {
-            markerElements.forEach(marker => {
-                marker.style.width = '30px';
-                marker.style.height = '30px';
-            });
-        } else {
-            // Reset to normal size
-            markerElements.forEach(marker => {
-                marker.style.width = '50px';
-                marker.style.height = '50px';
-            });
+        try {
+            const currentZoom = map.getZoom();
+            const markerElements = document.querySelectorAll('.marker');
+            
+            // If streets aren't visible (typically zoom < 15), make markers smaller
+            if (currentZoom < 15) {
+                markerElements.forEach(marker => {
+                    try {
+                        marker.style.width = '30px';
+                        marker.style.height = '30px';
+                    } catch (e) {
+                        // Ignore errors on individual markers
+                    }
+                });
+            } else {
+                // Reset to normal size
+                markerElements.forEach(marker => {
+                    try {
+                        marker.style.width = '50px';
+                        marker.style.height = '50px';
+                    } catch (e) {
+                        // Ignore errors on individual markers
+                    }
+                });
+            }
+        } catch (error) {
+            console.warn('Error in zoomend handler:', error);
+            // Don't let zoom errors break the map
         }
     });
+    
+    // Add error handling for cluster group operations
+    // Wrap cluster group methods to catch errors
+    const originalRefreshClusters = markerClusterGroup.refreshClusters;
+    markerClusterGroup.refreshClusters = function() {
+        try {
+            // Validate all markers before refreshing
+            const layers = this.getLayers();
+            const validLayers = [];
+            layers.forEach(layer => {
+                try {
+                    const latLng = layer.getLatLng();
+                    if (latLng && 
+                        typeof latLng.lat !== 'undefined' && 
+                        typeof latLng.lng !== 'undefined' &&
+                        !isNaN(latLng.lat) && !isNaN(latLng.lng) &&
+                        isFinite(latLng.lat) && isFinite(latLng.lng)) {
+                        validLayers.push(layer);
+                    } else {
+                        console.warn('Removing marker with invalid position during refresh');
+                        this.removeLayer(layer);
+                    }
+                } catch (e) {
+                    console.warn('Error validating marker during refresh:', e);
+                    try {
+                        this.removeLayer(layer);
+                    } catch (remErr) {
+                        // Ignore removal errors
+                    }
+                }
+            });
+            
+            // Only refresh if we have valid layers
+            if (validLayers.length > 0) {
+                return originalRefreshClusters.call(this);
+            }
+        } catch (error) {
+            console.error('Error in refreshClusters:', error);
+            // Don't let refresh errors break the map
+        }
+    };
 
     // Function to get CSRF token
     function getCSRFToken() {
