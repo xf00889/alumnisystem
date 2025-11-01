@@ -6,6 +6,8 @@ from django.contrib.auth import get_user_model
 from .models import LocationData
 import json
 from django.db import models
+from django.utils import timezone
+from datetime import timedelta
 
 User = get_user_model()
 
@@ -14,9 +16,13 @@ def is_admin(user):
 
 @user_passes_test(is_admin)
 def map_view(request):
-    # Get users with active locations, ordered by last timestamp
+    # Define online threshold (30 minutes - alumni is considered online if location updated within last 30 minutes)
+    online_threshold = timezone.now() - timedelta(minutes=30)
+    
+    # Get users with active locations updated within the last 30 minutes (online alumni)
     users_with_locations = User.objects.filter(
-        locations__is_active=True
+        locations__is_active=True,
+        locations__timestamp__gte=online_threshold
     ).annotate(
         latest_timestamp=models.Max('locations__timestamp')
     ).order_by('-latest_timestamp').distinct()
@@ -178,12 +184,19 @@ def update_location(request):
 
 @user_passes_test(is_admin)
 def get_all_locations(request):
-    locations = LocationData.objects.filter(is_active=True).select_related(
+    # Define online threshold (30 minutes - alumni is considered online if location updated within last 30 minutes)
+    online_threshold = timezone.now() - timedelta(minutes=30)
+    
+    # Only get locations that are active and updated within the last 30 minutes (online alumni)
+    locations = LocationData.objects.filter(
+        is_active=True,
+        timestamp__gte=online_threshold
+    ).select_related(
         'user',
         'user__profile'
     ).prefetch_related(
         'user__profile__education'
-    )
+    ).order_by('-timestamp')
     
     data = []
     for location in locations:
