@@ -232,15 +232,22 @@ def alumni_detail(request, pk):
     try:
         # Get alumni object or 404
         alumni = get_object_or_404(Alumni, pk=pk)
-        logger.info(f"Alumni detail view accessed for ID: {pk}, Name: {alumni.full_name}")
+        try:
+            alumni_name = alumni.full_name
+        except Exception:
+            alumni_name = f"Alumni ID: {pk}"
+            logger.warning(f"Could not get full name for alumni ID: {pk}")
+        logger.info(f"Alumni detail view accessed for ID: {pk}, Name: {alumni_name}")
         
         # Get profile
         profile = None
-        if hasattr(alumni.user, 'profile'):
+        try:
             profile = alumni.user.profile
             logger.info(f"Profile found for alumni ID: {pk}")
-        else:
+        except Exception:
+            # Profile doesn't exist or other error
             logger.warning(f"No profile found for alumni ID: {pk}")
+            profile = None
         
         # Get documents from both AlumniDocument and accounts.Document models
         alumni_documents = list(alumni.documents.all().order_by('-uploaded_at'))

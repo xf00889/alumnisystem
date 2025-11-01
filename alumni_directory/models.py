@@ -258,8 +258,29 @@ class ProfessionalExperience:
         Get all experiences for an alumni, sorted with current position first
         """
         try:
-            experiences = alumni.user.profile.experience.all()
-            experiences = sorted(experiences, key=lambda exp: (not exp.is_current, -exp.start_date.year, -exp.start_date.month))
+            # Check if user exists
+            if not alumni or not alumni.user:
+                return []
+            
+            # Try to get profile, catching RelatedObjectDoesNotExist
+            try:
+                profile = alumni.user.profile
+            except Exception:
+                # Profile doesn't exist or other error
+                return []
+            
+            if not profile:
+                return []
+            
+            experiences = list(profile.experience.all())
+            # Sort experiences with current position first
+            def sort_key(exp):
+                return (
+                    not (exp.is_current if exp.is_current else False),
+                    -(exp.start_date.year if exp.start_date else 0),
+                    -(exp.start_date.month if exp.start_date else 0)
+                )
+            experiences = sorted(experiences, key=sort_key)
             # For backward compatibility
             for exp in experiences:
                 exp.alumni = alumni
@@ -274,8 +295,29 @@ class ProfessionalExperience:
         Get only career path experiences (those with career significance other than REGULAR)
         """
         try:
-            experiences = alumni.user.profile.experience.exclude(career_significance='REGULAR')
-            experiences = sorted(experiences, key=lambda exp: (not exp.is_current, -exp.start_date.year, -exp.start_date.month))
+            # Check if user exists
+            if not alumni or not alumni.user:
+                return []
+            
+            # Try to get profile, catching RelatedObjectDoesNotExist
+            try:
+                profile = alumni.user.profile
+            except Exception:
+                # Profile doesn't exist or other error
+                return []
+            
+            if not profile:
+                return []
+            
+            experiences = list(profile.experience.exclude(career_significance='REGULAR'))
+            # Sort experiences with current position first
+            def sort_key(exp):
+                return (
+                    not (exp.is_current if exp.is_current else False),
+                    -(exp.start_date.year if exp.start_date else 0),
+                    -(exp.start_date.month if exp.start_date else 0)
+                )
+            experiences = sorted(experiences, key=sort_key)
             # For backward compatibility
             for exp in experiences:
                 exp.alumni = alumni
@@ -290,8 +332,29 @@ class ProfessionalExperience:
         Get only regular work experiences
         """
         try:
-            experiences = alumni.user.profile.experience.filter(career_significance='REGULAR')
-            experiences = sorted(experiences, key=lambda exp: (not exp.is_current, -exp.start_date.year, -exp.start_date.month))
+            # Check if user exists
+            if not alumni or not alumni.user:
+                return []
+            
+            # Try to get profile, catching RelatedObjectDoesNotExist
+            try:
+                profile = alumni.user.profile
+            except Exception:
+                # Profile doesn't exist or other error
+                return []
+            
+            if not profile:
+                return []
+            
+            experiences = list(profile.experience.filter(career_significance='REGULAR'))
+            # Sort experiences with current position first
+            def sort_key(exp):
+                return (
+                    not (exp.is_current if exp.is_current else False),
+                    -(exp.start_date.year if exp.start_date else 0),
+                    -(exp.start_date.month if exp.start_date else 0)
+                )
+            experiences = sorted(experiences, key=sort_key)
             # For backward compatibility
             for exp in experiences:
                 exp.alumni = alumni
