@@ -762,43 +762,126 @@
     </script>
     
     <style>
-        /* Hide all Django/Bootstrap alerts immediately - we use SweetAlert instead */
+        /* Aggressively hide all Django/Bootstrap alerts immediately - we use SweetAlert instead */
         .messages,
+        .messages *,
         .alert-success,
         .alert-danger,
         .alert-warning,
         .alert-info,
-        .alert[role="alert"] {
+        .alert,
+        [role="alert"],
+        .alert-dismissible,
+        .fade.show,
+        div.alert {
             display: none !important;
+            visibility: hidden !important;
+            opacity: 0 !important;
+            height: 0 !important;
+            padding: 0 !important;
+            margin: 0 !important;
+            overflow: hidden !important;
         }
     </style>
     
     <script>
-        // Remove all HTML alerts immediately on page load (before DOMContentLoaded)
-        (function() {
-            // Remove alerts immediately
-            const alerts = document.querySelectorAll('.alert, .messages, [role="alert"]');
-            alerts.forEach(alert => {
-                // Skip SweetAlert containers
-                if (!alert.classList.contains('swal2-container') && 
-                    !alert.closest('.swal2-popup')) {
-                    alert.remove();
+        // Function to remove all alerts
+        function removeAllAlerts() {
+            const alertSelectors = [
+                '.alert',
+                '.messages',
+                '[role="alert"]',
+                '.alert-success',
+                '.alert-danger',
+                '.alert-warning',
+                '.alert-info',
+                '.alert-dismissible',
+                '.fade.show'
+            ];
+            
+            alertSelectors.forEach(selector => {
+                try {
+                    const elements = document.querySelectorAll(selector);
+                    elements.forEach(el => {
+                        // Skip SweetAlert containers
+                        if (!el.classList.contains('swal2-container') && 
+                            !el.closest('.swal2-popup') &&
+                            !el.closest('.swal2-html-container')) {
+                            el.style.display = 'none';
+                            el.style.visibility = 'hidden';
+                            el.style.opacity = '0';
+                            el.style.height = '0';
+                            el.style.padding = '0';
+                            el.style.margin = '0';
+                            el.style.overflow = 'hidden';
+                            el.remove();
+                        }
+                    });
+                } catch(e) {
+                    console.warn('Error removing alerts:', e);
                 }
             });
+        }
+        
+        // Remove alerts immediately (before DOMContentLoaded)
+        (function() {
+            removeAllAlerts();
+        })();
+        
+        // Watch for dynamically added alerts using MutationObserver
+        (function() {
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            // Check if the added node is an alert
+                            if (node.classList && (
+                                node.classList.contains('alert') ||
+                                node.classList.contains('messages') ||
+                                node.getAttribute('role') === 'alert' ||
+                                node.querySelector('.alert, .messages, [role="alert"]')
+                            )) {
+                                removeAllAlerts();
+                            }
+                            
+                            // Check children for alerts
+                            const childAlerts = node.querySelectorAll ? 
+                                node.querySelectorAll('.alert, .messages, [role="alert"]') : [];
+                            if (childAlerts.length > 0) {
+                                removeAllAlerts();
+                            }
+                        }
+                    });
+                });
+            });
+            
+            // Start observing when DOM is ready
+            if (document.body) {
+                observer.observe(document.body, {
+                    childList: true,
+                    subtree: true
+                });
+            } else {
+                document.addEventListener('DOMContentLoaded', function() {
+                    observer.observe(document.body, {
+                        childList: true,
+                        subtree: true
+                    });
+                });
+            }
         })();
         
         // Process Django messages on page load and convert to SweetAlert
         document.addEventListener('DOMContentLoaded', function() {
             // Remove any remaining alerts
-            const remainingAlerts = document.querySelectorAll('.alert, .messages, [role="alert"]');
-            remainingAlerts.forEach(alert => {
-                if (!alert.classList.contains('swal2-container') && 
-                    !alert.closest('.swal2-popup')) {
-                    alert.remove();
-                }
-            });
+            removeAllAlerts();
             
-            // Process Django messages
+            // Remove alerts again after a short delay to catch late-loading alerts
+            setTimeout(removeAllAlerts, 100);
+            setTimeout(removeAllAlerts, 500);
+            setTimeout(removeAllAlerts, 1000);
+            
+            // Process Django messages (but alerts should already be removed)
             processDjangoMessages();
             
             // Load reCAPTCHA after DOM is ready (only if enabled and has valid key)
@@ -807,6 +890,11 @@
             script.src = 'https://www.google.com/recaptcha/api.js?render={{ recaptcha_public_key }}';
             document.head.appendChild(script);
             {% endif %}
+        });
+        
+        // Also remove alerts on page show (back/forward navigation)
+        window.addEventListener('pageshow', function() {
+            removeAllAlerts();
         });
     </script>
 
