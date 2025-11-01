@@ -321,9 +321,13 @@
         }
     };
 
-    // Attach to app object immediately
+    // Attach to both app and NORSUAlumni namespaces for compatibility
     window.app = window.app || {};
     window.app.location = app.location;
+    
+    // Also attach to NORSUAlumni namespace (used by main.js)
+    window.NORSUAlumni = window.NORSUAlumni || {};
+    window.NORSUAlumni.location = app.location;
 
     // Expose opt-out function globally for easy access
     window.optOutLocation = function() {
