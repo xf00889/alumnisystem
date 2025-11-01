@@ -160,8 +160,12 @@ def campaign_detail(request, slug):
             # Store donor email in session for unauthenticated users
             if not request.user.is_authenticated and donation.donor_email:
                 request.session['donor_email'] = donation.donor_email
+                request.session.save()  # Ensure session is saved
                 print(f"Stored donor_email in session: '{donation.donor_email}'")
                 print(f"Session keys after storage: {list(request.session.keys())}")
+            
+            # Don't send email when donation is first created - email will be sent after payment proof submission
+            # This ensures users receive email only after they've actually made the payment
 
             messages.success(
                 request,
