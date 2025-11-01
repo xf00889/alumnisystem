@@ -2014,18 +2014,46 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                         
+                    // Final validation before storing and adding
+                    const finalCheck = marker.getLatLng();
+                    if (!finalCheck || 
+                        typeof finalCheck.lat === 'undefined' ||
+                        typeof finalCheck.lng === 'undefined' ||
+                        isNaN(finalCheck.lat) || isNaN(finalCheck.lng) ||
+                        !isFinite(finalCheck.lat) || !isFinite(finalCheck.lng)) {
+                        console.warn(`Marker position invalid for ${alumni.user} before adding, skipping`);
+                        try {
+                            marker.remove();
+                        } catch (e) {
+                            // Ignore removal errors
+                        }
+                        return;
+                    }
+                    
                     markers[alumni.user] = marker;
                     try {
-                        // Double-check marker still has valid position before adding
-                        const finalCheck = marker.getLatLng();
-                        if (finalCheck && !isNaN(finalCheck.lat) && !isNaN(finalCheck.lng)) {
-                            markerClusterGroup.addLayer(marker);
-                            validMarkers++;
-                        } else {
-                            console.warn(`Marker position became invalid for ${alumni.user} before adding`);
-                            marker.remove();
-                            delete markers[alumni.user];
-                        }
+                        // Add marker to cluster group
+                        markerClusterGroup.addLayer(marker);
+                        
+                        // Verify marker was added successfully and still has valid position
+                        setTimeout(() => {
+                            try {
+                                const verifyLatLng = marker.getLatLng();
+                                if (!verifyLatLng || 
+                                    typeof verifyLatLng.lat === 'undefined' ||
+                                    typeof verifyLatLng.lng === 'undefined' ||
+                                    isNaN(verifyLatLng.lat) || isNaN(verifyLatLng.lng)) {
+                                    console.warn(`Marker ${alumni.user} became invalid after adding, removing`);
+                                    markerClusterGroup.removeLayer(marker);
+                                    marker.remove();
+                                    delete markers[alumni.user];
+                                }
+                            } catch (e) {
+                                // Ignore verification errors
+                            }
+                        }, 100);
+                        
+                        validMarkers++;
                     } catch (e) {
                         console.error(`Error adding marker to cluster group for ${alumni.user}:`, e);
                         try {
