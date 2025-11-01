@@ -2163,38 +2163,33 @@ document.addEventListener('DOMContentLoaded', function() {
             // Force map to redraw
             map.invalidateSize();
             
-            // Force map to redraw clusters and show markers
+            // Refresh clusters smoothly (only fit bounds on first load, not on updates)
             if (validMarkers > 0) {
+                // Only refresh clusters and fit bounds on first load, not on updates
+                // This prevents map jumping during real-time updates
+                const wasEmpty = existingUserNames.size === 0;
+                
                 try {
-                    // Force redraw by temporarily removing and re-adding cluster group
-                    console.log('Forcing map redraw to show markers...');
-                    
-                    // Method 1: Invalidate size
+                    // Always invalidate size to ensure redraw
                     map.invalidateSize();
                     
-                    // Method 2: Refresh clusters if method exists (but don't wrap it)
-                    // Just validate markers exist before refreshing
-                    try {
-                        const layersBeforeRefresh = markerClusterGroup.getLayers();
-                        if (layersBeforeRefresh.length > 0 && typeof markerClusterGroup.refreshClusters === 'function') {
-                            markerClusterGroup.refreshClusters();
-                            console.log('✅ Refreshed clusters');
-                        }
-                    } catch (e) {
-                        console.warn('Error refreshing clusters:', e);
-                    }
-                    
-                    // Don't call setView - it triggers cluster animations that cause errors
-                    // Instead, just invalidate size again
-                    map.invalidateSize();
-                    
-                    // Method 4: Add a small delay then verify markers are visible
-                    setTimeout(() => {
-                        const visibleLayers = markerClusterGroup.getLayers();
-                        console.log(`📍 After refresh: ${visibleLayers.length} layers in cluster group`);
+                    // Only fit bounds on first load when map was empty
+                    if (wasEmpty) {
+                        console.log('First load detected - fitting bounds to show all markers');
                         
-                        if (visibleLayers.length > 0) {
-                            // Try to fit bounds to show all markers
+                        // Refresh clusters
+                        try {
+                            const layersBeforeRefresh = markerClusterGroup.getLayers();
+                            if (layersBeforeRefresh.length > 0 && typeof markerClusterGroup.refreshClusters === 'function') {
+                                markerClusterGroup.refreshClusters();
+                                console.log('✅ Refreshed clusters');
+                            }
+                        } catch (e) {
+                            console.warn('Error refreshing clusters:', e);
+                        }
+                        
+                        // Fit bounds to show all markers on first load
+                        setTimeout(() => {
                             try {
                                 const bounds = markerClusterGroup.getBounds();
                                 if (bounds && typeof bounds.isValid === 'function' && bounds.isValid()) {
@@ -2210,10 +2205,19 @@ document.addEventListener('DOMContentLoaded', function() {
                             } catch (e) {
                                 console.warn('Error fitting bounds:', e);
                             }
+                        }, 300);
+                    } else {
+                        // Real-time update - just refresh clusters without moving map
+                        try {
+                            if (typeof markerClusterGroup.refreshClusters === 'function') {
+                                markerClusterGroup.refreshClusters();
+                            }
+                        } catch (e) {
+                            // Ignore refresh errors during updates
                         }
-                    }, 300);
+                    }
                 } catch (e) {
-                    console.error('Error forcing map redraw:', e);
+                    console.warn('Error during map update:', e);
                 }
             } else {
                 console.warn('⚠️ No valid markers to display');
