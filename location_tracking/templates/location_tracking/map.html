@@ -1357,7 +1357,36 @@ document.addEventListener('DOMContentLoaded', function() {
 
         // Fit bounds if we have markers and aren't trying to keep a specific view
         if (filteredData.length > 0 && !shouldKeepPopupOpen) {
-            map.fitBounds(markerClusterGroup.getBounds());
+            try {
+                // Get bounds from cluster group
+                const bounds = markerClusterGroup.getBounds();
+                if (bounds && bounds.isValid && bounds.isValid()) {
+                    map.fitBounds(bounds);
+                } else {
+                    console.warn('Invalid bounds, skipping fitBounds');
+                }
+            } catch (error) {
+                console.error('Error fitting bounds:', error);
+                // If fitBounds fails, try to fit to individual markers
+                const validMarkers = filteredData
+                    .filter(alumni => {
+                        const lat = parseFloat(alumni.latitude);
+                        const lng = parseFloat(alumni.longitude);
+                        return !isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0;
+                    })
+                    .map(alumni => [parseFloat(alumni.latitude), parseFloat(alumni.longitude)]);
+                
+                if (validMarkers.length > 0) {
+                    try {
+                        const bounds = L.latLngBounds(validMarkers);
+                        if (bounds.isValid()) {
+                            map.fitBounds(bounds);
+                        }
+                    } catch (e) {
+                        console.error('Error creating bounds from markers:', e);
+                    }
+                }
+            }
         }
         
         // Restore active alumni highlight if it still exists in the filtered data
@@ -1659,18 +1688,49 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('{% url "location_tracking:get_locations" %}');
             const data = await response.json();
             
-            alumniData = data.locations.map(location => ({
-                ...location,
-                // Use actual data from backend instead of random values
-                batch: location.batch || Math.floor(Math.random() * (2024 - 2010) + 2010),
-                course: location.course || ['Computer Science', 'Engineering', 'Business'][Math.floor(Math.random() * 3)],
-                location: location.location || ['Dumaguete', 'Cebu', 'Manila'][Math.floor(Math.random() * 3)],
-                avatar: location.avatar || '{% static "images/default-avatar.png" %}'
-            }));
+            // Filter and validate locations before processing
+            alumniData = data.locations
+                .filter(location => {
+                    // Validate coordinates exist and are valid numbers
+                    const lat = parseFloat(location.latitude);
+                    const lng = parseFloat(location.longitude);
+                    
+                    // Check if coordinates are valid
+                    if (!location.latitude || !location.longitude || 
+                        isNaN(lat) || isNaN(lng) ||
+                        lat === 0 || lng === 0 ||
+                        lat < -90 || lat > 90 || 
+                        lng < -180 || lng > 180) {
+                        console.warn(`Filtering out invalid location for ${location.user}:`, location.latitude, location.longitude);
+                        return false;
+                    }
+                    return true;
+                })
+                .map(location => {
+                    // Parse coordinates as floats to ensure they're numbers
+                    const lat = parseFloat(location.latitude);
+                    const lng = parseFloat(location.longitude);
+                    
+                    return {
+                        ...location,
+                        latitude: lat, // Ensure it's a valid number
+                        longitude: lng, // Ensure it's a valid number
+                        // Use actual data from backend instead of random values
+                        batch: location.batch || Math.floor(Math.random() * (2024 - 2010) + 2010),
+                        course: location.course || ['Computer Science', 'Engineering', 'Business'][Math.floor(Math.random() * 3)],
+                        location: location.location || ['Dumaguete', 'Cebu', 'Manila'][Math.floor(Math.random() * 3)],
+                        avatar: location.avatar || '{% static "images/default-avatar.png" %}'
+                    };
+                });
             
-            // Store alumni positions for click handling
+            // Store alumni positions for click handling (only valid coordinates)
             alumniData.forEach(alumni => {
-                alumniPositions[alumni.user] = [alumni.latitude, alumni.longitude];
+                // Double-check coordinates are valid before storing
+                const lat = parseFloat(alumni.latitude);
+                const lng = parseFloat(alumni.longitude);
+                if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
+                    alumniPositions[alumni.user] = [lat, lng];
+                }
             });
 
             // Update sets for filters
