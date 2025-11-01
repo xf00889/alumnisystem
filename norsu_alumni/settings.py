@@ -217,7 +217,8 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Django AllAuth Configuration
 AUTHENTICATION_BACKENDS = [
-    'django.contrib.auth.backends.ModelBackend',
+    'accounts.backends.CustomModelBackend',  # Custom backend that checks latest DB state
+    'django.contrib.auth.backends.ModelBackend',  # Fallback to default backend
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 

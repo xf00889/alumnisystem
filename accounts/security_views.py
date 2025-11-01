@@ -408,17 +408,24 @@ def password_reset_new_password(request):
         if form.is_valid():
             try:
                 user = User.objects.get(email=email)
+                
+                # Activate user account FIRST using update to ensure DB is immediately updated
+                # This ensures the database state is correct before setting password
+                User.objects.filter(email=email).update(is_active=True)
+                
+                # Then set and save the password
                 user.set_password(form.cleaned_data['new_password1'])
-                
-                # Activate user account after successful password reset
-                user.is_active = True
-                
-                # Save password and is_active together
-                user.save(update_fields=['password', 'is_active'])
+                user.save(update_fields=['password'])
                 
                 # Refresh the user object to ensure we have the latest state
                 # This prevents any caching issues during authentication
                 user.refresh_from_db()
+                
+                # Double-check that is_active is True after refresh
+                if not user.is_active:
+                    # Force update if refresh didn't work
+                    User.objects.filter(email=email).update(is_active=True)
+                    user.refresh_from_db()
                 
                 # Log password reset success BEFORE clearing session
                 SecurityAuditLogger.log_event(
