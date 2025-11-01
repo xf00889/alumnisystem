@@ -1238,45 +1238,19 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add global error handler for cluster library errors
+    // Add global error handler for cluster library errors - but don't clean markers aggressively
+    // The cluster library will handle invalid markers internally
     window.addEventListener('error', function(event) {
         // Check if error is from Leaflet marker cluster library
         if (event.message && (
             event.message.includes('Cannot read properties of undefined') ||
             event.message.includes('reading \'lat\'') ||
-            event.filename && event.filename.includes('markercluster')
+            event.message.includes('reading \'_icon\'') ||
+            (event.filename && event.filename.includes('markercluster'))
         )) {
-            console.warn('Caught cluster library error, cleaning invalid markers:', event.message);
-            
-            // Clean up invalid markers
-            try {
-                const layers = markerClusterGroup.getLayers();
-                const invalidLayers = [];
-                layers.forEach(layer => {
-                    try {
-                        const latLng = layer.getLatLng();
-                        if (!latLng || 
-                            typeof latLng.lat === 'undefined' || 
-                            typeof latLng.lng === 'undefined' ||
-                            isNaN(latLng.lat) || isNaN(latLng.lng)) {
-                            invalidLayers.push(layer);
-                        }
-                    } catch (e) {
-                        invalidLayers.push(layer);
-                    }
-                });
-                
-                // Remove invalid layers
-                invalidLayers.forEach(layer => {
-                    try {
-                        markerClusterGroup.removeLayer(layer);
-                    } catch (e) {
-                        // Ignore removal errors
-                    }
-                });
-            } catch (e) {
-                console.warn('Error cleaning markers:', e);
-            }
+            // Just log the error, don't try to clean markers
+            // Aggressive cleaning was causing more issues
+            console.warn('Cluster library error (handled):', event.message);
             
             // Prevent error from breaking the page
             event.preventDefault();
@@ -2109,19 +2083,21 @@ document.addEventListener('DOMContentLoaded', function() {
                     // Method 1: Invalidate size
                     map.invalidateSize();
                     
-                    // Method 2: Refresh clusters if method exists
-                    if (typeof markerClusterGroup.refreshClusters === 'function') {
-                        try {
+                    // Method 2: Refresh clusters if method exists (but don't wrap it)
+                    // Just validate markers exist before refreshing
+                    try {
+                        const layersBeforeRefresh = markerClusterGroup.getLayers();
+                        if (layersBeforeRefresh.length > 0 && typeof markerClusterGroup.refreshClusters === 'function') {
                             markerClusterGroup.refreshClusters();
                             console.log('✅ Refreshed clusters');
-                        } catch (e) {
-                            console.warn('Error refreshing clusters:', e);
                         }
+                    } catch (e) {
+                        console.warn('Error refreshing clusters:', e);
                     }
                     
-                    // Method 3: Force redraw by touching the map
-                    const center = map.getCenter();
-                    map.setView(center, map.getZoom());
+                    // Don't call setView - it triggers cluster animations that cause errors
+                    // Instead, just invalidate size again
+                    map.invalidateSize();
                     
                     // Method 4: Add a small delay then verify markers are visible
                     setTimeout(() => {
@@ -2231,46 +2207,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
     
-    // Add error handling for cluster group operations
-    // Wrap cluster group methods to catch errors
-    const originalRefreshClusters = markerClusterGroup.refreshClusters;
-    markerClusterGroup.refreshClusters = function() {
-        try {
-            // Validate all markers before refreshing
-            const layers = this.getLayers();
-            const validLayers = [];
-            layers.forEach(layer => {
-                try {
-                    const latLng = layer.getLatLng();
-                    if (latLng && 
-                        typeof latLng.lat !== 'undefined' && 
-                        typeof latLng.lng !== 'undefined' &&
-                        !isNaN(latLng.lat) && !isNaN(latLng.lng) &&
-                        isFinite(latLng.lat) && isFinite(latLng.lng)) {
-                        validLayers.push(layer);
-                    } else {
-                        console.warn('Removing marker with invalid position during refresh');
-                        this.removeLayer(layer);
-                    }
-                } catch (e) {
-                    console.warn('Error validating marker during refresh:', e);
-                    try {
-                        this.removeLayer(layer);
-                    } catch (remErr) {
-                        // Ignore removal errors
-                    }
-                }
-            });
-            
-            // Only refresh if we have valid layers
-            if (validLayers.length > 0) {
-                return originalRefreshClusters.call(this);
-            }
-        } catch (error) {
-            console.error('Error in refreshClusters:', error);
-            // Don't let refresh errors break the map
-        }
-    };
+    // Don't wrap refreshClusters - just validate markers before calling it
+    // The cluster library handles refresh internally
 
     // Function to get CSRF token
     function getCSRFToken() {
