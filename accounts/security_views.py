@@ -409,6 +409,12 @@ def password_reset_new_password(request):
             try:
                 user = User.objects.get(email=email)
                 user.set_password(form.cleaned_data['new_password1'])
+                
+                # Activate user account after successful password reset
+                # This ensures they can log in immediately after resetting password
+                if not user.is_active:
+                    user.is_active = True
+                
                 user.save()
                 
                 # Log password reset success BEFORE clearing session
