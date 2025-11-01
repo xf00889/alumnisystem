@@ -2049,38 +2049,20 @@ document.addEventListener('DOMContentLoaded', function() {
                         return;
                     }
                     
-                    markers[alumni.user] = marker;
+                    // Add marker directly to cluster group
                     try {
-                        // Add marker to cluster group
                         markerClusterGroup.addLayer(marker);
-                        
-                        // Verify marker was added successfully and still has valid position
-                        setTimeout(() => {
-                            try {
-                                const verifyLatLng = marker.getLatLng();
-                                if (!verifyLatLng || 
-                                    typeof verifyLatLng.lat === 'undefined' ||
-                                    typeof verifyLatLng.lng === 'undefined' ||
-                                    isNaN(verifyLatLng.lat) || isNaN(verifyLatLng.lng)) {
-                                    console.warn(`Marker ${alumni.user} became invalid after adding, removing`);
-                                    markerClusterGroup.removeLayer(marker);
-                                    marker.remove();
-                                    delete markers[alumni.user];
-                                }
-                            } catch (e) {
-                                // Ignore verification errors
-                            }
-                        }, 100);
-                        
+                        markers[alumni.user] = marker;
                         validMarkers++;
+                        console.log(`✅ Added marker for ${alumni.user} at [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
                     } catch (e) {
-                        console.error(`Error adding marker to cluster group for ${alumni.user}:`, e);
+                        console.error(`❌ Error adding marker to cluster group for ${alumni.user}:`, e);
+                        invalidCount++;
                         try {
                             marker.remove();
                         } catch (remErr) {
                             // Ignore removal errors
                         }
-                        delete markers[alumni.user];
                     }
                 } catch (error) {
                     console.error(`Error creating marker for ${alumni.user}:`, error, 'Coordinates:', alumni.latitude, alumni.longitude);
