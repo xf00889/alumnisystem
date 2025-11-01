@@ -160,8 +160,11 @@ def verify_email(request):
                         ip_address=request.META.get('REMOTE_ADDR')
                     )
                     
-                    messages.success(request, 'Email verified successfully! You can now sign in.')
-                    return redirect('account_login')
+                    # Log the user in automatically after verification
+                    login(request, user)
+                    
+                    messages.success(request, 'Email verified successfully! Please complete your registration.')
+                    return redirect('accounts:post_registration')
                     
                 except User.DoesNotExist:
                     messages.error(request, 'User not found.')

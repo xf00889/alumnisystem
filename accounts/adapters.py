@@ -13,10 +13,22 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     def get_login_redirect_url(self, request):
         """
         Returns the default URL to redirect to after logging in.
-        Redirects superusers to admin dashboard, regular users to home.
+        Redirects superusers to admin dashboard.
+        Checks if user has completed post-registration, if not redirects to post-registration.
+        Otherwise redirects to home.
         """
         if request.user.is_authenticated and request.user.is_superuser:
             return reverse('core:admin_dashboard')
+        
+        # Check if user has completed post-registration
+        try:
+            profile = request.user.profile
+            if not profile.has_completed_registration:
+                return reverse('accounts:post_registration')
+        except:
+            # Profile doesn't exist or error - redirect to post-registration to create it
+            return reverse('accounts:post_registration')
+        
         return reverse('core:home')
     
     def get_signup_redirect_url(self, request):
