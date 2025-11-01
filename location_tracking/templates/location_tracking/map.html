@@ -1769,13 +1769,38 @@ document.addEventListener('DOMContentLoaded', function() {
                     const lat = parseFloat(alumni.latitude);
                     const lng = parseFloat(alumni.longitude);
                     
+                    // Additional validation: check for NaN, 0, or invalid ranges
+                    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
+                        console.warn(`Skipping invalid (NaN or zero) coordinates for ${alumni.user}:`, lat, lng);
+                        return;
+                    }
+                    
                     // Validate coordinate ranges
                     if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
                         console.warn(`Skipping out-of-range coordinates for ${alumni.user}:`, lat, lng);
                         return;
                     }
                     
+                    // Ensure coordinates are finite numbers
+                    if (!isFinite(lat) || !isFinite(lng)) {
+                        console.warn(`Skipping non-finite coordinates for ${alumni.user}:`, lat, lng);
+                        return;
+                    }
+                    
                     const position = [lat, lng];
+                    
+                    // Validate position before creating marker
+                    try {
+                        const testLatLng = L.latLng(lat, lng);
+                        if (!testLatLng || isNaN(testLatLng.lat) || isNaN(testLatLng.lng)) {
+                            console.warn(`Invalid LatLng position for ${alumni.user}:`, position);
+                            return;
+                        }
+                    } catch (e) {
+                        console.warn(`Error validating LatLng for ${alumni.user}:`, e);
+                        return;
+                    }
+                    
                     const marker = L.marker(position, { icon: createCustomMarker(alumni) })
                         .bindPopup(createPopupContent(alumni), {
                             autoClose: false,
@@ -1786,7 +1811,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     markerClusterGroup.addLayer(marker);
                     validMarkers++;
                 } catch (error) {
-                    console.error(`Error creating marker for ${alumni.user}:`, error);
+                    console.error(`Error creating marker for ${alumni.user}:`, error, 'Coordinates:', alumni.latitude, alumni.longitude);
                 }
             });
             
