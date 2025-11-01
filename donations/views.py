@@ -902,11 +902,18 @@ def payment_instructions(request, pk):
         donation.save()
         
         # Explicitly send confirmation email after payment proof submission
+        logger.info(f"Sending confirmation email for donation {donation.pk} after payment proof submission")
+        logger.info(f"Donation email: {donation.donor_email if not donation.donor else donation.donor.email}")
+        logger.info(f"Donation status: {donation.status}, Reference: {donation.reference_number}")
         try:
             from .email_utils import send_donation_confirmation_email
-            send_donation_confirmation_email(donation)
+            result = send_donation_confirmation_email(donation)
+            if result:
+                logger.info(f"✅ Confirmation email sent successfully for donation {donation.pk}")
+            else:
+                logger.error(f"❌ Failed to send confirmation email for donation {donation.pk}")
         except Exception as e:
-            logger.error(f"Failed to send donation confirmation email after payment proof submission: {str(e)}")
+            logger.error(f"Exception sending donation confirmation email after payment proof submission: {str(e)}", exc_info=True)
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
@@ -1014,13 +1021,21 @@ def upload_payment_proof(request, pk):
             print(f"Donation saved successfully with ID: {donation.pk}")
 
             # Explicitly send confirmation email after payment proof submission
+            logger.info(f"Sending confirmation email for donation {donation.pk} after payment proof upload")
+            logger.info(f"Donation email: {donation.donor_email if not donation.donor else donation.donor.email}")
+            logger.info(f"Donation status: {donation.status}, Reference: {donation.reference_number}")
             try:
                 from .email_utils import send_donation_confirmation_email
-                send_donation_confirmation_email(donation)
-                print(f"Confirmation email sent for donation {donation.pk}")
+                result = send_donation_confirmation_email(donation)
+                if result:
+                    logger.info(f"✅ Confirmation email sent successfully for donation {donation.pk}")
+                    print(f"✅ Confirmation email sent for donation {donation.pk}")
+                else:
+                    logger.error(f"❌ Failed to send confirmation email for donation {donation.pk}")
+                    print(f"❌ Failed to send confirmation email for donation {donation.pk}")
             except Exception as e:
-                logger.error(f"Failed to send donation confirmation email after payment proof upload: {str(e)}")
-                print(f"Failed to send confirmation email: {str(e)}")
+                logger.error(f"Exception sending donation confirmation email after payment proof upload: {str(e)}", exc_info=True)
+                print(f"Exception sending confirmation email: {str(e)}")
 
             # Run fraud detection
             try:

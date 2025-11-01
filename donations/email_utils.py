@@ -28,8 +28,10 @@ def send_donation_confirmation_email(donation):
             logger.warning(f"No email address for donation {donation.pk}")
             return False
         
-        # Log email attempt
+        # Log email attempt with full details
         logger.info(f"Attempting to send confirmation email for donation {donation.pk} to {donor_email}")
+        logger.info(f"Donation status: {donation.status}, Reference: {donation.reference_number}")
+        logger.info(f"Donor: {donor_name}, Email: {donor_email}, Campaign: {donation.campaign.name}")
         
         # Prepare context
         context = {
@@ -70,7 +72,8 @@ Best regards,
 The NORSU Alumni System Team
         """
         
-        # Send email
+        # Send email using email provider
+        logger.info(f"Calling send_email_with_provider for donation {donation.pk}")
         result = send_email_with_provider(
             subject=subject,
             message=text_content,
@@ -79,11 +82,13 @@ The NORSU Alumni System Team
             fail_silently=False
         )
         
+        logger.info(f"send_email_with_provider returned: {result} for donation {donation.pk}")
+        
         if result:
-            logger.info(f"Donation confirmation email sent to {donor_email} for donation {donation.pk}")
+            logger.info(f"✅ Donation confirmation email sent successfully to {donor_email} for donation {donation.pk}")
             return True
         else:
-            logger.error(f"Failed to send donation confirmation email to {donor_email} for donation {donation.pk}")
+            logger.error(f"❌ Failed to send donation confirmation email to {donor_email} for donation {donation.pk}")
             return False
             
     except Exception as e:
