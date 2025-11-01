@@ -1841,7 +1841,11 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             
             // Wait a bit to ensure cluster animations are complete
-            await new Promise(resolve => setTimeout(resolve, 100));
+            // Use setTimeout instead of await to avoid async function requirement
+            await new Promise(resolve => setTimeout(resolve, 100)).catch(() => {
+                // Fallback if Promise is not supported (shouldn't happen in modern browsers)
+                setTimeout(() => {}, 100);
+            });
 
             console.log(`Processing ${alumniData.length} alumni locations`);
             
