@@ -836,7 +836,7 @@ def manage_gcash(request):
         if form.is_valid():
             obj = form.save(commit=False)
 
-            # If activating, ensure only one active at a time
+            # If activating, check for QR code
             if obj.is_active:
                 if not obj.qr_code_image:
                     form.add_error('qr_code_image', _('QR code image is required to activate this configuration.'))
@@ -844,8 +844,6 @@ def manage_gcash(request):
                         'form': form,
                         'gcash_config': instance if instance.pk else None,
                     })
-                # Deactivate others
-                GCashConfig.objects.exclude(pk=obj.pk).update(is_active=False)
 
             obj.save()
             messages.success(request, _('GCash configuration saved successfully.'))
@@ -1700,7 +1698,7 @@ def gcash_config_create(request):
 def toggle_gcash_config(request, pk):
     """Toggle GCash configuration active status (staff only)"""
     if not request.user.is_staff and not request.user.is_superuser:
-        return JsonResponse({'status': 'error', 'message': _('Permission denied')})
+        return JsonResponse({'status': 'error', 'message': _('Permission denied')}, status=403)
 
     config = get_object_or_404(GCashConfig, pk=pk)
     
@@ -1709,19 +1707,34 @@ def toggle_gcash_config(request, pk):
         data = json.loads(request.body)
         is_active = data.get('is_active', False)
         
+        # If activating, check for QR code
+        if is_active:
+            # Check if QR code exists
+            if not config.qr_code_image:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': _('QR code image is required to activate this configuration.')
+                }, status=400)
+        
         config.is_active = is_active
         config.save()
         
+        status_text = _('activated') if is_active else _('deactivated')
         return JsonResponse({
             'status': 'success',
-            'message': _('Configuration status updated successfully'),
+            'message': _('Configuration {} successfully.').format(status_text),
             'is_active': config.is_active
         })
+    except json.JSONDecodeError:
+        return JsonResponse({
+            'status': 'error',
+            'message': _('Invalid request data.')
+        }, status=400)
     except Exception as e:
         return JsonResponse({
             'status': 'error',
             'message': str(e)
-        })
+        }, status=500)
 
 
 def donation_faq(request):

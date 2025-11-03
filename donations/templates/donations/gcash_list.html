@@ -155,7 +155,7 @@
               <i class="fas fa-edit me-1"></i>{% trans "Edit" %}
             </a>
             <button class="btn {% if config.is_active %}btn-danger{% else %}btn-success{% endif %} btn-sm" 
-                    onclick="toggleConfigStatus({{ config.pk }}, {% if config.is_active %}false{% else %}true{% endif %})">
+                    onclick="toggleConfigStatus({{ config.pk }}, {% if config.is_active %}true{% else %}false{% endif %})">
               {% if config.is_active %}
                 <i class="fas fa-pause me-1"></i>{% trans "Deactivate" %}
               {% else %}
@@ -183,36 +183,88 @@
   {% endif %}
 </div>
 
-<!-- JavaScript for toggle functionality -->
+<!-- Ensure toggleConfigStatus function is available before buttons load -->
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
 <script>
-function toggleConfigStatus(configId, currentStatus) {
+if (typeof window.toggleConfigStatus === 'undefined') {
+  window.toggleConfigStatus = function(configId, currentStatus) {
     const newStatus = !currentStatus;
     const action = newStatus ? 'activate' : 'deactivate';
+    const actionText = newStatus ? 'activate' : 'deactivate';
     
-    if (confirm(`Are you sure you want to ${action} this GCash configuration?`)) {
-        fetch(`{% url 'donations:toggle_gcash_config' 0 %}`.replace('0', configId), {
-            method: 'POST',
-            headers: {
-                'X-CSRFToken': '{{ csrf_token }}',
-                'X-Requested-With': 'XMLHttpRequest'
-            },
-            body: JSON.stringify({
-                'is_active': newStatus
+    Swal.fire({
+        title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)} Configuration?`,
+        text: `Are you sure you want to ${actionText} this GCash configuration?`,
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#2b3c6b',
+        cancelButtonColor: '#d33',
+        confirmButtonText: `Yes, ${actionText} it!`,
+        cancelButtonText: 'Cancel'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Show loading state
+            Swal.fire({
+                title: `${actionText.charAt(0).toUpperCase() + actionText.slice(1)}ing...`,
+                text: `Please wait while we ${actionText} the configuration.`,
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+            
+            fetch(`{% url 'donations:toggle_gcash_config' 0 %}`.replace('0', configId), {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    'is_active': newStatus
+                })
             })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
-                alert('Error: ' + data.message);
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('An error occurred. Please try again.');
-        });
-    }
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        title: 'Success!',
+                        text: data.message || 'Configuration status updated successfully.',
+                        icon: 'success',
+                        confirmButtonColor: '#2b3c6b',
+                        timer: 2000,
+                        timerProgressBar: true
+                    }).then(() => {
+                        location.reload();
+                    });
+                } else {
+                    Swal.fire({
+                        title: 'Error!',
+                        text: data.message || 'An error occurred while updating the configuration.',
+                        icon: 'error',
+                        confirmButtonColor: '#d33'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'An error occurred. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#d33'
+                });
+            });
+        }
+    });
+  };
 }
 </script>
+
+{% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
 {% endblock %}

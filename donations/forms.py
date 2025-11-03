@@ -394,12 +394,4 @@ class GCashConfigForm(forms.ModelForm):
         if is_active and not has_qr:
             self.add_error('qr_code_image', _('QR code image is required to activate this configuration.'))
 
-        # Only one active configuration at a time
-        if is_active:
-            qs = GCashConfig.objects.filter(is_active=True)
-            if self.instance and self.instance.pk:
-                qs = qs.exclude(pk=self.instance.pk)
-            if qs.exists():
-                self.add_error('is_active', _('Only one GCash configuration can be active at a time. Please deactivate other configurations first.'))
-
         return cleaned
