@@ -380,6 +380,7 @@ class GroupCreatePhase2View(LoginRequiredMixin, View):
         
         # Create the group
         try:
+            # Create group first
             group = AlumniGroup.objects.create(
                 name=group_name,
                 description=description,
@@ -393,9 +394,17 @@ class GroupCreatePhase2View(LoginRequiredMixin, View):
                 requires_approval=requires_approval,
                 has_security_questions=has_security_questions,
                 max_members=int(max_members) if max_members else None,
-                cover_image=cover_image,
-                profile_photo=profile_photo
             )
+            
+            # Update image fields if files were uploaded
+            if cover_image:
+                group.cover_image = cover_image
+            if profile_photo:
+                group.profile_photo = profile_photo
+            
+            # Save again to persist file uploads
+            if cover_image or profile_photo:
+                group.save()
             
             # Add tags if provided
             if tags:

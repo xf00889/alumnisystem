@@ -419,6 +419,148 @@
         }
     }
 
+    /* Image Upload Styles */
+    .image-upload-container {
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
+
+    .image-preview-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 200px;
+        border: 2px dashed var(--ui-border);
+        border-radius: var(--radius-lg);
+        overflow: hidden;
+        background: var(--ui-background);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-preview-wrapper.profile-preview {
+        min-height: 250px;
+    }
+
+    .preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .image-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: var(--space-6);
+        color: var(--text-muted);
+        text-align: center;
+    }
+
+    .image-placeholder i {
+        font-size: 3rem;
+        margin-bottom: var(--space-2);
+        color: var(--text-muted);
+    }
+
+    .image-placeholder.profile-placeholder {
+        min-height: 250px;
+    }
+
+    .image-placeholder p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: var(--transition-normal);
+    }
+
+    .image-preview-wrapper:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .btn-remove-image {
+        background: var(--feedback-error);
+        color: var(--text-light);
+        border: none;
+        padding: var(--space-2) var(--space-4);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        font-weight: 600;
+        transition: var(--transition-normal);
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+    }
+
+    .btn-remove-image:hover {
+        background: #c53030;
+        transform: translateY(-2px);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: var(--space-2);
+        padding: var(--space-3) var(--space-4);
+        background: var(--brand-primary);
+        color: var(--text-light);
+        border-radius: var(--radius-md);
+        cursor: pointer;
+        transition: var(--transition-normal);
+        font-weight: 600;
+        border: 2px solid var(--brand-primary);
+    }
+
+    .file-input-label:hover {
+        background: var(--brand-accent);
+        border-color: var(--brand-accent);
+        transform: translateY(-1px);
+    }
+
+    .file-input-label i {
+        font-size: 1.25rem;
+    }
+
+    .file-input:focus + .file-input-label {
+        outline: 3px solid rgba(49, 130, 206, 0.15);
+        outline-offset: 2px;
+    }
+
+    .form-text {
+        display: block;
+        margin-top: var(--space-1);
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
     /* Accessibility */
     @media (prefers-reduced-motion: reduce) {
         * {
@@ -469,6 +611,111 @@
 
 
             <div class="card-body">
+                <!-- Ensure previewImage function is available before form loads -->
+                <script>
+                if (typeof window.previewImage === 'undefined') {
+                    window.previewImage = function(input, previewId, imgId, placeholderId) {
+                        const file = input.files[0];
+                        const previewWrapper = document.getElementById(previewId);
+                        const placeholder = document.getElementById(placeholderId);
+                        
+                        if (file) {
+                            if (file.size > 5 * 1024 * 1024) {
+                                alert('File size must be less than 5MB');
+                                input.value = '';
+                                return;
+                            }
+                            
+                            if (!file.type.startsWith('image/')) {
+                                alert('Please select an image file');
+                                input.value = '';
+                                return;
+                            }
+                            
+                            const reader = new FileReader();
+                            reader.onload = function(e) {
+                                if (placeholder) {
+                                    placeholder.style.display = 'none';
+                                }
+                                
+                                let img = document.getElementById(imgId);
+                                if (!img) {
+                                    img = document.createElement('img');
+                                    img.id = imgId;
+                                    img.className = 'preview-image';
+                                    img.alt = 'Preview';
+                                    previewWrapper.appendChild(img);
+                                }
+                                
+                                img.src = e.target.result;
+                                
+                                let overlay = previewWrapper.querySelector('.image-overlay');
+                                if (!overlay) {
+                                    overlay = document.createElement('div');
+                                    overlay.className = 'image-overlay';
+                                    const removeBtn = document.createElement('button');
+                                    removeBtn.type = 'button';
+                                    removeBtn.className = 'btn-remove-image';
+                                    removeBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+                                    removeBtn.onclick = function() {
+                                        window.clearImage(input.name, previewId);
+                                    };
+                                    overlay.appendChild(removeBtn);
+                                    previewWrapper.appendChild(overlay);
+                                }
+                                
+                                const clearCheckbox = document.getElementById(input.name + '-clear_id');
+                                if (clearCheckbox) {
+                                    clearCheckbox.checked = false;
+                                }
+                            };
+                            reader.readAsDataURL(file);
+                        }
+                    };
+                }
+                
+                if (typeof window.clearImage === 'undefined') {
+                    window.clearImage = function(inputName, previewId) {
+                        const input = document.getElementById('id_' + inputName);
+                        const previewWrapper = document.getElementById(previewId);
+                        const img = previewWrapper.querySelector('.preview-image');
+                        const placeholder = previewWrapper.querySelector('.image-placeholder');
+                        const overlay = previewWrapper.querySelector('.image-overlay');
+                        
+                        if (input) {
+                            input.value = '';
+                        }
+                        
+                        const clearCheckbox = document.getElementById(inputName + '-clear_id');
+                        if (clearCheckbox) {
+                            clearCheckbox.checked = true;
+                        }
+                        
+                        if (img) {
+                            img.remove();
+                        }
+                        
+                        if (overlay) {
+                            overlay.remove();
+                        }
+                        
+                        if (!placeholder) {
+                            const newPlaceholder = document.createElement('div');
+                            newPlaceholder.className = 'image-placeholder';
+                            if (inputName === 'profile_photo') {
+                                newPlaceholder.classList.add('profile-placeholder');
+                                newPlaceholder.innerHTML = '<i class="fas fa-user-circle"></i><p>No profile photo</p>';
+                            } else {
+                                newPlaceholder.innerHTML = '<i class="fas fa-image"></i><p>No cover image</p>';
+                            }
+                            previewWrapper.appendChild(newPlaceholder);
+                        } else {
+                            placeholder.style.display = 'flex';
+                        }
+                    };
+                }
+                </script>
+                
                 <form method="post" enctype="multipart/form-data" id="groupForm" novalidate>
                     {% csrf_token %}
                     <div class="form-sections-wrapper">
@@ -482,11 +729,80 @@
                                 <div class="form-group">
                                     {{ form.description|as_crispy_field }}
                                 </div>
+                                <!-- Cover Image Upload -->
                                 <div class="form-group">
-                                    {{ form.cover_image|as_crispy_field }}
+                                    <label class="form-label">
+                                        <span class="label-text">Cover Image</span>
+                                    </label>
+                                    <div class="image-upload-container">
+                                        <div class="image-preview-wrapper" id="coverImagePreview">
+                                            {% if form.instance.cover_image %}
+                                                <img src="{{ form.instance.cover_image.url }}" alt="Current cover image" class="preview-image" id="coverImagePreviewImg">
+                                                <div class="image-overlay">
+                                                    <button type="button" class="btn-remove-image" onclick="clearImage('cover_image', 'coverImagePreview')">
+                                                        <i class="fas fa-trash"></i> Remove
+                                                    </button>
+                                                </div>
+                                            {% else %}
+                                                <div class="image-placeholder" id="coverImagePlaceholder">
+                                                    <i class="fas fa-image"></i>
+                                                    <p>No cover image</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="file-input-wrapper">
+                                            <input type="file" 
+                                                   id="id_cover_image" 
+                                                   name="cover_image" 
+                                                   accept="image/*" 
+                                                   class="file-input"
+                                                   onchange="previewImage(this, 'coverImagePreview', 'coverImagePreviewImg', 'coverImagePlaceholder')">
+                                            <label for="id_cover_image" class="file-input-label">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                                <span>Choose Cover Image</span>
+                                            </label>
+                                            <input type="checkbox" name="cover_image-clear" id="cover_image-clear_id" style="display: none;">
+                                        </div>
+                                        <small class="form-text text-muted">Upload a cover image for your group (Recommended: 1200x400px)</small>
+                                    </div>
                                 </div>
+                                
+                                <!-- Profile Photo Upload -->
                                 <div class="form-group">
-                                    {{ form.profile_photo|as_crispy_field }}
+                                    <label class="form-label">
+                                        <span class="label-text">Profile Photo</span>
+                                    </label>
+                                    <div class="image-upload-container">
+                                        <div class="image-preview-wrapper profile-preview" id="profilePhotoPreview">
+                                            {% if form.instance.profile_photo %}
+                                                <img src="{{ form.instance.profile_photo.url }}" alt="Current profile photo" class="preview-image" id="profilePhotoPreviewImg">
+                                                <div class="image-overlay">
+                                                    <button type="button" class="btn-remove-image" onclick="clearImage('profile_photo', 'profilePhotoPreview')">
+                                                        <i class="fas fa-trash"></i> Remove
+                                                    </button>
+                                                </div>
+                                            {% else %}
+                                                <div class="image-placeholder profile-placeholder" id="profilePhotoPlaceholder">
+                                                    <i class="fas fa-user-circle"></i>
+                                                    <p>No profile photo</p>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        <div class="file-input-wrapper">
+                                            <input type="file" 
+                                                   id="id_profile_photo" 
+                                                   name="profile_photo" 
+                                                   accept="image/*" 
+                                                   class="file-input"
+                                                   onchange="previewImage(this, 'profilePhotoPreview', 'profilePhotoPreviewImg', 'profilePhotoPlaceholder')">
+                                            <label for="id_profile_photo" class="file-input-label">
+                                                <i class="fas fa-cloud-upload-alt"></i>
+                                                <span>Choose Profile Photo</span>
+                                            </label>
+                                            <input type="checkbox" name="profile_photo-clear" id="profile_photo-clear_id" style="display: none;">
+                                        </div>
+                                        <small class="form-text text-muted">Upload a profile photo for your group (Recommended: 400x400px, square)</small>
+                                    </div>
                                 </div>
                             </div>
 
@@ -562,6 +878,116 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap-tagsinput@0.7.1/dist/bootstrap-tagsinput.min.js"></script>
 <script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
 <script>
+// Image preview functionality - explicitly attached to window object
+window.previewImage = function(input, previewId, imgId, placeholderId) {
+    const file = input.files[0];
+    const previewWrapper = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
+    
+    if (file) {
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+        
+        // Check if it's an image
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Hide placeholder if exists
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Create or update preview image
+            let img = document.getElementById(imgId);
+            if (!img) {
+                img = document.createElement('img');
+                img.id = imgId;
+                img.className = 'preview-image';
+                img.alt = 'Preview';
+                previewWrapper.appendChild(img);
+            }
+            
+            img.src = e.target.result;
+            
+            // Create overlay if it doesn't exist
+            let overlay = previewWrapper.querySelector('.image-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'image-overlay';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-remove-image';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+                removeBtn.onclick = function() {
+                    clearImage(input.name, previewId);
+                };
+                overlay.appendChild(removeBtn);
+                previewWrapper.appendChild(overlay);
+            }
+            
+            // Uncheck clear checkbox if exists
+            const clearCheckbox = document.getElementById(input.name + '-clear_id');
+            if (clearCheckbox) {
+                clearCheckbox.checked = false;
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+window.clearImage = function(inputName, previewId) {
+    const input = document.getElementById('id_' + inputName);
+    const previewWrapper = document.getElementById(previewId);
+    const img = previewWrapper.querySelector('.preview-image');
+    const placeholder = previewWrapper.querySelector('.image-placeholder');
+    const overlay = previewWrapper.querySelector('.image-overlay');
+    
+    // Clear file input
+    if (input) {
+        input.value = '';
+    }
+    
+    // Check clear checkbox
+    const clearCheckbox = document.getElementById(inputName + '-clear_id');
+    if (clearCheckbox) {
+        clearCheckbox.checked = true;
+    }
+    
+    // Remove preview image
+    if (img) {
+        img.remove();
+    }
+    
+    // Remove overlay
+    if (overlay) {
+        overlay.remove();
+    }
+    
+    // Show placeholder
+    if (!placeholder) {
+        const newPlaceholder = document.createElement('div');
+        newPlaceholder.className = 'image-placeholder';
+        if (inputName === 'profile_photo') {
+            newPlaceholder.classList.add('profile-placeholder');
+            newPlaceholder.innerHTML = '<i class="fas fa-user-circle"></i><p>No profile photo</p>';
+        } else {
+            newPlaceholder.innerHTML = '<i class="fas fa-image"></i><p>No cover image</p>';
+        }
+        previewWrapper.appendChild(newPlaceholder);
+    } else {
+        placeholder.style.display = 'flex';
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     // Process any Django messages as SweetAlert notifications
     if (typeof SweetAlertUtils !== 'undefined') {
