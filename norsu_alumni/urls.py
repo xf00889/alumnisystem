@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponseRedirect
 from accounts import security_views
+import os
 
 def profile_search_connected_users(request):
     """Handle old profile API endpoint by calling the accounts API view"""
@@ -35,5 +36,6 @@ urlpatterns = [
 ]
 
 # Serve media files during development
-if settings.DEBUG:
+serve_media = settings.DEBUG or os.environ.get('SERVE_MEDIA', 'false').lower() in ('1', 'true', 'yes')
+if serve_media:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
