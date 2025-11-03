@@ -4,9 +4,9 @@
 {% block title %}Alumni Groups Map{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/leaflet/leaflet.css' %}" />
-<link rel="stylesheet" href="{% static 'css/leaflet/MarkerCluster.css' %}" />
-<link rel="stylesheet" href="{% static 'css/leaflet/MarkerCluster.Default.css' %}" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 <style>
     /* Core Design System */
     :root {
@@ -458,46 +458,12 @@
 {% endblock %}
 
 {% block extra_js %}
-<script src="{% static 'js/leaflet/leaflet.js' %}"></script>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script>
-// Function to dynamically load markercluster after Leaflet is ready
-function loadMarkerCluster(callback) {
-    const script = document.createElement('script');
-    script.src = "{% static 'js/leaflet/leaflet.markercluster.js' %}";
-    script.onload = function() {
-        console.log('Leaflet MarkerCluster loaded successfully');
-        callback();
-    };
-    script.onerror = function() {
-        console.error('Failed to load Leaflet MarkerCluster');
-        document.getElementById('map').innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Error: Map clustering library failed to load. Please refresh the page.</div>';
-    };
-    document.head.appendChild(script);
-}
-
-// Function to wait for Leaflet to load
-function waitForLeaflet(callback) {
-    if (typeof L !== 'undefined' && L.map) {
-        // Leaflet is ready, now load markercluster
-        loadMarkerCluster(callback);
-    } else {
-        setTimeout(function() {
-            waitForLeaflet(callback);
-        }, 100);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    waitForLeaflet(function() {
-        // Check if Leaflet is loaded
-        if (typeof L === 'undefined') {
-            console.error('Leaflet library (L) is not defined. Please check if leaflet.js is loading correctly.');
-            document.getElementById('map').innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Error: Map library failed to load. Please refresh the page.</div>';
-            return;
-        }
-        
-        // Initialize map
-        const map = L.map('map').setView([0, 0], 2);
+    // Initialize map
+    const map = L.map('map').setView([0, 0], 2);
     
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
@@ -673,7 +639,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
         });
-    }); // Close waitForLeaflet callback
+    });
 });
 </script>
-{% endblock %}
+{% endblock %} 

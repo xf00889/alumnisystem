@@ -115,7 +115,6 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.recaptcha_context',
                 'core.context_processors.cms_contact_info',
-                'core.context_processors.sri_hashes',
             ],
         },
     },
@@ -217,8 +216,7 @@ CRISPY_TEMPLATE_PACK = "bootstrap5"
 
 # Django AllAuth Configuration
 AUTHENTICATION_BACKENDS = [
-    'accounts.backends.CustomModelBackend',  # Custom backend that checks latest DB state
-    'django.contrib.auth.backends.ModelBackend',  # Fallback to default backend
+    'django.contrib.auth.backends.ModelBackend',
     'allauth.account.auth_backends.AuthenticationBackend',
 ]
 
@@ -265,7 +263,6 @@ ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_UNIQUE_EMAIL = True
 ACCOUNT_SESSION_REMEMBER = True
 ACCOUNT_FORMS = {
-    'login': 'accounts.forms.CustomLoginForm',
     'signup': 'accounts.forms.CustomSignupForm',
     'reset_password': 'accounts.forms.CustomPasswordResetForm',
 }
@@ -312,18 +309,9 @@ CSP_SCRIPT_SRC = (
     "https://cdn.jsdelivr.net",  # For Bootstrap and other CDN scripts
     "https://cdnjs.cloudflare.com",
     "https://code.jquery.com",  # For jQuery
-    "https://unpkg.com",  # For HTMX and other packages (keep for HTMX only)
+    "https://unpkg.com",  # For HTMX and other packages
 )
 CSP_STYLE_SRC = (
-    "'self'",
-    "'unsafe-inline'",
-    "https://cdn.jsdelivr.net",
-    "https://cdnjs.cloudflare.com",
-    "https://fonts.googleapis.com",
-    # Removed unpkg.com - now using self-hosted Leaflet stylesheets
-)
-# Add style-src-elem directive for better stylesheet control
-CSP_STYLE_SRC_ELEM = (
     "'self'",
     "'unsafe-inline'",
     "https://cdn.jsdelivr.net",
@@ -349,15 +337,13 @@ CSP_CONNECT_SRC = (
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
     "https://code.jquery.com",
-    # Removed unpkg.com - now using self-hosted Leaflet files
+    "https://unpkg.com",
 )
 CSP_FRAME_SRC = (
     "'self'",
     "https://www.google.com",
     "https://www.recaptcha.net",
 )
-# Add report-uri for CSP violation monitoring
-CSP_REPORT_URI = "/csp-report/"
 CSP_WORKER_SRC = (
     "'self'",
     "https://www.google.com",
@@ -406,17 +392,11 @@ LOGGING = {
             'format': '{levelname} {asctime} {module} {message}',
             'style': '{',
         },
-        # Minimal single-line format for production consoles (Render)
-        'simple': {
-            'format': '{levelname} {message}',
-            'style': '{',
-        },
     },
     'handlers': {
-        # Default console handler
         'console': {
             'class': 'logging.StreamHandler',
-            'formatter': 'simple',
+            'formatter': 'verbose',
         },
     },
     'loggers': {
@@ -434,12 +414,6 @@ LOGGING = {
             'handlers': ['console'],
             'level': 'DEBUG',
             'propagate': True,
-        },
-        # More granular logger for the CSP endpoint to keep reports readable
-        'accounts.security_views': {
-            'handlers': ['console'],
-            'level': 'INFO',
-            'propagate': False,
         },
         'django.request': {  # Add logging for Django requests
             'handlers': ['console'],

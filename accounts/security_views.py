@@ -160,11 +160,8 @@ def verify_email(request):
                         ip_address=request.META.get('REMOTE_ADDR')
                     )
                     
-                    # Log the user in automatically after verification
-                    login(request, user)
-                    
-                    messages.success(request, 'Email verified successfully! Please complete your registration.')
-                    return redirect('accounts:post_registration')
+                    messages.success(request, 'Email verified successfully! You can now sign in.')
+                    return redirect('account_login')
                     
                 except User.DoesNotExist:
                     messages.error(request, 'User not found.')
@@ -350,9 +347,6 @@ NORSU Alumni Network Team
                 # Record attempt
                 RateLimiter.record_attempt(email, 'password_reset_attempt')
                 
-                # Store email in session for OTP verification page
-                request.session['password_reset_email'] = email
-                
                 messages.success(request, 'Verification code sent to your email.')
                 return redirect('accounts:password_reset_otp')
                 
@@ -367,16 +361,10 @@ NORSU Alumni Network Team
 
 def password_reset_otp(request):
     """Password reset OTP verification - uses existing template"""
-    # Get email from URL parameter or session
-    email = request.GET.get('email') or request.session.get('password_reset_email')
-    
-    if not email:
-        messages.error(request, 'Please enter your email address first.')
-        return redirect('accounts:password_reset_email')
-    
     if request.method == 'POST':
         form = PasswordResetOTPForm(request.POST)
         if form.is_valid():
+            email = form.cleaned_data['email']
             verification_code = form.cleaned_data['verification_code']
             
             # Verify code
@@ -390,13 +378,10 @@ def password_reset_otp(request):
             else:
                 messages.error(request, message)
     else:
-        # Store email in session if it came from URL parameter
-        if email:
-            request.session['password_reset_email'] = email
         form = PasswordResetOTPForm()
     
     # Use existing password reset OTP template
-    return render(request, 'accounts/password_reset_otp.html', {'form': form, 'email': email})
+    return render(request, 'accounts/password_reset_otp.html', {'form': form})
 
 
 def password_reset_new_password(request):
@@ -411,51 +396,29 @@ def password_reset_new_password(request):
         if form.is_valid():
             try:
                 user = User.objects.get(email=email)
-                
-                # Activate user account FIRST using update to ensure DB is immediately updated
-                # This ensures the database state is correct before setting password
-                User.objects.filter(email=email).update(is_active=True)
-                
-                # Then set and save the password
                 user.set_password(form.cleaned_data['new_password1'])
-                user.save(update_fields=['password'])
+                user.save()
                 
-                # Refresh the user object to ensure we have the latest state
-                # This prevents any caching issues during authentication
-                user.refresh_from_db()
+                # Clear session
+                del request.session['password_reset_email']
                 
-                # Double-check that is_active is True after refresh
-                if not user.is_active:
-                    # Force update if refresh didn't work
-                    User.objects.filter(email=email).update(is_active=True)
-                    user.refresh_from_db()
-                
-                # Log password reset success BEFORE clearing session
+                # Log password reset success
                 SecurityAuditLogger.log_event(
                     'password_reset_success',
                     user=user,
                     ip_address=request.META.get('REMOTE_ADDR')
                 )
                 
-                # Clear session AFTER getting user but BEFORE redirect
-                # This ensures the redirect happens with the session cleared
-                if 'password_reset_email' in request.session:
-                    del request.session['password_reset_email']
-                
-                # Save session to ensure changes are persisted
-                request.session.save()
-                
                 messages.success(request, 'Password reset successfully! You can now sign in with your new password.')
                 return redirect('account_login')
                 
             except User.DoesNotExist:
                 messages.error(request, 'User not found.')
-                return render(request, 'accounts/password_reset_new_password.html', {'form': form, 'email': email})
     else:
         form = PasswordResetNewPasswordForm()
     
     # Use existing password reset new password template
-    return render(request, 'accounts/password_reset_new_password.html', {'form': form, 'email': email})
+    return render(request, 'accounts/password_reset_new_password.html', {'form': form})
 
 
 def resend_password_reset_otp(request):
@@ -658,50 +621,3 @@ class SecurityDashboardView(TemplateView):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
         return context
-
-
-@csrf_exempt
-@require_POST
-def csp_report_view(request):
-    """
-    Handle CSP violation reports for monitoring and debugging
-    """
-    try:
-        # Parse the CSP report
-        report_data = json.loads(request.body.decode('utf-8'))
-        csp = report_data.get('csp-report') or report_data.get('csp_report') or {}
-
-        # Extract commonly useful fields for a concise, single-line log
-        violated = csp.get('violated-directive')
-        blocked = csp.get('blocked-uri')
-        src = csp.get('source-file')
-        line = csp.get('line-number')
-        doc = csp.get('document-uri')
-        ref = csp.get('referrer')
-        ua = request.META.get('HTTP_USER_AGENT', '-')
-
-        # Deduplicate noisy repeats for 5 minutes (in-memory cache)
-        signature = f"{violated}|{blocked}|{src}"
-        cache_key = f"csp_sig:{signature}"
-        if cache.get(cache_key):
-            # Already seen recently; keep noise down
-            return JsonResponse({'status': 'deduplicated'}, status=200)
-        cache.set(cache_key, True, timeout=300)
-
-        # Log a clean, single-line summary first
-        logger.warning(
-            "CSP violation: directive=%s blocked=%s source=%s line=%s doc=%s ref=%s ua=%s",
-            violated, blocked, src, line, doc, ref, ua
-        )
-
-        # Also log full raw JSON at DEBUG level for deep dives
-        logger.debug("CSP raw: %s", json.dumps(report_data, separators=(',', ':'), ensure_ascii=False))
-
-        return JsonResponse({'status': 'received'}, status=200)
-        
-    except json.JSONDecodeError:
-        logger.error("Invalid JSON in CSP report")
-        return JsonResponse({'error': 'Invalid JSON'}, status=400)
-    except Exception as e:
-        logger.error(f"Error processing CSP report: {str(e)}")
-        return JsonResponse({'error': 'Internal server error'}, status=500)

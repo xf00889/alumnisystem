@@ -4,10 +4,10 @@
 {% block title %}Alumni Location Tracking{% endblock %}
 
 {% block extra_css %}
-<link rel="stylesheet" href="{% static 'css/leaflet/leaflet.css' %}" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <!-- Add Leaflet.markercluster CSS -->
-<link rel="stylesheet" href="{% static 'css/leaflet/MarkerCluster.css' %}" />
-<link rel="stylesheet" href="{% static 'css/leaflet/MarkerCluster.Default.css' %}" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <!-- Custom styles for clusters -->
 <style>
@@ -933,48 +933,14 @@
 {% endblock %}
 
 {% block page_specific_js %}
-<script src="{% static 'js/leaflet/leaflet.js' %}"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- Add Leaflet.markercluster JS -->
+<script src="https://unpkg.com/leaflet.markercluster@1.4.1/dist/leaflet.markercluster.js"></script>
 <script src="{% static 'js/location_tracking.js' %}"></script>
 <script>
-// Function to dynamically load markercluster after Leaflet is ready
-function loadMarkerCluster(callback) {
-    const script = document.createElement('script');
-    script.src = "{% static 'js/leaflet/leaflet.markercluster.js' %}";
-    // SRI not required for same-origin assets
-    script.onload = function() {
-        console.log('Leaflet MarkerCluster loaded successfully');
-        callback();
-    };
-    script.onerror = function() {
-        console.error('Failed to load Leaflet MarkerCluster');
-        document.getElementById('map').innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Error: Map clustering library failed to load. Please refresh the page.</div>';
-    };
-    document.head.appendChild(script);
-}
-
-// Function to wait for Leaflet to load
-function waitForLeaflet(callback) {
-    if (typeof L !== 'undefined' && L.map) {
-        // Leaflet is ready, now load markercluster
-        loadMarkerCluster(callback);
-    } else {
-        setTimeout(function() {
-            waitForLeaflet(callback);
-        }, 100);
-    }
-}
-
 document.addEventListener('DOMContentLoaded', function() {
-    waitForLeaflet(function() {
-        // Check if Leaflet is loaded
-        if (typeof L === 'undefined') {
-            console.error('Leaflet library (L) is not defined. Please check if leaflet.js is loading correctly.');
-            document.getElementById('map').innerHTML = '<div style="padding: 20px; text-align: center; color: red;">Error: Map library failed to load. Please refresh the page.</div>';
-            return;
-        }
-        
-        // Initialize the map
-        const map = L.map('map').setView([8.6538, 123.3458], 13);
+    // Initialize the map
+    const map = L.map('map').setView([8.6538, 123.3458], 13);
 
     // Custom marker icon with avatar
     function createCustomMarker(alumni) {
@@ -1162,7 +1128,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }).addTo(map);
 
     // Create a marker cluster group instead of individual markers
-    // Disable all animations and problematic features to prevent errors
     let markerClusterGroup = L.markerClusterGroup({
         maxClusterRadius: function(zoom) {
             // Adjust cluster radius based on zoom level
@@ -1173,94 +1138,29 @@ document.addEventListener('DOMContentLoaded', function() {
             if (zoom < 16) return 20;
             return 10; // When zoomed in very close, cluster less
         },
-        spiderfyOnMaxZoom: false, // Disable spiderfy to avoid animation issues
+        spiderfyOnMaxZoom: true,
         showCoverageOnHover: false,
-        zoomToBoundsOnClick: false, // Disable zoom to bounds to prevent errors
+        zoomToBoundsOnClick: true,
         disableClusteringAtZoom: 16, // Disable clustering at zoom level 16 and higher
-        removeOutsideVisibleBounds: true, // Remove markers outside visible bounds to prevent errors
         iconCreateFunction: function(cluster) {
-            // Create custom cluster icon with error handling
-            try {
-                const count = cluster.getChildCount();
-                let size = 'small';
-                
-                if (count > 10) size = 'medium';
-                if (count > 20) size = 'large';
-                
-                return L.divIcon({
-                    html: `<div><span>${count}</span></div>`,
-                    className: `marker-cluster marker-cluster-${size}`,
-                    iconSize: L.point(40, 40)
-                });
-            } catch (e) {
-                console.error('Error creating cluster icon:', e);
-                // Return a default icon if there's an error
-                return L.divIcon({
-                    html: '<div><span>?</span></div>',
-                    className: 'marker-cluster marker-cluster-small',
-                    iconSize: L.point(40, 40)
-                });
-            }
-        }
-    });
-    
-    // Add error handling to cluster group's internal methods by wrapping zoom events
-    map.on('zoomstart', function() {
-        try {
-            // Validate all markers before zoom starts
-            const layers = markerClusterGroup.getLayers();
-            const invalidLayers = [];
-            layers.forEach(layer => {
-                try {
-                    const latLng = layer.getLatLng();
-                    if (!latLng || 
-                        typeof latLng.lat === 'undefined' || 
-                        typeof latLng.lng === 'undefined' ||
-                        isNaN(latLng.lat) || isNaN(latLng.lng) ||
-                        !isFinite(latLng.lat) || !isFinite(latLng.lng)) {
-                        invalidLayers.push(layer);
-                    }
-                } catch (e) {
-                    invalidLayers.push(layer);
-                }
-            });
+            // Create custom cluster icon
+            const count = cluster.getChildCount();
+            let size = 'small';
             
-            // Remove invalid layers before zoom
-            invalidLayers.forEach(layer => {
-                try {
-                    markerClusterGroup.removeLayer(layer);
-                } catch (e) {
-                    // Ignore removal errors
-                }
-            });
-        } catch (error) {
-            console.warn('Error validating markers before zoom:', error);
-        }
-    });
-    
-    // Add global error handler for cluster library errors - but don't clean markers aggressively
-    // The cluster library will handle invalid markers internally
-    window.addEventListener('error', function(event) {
-        // Check if error is from Leaflet marker cluster library
-        if (event.message && (
-            event.message.includes('Cannot read properties of undefined') ||
-            event.message.includes('reading \'lat\'') ||
-            event.message.includes('reading \'_icon\'') ||
-            (event.filename && event.filename.includes('markercluster'))
-        )) {
-            // Just log the error, don't try to clean markers
-            // Aggressive cleaning was causing more issues
-            console.warn('Cluster library error (handled):', event.message);
+            if (count > 10) size = 'medium';
+            if (count > 20) size = 'large';
             
-            // Prevent error from breaking the page
-            event.preventDefault();
-            return true;
+            return L.divIcon({
+                html: `<div><span>${count}</span></div>`,
+                className: `marker-cluster marker-cluster-${size}`,
+                iconSize: L.point(40, 40)
+            });
         }
     });
     
     // Add marker cluster group to map
     map.addLayer(markerClusterGroup);
-    
+
     const markers = {};
     let alumniData = [];
     let filteredData = [];
@@ -1379,149 +1279,31 @@ document.addEventListener('DOMContentLoaded', function() {
             isActiveAlumniVisible = filteredData.some(alumni => alumni.user === activeAlumniName);
         }
 
-        // Clear existing markers from cluster group (but don't recreate - it's already on the map)
-        try {
-            // Clear all layers from cluster group
-            markerClusterGroup.clearLayers();
-            
-            // Remove markers from cluster group
-            markerClusterGroup.getLayers().forEach(layer => {
-                try {
-                    markerClusterGroup.removeLayer(layer);
-                } catch (e) {
-                    // Ignore errors
-                }
-            });
-        } catch (e) {
-            console.warn('Error clearing cluster in filterMarkers:', e);
-        }
-        
-        // Clear markers from our tracking object (but keep the cluster group)
-        Object.keys(markers).forEach(key => {
-            delete markers[key];
-        });
+        // Clear existing markers and the cluster group
+        markerClusterGroup.clearLayers();
+        Object.keys(markers).forEach(key => delete markers[key]);
 
         // Add new markers with custom icon to the cluster group
-        let validMarkersAdded = 0;
         filteredData.forEach(alumni => {
-            // Validate coordinates before creating marker
-            if (!alumni.latitude || !alumni.longitude || 
-                isNaN(alumni.latitude) || isNaN(alumni.longitude)) {
-                console.warn(`Skipping invalid coordinates in filterMarkers for ${alumni.user}`);
-                return;
-            }
-            
-            try {
-                const lat = parseFloat(alumni.latitude);
-                const lng = parseFloat(alumni.longitude);
+            const position = [alumni.latitude, alumni.longitude];
+            const marker = L.marker(position, { icon: createCustomMarker(alumni) })
+                .bindPopup(createPopupContent(alumni), {
+                    autoClose: false,
+                    closeOnClick: false
+                });
                 
-                // Additional validation: check for NaN, 0, or invalid ranges
-                if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-                    console.warn(`Skipping invalid (NaN or zero) coordinates in filterMarkers for ${alumni.user}:`, lat, lng);
-                    return;
-                }
-                
-                // Validate coordinate ranges
-                if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                    console.warn(`Skipping out-of-range coordinates in filterMarkers for ${alumni.user}:`, lat, lng);
-                    return;
-                }
-                
-                // Ensure coordinates are finite numbers
-                if (!isFinite(lat) || !isFinite(lng)) {
-                    console.warn(`Skipping non-finite coordinates in filterMarkers for ${alumni.user}:`, lat, lng);
-                    return;
-                }
-                
-                // Validate position before creating marker
-                try {
-                    const testLatLng = L.latLng(lat, lng);
-                    if (!testLatLng || isNaN(testLatLng.lat) || isNaN(testLatLng.lng)) {
-                        console.warn(`Invalid LatLng position in filterMarkers for ${alumni.user}:`, [lat, lng]);
-                        return;
-                    }
-                } catch (e) {
-                    console.warn(`Error validating LatLng in filterMarkers for ${alumni.user}:`, e);
-                    return;
-                }
-                
-                const position = [lat, lng];
-                const marker = L.marker(position, { icon: createCustomMarker(alumni) })
-                    .bindPopup(createPopupContent(alumni), {
-                        autoClose: false,
-                        closeOnClick: false
-                    });
-                    
-                markers[alumni.user] = marker;
-                markerClusterGroup.addLayer(marker);
-                validMarkersAdded++;
-            } catch (error) {
-                console.error(`Error creating marker in filterMarkers for ${alumni.user}:`, error, 'Coordinates:', alumni.latitude, alumni.longitude);
-            }
+            markers[alumni.user] = marker;
+            markerClusterGroup.addLayer(marker);
         });
-        
-        console.log(`filterMarkers: Added ${validMarkersAdded} valid markers out of ${filteredData.length} filtered items`);
 
         // Update stats
         document.getElementById('totalAlumni').textContent = filteredData.length;
         document.getElementById('totalBatches').textContent = new Set(filteredData.map(a => a.batch)).size;
         document.getElementById('totalCourses').textContent = new Set(filteredData.map(a => a.course)).size;
 
-        // Fit bounds only if we have valid markers added and aren't trying to keep a specific view
-        if (validMarkersAdded > 0 && !shouldKeepPopupOpen) {
-            try {
-                // Get bounds from cluster group
-                const bounds = markerClusterGroup.getBounds();
-                if (bounds && typeof bounds.isValid === 'function' && bounds.isValid()) {
-                    // Double-check bounds are valid before using
-                    const sw = bounds.getSouthWest();
-                    const ne = bounds.getNorthEast();
-                    if (sw && ne && 
-                        !isNaN(sw.lat) && !isNaN(sw.lng) && 
-                        !isNaN(ne.lat) && !isNaN(ne.lng) &&
-                        isFinite(sw.lat) && isFinite(sw.lng) &&
-                        isFinite(ne.lat) && isFinite(ne.lng)) {
-                        map.fitBounds(bounds);
-                    } else {
-                        console.warn('Bounds contain invalid coordinates, skipping fitBounds');
-                    }
-                } else {
-                    console.warn('Invalid bounds object or isValid() returned false, skipping fitBounds');
-                }
-            } catch (error) {
-                console.error('Error fitting bounds:', error);
-                // If fitBounds fails, try to fit to individual valid markers
-                const validMarkers = filteredData
-                    .filter(alumni => {
-                        const lat = parseFloat(alumni.latitude);
-                        const lng = parseFloat(alumni.longitude);
-                        return !isNaN(lat) && !isNaN(lng) && 
-                               lat !== 0 && lng !== 0 &&
-                               isFinite(lat) && isFinite(lng) &&
-                               lat >= -90 && lat <= 90 && 
-                               lng >= -180 && lng <= 180;
-                    })
-                    .map(alumni => [parseFloat(alumni.latitude), parseFloat(alumni.longitude)]);
-                
-                if (validMarkers.length > 0) {
-                    try {
-                        const bounds = L.latLngBounds(validMarkers);
-                        if (bounds && typeof bounds.isValid === 'function' && bounds.isValid()) {
-                            map.fitBounds(bounds);
-                        } else {
-                            console.warn('Failed to create valid bounds from markers');
-                        }
-                    } catch (e) {
-                        console.error('Error creating bounds from markers:', e);
-                    }
-                } else {
-                    console.warn('No valid markers to fit bounds');
-                }
-            }
-        } else {
-            if (validMarkersAdded === 0) {
-                console.log('No valid markers to fit bounds');
-            }
+        // Fit bounds if we have markers and aren't trying to keep a specific view
+        if (filteredData.length > 0 && !shouldKeepPopupOpen) {
+            map.fitBounds(markerClusterGroup.getBounds());
         }
         
         // Restore active alumni highlight if it still exists in the filtered data
@@ -1760,46 +1542,14 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (navigator.geolocation) {
             navigator.geolocation.getCurrentPosition(
-                async (position) => {
+                (position) => {
                     const lat = position.coords.latitude;
                     const lng = position.coords.longitude;
-                    
-                    // Send location to server
-                    try {
-                        const response = await fetch('{% url "location_tracking:update_location" %}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': getCSRFToken()
-                            },
-                            body: JSON.stringify({
-                                latitude: lat,
-                                longitude: lng
-                            }),
-                            credentials: 'include'
-                        });
-                        
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            console.log('Location updated successfully');
-                            // Refresh locations after updating
-                            setTimeout(() => updateLocations(), 500);
-                        }
-                    } catch (error) {
-                        console.error('Error sending location:', error);
-                    }
-                    
-                    // Center map on user's location
                     map.setView([lat, lng], 15);
                 },
                 (error) => {
                     console.error('Error getting location:', error);
                     alert('Unable to get your location. Please check your browser settings.');
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
                 }
             );
         } else {
@@ -1823,85 +1573,18 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch('{% url "location_tracking:get_locations" %}');
             const data = await response.json();
             
-            console.log('Received data from API:', data);
-            console.log('Number of locations:', data.locations ? data.locations.length : 0);
+            alumniData = data.locations.map(location => ({
+                ...location,
+                // Use actual data from backend instead of random values
+                batch: location.batch || Math.floor(Math.random() * (2024 - 2010) + 2010),
+                course: location.course || ['Computer Science', 'Engineering', 'Business'][Math.floor(Math.random() * 3)],
+                location: location.location || ['Dumaguete', 'Cebu', 'Manila'][Math.floor(Math.random() * 3)],
+                avatar: location.avatar || '{% static "images/default-avatar.png" %}'
+            }));
             
-            // Check if we have locations
-            if (!data.locations || data.locations.length === 0) {
-                console.warn('No locations received from API');
-                // Clear existing markers
-                markerClusterGroup.clearLayers();
-                Object.keys(markers).forEach(key => delete markers[key]);
-                return;
-            }
-            
-            // Filter and validate locations before processing
-            const beforeFilter = data.locations.length;
-            alumniData = data.locations
-                .filter(location => {
-                    // Validate coordinates exist and are valid numbers
-                    const lat = parseFloat(location.latitude);
-                    const lng = parseFloat(location.longitude);
-                    
-                    // Check if coordinates are valid
-                    if (!location.latitude || !location.longitude || 
-                        isNaN(lat) || isNaN(lng) ||
-                        lat === 0 || lng === 0 ||
-                        lat < -90 || lat > 90 || 
-                        lng < -180 || lng > 180) {
-                        console.warn(`Filtering out invalid location for ${location.user}:`, location.latitude, location.longitude);
-                        return false;
-                    }
-                    return true;
-                });
-            
-            console.log(`Filtered ${alumniData.length} valid locations out of ${beforeFilter} total`);
-            
-            // Smart update: track existing and new markers
-            const existingUserNames = new Set(Object.keys(markers));
-            const updatedMarkers = new Set();
-            
-            // Remove markers for users that are no longer in the data
-            existingUserNames.forEach(userName => {
-                const stillExists = alumniData.some(a => a.user === userName);
-                if (!stillExists) {
-                    try {
-                        if (markers[userName]) {
-                            markerClusterGroup.removeLayer(markers[userName]);
-                            delete markers[userName];
-                            console.log(`🗑️ Removed marker for ${userName} (no longer active)`);
-                        }
-                    } catch (e) {
-                        console.warn(`Error removing marker for ${userName}:`, e);
-                    }
-                }
-            });
-            
-            alumniData = alumniData.map(location => {
-                    // Parse coordinates as floats to ensure they're numbers
-                    const lat = parseFloat(location.latitude);
-                    const lng = parseFloat(location.longitude);
-                    
-                    return {
-                        ...location,
-                        latitude: lat, // Ensure it's a valid number
-                        longitude: lng, // Ensure it's a valid number
-                        // Use actual data from backend instead of random values
-                        batch: location.batch || Math.floor(Math.random() * (2024 - 2010) + 2010),
-                        course: location.course || ['Computer Science', 'Engineering', 'Business'][Math.floor(Math.random() * 3)],
-                        location: location.location || ['Dumaguete', 'Cebu', 'Manila'][Math.floor(Math.random() * 3)],
-                        avatar: location.avatar || '{% static "images/default-avatar.png" %}'
-                    };
-                });
-            
-            // Store alumni positions for click handling (only valid coordinates)
+            // Store alumni positions for click handling
             alumniData.forEach(alumni => {
-                // Double-check coordinates are valid before storing
-                const lat = parseFloat(alumni.latitude);
-                const lng = parseFloat(alumni.longitude);
-                if (!isNaN(lat) && !isNaN(lng) && lat !== 0 && lng !== 0) {
-                    alumniPositions[alumni.user] = [lat, lng];
-                }
+                alumniPositions[alumni.user] = [alumni.latitude, alumni.longitude];
             });
 
             // Update sets for filters
@@ -1920,316 +1603,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             }
 
-            // Simply clear existing markers (don't recreate cluster group)
-            try {
-                // Clear all layers from cluster group
-                markerClusterGroup.clearLayers();
-                
-                // Remove all markers from our tracking object
-                Object.keys(markers).forEach(key => {
-                    delete markers[key];
-                });
-            } catch (e) {
-                console.warn('Error clearing markers:', e);
-            }
+            // Clear existing markers and cluster group
+            markerClusterGroup.clearLayers();
+            Object.keys(markers).forEach(key => delete markers[key]);
 
-            console.log(`Processing ${alumniData.length} alumni locations`);
-            console.log('Sample alumni data:', alumniData.slice(0, 3)); // Log first 3 for debugging
-            
             // Add new markers with custom icon to the cluster group
-            let validMarkers = 0;
-            let invalidCount = 0;
             alumniData.forEach(alumni => {
-                // Validate coordinates before creating marker
-                if (!alumni.latitude || !alumni.longitude || 
-                    isNaN(alumni.latitude) || isNaN(alumni.longitude)) {
-                    console.warn(`Skipping invalid coordinates for ${alumni.user}:`, alumni.latitude, alumni.longitude);
-                    invalidCount++;
-                    return;
-                }
-                
-                try {
-                    // Parse coordinates - ensure we have valid numbers
-                    let lat = parseFloat(alumni.latitude);
-                    let lng = parseFloat(alumni.longitude);
+                const position = [alumni.latitude, alumni.longitude];
+                const marker = L.marker(position, { icon: createCustomMarker(alumni) })
+                    .bindPopup(createPopupContent(alumni), {
+                        autoClose: false,
+                        closeOnClick: false
+                    });
                     
-                    // Validate immediately after parsing
-                    if (isNaN(lat) || isNaN(lng) || !isFinite(lat) || !isFinite(lng)) {
-                        console.warn(`Skipping invalid (NaN or non-finite) coordinates for ${alumni.user}:`, lat, lng);
-                        return;
-                    }
-                    
-                    // Additional validation: check for NaN, 0, or invalid ranges
-                    if (isNaN(lat) || isNaN(lng) || lat === 0 || lng === 0) {
-                        console.warn(`Skipping invalid (NaN or zero) coordinates for ${alumni.user}:`, lat, lng);
-                        return;
-                    }
-                    
-                    // Validate coordinate ranges
-                    if (lat < -90 || lat > 90 || lng < -180 || lng > 180) {
-                        console.warn(`Skipping out-of-range coordinates for ${alumni.user}:`, lat, lng);
-                        return;
-                    }
-                    
-                    // Ensure coordinates are finite numbers
-                    if (!isFinite(lat) || !isFinite(lng)) {
-                        console.warn(`Skipping non-finite coordinates for ${alumni.user}:`, lat, lng);
-                        return;
-                    }
-                    
-                    const position = [lat, lng];
-                    
-                    // Validate position before creating marker
-                    try {
-                        const testLatLng = L.latLng(lat, lng);
-                        if (!testLatLng || isNaN(testLatLng.lat) || isNaN(testLatLng.lng)) {
-                            console.warn(`Invalid LatLng position for ${alumni.user}:`, position);
-                            return;
-                        }
-                    } catch (e) {
-                        console.warn(`Error validating LatLng for ${alumni.user}:`, e);
-                        return;
-                    }
-                    
-                    // Validate marker position one more time before creating
-                    if (!isFinite(lat) || !isFinite(lng) || isNaN(lat) || isNaN(lng)) {
-                        console.warn(`Final validation failed for ${alumni.user}, skipping marker creation`);
-                        return;
-                    }
-                    
-                    // Create marker with validated position
-                    // Use default icon first, then set custom icon (safer for cluster library)
-                    let marker;
-                    try {
-                        marker = L.marker(position);
-                        
-                        // Set custom icon after marker is created
-                        try {
-                            const customIcon = createCustomMarker(alumni);
-                            if (customIcon) {
-                                marker.setIcon(customIcon);
-                            }
-                        } catch (e) {
-                            console.warn(`Error setting custom icon for ${alumni.user}, using default:`, e);
-                            // Use default icon if custom icon fails
-                        }
-                        
-                        // Bind popup
-                        marker.bindPopup(createPopupContent(alumni), {
-                            autoClose: false,
-                            closeOnClick: false
-                        });
-                    } catch (e) {
-                        console.error(`Error creating marker for ${alumni.user}:`, e);
-                        return;
-                    }
-                    
-                    // Validate marker was created successfully and has valid position
-                    let markerLatLng;
-                    try {
-                        markerLatLng = marker.getLatLng();
-                    } catch (e) {
-                        console.warn(`Error getting marker position for ${alumni.user}:`, e);
-                        marker.remove();
-                        return;
-                    }
-                    
-                    if (!markerLatLng || 
-                        typeof markerLatLng.lat === 'undefined' || typeof markerLatLng.lng === 'undefined' ||
-                        isNaN(markerLatLng.lat) || isNaN(markerLatLng.lng) ||
-                        !isFinite(markerLatLng.lat) || !isFinite(markerLatLng.lng)) {
-                        console.warn(`Marker created with invalid position for ${alumni.user}, skipping`);
-                        try {
-                            marker.remove();
-                        } catch (e) {
-                            // Ignore removal errors
-                        }
-                        return;
-                    }
-                        
-                    // Final validation before storing and adding
-                    const finalCheck = marker.getLatLng();
-                    if (!finalCheck || 
-                        typeof finalCheck.lat === 'undefined' ||
-                        typeof finalCheck.lng === 'undefined' ||
-                        isNaN(finalCheck.lat) || isNaN(finalCheck.lng) ||
-                        !isFinite(finalCheck.lat) || !isFinite(finalCheck.lng)) {
-                        console.warn(`Marker position invalid for ${alumni.user} before adding, skipping`);
-                        try {
-                            marker.remove();
-                        } catch (e) {
-                            // Ignore removal errors
-                        }
-                        return;
-                    }
-                    
-                    // Smart update: update existing marker or add new one
-                    try {
-                        if (markers[alumni.user]) {
-                            // Update existing marker position if it changed
-                            const existingMarker = markers[alumni.user];
-                            const existingPos = existingMarker.getLatLng();
-                            
-                            // Only update if position changed (to avoid unnecessary updates)
-                            if (existingPos.lat !== lat || existingPos.lng !== lng) {
-                                try {
-                                    // Update marker position
-                                    existingMarker.setLatLng([lat, lng]);
-                                    
-                                    // Update popup content in case info changed
-                                    existingMarker.setPopupContent(createPopupContent(alumni));
-                                    
-                                    // Update icon if needed
-                                    try {
-                                        const customIcon = createCustomMarker(alumni);
-                                        if (customIcon) {
-                                            existingMarker.setIcon(customIcon);
-                                        }
-                                    } catch (e) {
-                                        // Ignore icon update errors
-                                    }
-                                    
-                                    console.log(`🔄 Updated marker for ${alumni.user} at [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
-                                    validMarkers++;
-                                    updatedMarkers.add(alumni.user);
-                                } catch (e) {
-                                    console.warn(`Error updating marker for ${alumni.user}, removing and re-adding:`, e);
-                                    // Remove broken marker and add new one
-                                    try {
-                                        markerClusterGroup.removeLayer(existingMarker);
-                                    } catch (remErr) {
-                                        // Ignore removal errors
-                                    }
-                                    markerClusterGroup.addLayer(marker);
-                                    markers[alumni.user] = marker;
-                                    validMarkers++;
-                                    updatedMarkers.add(alumni.user);
-                                }
-                            } else {
-                                // Position unchanged, just mark as updated
-                                validMarkers++;
-                                updatedMarkers.add(alumni.user);
-                            }
-                        } else {
-                            // New marker - add to cluster group
-                            markerClusterGroup.addLayer(marker);
-                            markers[alumni.user] = marker;
-                            validMarkers++;
-                            updatedMarkers.add(alumni.user);
-                            console.log(`✅ Added new marker for ${alumni.user} at [${lat.toFixed(6)}, ${lng.toFixed(6)}]`);
-                        }
-                    } catch (e) {
-                        console.error(`❌ Error adding/updating marker for ${alumni.user}:`, e);
-                        invalidCount++;
-                        try {
-                            marker.remove();
-                        } catch (remErr) {
-                            // Ignore removal errors
-                        }
-                    }
-                } catch (error) {
-                    console.error(`Error creating marker for ${alumni.user}:`, error, 'Coordinates:', alumni.latitude, alumni.longitude);
-                }
+                markers[alumni.user] = marker;
+                markerClusterGroup.addLayer(marker);
             });
-            
-            console.log(`✅ Successfully created ${validMarkers} markers out of ${alumniData.length} locations`);
-            console.log(`⚠️ Skipped ${invalidCount} invalid locations`);
-            
-            // Verify markers are actually in cluster group
-            const layersInCluster = markerClusterGroup.getLayers();
-            console.log(`📍 Total layers in cluster group: ${layersInCluster.length}`);
-            console.log(`📍 Total markers in tracking object: ${Object.keys(markers).length}`);
-            
-            // Log first few markers for debugging
-            if (layersInCluster.length > 0) {
-                console.log('Sample markers in cluster:', layersInCluster.slice(0, 3).map(layer => {
-                    try {
-                        const latLng = layer.getLatLng();
-                        return { lat: latLng.lat, lng: latLng.lng };
-                    } catch (e) {
-                        return 'Error getting position';
-                    }
-                }));
-            } else {
-                console.warn('⚠️ WARNING: No markers in cluster group!');
-            }
-            
-            // Ensure cluster group is added to map
-            if (!map.hasLayer(markerClusterGroup)) {
-                console.log('⚠️ Cluster group not on map, adding it');
-                map.addLayer(markerClusterGroup);
-            }
-            
-            // Force map to redraw
-            map.invalidateSize();
-            
-            // Refresh clusters smoothly (only fit bounds on first load, not on updates)
-            if (validMarkers > 0) {
-                // Only refresh clusters and fit bounds on first load, not on updates
-                // This prevents map jumping during real-time updates
-                const wasEmpty = existingUserNames.size === 0;
-                
-                try {
-                    // Always invalidate size to ensure redraw
-                    map.invalidateSize();
-                    
-                    // Only fit bounds on first load when map was empty
-                    if (wasEmpty) {
-                        console.log('First load detected - fitting bounds to show all markers');
-                        
-                        // Refresh clusters
-                        try {
-                            const layersBeforeRefresh = markerClusterGroup.getLayers();
-                            if (layersBeforeRefresh.length > 0 && typeof markerClusterGroup.refreshClusters === 'function') {
-                                markerClusterGroup.refreshClusters();
-                                console.log('✅ Refreshed clusters');
-                            }
-                        } catch (e) {
-                            console.warn('Error refreshing clusters:', e);
-                        }
-                        
-                        // Fit bounds to show all markers on first load
-                        setTimeout(() => {
-                            try {
-                                const bounds = markerClusterGroup.getBounds();
-                                if (bounds && typeof bounds.isValid === 'function' && bounds.isValid()) {
-                                    const sw = bounds.getSouthWest();
-                                    const ne = bounds.getNorthEast();
-                                    if (sw && ne && 
-                                        !isNaN(sw.lat) && !isNaN(sw.lng) && 
-                                        !isNaN(ne.lat) && !isNaN(ne.lng)) {
-                                        map.fitBounds(bounds, { padding: [50, 50], maxZoom: 15 });
-                                        console.log('✅ Fitted bounds to show markers');
-                                    }
-                                }
-                            } catch (e) {
-                                console.warn('Error fitting bounds:', e);
-                            }
-                        }, 300);
-                    } else {
-                        // Real-time update - just refresh clusters without moving map
-                        try {
-                            if (typeof markerClusterGroup.refreshClusters === 'function') {
-                                markerClusterGroup.refreshClusters();
-                            }
-                        } catch (e) {
-                            // Ignore refresh errors during updates
-                        }
-                    }
-                } catch (e) {
-                    console.warn('Error during map update:', e);
-                }
-            } else {
-                console.warn('⚠️ No valid markers to display');
-            }
 
-            // Update filters but DON'T call filterMarkers - it will clear markers we just added
-            // filterMarkers will be called by filter event handlers when needed
             updateFilters();
-            
-            // Don't call filterMarkers here - it clears markers and re-adds them based on filters
-            // If no filters are active, markers should already be visible
-            console.log('Markers added to cluster group, skipping filterMarkers call');
+            filterMarkers();
             
             // Update the data attributes of alumni items
             updateAlumniItemAttributes();
@@ -2267,126 +1659,34 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Add event listener for zoom level changes to adjust marker size based on zoom
-    // Wrap in try-catch to prevent errors from breaking the map
     map.on('zoomend', function() {
-        try {
-            const currentZoom = map.getZoom();
-            const markerElements = document.querySelectorAll('.marker');
-            
-            // If streets aren't visible (typically zoom < 15), make markers smaller
-            if (currentZoom < 15) {
-                markerElements.forEach(marker => {
-                    try {
-                        marker.style.width = '30px';
-                        marker.style.height = '30px';
-                    } catch (e) {
-                        // Ignore errors on individual markers
-                    }
-                });
-            } else {
-                // Reset to normal size
-                markerElements.forEach(marker => {
-                    try {
-                        marker.style.width = '50px';
-                        marker.style.height = '50px';
-                    } catch (e) {
-                        // Ignore errors on individual markers
-                    }
-                });
-            }
-        } catch (error) {
-            console.warn('Error in zoomend handler:', error);
-            // Don't let zoom errors break the map
+        const currentZoom = map.getZoom();
+        const markerElements = document.querySelectorAll('.marker');
+        
+        // If streets aren't visible (typically zoom < 15), make markers smaller
+        if (currentZoom < 15) {
+            markerElements.forEach(marker => {
+                marker.style.width = '30px';
+                marker.style.height = '30px';
+            });
+        } else {
+            // Reset to normal size
+            markerElements.forEach(marker => {
+                marker.style.width = '50px';
+                marker.style.height = '50px';
+            });
         }
     });
-    
-    // Don't wrap refreshClusters - just validate markers before calling it
-    // The cluster library handles refresh internally
 
-    // Function to get CSRF token
-    function getCSRFToken() {
-        // Try to get CSRF token from cookie
-        const name = 'csrftoken';
-        let cookieValue = null;
-        if (document.cookie && document.cookie !== '') {
-            const cookies = document.cookie.split(';');
-            for (let i = 0; i < cookies.length; i++) {
-                const cookie = cookies[i].trim();
-                if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                    break;
-                }
-            }
-        }
-        // Fallback to template variable if cookie not found
-        return cookieValue || '{{ csrf_token }}';
-    }
+    // Initial update
+    updateLocations();
     
-    // Function to send current user's location to server
-    function sendCurrentLocation() {
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(
-                async (position) => {
-                    const lat = position.coords.latitude;
-                    const lng = position.coords.longitude;
-                    
-                    try {
-                        // Send location to server
-                        const response = await fetch('{% url "location_tracking:update_location" %}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRFToken': getCSRFToken()
-                            },
-                            body: JSON.stringify({
-                                latitude: lat,
-                                longitude: lng
-                            }),
-                            credentials: 'include'
-                        });
-                        
-                        const data = await response.json();
-                        if (data.status === 'success') {
-                            console.log('Location updated successfully:', data.message);
-                        } else {
-                            console.error('Failed to update location:', data.message);
-                        }
-                    } catch (error) {
-                        console.error('Error sending location:', error);
-                    }
-                },
-                (error) => {
-                    console.error('Error getting location:', error);
-                    // Don't show alert - user might have denied permission
-                },
-                {
-                    enableHighAccuracy: true,
-                    timeout: 10000,
-                    maximumAge: 0
-                }
-            );
-        }
-    }
-    
-    // Send current user's location on page load
-    sendCurrentLocation();
-    
-    // Initial update after a short delay to allow location to be sent
-    setTimeout(() => {
-        updateLocations();
-    }, 1000);
-    
-    // Real-time updates - update locations more frequently
+    // Periodic updates with a longer interval to avoid disruptions
     setInterval(() => {
-        if (!isProcessingClick && !isUpdatingLocations) {
-            // Update current user's location before fetching all locations
-            sendCurrentLocation();
-            // Then update locations after a short delay
-            setTimeout(() => {
-                updateLocations();
-            }, 500);
+        if (!isProcessingClick) {
+            updateLocations();
         }
-    }, 10000); // Update every 10 seconds for real-time feel
+    }, 30000); // Increase to 30 seconds to reduce interference
     
     // Run setup ONCE after initial page load
     setTimeout(setupAlumniItemClicks, 1000);
@@ -2399,7 +1699,6 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('refreshMap').addEventListener('click', function() {
         updateLocations();
     });
-    }); // Close waitForLeaflet callback
 });
 </script>
 {% endblock %}

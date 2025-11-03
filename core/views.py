@@ -1167,18 +1167,3 @@ class SuperuserCreationView(View):
             logger.error(f"Error sending contact form email: {str(e)}")
             messages.error(request, 'There was an error sending your message. Please try again later.')
             return redirect('core:contact_us')
-
-
-def test_leaflet(request):
-    """Simple test view to verify Leaflet library loading"""
-    return render(request, 'test_leaflet.html')
-
-
-def simple_leaflet_test(request):
-    """Minimal test view to verify Leaflet library loading"""
-    return render(request, 'simple_leaflet_test.html')
-
-
-def basic_leaflet_test(request):
-    """Basic test view to verify Leaflet library loading without SRI"""
-    return render(request, 'basic_leaflet_test.html')

@@ -67,7 +67,6 @@ urlpatterns = [
     path('admin-dashboard/smtp/<int:config_id>/activate/', smtp_admin_views.smtp_configuration_activate, name='smtp_configuration_activate'),
     
     # Brevo Configuration URLs
-    path('admin-dashboard/brevo/<int:config_id>/edit/', smtp_admin_views.brevo_configuration_edit, name='brevo_configuration_edit'),
     path('admin-dashboard/brevo/<int:config_id>/test/', smtp_admin_views.brevo_configuration_test, name='brevo_configuration_test'),
     path('admin-dashboard/brevo/<int:config_id>/activate/', smtp_admin_views.brevo_configuration_activate, name='brevo_configuration_activate'),
     path('admin-dashboard/brevo/<int:config_id>/delete/', smtp_admin_views.brevo_configuration_delete, name='brevo_configuration_delete'),
@@ -85,9 +84,4 @@ urlpatterns = [
     path('admin-dashboard/recaptcha/analytics/', recaptcha_analytics_views.ReCaptchaAnalyticsView.as_view(), name='recaptcha_analytics'),
     path('admin-dashboard/recaptcha/analytics/api/', recaptcha_analytics_views.recaptcha_analytics_api, name='recaptcha_analytics_api'),
     path('admin-dashboard/recaptcha/analytics/reset/', recaptcha_analytics_views.recaptcha_analytics_reset, name='recaptcha_analytics_reset'),
-    
-    # Test URLs
-    path('test-leaflet/', views.test_leaflet, name='test_leaflet'),
-    path('simple-leaflet-test/', views.simple_leaflet_test, name='simple_leaflet_test'),
-    path('basic-leaflet-test/', views.basic_leaflet_test, name='basic_leaflet_test'),
 ]
