@@ -317,6 +317,7 @@ CSP_STYLE_SRC = (
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
     "https://fonts.googleapis.com",
+    "https://unpkg.com",
 )
 CSP_FONT_SRC = (
     "'self'",
