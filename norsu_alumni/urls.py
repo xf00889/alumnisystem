@@ -2,8 +2,9 @@ from django.contrib import admin
 from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
-from django.http import HttpResponseRedirect
+from django.http import HttpResponseRedirect, Http404
 from accounts import security_views
+import os
 
 def profile_search_connected_users(request):
     """Handle old profile API endpoint by calling the accounts API view"""
@@ -34,6 +35,22 @@ urlpatterns = [
     path('cms/', include(('cms.urls', 'cms'), namespace='cms')),
 ]
 
-# Serve media files in both development and production
-# For production platforms like Render, this is necessary for user uploads
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+# Serve media files during development
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+else:
+    # Serve media files in production
+    from django.views.static import serve
+    from django.urls import re_path
+    
+    def serve_media(request, path):
+        """Serve media files in production"""
+        document_root = settings.MEDIA_ROOT
+        file_path = os.path.join(document_root, path)
+        if os.path.exists(file_path) and os.path.isfile(file_path):
+            return serve(request, path, document_root=document_root, show_indexes=False)
+        raise Http404("Media file not found")
+    
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve_media, name='serve_media'),
+    ]
