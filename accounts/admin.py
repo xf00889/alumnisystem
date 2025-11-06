@@ -5,12 +5,19 @@ from django.contrib.auth.forms import UserChangeForm, UserCreationForm
 from django.utils.translation import gettext_lazy as _
 from django.contrib.admin.sites import NotRegistered
 from django.forms import ModelForm
-from .models import Profile, Education, Experience, Skill, Document, SkillMatch, MentorApplication, Mentor, MentorshipRequest
+from .models import Profile, Education, Experience, Skill, Document, SkillMatch, MentorApplication, Mentor, MentorshipRequest, MentorReactivationRequest
 from django.utils import timezone
-from django.urls import path
+from django.urls import path, reverse
 from django.shortcuts import render
 from django.contrib.admin.views.decorators import staff_member_required
 from django.core.exceptions import PermissionDenied
+from django.http import HttpResponseRedirect
+from django.contrib.contenttypes.models import ContentType
+from django.db import transaction
+from log_viewer.models import AuditLog
+import logging
+
+logger = logging.getLogger(__name__)
 
 User = get_user_model()
 
@@ -173,7 +180,7 @@ class MentorAdmin(admin.ModelAdmin):
     list_filter = ('is_verified', 'availability_status', 'is_active', 'accepting_mentees', 'created_at')
     search_fields = ('user__username', 'user__email', 'user__first_name', 'user__last_name', 'expertise_areas')
     readonly_fields = ('current_mentees', 'verification_date', 'verified_by', 'created_at', 'updated_at')
-    actions = ['verify_mentors', 'make_available', 'make_unavailable']
+    actions = ['verify_mentors', 'make_available', 'make_unavailable', 'remove_mentors']
     list_per_page = 20
     date_hierarchy = 'created_at'
     
@@ -225,6 +232,168 @@ class MentorAdmin(admin.ModelAdmin):
         )
         self.message_user(request, f'{updated} mentors were marked as unavailable.')
     make_unavailable.short_description = 'Mark selected mentors as unavailable'
+    
+    def remove_mentors(self, request, queryset):
+        """
+        Remove selected mentors (soft delete) with validation and audit logging.
+        Redirects to intermediate form if reason not provided.
+        """
+        # Filter out already removed mentors
+        active_mentors = queryset.filter(is_active=True)
+        
+        if not active_mentors.exists():
+            self.message_user(request, 'No active mentors selected to disable.', messages.WARNING)
+            return
+        
+        # Check for mentors with active mentorships
+        mentors_with_active_mentorships = []
+        for mentor in active_mentors:
+            active_count = mentor.get_active_mentorships_count()
+            if active_count > 0:
+                mentors_with_active_mentorships.append({
+                    'mentor': mentor,
+                    'count': active_count
+                })
+        
+        if mentors_with_active_mentorships:
+            error_msg = 'Cannot disable the following mentors due to active mentorships:\n'
+            for item in mentors_with_active_mentorships:
+                error_msg += f"- {item['mentor'].user.get_full_name()}: {item['count']} active mentorship(s)\n"
+            error_msg += '\nPlease complete or cancel all active mentorships before disabling these mentors.'
+            self.message_user(request, error_msg, messages.ERROR)
+            return
+        
+        # Store selected mentor IDs in session and redirect to form
+        selected_ids = list(active_mentors.values_list('id', flat=True))
+        request.session['remove_mentor_ids'] = selected_ids
+        return HttpResponseRedirect(reverse('admin:accounts_mentor_remove_form'))
+    remove_mentors.short_description = 'Disable selected mentors (requires reason)'
+    
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('remove-mentors-form/', self.admin_site.admin_view(self.remove_mentors_form_view), name='accounts_mentor_remove_form'),
+        ]
+        return custom_urls + urls
+    
+    @staff_member_required
+    def remove_mentors_form_view(self, request):
+        """
+        Intermediate form view for removing mentors with reason.
+        """
+        mentor_ids = request.session.get('remove_mentor_ids', [])
+        if not mentor_ids:
+            messages.error(request, 'No mentors selected for removal.')
+            return HttpResponseRedirect(reverse('admin:accounts_mentor_changelist'))
+        
+        mentors = Mentor.objects.filter(id__in=mentor_ids, is_active=True)
+        
+        if request.method == 'POST':
+            removal_reason = request.POST.get('removal_reason', '').strip()
+            if not removal_reason:
+                messages.error(request, 'Removal reason is required.')
+            else:
+                # Process removal
+                removed_count = 0
+                for mentor in mentors:
+                    try:
+                        with transaction.atomic():
+                            # Store old values for audit log
+                            old_values = {
+                                'is_active': mentor.is_active,
+                                'accepting_mentees': mentor.accepting_mentees,
+                                'availability_status': mentor.availability_status,
+                            }
+                            
+                            # Soft delete
+                            mentor.is_active = False
+                            mentor.accepting_mentees = False
+                            mentor.availability_status = 'UNAVAILABLE'
+                            mentor.removal_reason = removal_reason
+                            mentor.removed_at = timezone.now()
+                            mentor.removed_by = request.user
+                            mentor.save()
+                            
+                            # Create audit log entry
+                            content_type = ContentType.objects.get_for_model(Mentor)
+                            
+                            # Get request info
+                            ip_address = None
+                            user_agent = None
+                            request_path = None
+                            if hasattr(request, 'META'):
+                                ip_address = request.META.get('REMOTE_ADDR')
+                                user_agent = request.META.get('HTTP_USER_AGENT', '')[:500]
+                                request_path = request.path[:500]
+                            
+                            # Create audit log
+                            audit_log = AuditLog.objects.create(
+                                content_type=content_type,
+                                object_id=mentor.id,
+                                action='UPDATE',
+                                model_name='mentor',
+                                app_label='accounts',
+                                user=request.user,
+                                username=request.user.username,
+                                old_values=old_values,
+                                new_values={
+                                    'is_active': False,
+                                    'accepting_mentees': False,
+                                    'availability_status': 'UNAVAILABLE',
+                                    'removal_reason': removal_reason,
+                                    'removed_at': str(mentor.removed_at),
+                                    'removed_by': request.user.username,
+                                },
+                                changed_fields=['is_active', 'accepting_mentees', 'availability_status', 'removal_reason', 'removed_at', 'removed_by'],
+                                ip_address=ip_address,
+                                user_agent=user_agent,
+                                request_path=request_path,
+                                message=f"Mentor removed: {mentor.user.get_full_name()} - Reason: {removal_reason[:200]}",
+                                timestamp=timezone.now(),
+                            )
+                            
+                            # Log to Python logger
+                            logger.info(
+                                f"Mentor removed via admin: Mentor ID={mentor.id}, User ID={mentor.user.id}, "
+                                f"Removed by={request.user.username}, Reason={removal_reason[:200]}",
+                                extra={
+                                    'mentor_id': mentor.id,
+                                    'user_id': mentor.user.id,
+                                    'removed_by': request.user.id,
+                                    'removed_by_username': request.user.username,
+                                    'removal_reason': removal_reason[:200],
+                                    'action': 'mentor_removal_admin',
+                                    'audit_log_id': audit_log.id,
+                                }
+                            )
+                            
+                            removed_count += 1
+                    except Exception as e:
+                        logger.error(
+                            f"Error removing mentor via admin: {str(e)}",
+                            extra={
+                                'mentor_id': mentor.id,
+                                'removed_by': request.user.id,
+                                'error_type': type(e).__name__
+                            },
+                            exc_info=True
+                        )
+                        messages.error(request, f'Error disabling mentor {mentor.user.get_full_name()}: {str(e)}')
+                
+                if removed_count > 0:
+                    messages.success(request, f'{removed_count} mentor(s) were successfully disabled.')
+                    # Clear session
+                    if 'remove_mentor_ids' in request.session:
+                        del request.session['remove_mentor_ids']
+                    return HttpResponseRedirect(reverse('admin:accounts_mentor_changelist'))
+        
+        context = {
+            'title': 'Disable Mentors',
+            'mentors': mentors,
+            'opts': self.model._meta,
+            'has_view_permission': self.has_view_permission(request, None),
+        }
+        return render(request, 'admin/accounts/mentor/remove_mentors_form.html', context)
 
     def save_model(self, request, obj, form, change):
         if 'is_verified' in form.changed_data and obj.is_verified:
@@ -361,3 +530,28 @@ def admin_mentor_list(request):
         'has_change_permission': request.user.has_perm('accounts.change_mentor'),
     }
     return render(request, 'admin/mentor_list.html', context)
+
+@admin.register(MentorReactivationRequest)
+class MentorReactivationRequestAdmin(admin.ModelAdmin):
+    list_display = ('mentor', 'requested_by', 'email', 'is_verified', 'status', 'requested_at', 'reviewed_at', 'reviewed_by')
+    list_filter = ('status', 'is_verified', 'requested_at', 'reviewed_at')
+    search_fields = ('mentor__user__email', 'mentor__user__first_name', 'mentor__user__last_name', 'email', 'requested_by__email')
+    readonly_fields = ('requested_at', 'reviewed_at', 'verification_code_expires_at')
+    date_hierarchy = 'requested_at'
+    
+    fieldsets = (
+        ('Request Information', {
+            'fields': ('mentor', 'requested_by', 'email', 'request_reason', 'requested_at')
+        }),
+        ('Verification', {
+            'fields': ('verification_code', 'is_verified', 'verification_code_expires_at')
+        }),
+        ('Review', {
+            'fields': ('status', 'admin_notes', 'reviewed_at', 'reviewed_by')
+        }),
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj and obj.status != 'PENDING':
+            return self.readonly_fields + ('status', 'mentor', 'requested_by', 'email')
+        return self.readonly_fields

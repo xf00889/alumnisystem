@@ -169,7 +169,18 @@ class Report(models.Model):
         ('geographic', 'Geographic Distribution'),
         ('achievements', 'Alumni Achievements'),
         ('feedback', 'Survey Feedback'),
+        ('donations', 'Donations Report'),
+        ('mentors', 'Mentors Report'),
+        ('groups', 'Groups Report'),
         ('custom', 'Custom Report'),
+    )
+    
+    SCHEDULE_FREQUENCY_CHOICES = (
+        ('none', 'No Automation'),
+        ('daily', 'Daily'),
+        ('weekly', 'Weekly'),
+        ('monthly', 'Monthly'),
+        ('quarterly', 'Quarterly'),
     )
     
     title = models.CharField(max_length=200)
@@ -179,6 +190,17 @@ class Report(models.Model):
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     last_run = models.DateTimeField(null=True, blank=True)
+    
+    # Scheduling fields
+    is_scheduled = models.BooleanField(default=False, help_text='Enable automated report generation')
+    schedule_frequency = models.CharField(
+        max_length=20,
+        choices=SCHEDULE_FREQUENCY_CHOICES,
+        default='none',
+        help_text='How often should this report be generated automatically'
+    )
+    last_scheduled_run = models.DateTimeField(null=True, blank=True)
+    next_scheduled_run = models.DateTimeField(null=True, blank=True)
     
     def __str__(self):
         return self.title

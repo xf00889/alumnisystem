@@ -215,19 +215,19 @@ if (typeof window.toggleConfigStatus === 'undefined') {
                 }
             });
             
-            fetch(`{% url 'donations:toggle_gcash_config' 0 %}`.replace('0', configId), {
-                method: 'POST',
-                headers: {
+        fetch(`{% url 'donations:toggle_gcash_config' 0 %}`.replace('0', configId), {
+            method: 'POST',
+            headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                body: JSON.stringify({
-                    'is_active': newStatus
-                })
+                'X-CSRFToken': '{{ csrf_token }}',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                'is_active': newStatus
             })
-            .then(response => response.json())
-            .then(data => {
+        })
+        .then(response => response.json())
+        .then(data => {
                 if (data.status === 'success') {
                     Swal.fire({
                         title: 'Success!',
@@ -237,27 +237,27 @@ if (typeof window.toggleConfigStatus === 'undefined') {
                         timer: 2000,
                         timerProgressBar: true
                     }).then(() => {
-                        location.reload();
+                location.reload();
                     });
-                } else {
+            } else {
                     Swal.fire({
                         title: 'Error!',
                         text: data.message || 'An error occurred while updating the configuration.',
                         icon: 'error',
                         confirmButtonColor: '#d33'
                     });
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
                 Swal.fire({
                     title: 'Error!',
                     text: 'An error occurred. Please try again.',
                     icon: 'error',
                     confirmButtonColor: '#d33'
                 });
-            });
-        }
+        });
+    }
     });
   };
 }

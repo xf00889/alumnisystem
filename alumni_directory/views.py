@@ -108,7 +108,24 @@ def is_admin(user):
 @login_required
 @paginate(per_page=12)  # Show 12 alumni per page
 def alumni_list(request):
+    import time
+    from django.db import connection
+    start_time = time.time()
+    initial_query_count = len(connection.queries)
+    
     try:
+        # Log list view access with user access pattern
+        logger.debug(
+            f"Alumni list view accessed: User={request.user.username if request.user.is_authenticated else 'Anonymous'}",
+            extra={
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'is_authenticated': request.user.is_authenticated,
+                'ip_address': request.META.get('REMOTE_ADDR'),
+                'user_agent': request.META.get('HTTP_USER_AGENT', '')[:100],  # Truncate for logging
+                'action': 'list_view_access'
+            }
+        )
+        
         # Get all unique values for filters
         graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
         courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
@@ -121,7 +138,16 @@ def alumni_list(request):
         
         # Base queryset with efficient loading
         queryset = Alumni.objects.select_related('user').all()
-        logger.info(f"Initial alumni queryset count: {queryset.count()}")
+        initial_count = queryset.count()
+        
+        logger.debug(
+            f"Initial alumni queryset count: {initial_count}",
+            extra={
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'initial_count': initial_count,
+                'action': 'query_execution'
+            }
+        )
         
         # Apply filters
         search_query = request.GET.get('search', '').strip()
@@ -216,10 +242,51 @@ def alumni_list(request):
         if request.headers.get('HX-Request'):
             template_name = 'alumni_directory/partials/alumni_list.html'
         
+        # Calculate performance metrics
+        elapsed_time = time.time() - start_time
+        final_query_count = len(connection.queries)
+        queries_executed = final_query_count - initial_query_count
+        
+        # Log performance metrics
+        logger.debug(
+            f"Alumni list view completed: Time={elapsed_time:.3f}s, Queries={queries_executed}, Results={total_registered}",
+            extra={
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'elapsed_time': elapsed_time,
+                'queries_executed': queries_executed,
+                'total_results': total_registered,
+                'filters_active': any_filter_active,
+                'selected_filters_count': selected_filters_count,
+                'action': 'list_view_complete'
+            }
+        )
+        
+        # Log slow operations warning
+        if elapsed_time > 2.0:
+            logger.warning(
+                f"Slow alumni list view: Time={elapsed_time:.3f}s, Queries={queries_executed}",
+                extra={
+                    'user_id': request.user.id if request.user.is_authenticated else None,
+                    'elapsed_time': elapsed_time,
+                    'queries_executed': queries_executed,
+                    'threshold': 2.0,
+                    'action': 'slow_operation'
+                }
+            )
+        
         return render(request, template_name, context)
         
     except Exception as e:
-        logger.error(f"Error in alumni_list view: {str(e)}")
+        elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
+        logger.error(
+            f"Error in alumni list view: {str(e)}, Time={elapsed_time:.3f}s",
+            extra={
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'error_type': type(e).__name__,
+                'elapsed_time': elapsed_time,
+                'exc_info': True
+            }
+        )
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
                 'status': 'error',
@@ -229,6 +296,11 @@ def alumni_list(request):
 
 @login_required
 def alumni_detail(request, pk):
+    import time
+    from django.db import connection
+    start_time = time.time()
+    initial_query_count = len(connection.queries)
+    
     try:
         # Get alumni object or 404
         alumni = get_object_or_404(Alumni, pk=pk)
@@ -237,7 +309,33 @@ def alumni_detail(request, pk):
         except Exception:
             alumni_name = f"Alumni ID: {pk}"
             logger.warning(f"Could not get full name for alumni ID: {pk}")
-        logger.info(f"Alumni detail view accessed for ID: {pk}, Name: {alumni_name}")
+        
+        # Log detail view access with user access pattern
+        logger.debug(
+            f"Alumni detail view accessed: ID={pk}, Name={alumni_name}, User={request.user.username if request.user.is_authenticated else 'Anonymous'}",
+            extra={
+                'alumni_id': pk,
+                'alumni_name': alumni_name,
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'is_authenticated': request.user.is_authenticated,
+                'is_staff': request.user.is_staff if request.user.is_authenticated else False,
+                'ip_address': request.META.get('REMOTE_ADDR'),
+                'user_agent': request.META.get('HTTP_USER_AGENT', '')[:100],
+                'action': 'detail_view_access'
+            }
+        )
+        
+        # Log sensitive data access (if viewing someone else's profile)
+        if request.user.is_authenticated and hasattr(request.user, 'alumni'):
+            if request.user.alumni.id != pk and not request.user.is_staff:
+                logger.info(
+                    f"Sensitive data access: User {request.user.id} viewing alumni {pk} profile",
+                    extra={
+                        'viewer_id': request.user.id,
+                        'viewed_alumni_id': pk,
+                        'action': 'sensitive_data_access'
+                    }
+                )
         
         # Get profile
         profile = None
@@ -427,6 +525,23 @@ def send_reminder(request, pk):
         if not any([alumni.bio, alumni.achievements]):
             empty_sections.append('Additional Information')
         
+        # Log reminder sending attempt
+        logger.info(
+            f"Profile completion reminder requested: Alumni ID={pk}, Email={alumni.email}",
+            extra={
+                'alumni_id': pk,
+                'alumni_email': alumni.email,
+                'alumni_name': alumni.full_name,
+                'completed_required': completed_required,
+                'total_required': len(required_fields),
+                'completed_optional': completed_optional,
+                'total_optional': len(optional_fields),
+                'empty_sections': empty_sections,
+                'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                'action': 'reminder_send_attempt'
+            }
+        )
+        
         # Send email
         subject = 'Complete Your Alumni Profile'
         message = f"""Dear {alumni.full_name},
@@ -447,22 +562,57 @@ The Alumni Team"""
 
         from core.email_utils import send_email_with_provider
         
-        success = send_email_with_provider(
-            subject=subject,
-            message=message,
-            recipient_list=[alumni.email],
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            fail_silently=False
-        )
-        
-        if success:
-            logger.info(f"Profile completion reminder sent to alumni ID: {pk}")
-            return JsonResponse({
-                'status': 'success',
-                'message': 'Reminder sent successfully'
-            })
-        else:
-            logger.error(f"Failed to send profile completion reminder to alumni ID: {pk}")
+        try:
+            success = send_email_with_provider(
+                subject=subject,
+                message=message,
+                recipient_list=[alumni.email],
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                fail_silently=False
+            )
+            
+            if success:
+                logger.info(
+                    f"Profile completion reminder sent successfully: Alumni ID={pk}, Email={alumni.email}",
+                    extra={
+                        'alumni_id': pk,
+                        'alumni_email': alumni.email,
+                        'alumni_name': alumni.full_name,
+                        'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                        'action': 'reminder_sent'
+                    }
+                )
+                return JsonResponse({
+                    'status': 'success',
+                    'message': 'Reminder sent successfully'
+                })
+            else:
+                logger.error(
+                    f"Failed to send profile completion reminder: Alumni ID={pk}, Email={alumni.email}",
+                    extra={
+                        'alumni_id': pk,
+                        'alumni_email': alumni.email,
+                        'error_type': 'email_send_failed',
+                        'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                        'action': 'reminder_send_failed'
+                    }
+                )
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'Failed to send reminder'
+                })
+        except Exception as e:
+            logger.error(
+                f"Exception sending profile completion reminder: {str(e)}",
+                extra={
+                    'alumni_id': pk,
+                    'alumni_email': alumni.email,
+                    'error_type': type(e).__name__,
+                    'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                    'exc_info': True,
+                    'action': 'reminder_send_exception'
+                }
+            )
             return JsonResponse({
                 'status': 'error',
                 'message': 'Failed to send reminder'
@@ -589,6 +739,20 @@ def alumni_management(request):
         if request.method == 'POST' and 'import_csv' in request.POST:
             csv_file = request.FILES.get('csv_file')
             if csv_file:
+                # Log CSV import start
+                file_size = csv_file.size
+                file_name = csv_file.name
+                
+                logger.info(
+                    f"CSV import started: File={file_name}, Size={file_size} bytes",
+                    extra={
+                        'file_name': file_name,
+                        'file_size': file_size,
+                        'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                        'action': 'csv_import_start'
+                    }
+                )
+                
                 try:
                     # Read CSV file
                     decoded_file = csv_file.read().decode('utf-8')
@@ -596,6 +760,8 @@ def alumni_management(request):
                     
                     imported_count = 0
                     updated_count = 0
+                    error_count = 0
+                    error_details = []
                     
                     for row in csv_data:
                         # Extract data from CSV row
@@ -655,11 +821,65 @@ def alumni_management(request):
                                         alumni.save()
                                 
                                 imported_count += 1
+                            except Exception as row_error:
+                                error_count += 1
+                                error_details.append({
+                                    'row': full_name,
+                                    'error': str(row_error)
+                                })
+                                logger.warning(
+                                    f"Error processing CSV row: {str(row_error)}",
+                                    extra={
+                                        'row_data': full_name,
+                                        'error_type': type(row_error).__name__,
+                                        'file_name': file_name,
+                                        'action': 'csv_row_error'
+                                    }
+                                )
+                    
+                    # Log CSV import completion
+                    logger.info(
+                        f"CSV import completed: Imported={imported_count}, Updated={updated_count}, Errors={error_count}",
+                        extra={
+                            'file_name': file_name,
+                            'file_size': file_size,
+                            'imported_count': imported_count,
+                            'updated_count': updated_count,
+                            'error_count': error_count,
+                            'total_processed': imported_count + updated_count + error_count,
+                            'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                            'action': 'csv_import_complete'
+                        }
+                    )
+                    
+                    if error_count > 0:
+                        logger.warning(
+                            f"CSV import completed with errors: {error_count} errors out of {imported_count + updated_count + error_count} rows",
+                            extra={
+                                'file_name': file_name,
+                                'error_count': error_count,
+                                'error_details': error_details[:10],  # Limit to first 10 errors
+                                'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                                'action': 'csv_import_errors'
+                            }
+                        )
                     
                     messages.success(request, f"Successfully imported {imported_count} new alumni and updated {updated_count} existing records.")
+                    if error_count > 0:
+                        messages.warning(request, f"Warning: {error_count} rows had errors during import.")
                     
                 except Exception as e:
-                    logger.error(f"Error importing CSV: {str(e)}")
+                    logger.error(
+                        f"Error importing CSV: {str(e)}",
+                        extra={
+                            'file_name': file_name if 'file_name' in locals() else None,
+                            'file_size': file_size if 'file_size' in locals() else None,
+                            'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
+                            'error_type': type(e).__name__,
+                            'exc_info': True,
+                            'action': 'csv_import_failed'
+                        }
+                    )
                     messages.error(request, f"Error importing CSV file: {str(e)}")
             else:
                 messages.error(request, "Please select a CSV file to import.")

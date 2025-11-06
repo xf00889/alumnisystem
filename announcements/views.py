@@ -251,11 +251,26 @@ class AnnouncementDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView
     success_url = reverse_lazy('announcements:announcement-list')
     
     def test_func(self):
-        obj = self.get_object()
-        return self.request.user.is_staff
+        """Check if user is staff or superuser"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get(self, request, *args, **kwargs):
+        """Block GET requests - deletion should only happen via POST with AJAX"""
+        messages.error(request, 'Invalid request. Please use the delete button to delete announcements.')
+        return redirect('announcements:announcement-list')
 
     def post(self, request, *args, **kwargs):
         """Override post to handle both AJAX and regular requests"""
+        # Check permissions first
+        if not (request.user.is_staff or request.user.is_superuser):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You do not have permission to delete announcements.'
+                }, status=403)
+            messages.error(request, 'You do not have permission to delete announcements.')
+            return redirect('announcements:announcement-list')
+        
         try:
             self.object = self.get_object()
             success_url = self.get_success_url()

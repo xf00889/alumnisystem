@@ -1,0 +1,749 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Logs{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* Tab Styles */
+    .logs-container {
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .logs-header {
+        background: var(--primary-color, #2b3c6b);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+    
+    .logs-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .logs-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Tab Navigation */
+    .tab-nav {
+        display: flex;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 2rem;
+        background: white;
+        border-radius: 0.375rem 0.375rem 0 0;
+        padding: 0;
+    }
+    
+    .tab-nav-item {
+        padding: 1rem 2rem;
+        cursor: pointer;
+        border: none;
+        background: none;
+        font-size: 1rem;
+        font-weight: 500;
+        color: #718096;
+        border-bottom: 3px solid transparent;
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .tab-nav-item:hover {
+        color: #2b3c6b;
+        background: #f8f9fa;
+    }
+    
+    .tab-nav-item.active {
+        color: #2b3c6b;
+        border-bottom-color: #2b3c6b;
+        font-weight: 600;
+    }
+    
+    /* Tab Content */
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+    }
+    
+    /* Common styles for both tabs */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --log-debug: #6c757d;
+        --log-info: #17a2b8;
+        --log-warning: #ffc107;
+        --log-error: #dc3545;
+        --log-critical: #721c24;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .filter-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .filter-form {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        align-items: end;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .filter-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .filter-input,
+    .filter-select {
+        border: 1px solid var(--ui-border);
+        border-radius: 0.25rem;
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+    }
+    
+    .filter-button,
+    .clear-button,
+    .export-button {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 0.25rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    
+    .filter-button {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .clear-button {
+        background: #dc3545;
+        color: var(--text-light);
+    }
+    
+    .export-button {
+        background: #28a745;
+        color: var(--text-light);
+    }
+    
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: var(--ui-surface);
+        border-radius: 0.375rem;
+        padding: 2rem;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--ui-border);
+        border-left: 3px solid var(--primary-color);
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        display: block;
+    }
+    
+    .stat-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        display: block;
+    }
+    
+    .log-table-section {
+        background: var(--ui-surface);
+        border-radius: 0.375rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--ui-border);
+        overflow: hidden;
+    }
+    
+    .log-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .log-table thead {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .log-table th,
+    .log-table td {
+        padding: 0.75rem 1rem;
+        border-bottom: 1px solid var(--ui-border);
+        text-align: left;
+    }
+    
+    .log-table tbody tr:hover {
+        background: var(--ui-hover);
+    }
+    
+    .action-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+    
+    .action-badge.CREATE {
+        background: #28a745;
+        color: white;
+    }
+    
+    .action-badge.UPDATE {
+        background: #17a2b8;
+        color: white;
+    }
+    
+    .action-badge.DELETE {
+        background: #dc3545;
+        color: white;
+    }
+    
+    .log-level {
+        padding: 0.25rem 0.75rem;
+        border-radius: 0.25rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        display: inline-block;
+    }
+    
+    .log-level.DEBUG {
+        background: var(--log-debug);
+        color: white;
+    }
+    
+    .log-level.INFO {
+        background: var(--log-info);
+        color: white;
+    }
+    
+    .log-level.WARNING {
+        background: var(--log-warning);
+        color: #000;
+    }
+    
+    .log-level.ERROR {
+        background: var(--log-error);
+        color: white;
+    }
+    
+    .log-level.CRITICAL {
+        background: var(--log-critical);
+        color: white;
+    }
+    
+    .log-message {
+        font-family: 'Courier New', monospace;
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        word-break: break-word;
+    }
+    
+    .log-module {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        font-weight: 500;
+    }
+    
+    .log-date {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        white-space: nowrap;
+    }
+    
+    .pagination-section {
+        background: var(--ui-surface);
+        padding: 1.5rem;
+        border-radius: 0.375rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--ui-border);
+        margin-top: 1.5rem;
+    }
+    
+    .pagination {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+    
+    .page-item {
+        margin: 0;
+    }
+    
+    .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--ui-border);
+        border-radius: 0.25rem;
+        color: var(--text-primary);
+        text-decoration: none;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        background: var(--ui-surface);
+    }
+    
+    .page-link:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+    
+    .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .empty-state {
+        background: var(--ui-surface);
+        padding: 4rem 2rem;
+        border-radius: 0.375rem;
+        text-align: center;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin: 0;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-danger {
+        background: #fee;
+        border: 1px solid #fcc;
+        color: #c33;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="logs-container">
+    <!-- Header -->
+    <div class="logs-header">
+        <h1 class="logs-title">Logs</h1>
+        <p class="logs-subtitle">Monitor system activity and data changes</p>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-nav">
+        <button class="tab-nav-item {% if active_tab == 'audit' %}active{% endif %}" 
+                onclick="switchTab('audit')">
+            Audit Logs
+        </button>
+        <button class="tab-nav-item {% if active_tab == 'file' %}active{% endif %}" 
+                onclick="switchTab('file')">
+            File Based Logs
+        </button>
+    </div>
+    
+    <!-- Tab 1: Audit Logs -->
+    <div id="tab-audit" class="tab-content {% if active_tab == 'audit' %}active{% endif %}">
+        {% if audit_error %}
+        <div class="alert alert-danger">
+            Error loading audit logs: {{ audit_error }}
+        </div>
+        {% else %}
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <form method="get" class="filter-form">
+                <input type="hidden" name="tab" value="audit">
+                <div class="filter-group">
+                    <label class="filter-label" for="action">Action</label>
+                    <select id="action" name="action" class="filter-select">
+                        <option value="">All Actions</option>
+                        {% for action in available_actions %}
+                        <option value="{{ action }}" {% if filters.action == action %}selected{% endif %}>{{ action }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="app">App</label>
+                    <select id="app" name="app" class="filter-select">
+                        <option value="">All Apps</option>
+                        {% for app in available_apps %}
+                        <option value="{{ app }}" {% if filters.app == app %}selected{% endif %}>{{ app }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="model">Model</label>
+                    <select id="model" name="model" class="filter-select">
+                        <option value="">All Models</option>
+                        {% for model in available_models %}
+                        <option value="{{ model }}" {% if filters.model == model %}selected{% endif %}>{{ model }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="user">User</label>
+                    <input type="text" id="user" name="user" class="filter-input" 
+                           placeholder="Username" value="{{ filters.user }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="search">Search</label>
+                    <input type="text" id="search" name="search" class="filter-input" 
+                           placeholder="Search messages..." value="{{ filters.search }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="date_from">From Date</label>
+                    <input type="date" id="date_from" name="date_from" class="filter-input" value="{{ filters.date_from }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="date_to">To Date</label>
+                    <input type="date" id="date_to" name="date_to" class="filter-input" value="{{ filters.date_to }}">
+                </div>
+                
+                <div>
+                    <button type="submit" class="filter-button">Filter</button>
+                </div>
+                
+                <div>
+                    <a href="{% url 'log_viewer:logs' %}?tab=audit" class="clear-button">Clear</a>
+                </div>
+                
+                <div>
+                    <a href="{% url 'log_viewer:audit_log_export' %}?{{ request.GET.urlencode }}" class="export-button">Export</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <span class="stat-number">{{ total_count|default:0 }}</span>
+                <span class="stat-label">Total Operations</span>
+            </div>
+            {% for action, count in action_counts.items %}
+            <div class="stat-card">
+                <span class="stat-number">{{ count }}</span>
+                <span class="stat-label">{{ action }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Audit Logs Table -->
+        {% if audit_logs %}
+        <div class="log-table-section">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Timestamp</th>
+                        <th>Action</th>
+                        <th>App</th>
+                        <th>Model</th>
+                        <th>User</th>
+                        <th>IP Address</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for log in audit_logs %}
+                    <tr>
+                        <td class="log-date">{{ log.timestamp|date:"Y-m-d H:i:s" }}</td>
+                        <td>
+                            <span class="action-badge {{ log.action }}">{{ log.action }}</span>
+                        </td>
+                        <td class="log-module">{{ log.app_label }}</td>
+                        <td class="log-module">{{ log.model_name }}</td>
+                        <td>{{ log.username|default:"Anonymous" }}</td>
+                        <td>{{ log.ip_address|default:"-" }}</td>
+                        <td class="log-message">{{ log.message|truncatewords:10 }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if audit_logs.has_other_pages %}
+        <div class="pagination-section">
+            <ul class="pagination">
+                {% if audit_logs.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=audit&page=1{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?tab=audit&page={{ audit_logs.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">Page {{ audit_logs.number }} of {{ audit_logs.paginator.num_pages }}</span>
+                </li>
+                
+                {% if audit_logs.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=audit&page={{ audit_logs.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?tab=audit&page={{ audit_logs.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <h3>No audit logs found</h3>
+            <p>No CRUD operations match your filters.</p>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+    
+    <!-- Tab 2: File Based Logs -->
+    <div id="tab-file" class="tab-content {% if active_tab == 'file' %}active{% endif %}">
+        {% if file_error %}
+        <div class="alert alert-danger">
+            Error loading file logs: {{ file_error }}
+        </div>
+        {% else %}
+        
+        <!-- Filter Section -->
+        <div class="filter-section">
+            <form method="get" class="filter-form">
+                <input type="hidden" name="tab" value="file">
+                <div class="filter-group">
+                    <label class="filter-label" for="log_file">Log File</label>
+                    <select id="log_file" name="log_file" class="filter-select">
+                        {% for file in log_files %}
+                        <option value="{{ file.name }}" {% if file.name == selected_file %}selected{% endif %}>
+                            {{ file.name }} ({{ file.size|filesizeformat }})
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="log_level">Log Level</label>
+                    <select id="log_level" name="log_level" class="filter-select">
+                        <option value="">All Levels</option>
+                        {% for level in log_levels %}
+                        <option value="{{ level }}" {% if filters.log_level == level %}selected{% endif %}>{{ level }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="app">Application</label>
+                    <select id="app" name="app" class="filter-select">
+                        <option value="">All Apps</option>
+                        {% for app in available_apps_file %}
+                        <option value="{{ app }}" {% if filters.app == app %}selected{% endif %}>{{ app }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="search">Search</label>
+                    <input type="text" id="search" name="search" class="filter-input" 
+                           placeholder="Search messages..." value="{{ filters.search }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="date_from">From Date</label>
+                    <input type="date" id="date_from" name="date_from" class="filter-input" value="{{ filters.date_from }}">
+                </div>
+                
+                <div class="filter-group">
+                    <label class="filter-label" for="date_to">To Date</label>
+                    <input type="date" id="date_to" name="date_to" class="filter-input" value="{{ filters.date_to }}">
+                </div>
+                
+                <div>
+                    <button type="submit" class="filter-button">Filter</button>
+                </div>
+                
+                <div>
+                    <a href="{% url 'log_viewer:logs' %}?tab=file" class="clear-button">Clear</a>
+                </div>
+                
+                <div>
+                    <a href="{% url 'log_viewer:log_export' %}?{{ request.GET.urlencode }}" class="export-button">Export</a>
+                </div>
+            </form>
+        </div>
+        
+        <!-- Statistics -->
+        <div class="stats-section">
+            <div class="stat-card">
+                <span class="stat-number">{{ total_entries|default:0 }}</span>
+                <span class="stat-label">Total Entries</span>
+            </div>
+            {% for level, count in level_counts.items %}
+            <div class="stat-card level-{{ level|lower }}">
+                <span class="stat-number">{{ count }}</span>
+                <span class="stat-label">{{ level }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- File Logs Table -->
+        {% if log_entries %}
+        <div class="log-table-section">
+            <table class="log-table">
+                <thead>
+                    <tr>
+                        <th>Level</th>
+                        <th>Date & Time</th>
+                        <th>Module</th>
+                        <th>Message</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for entry in log_entries %}
+                    <tr>
+                        <td>
+                            <span class="log-level {{ entry.level }}">{{ entry.level }}</span>
+                        </td>
+                        <td class="log-date">
+                            {% if entry.date %}
+                                {{ entry.date|date:"Y-m-d H:i:s" }}
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td class="log-module">{{ entry.module }}</td>
+                        <td class="log-message">{{ entry.message }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        
+        <!-- Pagination -->
+        {% if log_entries.has_other_pages %}
+        <div class="pagination-section">
+            <ul class="pagination">
+                {% if log_entries.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=file&page=1{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?tab=file&page={{ log_entries.previous_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Previous</a>
+                </li>
+                {% endif %}
+                
+                <li class="page-item active">
+                    <span class="page-link">Page {{ log_entries.number }} of {{ log_entries.paginator.num_pages }}</span>
+                </li>
+                
+                {% if log_entries.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?tab=file&page={{ log_entries.next_page_number }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?tab=file&page={{ log_entries.paginator.num_pages }}{% for key, value in request.GET.items %}{% if key != 'page' and key != 'tab' %}&{{ key }}={{ value }}{% endif %}{% endfor %}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+        {% else %}
+        <div class="empty-state">
+            <i class="fas fa-inbox"></i>
+            <h3>No log entries found</h3>
+            <p>No log entries match your filters or the log file is empty.</p>
+        </div>
+        {% endif %}
+        {% endif %}
+    </div>
+</div>
+
+<script>
+function switchTab(tabName) {
+    // Update URL with tab parameter
+    const url = new URL(window.location);
+    url.searchParams.set('tab', tabName);
+    // Remove page parameter when switching tabs
+    url.searchParams.delete('page');
+    window.location.href = url.toString();
+}
+</script>
+{% endblock %}
+

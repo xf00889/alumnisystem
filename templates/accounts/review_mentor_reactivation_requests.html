@@ -1,0 +1,735 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load string_filters %}
+
+{% block title %}Review Mentor Reactivation Requests - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    /* Design System Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-hover: #1e2a4a;
+        --text-primary: #1a1a1a;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --text-light: #ffffff;
+        --ui-background: #f8fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e5e7eb;
+        --ui-hover: #f3f4f6;
+        --ui-subtle: #f9fafb;
+        --feedback-success: #10b981;
+        --feedback-warning: #f59e0b;
+        --feedback-error: #ef4444;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
+    }
+
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: var(--space-lg);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    .stats-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-md);
+        margin-bottom: var(--space-lg);
+    }
+
+    .stat-card {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-card h3 {
+        font-size: 2rem;
+        font-weight: 700;
+        margin: 0;
+        color: var(--primary-color);
+    }
+
+    .stat-card p {
+        margin: var(--space-xs) 0 0 0;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+
+    .content-section {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--space-lg);
+    }
+
+    .table-responsive {
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    .table {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+    }
+
+    .table thead {
+        background: var(--ui-subtle);
+    }
+
+    .table thead th {
+        font-weight: 600;
+        color: var(--text-primary);
+        border-bottom: 2px solid var(--ui-border);
+        padding: var(--space-md);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .table tbody tr {
+        transition: all 0.15s ease;
+    }
+
+    .table tbody tr:hover {
+        background: var(--ui-hover);
+    }
+
+    .table tbody td {
+        padding: var(--space-md);
+        vertical-align: middle;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: var(--space-xs) var(--space-md);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-badge.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--feedback-warning);
+        border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+
+    .status-badge.approved {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--feedback-success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
+    }
+
+    .status-badge.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--feedback-error);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-view {
+        font-size: 0.8rem;
+        padding: var(--space-xs) var(--space-md);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: var(--space-xl);
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: var(--space-md);
+        opacity: 0.5;
+    }
+
+    .avatar-img {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
+    }
+
+    .verification-badge {
+        display: inline-block;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+        font-size: 0.7rem;
+        font-weight: 600;
+    }
+
+    .verification-badge.verified {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--feedback-success);
+    }
+
+    .verification-badge.unverified {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--feedback-error);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container-fluid">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-redo me-3"></i>
+                        Review Mentor Reactivation Requests
+                    </h1>
+                    <p class="mb-0">Review and manage mentor reactivation requests</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{% url 'accounts:admin_mentor_list' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Mentor List
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Cards -->
+        <div class="stats-cards">
+            <div class="stat-card">
+                <h3>{{ total_pending }}</h3>
+                <p>Pending Requests</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ total_approved }}</h3>
+                <p>Approved</p>
+            </div>
+            <div class="stat-card">
+                <h3>{{ total_rejected }}</h3>
+                <p>Rejected</p>
+            </div>
+        </div>
+
+        <!-- Requests List -->
+        <div class="content-section">
+            {% if requests %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Mentor</th>
+                            <th>Email</th>
+                            <th>Verification</th>
+                            <th>Request Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for req in requests %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if req.mentor.user.profile.avatar %}
+                                    <img src="{{ req.mentor.user.profile.avatar.url }}" 
+                                         class="rounded-circle me-2 avatar-img" 
+                                         alt="{{ req.mentor.user.get_full_name }}">
+                                    {% else %}
+                                    <img src="{% static 'images/default-avatar.png' %}" 
+                                         class="rounded-circle me-2 avatar-img" 
+                                         alt="Default Avatar">
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-bold">{{ req.mentor.user.get_full_name }}</div>
+                                        <div class="small text-muted">
+                                            {% if req.mentor.removal_reason %}
+                                            Reason: {{ req.mentor.removal_reason|truncatewords:5 }}
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <small>{{ req.email }}</small>
+                            </td>
+                            <td>
+                                {% if req.is_verified %}
+                                <span class="verification-badge verified">
+                                    <i class="fas fa-check-circle me-1"></i>
+                                    Verified
+                                </span>
+                                {% else %}
+                                <span class="verification-badge unverified">
+                                    <i class="fas fa-times-circle me-1"></i>
+                                    Unverified
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <small>{{ req.requested_at|date:"M d, Y H:i" }}</small>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ req.status|lower }}">{{ req.get_status_display }}</span>
+                            </td>
+                            <td>
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm view-details-btn" 
+                                        data-bs-toggle="modal"
+                                        data-bs-target="#mentorReactivationRequestDetailModal"
+                                        data-request-id="{{ req.id }}">
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h4>No Reactivation Requests</h4>
+                <p class="text-muted">There are currently no mentor reactivation requests to review.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Mentor Reactivation Request Detail Modal -->
+<div class="modal fade" id="mentorReactivationRequestDetailModal" tabindex="-1" aria-labelledby="mentorReactivationRequestDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mentorReactivationRequestDetailModalLabel">
+                    <i class="fas fa-redo me-2"></i>
+                    Mentor Reactivation Request Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="mentorReactivationRequestDetailContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading request details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Process Django messages with SweetAlert2
+    const messages = document.querySelectorAll('.alert');
+    messages.forEach(alert => {
+        const alertType = alert.classList.contains('alert-success') ? 'success' :
+                         alert.classList.contains('alert-danger') ? 'error' :
+                         alert.classList.contains('alert-warning') ? 'warning' :
+                         alert.classList.contains('alert-info') ? 'info' : 'info';
+        
+        const messageText = alert.textContent.trim();
+        if (messageText) {
+            Swal.fire({
+                title: alertType === 'success' ? 'Success!' : 
+                       alertType === 'error' ? 'Error!' :
+                       alertType === 'warning' ? 'Warning!' : 'Info',
+                text: messageText,
+                icon: alertType,
+                confirmButtonColor: alertType === 'success' ? '#10b981' :
+                                   alertType === 'error' ? '#ef4444' :
+                                   alertType === 'warning' ? '#f59e0b' : '#4299e1',
+                confirmButtonText: 'OK',
+                timer: alertType === 'success' ? 3000 : 5000,
+                timerProgressBar: true
+            });
+            
+            // Remove the alert after showing SweetAlert
+            setTimeout(() => {
+                alert.remove();
+            }, 100);
+        }
+    });
+    
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Modal and View Details button handler
+    const modal = document.getElementById('mentorReactivationRequestDetailModal');
+    const modalContent = document.getElementById('mentorReactivationRequestDetailContent');
+    const csrftoken = getCookie('csrftoken');
+    
+    if (modal) {
+        // Add event listener for modal show event
+        modal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            
+            if (!button) {
+                return;
+            }
+            
+            const requestId = button.getAttribute('data-request-id');
+            
+            if (!requestId) {
+                return;
+            }
+            
+            // Show loading spinner
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading request details...</p>
+                </div>
+            `;
+            
+            // Fetch request details
+            const url = `/accounts/admin/mentor-reactivation-request/${requestId}/detail-modal/`;
+            
+            fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html',
+                    'X-CSRFToken': csrftoken,
+                }
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.text();
+            })
+            .then(html => {
+                modalContent.innerHTML = html;
+                // Trigger custom event to attach button handlers after content is loaded
+                const event = new Event('modalContentLoaded');
+                modalContent.dispatchEvent(event);
+            })
+            .catch(error => {
+                console.error('Error loading request details:', error);
+                modalContent.innerHTML = `
+                    <div class="alert alert-danger">
+                        <i class="fas fa-exclamation-triangle me-2"></i>
+                        Error loading request details: ${error.message}
+                    </div>
+                `;
+                
+                // Show SweetAlert2 error notification
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Failed to load request details. Please try again.',
+                    icon: 'error',
+                    confirmButtonColor: '#ef4444',
+                    confirmButtonText: 'OK',
+                    timer: 5000,
+                    timerProgressBar: true
+                });
+            });
+        });
+        
+        // Clear content when modal is hidden
+        modal.addEventListener('hidden.bs.modal', function() {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading request details...</p>
+                </div>
+            `;
+        });
+    }
+    
+    // Event delegation for approve/reject buttons in modal
+    // Use event delegation since buttons are loaded dynamically via AJAX
+    // modalContent is already declared above, reuse it
+    if (modalContent) {
+        // Approve button handler (event delegation)
+        modalContent.addEventListener('click', function(e) {
+            // Check if click is on approve button or its children
+            const approveBtn = e.target.closest('#approveReactivationBtn');
+            if (approveBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const requestId = approveBtn.getAttribute('data-request-id');
+                const adminNotesInput = modalContent.querySelector('#admin-notes-input');
+                const adminNotes = adminNotesInput ? adminNotesInput.value.trim() : '';
+                const mentorName = modalContent.querySelector('.request-header h5') ? 
+                    modalContent.querySelector('.request-header h5').textContent : 'the mentor';
+                
+                Swal.fire({
+                    title: 'Approve Reactivation?',
+                    html: `<p>Are you sure you want to approve the reactivation request for <strong>${mentorName}</strong>?</p>
+                           <p class="text-muted mt-2">This will reactivate the mentor's status and allow them to accept mentees again.</p>`,
+                    icon: 'question',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, approve it!',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#10b981',
+                    cancelButtonColor: '#6b7280',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    customClass: {
+                        popup: 'swal2-popup-mentor-review',
+                        title: 'swal2-title-mentor-review',
+                        htmlContainer: 'swal2-html-container-mentor-review',
+                        confirmButton: 'swal2-confirm-mentor-review',
+                        cancelButton: 'swal2-cancel-mentor-review'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing...',
+                            text: 'Please wait while we process your request.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Submit approval request
+                        const formData = new FormData();
+                        formData.append('admin_notes', adminNotes);
+                        
+                        fetch(`/accounts/admin/approve-mentor-reactivation/${requestId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrftoken,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: data.message,
+                                    confirmButtonColor: '#10b981',
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-mentor-review',
+                                        title: 'swal2-title-mentor-review',
+                                        confirmButton: 'swal2-confirm-mentor-review'
+                                    }
+                                }).then(() => {
+                                    // Close modal and reload page
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('mentorReactivationRequestDetailModal'));
+                                    if (modal) {
+                                        modal.hide();
+                                    }
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 300);
+                                });
+                            } else {
+                                throw new Error(data.message || 'An error occurred');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: error.message || 'An error occurred while processing your request. Please try again.',
+                                confirmButtonColor: '#ef4444',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-mentor-review',
+                                    title: 'swal2-title-mentor-review',
+                                    confirmButton: 'swal2-confirm-mentor-review'
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+            
+            // Reject button handler (event delegation)
+            // Check if click is on reject button or its children
+            const rejectBtn = e.target.closest('#rejectReactivationBtn');
+            if (rejectBtn) {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                const requestId = rejectBtn.getAttribute('data-request-id');
+                const adminNotesInput = modalContent.querySelector('#admin-notes-input');
+                const adminNotes = adminNotesInput ? adminNotesInput.value.trim() : '';
+                const mentorName = modalContent.querySelector('.request-header h5') ? 
+                    modalContent.querySelector('.request-header h5').textContent : 'the mentor';
+                
+                if (!adminNotes) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Admin Notes Required',
+                        text: 'Please provide admin notes when rejecting a reactivation request.',
+                        confirmButtonColor: '#f59e0b',
+                        confirmButtonText: 'OK',
+                        customClass: {
+                            popup: 'swal2-popup-mentor-review',
+                            title: 'swal2-title-mentor-review',
+                            confirmButton: 'swal2-confirm-mentor-review'
+                        }
+                    });
+                    if (adminNotesInput) {
+                        adminNotesInput.focus();
+                    }
+                    return;
+                }
+                
+                Swal.fire({
+                    title: 'Reject Reactivation?',
+                    html: `<p>Are you sure you want to reject the reactivation request for <strong>${mentorName}</strong>?</p>
+                           <p class="text-muted mt-2">The mentor will remain inactive and will be notified of the rejection.</p>`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Yes, reject it!',
+                    cancelButtonText: 'Cancel',
+                    confirmButtonColor: '#ef4444',
+                    cancelButtonColor: '#6b7280',
+                    reverseButtons: true,
+                    focusCancel: true,
+                    customClass: {
+                        popup: 'swal2-popup-mentor-review',
+                        title: 'swal2-title-mentor-review',
+                        htmlContainer: 'swal2-html-container-mentor-review',
+                        confirmButton: 'swal2-confirm-mentor-review',
+                        cancelButton: 'swal2-cancel-mentor-review'
+                    }
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading state
+                        Swal.fire({
+                            title: 'Processing...',
+                            text: 'Please wait while we process your request.',
+                            allowOutsideClick: false,
+                            allowEscapeKey: false,
+                            showConfirmButton: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Submit rejection request
+                        const formData = new FormData();
+                        formData.append('admin_notes', adminNotes);
+                        
+                        fetch(`/accounts/admin/reject-mentor-reactivation/${requestId}/`, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrftoken,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            },
+                            body: formData
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.status === 'success') {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Success!',
+                                    text: data.message,
+                                    confirmButtonColor: '#10b981',
+                                    confirmButtonText: 'OK',
+                                    customClass: {
+                                        popup: 'swal2-popup-mentor-review',
+                                        title: 'swal2-title-mentor-review',
+                                        confirmButton: 'swal2-confirm-mentor-review'
+                                    }
+                                }).then(() => {
+                                    // Close modal and reload page
+                                    const modal = bootstrap.Modal.getInstance(document.getElementById('mentorReactivationRequestDetailModal'));
+                                    if (modal) {
+                                        modal.hide();
+                                    }
+                                    setTimeout(() => {
+                                        window.location.reload();
+                                    }, 300);
+                                });
+                            } else {
+                                throw new Error(data.message || 'An error occurred');
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Error!',
+                                text: error.message || 'An error occurred while processing your request. Please try again.',
+                                confirmButtonColor: '#ef4444',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-mentor-review',
+                                    title: 'swal2-title-mentor-review',
+                                    confirmButton: 'swal2-confirm-mentor-review'
+                                }
+                            });
+                        });
+                    }
+                });
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+

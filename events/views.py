@@ -12,9 +12,13 @@ from django.views.decorators.cache import cache_control
 from django.views.decorators.clickjacking import xframe_options_deny
 from django.utils.decorators import method_decorator
 from django.contrib.messages.views import SuccessMessageMixin
+from django.http import JsonResponse
 from .models import Event, EventRSVP
 from .forms import EventForm, EventRSVPForm, PublicEventForm
 from alumni_groups.models import AlumniGroup
+import logging
+
+logger = logging.getLogger(__name__)
 
 class EventListView(LoginRequiredMixin, ListView):
     model = Event
@@ -24,6 +28,21 @@ class EventListView(LoginRequiredMixin, ListView):
     login_url = 'account_login'
 
     def get_queryset(self):
+        import time
+        from django.db import connection
+        start_time = time.time()
+        initial_query_count = len(connection.queries)
+        
+        # Log list view access
+        logger.debug(
+            f"Event list view accessed: User={self.request.user.username}",
+            extra={
+                'user_id': self.request.user.id,
+                'ip_address': self.request.META.get('REMOTE_ADDR'),
+                'user_agent': self.request.META.get('HTTP_USER_AGENT', '')[:100],
+                'action': 'list_view_access'
+            }
+        )
         # Only show actual Event objects created through the event form
         # This excludes any RSVP activities or other user interactions
         queryset = Event.objects.select_related('created_by').prefetch_related('rsvps')
@@ -57,9 +76,34 @@ class EventListView(LoginRequiredMixin, ListView):
         queryset = queryset.annotate(rsvp_count=Count('rsvps'))
 
         # Order by start date
-        return queryset.order_by('start_date')
+        queryset = queryset.order_by('start_date')
+        
+        # Log performance metrics
+        elapsed_time = time.time() - start_time
+        final_query_count = len(connection.queries)
+        queries_executed = final_query_count - initial_query_count
+        result_count = queryset.count()
+        
+        logger.debug(
+            f"Event list queryset built: Time={elapsed_time:.3f}s, Queries={queries_executed}, Results={result_count}",
+            extra={
+                'user_id': self.request.user.id,
+                'elapsed_time': elapsed_time,
+                'queries_executed': queries_executed,
+                'result_count': result_count,
+                'filters_applied': bool(status or search),
+                'action': 'query_execution'
+            }
+        )
+        
+        return queryset
 
     def get_context_data(self, **kwargs):
+        import time
+        from django.db import connection
+        start_time = time.time()
+        initial_query_count = len(connection.queries)
+        
         context = super().get_context_data(**kwargs)
         now = timezone.now()
         
@@ -87,6 +131,22 @@ class EventListView(LoginRequiredMixin, ListView):
             'current_status': self.request.GET.get('status', ''),
         })
         
+        # Log performance metrics
+        elapsed_time = time.time() - start_time
+        final_query_count = len(connection.queries)
+        queries_executed = final_query_count - initial_query_count
+        
+        logger.debug(
+            f"Event list context built: Time={elapsed_time:.3f}s, Queries={queries_executed}, Total Events={total_events}",
+            extra={
+                'user_id': self.request.user.id,
+                'elapsed_time': elapsed_time,
+                'queries_executed': queries_executed,
+                'total_events': total_events,
+                'action': 'context_build_complete'
+            }
+        )
+        
         return context
 
 class EventDetailView(LoginRequiredMixin, DetailView):
@@ -96,6 +156,24 @@ class EventDetailView(LoginRequiredMixin, DetailView):
     login_url = 'account_login'
 
     def get_context_data(self, **kwargs):
+        import time
+        from django.db import connection
+        start_time = time.time()
+        initial_query_count = len(connection.queries)
+        
+        # Log detail view access
+        logger.debug(
+            f"Event detail view accessed: Event ID={self.object.id}, Title={self.object.title}, User={self.request.user.username}",
+            extra={
+                'event_id': self.object.id,
+                'event_title': self.object.title,
+                'user_id': self.request.user.id,
+                'ip_address': self.request.META.get('REMOTE_ADDR'),
+                'user_agent': self.request.META.get('HTTP_USER_AGENT', '')[:100],
+                'action': 'detail_view_access'
+            }
+        )
+        
         context = super().get_context_data(**kwargs)
         if self.request.user.is_authenticated:
             context['user_rsvp'] = EventRSVP.objects.filter(
@@ -108,6 +186,23 @@ class EventDetailView(LoginRequiredMixin, DetailView):
             'not_attending': self.object.rsvps.filter(status='no').count(),
             'maybe': self.object.rsvps.filter(status='maybe').count(),
         }
+        
+        # Log performance metrics
+        elapsed_time = time.time() - start_time
+        final_query_count = len(connection.queries)
+        queries_executed = final_query_count - initial_query_count
+        
+        logger.debug(
+            f"Event detail context built: Event ID={self.object.id}, Time={elapsed_time:.3f}s, Queries={queries_executed}",
+            extra={
+                'event_id': self.object.id,
+                'user_id': self.request.user.id,
+                'elapsed_time': elapsed_time,
+                'queries_executed': queries_executed,
+                'action': 'detail_view_complete'
+            }
+        )
+        
         return context
 
 class EventModalView(LoginRequiredMixin, DetailView):
@@ -207,7 +302,51 @@ class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     template_name = 'events/event_confirm_delete.html'
 
     def test_func(self):
-        return self.request.user.is_staff
+        """Check if user is staff or superuser"""
+        return self.request.user.is_staff or self.request.user.is_superuser
+    
+    def get(self, request, *args, **kwargs):
+        """Block GET requests - deletion should only happen via POST with AJAX"""
+        messages.error(request, 'Invalid request. Please use the delete button to delete events.')
+        return redirect('events:event_list')
+    
+    def post(self, request, *args, **kwargs):
+        """Override post to handle both AJAX and regular requests"""
+        # Check permissions first
+        if not (request.user.is_staff or request.user.is_superuser):
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': 'You do not have permission to delete events.'
+                }, status=403)
+            messages.error(request, 'You do not have permission to delete events.')
+            return redirect('events:event_list')
+        
+        try:
+            self.object = self.get_object()
+            success_url = self.get_success_url()
+            
+            # Delete the event
+            event_title = self.object.title
+            self.object.delete()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'Event "{event_title}" was deleted successfully.'
+                })
+            
+            messages.success(request, f'Event "{event_title}" was deleted successfully.')
+            return redirect(success_url)
+            
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Error deleting event: {str(e)}'
+                }, status=500)
+            messages.error(request, f'Error deleting event: {str(e)}')
+            return redirect(self.get_success_url())
 
 @login_required
 def event_rsvp(request, pk):

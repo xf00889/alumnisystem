@@ -392,6 +392,12 @@
                         <span class="badge bg-danger ms-2">{{ pending_applications }}</span>
                         {% endif %}
                     </a>
+                    <a href="{% url 'accounts:review_mentor_reactivation_requests' %}" class="btn btn-outline-light">
+                        <i class="fas fa-redo me-2"></i>Reactivation Requests
+                        {% if pending_reactivation_requests > 0 %}
+                        <span class="badge bg-warning ms-2">{{ pending_reactivation_requests }}</span>
+                        {% endif %}
+                    </a>
                     <a href="{% url 'admin:accounts_mentor_add' %}" class="btn btn-light">
                         <i class="fas fa-plus me-2"></i>Add Mentor
                     </a>
@@ -569,11 +575,43 @@
                                 </div>
                             </div>
 
-                            <!-- Apply for Mentoring Button -->
-                            <div class="text-center mt-3">
-                                <a href="{% url 'mentorship:request_mentorship' mentor.user.id %}" class="btn btn-primary w-100">
-                                    <i class="fas fa-user-plus me-2"></i>Apply for Mentoring
-                                </a>
+                            <!-- Active Mentorships Warning -->
+                            {% if mentor.is_active and mentor.get_active_mentorships_count > 0 %}
+                            <div class="alert alert-warning mb-3" style="font-size: 0.8rem; padding: var(--space-sm);">
+                                <i class="fas fa-exclamation-triangle me-1"></i>
+                                <strong>{{ mentor.get_active_mentorships_count }}</strong> active mentorship(s)
+                            </div>
+                            {% endif %}
+
+                            <!-- Removed Status -->
+                            {% if not mentor.is_active %}
+                            <div class="alert alert-danger mb-3" style="font-size: 0.8rem; padding: var(--space-sm);">
+                                <i class="fas fa-ban me-1"></i>
+                                <strong>Removed</strong>
+                                {% if mentor.removed_at %}
+                                <br><small>Removed on {{ mentor.removed_at|date:"M d, Y" }}</small>
+                                {% endif %}
+                            </div>
+                            {% endif %}
+
+                            <!-- Action Buttons -->
+                            <div class="d-flex gap-2 mt-3">
+                                {% if mentor.is_active %}
+                                <button type="button" 
+                                        class="btn btn-danger btn-sm flex-grow-1 remove-mentor-btn" 
+                                        data-mentor-id="{{ mentor.id }}"
+                                        data-mentor-name="{{ mentor.user.get_full_name }}"
+                                        data-active-mentorships="{{ mentor.get_active_mentorships_count }}">
+                                    <i class="fas fa-trash me-1"></i>Disable Mentor
+                                </button>
+                                {% else %}
+                                <button type="button" 
+                                        class="btn btn-success btn-sm flex-grow-1 reactivate-mentor-btn" 
+                                        data-mentor-id="{{ mentor.id }}"
+                                        data-mentor-name="{{ mentor.user.get_full_name }}">
+                                    <i class="fas fa-redo me-1"></i>Reactivate Mentor
+                                </button>
+                                {% endif %}
                             </div>
                         </div>
                     </div>
@@ -597,4 +635,317 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+    
+    // Handle remove mentor button clicks
+    document.querySelectorAll('.remove-mentor-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const mentorId = this.getAttribute('data-mentor-id');
+            const mentorName = this.getAttribute('data-mentor-name');
+            const activeMentorships = parseInt(this.getAttribute('data-active-mentorships')) || 0;
+            
+            // Check for active mentorships first
+            if (activeMentorships > 0) {
+                Swal.fire({
+                    title: 'Cannot Disable Mentor',
+                    html: `<p>This mentor has <strong>${activeMentorships}</strong> active mentorship(s).</p><p>Please complete or cancel all active mentorships before disabling the mentor.</p>`,
+                    icon: 'warning',
+                    confirmButtonColor: '#f59e0b',
+                    confirmButtonText: 'OK',
+                    customClass: {
+                        popup: 'swal2-popup-mentor-review',
+                        title: 'swal2-title-mentor-review',
+                        confirmButton: 'swal2-confirm-mentor-review'
+                    }
+                });
+                return;
+            }
+            
+            // Show confirmation dialog with reason input
+            Swal.fire({
+                title: 'Disable Mentor?',
+                html: `
+                    <p>Are you sure you want to disable <strong>${mentorName}</strong> as a mentor?</p>
+                    <p class="text-muted mt-2">This action will deactivate the mentor profile. Please provide a reason for disabling.</p>
+                    <textarea id="removal-reason" class="form-control mt-3" rows="4" placeholder="Enter disable reason (required)..." style="font-size: 0.875rem; resize: vertical;"></textarea>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#ef4444',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, disable mentor',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: 'swal2-popup-mentor-review',
+                    title: 'swal2-title-mentor-review',
+                    htmlContainer: 'swal2-html-container-mentor-review',
+                    confirmButton: 'swal2-confirm-mentor-review',
+                    cancelButton: 'swal2-cancel-mentor-review'
+                },
+                preConfirm: () => {
+                    const reason = document.getElementById('removal-reason').value.trim();
+                    if (!reason) {
+                        Swal.showValidationMessage('Please provide a disable reason.');
+                        return false;
+                    }
+                    return reason;
+                },
+                didOpen: () => {
+                    // Focus on textarea
+                    setTimeout(() => {
+                        document.getElementById('removal-reason').focus();
+                    }, 300);
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) {
+                    const removalReason = result.value;
+                    
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Disabling Mentor...',
+                        html: 'Please wait while we disable the mentor.',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit removal request
+                    const formData = new FormData();
+                    formData.append('removal_reason', removalReason);
+                    
+                    fetch(`/accounts/admin/remove-mentor/${mentorId}/`, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Network response was not ok');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Show success notification
+                            Swal.fire({
+                                title: 'Mentor Disabled!',
+                                text: data.message || `Mentor "${mentorName}" has been successfully disabled.`,
+                                icon: 'success',
+                                confirmButtonColor: '#10b981',
+                                confirmButtonText: 'OK',
+                                timer: 3000,
+                                timerProgressBar: true,
+                                customClass: {
+                                    popup: 'swal2-popup-mentor-review',
+                                    title: 'swal2-title-mentor-review',
+                                    confirmButton: 'swal2-confirm-mentor-review'
+                                }
+                            }).then(() => {
+                                // Reload page to reflect changes
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'An error occurred');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        
+                        // Show error notification
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'An error occurred while disabling the mentor. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#ef4444',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-mentor-review',
+                                title: 'swal2-title-mentor-review',
+                                confirmButton: 'swal2-confirm-mentor-review'
+                            }
+                        });
+                    });
+                }
+            });
+        });
+    });
+    
+    // Reactivate mentor button handler
+    document.querySelectorAll('.reactivate-mentor-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const mentorId = this.getAttribute('data-mentor-id');
+            const mentorName = this.getAttribute('data-mentor-name');
+            
+            // Show confirmation dialog
+            Swal.fire({
+                title: 'Reactivate Mentor?',
+                html: `<p>Are you sure you want to reactivate <strong>${mentorName}</strong> as a mentor?</p>
+                       <p class="text-muted mt-2">This action will restore the mentor's active status and allow them to accept mentees again.</p>`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#10b981',
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: 'Yes, reactivate mentor',
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: 'swal2-popup-mentor-review',
+                    title: 'swal2-title-mentor-review',
+                    htmlContainer: 'swal2-html-container-mentor-review',
+                    confirmButton: 'swal2-confirm-mentor-review',
+                    cancelButton: 'swal2-cancel-mentor-review'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Reactivating Mentor...',
+                        html: 'Please wait while we reactivate the mentor.',
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Submit reactivation request
+                    fetch(`/accounts/admin/reactivate-mentor/${mentorId}/`, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrftoken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Network response was not ok');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Show success notification
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Success!',
+                                text: data.message,
+                                confirmButtonColor: '#10b981',
+                                confirmButtonText: 'OK',
+                                customClass: {
+                                    popup: 'swal2-popup-mentor-review',
+                                    title: 'swal2-title-mentor-review',
+                                    confirmButton: 'swal2-confirm-mentor-review'
+                                }
+                            }).then(() => {
+                                // Reload page to show updated status
+                                window.location.reload();
+                            });
+                        } else {
+                            throw new Error(data.message || 'An error occurred');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        
+                        // Show error notification
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'An error occurred while reactivating the mentor. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#ef4444',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-mentor-review',
+                                title: 'swal2-title-mentor-review',
+                                confirmButton: 'swal2-confirm-mentor-review'
+                            }
+                        });
+                    });
+                }
+            });
+        });
+    });
+});
+</script>
+
+<style>
+/* SweetAlert2 Custom Styling for Mentor Removal */
+.swal2-popup-mentor-review {
+    font-family: 'Poppins', sans-serif;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.swal2-title-mentor-review {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.swal2-html-container-mentor-review {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.swal2-confirm-mentor-review {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+}
+
+.swal2-confirm-mentor-review:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.swal2-cancel-mentor-review {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+}
+
+.swal2-cancel-mentor-review:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+</style>
 {% endblock %}

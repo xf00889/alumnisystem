@@ -805,26 +805,26 @@ document.addEventListener('DOMContentLoaded', function() {
     const descriptionTextarea = document.getElementById('description');
     
     if (groupTypeSelect && descriptionTextarea) {
-        groupTypeSelect.addEventListener('change', function() {
-            const selectedType = this.value;
-            let description = '';
-            
-            switch(selectedType) {
-                case 'AUTO':
-                    description = 'This is an automatic group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Anyone with matching criteria can join automatically.';
-                    break;
-                case 'MANUAL':
-                    description = 'This is a manual group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. All new members require admin approval.';
-                    break;
-                case 'HYBRID':
-                    description = 'This is a hybrid group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Some members are auto-approved while others need approval.';
-                    break;
-            }
-            
-            if (description && !descriptionTextarea.value) {
-                descriptionTextarea.value = description;
-            }
-        });
+    groupTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        let description = '';
+        
+        switch(selectedType) {
+            case 'AUTO':
+                description = 'This is an automatic group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Anyone with matching criteria can join automatically.';
+                break;
+            case 'MANUAL':
+                description = 'This is a manual group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. All new members require admin approval.';
+                break;
+            case 'HYBRID':
+                description = 'This is a hybrid group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Some members are auto-approved while others need approval.';
+                break;
+        }
+        
+        if (description && !descriptionTextarea.value) {
+            descriptionTextarea.value = description;
+        }
+    });
     }
     
     // Form submission confirmation
@@ -833,35 +833,35 @@ document.addEventListener('DOMContentLoaded', function() {
     
     form.addEventListener('submit', function(e) {
         if (!formSubmitted) {
-            e.preventDefault();
+        e.preventDefault();
             
             // Verify files are still attached
             const coverImageInput = document.getElementById('cover_image');
             const profilePhotoInput = document.getElementById('profile_photo');
-            
-            Swal.fire({
-                title: 'Create Group?',
-                text: 'Are you ready to create your alumni group?',
-                icon: 'question',
-                showCancelButton: true,
-                confirmButtonColor: '#2b3c6b',
-                cancelButtonColor: '#d33',
-                confirmButtonText: 'Yes, create it!',
-                cancelButtonText: 'Cancel'
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    // Show loading state
-                    Swal.fire({
-                        title: 'Creating Group...',
-                        text: 'Please wait while we create your group.',
-                        allowOutsideClick: false,
-                        allowEscapeKey: false,
-                        showConfirmButton: false,
-                        didOpen: () => {
-                            Swal.showLoading();
-                        }
-                    });
-                    
+        
+        Swal.fire({
+            title: 'Create Group?',
+            text: 'Are you ready to create your alumni group?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2b3c6b',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, create it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Creating Group...',
+                    text: 'Please wait while we create your group.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
                     // Mark as submitted and submit the form properly
                     formSubmitted = true;
                     
@@ -875,9 +875,9 @@ document.addEventListener('DOMContentLoaded', function() {
                     form.removeEventListener('submit', arguments.callee);
                     
                     // Submit the form naturally (this will include all files)
-                    form.submit();
-                }
-            });
+                form.submit();
+            }
+        });
         }
     });
 });

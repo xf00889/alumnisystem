@@ -74,8 +74,8 @@
     
     .container-fluid {
         padding: 1.5rem;
-        max-width: 1200px;
-        margin: 0 auto;
+        width: 100%;
+        max-width: 100%;
     }
 
     /* Header Section */
@@ -1205,7 +1205,9 @@
                                                 <i class="fas fa-edit"></i>
                 </a>
                 <a href="{% url 'announcements:announcement-delete' announcement.pk %}" 
-                   class="btn btn-danger">
+                   class="btn btn-danger"
+                   data-announcement-id="{{ announcement.pk }}"
+                   data-announcement-title="{{ announcement.title }}">
                                                 <i class="fas fa-trash"></i>
                 </a>
                                             {% endif %}
@@ -2030,7 +2032,7 @@ function testShareFunctionality(event) {
     return true;
 }
 
-// Delete announcement functionality with SweetAlert
+// Delete announcement functionality with SweetAlert and AJAX
 function deleteAnnouncement(announcementId, announcementTitle) {
     Swal.fire({
         title: 'Delete Announcement',
@@ -2057,10 +2059,70 @@ function deleteAnnouncement(announcementId, announcementTitle) {
                 }
             });
             
-            // Redirect to delete URL
-            window.location.href = `/announcements/${announcementId}/delete/`;
+            // Make AJAX request to delete announcement
+            const deleteUrl = `/announcements/${announcementId}/delete/`;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                              document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
+                              getCookie('csrftoken');
+            
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Failed to delete announcement');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: data.message || 'The announcement has been deleted.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Reload the page to reflect the changes
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to delete announcement');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'An error occurred while deleting the announcement.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            });
         }
     });
+}
+
+// Helper function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 // Initialize delete button event handlers
@@ -2069,8 +2131,32 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.announcement-card .btn-danger').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const announcementId = this.getAttribute('href').split('/').slice(-2, -1)[0];
-            const announcementTitle = this.closest('.announcement-card').querySelector('.announcement-title a').textContent;
+            // Get ID from data attribute (preferred) or fallback to parsing href
+            let announcementId = this.getAttribute('data-announcement-id');
+            let announcementTitle = this.getAttribute('data-announcement-title');
+            
+            // Fallback: try to extract from href if data attributes not available
+            if (!announcementId) {
+                const href = this.getAttribute('href');
+                if (href) {
+                    // Extract ID from href like /announcements/123/delete/
+                    const parts = href.split('/').filter(part => part !== '' && !isNaN(part));
+                    announcementId = parts.find(part => !isNaN(parseInt(part)));
+                }
+            }
+            
+            // Fallback: try to get title from DOM
+            if (!announcementTitle) {
+                const titleElement = this.closest('.announcement-card')?.querySelector('.announcement-title a');
+                announcementTitle = titleElement ? titleElement.textContent.trim() : 'this announcement';
+            }
+            
+            if (!announcementId) {
+                console.error('Could not determine announcement ID');
+                SweetAlertUtils.error('Error', 'Could not determine announcement ID');
+                return;
+            }
+            
             deleteAnnouncement(announcementId, announcementTitle);
         });
     });

@@ -12,6 +12,8 @@ def profile_search_connected_users(request):
     return search_connected_users_api(request)
 
 urlpatterns = [
+    # Log viewer - must be before admin to avoid catch-all pattern
+    path('admin/logs/', include(('log_viewer.urls', 'log_viewer'), namespace='log_viewer')),
     path('admin/', admin.site.urls),
     # Setup URLs - must be before other URLs to catch setup redirects
     path('setup/', include('setup.urls')),

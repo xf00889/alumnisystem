@@ -261,6 +261,17 @@ def mentor_dashboard(request):
     except:
         pass
 
+    # Check if mentor is disabled
+    is_disabled = not mentor.is_active
+    has_pending_reactivation = False
+    if is_disabled:
+        # Check if there's a pending reactivation request
+        from accounts.models import MentorReactivationRequest
+        has_pending_reactivation = MentorReactivationRequest.objects.filter(
+            mentor=mentor,
+            status='PENDING'
+        ).exists()
+
     context = {
         'mentor': mentor,
         'pending_requests': pending_requests,
@@ -271,6 +282,8 @@ def mentor_dashboard(request):
         'total_active_mentees': total_active_mentees,
         'total_pending_requests': total_pending_requests,
         'unread_messages': unread_messages,
+        'is_disabled': is_disabled,
+        'has_pending_reactivation': has_pending_reactivation,
     }
     
     return render(request, 'mentorship/mentor_dashboard.html', context)

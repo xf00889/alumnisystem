@@ -236,3 +236,30 @@ class ReportForm(forms.ModelForm):
                 widget=forms.DateInput(attrs={'type': 'date'}),
                 required=False
             ) 
+            
+        elif report_type == 'donations':
+            from donations.models import Campaign
+            self.fields['campaign'] = forms.ModelChoiceField(
+                queryset=Campaign.objects.all(),
+                required=False,
+                empty_label='All Campaigns'
+            )
+            self.fields['period'] = forms.ChoiceField(
+                choices=[
+                    ('', 'All Time'),
+                    ('today', 'Today'),
+                    ('month', 'This Month'),
+                    ('year', 'This Year'),
+                ],
+                required=False
+            )
+            self.fields['start_date'] = forms.DateField(
+                widget=forms.DateInput(attrs={'type': 'date'}),
+                required=False,
+                help_text='Filter from this date'
+            )
+            self.fields['end_date'] = forms.DateField(
+                widget=forms.DateInput(attrs={'type': 'date'}),
+                required=False,
+                help_text='Filter up to this date'
+            ) 

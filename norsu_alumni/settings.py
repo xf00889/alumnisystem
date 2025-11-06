@@ -82,7 +82,8 @@ INSTALLED_APPS = [
     'jobs',
     'donations',
     'cms.apps.CmsConfig',  # Content Management System
-    'setup'  # Setup app for automated deployment configuration
+    'setup',  # Setup app for automated deployment configuration
+    'log_viewer',  # Log viewer app for admin log management
 ]
 
 MIDDLEWARE = [
@@ -93,6 +94,7 @@ MIDDLEWARE = [
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
     'django.contrib.auth.middleware.AuthenticationMiddleware',
+    'log_viewer.middleware.AuditLogMiddleware',  # Store request for audit logging
     'django_htmx.middleware.HtmxMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
@@ -399,41 +401,77 @@ LOGGING = {
             'class': 'logging.StreamHandler',
             'formatter': 'verbose',
         },
+        'file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'alumni_system.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'INFO',
+        },
+        'error_file': {
+            'class': 'logging.handlers.RotatingFileHandler',
+            'filename': BASE_DIR / 'logs' / 'errors.log',
+            'maxBytes': 1024 * 1024 * 10,  # 10 MB
+            'backupCount': 5,
+            'formatter': 'verbose',
+            'level': 'ERROR',
+        },
     },
     'loggers': {
         'announcements': {  # Add logging for our app
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
         'allauth': {  # Add logging for allauth
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'accounts': {  # Add logging for accounts app
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'DEBUG',
             'propagate': True,
         },
         'django.request': {  # Add logging for Django requests
-            'handlers': ['console'],
+            'handlers': ['console', 'error_file'],
             'level': 'ERROR',
             'propagate': True,
         },
         'core.view_handlers.error_handlers': {  # Add logging for error handlers
-            'handlers': ['console'],
+            'handlers': ['console', 'error_file'],
             'level': 'ERROR',
             'propagate': True,
         },
         'django_recaptcha': {  # Add logging for reCAPTCHA
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'INFO',
             'propagate': True,
         },
         'recaptcha': {  # Add logging for reCAPTCHA failures
-            'handlers': ['console'],
+            'handlers': ['console', 'file'],
             'level': 'WARNING',
+            'propagate': True,
+        },
+        'surveys': {  # Add logging for surveys
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'donations': {  # Add logging for donations
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'alumni_directory': {  # Add logging for alumni directory
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'log_viewer': {  # Add logging for log viewer
+            'handlers': ['console', 'file'],
+            'level': 'INFO',
             'propagate': True,
         },
     },
