@@ -8,14 +8,19 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.contrib import messages
-from django.http import HttpResponseRedirect, JsonResponse
+from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
 from django.forms import modelformset_factory
-from django.db.models import Count, Avg, Q
+from django.db.models import Count, Avg, Q, Sum
+from django.db.models.functions import TruncDate
 from django.db import transaction
 from django.utils import timezone
 import json
+import logging
 
 from alumni_directory.models import Alumni
+from donations.models import Donation, Campaign
+from accounts.models import Mentor
+from alumni_groups.models import AlumniGroup
 from .models import (
     Survey, SurveyQuestion, QuestionOption, SurveyResponse, 
     ResponseAnswer, EmploymentRecord, Achievement, Report
@@ -26,6 +31,9 @@ from .forms import (
     SurveyQuestionFormSet, QuestionOptionFormSet
 )
 
+# Logger instance for surveys app
+logger = logging.getLogger(__name__)
+
 # Staff/Admin Views for Survey Management
 @method_decorator(staff_member_required, name='dispatch')
 class SurveyListView(ListView):
@@ -34,6 +42,22 @@ class SurveyListView(ListView):
     context_object_name = 'surveys'
     
     def get_context_data(self, **kwargs):
+        import time
+        from django.db import connection
+        start_time = time.time()
+        initial_query_count = len(connection.queries)
+        
+        # Log list view access
+        logger.debug(
+            f"Survey list view accessed: User={self.request.user.username}",
+            extra={
+                'user_id': self.request.user.id,
+                'ip_address': self.request.META.get('REMOTE_ADDR'),
+                'user_agent': self.request.META.get('HTTP_USER_AGENT', '')[:100],
+                'action': 'list_view_access'
+            }
+        )
+        
         context = super().get_context_data(**kwargs)
         
         # Get basic counts
@@ -112,6 +136,36 @@ class SurveyListView(ListView):
             'survey_data': survey_data
         })
         
+        # Log performance metrics
+        elapsed_time = time.time() - start_time
+        final_query_count = len(connection.queries)
+        queries_executed = final_query_count - initial_query_count
+        
+        logger.debug(
+            f"Survey list context built: Time={elapsed_time:.3f}s, Queries={queries_executed}, Surveys={len(survey_data)}",
+            extra={
+                'user_id': self.request.user.id,
+                'elapsed_time': elapsed_time,
+                'queries_executed': queries_executed,
+                'surveys_count': len(survey_data),
+                'total_alumni': total_alumni,
+                'action': 'list_view_complete'
+            }
+        )
+        
+        # Log slow operations warning
+        if elapsed_time > 2.0:
+            logger.warning(
+                f"Slow survey list view: Time={elapsed_time:.3f}s, Queries={queries_executed}",
+                extra={
+                    'user_id': self.request.user.id,
+                    'elapsed_time': elapsed_time,
+                    'queries_executed': queries_executed,
+                    'threshold': 2.0,
+                    'action': 'slow_operation'
+                }
+            )
+        
         return context
 
 @method_decorator(staff_member_required, name='dispatch')
@@ -122,55 +176,102 @@ class SurveyCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('surveys:survey_list')
 
     def form_valid(self, form):
-        # Set the created_by field to the current user
-        form.instance.created_by = self.request.user
+        # Log survey creation start
+        logger.info(
+            f"Survey creation started by user: {self.request.user.username}",
+            extra={
+                'user_id': self.request.user.id,
+                'user_email': self.request.user.email,
+                'survey_title': form.cleaned_data.get('title', ''),
+                'is_external': self.request.POST.get('is_external') == 'true'
+            }
+        )
         
-        # Get survey type and external URL
-        is_external = self.request.POST.get('is_external') == 'true'
-        form.instance.is_external = is_external
-        
-        # Save the survey first
-        response = super().form_valid(form)
-        
-        if not is_external:
-            # Process questions data
-            try:
-                questions_data = json.loads(self.request.POST.get('questions', '[]'))
-                
-                for question_data in questions_data:
-                    # Create question
-                    question = SurveyQuestion.objects.create(
-                        survey=self.object,
-                        question_text=question_data['question_text'],
-                        question_type=question_data['question_type'],
-                        is_required=question_data['is_required'],
-                        help_text=question_data.get('help_text', ''),
-                        display_order=question_data['display_order']
-                    )
-                    
-                    # Add scale type if applicable
-                    if question_data.get('scale_type'):
-                        question.scale_type = question_data['scale_type']
-                        question.save()
-                    
-                    # Create options if applicable
-                    if 'options' in question_data:
-                        for option_data in question_data['options']:
-                            QuestionOption.objects.create(
-                                question=question,
-                                option_text=option_data['option_text'],
-                                display_order=option_data['display_order']
-                            )
+        try:
+            # Set the created_by field to the current user
+            form.instance.created_by = self.request.user
             
-            except json.JSONDecodeError:
-                # Log the error but don't prevent survey creation
-                print("Error processing questions data")
-        
-        # Return JSON response for AJAX submission
-        return JsonResponse({
-            'status': 'success',
-            'redirect_url': self.get_success_url()
-        })
+            # Get survey type and external URL
+            is_external = self.request.POST.get('is_external') == 'true'
+            form.instance.is_external = is_external
+            
+            # Save the survey first
+            response = super().form_valid(form)
+            
+            questions_count = 0
+            if not is_external:
+                # Process questions data
+                try:
+                    questions_data = json.loads(self.request.POST.get('questions', '[]'))
+                    questions_count = len(questions_data)
+                    
+                    for question_data in questions_data:
+                        # Create question
+                        question = SurveyQuestion.objects.create(
+                            survey=self.object,
+                            question_text=question_data['question_text'],
+                            question_type=question_data['question_type'],
+                            is_required=question_data['is_required'],
+                            help_text=question_data.get('help_text', ''),
+                            display_order=question_data['display_order']
+                        )
+                        
+                        # Add scale type if applicable
+                        if question_data.get('scale_type'):
+                            question.scale_type = question_data['scale_type']
+                            question.save()
+                        
+                        # Create options if applicable
+                        if 'options' in question_data:
+                            for option_data in question_data['options']:
+                                QuestionOption.objects.create(
+                                    question=question,
+                                    option_text=option_data['option_text'],
+                                    display_order=option_data['display_order']
+                                )
+                
+                except json.JSONDecodeError as e:
+                    # Log the error but don't prevent survey creation
+                    logger.error(
+                        f"Error processing questions data for survey creation: {str(e)}",
+                        extra={
+                            'user_id': self.request.user.id,
+                            'survey_id': self.object.id,
+                            'survey_title': self.object.title,
+                            'error_type': 'JSONDecodeError',
+                            'exc_info': True
+                        }
+                    )
+            
+            # Log survey creation success
+            logger.info(
+                f"Survey created successfully: ID={self.object.id}, Title={self.object.title}",
+                extra={
+                    'survey_id': self.object.id,
+                    'survey_title': self.object.title,
+                    'user_id': self.request.user.id,
+                    'is_external': is_external,
+                    'questions_count': questions_count
+                }
+            )
+            
+            # Return JSON response for AJAX submission
+            return JsonResponse({
+                'status': 'success',
+                'redirect_url': self.get_success_url()
+            })
+            
+        except Exception as e:
+            logger.error(
+                f"Unexpected error in survey creation: {str(e)}",
+                extra={
+                    'user_id': self.request.user.id,
+                    'survey_title': form.cleaned_data.get('title', ''),
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
     def form_invalid(self, form):
         return JsonResponse({
@@ -184,12 +285,117 @@ class SurveyUpdateView(UpdateView):
     form_class = SurveyForm
     template_name = 'surveys/admin/survey_form.html'
     success_url = reverse_lazy('surveys:survey_list')
+    
+    def form_valid(self, form):
+        # Log survey update start
+        logger.info(
+            f"Survey update started by user: {self.request.user.username}",
+            extra={
+                'user_id': self.request.user.id,
+                'survey_id': self.object.id,
+                'survey_title': self.object.title
+            }
+        )
+        
+        try:
+            # Store old values for comparison
+            old_title = self.object.title
+            old_status = self.object.status
+            
+            # Save the form
+            response = super().form_valid(form)
+            
+            # Log changes
+            changes = []
+            if old_title != self.object.title:
+                changes.append(f"title: '{old_title}' -> '{self.object.title}'")
+            if old_status != self.object.status:
+                changes.append(f"status: '{old_status}' -> '{self.object.status}'")
+            
+            # Log survey update success
+            logger.info(
+                f"Survey updated successfully: ID={self.object.id}, Title={self.object.title}",
+                extra={
+                    'survey_id': self.object.id,
+                    'survey_title': self.object.title,
+                    'user_id': self.request.user.id,
+                    'changes': changes if changes else 'No changes detected'
+                }
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(
+                f"Error updating survey: {str(e)}",
+                extra={
+                    'user_id': self.request.user.id,
+                    'survey_id': self.object.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
 @method_decorator(staff_member_required, name='dispatch')
 class SurveyDeleteView(DeleteView):
     model = Survey
     template_name = 'surveys/admin/survey_confirm_delete.html'
     success_url = reverse_lazy('surveys:survey_list')
+    
+    def delete(self, request, *args, **kwargs):
+        survey = self.get_object()
+        
+        # Log survey deletion warning with details
+        logger.warning(
+            f"Survey deletion requested by user: {request.user.username}",
+            extra={
+                'user_id': request.user.id,
+                'survey_id': survey.id,
+                'survey_title': survey.title,
+                'survey_status': survey.status,
+                'responses_count': survey.responses.count(),
+                'questions_count': survey.questions.count(),
+                'action': 'survey_deletion'
+            }
+        )
+        
+        try:
+            # Store survey details before deletion
+            survey_id = survey.id
+            survey_title = survey.title
+            responses_count = survey.responses.count()
+            questions_count = survey.questions.count()
+            
+            # Perform deletion
+            response = super().delete(request, *args, **kwargs)
+            
+            # Log successful deletion
+            logger.warning(
+                f"Survey deleted successfully: ID={survey_id}, Title={survey_title}",
+                extra={
+                    'user_id': request.user.id,
+                    'survey_id': survey_id,
+                    'survey_title': survey_title,
+                    'responses_count': responses_count,
+                    'questions_count': questions_count,
+                    'action': 'survey_deletion_complete'
+                }
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(
+                f"Error deleting survey: {str(e)}",
+                extra={
+                    'user_id': request.user.id,
+                    'survey_id': survey.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
 @method_decorator(staff_member_required, name='dispatch')
 class SurveyDetailView(DetailView):
@@ -200,7 +406,21 @@ class SurveyDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['questions'] = self.object.questions.all().prefetch_related('options')
-        context['response_count'] = self.object.responses.count()
+        response_count = self.object.responses.count()
+        context['response_count'] = response_count
+        
+        # Log survey detail access (DEBUG level)
+        logger.debug(
+            f"Survey detail accessed: Survey ID={self.object.id}, Title={self.object.title}",
+            extra={
+                'survey_id': self.object.id,
+                'survey_title': self.object.title,
+                'response_count': response_count,
+                'questions_count': self.object.questions.count(),
+                'user_id': self.request.user.id if hasattr(self.request, 'user') else None
+            }
+        )
+        
         return context
 
 @method_decorator(staff_member_required, name='dispatch')
@@ -217,6 +437,19 @@ class SurveyResponsesView(DetailView):
         responses = survey.responses.select_related('alumni__user').prefetch_related(
             'answers', 'answers__question', 'answers__selected_option'
         ).order_by('-submitted_at')
+        
+        response_count = responses.count()
+        
+        # Log survey responses access (INFO level)
+        logger.info(
+            f"Survey responses accessed: Survey ID={survey.id}, Title={survey.title}, Response Count={response_count}",
+            extra={
+                'survey_id': survey.id,
+                'survey_title': survey.title,
+                'response_count': response_count,
+                'user_id': self.request.user.id if hasattr(self.request, 'user') else None
+            }
+        )
         
         # Process responses for easy display in template
         processed_responses = []
@@ -337,14 +570,43 @@ class SurveyQuestionCreateView(CreateView):
         context = self.get_context_data()
         option_formset = context['option_formset']
         
-        with transaction.atomic():
-            self.object = form.save()
-            
-            if form.instance.question_type in ['multiple_choice', 'checkbox'] and option_formset.is_valid():
-                option_formset.instance = self.object
-                option_formset.save()
+        try:
+            with transaction.atomic():
+                self.object = form.save()
                 
-        return HttpResponseRedirect(self.get_success_url())
+                options_count = 0
+                if form.instance.question_type in ['multiple_choice', 'checkbox'] and option_formset.is_valid():
+                    option_formset.instance = self.object
+                    option_formset.save()
+                    options_count = option_formset.total_form_count()
+            
+            # Log question creation
+            logger.info(
+                f"Survey question created: Question ID={self.object.id}, Type={form.instance.question_type}, Survey ID={survey.id}",
+                extra={
+                    'question_id': self.object.id,
+                    'question_text': form.instance.question_text[:100],  # Truncate for logging
+                    'question_type': form.instance.question_type,
+                    'survey_id': survey.id,
+                    'survey_title': survey.title,
+                    'options_count': options_count,
+                    'user_id': self.request.user.id if hasattr(self.request, 'user') else None
+                }
+            )
+            
+            return HttpResponseRedirect(self.get_success_url())
+            
+        except Exception as e:
+            logger.error(
+                f"Error creating survey question: {str(e)}",
+                extra={
+                    'survey_id': survey.id,
+                    'question_type': form.instance.question_type,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
 @method_decorator(staff_member_required, name='dispatch')
 class SurveyQuestionUpdateView(UpdateView):
@@ -370,17 +632,54 @@ class SurveyQuestionUpdateView(UpdateView):
         return context
     
     def form_valid(self, form):
+        # Store old values for comparison
+        old_question_text = self.object.question_text
+        old_question_type = self.object.question_type
+        
         context = self.get_context_data()
         option_formset = context['option_formset']
         
-        with transaction.atomic():
-            self.object = form.save()
-            
-            if form.instance.question_type in ['multiple_choice', 'checkbox'] and option_formset.is_valid():
-                option_formset.instance = self.object
-                option_formset.save()
+        try:
+            with transaction.atomic():
+                self.object = form.save()
                 
-        return HttpResponseRedirect(self.get_success_url())
+                options_count = 0
+                if form.instance.question_type in ['multiple_choice', 'checkbox'] and option_formset.is_valid():
+                    option_formset.instance = self.object
+                    option_formset.save()
+                    options_count = option_formset.total_form_count()
+            
+            # Log question update
+            changes = []
+            if old_question_text != form.instance.question_text:
+                changes.append('question_text')
+            if old_question_type != form.instance.question_type:
+                changes.append(f'question_type: {old_question_type} -> {form.instance.question_type}')
+            
+            logger.info(
+                f"Survey question updated: Question ID={self.object.id}, Type={form.instance.question_type}",
+                extra={
+                    'question_id': self.object.id,
+                    'question_type': form.instance.question_type,
+                    'survey_id': self.object.survey.id,
+                    'options_count': options_count,
+                    'changes': changes if changes else 'No changes detected',
+                    'user_id': self.request.user.id if hasattr(self.request, 'user') else None
+                }
+            )
+            
+            return HttpResponseRedirect(self.get_success_url())
+            
+        except Exception as e:
+            logger.error(
+                f"Error updating survey question: {str(e)}",
+                extra={
+                    'question_id': self.object.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
 # Alumni-facing Views for Survey Responses
 class SurveyTakeView(LoginRequiredMixin, DetailView):
@@ -406,64 +705,117 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
         survey = self.get_object()
         alumni = get_object_or_404(Alumni, user=request.user)
         
+        # Log survey submission start
+        logger.info(
+            f"Survey submission started by user: {request.user.username}",
+            extra={
+                'user_id': request.user.id,
+                'alumni_id': alumni.id,
+                'survey_id': survey.id,
+                'survey_title': survey.title
+            }
+        )
+        
         # Check if already responded
         if SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists():
+            logger.warning(
+                f"Duplicate survey submission attempt by user: {request.user.username}",
+                extra={
+                    'user_id': request.user.id,
+                    'alumni_id': alumni.id,
+                    'survey_id': survey.id,
+                    'survey_title': survey.title,
+                    'action': 'duplicate_submission'
+                }
+            )
             messages.error(request, "You have already completed this survey.")
             return redirect('surveys:survey_list_public')
         
-        # Create survey response
-        response = SurveyResponse.objects.create(
-            survey=survey,
-            alumni=alumni,
-            ip_address=request.META.get('REMOTE_ADDR')
-        )
-        
-        # Process answers for each question
-        for question in survey.questions.all():
-            answer_data = {}
+        try:
+            # Create survey response
+            response = SurveyResponse.objects.create(
+                survey=survey,
+                alumni=alumni,
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
             
-            if question.question_type == 'text' or question.question_type == 'date':
-                text_answer = request.POST.get(f'question_{question.id}')
-                if text_answer:
-                    answer_data['text_answer'] = text_answer
-                    
-            elif question.question_type == 'multiple_choice':
-                option_id = request.POST.get(f'question_{question.id}')
-                if option_id:
-                    option = get_object_or_404(QuestionOption, id=option_id)
-                    answer_data['selected_option'] = option
-                    
-            elif question.question_type == 'checkbox':
-                # Handle multiple selections
-                selected_options = []
-                for option in question.options.all():
-                    if request.POST.get(f'question_{question.id}_{option.id}'):
-                        selected_options.append(option)
+            answer_count = 0
+            # Process answers for each question
+            for question in survey.questions.all():
+                answer_data = {}
                 
-                # For checkbox, create multiple answers
-                for option in selected_options:
+                if question.question_type == 'text' or question.question_type == 'date':
+                    text_answer = request.POST.get(f'question_{question.id}')
+                    if text_answer:
+                        answer_data['text_answer'] = text_answer
+                        
+                elif question.question_type == 'multiple_choice':
+                    option_id = request.POST.get(f'question_{question.id}')
+                    if option_id:
+                        option = get_object_or_404(QuestionOption, id=option_id)
+                        answer_data['selected_option'] = option
+                        
+                elif question.question_type == 'checkbox':
+                    # Handle multiple selections
+                    selected_options = []
+                    for option in question.options.all():
+                        if request.POST.get(f'question_{question.id}_{option.id}'):
+                            selected_options.append(option)
+                    
+                    # For checkbox, create multiple answers
+                    for option in selected_options:
+                        ResponseAnswer.objects.create(
+                            response=response,
+                            question=question,
+                            selected_option=option
+                        )
+                        answer_count += 1
+                    continue  # Skip the default creation below
+                        
+                elif question.question_type == 'rating':
+                    rating = request.POST.get(f'question_{question.id}')
+                    if rating:
+                        answer_data['rating_value'] = int(rating)
+                
+                # Create the answer with collected data
+                if answer_data or question.is_required:
                     ResponseAnswer.objects.create(
                         response=response,
                         question=question,
-                        selected_option=option
+                        **answer_data
                     )
-                continue  # Skip the default creation below
-                    
-            elif question.question_type == 'rating':
-                rating = request.POST.get(f'question_{question.id}')
-                if rating:
-                    answer_data['rating_value'] = int(rating)
+                    answer_count += 1
             
-            # Create the answer with collected data
-            if answer_data or question.is_required:
-                ResponseAnswer.objects.create(
-                    response=response,
-                    question=question,
-                    **answer_data
-                )
-        
-        messages.success(request, "Thank you for completing the survey!")
-        return redirect('surveys:survey_list_public')
+            # Log successful submission
+            logger.info(
+                f"Survey submission completed successfully: Survey ID={survey.id}, Response ID={response.id}",
+                extra={
+                    'user_id': request.user.id,
+                    'alumni_id': alumni.id,
+                    'survey_id': survey.id,
+                    'survey_title': survey.title,
+                    'response_id': response.id,
+                    'answers_count': answer_count,
+                    'ip_address': request.META.get('REMOTE_ADDR')
+                }
+            )
+            
+            messages.success(request, "Thank you for completing the survey!")
+            return redirect('surveys:survey_list_public')
+            
+        except Exception as e:
+            logger.error(
+                f"Error submitting survey: {str(e)}",
+                extra={
+                    'user_id': request.user.id,
+                    'alumni_id': alumni.id,
+                    'survey_id': survey.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            messages.error(request, "An error occurred while submitting your survey. Please try again.")
+            return redirect('surveys:survey_list_public')
 
 class SurveyListPublicView(LoginRequiredMixin, ListView):
     model = Survey
@@ -473,9 +825,21 @@ class SurveyListPublicView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         # Show all surveys with 'active' status, regardless of start/end dates
         # This ensures all active surveys are visible to alumni users
-        return Survey.objects.filter(
+        queryset = Survey.objects.filter(
             status='active'
         ).order_by('end_date')
+        
+        # Log survey list access (DEBUG level)
+        logger.debug(
+            f"Survey list accessed by user: {self.request.user.username}",
+            extra={
+                'user_id': self.request.user.id,
+                'surveys_count': queryset.count(),
+                'action': 'survey_list_public'
+            }
+        )
+        
+        return queryset
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -502,14 +866,97 @@ class ReportCreateView(CreateView):
     template_name = 'surveys/admin/report_form.html'
     success_url = reverse_lazy('surveys:report_list')
     
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        
+        # Check data availability for each report type
+        data_availability = {
+            'employment': {
+                'has_data': EmploymentRecord.objects.exists(),
+                'count': EmploymentRecord.objects.count(),
+                'message': 'No employment records found. Please add employment records before generating this report.'
+            },
+            'geographic': {
+                'has_data': Alumni.objects.filter(
+                    Q(country__isnull=False) | 
+                    Q(province__isnull=False) | 
+                    Q(city__isnull=False)
+                ).exists(),
+                'count': Alumni.objects.filter(
+                    Q(country__isnull=False) | 
+                    Q(province__isnull=False) | 
+                    Q(city__isnull=False)
+                ).count(),
+                'message': 'No alumni with location data found. Please update alumni location information before generating this report.'
+            },
+            'achievements': {
+                'has_data': Achievement.objects.exists(),
+                'count': Achievement.objects.count(),
+                'message': 'No achievements found. Please add achievements before generating this report.'
+            },
+            'feedback': {
+                'has_data': SurveyResponse.objects.exists(),
+                'count': SurveyResponse.objects.count(),
+                'message': 'No survey responses found. Please ensure surveys have been completed before generating this report.'
+            },
+            'donations': {
+                'has_data': Donation.objects.filter(status='completed').exists(),
+                'count': Donation.objects.filter(status='completed').count(),
+                'message': 'No completed donations found. Please ensure donations have been completed before generating this report.'
+            },
+            'mentors': {
+                'has_data': Mentor.objects.filter(is_active=True).exists(),
+                'count': Mentor.objects.filter(is_active=True).count(),
+                'message': 'No active mentors found. Please ensure mentors have been added and activated.'
+            },
+            'groups': {
+                'has_data': AlumniGroup.objects.filter(is_active=True).exists(),
+                'count': AlumniGroup.objects.filter(is_active=True).count(),
+                'message': 'No active groups found. Please ensure groups have been created and activated.'
+            },
+            'custom': {
+                'has_data': True,
+                'count': 0,
+                'message': 'Custom reports can be created based on specific needs.'
+            }
+        }
+        
+        context['data_availability'] = data_availability
+        
+        # Get available filter options for each report type
+        context['filter_options'] = {
+            'employment': {
+                'industries': EmploymentRecord.objects.values_list('industry', flat=True).distinct().order_by('industry'),
+                'years': EmploymentRecord.objects.values_list('start_date__year', flat=True).distinct().order_by('-start_date__year'),
+            },
+            'geographic': {
+                'countries': Alumni.objects.exclude(country__isnull=True).values_list('country', flat=True).distinct().order_by('country'),
+                'provinces': Alumni.objects.exclude(province__isnull=True).exclude(province='').values_list('province', flat=True).distinct().order_by('province'),
+            },
+            'achievements': {
+                'types': Achievement.ACHIEVEMENT_TYPES,
+            },
+            'donations': {
+                'campaigns': Campaign.objects.all().order_by('name'),
+            }
+        }
+        
+        return context
+    
     def form_valid(self, form):
         form.instance.created_by = self.request.user
+        
+        # Explicitly set default values for scheduling fields to ensure they're always set
+        form.instance.is_scheduled = False
+        form.instance.schedule_frequency = 'none'
         
         # Process dynamic filter fields into parameters JSON
         parameters = {}
         for field_name in self.request.POST:
-            if field_name not in ['csrfmiddlewaretoken', 'title', 'description', 'report_type']:
-                parameters[field_name] = self.request.POST[field_name]
+            if field_name not in ['csrfmiddlewaretoken', 'title', 'description', 'report_type', 'is_scheduled', 'schedule_frequency', 'last_scheduled_run', 'next_scheduled_run']:
+                value = self.request.POST[field_name]
+                if value:  # Only include non-empty values
+                    parameters[field_name] = value
         
         form.instance.parameters = parameters
         
@@ -525,13 +972,49 @@ class ReportDetailView(DetailView):
         context = super().get_context_data(**kwargs)
         report = self.get_object()
         
-        # Generate report data based on type
-        report_data = self.generate_report_data(report)
-        context['report_data'] = report_data
+        # Log report access
+        logger.info(
+            f"Report detail view accessed: Report ID={report.id}, Type={report.report_type}",
+            extra={
+                'report_id': report.id,
+                'report_title': report.title,
+                'report_type': report.report_type,
+                'user_id': self.request.user.id if hasattr(self.request, 'user') else None
+            }
+        )
         
-        # Update last_run timestamp
-        report.last_run = timezone.now()
-        report.save(update_fields=['last_run'])
+        # Generate report data based on type
+        try:
+            report_data = self.generate_report_data(report)
+            context['report_data'] = report_data
+            context['report_error'] = None
+            
+            # Update last_run timestamp only if successful
+            report.last_run = timezone.now()
+            report.save(update_fields=['last_run'])
+        except Exception as e:
+            # Log the error and provide error context
+            import traceback
+            error_message = str(e)
+            error_traceback = traceback.format_exc()
+            
+            logger.error(
+                f"Error generating report data: {error_message}",
+                extra={
+                    'report_id': report.id,
+                    'report_title': report.title,
+                    'report_type': report.report_type,
+                    'error_type': type(e).__name__,
+                    'traceback': error_traceback,
+                    'exc_info': True
+                }
+            )
+            
+            context['report_data'] = None
+            context['report_error'] = {
+                'message': error_message,
+                'traceback': error_traceback
+            }
         
         return context
     
@@ -539,13 +1022,39 @@ class ReportDetailView(DetailView):
         """
         Generate report data based on report type and parameters
         """
-        data = {
-            'title': report.title,
-            'type': report.report_type,
-            'chart_data': {},
-            'table_data': [],
-            'summary': {}
-        }
+        import time
+        start_time = time.time()
+        
+        # Log report generation start
+        logger.info(
+            f"Report generation started: Report ID={report.id}, Type={report.report_type}",
+            extra={
+                'report_id': report.id,
+                'report_title': report.title,
+                'report_type': report.report_type,
+                'parameters': report.parameters if hasattr(report, 'parameters') else {}
+            }
+        )
+        
+        try:
+            data = {
+                'title': report.title,
+                'type': report.report_type,
+                'chart_data': {},
+                'table_data': [],
+                'summary': {}
+            }
+        except Exception as e:
+            logger.error(
+                f"Error initializing report data: {str(e)}",
+                extra={
+                    'report_id': report.id,
+                    'report_type': report.report_type,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise Exception(f"Error initializing report data: {str(e)}")
         
         if report.report_type == 'employment':
             # Employment trends report
@@ -574,9 +1083,12 @@ class ReportDetailView(DetailView):
                 count=Count('id')
             ).order_by('-count')
             
+            # Create combined list for easier template iteration
+            industries_list = [{'label': item['industry'], 'count': item['count']} for item in industry_counts]
             data['chart_data']['industries'] = {
                 'labels': [item['industry'] for item in industry_counts],
                 'data': [item['count'] for item in industry_counts],
+                'items': industries_list,  # Combined structure for templates
             }
             
             # Job titles
@@ -584,9 +1096,12 @@ class ReportDetailView(DetailView):
                 count=Count('id')
             ).order_by('-count')[:10]
             
+            # Create combined list for easier template iteration
+            job_titles_list = [{'label': item['job_title'], 'count': item['count']} for item in job_title_counts]
             data['chart_data']['job_titles'] = {
                 'labels': [item['job_title'] for item in job_title_counts],
                 'data': [item['count'] for item in job_title_counts],
+                'items': job_titles_list,  # Combined structure for templates
             }
             
             # Table data - recent employment records
@@ -604,59 +1119,65 @@ class ReportDetailView(DetailView):
             
         elif report.report_type == 'geographic':
             # Geographic distribution report
-            alumni_locations = Alumni.objects.select_related('location')
+            alumni_locations = Alumni.objects.all()
             
             # Apply filters
             if 'country' in report.parameters and report.parameters['country']:
                 alumni_locations = alumni_locations.filter(
-                    location__country__icontains=report.parameters['country']
+                    country__icontains=report.parameters['country']
                 )
                 
             if 'state' in report.parameters and report.parameters['state']:
                 alumni_locations = alumni_locations.filter(
-                    location__state__icontains=report.parameters['state']
+                    province__icontains=report.parameters['state']
                 )
             
             # Country distribution
-            country_counts = alumni_locations.values(
-                'location__country'
-            ).annotate(
+            country_counts = alumni_locations.exclude(
+                country__isnull=True
+            ).values('country').annotate(
                 count=Count('id')
             ).order_by('-count')
             
+            # Create combined list for easier template iteration
+            countries_filtered = [item for item in country_counts if item['country']]
+            countries_list = [{'label': str(item['country']), 'count': item['count']} for item in countries_filtered]
             data['chart_data']['countries'] = {
-                'labels': [item['location__country'] for item in country_counts if item['location__country']],
-                'data': [item['count'] for item in country_counts if item['location__country']],
+                'labels': [str(item['country']) for item in countries_filtered],
+                'data': [item['count'] for item in countries_filtered],
+                'items': countries_list,  # Combined structure for templates
             }
             
             # State/province distribution (for top country)
-            if country_counts and 'location__country' in country_counts[0]:
-                top_country = country_counts[0]['location__country']
+            if country_counts and country_counts[0].get('country'):
+                top_country = country_counts[0]['country']
                 state_counts = alumni_locations.filter(
-                    location__country=top_country
-                ).values(
-                    'location__state'
-                ).annotate(
+                    country=top_country
+                ).exclude(
+                    province__isnull=True
+                ).exclude(
+                    province=''
+                ).values('province').annotate(
                     count=Count('id')
                 ).order_by('-count')
                 
                 data['chart_data']['states'] = {
-                    'labels': [item['location__state'] for item in state_counts if item['location__state']],
-                    'data': [item['count'] for item in state_counts if item['location__state']],
-                    'country': top_country
+                    'labels': [item['province'] for item in state_counts if item['province']],
+                    'data': [item['count'] for item in state_counts if item['province']],
+                    'country': str(top_country)
                 }
             
             # Table data - alumni locations
             data['table_data'] = list(alumni_locations.values(
                 'user__first_name', 'user__last_name',
-                'location__city', 'location__state', 'location__country'
-            ).order_by('location__country', 'location__state')[:100])
+                'city', 'province', 'country'
+            ).order_by('country', 'province')[:100])
             
             # Summary statistics
             data['summary'] = {
                 'total_alumni': alumni_locations.count(),
-                'countries_count': alumni_locations.values('location__country').distinct().count(),
-                'cities_count': alumni_locations.values('location__city').distinct().count(),
+                'countries_count': alumni_locations.exclude(country__isnull=True).values('country').distinct().count(),
+                'cities_count': alumni_locations.exclude(city__isnull=True).exclude(city='').values('city').distinct().count(),
             }
             
         elif report.report_type == 'achievements':
@@ -684,10 +1205,19 @@ class ReportDetailView(DetailView):
                 count=Count('id')
             ).order_by('-count')
             
+            # Create combined list for easier template iteration
+            types_list = [
+                {
+                    'label': dict(Achievement.ACHIEVEMENT_TYPES).get(item['achievement_type'], item['achievement_type']),
+                    'count': item['count']
+                }
+                for item in type_counts
+            ]
             data['chart_data']['types'] = {
                 'labels': [dict(Achievement.ACHIEVEMENT_TYPES).get(item['achievement_type'], item['achievement_type']) 
                           for item in type_counts],
                 'data': [item['count'] for item in type_counts],
+                'items': types_list,  # Combined structure for templates
             }
             
             # Achievements by year
@@ -737,9 +1267,12 @@ class ReportDetailView(DetailView):
                     'rate': round((response['count'] / total_alumni) * 100, 1) if total_alumni > 0 else 0
                 })
             
+            # Create combined list for easier template iteration
+            completion_list = [{'label': item['survey'], 'rate': item['rate']} for item in completion_rates]
             data['chart_data']['completion'] = {
                 'labels': [item['survey'] for item in completion_rates],
                 'data': [item['rate'] for item in completion_rates],
+                'items': completion_list,  # Combined structure for templates
             }
             
             # Get rating averages for rating questions
@@ -793,13 +1326,725 @@ class ReportDetailView(DetailView):
                 ) if completion_rates else 0,
             }
             
+        elif report.report_type == 'donations':
+            # Donations report
+            donations = Donation.objects.filter(status='completed')
+            
+            # Apply filters
+            if 'campaign' in report.parameters and report.parameters['campaign']:
+                donations = donations.filter(campaign_id=report.parameters['campaign'])
+            
+            if 'start_date' in report.parameters and report.parameters['start_date']:
+                donations = donations.filter(donation_date__gte=report.parameters['start_date'])
+            
+            if 'end_date' in report.parameters and report.parameters['end_date']:
+                donations = donations.filter(donation_date__lte=report.parameters['end_date'])
+            
+            if 'period' in report.parameters and report.parameters['period']:
+                period = report.parameters['period']
+                now = timezone.now()
+                if period == 'today':
+                    donations = donations.filter(donation_date__date=now.date())
+                elif period == 'month':
+                    start_of_month = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+                    donations = donations.filter(donation_date__gte=start_of_month)
+                elif period == 'year':
+                    start_of_year = now.replace(month=1, day=1, hour=0, minute=0, second=0, microsecond=0)
+                    donations = donations.filter(donation_date__gte=start_of_year)
+            
+            # Total donations
+            total_amount = donations.aggregate(total=Sum('amount'))['total'] or 0
+            
+            # Donations by campaign
+            campaign_totals = donations.values('campaign__name').annotate(
+                total=Sum('amount'),
+                count=Count('id')
+            ).order_by('-total')
+            
+            campaigns_list = [
+                {'label': item['campaign__name'], 'total': float(item['total']), 'count': item['count']}
+                for item in campaign_totals
+            ]
+            
+            data['chart_data']['campaigns'] = {
+                'labels': [item['campaign__name'] for item in campaign_totals],
+                'data': [float(item['total']) for item in campaign_totals],
+                'items': campaigns_list,
+            }
+            
+            # Donations by date (daily)
+            daily_donations = donations.annotate(
+                date=TruncDate('donation_date')
+            ).values('date').annotate(
+                total=Sum('amount'),
+                count=Count('id')
+            ).order_by('date')
+            
+            daily_items = []
+            for item in daily_donations:
+                date_str = str(item['date']) if item['date'] else ''
+                daily_items.append({
+                    'label': date_str,
+                    'total': float(item['total']),
+                    'count': item['count']
+                })
+            
+            data['chart_data']['daily'] = {
+                'labels': [item['label'] for item in daily_items],
+                'data': [item['total'] for item in daily_items],
+                'items': daily_items,
+            }
+            
+            # Table data - recent donations
+            data['table_data'] = list(donations.values(
+                'donor__first_name', 'donor__last_name', 'donor_name',
+                'campaign__name', 'amount', 'donation_date', 'payment_method'
+            ).order_by('-donation_date')[:100])
+            
+            # Summary statistics
+            data['summary'] = {
+                'total_donations': donations.count(),
+                'total_amount': float(total_amount),
+                'campaigns_count': donations.values('campaign').distinct().count(),
+                'average_donation': float(total_amount / donations.count()) if donations.count() > 0 else 0,
+            }
+            
+        elif report.report_type == 'mentors':
+            # Mentors report
+            mentors = Mentor.objects.filter(is_active=True)
+            
+            # Availability distribution
+            availability_counts = mentors.values('availability_status').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            availability_list = [
+                {'label': item['availability_status'], 'count': item['count']}
+                for item in availability_counts
+            ]
+            
+            data['chart_data']['availability'] = {
+                'labels': [item['availability_status'] for item in availability_counts],
+                'data': [item['count'] for item in availability_counts],
+                'items': availability_list,
+            }
+            
+            # Verification status
+            verified_count = mentors.filter(is_verified=True).count()
+            unverified_count = mentors.filter(is_verified=False).count()
+            
+            data['chart_data']['verification'] = {
+                'labels': ['Verified', 'Unverified'],
+                'data': [verified_count, unverified_count],
+                'items': [
+                    {'label': 'Verified', 'count': verified_count},
+                    {'label': 'Unverified', 'count': unverified_count},
+                ],
+            }
+            
+            # Table data - mentors list
+            data['table_data'] = list(mentors.values(
+                'user__first_name', 'user__last_name',
+                'availability_status', 'is_verified', 'current_mentees', 
+                'max_mentees', 'accepting_mentees', 'created_at'
+            ).order_by('-created_at')[:100])
+            
+            # Summary statistics
+            total_mentees = sum(mentor.current_mentees for mentor in mentors)
+            data['summary'] = {
+                'total_mentors': mentors.count(),
+                'verified_mentors': verified_count,
+                'unverified_mentors': unverified_count,
+                'active_mentors': mentors.filter(accepting_mentees=True).count(),
+                'total_mentees': total_mentees,
+                'average_mentees': round(total_mentees / mentors.count(), 2) if mentors.count() > 0 else 0,
+            }
+            
+        elif report.report_type == 'groups':
+            # Groups report
+            groups = AlumniGroup.objects.filter(is_active=True)
+            
+            # Group type distribution
+            type_counts = groups.values('group_type').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            type_list = [
+                {'label': dict(AlumniGroup.GROUP_TYPES).get(item['group_type'], item['group_type']), 'count': item['count']}
+                for item in type_counts
+            ]
+            
+            data['chart_data']['types'] = {
+                'labels': [dict(AlumniGroup.GROUP_TYPES).get(item['group_type'], item['group_type']) for item in type_counts],
+                'data': [item['count'] for item in type_counts],
+                'items': type_list,
+            }
+            
+            # Visibility distribution
+            visibility_counts = groups.values('visibility').annotate(
+                count=Count('id')
+            ).order_by('-count')
+            
+            visibility_list = [
+                {'label': dict(AlumniGroup.VISIBILITY_CHOICES).get(item['visibility'], item['visibility']), 'count': item['count']}
+                for item in visibility_counts
+            ]
+            
+            data['chart_data']['visibility'] = {
+                'labels': [dict(AlumniGroup.VISIBILITY_CHOICES).get(item['visibility'], item['visibility']) for item in visibility_counts],
+                'data': [item['count'] for item in visibility_counts],
+                'items': visibility_list,
+            }
+            
+            # Table data - groups list with member counts
+            groups_data = []
+            for group in groups.select_related('created_by').prefetch_related('memberships')[:100]:
+                try:
+                    # Safely get member count
+                    member_count = group.memberships.count() if hasattr(group, 'memberships') else 0
+                except Exception:
+                    member_count = 0
+                
+                groups_data.append({
+                    'name': group.name,
+                    'group_type': group.group_type,
+                    'visibility': group.visibility,
+                    'created_by__first_name': group.created_by.first_name if group.created_by else '',
+                    'created_by__last_name': group.created_by.last_name if group.created_by else '',
+                    'member_count': member_count,
+                    'created_at': group.created_at,
+                })
+            data['table_data'] = groups_data
+            
+            # Summary statistics - get member counts safely
+            try:
+                # Use already calculated member counts from groups_data
+                total_members = sum(group.get('member_count', 0) for group in groups_data)
+            except Exception:
+                total_members = 0
+            
+            data['summary'] = {
+                'total_groups': groups.count(),
+                'public_groups': groups.filter(visibility='PUBLIC').count(),
+                'private_groups': groups.filter(visibility='PRIVATE').count(),
+                'restricted_groups': groups.filter(visibility='RESTRICTED').count(),
+                'total_members': total_members,
+                'average_members': round(total_members / groups.count(), 2) if groups.count() > 0 else 0,
+            }
+            
         elif report.report_type == 'custom':
             # Placeholder for custom reports
             data['summary'] = {
                 'message': 'Custom reports can be implemented based on specific needs'
             }
         
+        # Calculate generation time
+        elapsed_time = time.time() - start_time
+        
+        # Log report generation success
+        logger.info(
+            f"Report generation completed successfully: Report ID={report.id}, Type={report.report_type}, Time={elapsed_time:.2f}s",
+            extra={
+                'report_id': report.id,
+                'report_title': report.title,
+                'report_type': report.report_type,
+                'generation_time': elapsed_time,
+                'table_data_count': len(data.get('table_data', []))
+            }
+        )
+        
+        # Log slow generation warning
+        if elapsed_time > 5.0:
+            logger.warning(
+                f"Report generation took longer than 5 seconds: Report ID={report.id}, Time={elapsed_time:.2f}s",
+                extra={
+                    'report_id': report.id,
+                    'report_type': report.report_type,
+                    'generation_time': elapsed_time,
+                    'threshold': 5.0
+                }
+            )
+        
         return data
+
+
+@staff_member_required
+def report_export_pdf(request, pk):
+    """
+    Export report as PDF
+    """
+    import time
+    start_time = time.time()
+    
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
+    from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+    from reportlab.lib.units import inch
+    from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    
+    report = get_object_or_404(Report, pk=pk)
+    
+    # Log PDF export start
+    logger.info(
+        f"PDF export started: Report ID={report.id}, Type={report.report_type}",
+        extra={
+            'report_id': report.id,
+            'report_title': report.title,
+            'report_type': report.report_type,
+            'user_id': request.user.id,
+            'action': 'pdf_export'
+        }
+    )
+    
+    try:
+        # Generate report data
+        detail_view = ReportDetailView()
+        detail_view.object = report
+        report_data = detail_view.generate_report_data(report)
+        
+        # Create PDF response
+        response = HttpResponse(content_type='application/pdf')
+        filename = f"{report.title.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        # Create PDF document
+        doc = SimpleDocTemplate(
+            response,
+            pagesize=A4,
+            rightMargin=30,
+            leftMargin=30,
+            topMargin=30,
+            bottomMargin=30
+        )
+        elements = []
+        
+        # Get styles
+        styles = getSampleStyleSheet()
+        title_style = ParagraphStyle(
+            'CustomTitle',
+            parent=styles['Heading1'],
+            fontSize=16,
+            spaceAfter=12,
+            alignment=TA_CENTER,
+            textColor=colors.HexColor('#417690')
+        )
+        
+        heading_style = ParagraphStyle(
+            'CustomHeading',
+            parent=styles['Heading2'],
+            fontSize=14,
+            spaceAfter=10,
+            textColor=colors.HexColor('#417690')
+        )
+        
+        # Add title
+        elements.append(Paragraph(report.title, title_style))
+        elements.append(Spacer(1, 12))
+        
+        # Add report info
+        info_data = [
+            ['Type:', report.get_report_type_display()],
+            ['Created by:', report.created_by.get_full_name() or report.created_by.username],
+            ['Created at:', report.created_at.strftime('%Y-%m-%d %H:%M')],
+            ['Last run:', report.last_run.strftime('%Y-%m-%d %H:%M') if report.last_run else 'Never'],
+        ]
+        
+        info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+        info_table.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
+            ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
+            ('ALIGN', (0, 0), (0, -1), 'LEFT'),
+            ('ALIGN', (1, 0), (1, -1), 'LEFT'),
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ]))
+        elements.append(info_table)
+        elements.append(Spacer(1, 15))
+        
+        # Add description if available
+        if report.description:
+            elements.append(Paragraph('Description:', styles['Heading3']))
+            elements.append(Paragraph(report.description, styles['Normal']))
+            elements.append(Spacer(1, 12))
+        
+        # Add summary statistics
+        if report_data.get('summary'):
+            elements.append(Paragraph('Summary Statistics', heading_style))
+            summary_data = [['Metric', 'Value']]
+            for key, value in report_data['summary'].items():
+                summary_data.append([key.replace('_', ' ').title(), str(value)])
+            
+            summary_table = Table(summary_data, colWidths=[3*inch, 3*inch])
+            summary_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                ('FONTSIZE', (0, 0), (-1, 0), 11),
+                ('FONTSIZE', (0, 1), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                ('TOPPADDING', (0, 0), (-1, -1), 8),
+                ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+            ]))
+            elements.append(summary_table)
+            elements.append(Spacer(1, 15))
+        
+        # Add chart data as tables
+        if report_data.get('chart_data'):
+            chart_data = report_data['chart_data']
+            
+            if report.report_type == 'employment':
+                if chart_data.get('industries') and chart_data['industries'].get('items'):
+                    elements.append(Paragraph('Industry Distribution', heading_style))
+                    industries_data = [['Industry', 'Count']]
+                    for item in chart_data['industries']['items']:
+                        industries_data.append([item['label'], str(item['count'])])
+                    
+                    industries_table = Table(industries_data, colWidths=[4*inch, 2*inch])
+                    industries_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(industries_table)
+                    elements.append(Spacer(1, 15))
+            
+            elif report.report_type == 'geographic':
+                if chart_data.get('countries') and chart_data['countries'].get('items'):
+                    elements.append(Paragraph('Country Distribution', heading_style))
+                    countries_data = [['Country', 'Count']]
+                    for item in chart_data['countries']['items']:
+                        countries_data.append([item['label'], str(item['count'])])
+                    
+                    countries_table = Table(countries_data, colWidths=[4*inch, 2*inch])
+                    countries_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(countries_table)
+                    elements.append(Spacer(1, 15))
+            
+            elif report.report_type == 'achievements':
+                if chart_data.get('types') and chart_data['types'].get('items'):
+                    elements.append(Paragraph('Achievement Types Distribution', heading_style))
+                    types_data = [['Type', 'Count']]
+                    for item in chart_data['types']['items']:
+                        types_data.append([item['label'], str(item['count'])])
+                    
+                    types_table = Table(types_data, colWidths=[4*inch, 2*inch])
+                    types_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(types_table)
+                    elements.append(Spacer(1, 15))
+            
+            elif report.report_type == 'feedback':
+                if chart_data.get('completion') and chart_data['completion'].get('items'):
+                    elements.append(Paragraph('Survey Completion Rates', heading_style))
+                    completion_data = [['Survey', 'Completion Rate (%)']]
+                    for item in chart_data['completion']['items']:
+                        completion_data.append([item['label'], f"{item['rate']:.1f}%"])
+                    
+                    completion_table = Table(completion_data, colWidths=[4*inch, 2*inch])
+                    completion_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(completion_table)
+                    elements.append(Spacer(1, 15))
+            
+            elif report.report_type == 'donations':
+                if chart_data.get('campaigns') and chart_data['campaigns'].get('items'):
+                    elements.append(Paragraph('Donations by Campaign', heading_style))
+                    campaigns_data = [['Campaign', 'Total Amount', 'Count']]
+                    for item in chart_data['campaigns']['items']:
+                        campaigns_data.append([item['label'], f"₱{item['total']:,.2f}", str(item['count'])])
+                    
+                    campaigns_table = Table(campaigns_data, colWidths=[3*inch, 2*inch, 1*inch])
+                    campaigns_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+                        ('ALIGN', (2, 0), (2, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(campaigns_table)
+                    elements.append(Spacer(1, 15))
+            
+            elif report.report_type == 'mentors':
+                if chart_data.get('availability') and chart_data['availability'].get('items'):
+                    elements.append(Paragraph('Mentors by Availability', heading_style))
+                    availability_data = [['Availability Status', 'Count']]
+                    for item in chart_data['availability']['items']:
+                        availability_data.append([item['label'], str(item['count'])])
+                    
+                    availability_table = Table(availability_data, colWidths=[4*inch, 2*inch])
+                    availability_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(availability_table)
+                    elements.append(Spacer(1, 15))
+            
+            elif report.report_type == 'groups':
+                if chart_data.get('types') and chart_data['types'].get('items'):
+                    elements.append(Paragraph('Groups by Type', heading_style))
+                    types_data = [['Group Type', 'Count']]
+                    for item in chart_data['types']['items']:
+                        types_data.append([item['label'], str(item['count'])])
+                    
+                    types_table = Table(types_data, colWidths=[4*inch, 2*inch])
+                    types_table.setStyle(TableStyle([
+                        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                        ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                        ('ALIGN', (1, 0), (1, -1), 'CENTER'),
+                        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                        ('FONTSIZE', (0, 0), (-1, 0), 11),
+                        ('FONTSIZE', (0, 1), (-1, -1), 10),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
+                        ('TOPPADDING', (0, 0), (-1, -1), 8),
+                        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ]))
+                    elements.append(types_table)
+                    elements.append(Spacer(1, 15))
+        
+        # Add detailed table data
+        if report_data.get('table_data'):
+            elements.append(PageBreak())
+            elements.append(Paragraph('Detailed Data', heading_style))
+            
+            if report.report_type == 'employment':
+                table_headers = [['Name', 'Company', 'Job Title', 'Industry', 'Start Date']]
+                for record in report_data['table_data'][:50]:  # Limit to 50 rows
+                    name = f"{record.get('alumni__user__first_name', '')} {record.get('alumni__user__last_name', '')}".strip() or '-'
+                    table_headers.append([
+                        name[:30],  # Truncate long names
+                        str(record.get('company_name', '-'))[:30],
+                        str(record.get('job_title', '-'))[:30],
+                        str(record.get('industry', '-'))[:25],
+                        str(record.get('start_date', '-'))[:10] if record.get('start_date') else '-'
+                    ])
+            
+            elif report.report_type == 'geographic':
+                table_headers = [['Name', 'City', 'State/Province', 'Country']]
+                for record in report_data['table_data'][:100]:  # Limit to 100 rows
+                    name = f"{record.get('user__first_name', '')} {record.get('user__last_name', '')}".strip() or '-'
+                    table_headers.append([
+                        name[:30],
+                        str(record.get('city', '-'))[:25],
+                        str(record.get('province', '-'))[:25],
+                        str(record.get('country', '-'))[:25]
+                    ])
+            
+            elif report.report_type == 'achievements':
+                table_headers = [['Name', 'Title', 'Type', 'Date', 'Verified']]
+                for record in report_data['table_data'][:50]:  # Limit to 50 rows
+                    name = f"{record.get('alumni__user__first_name', '')} {record.get('alumni__user__last_name', '')}".strip() or '-'
+                    table_headers.append([
+                        name[:25],
+                        str(record.get('title', '-'))[:30],
+                        str(record.get('achievement_type', '-'))[:20],
+                        str(record.get('achievement_date', '-'))[:10] if record.get('achievement_date') else '-',
+                        'Yes' if record.get('verified') else 'No'
+                    ])
+            
+            elif report.report_type == 'feedback':
+                table_headers = [['Survey', 'Question', 'Answer', 'Alumni', 'Date']]
+                for record in report_data['table_data'][:30]:  # Limit to 30 rows
+                    table_headers.append([
+                        str(record.get('survey', '-'))[:25],
+                        str(record.get('question', '-'))[:30],
+                        str(record.get('answer', '-'))[:40],
+                        str(record.get('alumni', '-'))[:25],
+                        str(record.get('date', '-'))[:10] if record.get('date') else '-'
+                    ])
+            
+            elif report.report_type == 'donations':
+                table_headers = [['Donor', 'Campaign', 'Amount', 'Date', 'Payment Method']]
+                for record in report_data['table_data'][:100]:  # Limit to 100 rows
+                    donor_name = ''
+                    if record.get('donor__first_name'):
+                        donor_name = f"{record.get('donor__first_name', '')} {record.get('donor__last_name', '')}".strip()
+                    elif record.get('donor_name'):
+                        donor_name = record.get('donor_name', '')
+                    else:
+                        donor_name = 'Anonymous'
+                    
+                    table_headers.append([
+                        donor_name[:25],
+                        str(record.get('campaign__name', '-'))[:25],
+                        f"₱{float(record.get('amount', 0)):,.2f}",
+                        str(record.get('donation_date', '-'))[:10] if record.get('donation_date') else '-',
+                        str(record.get('payment_method', '-'))[:20]
+                    ])
+            
+            elif report.report_type == 'mentors':
+                table_headers = [['Name', 'Availability', 'Verified', 'Current Mentees', 'Max Mentees', 'Accepting']]
+                for record in report_data['table_data'][:100]:  # Limit to 100 rows
+                    name = f"{record.get('user__first_name', '')} {record.get('user__last_name', '')}".strip() or '-'
+                    table_headers.append([
+                        name[:25],
+                        str(record.get('availability_status', '-'))[:20],
+                        'Yes' if record.get('is_verified') else 'No',
+                        str(record.get('current_mentees', 0)),
+                        str(record.get('max_mentees', '-')),
+                        'Yes' if record.get('accepting_mentees') else 'No'
+                    ])
+            
+            elif report.report_type == 'groups':
+                table_headers = [['Group Name', 'Type', 'Visibility', 'Created By', 'Members', 'Created']]
+                for record in report_data['table_data'][:100]:  # Limit to 100 rows
+                    name = f"{record.get('created_by__first_name', '')} {record.get('created_by__last_name', '')}".strip() or '-'
+                    table_headers.append([
+                        str(record.get('name', '-'))[:30],
+                        str(record.get('group_type', '-'))[:15],
+                        str(record.get('visibility', '-'))[:15],
+                        name[:25],
+                        str(record.get('member_count', 0)),
+                        str(record.get('created_at', '-'))[:10] if record.get('created_at') else '-'
+                    ])
+            
+            else:
+                # Custom report - use all keys
+                if report_data['table_data']:
+                    keys = list(report_data['table_data'][0].keys())
+                    table_headers = [[k.replace('_', ' ').title() for k in keys]]
+                    for record in report_data['table_data'][:50]:
+                        table_headers.append([str(record.get(k, '-'))[:30] for k in keys])
+            
+            if len(table_headers) > 1:  # Only create table if there's data
+                # Use landscape for wide tables
+                use_landscape = len(table_headers[0]) > 4
+                
+                # Calculate column widths
+                num_cols = len(table_headers[0])
+                if use_landscape:
+                    available_width = landscape(A4)[0] - 60  # Account for margins
+                else:
+                    available_width = A4[0] - 60
+                col_width = available_width / num_cols
+                col_widths = [col_width] * num_cols
+                
+                data_table = Table(table_headers, colWidths=col_widths)
+                data_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+                    ('ALIGN', (0, 0), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 9),
+                    ('FONTSIZE', (0, 1), (-1, -1), 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#f8f9fa')]),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
+                elements.append(data_table)
+                
+                if len(report_data['table_data']) > 50:
+                    elements.append(Spacer(1, 10))
+                    elements.append(Paragraph(
+                        f"Note: Showing first 50 records of {len(report_data['table_data'])} total.",
+                        styles['Normal']
+                    ))
+    
+        # Build PDF
+        doc.build(elements)
+        
+        # Calculate export time
+        elapsed_time = time.time() - start_time
+        
+        # Log PDF export success
+        logger.info(
+            f"PDF export completed successfully: Report ID={report.id}, Type={report.report_type}, Time={elapsed_time:.2f}s",
+            extra={
+                'report_id': report.id,
+                'report_title': report.title,
+                'report_type': report.report_type,
+                'user_id': request.user.id,
+                'filename': filename,
+                'export_time': elapsed_time,
+                'action': 'pdf_export_complete'
+            }
+        )
+        
+        return response
+        
+    except Exception as e:
+        elapsed_time = time.time() - start_time
+        logger.error(
+            f"Error exporting PDF: {str(e)}",
+            extra={
+                'report_id': report.id,
+                'report_title': report.title,
+                'report_type': report.report_type,
+                'user_id': request.user.id,
+                'error_type': type(e).__name__,
+                'export_time': elapsed_time,
+                'exc_info': True
+            }
+        )
+        raise
+
 
 # Employment and Achievement record management for alumni
 class EmploymentRecordCreateView(LoginRequiredMixin, CreateView):
@@ -811,7 +2056,36 @@ class EmploymentRecordCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         alumni = get_object_or_404(Alumni, user=self.request.user)
         form.instance.alumni = alumni
-        return super().form_valid(form)
+        
+        try:
+            response = super().form_valid(form)
+            
+            # Log employment record creation
+            logger.info(
+                f"Employment record created: Record ID={self.object.id}, Company={form.instance.company_name}",
+                extra={
+                    'employment_record_id': self.object.id,
+                    'company_name': form.instance.company_name,
+                    'job_title': form.instance.job_title,
+                    'industry': form.instance.industry,
+                    'alumni_id': alumni.id,
+                    'user_id': self.request.user.id
+                }
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(
+                f"Error creating employment record: {str(e)}",
+                extra={
+                    'alumni_id': alumni.id,
+                    'user_id': self.request.user.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
 class EmploymentRecordUpdateView(LoginRequiredMixin, UpdateView):
     model = EmploymentRecord
@@ -841,7 +2115,36 @@ class AchievementCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         alumni = get_object_or_404(Alumni, user=self.request.user)
         form.instance.alumni = alumni
-        return super().form_valid(form)
+        
+        try:
+            response = super().form_valid(form)
+            
+            # Log achievement creation
+            logger.info(
+                f"Achievement created: Achievement ID={self.object.id}, Type={form.instance.achievement_type}",
+                extra={
+                    'achievement_id': self.object.id,
+                    'achievement_title': form.instance.title,
+                    'achievement_type': form.instance.achievement_type,
+                    'achievement_date': str(form.instance.achievement_date),
+                    'alumni_id': alumni.id,
+                    'user_id': self.request.user.id
+                }
+            )
+            
+            return response
+            
+        except Exception as e:
+            logger.error(
+                f"Error creating achievement: {str(e)}",
+                extra={
+                    'alumni_id': alumni.id,
+                    'user_id': self.request.user.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            raise
 
 class AchievementUpdateView(LoginRequiredMixin, UpdateView):
     model = Achievement

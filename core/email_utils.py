@@ -38,12 +38,24 @@ def send_email_with_smtp_config(subject, message, recipient_list, from_email=Non
         if from_email is None:
             from_email = smtp_settings.get('from_email', settings.DEFAULT_FROM_EMAIL)
         
-        logger.info(f"Sending email from {from_email} using backend {settings.EMAIL_BACKEND}")
+        # Log email sending attempt with enhanced context
+        logger.info(
+            f"Sending email via SMTP: Subject={subject}, To={recipient_list}, From={from_email}",
+            extra={
+                'subject': subject,
+                'recipient_list': recipient_list,
+                'from_email': from_email,
+                'has_html': bool(html_message),
+                'smtp_host': smtp_settings.get('host', 'Not configured'),
+                'email_backend': settings.EMAIL_BACKEND,
+                'action': 'email_send_attempt'
+            }
+        )
         
         # Use the fallback system for Render hosting
         if is_render_hosting():
             logger.info("Using Render email fallback system")
-            return send_email_with_fallback(
+            result = send_email_with_fallback(
                 subject=subject,
                 message=message,
                 recipient_list=recipient_list,
@@ -72,12 +84,43 @@ def send_email_with_smtp_config(subject, message, recipient_list, from_email=Non
                     recipient_list=recipient_list,
                     fail_silently=fail_silently,
                 )
-            
-            logger.info(f"Email sent successfully to {recipient_list} using SMTP config: {smtp_settings.get('host', 'console')}")
-            return result
+        
+        if result:
+            logger.info(
+                f"Email sent successfully via SMTP: Subject={subject}, To={recipient_list}",
+                extra={
+                    'subject': subject,
+                    'recipient_list': recipient_list,
+                    'from_email': from_email,
+                    'smtp_host': smtp_settings.get('host', 'console'),
+                    'action': 'email_sent'
+                }
+            )
+        else:
+            logger.warning(
+                f"Email send returned False: Subject={subject}, To={recipient_list}",
+                extra={
+                    'subject': subject,
+                    'recipient_list': recipient_list,
+                    'from_email': from_email,
+                    'action': 'email_send_failed'
+                }
+            )
+        
+        return result
         
     except Exception as e:
-        logger.error(f"Failed to send email to {recipient_list}: {str(e)}")
+        logger.error(
+            f"Failed to send email via SMTP: Subject={subject}, To={recipient_list}, Error={str(e)}",
+            extra={
+                'subject': subject,
+                'recipient_list': recipient_list,
+                'from_email': from_email,
+                'error_type': type(e).__name__,
+                'action': 'email_send_error'
+            },
+            exc_info=True
+        )
         if not fail_silently:
             raise
         return False
@@ -167,16 +210,34 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
                     provider_type = 'smtp'
                     logger.warning("No active email provider found, falling back to SMTP")
         
+        # Log email sending attempt with provider information
+        logger.info(
+            f"Sending email via {provider_type.upper()}: Subject={subject}, To={recipient_list}, Provider={provider_type}",
+            extra={
+                'subject': subject,
+                'recipient_list': recipient_list,
+                'from_email': from_email,
+                'provider_type': provider_type,
+                'has_html': bool(html_message),
+                'action': 'email_send_attempt'
+            }
+        )
+        
         # Send email using the selected provider
         if provider_type == 'brevo':
-            logger.info(f"Sending email via Brevo to {recipient_list}")
-            
             # If from_email is the default placeholder, use Brevo config instead
             # This ensures we use the verified Brevo sender email
             if from_email and (from_email == settings.DEFAULT_FROM_EMAIL or 'example.com' in from_email.lower()):
                 brevo_settings = get_brevo_settings()
                 if brevo_settings.get('from_email'):
-                    logger.info(f"Replacing default from_email '{from_email}' with Brevo config: {brevo_settings.get('from_email')}")
+                    logger.info(
+                        f"Replacing default from_email '{from_email}' with Brevo config: {brevo_settings.get('from_email')}",
+                        extra={
+                            'old_from_email': from_email,
+                            'new_from_email': brevo_settings.get('from_email'),
+                            'action': 'email_provider_config'
+                        }
+                    )
                     from_email = None  # Let Brevo use its configured email
             
             result = send_email_with_brevo(
@@ -188,16 +249,35 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
                 fail_silently=fail_silently
             )
             
-            # Update provider usage statistics
+            # Log provider switching if needed
             if result:
                 provider = get_active_email_provider()
                 if provider:
                     provider.increment_usage()
+                    logger.info(
+                        f"Email sent successfully via Brevo: Subject={subject}, To={recipient_list}",
+                        extra={
+                            'subject': subject,
+                            'recipient_list': recipient_list,
+                            'provider_type': 'brevo',
+                            'provider_id': provider.id if provider else None,
+                            'action': 'email_sent'
+                        }
+                    )
+            else:
+                logger.warning(
+                    f"Email send failed via Brevo: Subject={subject}, To={recipient_list}",
+                    extra={
+                        'subject': subject,
+                        'recipient_list': recipient_list,
+                        'provider_type': 'brevo',
+                        'action': 'email_send_failed'
+                    }
+                )
             
             return result
             
         elif provider_type == 'smtp':
-            logger.info(f"Sending email via SMTP to {recipient_list}")
             result = send_email_with_smtp_config(
                 subject=subject,
                 message=message,
@@ -212,6 +292,26 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
                 provider = get_active_email_provider()
                 if provider:
                     provider.increment_usage()
+                    logger.info(
+                        f"Email sent successfully via SMTP: Subject={subject}, To={recipient_list}",
+                        extra={
+                            'subject': subject,
+                            'recipient_list': recipient_list,
+                            'provider_type': 'smtp',
+                            'provider_id': provider.id if provider else None,
+                            'action': 'email_sent'
+                        }
+                    )
+            else:
+                logger.warning(
+                    f"Email send failed via SMTP: Subject={subject}, To={recipient_list}",
+                    extra={
+                        'subject': subject,
+                        'recipient_list': recipient_list,
+                        'provider_type': 'smtp',
+                        'action': 'email_send_failed'
+                    }
+                )
             
             return result
             
@@ -224,7 +324,19 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
             
     except Exception as e:
         error_msg = f"Failed to send email to {recipient_list}: {str(e)}"
-        logger.error(error_msg)
+        logger.error(
+            f"Exception sending email: Subject={subject}, To={recipient_list}, Error={str(e)}",
+            extra={
+                'subject': subject,
+                'recipient_list': recipient_list,
+                'from_email': from_email,
+                'provider_type': provider_type,
+                'error_type': type(e).__name__,
+                'error_message': str(e),
+                'action': 'email_send_exception'
+            },
+            exc_info=True
+        )
         
         # Record error in provider statistics
         provider = get_active_email_provider()

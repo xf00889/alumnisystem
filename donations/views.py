@@ -92,12 +92,6 @@ def campaign_list(request):
         campaign_count=Count('campaigns')
     ).order_by('name')
 
-    # Featured campaigns for sidebar
-    featured_campaigns = Campaign.objects.filter(
-        is_featured=True,
-        status='active'
-    ).order_by('-start_date')[:3]
-
     # Paginate results
     paginator = Paginator(campaigns, 9)  # 9 campaigns per page
     page_number = request.GET.get('page')
@@ -107,7 +101,6 @@ def campaign_list(request):
         'page_obj': page_obj,
         'filter_form': filter_form,
         'campaign_types': campaign_types,
-        'featured_campaigns': featured_campaigns,
     }
 
     return render(request, 'donations/campaign_list.html', context)
@@ -756,20 +749,66 @@ def delete_campaign(request, pk):
 
     campaign = get_object_or_404(Campaign, pk=pk)
 
+    # Store campaign details before deletion
+    campaign_id = campaign.id
+    campaign_name = campaign.name
+    donation_count = Donation.objects.filter(campaign=campaign).count()
+
+    # Log campaign deletion warning
+    logger.warning(
+        f"Campaign deletion requested: Campaign ID={campaign_id}, Name={campaign_name}",
+        extra={
+            'campaign_id': campaign_id,
+            'campaign_name': campaign_name,
+            'donation_count': donation_count,
+            'user_id': request.user.id,
+            'action': 'campaign_deletion'
+        }
+    )
+
     try:
         # Check if campaign has donations
-        if Donation.objects.filter(campaign=campaign).exists():
+        if donation_count > 0:
+            logger.warning(
+                f"Campaign deletion blocked: Campaign has {donation_count} donations",
+                extra={
+                    'campaign_id': campaign_id,
+                    'donation_count': donation_count,
+                    'user_id': request.user.id
+                }
+            )
             return JsonResponse({
                 'status': 'error',
                 'message': _('Cannot delete campaign with existing donations.')
             })
 
         campaign.delete()
+        
+        # Log successful deletion
+        logger.warning(
+            f"Campaign deleted successfully: Campaign ID={campaign_id}, Name={campaign_name}",
+            extra={
+                'campaign_id': campaign_id,
+                'campaign_name': campaign_name,
+                'user_id': request.user.id,
+                'action': 'campaign_deletion_complete'
+            }
+        )
+        
         return JsonResponse({
             'status': 'success',
             'message': _('Campaign deleted successfully.')
         })
     except Exception as e:
+        logger.error(
+            f"Error deleting campaign: {str(e)}",
+            extra={
+                'campaign_id': campaign_id,
+                'user_id': request.user.id,
+                'error_type': type(e).__name__,
+                'exc_info': True
+            }
+        )
         return JsonResponse({
             'status': 'error',
             'message': str(e)
@@ -786,9 +825,34 @@ def campaign_create(request):
     if request.method == 'POST':
         form = CampaignForm(request.POST, request.FILES, user=request.user)
         if form.is_valid():
-            campaign = form.save()
-            messages.success(request, _('Campaign created successfully!'))
-            return redirect('donations:campaign_detail', slug=campaign.slug)
+            try:
+                campaign = form.save()
+                
+                # Log campaign creation
+                logger.info(
+                    f"Campaign created: Campaign ID={campaign.id}, Name={campaign.name}",
+                    extra={
+                        'campaign_id': campaign.id,
+                        'campaign_name': campaign.name,
+                        'campaign_slug': campaign.slug,
+                        'goal_amount': float(campaign.goal_amount) if campaign.goal_amount else None,
+                        'user_id': request.user.id,
+                        'user_email': request.user.email
+                    }
+                )
+                
+                messages.success(request, _('Campaign created successfully!'))
+                return redirect('donations:campaign_detail', slug=campaign.slug)
+            except Exception as e:
+                logger.error(
+                    f"Error creating campaign: {str(e)}",
+                    extra={
+                        'user_id': request.user.id,
+                        'error_type': type(e).__name__,
+                        'exc_info': True
+                    }
+                )
+                raise
     else:
         form = CampaignForm(user=request.user)
 
@@ -809,11 +873,50 @@ def campaign_edit(request, pk):
     campaign = get_object_or_404(Campaign, pk=pk)
 
     if request.method == 'POST':
+        # Store old values for comparison
+        old_name = campaign.name
+        old_status = campaign.status
+        old_goal_amount = campaign.goal_amount
+        
         form = CampaignForm(request.POST, request.FILES, instance=campaign, user=request.user)
         if form.is_valid():
-            form.save()
-            messages.success(request, _('Campaign updated successfully!'))
-            return redirect('donations:campaign_detail', slug=campaign.slug)
+            try:
+                campaign = form.save()
+                
+                # Log changes
+                changes = []
+                if old_name != campaign.name:
+                    changes.append(f"name: '{old_name}' -> '{campaign.name}'")
+                if old_status != campaign.status:
+                    changes.append(f"status: '{old_status}' -> '{campaign.status}'")
+                if old_goal_amount != campaign.goal_amount:
+                    changes.append(f"goal_amount: {old_goal_amount} -> {campaign.goal_amount}")
+                
+                # Log campaign update
+                logger.info(
+                    f"Campaign updated: Campaign ID={campaign.id}, Name={campaign.name}",
+                    extra={
+                        'campaign_id': campaign.id,
+                        'campaign_name': campaign.name,
+                        'campaign_slug': campaign.slug,
+                        'user_id': request.user.id,
+                        'changes': changes if changes else 'No changes detected'
+                    }
+                )
+                
+                messages.success(request, _('Campaign updated successfully!'))
+                return redirect('donations:campaign_detail', slug=campaign.slug)
+            except Exception as e:
+                logger.error(
+                    f"Error updating campaign: {str(e)}",
+                    extra={
+                        'campaign_id': campaign.id,
+                        'user_id': request.user.id,
+                        'error_type': type(e).__name__,
+                        'exc_info': True
+                    }
+                )
+                raise
     else:
         form = CampaignForm(instance=campaign, user=request.user)
 
@@ -861,11 +964,32 @@ def payment_instructions(request, pk):
     """View to display GCash payment instructions and QR code"""
     donation = get_object_or_404(Donation, pk=pk)
 
+    # Log payment instructions access
+    logger.info(
+        f"Payment instructions accessed: Donation ID={donation.id}, Campaign={donation.campaign.name if donation.campaign else None}",
+        extra={
+            'donation_id': donation.id,
+            'campaign_id': donation.campaign.id if donation.campaign else None,
+            'donation_status': donation.status,
+            'user_id': request.user.id if request.user.is_authenticated else None,
+            'is_authenticated': request.user.is_authenticated,
+            'action': 'payment_instructions_access'
+        }
+    )
+
     # Security check - only allow viewing if:
     # 1. User is the donor, or
     # 2. User has the donor email (for non-authenticated users)
     if request.user.is_authenticated:
         if donation.donor and donation.donor != request.user:
+            logger.warning(
+                f"Unauthorized access attempt to payment instructions: Donation ID={donation.id}, User ID={request.user.id}",
+                extra={
+                    'donation_id': donation.id,
+                    'user_id': request.user.id,
+                    'action': 'unauthorized_access'
+                }
+            )
             messages.error(request, _('You do not have permission to view this donation.'))
             return redirect('donations:campaign_list')
     else:
@@ -893,11 +1017,31 @@ def payment_instructions(request, pk):
                 messages.error(request, _('Payment proof is required.'))
                 return redirect('donations:payment_instructions', pk=donation.pk)
         
+        # Get file size before saving
+        file_size = payment_proof.size if payment_proof else 0
+        
         # Update the donation with both reference number and payment proof
         donation.reference_number = reference_number
         donation.payment_proof = payment_proof
         donation.status = 'pending_verification'  # Change status to pending verification
         donation.save()
+        
+        # Log payment proof submission with enhanced context
+        logger.info(
+            f"Payment proof submitted: Donation ID={donation.pk}, Reference={reference_number}",
+            extra={
+                'donation_id': donation.pk,
+                'campaign_id': donation.campaign.id if donation.campaign else None,
+                'campaign_name': donation.campaign.name if donation.campaign else None,
+                'reference_number': reference_number,
+                'file_size': file_size,
+                'file_name': payment_proof.name if payment_proof else None,
+                'donation_status': donation.status,
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'is_authenticated': request.user.is_authenticated,
+                'action': 'payment_proof_submission'
+            }
+        )
         
         # Refresh donation from database to ensure we have latest data
         donation.refresh_from_db()
@@ -906,23 +1050,61 @@ def payment_instructions(request, pk):
         donor_email = donation.donor.email if donation.donor else donation.donor_email
         
         # Explicitly send confirmation email after payment proof submission
-        logger.info(f"Sending confirmation email for donation {donation.pk} after payment proof submission")
-        logger.info(f"Donation ID: {donation.pk}, Status: {donation.status}, Reference: {donation.reference_number}")
-        logger.info(f"Donor: {donation.donor}, Donor Email: {donor_email}")
+        logger.info(
+            f"Sending confirmation email for donation {donation.pk} after payment proof submission",
+            extra={
+                'donation_id': donation.pk,
+                'donation_status': donation.status,
+                'reference_number': reference_number,
+                'donor_email': donor_email,
+                'user_id': request.user.id if request.user.is_authenticated else None
+            }
+        )
         
         if not donor_email:
-            logger.error(f"❌ Cannot send email: No email address for donation {donation.pk}")
-            logger.error(f"   Donation.donor: {donation.donor}, Donation.donor_email: {donation.donor_email}")
+            logger.error(
+                f"Cannot send email: No email address for donation {donation.pk}",
+                extra={
+                    'donation_id': donation.pk,
+                    'donation_donor': str(donation.donor) if donation.donor else None,
+                    'donation_donor_email': donation.donor_email,
+                    'error_type': 'missing_email',
+                    'action': 'email_send_failed'
+                }
+            )
         else:
             try:
                 from .email_utils import send_donation_confirmation_email
                 result = send_donation_confirmation_email(donation)
                 if result:
-                    logger.info(f"✅ Confirmation email sent successfully to {donor_email} for donation {donation.pk}")
+                    logger.info(
+                        f"Confirmation email sent successfully to {donor_email} for donation {donation.pk}",
+                        extra={
+                            'donation_id': donation.pk,
+                            'donor_email': donor_email,
+                            'action': 'email_sent'
+                        }
+                    )
                 else:
-                    logger.error(f"❌ Failed to send confirmation email to {donor_email} for donation {donation.pk}")
+                    logger.error(
+                        f"Failed to send confirmation email to {donor_email} for donation {donation.pk}",
+                        extra={
+                            'donation_id': donation.pk,
+                            'donor_email': donor_email,
+                            'error_type': 'email_send_failed',
+                            'action': 'email_send_failed'
+                        }
+                    )
             except Exception as e:
-                logger.error(f"Exception sending donation confirmation email after payment proof submission: {str(e)}", exc_info=True)
+                logger.error(
+                    f"Exception sending donation confirmation email after payment proof submission: {str(e)}",
+                    extra={
+                        'donation_id': donation.pk,
+                        'donor_email': donor_email,
+                        'error_type': type(e).__name__,
+                        'exc_info': True
+                    }
+                )
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
             return JsonResponse({
@@ -977,30 +1159,65 @@ def upload_payment_proof(request, pk):
                 messages.error(request, _('You do not have permission to access this donation.'))
                 return redirect('donations:campaign_list')
 
+    # Log payment proof upload access
+    logger.info(
+        f"Payment proof upload accessed: Donation ID={donation.id}, Status={donation.status}",
+        extra={
+            'donation_id': donation.id,
+            'campaign_id': donation.campaign.id if donation.campaign else None,
+            'donation_status': donation.status,
+            'user_id': request.user.id if request.user.is_authenticated else None,
+            'is_authenticated': request.user.is_authenticated,
+            'action': 'payment_proof_upload_access'
+        }
+    )
+
     # Check if donation is in correct status
     if donation.status != 'pending_payment':
+        logger.warning(
+            f"Payment proof upload attempted for already processed donation: Donation ID={donation.id}, Status={donation.status}",
+            extra={
+                'donation_id': donation.id,
+                'donation_status': donation.status,
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'action': 'invalid_status'
+            }
+        )
         messages.warning(request, _('This donation has already been processed.'))
         return redirect('donations:donation_confirmation', pk=donation.pk)
 
     if request.method == 'POST':
-        print(f"=== UPLOAD PAYMENT PROOF DEBUG ===")
-        print(f"Donation ID: {donation.pk}")
-        print(f"Donation status: {donation.status}")
-        print(f"POST data: {dict(request.POST)}")
-        print(f"FILES data: {dict(request.FILES)}")
-        print(f"User authenticated: {request.user.is_authenticated}")
-        print(f"Content-Type: {request.content_type}")
-        print(f"Request method: {request.method}")
+        # Get file information before processing
+        payment_proof_file = request.FILES.get('payment_proof')
+        file_size = payment_proof_file.size if payment_proof_file else 0
+        file_name = payment_proof_file.name if payment_proof_file else None
+        
+        logger.info(
+            f"Payment proof upload attempt: Donation ID={donation.id}, File={file_name}, Size={file_size} bytes",
+            extra={
+                'donation_id': donation.id,
+                'file_name': file_name,
+                'file_size': file_size,
+                'user_id': request.user.id if request.user.is_authenticated else None,
+                'action': 'payment_proof_upload_attempt'
+            }
+        )
         
         form = PaymentProofForm(request.POST, request.FILES, instance=donation)
-        print(f"Form is valid: {form.is_valid()}")
-        print(f"Form data: {form.data}")
-        print(f"Form files: {form.files}")
         
         if not form.is_valid():
-            print(f"Form errors: {form.errors}")
-            print(f"Form cleaned_data: {form.cleaned_data}")
-            print(f"Form non_field_errors: {form.non_field_errors()}")
+            # Log form validation errors with detailed context
+            logger.warning(
+                f"Payment proof upload failed validation: Donation ID={donation.id}",
+                extra={
+                    'donation_id': donation.id,
+                    'form_errors': form.errors,
+                    'file_name': file_name,
+                    'file_size': file_size,
+                    'user_id': request.user.id if request.user.is_authenticated else None,
+                    'action': 'validation_failed'
+                }
+            )
             
             # Check if this is an AJAX request for SweetAlert response
             is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
@@ -1020,43 +1237,110 @@ def upload_payment_proof(request, pk):
                     'message': error_message
                 })
         else:
-            print("Form is valid, saving donation...")
-            donation = form.save(commit=False)
-            print(f"Donation before save: status={donation.status}, payment_proof={donation.payment_proof}")
-            
-            donation.status = 'pending_verification'
-            donation.save()
-            print(f"Donation after save: status={donation.status}, payment_proof={donation.payment_proof}")
-            print(f"Donation saved successfully with ID: {donation.pk}")
+            try:
+                # Get file size after form validation
+                payment_proof_file = form.cleaned_data.get('payment_proof')
+                file_size = payment_proof_file.size if payment_proof_file else 0
+                file_name = payment_proof_file.name if payment_proof_file else None
+                
+                donation = form.save(commit=False)
+                donation.status = 'pending_verification'
+                donation.save()
+                
+                # Log successful payment proof upload with enhanced context
+                logger.info(
+                    f"Payment proof uploaded successfully: Donation ID={donation.pk}, File={file_name}, Size={file_size} bytes",
+                    extra={
+                        'donation_id': donation.pk,
+                        'campaign_id': donation.campaign.id if donation.campaign else None,
+                        'campaign_name': donation.campaign.name if donation.campaign else None,
+                        'file_name': file_name,
+                        'file_size': file_size,
+                        'reference_number': donation.reference_number,
+                        'donation_status': donation.status,
+                        'user_id': request.user.id if request.user.is_authenticated else None,
+                        'is_authenticated': request.user.is_authenticated,
+                        'action': 'payment_proof_upload_success'
+                    }
+                )
 
-            # Refresh donation from database to ensure we have latest data
-            donation.refresh_from_db()
-            
-            # Get donor email address
-            donor_email = donation.donor.email if donation.donor else donation.donor_email
-            
-            # Explicitly send confirmation email after payment proof submission
-            logger.info(f"Sending confirmation email for donation {donation.pk} after payment proof upload")
-            logger.info(f"Donation ID: {donation.pk}, Status: {donation.status}, Reference: {donation.reference_number}")
-            logger.info(f"Donor: {donation.donor}, Donor Email: {donor_email}")
-            
-            if not donor_email:
-                logger.error(f"❌ Cannot send email: No email address for donation {donation.pk}")
-                logger.error(f"   Donation.donor: {donation.donor}, Donation.donor_email: {donation.donor_email}")
-                print(f"❌ Cannot send email: No email address for donation {donation.pk}")
-            else:
-                try:
-                    from .email_utils import send_donation_confirmation_email
-                    result = send_donation_confirmation_email(donation)
-                    if result:
-                        logger.info(f"✅ Confirmation email sent successfully to {donor_email} for donation {donation.pk}")
-                        print(f"✅ Confirmation email sent to {donor_email} for donation {donation.pk}")
-                    else:
-                        logger.error(f"❌ Failed to send confirmation email to {donor_email} for donation {donation.pk}")
-                        print(f"❌ Failed to send confirmation email to {donor_email} for donation {donation.pk}")
-                except Exception as e:
-                    logger.error(f"Exception sending donation confirmation email after payment proof upload: {str(e)}", exc_info=True)
-                    print(f"Exception sending confirmation email: {str(e)}")
+                # Refresh donation from database to ensure we have latest data
+                donation.refresh_from_db()
+                
+                # Get donor email address
+                donor_email = donation.donor.email if donation.donor else donation.donor_email
+                
+                # Explicitly send confirmation email after payment proof submission
+                logger.info(
+                    f"Sending confirmation email for donation {donation.pk} after payment proof upload",
+                    extra={
+                        'donation_id': donation.pk,
+                        'donation_status': donation.status,
+                        'reference_number': donation.reference_number,
+                        'donor_email': donor_email,
+                        'user_id': request.user.id if request.user.is_authenticated else None
+                    }
+                )
+                
+                if not donor_email:
+                    logger.error(
+                        f"Cannot send email: No email address for donation {donation.pk}",
+                        extra={
+                            'donation_id': donation.pk,
+                            'donation_donor': str(donation.donor) if donation.donor else None,
+                            'donation_donor_email': donation.donor_email,
+                            'error_type': 'missing_email',
+                            'action': 'email_send_failed'
+                        }
+                    )
+                else:
+                    try:
+                        from .email_utils import send_donation_confirmation_email
+                        result = send_donation_confirmation_email(donation)
+                        if result:
+                            logger.info(
+                                f"Confirmation email sent successfully to {donor_email} for donation {donation.pk}",
+                                extra={
+                                    'donation_id': donation.pk,
+                                    'donor_email': donor_email,
+                                    'action': 'email_sent'
+                                }
+                            )
+                        else:
+                            logger.error(
+                                f"Failed to send confirmation email to {donor_email} for donation {donation.pk}",
+                                extra={
+                                    'donation_id': donation.pk,
+                                    'donor_email': donor_email,
+                                    'error_type': 'email_send_failed',
+                                    'action': 'email_send_failed'
+                                }
+                            )
+                    except Exception as e:
+                        logger.error(
+                            f"Exception sending donation confirmation email after payment proof upload: {str(e)}",
+                            extra={
+                                'donation_id': donation.pk,
+                                'donor_email': donor_email,
+                                'error_type': type(e).__name__,
+                                'exc_info': True
+                            }
+                        )
+                        
+            except Exception as e:
+                logger.error(
+                    f"Error uploading payment proof: {str(e)}",
+                    extra={
+                        'donation_id': donation.id,
+                        'file_name': file_name if 'file_name' in locals() else None,
+                        'file_size': file_size if 'file_size' in locals() else None,
+                        'user_id': request.user.id if request.user.is_authenticated else None,
+                        'error_type': type(e).__name__,
+                        'form_errors': form.errors if 'form' in locals() else None,
+                        'exc_info': True
+                    }
+                )
+                raise
 
             # Run fraud detection
             try:
@@ -1240,20 +1524,60 @@ def verify_donation(request, pk):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')})
 
     donation = get_object_or_404(Donation, pk=pk)
+    
+    old_status = donation.status
 
     form = DonationVerificationForm(request.POST, instance=donation)
     if form.is_valid():
-        donation = form.save(commit=False)
-        donation.verified_by = request.user
-        donation.verification_date = timezone.now()
-        donation.save()
+        try:
+            donation = form.save(commit=False)
+            donation.verified_by = request.user
+            donation.verification_date = timezone.now()
+            donation.save()
 
-        return JsonResponse({
-            'status': 'success',
-            'message': _('Donation verified successfully.'),
-            'new_status': donation.get_status_display()
-        })
+            # Log donation verification
+            logger.info(
+                f"Donation verified: Donation ID={donation.id}, Status changed from {old_status} to {donation.status}",
+                extra={
+                    'donation_id': donation.id,
+                    'campaign_id': donation.campaign.id if donation.campaign else None,
+                    'campaign_name': donation.campaign.name if donation.campaign else None,
+                    'old_status': old_status,
+                    'new_status': donation.status,
+                    'verified_by_id': request.user.id,
+                    'amount': float(donation.amount) if donation.amount else None
+                }
+            )
+
+            return JsonResponse({
+                'status': 'success',
+                'message': _('Donation verified successfully.'),
+                'new_status': donation.get_status_display()
+            })
+        except Exception as e:
+            logger.error(
+                f"Error verifying donation: {str(e)}",
+                extra={
+                    'donation_id': donation.id,
+                    'user_id': request.user.id,
+                    'error_type': type(e).__name__,
+                    'exc_info': True
+                }
+            )
+            return JsonResponse({
+                'status': 'error',
+                'message': _('Error verifying donation.'),
+                'errors': {'__all__': [str(e)]}
+            })
     else:
+        logger.warning(
+            f"Donation verification failed: Invalid form data for Donation ID={donation.id}",
+            extra={
+                'donation_id': donation.id,
+                'user_id': request.user.id,
+                'form_errors': form.errors
+            }
+        )
         return JsonResponse({
             'status': 'error',
             'message': _('Invalid form data.'),
@@ -1277,6 +1601,17 @@ def bulk_verify_donations(request):
         donation_ids = json.loads(request.POST.get('donation_ids', '[]'))
         notes = request.POST.get('notes', '')
 
+        # Log bulk operation start
+        logger.info(
+            f"Bulk donation verification started: Action={action}, Count={len(donation_ids)}",
+            extra={
+                'action': action,
+                'donation_ids': donation_ids,
+                'donation_count': len(donation_ids),
+                'user_id': request.user.id
+            }
+        )
+
         if not action or not donation_ids:
             return JsonResponse({'status': 'error', 'message': 'Missing required parameters'})
 
@@ -1299,6 +1634,17 @@ def bulk_verify_donations(request):
             donation.save()
             processed_count += 1
 
+        # Log bulk operation completion
+        logger.info(
+            f"Bulk donation verification completed: Action={action}, Processed={processed_count}",
+            extra={
+                'action': action,
+                'processed_count': processed_count,
+                'requested_count': len(donation_ids),
+                'user_id': request.user.id
+            }
+        )
+
         return JsonResponse({
             'status': 'success',
             'processed_count': processed_count,
@@ -1306,6 +1652,15 @@ def bulk_verify_donations(request):
         })
 
     except Exception as e:
+        logger.error(
+            f"Error in bulk donation verification: {str(e)}",
+            extra={
+                'action': request.POST.get('action'),
+                'user_id': request.user.id,
+                'error_type': type(e).__name__,
+                'exc_info': True
+            }
+        )
         return JsonResponse({'status': 'error', 'message': str(e)})
 
 
@@ -1429,73 +1784,173 @@ def analytics_dashboard(request):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
-    from django.db.models import Sum, Count, Avg
-    from django.db.models.functions import TruncMonth
+    from django.db.models import Sum, Count, Avg, F, ExpressionWrapper, DurationField
+    from django.db.models.functions import TruncDay, TruncMonth
+    from django.db.models import Q
     import json
-    from datetime import timedelta
+    from datetime import timedelta, datetime
 
-    # Date range filter
-    days = int(request.GET.get('days', 30))
-    end_date = timezone.now().date()
-    start_date = end_date - timedelta(days=days)
+    # Date range filter - use datetime for proper filtering
+    # Since USE_TZ is False, we need to use naive datetimes for MySQL
+    try:
+        days = int(request.GET.get('days', 30))
+    except (ValueError, TypeError):
+        days = 30
+    
+    # Use naive datetime for MySQL compatibility when USE_TZ is False
+    # Use datetime.now() directly to ensure naive datetime
+    from datetime import datetime as dt
+    now = dt.now()
+    
+    end_datetime = now
+    start_datetime = end_datetime - timedelta(days=days)
+    start_date = start_datetime.date()
+    end_date = end_datetime.date()
 
-    # Basic statistics
+    # Basic statistics - all time completed donations
     total_donations = Donation.objects.filter(status='completed').aggregate(
         total_amount=Sum('amount'),
         total_count=Count('id'),
         avg_amount=Avg('amount')
     )
 
-    # Daily donation trends
-    daily_trends = Donation.objects.filter(
-        created_at__date__gte=start_date,
+    # Daily donation trends - use TruncDay for proper date grouping
+    # Note: TruncDay might not work in all databases, so we'll use a more compatible approach
+    daily_trends_queryset = Donation.objects.filter(
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime,
         status='completed'
-    ).extra(
-        select={'day': 'date(created_at)'}
+    )
+    
+    # Debug: Log count of donations found
+    donation_count = daily_trends_queryset.count()
+    print(f"DEBUG: Found {donation_count} completed donations in date range {start_date} to {end_date}")
+    print(f"DEBUG: Start datetime: {start_datetime}, End datetime: {end_datetime}")
+    
+    # Also check all completed donations to see what we're working with
+    all_completed = Donation.objects.filter(status='completed')
+    print(f"DEBUG: Total completed donations (all time): {all_completed.count()}")
+    for d in all_completed[:5]:  # Show first 5
+        print(f"  - ID: {d.id}, Amount: {d.amount}, Created: {d.created_at}, Status: {d.status}")
+    
+    # Group by date using TruncDay if available, otherwise use extra
+    try:
+        daily_trends = daily_trends_queryset.annotate(
+            day=TruncDay('created_at')
     ).values('day').annotate(
         amount=Sum('amount'),
         count=Count('id')
     ).order_by('day')
+        print(f"DEBUG: Using TruncDay for daily trends")
+    except Exception as e:
+        # Fallback for databases that don't support TruncDay
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.warning(f"TruncDay not supported, using extra: {e}")
+        daily_trends = daily_trends_queryset.extra(
+            select={'day': "DATE(created_at)"}
+        ).values('day').annotate(
+            amount=Sum('amount'),
+            count=Count('id')
+        ).order_by('day')
+        print(f"DEBUG: Using extra() for daily trends")
+    
+    # Debug: Log the daily trends data
+    daily_trends_list = list(daily_trends)
+    print(f"DEBUG: Daily trends query result: {daily_trends_list}")
 
-    # Campaign performance
+    # Campaign performance - filter by date range for more accurate results
     campaign_performance = Campaign.objects.annotate(
-        total_raised=Sum('donations__amount', filter=Q(donations__status='completed')),
-        donation_count=Count('donations', filter=Q(donations__status='completed')),
-        avg_donation=Avg('donations__amount', filter=Q(donations__status='completed'))
-    ).filter(total_raised__isnull=False).order_by('-total_raised')[:10]
+        total_raised=Sum('donations__amount', filter=Q(
+            donations__status='completed',
+            donations__created_at__gte=start_datetime,
+            donations__created_at__lte=end_datetime
+        )),
+        donation_count=Count('donations', filter=Q(
+            donations__status='completed',
+            donations__created_at__gte=start_datetime,
+            donations__created_at__lte=end_datetime
+        )),
+        avg_donation=Avg('donations__amount', filter=Q(
+            donations__status='completed',
+            donations__created_at__gte=start_datetime,
+            donations__created_at__lte=end_datetime
+        ))
+    ).filter(total_raised__isnull=False, total_raised__gt=0).order_by('-total_raised')[:10]
 
-    # Verification efficiency
-    verification_stats = Donation.objects.filter(
-        verification_date__date__gte=start_date,
+    # Verification efficiency - calculate average verification time properly
+    # Use naive datetime for MySQL compatibility
+    verified_donations = Donation.objects.filter(
+        verification_date__isnull=False,
+        verification_date__gte=start_datetime,
+        verification_date__lte=end_datetime,
         status__in=['completed', 'failed', 'disputed']
-    ).aggregate(
-        avg_verification_time=Avg('verification_date') - Avg('created_at'),
-        total_verified=Count('id')
     )
+    
+    # Calculate average verification time in hours
+    verification_times = []
+    for donation in verified_donations:
+        if donation.verification_date and donation.created_at:
+            time_diff = donation.verification_date - donation.created_at
+            verification_times.append(time_diff.total_seconds() / 3600)  # Convert to hours
+    
+    avg_verification_hours = sum(verification_times) / len(verification_times) if verification_times else 0
+    
+    verification_stats = {
+        'avg_verification_time': avg_verification_hours,
+        'total_verified': verified_donations.count()
+    }
 
-    # Payment method breakdown removed (only GCash supported)
-    payment_methods = Donation.objects.filter(
+    # Payment method breakdown - all donations are GCash
+    payment_methods_data = Donation.objects.filter(
         status='completed',
-        created_at__date__gte=start_date
-    ).annotate(
-        gcash=models.Value('gcash', output_field=models.CharField())
-    ).values('gcash').annotate(
-        count=Count('id'),
-        amount=Sum('amount')
-    ).order_by('-amount')
+        created_at__gte=start_datetime,
+        created_at__lte=end_datetime
+    ).aggregate(
+        total_amount=Sum('amount'),
+        total_count=Count('id')
+    )
+    
+    print(f"DEBUG: Payment methods data - total_amount: {payment_methods_data['total_amount']}, total_count: {payment_methods_data['total_count']}")
+    print(f"DEBUG: Payment methods data type - total_amount type: {type(payment_methods_data['total_amount'])}, total_count type: {type(payment_methods_data['total_count'])}")
+    
+    # Since all donations are GCash, create a single entry
+    # Always create an entry even if count is 0, so the chart shows something
+    payment_amount_value = float(payment_methods_data['total_amount'] or 0)
+    payment_count_value = int(payment_methods_data['total_count'] or 0)
+    print(f"DEBUG: Payment method values - amount: {payment_amount_value}, count: {payment_count_value}")
+    
+    payment_methods = [{
+        'payment_method': 'GCash',
+        'amount': payment_amount_value,
+        'count': payment_count_value
+    }]
 
-    # Admin performance
+    # Admin performance - use correct related_name and filter by date range
     admin_performance = User.objects.filter(
-        verified_donations__verification_date__date__gte=start_date
+        verified_donations__verification_date__gte=start_datetime,
+        verified_donations__verification_date__lte=end_datetime
     ).annotate(
-        verifications=Count('verified_donations'),
-        total_amount=Sum('verified_donations__amount')
-    ).filter(verifications__gt=0).order_by('-verifications')
+        verifications=Count('verified_donations', filter=Q(
+            verified_donations__verification_date__gte=start_datetime,
+            verified_donations__verification_date__lte=end_datetime
+        )),
+        total_amount=Sum('verified_donations__amount', filter=Q(
+            verified_donations__verification_date__gte=start_datetime,
+            verified_donations__verification_date__lte=end_datetime,
+            verified_donations__status='completed'
+        ))
+    ).filter(verifications__gt=0).order_by('-verifications')[:10]
 
-    # Monthly trends for charts
+    # Monthly trends for charts - use longer range for better visualization
+    monthly_start_date = end_date - timedelta(days=365)
+    # Use naive datetime for MySQL compatibility
+    monthly_start_datetime = dt.combine(monthly_start_date, dt.min.time())
+    
     monthly_trends = Donation.objects.filter(
         status='completed',
-        created_at__date__gte=start_date - timedelta(days=365)
+        created_at__gte=monthly_start_datetime,
+        created_at__lte=end_datetime
     ).annotate(
         month=TruncMonth('created_at')
     ).values('month').annotate(
@@ -1503,19 +1958,82 @@ def analytics_dashboard(request):
         count=Count('id')
     ).order_by('month')
 
-    # Prepare chart data
+    # Prepare chart data - ensure all data is properly formatted
+    # Handle empty data gracefully
+    daily_labels = []
+    daily_amounts = []
+    daily_counts = []
+    
+    # Convert queryset to list for debugging
+    daily_trends_list = list(daily_trends) if daily_trends else []
+    print(f"DEBUG: Processing {len(daily_trends_list)} daily trend items")
+    
+    if daily_trends_list:
+        for item in daily_trends_list:
+            day = item.get('day')
+            amount = item.get('amount') or 0
+            count = item.get('count') or 0
+            
+            print(f"DEBUG: Processing item - day: {day}, amount: {amount}, count: {count}")
+            
+            if day:
+                # Handle both date objects and date strings
+                if isinstance(day, str):
+                    # Parse date string (format: YYYY-MM-DD)
+                    try:
+                        from datetime import datetime as dt
+                        day_obj = dt.strptime(day, '%Y-%m-%d').date()
+                        daily_labels.append(day_obj.strftime('%Y-%m-%d'))
+                    except (ValueError, AttributeError):
+                        daily_labels.append(str(day)[:10])  # Take first 10 chars (YYYY-MM-DD)
+                elif hasattr(day, 'strftime'):
+                    daily_labels.append(day.strftime('%Y-%m-%d'))
+                else:
+                    daily_labels.append(str(day)[:10])
+                
+                daily_amounts.append(float(amount))
+                daily_counts.append(int(count))
+    
+    print(f"DEBUG: Final daily data - Labels: {len(daily_labels)}, Amounts: {len(daily_amounts)}, Counts: {len(daily_counts)}")
+    
+    monthly_labels = []
+    monthly_amounts = []
+    
+    if monthly_trends:
+        for item in monthly_trends:
+            if item.get('month'):
+                monthly_labels.append(item['month'].strftime('%Y-%m'))
+                monthly_amounts.append(float(item.get('amount') or 0))
+    
+    payment_labels = []
+    payment_amounts = []
+    payment_counts = []
+    
+    if payment_methods:
+        for item in payment_methods:
+            payment_labels.append(item.get('payment_method', 'GCash'))
+            payment_amounts.append(float(item.get('amount') or 0))
+            payment_counts.append(item.get('count') or 0)
+    
     chart_data = {
-        'daily_amounts': [float(item['amount'] or 0) for item in daily_trends],
-        'daily_counts': [item['count'] for item in daily_trends],
-        'daily_labels': [item['day'].strftime('%Y-%m-%d') for item in daily_trends],
-        'monthly_amounts': [float(item['amount'] or 0) for item in monthly_trends],
-        'monthly_labels': [item['month'].strftime('%Y-%m') for item in monthly_trends],
+        'daily_amounts': daily_amounts,
+        'daily_counts': daily_counts,
+        'daily_labels': daily_labels,
+        'monthly_amounts': monthly_amounts,
+        'monthly_labels': monthly_labels,
         'payment_methods': {
-            'labels': [item.get('payment_method', item.get('gcash', 'GCash')) for item in payment_methods],
-            'amounts': [float(item['amount'] or 0) for item in payment_methods],
-            'counts': [item['count'] for item in payment_methods]
+            'labels': payment_labels if payment_labels else ['GCash'],
+            'amounts': payment_amounts if payment_amounts else [0],
+            'counts': payment_counts if payment_counts else [0]
         }
     }
+    
+    # Debug: Print final chart data structure
+    print(f"DEBUG: Final chart_data structure:")
+    print(f"  - daily_labels: {len(chart_data['daily_labels'])} items - {chart_data['daily_labels']}")
+    print(f"  - daily_amounts: {len(chart_data['daily_amounts'])} items - {chart_data['daily_amounts']}")
+    print(f"  - payment_methods.labels: {chart_data['payment_methods']['labels']}")
+    print(f"  - payment_methods.amounts: {chart_data['payment_methods']['amounts']}")
 
     context = {
         'total_donations': total_donations,
@@ -1544,6 +2062,17 @@ def fraud_monitoring_dashboard(request):
 
     # Get fraud summary
     days = int(request.GET.get('days', 30))
+    
+    # Log dashboard access
+    logger.info(
+        f"Fraud monitoring dashboard accessed: Days={days}",
+        extra={
+            'user_id': request.user.id,
+            'days': days,
+            'action': 'fraud_dashboard_access'
+        }
+    )
+    
     fraud_summary = fraud_detector.get_fraud_summary(days)
 
     # Get recent alerts

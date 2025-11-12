@@ -233,6 +233,30 @@
         text-decoration: none;
     }
 
+    .btn-export-pdf {
+        background-color: #dc3545;
+        border-color: #dc3545;
+        color: var(--text-light);
+        padding: 0.375rem 0.75rem;
+        font-size: 0.75rem;
+    }
+
+    .btn-export-pdf:hover {
+        background-color: #c82333;
+        border-color: #c82333;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
     /* Empty State */
     .empty-state {
         text-align: center;
@@ -308,11 +332,437 @@
         .reports-table td {
             padding: 0.5rem 0.25rem;
         }
+
+        .action-buttons {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+
+    /* Clean Modal Design - Matching Alumni Modal */
+    #reportDetailModal {
+        --primary-color: #2b3c6b;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #f7fafc;
+        --ui-subtle: #f8fafc;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --space-xs: 0.375rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
+    }
+
+    #reportDetailModal .modal-backdrop {
+        background-color: rgba(0, 0, 0, 0.6);
+        backdrop-filter: blur(4px);
+    }
+
+    #reportDetailModal .modal-dialog {
+        max-width: 800px;
+        margin: 1.5rem auto;
+    }
+
+    #reportDetailModal .modal-content {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-lg);
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+    }
+
+    #reportDetailModal .modal-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: var(--space-lg);
+        border-bottom: none;
+    }
+
+    #reportDetailModal .modal-header .modal-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-light);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
+    #reportDetailModal .modal-header .modal-title i {
+        font-size: 1.25rem;
+        opacity: 0.95;
+    }
+
+    #reportDetailModal .modal-header .btn-close {
+        filter: brightness(0) invert(1);
+        font-size: 0.8rem;
+        opacity: 1;
+    }
+
+    #reportDetailModal .modal-body {
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--ui-border) transparent;
+    }
+
+    #reportDetailModal .modal-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #reportDetailModal .modal-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #reportDetailModal .modal-body::-webkit-scrollbar-thumb {
+        background: var(--ui-border);
+        border-radius: 3px;
+    }
+
+    #reportDetailModal .modal-footer {
+        border-top: 1px solid var(--ui-border);
+        padding: var(--space-md) var(--space-lg);
+        background: var(--ui-surface);
+    }
+
+    #reportDetailModal .modal-footer .btn {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-sm);
+        transition: all 0.15s ease;
+    }
+
+    #reportDetailModal .modal-footer .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    #reportDetailModal .modal-footer .btn-sm {
+        font-size: 0.75rem;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    /* Clean Loading State */
+    #reportModalLoading {
+        padding: var(--space-xl) var(--space-lg);
+        text-align: center;
+    }
+
+    #reportModalLoading .spinner-border {
+        width: 2rem;
+        height: 2rem;
+        border-width: 0.2rem;
+        border-color: var(--primary-color);
+        border-right-color: transparent;
+    }
+
+    #reportModalLoading p {
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        margin-top: var(--space-md);
+    }
+
+    /* Content Animation */
+    #reportModalContent {
+        animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Clean Document-Style Sections */
+    #reportDetailModal .dashboard-card {
+        margin-bottom: var(--space-md);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        background: var(--ui-surface);
+    }
+
+    #reportDetailModal .dashboard-card:last-child {
+        margin-bottom: 0;
+    }
+
+    #reportDetailModal .dashboard-card .card-header {
+        background: var(--ui-subtle);
+        border-bottom: 1px solid var(--ui-border);
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    #reportDetailModal .dashboard-card .card-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin: 0;
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+    }
+
+    #reportDetailModal .dashboard-card .card-title i {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    #reportDetailModal .dashboard-card .card-body {
+        padding: var(--space-md);
+        background: var(--ui-surface);
+    }
+
+    /* Clean Table Styling */
+    #reportDetailModal .data-table {
+        font-size: 0.8rem;
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+
+    #reportDetailModal .data-table th {
+        background: var(--ui-hover);
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.7rem;
+        padding: var(--space-sm) var(--space-md);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    #reportDetailModal .data-table tbody tr {
+        transition: all 0.15s ease;
+    }
+
+    #reportDetailModal .data-table tbody tr:hover {
+        background: var(--ui-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Compact Information Grid */
+    #reportDetailModal .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-md);
+        margin-top: var(--space-xs);
+    }
+
+    #reportDetailModal .info-item {
+        display: flex;
+        flex-direction: column;
+        min-height: 2.5rem;
+    }
+
+    #reportDetailModal .info-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: var(--space-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+    }
+
+    #reportDetailModal .info-value {
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    /* Clean Summary Items */
+    #reportDetailModal .summary-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-md);
+        margin-top: var(--space-xs);
+    }
+
+    #reportDetailModal .summary-item {
+        display: flex;
+        flex-direction: column;
+        min-height: 2.5rem;
+    }
+
+    #reportDetailModal .summary-item label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: var(--space-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+    }
+
+    #reportDetailModal .summary-value {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        line-height: 1.3;
+    }
+
+    /* Section Headers */
+    #reportDetailModal .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: var(--space-md);
+        display: flex;
+        align-items: center;
+        padding-bottom: var(--space-xs);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    #reportDetailModal .section-header i {
+        margin-right: var(--space-sm);
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    #reportDetailModal .section-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: var(--space-md);
+        display: flex;
+        align-items: center;
+        padding-bottom: var(--space-xs);
+        border-bottom: 1px solid var(--ui-border);
+        gap: var(--space-sm);
+    }
+
+    #reportDetailModal .section-title i {
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    /* Content Sections */
+    #reportDetailModal .content-section {
+        margin-bottom: var(--space-md);
+        padding: var(--space-md);
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+
+    #reportDetailModal .content-section:last-child {
+        margin-bottom: 0;
+    }
+
+    /* Badge Styling */
+    #reportDetailModal .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+    }
+
+    /* Text Muted */
+    #reportDetailModal .text-muted {
+        color: var(--text-muted) !important;
+        font-style: italic;
+        font-size: 0.8rem;
+    }
+
+    /* Summary Grid Wrapper */
+    #reportDetailModal .summary-section,
+    #reportDetailModal .chart-section,
+    #reportDetailModal .table-section {
+        padding: var(--space-md);
+    }
+
+    /* Responsive Modal */
+    @media (max-width: 768px) {
+        #reportDetailModal .modal-dialog {
+            max-width: 100%;
+            margin: 0;
+            height: 100vh;
+            border-radius: 0;
+        }
+
+        #reportDetailModal .modal-content {
+            border-radius: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        #reportDetailModal .modal-header {
+            padding: 1.25rem 1.5rem;
+        }
+
+        #reportDetailModal .modal-header .modal-title {
+            font-size: 1.25rem;
+        }
+
+        #reportDetailModal .modal-body {
+            flex: 1;
+            overflow-y: auto;
+            max-height: none;
+            padding: 1.5rem;
+        }
+
+        #reportDetailModal .modal-footer {
+            padding: 1rem 1.5rem;
+            flex-wrap: wrap;
+        }
+
+        #reportDetailModal .modal-footer .btn {
+            flex: 1;
+            min-width: 120px;
+        }
+    }
+
+    @media (max-width: 576px) {
+        #reportDetailModal .modal-header {
+            padding: 1rem 1.25rem;
+        }
+
+        #reportDetailModal .modal-body {
+            padding: 1rem;
+        }
+
+        #reportDetailModal .modal-footer {
+            padding: 0.75rem 1rem;
+            flex-direction: column;
+        }
+
+        #reportDetailModal .modal-footer .btn {
+            width: 100%;
+        }
     }
 </style>
 {% endblock %}
 
 {% block content %}
+<!-- Report Detail Modal Container -->
+<div id="reportModalContainer"></div>
 <div class="reports-interface">
     <div class="container">
         <!-- Dashboard Header (Matching Location Tracking) -->
@@ -321,7 +771,7 @@
                 <i class="fas fa-chart-bar"></i>
                 {% translate 'Survey Reports' %}
             </h1>
-            <p>{% translate 'Create and manage comprehensive reports from survey data and analytics' %}</p>
+            <p>{% translate 'Create and manage comprehensive reports from survey data and analytics. View detailed tables and export reports as PDF.' %}</p>
         </div>
 
         <!-- Reports Card -->
@@ -354,7 +804,7 @@
                             {% for report in reports %}
                             <tr>
                                 <td>
-                                    <a href="{% url 'surveys:report_detail' report.pk %}" class="report-title-link">
+                                    <a href="#" class="report-title-link" data-report-id="{{ report.pk }}">
                                         {{ report.title }}
                                     </a>
                                 </td>
@@ -373,10 +823,16 @@
                                     {% endif %}
                                 </td>
                                 <td>
-                                    <a href="{% url 'surveys:report_detail' report.pk %}" class="btn btn-view-report">
-                                        <i class="fas fa-eye"></i>
-                                        {% translate 'View' %}
-                                    </a>
+                                    <div class="action-buttons">
+                                        <a href="#" class="btn btn-view-report" data-report-id="{{ report.pk }}" title="{% translate 'View Report Details' %}">
+                                            <i class="fas fa-eye"></i>
+                                            {% translate 'View' %}
+                                        </a>
+                                        <a href="{% url 'surveys:report_export_pdf' report.pk %}" class="btn btn-export-pdf" target="_blank" title="{% translate 'Export as PDF' %}">
+                                            <i class="fas fa-file-pdf"></i>
+                                            {% translate 'PDF' %}
+                                        </a>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -393,5 +849,230 @@
         </div>
     </div>
 </div>
-
 {% endblock %}
+
+{% block page_specific_js %}
+<script>
+// Make function available globally immediately
+(function() {
+    'use strict';
+    
+    window.openReportModal = function(reportId) {
+        console.log('openReportModal called with reportId:', reportId);
+        const modalContainer = document.getElementById('reportModalContainer');
+        
+        if (!modalContainer) {
+            console.error('Modal container not found!');
+            alert('Error: Modal container not found. Please refresh the page.');
+            return;
+        }
+    
+        // Close any existing modal first
+        const existingModal = bootstrap.Modal.getInstance(document.getElementById('reportDetailModal'));
+        if (existingModal) {
+            existingModal.hide();
+        }
+    
+        // Show loading state with enhanced design
+        modalContainer.innerHTML = `
+            <div class="modal fade" id="reportDetailModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
+                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">
+                                <i class="fas fa-chart-bar"></i>
+                                <span id="reportModalTitle">Loading Report...</span>
+                            </h5>
+                            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                        </div>
+                        <div class="modal-body" id="reportModalBody">
+                            <div id="reportModalLoading" class="text-center" style="padding: var(--space-xl) var(--space-lg);">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Loading...</span>
+                                </div>
+                                <p style="margin-top: var(--space-md); font-size: 0.8rem; color: var(--text-secondary);">Loading report data...</p>
+                            </div>
+                            <div id="reportModalContent" style="display: none; padding: var(--space-md);"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        // Initialize and show modal
+        const modalElement = document.getElementById('reportDetailModal');
+        const modal = new bootstrap.Modal(modalElement, {
+            backdrop: true,
+            keyboard: true,
+            focus: true
+        });
+        modal.show();
+        
+        // Fetch report detail
+        fetch(`/surveys/admin/reports/${reportId}/`, {
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Accept': 'text/html',
+            },
+            credentials: 'same-origin'
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.text();
+        })
+        .then(html => {
+            // Create a temporary container to parse the HTML
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = html;
+            
+            // Extract the report content from the full page
+            const reportCards = tempDiv.querySelectorAll('.report-detail-page .dashboard-card');
+            const headerTitle = tempDiv.querySelector('.report-detail-page .dashboard-header h1');
+            
+            // Extract title - remove icon and extra whitespace
+            let reportTitle = 'Report';
+            if (headerTitle) {
+                // Get text content, excluding icon
+                const iconElement = headerTitle.querySelector('i');
+                if (iconElement) {
+                    // Clone and remove icon to get clean title
+                    const titleClone = headerTitle.cloneNode(true);
+                    titleClone.querySelectorAll('i').forEach(icon => icon.remove());
+                    reportTitle = titleClone.textContent.trim() || 'Report';
+                } else {
+                    reportTitle = headerTitle.textContent.trim() || 'Report';
+                }
+                // Clean up any extra whitespace
+                reportTitle = reportTitle.replace(/[\s\n]+/g, ' ').trim();
+            }
+            
+            const loadingDiv = document.getElementById('reportModalLoading');
+            const contentDiv = document.getElementById('reportModalContent');
+            const titleSpan = document.getElementById('reportModalTitle');
+            
+            if (reportCards.length > 0 && loadingDiv && contentDiv) {
+                // Build modal content - include all cards
+                let modalContent = '';
+                reportCards.forEach(card => {
+                    modalContent += card.outerHTML;
+                });
+                
+                // Update title
+                if (titleSpan) {
+                    titleSpan.textContent = reportTitle;
+                }
+                
+                // Hide loading, show content
+                loadingDiv.style.display = 'none';
+                contentDiv.innerHTML = modalContent;
+                contentDiv.style.display = 'block';
+                
+                // Add footer with actions
+                const modalBody = document.getElementById('reportModalBody');
+                if (modalBody && !modalBody.parentElement.querySelector('.modal-footer')) {
+                    const modalFooter = document.createElement('div');
+                    modalFooter.className = 'modal-footer';
+                    modalFooter.innerHTML = `
+                        <a href="/surveys/admin/reports/${reportId}/export-pdf/" class="btn btn-danger btn-sm" target="_blank">
+                            <i class="fas fa-file-pdf me-2"></i>Export as PDF
+                        </a>
+                        <a href="/surveys/admin/reports/${reportId}/" class="btn btn-primary btn-sm" target="_blank">
+                            <i class="fas fa-external-link-alt me-2"></i>Open Full Page
+                        </a>
+                        <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                            <i class="fas fa-times me-2"></i>Close
+                        </button>
+                    `;
+                    modalBody.parentElement.appendChild(modalFooter);
+                }
+                
+                // Re-enable backdrop dismissal
+                modalElement.setAttribute('data-bs-backdrop', 'true');
+                modalElement.setAttribute('data-bs-keyboard', 'true');
+            } else {
+                throw new Error('Could not find report content in response');
+            }
+        })
+        .catch(error => {
+            console.error('Error loading report:', error);
+            const loadingDiv = document.getElementById('reportModalLoading');
+            const contentDiv = document.getElementById('reportModalContent');
+            const titleSpan = document.getElementById('reportModalTitle');
+            
+            if (loadingDiv && contentDiv) {
+                loadingDiv.style.display = 'none';
+                if (titleSpan) {
+                    titleSpan.textContent = 'Error';
+                }
+                contentDiv.innerHTML = `
+                    <div class="text-center py-5">
+                        <i class="fas fa-exclamation-triangle fa-3x text-danger mb-3"></i>
+                        <h6>Error Loading Report</h6>
+                        <p class="text-muted">${error.message}</p>
+                        <a href="/surveys/admin/reports/${reportId}/" class="btn btn-primary mt-3" target="_blank">
+                            <i class="fas fa-external-link-alt me-2"></i>Open in New Tab
+                        </a>
+                    </div>
+                `;
+                contentDiv.style.display = 'block';
+            }
+        });
+    };
+    
+    // Set up event listeners for report links
+    function setupModalListeners() {
+    console.log('Setting up report modal listeners...');
+    
+    // Handle report title links
+    const titleLinks = document.querySelectorAll('.report-title-link[data-report-id]');
+    console.log('Found title links:', titleLinks.length);
+    titleLinks.forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            const reportId = this.getAttribute('data-report-id');
+            console.log('Title link clicked, reportId:', reportId);
+            if (reportId && window.openReportModal) {
+                window.openReportModal(reportId);
+            } else {
+                console.error('openReportModal not available or reportId missing');
+            }
+        });
+    });
+    
+    // Handle view report buttons
+    const viewButtons = document.querySelectorAll('.btn-view-report[data-report-id]');
+    console.log('Found view buttons:', viewButtons.length);
+    viewButtons.forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            const reportId = this.getAttribute('data-report-id');
+            console.log('View button clicked, reportId:', reportId);
+            if (reportId && window.openReportModal) {
+                window.openReportModal(reportId);
+            } else {
+                console.error('openReportModal not available or reportId missing. reportId:', reportId, 'function exists:', typeof window.openReportModal);
+            }
+        });
+    });
+    
+    // Verify modal container exists
+    const modalContainer = document.getElementById('reportModalContainer');
+    if (!modalContainer) {
+        console.error('reportModalContainer element not found!');
+    } else {
+        console.log('Modal container found');
+    }
+    }
+    
+    // Initialize when DOM is ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupModalListeners);
+    } else {
+        // DOM is already loaded
+        setupModalListeners();
+    }
+})();
+</script>
+{% endblock page_specific_js %}

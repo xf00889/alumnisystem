@@ -1,0 +1,157 @@
+{% load survey_filters %}
+{% load i18n %}
+<!-- Report Detail Modal -->
+<div class="modal fade" id="reportDetailModal" tabindex="-1" aria-labelledby="reportDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header" style="background: var(--primary-color, #2b3c6b); color: white;">
+                <h5 class="modal-title" id="reportDetailModalLabel">
+                    <i class="fas fa-chart-bar me-2"></i>
+                    <span id="reportModalTitle">{{ report.title }}</span>
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="reportModalBody" style="padding: 0;">
+                <!-- Loading State -->
+                <div id="reportModalLoading" class="text-center py-5" style="display: none;">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3">Loading report data...</p>
+                </div>
+                
+                <!-- Report Content -->
+                <div id="reportModalContent" style="padding: 1.5rem;">
+                    <!-- Report Info -->
+                    <div class="report-info-section mb-4">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <label class="text-muted small">{% translate 'Type' %}:</label>
+                                    <span class="badge bg-primary">{{ report.get_report_type_display }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <label class="text-muted small">{% translate 'Created by' %}:</label>
+                                    <span>{{ report.created_by.get_full_name|default:report.created_by.username }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <label class="text-muted small">{% translate 'Created at' %}:</label>
+                                    <span>{{ report.created_at|date:"M d, Y H:i" }}</span>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="info-item">
+                                    <label class="text-muted small">{% translate 'Last run' %}:</label>
+                                    <span>
+                                        {% if report.last_run %}
+                                            {{ report.last_run|date:"M d, Y H:i" }}
+                                        {% else %}
+                                            <em class="text-muted">{% translate 'Never' %}</em>
+                                        {% endif %}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        {% if report.description %}
+                            <div class="mt-3">
+                                <label class="text-muted small d-block mb-2">{% translate 'Description' %}:</label>
+                                <p class="mb-0">{{ report.description|linebreaks }}</p>
+                            </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Report Results -->
+                    {% if report_data %}
+                        <!-- Summary Statistics -->
+                        {% if report_data.summary %}
+                            <div class="summary-section mb-4 pb-3 border-bottom">
+                                <h6 class="mb-3">
+                                    <i class="fas fa-chart-pie me-2"></i>
+                                    {% translate 'Summary Statistics' %}
+                                </h6>
+                                <div class="row g-2">
+                                    {% for key, value in report_data.summary.items %}
+                                        <div class="col-md-4 col-sm-6">
+                                            <div class="summary-item p-2 bg-light rounded">
+                                                <label class="text-muted small d-block mb-1">{{ key|title|replace:"_:" }}:</label>
+                                                <span class="summary-value fw-bold text-primary">{{ value }}</span>
+                                            </div>
+                                        </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Report Type Specific Content -->
+                        {% include 'surveys/admin/report_detail_content.html' %}
+                        
+                    {% else %}
+                        <div class="text-center py-5">
+                            <i class="fas fa-exclamation-circle fa-3x text-muted mb-3"></i>
+                            <h6>{% translate 'No Report Data Available' %}</h6>
+                            <p class="text-muted">{% translate 'This report has not been run yet. The data will be generated when you view the report.' %}</p>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+            <div class="modal-footer">
+                <a href="{% url 'surveys:report_export_pdf' report.pk %}" class="btn btn-danger btn-sm" target="_blank">
+                    <i class="fas fa-file-pdf me-2"></i>{% translate 'Export as PDF' %}
+                </a>
+                <a href="{% url 'surveys:report_detail' report.pk %}" class="btn btn-primary btn-sm" target="_blank">
+                    <i class="fas fa-external-link-alt me-2"></i>{% translate 'Open Full Page' %}
+                </a>
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">
+                    {% translate 'Close' %}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .report-info-section .info-item {
+        padding: 0.5rem;
+    }
+    
+    .report-info-section label {
+        display: block;
+        margin-bottom: 0.25rem;
+    }
+    
+    .summary-item {
+        min-height: 60px;
+    }
+    
+    .summary-value {
+        font-size: 1.25rem;
+    }
+    
+    #reportDetailModal .modal-body {
+        max-height: calc(100vh - 200px);
+        overflow-y: auto;
+    }
+    
+    #reportDetailModal .table-wrapper {
+        overflow-x: auto;
+        max-height: 400px;
+    }
+    
+    #reportDetailModal .data-table {
+        font-size: 0.875rem;
+    }
+    
+    #reportDetailModal .data-table th {
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+</style>
+
+
+

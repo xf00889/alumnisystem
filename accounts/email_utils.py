@@ -24,6 +24,18 @@ def render_verification_email(user, verification_code):
     return render_to_string('emails/email_verification.html', context)
 
 
+def render_mentor_reactivation_verification_email(user, verification_code):
+    """Render HTML email template for mentor reactivation verification"""
+    from django.template.loader import render_to_string
+    
+    context = {
+        'user': user,
+        'verification_code': verification_code,
+        'expiry_minutes': 15,
+    }
+    
+    return render_to_string('emails/mentor_reactivation_verification.html', context)
+
 def render_resend_verification_email(user, verification_code):
     """
     Render the resend verification HTML template

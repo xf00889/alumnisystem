@@ -1,697 +1,438 @@
 {% extends 'base.html' %}
 {% load static %}
-{% load i18n %}
+{% load string_filters %}
 
-{% block title %}Review Mentor Applications{% endblock %}
-
-{% block content %}
-<div class="mentor-applications-page">
-    <div class="container">
-        <!-- Mentor Applications Header (Matching other pages style) -->
-        <div class="applications-header">
-            <div class="d-flex align-items-center">
-                <div class="me-3">
-                    <i class="fas fa-clipboard-check fa-3x" style="opacity: 0.8;"></i>
-                </div>
-                <div>
-                    <h1>Review Mentor Applications</h1>
-                    <p>Review and manage pending mentor applications from alumni</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h5 class="card-title">
-                    <i class="fas fa-clipboard-check me-2"></i>
-                    Pending Mentor Applications
-                </h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-hover align-middle mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th class="ps-4">Applicant</th>
-                                <th>Experience</th>
-                                <th>Expertise Areas</th>
-                                <th>Application Date</th>
-                                <th>Status</th>
-                                <th class="text-end pe-4">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for application in applications %}
-                            <tr>
-                                <td class="ps-4">
-                                    <div class="d-flex align-items-center">
-                                        {% if application.user.profile.avatar %}
-                                            <div class="avatar-wrapper me-3">
-                                                <img src="{{ application.user.profile.avatar.url }}" alt="Avatar" class="avatar-img">
-                                            </div>
-                                        {% else %}
-                                            <div class="avatar-wrapper me-3 bg-light">
-                                                <i class="fas fa-user text-secondary"></i>
-                                            </div>
-                                        {% endif %}
-                                        <div>
-                                            <div class="fw-bold text-dark">{{ application.user.get_full_name }}</div>
-                                            <div class="small text-muted">{{ application.user.email }}</div>
-                                        </div>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="experience-badge">{{ application.years_of_experience }} years</span>
-                                </td>
-                                <td>
-                                    <div class="expertise-areas">{{ application.expertise_areas }}</div>
-                                </td>
-                                <td>
-                                    <div class="d-flex align-items-center">
-                                        <i class="far fa-calendar-alt text-primary me-2"></i>
-                                        <span>{{ application.application_date|date:"M d, Y" }}</span>
-                                    </div>
-                                </td>
-                                <td>
-                                    <span class="status-badge {% if application.status == 'PENDING' %}status-pending{% elif application.status == 'APPROVED' %}status-approved{% else %}status-rejected{% endif %}">
-                                        {{ application.get_status_display }}
-                                    </span>
-                                </td>
-                                <td class="text-end pe-4">
-                                    <button type="button" class="btn btn-primary btn-review" data-bs-toggle="modal" data-bs-target="#reviewModal{{ application.id }}">
-                                        <i class="fas fa-eye me-2"></i> Review
-                                    </button>
-                                </td>
-                            </tr>
-
-                            <!-- Review Modal -->
-                            <div class="modal fade" id="reviewModal{{ application.id }}" tabindex="-1">
-                                <div class="modal-dialog modal-lg">
-                                    <div class="modal-content border-0">
-                                        <div class="modal-header bg-light">
-                                            <h5 class="modal-title fw-bold">
-                                                <i class="fas fa-user-check text-primary me-2"></i>
-                                                Review Application - {{ application.user.get_full_name }}
-                                            </h5>
-                                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                        </div>
-                                        <div class="modal-body p-4">
-                                            <div class="applicant-info mb-4 p-3 bg-light rounded">
-                                                <div class="d-flex align-items-center mb-3">
-                                                    {% if application.user.profile.avatar %}
-                                                        <div class="modal-avatar-wrapper me-3">
-                                                            <img src="{{ application.user.profile.avatar.url }}" alt="Avatar" class="modal-avatar-img">
-                                                        </div>
-                                                    {% else %}
-                                                        <div class="modal-avatar-wrapper me-3 bg-secondary bg-opacity-10">
-                                                            <i class="fas fa-user fa-2x text-secondary"></i>
-                                                        </div>
-                                                    {% endif %}
-                                                    <div>
-                                                        <h4 class="mb-0">{{ application.user.get_full_name }}</h4>
-                                                        <p class="text-muted mb-0">{{ application.user.email }}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            
-                                            <div class="row mb-4">
-                                                <div class="col-md-6">
-                                                    <div class="info-card mb-3">
-                                                        <div class="info-card-header">
-                                                            <i class="fas fa-briefcase text-primary me-2"></i>
-                                                            <h6 class="fw-bold mb-0">Experience</h6>
-                                                        </div>
-                                                        <div class="info-card-body">
-                                                            <p class="mb-0">{{ application.years_of_experience }} years</p>
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div class="info-card">
-                                                        <div class="info-card-header">
-                                                            <i class="fas fa-star text-primary me-2"></i>
-                                                            <h6 class="fw-bold mb-0">Expertise Areas</h6>
-                                                        </div>
-                                                        <div class="info-card-body">
-                                                            <p class="mb-0">{{ application.expertise_areas }}</p>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                                <div class="col-md-6">
-                                                    <div class="info-card">
-                                                        <div class="info-card-header">
-                                                            <i class="fas fa-file-alt text-primary me-2"></i>
-                                                            <h6 class="fw-bold mb-0">Documents</h6>
-                                                        </div>
-                                                        <div class="info-card-body">
-                                                            <div class="document-links">
-                                                                <a href="{{ application.certifications.url }}" target="_blank" class="document-link">
-                                                                    <i class="fas fa-file-pdf me-2"></i> Certifications
-                                                                </a>
-                                                                <a href="{{ application.training_documents.url }}" target="_blank" class="document-link">
-                                                                    <i class="fas fa-file-pdf me-2"></i> Training Documents
-                                                                </a>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-
-                                            <div class="info-card mb-4">
-                                                <div class="info-card-header">
-                                                    <i class="fas fa-tasks text-primary me-2"></i>
-                                                    <h6 class="fw-bold mb-0">Competency Summary</h6>
-                                                </div>
-                                                <div class="info-card-body">
-                                                    <p class="mb-0">{{ application.competency_summary }}</p>
-                                                </div>
-                                            </div>
-
-                                            <form method="post" action="{% url 'accounts:review_mentor_application' application.id %}">
-                                                {% csrf_token %}
-                                                <div class="mb-4">
-                                                    <label for="review_notes" class="form-label fw-bold">
-                                                        <i class="fas fa-comment-alt text-primary me-2"></i>Review Notes
-                                                    </label>
-                                                    <textarea class="form-control" id="review_notes" name="review_notes" rows="3" placeholder="Enter your review notes here..."></textarea>
-                                                </div>
-                                                <div class="d-flex justify-content-end gap-3">
-                                                    <button type="submit" name="action" value="reject" class="btn btn-danger">
-                                                        <i class="fas fa-times me-2"></i> Reject Application
-                                                    </button>
-                                                    <button type="submit" name="action" value="approve" class="btn btn-success">
-                                                        <i class="fas fa-check me-2"></i> Approve Application
-                                                    </button>
-                                                </div>
-                                            </form>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                            {% empty %}
-                            <tr>
-                                <td colspan="6" class="text-center py-5">
-                                    <div class="empty-state">
-                                        <i class="fas fa-clipboard-list text-muted mb-3"></i>
-                                        <h5>No pending applications found.</h5>
-                                        <p class="text-muted">When alumni apply to become mentors, their applications will appear here.</p>
-                                    </div>
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-
-                {% include 'components/pagination.html' %}
-            </div>
-        </div>
-    </div>
-</div>
-{% endblock %}
+{% block title %}Review Mentor Applications - Admin{% endblock %}
 
 {% block extra_css %}
 <style>
-    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    /* Design System Variables */
     :root {
         --primary-color: #2b3c6b;
-        --secondary-color: #4a5568;
-
-        /* UI Colors */
-        --ui-background: #f7fafc;
-        --ui-surface: #ffffff;
-        --ui-border: #e2e8f0;
-        --ui-hover: #edf2f7;
-
-        /* Text Colors */
-        --text-primary: #2d3748;
-        --text-secondary: #718096;
-        --text-muted: #a0aec0;
+        --primary-hover: #1e2a4a;
+        --text-primary: #1a1a1a;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
         --text-light: #ffffff;
-
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
-
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-
-        /* Border Radius */
-        --radius-sm: 0.25rem;
-        --radius-md: 0.375rem;
-        --radius-lg: 0.5rem;
+        --ui-background: #f8fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e5e7eb;
+        --ui-hover: #f3f4f6;
+        --ui-subtle: #f9fafb;
+        --feedback-success: #10b981;
+        --feedback-warning: #f59e0b;
+        --feedback-error: #ef4444;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
     }
 
-    .mentor-applications-page {
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: var(--space-lg);
         font-family: 'Poppins', sans-serif;
-        padding: 1.25rem;
-        background-color: var(--ui-background);
-        min-height: calc(100vh - 60px);
     }
 
-    /* Dashboard Header (Matching other pages style) */
-    .applications-header {
+    .dashboard-header {
         background: var(--primary-color);
         color: var(--text-light);
         padding: 1.75rem;
         border-radius: var(--radius-md);
         margin-bottom: 1.25rem;
         box-shadow: var(--shadow-sm);
-        font-size: 0.875rem;
-        font-family: 'Poppins', sans-serif;
     }
 
-    .applications-header h1 {
-        color: var(--text-light);
+    .dashboard-header h1 {
+        font-size: 1.5rem;
         font-weight: 600;
         margin-bottom: 0.25rem;
-        font-size: 1.5rem;
+        color: var(--text-light);
     }
 
-    .applications-header p {
+    .dashboard-header p {
         opacity: 0.9;
         font-size: 0.875rem;
         margin: 0;
-        color: var(--text-light);
     }
 
-    /* Card Styling (Matching other pages) */
-    .dashboard-card {
+    .content-section {
         background: var(--ui-surface);
-        border-radius: var(--radius-md);
-        margin-bottom: 1.5rem;
-        box-shadow: var(--shadow-sm);
         border: 1px solid var(--ui-border);
-        font-size: 1rem;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-        height: 100%;
+        border-radius: var(--radius-md);
+        padding: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+        margin-bottom: var(--space-lg);
     }
 
-    .dashboard-card:hover {
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
+    .table-responsive {
+        border-radius: var(--radius-md);
+        overflow: hidden;
     }
 
-    .dashboard-card .card-body {
-        padding: 1.5rem;
-    }
-
-    .dashboard-card .card-header {
-        background: var(--ui-hover);
-        border-bottom: 1px solid var(--ui-border);
-        padding: 1rem 1.5rem;
-    }
-
-    .dashboard-card .card-title {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin: 0;
-        font-size: 1.125rem;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    /* Button Styling (Matching other pages) */
-    .btn {
-        border-radius: var(--radius-sm);
-        font-size: 0.875rem;
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        border: 1px solid transparent;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.2s ease;
-        text-decoration: none;
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .btn-primary {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-        color: var(--text-light);
-    }
-
-    .btn-primary:hover {
-        background-color: var(--secondary-color);
-        border-color: var(--secondary-color);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-        color: var(--text-light);
-        text-decoration: none;
-    }
-
-    .btn-success {
-        background-color: var(--feedback-success);
-        border-color: var(--feedback-success);
-        color: var(--text-light);
-    }
-
-    .btn-success:hover {
-        background-color: #38a169;
-        border-color: #38a169;
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-        color: var(--text-light);
-        text-decoration: none;
-    }
-
-    .btn-danger {
-        background-color: var(--feedback-error);
-        border-color: var(--feedback-error);
-        color: var(--text-light);
-    }
-
-    .btn-danger:hover {
-        background-color: #c53030;
-        border-color: #c53030;
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-        color: var(--text-light);
-        text-decoration: none;
-    }
-
-    /* Table Styling */
     .table {
         margin-bottom: 0;
-    }
-    
-    .table th {
-        font-weight: 600;
-        color: var(--text-primary);
-        border-top: none;
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        background-color: var(--ui-hover);
-    }
-    
-    .table td {
-        padding-top: 1rem;
-        padding-bottom: 1rem;
-        border-color: var(--ui-border);
-        color: var(--text-secondary);
-    }
-
-    .table-hover tbody tr:hover {
-        background-color: var(--ui-hover);
-    }
-    
-    /* Avatar Styling */
-    .avatar-wrapper {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        background-color: var(--ui-hover);
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .avatar-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    .modal-avatar-wrapper {
-        width: 64px;
-        height: 64px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        overflow: hidden;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .modal-avatar-img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-    
-    /* Status Badges */
-    .status-badge {
-        display: inline-flex;
-        align-items: center;
-        padding: 0.5rem 0.75rem;
-        border-radius: 30px;
-        font-size: 0.85rem;
-        font-weight: 500;
-    }
-    
-    .status-pending {
-        background-color: rgba(255, 193, 7, 0.15);
-        color: #e6a700;
-    }
-    
-    .status-pending::before {
-        content: '';
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #ffc107;
-        margin-right: 0.5rem;
-    }
-    
-    .status-approved {
-        background-color: rgba(40, 167, 69, 0.15);
-        color: #28a745;
-    }
-    
-    .status-approved::before {
-        content: '';
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #28a745;
-        margin-right: 0.5rem;
-    }
-    
-    .status-rejected {
-        background-color: rgba(220, 53, 69, 0.15);
-        color: #dc3545;
-    }
-    
-    .status-rejected::before {
-        content: '';
-        display: inline-block;
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #dc3545;
-        margin-right: 0.5rem;
-    }
-    
-    /* Experience Badge */
-    .experience-badge {
-        display: inline-block;
-        padding: 0.35rem 0.75rem;
-        background-color: rgba(52, 152, 219, 0.1);
-        color: #3498db;
-        border-radius: var(--radius-sm);
-        font-weight: 500;
         font-size: 0.875rem;
     }
-    
-    /* Expertise Areas */
-    .expertise-areas {
-        max-width: 200px;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--text-secondary);
+
+    .table thead {
+        background: var(--ui-subtle);
     }
-    
-    /* Action Buttons */
-    .btn-review {
+
+    .table thead th {
+        font-weight: 600;
+        color: var(--text-primary);
+        border-bottom: 2px solid var(--ui-border);
+        padding: var(--space-md);
+        font-size: 0.8rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .table tbody tr {
+        transition: all 0.15s ease;
+    }
+
+    .table tbody tr:hover {
+        background: var(--ui-hover);
+    }
+
+    .table tbody td {
+        padding: var(--space-md);
+        vertical-align: middle;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: var(--space-xs) var(--space-md);
         border-radius: var(--radius-sm);
-        padding: 0.5rem 1rem;
-        font-weight: 500;
-        transition: all 0.2s ease;
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
     }
-    
-    .btn-review:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
+
+    .status-badge.pending {
+        background: rgba(245, 158, 11, 0.1);
+        color: var(--feedback-warning);
+        border: 1px solid rgba(245, 158, 11, 0.3);
     }
-    
-    /* Modal Styling */
-    .modal-content {
-        border-radius: var(--radius-lg);
-        overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+
+    .status-badge.approved {
+        background: rgba(16, 185, 129, 0.1);
+        color: var(--feedback-success);
+        border: 1px solid rgba(16, 185, 129, 0.3);
     }
-    
-    .modal-header {
-        padding: 1.25rem 1.5rem;
-        border-bottom: 1px solid var(--ui-border);
-        background-color: var(--ui-hover);
+
+    .status-badge.rejected {
+        background: rgba(239, 68, 68, 0.1);
+        color: var(--feedback-error);
+        border: 1px solid rgba(239, 68, 68, 0.3);
     }
-    
-    .modal-body {
-        padding: 1.5rem;
+
+    .btn-view {
+        font-size: 0.8rem;
+        padding: var(--space-xs) var(--space-md);
     }
-    
-    /* Info Cards */
-    .info-card {
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        overflow: hidden;
-        transition: all 0.2s ease;
-        background-color: var(--ui-surface);
-    }
-    
-    .info-card:hover {
-        box-shadow: var(--shadow-md);
-        border-color: var(--primary-color);
-    }
-    
-    .info-card-header {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 1rem;
-        background-color: var(--ui-hover);
-        border-bottom: 1px solid var(--ui-border);
-    }
-    
-    .info-card-body {
-        padding: 1rem;
-        color: var(--text-secondary);
-    }
-    
-    /* Document Links */
-    .document-links {
-        display: flex;
-        flex-direction: column;
-        gap: 0.75rem;
-    }
-    
-    .document-link {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 1rem;
-        background-color: var(--ui-hover);
-        border-radius: var(--radius-sm);
-        color: var(--text-secondary);
-        text-decoration: none;
-        transition: all 0.2s ease;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .document-link:hover {
-        background-color: var(--primary-color);
-        color: var(--text-light);
-        transform: translateX(5px);
-        text-decoration: none;
-    }
-    
-    /* Empty State */
+
     .empty-state {
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-        padding: 2rem;
+        text-align: center;
+        padding: var(--space-2xl);
+        color: var(--text-muted);
     }
-    
+
     .empty-state i {
         font-size: 3rem;
-        margin-bottom: 1rem;
-        color: var(--text-muted);
+        margin-bottom: var(--space-md);
+        opacity: 0.5;
     }
 
-    .empty-state h5 {
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
+    .avatar-img {
+        width: 32px;
+        height: 32px;
+        object-fit: cover;
     }
 
-    .empty-state p {
-        color: var(--text-secondary);
-        margin-bottom: 0;
+    .expertise-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-xs);
     }
 
-    /* Form Controls */
-    .form-control {
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-sm);
-        padding: 0.75rem;
-        font-size: 1rem;
-        transition: all 0.2s ease;
-        color: var(--text-primary);
-    }
-
-    .form-control:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
-        outline: none;
-    }
-
-    .form-control::placeholder {
-        color: var(--text-muted);
-    }
-
-    .form-label {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-    }
-    
-    /* Responsive Adjustments */
-    @media (max-width: 767.98px) {
-        .mentor-applications-page {
-            padding: 0.75rem;
-        }
-
-        .applications-header {
-            padding: 1.25rem;
-        }
-
-        .applications-header h1 {
-            font-size: 1.25rem;
-        }
-
-        .expertise-areas {
-            max-width: 150px;
-        }
-        
-        .table th, .table td {
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
-        }
-
-        .dashboard-card .card-body {
-            padding: 1rem;
-        }
-    }
-
-    @media (max-width: 576px) {
-        .mentor-applications-page {
-            padding: 0.5rem;
-        }
-
-        .applications-header {
-            padding: 1rem;
-        }
-
-        .applications-header h1 {
-            font-size: 1.125rem;
-        }
-
-        .dashboard-card .card-body {
-            padding: 0.75rem;
-        }
-
-        .btn {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.8rem;
-        }
+    .expertise-badges .badge {
+        font-size: 0.7rem;
+        padding: var(--space-xs) var(--space-sm);
     }
 </style>
 {% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container-fluid">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="row align-items-center">
+                <div class="col-md-8">
+                    <h1 class="mb-2">
+                        <i class="fas fa-clipboard-check me-3"></i>
+                        Review Mentor Applications
+                    </h1>
+                    <p class="mb-0">Review and manage pending mentor applications</p>
+                </div>
+                <div class="col-md-4 text-end">
+                    <a href="{% url 'accounts:admin_mentor_list' %}" class="btn btn-outline-light">
+                        <i class="fas fa-arrow-left me-2"></i>
+                        Back to Mentor List
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Applications List -->
+        <div class="content-section">
+            {% if applications %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Applicant</th>
+                            <th>Expertise Areas</th>
+                            <th>Experience</th>
+                            <th>Applied Date</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for application in applications %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    {% if application.user.profile.avatar %}
+                                    <img src="{{ application.user.profile.avatar.url }}" 
+                                         class="rounded-circle me-2 avatar-img" 
+                                         alt="{{ application.user.get_full_name }}">
+                                    {% else %}
+                                    <img src="{% static 'images/default-avatar.png' %}" 
+                                         class="rounded-circle me-2 avatar-img" 
+                                         alt="Default Avatar">
+                                    {% endif %}
+                                    <div>
+                                        <div class="fw-bold">{{ application.user.get_full_name }}</div>
+                                        <div class="small text-muted">{{ application.user.email }}</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="expertise-badges">
+                                    {% for area in application.expertise_areas|split:','|slice:":3" %}
+                                    <span class="badge bg-primary">{{ area|strip }}</span>
+                                    {% endfor %}
+                                    {% if application.expertise_areas|split:','|length > 3 %}
+                                    <span class="badge bg-secondary">+{{ application.expertise_areas|split:','|length|add:"-3" }}</span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                <span class="text-primary fw-semibold">{{ application.years_of_experience }}</span>
+                                <small class="text-muted">years</small>
+                            </td>
+                            <td>
+                                <small>{{ application.application_date|date:"M d, Y" }}</small>
+                            </td>
+                            <td>
+                                <span class="status-badge {{ application.status|lower }}">{{ application.get_status_display }}</span>
+                            </td>
+                            <td>
+                                <button type="button" 
+                                        class="btn btn-primary btn-sm btn-view" 
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#mentorApplicationDetailModal"
+                                        data-application-id="{{ application.id }}">
+                                    <i class="fas fa-eye me-1"></i>
+                                    View Details
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <i class="fas fa-clipboard-list"></i>
+                <h4>No Pending Applications</h4>
+                <p class="text-muted">There are currently no pending mentor applications to review.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Mentor Application Detail Modal -->
+<div class="modal fade" id="mentorApplicationDetailModal" tabindex="-1" aria-labelledby="mentorApplicationDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="mentorApplicationDetailModalLabel">
+                    <i class="fas fa-clipboard-check me-2"></i>
+                    Mentor Application Details
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="mentorApplicationDetailContent">
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading application details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Process Django messages with SweetAlert2
+    const messages = document.querySelectorAll('.alert');
+    messages.forEach(alert => {
+        const alertType = alert.classList.contains('alert-success') ? 'success' :
+                         alert.classList.contains('alert-danger') ? 'error' :
+                         alert.classList.contains('alert-warning') ? 'warning' :
+                         alert.classList.contains('alert-info') ? 'info' : 'info';
+        
+        const messageText = alert.textContent.trim();
+        if (messageText) {
+            Swal.fire({
+                title: alertType === 'success' ? 'Success!' : 
+                       alertType === 'error' ? 'Error!' :
+                       alertType === 'warning' ? 'Warning!' : 'Info',
+                text: messageText,
+                icon: alertType,
+                confirmButtonColor: alertType === 'success' ? '#10b981' :
+                                   alertType === 'error' ? '#ef4444' :
+                                   alertType === 'warning' ? '#f59e0b' : '#4299e1',
+                confirmButtonText: 'OK',
+                timer: alertType === 'success' ? 3000 : 5000,
+                timerProgressBar: true
+            });
+            
+            // Remove the alert after showing SweetAlert
+            setTimeout(() => {
+                alert.remove();
+            }, 100);
+        }
+    });
+    
+    const modal = document.getElementById('mentorApplicationDetailModal');
+    const modalContent = document.getElementById('mentorApplicationDetailContent');
+    
+    if (modal) {
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+        
+        // Add event listener for modal show event
+        modal.addEventListener('show.bs.modal', function(event) {
+            const button = event.relatedTarget;
+            
+            if (!button) {
+                return;
+            }
+            
+            const applicationId = button.getAttribute('data-application-id');
+            
+            if (!applicationId) {
+                return;
+            }
+            
+            // Show loading spinner
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading application details...</p>
+                </div>
+            `;
+            
+            // Fetch application details
+            const url = `/accounts/admin/mentor-application/${applicationId}/detail-modal/`;
+            
+            fetch(url, {
+                method: 'GET',
+                credentials: 'same-origin',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Accept': 'text/html',
+                    'X-CSRFToken': csrftoken,
+                }
+            })
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    modalContent.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error loading application details:', error);
+                    modalContent.innerHTML = `
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            Error loading application details: ${error.message}
+                        </div>
+                    `;
+                    
+                    // Show SweetAlert2 error notification
+                    Swal.fire({
+                        title: 'Error!',
+                        text: 'Failed to load application details. Please try again.',
+                        icon: 'error',
+                        confirmButtonColor: '#ef4444',
+                        confirmButtonText: 'OK',
+                        timer: 5000,
+                        timerProgressBar: true
+                    });
+                });
+        });
+        
+        // Clear content when modal is hidden
+        modal.addEventListener('hidden.bs.modal', function() {
+            modalContent.innerHTML = `
+                <div class="text-center py-4">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading application details...</p>
+                </div>
+            `;
+        });
+    }
+});
+</script>
+{% endblock %}
+

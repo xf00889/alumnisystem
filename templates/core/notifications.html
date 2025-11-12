@@ -1,0 +1,481 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Notifications{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+<style>
+    /* Design System Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-hover: #1e2a4a;
+        --text-primary: #1a1a1a;
+        --text-secondary: #6b7280;
+        --text-muted: #9ca3af;
+        --text-light: #ffffff;
+        --ui-background: #f8fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e5e7eb;
+        --ui-hover: #f3f4f6;
+        --ui-subtle: #f9fafb;
+        --feedback-success: #10b981;
+        --feedback-warning: #f59e0b;
+        --feedback-error: #ef4444;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.375rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+        --space-xs: 0.25rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
+        --space-2xl: 2rem;
+    }
+
+    /* Dashboard-Style Layout */
+    .page-container {
+        background: var(--ui-background);
+        min-height: calc(100vh - 76px);
+        padding: var(--space-lg);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .dashboard-header h1 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        color: var(--text-light);
+    }
+
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 0.875rem;
+        margin: 0;
+    }
+
+    /* Header Button Styling */
+    .dashboard-header .btn-outline-light {
+        color: var(--text-light);
+        border-color: rgba(255, 255, 255, 0.5);
+        background: transparent;
+        font-size: 0.8rem;
+    }
+
+    .dashboard-header .btn-outline-light:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+        border-color: var(--text-light);
+        color: var(--text-light);
+    }
+
+    /* Content Sections */
+    .content-section {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-xl);
+        margin-bottom: var(--space-lg);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Filter Buttons */
+    .filter-buttons {
+        display: flex;
+        gap: var(--space-sm);
+        margin-bottom: var(--space-lg);
+        flex-wrap: wrap;
+    }
+
+    .filter-btn {
+        padding: var(--space-sm) var(--space-lg);
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        color: var(--text-secondary);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+    }
+
+    .filter-btn:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .filter-btn.active {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    /* Notification List */
+    .notifications-list {
+        max-height: none;
+    }
+
+    .notification-item-page {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        margin-bottom: var(--space-md);
+        transition: all 0.15s ease;
+        overflow: hidden;
+    }
+
+    .notification-item-page:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    .notification-item-page.notification-unread {
+        border-left: 3px solid var(--primary-color);
+        background: rgba(43, 60, 107, 0.02);
+    }
+
+    .notification-content-page {
+        padding: var(--space-lg);
+        cursor: pointer;
+        display: flex;
+        align-items: flex-start;
+        gap: var(--space-lg);
+    }
+
+    .notification-content-page:hover {
+        background: rgba(43, 60, 107, 0.03);
+    }
+
+    .notification-avatar-page {
+        flex-shrink: 0;
+    }
+
+    .notification-avatar-page img {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--ui-border);
+    }
+
+    .notification-body-page {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .notification-title-page {
+        font-size: 0.9375rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-xs);
+    }
+
+    .notification-message-page {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: var(--space-sm);
+        line-height: 1.5;
+    }
+
+    .notification-time-page {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        display: flex;
+        align-items: center;
+        gap: var(--space-xs);
+    }
+
+    .notification-dot-page {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        flex-shrink: 0;
+        margin-top: 6px;
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: var(--space-2xl);
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: var(--space-lg);
+        opacity: 0.5;
+    }
+
+    .empty-state h3 {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-sm);
+    }
+
+    .empty-state p {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+
+    /* Stats */
+    .notification-stats {
+        display: flex;
+        gap: var(--space-lg);
+        margin-bottom: var(--space-lg);
+        flex-wrap: wrap;
+    }
+
+    .stat-item {
+        display: flex;
+        align-items: center;
+        gap: var(--space-sm);
+        padding: var(--space-sm) var(--space-lg);
+        background: var(--ui-subtle);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+    }
+
+    .stat-item i {
+        color: var(--primary-color);
+    }
+
+    .stat-item strong {
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-container">
+    <div class="container-fluid">
+        <!-- Dashboard Header -->
+        <div class="dashboard-header">
+            <div class="d-flex align-items-center justify-content-between flex-wrap">
+                <div>
+                    <h1><i class="fas fa-bell me-2"></i>Notifications</h1>
+                    <p>View and manage all your notifications</p>
+                </div>
+                <div class="d-flex gap-2 mt-2 mt-md-0">
+                    {% if unread_count > 0 %}
+                    <button type="button" class="btn btn-outline-light btn-sm" id="mark-all-read-btn">
+                        <i class="fas fa-check-double me-1"></i>Mark All as Read
+                    </button>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Stats -->
+        <div class="notification-stats">
+            <div class="stat-item">
+                <i class="fas fa-bell"></i>
+                <span>Total: <strong>{{ total_count }}</strong></span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-envelope"></i>
+                <span>Unread: <strong>{{ unread_count }}</strong></span>
+            </div>
+            <div class="stat-item">
+                <i class="fas fa-check"></i>
+                <span>Read: <strong>{{ read_count }}</strong></span>
+            </div>
+        </div>
+
+        <!-- Content Section -->
+        <div class="content-section">
+            <!-- Filter Buttons -->
+            <div class="filter-buttons">
+                <a href="?filter=all" class="filter-btn {% if filter_type == 'all' %}active{% endif %}">
+                    <i class="fas fa-list me-1"></i>All
+                </a>
+                <a href="?filter=unread" class="filter-btn {% if filter_type == 'unread' %}active{% endif %}">
+                    <i class="fas fa-envelope me-1"></i>Unread ({{ unread_count }})
+                </a>
+            </div>
+
+            <!-- Notifications List -->
+            <div class="notifications-list">
+                {% if notifications %}
+                    {% for notification in notifications %}
+                    <div class="notification-item-page {% if not notification.is_read %}notification-unread{% endif %}" 
+                         data-notification-id="{{ notification.id }}"
+                         {% if notification.action_url %}data-action-url="{{ notification.action_url }}"{% endif %}>
+                        <div class="notification-content-page">
+                            <div class="notification-avatar-page">
+                                {% if notification.sender and notification.sender.profile.avatar %}
+                                    <img src="{{ notification.sender.profile.avatar.url }}" alt="{{ notification.sender.get_full_name }}">
+                                {% else %}
+                                    <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar">
+                                {% endif %}
+                            </div>
+                            <div class="notification-body-page">
+                                <div class="notification-title-page">
+                                    {{ notification.title }}
+                                </div>
+                                <div class="notification-message-page">
+                                    {{ notification.message }}
+                                </div>
+                                <div class="notification-time-page">
+                                    <i class="fas fa-clock"></i>
+                                    <span>{{ notification.created_at|timesince }} ago</span>
+                                </div>
+                            </div>
+                            {% if not notification.is_read %}
+                            <div class="notification-dot-page"></div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="empty-state">
+                        <i class="fas fa-bell-slash"></i>
+                        <h3>No notifications</h3>
+                        <p>{% if filter_type == 'unread' %}You have no unread notifications.{% else %}You don't have any notifications yet.{% endif %}</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    const csrftoken = getCookie('csrftoken');
+
+    // Mark notification as read when clicked
+    document.querySelectorAll('.notification-content-page').forEach(item => {
+        item.addEventListener('click', function() {
+            const notificationItem = this.closest('.notification-item-page');
+            const notificationId = notificationItem.dataset.notificationId;
+            const actionUrl = notificationItem.dataset.actionUrl;
+
+            // Mark as read if unread
+            if (notificationItem.classList.contains('notification-unread')) {
+                fetch(`/api/notifications/${notificationId}/read/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        notificationItem.classList.remove('notification-unread');
+                        const dot = notificationItem.querySelector('.notification-dot-page');
+                        if (dot) {
+                            dot.remove();
+                        }
+                        // Update unread count in stats
+                        if (data.unread_count !== undefined) {
+                            const unreadStat = document.querySelector('.stat-item:nth-child(2) strong');
+                            if (unreadStat) {
+                                unreadStat.textContent = data.unread_count;
+                            }
+                        }
+                    }
+                })
+                .catch(error => {
+                    console.error('Error marking notification as read:', error);
+                });
+            }
+
+            // Navigate to action URL if available
+            if (actionUrl) {
+                window.location.href = actionUrl;
+            }
+        });
+    });
+
+    // Mark all as read button
+    const markAllReadBtn = document.getElementById('mark-all-read-btn');
+    if (markAllReadBtn) {
+        markAllReadBtn.addEventListener('click', function() {
+            if (!confirm('Are you sure you want to mark all notifications as read?')) {
+                return;
+            }
+
+            fetch('/api/notifications/mark-all-read/', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrftoken,
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Remove unread styling from all notifications
+                    document.querySelectorAll('.notification-unread').forEach(item => {
+                        item.classList.remove('notification-unread');
+                        const dot = item.querySelector('.notification-dot-page');
+                        if (dot) {
+                            dot.remove();
+                        }
+                    });
+
+                    // Update stats
+                    const unreadStat = document.querySelector('.stat-item:nth-child(2) strong');
+                    if (unreadStat) {
+                        unreadStat.textContent = '0';
+                    }
+                    const readStat = document.querySelector('.stat-item:nth-child(3) strong');
+                    if (readStat) {
+                        readStat.textContent = '{{ total_count }}';
+                    }
+
+                    // Hide mark all as read button
+                    markAllReadBtn.style.display = 'none';
+
+                    // Reload page to update filter counts
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 500);
+                } else {
+                    alert('Failed to mark all notifications as read. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error marking all notifications as read:', error);
+                alert('An error occurred. Please try again.');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}
+

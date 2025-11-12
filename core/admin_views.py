@@ -7,6 +7,10 @@ from django.utils import timezone
 from datetime import datetime, timedelta
 from django.http import JsonResponse
 from django.http import HttpResponse
+import logging
+import time
+
+logger = logging.getLogger(__name__)
 
 # Import models from different apps
 from accounts.models import User
@@ -26,8 +30,32 @@ from .export_utils import ExportMixin
 @login_required
 def admin_dashboard(request):
     """Main admin dashboard with comprehensive analytics"""
+    from django.db import connection
+    start_time = time.time()
+    initial_query_count = len(connection.queries)
+    
+    # Log admin dashboard access
+    logger.info(
+        f"Admin dashboard accessed: User={request.user.username}",
+        extra={
+            'user_id': request.user.id,
+            'is_staff': request.user.is_staff,
+            'is_superuser': request.user.is_superuser,
+            'ip_address': request.META.get('REMOTE_ADDR'),
+            'action': 'admin_dashboard_access'
+        }
+    )
+    
     # Check if user is staff or admin
     if not request.user.is_staff and not request.user.is_superuser:
+        logger.warning(
+            f"Unauthorized admin dashboard access attempt: User={request.user.username}",
+            extra={
+                'user_id': request.user.id,
+                'ip_address': request.META.get('REMOTE_ADDR'),
+                'action': 'unauthorized_access'
+            }
+        )
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -159,6 +187,35 @@ def admin_dashboard(request):
         # Alumni by college data
         'alumni_by_college': formatted_college_data,
     }
+    
+    # Calculate performance metrics
+    elapsed_time = time.time() - start_time
+    final_query_count = len(connection.queries)
+    queries_executed = final_query_count - initial_query_count
+    
+    # Log performance metrics
+    logger.debug(
+        f"Admin dashboard context built: Time={elapsed_time:.3f}s, Queries={queries_executed}",
+        extra={
+            'user_id': request.user.id,
+            'elapsed_time': elapsed_time,
+            'queries_executed': queries_executed,
+            'action': 'admin_dashboard_complete'
+        }
+    )
+    
+    # Log slow operations warning
+    if elapsed_time > 3.0:
+        logger.warning(
+            f"Slow admin dashboard: Time={elapsed_time:.3f}s, Queries={queries_executed}",
+            extra={
+                'user_id': request.user.id,
+                'elapsed_time': elapsed_time,
+                'queries_executed': queries_executed,
+                'threshold': 3.0,
+                'action': 'slow_operation'
+            }
+        )
     
     return render(request, 'admin/dashboard.html', context)
 
@@ -406,6 +463,17 @@ def export_surveys(request, format_type='csv'):
     queryset = Survey.objects.select_related('created_by').all()
     export_config = ModelExporter.get_survey_export_config()
     
+    # Log export operation
+    logger.info(
+        f"Survey export requested: Format={format_type}, Count={queryset.count()}",
+        extra={
+            'format_type': format_type,
+            'record_count': queryset.count(),
+            'user_id': request.user.id,
+            'action': 'data_export'
+        }
+    )
+    
     return export_queryset(queryset, format_type, 'surveys', export_config)
 
 @login_required
@@ -453,6 +521,18 @@ def bulk_export_process(request):
         selected_models = request.POST.getlist('models')
         format_type = request.POST.get('format_type', 'csv')
         
+        # Log bulk export start
+        logger.info(
+            f"Bulk export started: Models={selected_models}, Format={format_type}",
+            extra={
+                'selected_models': selected_models,
+                'model_count': len(selected_models),
+                'format_type': format_type,
+                'user_id': request.user.id,
+                'action': 'bulk_export_start'
+            }
+        )
+        
         if not selected_models:
             messages.error(request, _('Please select at least one model to export.'))
             return redirect('core:bulk_export_interface')
@@ -461,6 +541,10 @@ def bulk_export_process(request):
         import zipfile
         import tempfile
         from django.core.files.base import ContentFile
+        
+        exported_count = 0
+        failed_count = 0
+        failed_models = []
         
         # Create temporary file for zip
         with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
@@ -531,10 +615,33 @@ def bulk_export_process(request):
                         
                         # Add file to zip
                         zip_file.writestr(filename, response.content)
+                        exported_count += 1
+                        
+                        logger.info(
+                            f"Model exported successfully: Model={model_name}, Format={format_type}",
+                            extra={
+                                'model_name': model_name,
+                                'format_type': format_type,
+                                'user_id': request.user.id,
+                                'action': 'model_export_success'
+                            }
+                        )
                         
                     except Exception as e:
                         # Log error but continue with other models
-                        print(f"Error exporting {model_name}: {str(e)}")
+                        failed_count += 1
+                        failed_models.append(model_name)
+                        logger.error(
+                            f"Error exporting model: Model={model_name}, Format={format_type}, Error={str(e)}",
+                            extra={
+                                'model_name': model_name,
+                                'format_type': format_type,
+                                'user_id': request.user.id,
+                                'error_type': type(e).__name__,
+                                'exc_info': True,
+                                'action': 'model_export_failed'
+                            }
+                        )
                         continue
                 
                 # Add a README file to the zip
@@ -558,6 +665,20 @@ Each file is named with the model name and timestamp for easy identification.
         # Clean up temporary file
         import os
         os.unlink(tmp_file.name)
+        
+        # Log bulk export completion
+        logger.info(
+            f"Bulk export completed: Exported={exported_count}, Failed={failed_count}, Format={format_type}",
+            extra={
+                'exported_count': exported_count,
+                'failed_count': failed_count,
+                'failed_models': failed_models,
+                'format_type': format_type,
+                'total_models': len(selected_models),
+                'user_id': request.user.id,
+                'action': 'bulk_export_complete'
+            }
+        )
         
         # Create response
         response = HttpResponse(zip_content, content_type='application/zip')

@@ -1,129 +1,15 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load crispy_forms_tags %}
 {% load i18n %}
 
 {% block title %}
-    {% if object %}
-        {% blocktranslate with title=object.title %}Edit Report: {{ title }}{% endblocktranslate %}
-    {% else %}
-        {% translate 'Create New Report' %}
-    {% endif %}
+  {% if form.instance.id %}Edit Report{% else %}Create Report{% endif %}
 {% endblock %}
 
-{% block content %}
-<div class="report-form-page">
-    <div class="container">
-        <!-- Report Form Header (Matching other pages style) -->
-        <div class="report-header">
-            <div class="d-flex align-items-center">
-                <div class="me-3">
-                    <i class="fas fa-chart-bar fa-3x" style="opacity: 0.8;"></i>
-                </div>
-                <div>
-                    <h1>
-                        {% if object %}
-                            {% blocktranslate with title=object.title %}Edit Report: {{ title }}{% endblocktranslate %}
-                        {% else %}
-                            {% translate 'Create New Report' %}
-                        {% endif %}
-                    </h1>
-                    <p>{% if object %}Modify your existing survey report{% else %}Create a new comprehensive survey report{% endif %}</p>
-                </div>
-            </div>
-        </div>
-
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h5 class="card-title">
-                    <i class="fas fa-chart-bar me-2"></i>
-                    {% translate 'Report Information' %}
-                </h5>
-            </div>
-            <div class="card-body">
-                {% if form.errors %}
-                    <div class="alert alert-danger mb-4">
-                        <i class="fas fa-exclamation-triangle me-2"></i>
-                        {% translate 'Please correct the errors below.' %}
-                    </div>
-                {% endif %}
-                
-                <form method="post" class="report-form">
-                    {% csrf_token %}
-                    
-                    <div class="form-section">
-                        <div class="row g-3">
-                            <div class="col-12">
-                                <label for="{{ form.title.id_for_label }}" class="form-label">
-                                    {{ form.title.label }}
-                                </label>
-                                {{ form.title }}
-                                {% if form.title.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.title.errors %}
-                                            <div>{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                {% if form.title.help_text %}
-                                    <div class="help-text">{{ form.title.help_text }}</div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="{{ form.description.id_for_label }}" class="form-label">
-                                    {{ form.description.label }}
-                                </label>
-                                {{ form.description }}
-                                {% if form.description.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.description.errors %}
-                                            <div>{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                {% if form.description.help_text %}
-                                    <div class="help-text">{{ form.description.help_text }}</div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="col-12">
-                                <label for="{{ form.report_type.id_for_label }}" class="form-label">
-                                    {{ form.report_type.label }}
-                                </label>
-                                {{ form.report_type }}
-                                {% if form.report_type.errors %}
-                                    <div class="invalid-feedback d-block">
-                                        {% for error in form.report_type.errors %}
-                                            <div>{{ error }}</div>
-                                        {% endfor %}
-                                    </div>
-                                {% endif %}
-                                {% if form.report_type.help_text %}
-                                    <div class="help-text">{{ form.report_type.help_text }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <div class="form-actions">
-                        <div class="d-flex justify-content-between align-items-center">
-                            <a href="{% url 'surveys:report_list' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-arrow-left me-2"></i>{% translate 'Cancel' %}
-                            </a>
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-save me-2"></i>
-                                {% if object %}{% translate 'Save changes' %}{% else %}{% translate 'Create Report' %}{% endif %}
-                            </button>
-                        </div>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
+{% block extra_css %}
 <style>
-    /* System Color Scheme - Dashboard Design (Matching Alumni System) */
+    /* System Color Scheme - Dashboard Design (Matching Survey Form) */
     :root {
         --primary-color: #2b3c6b;
         --secondary-color: #4a5568;
@@ -163,7 +49,7 @@
         min-height: calc(100vh - 60px);
     }
 
-    /* Dashboard Header (Matching other pages style) */
+    /* Dashboard Header (Matching Survey Form) */
     .report-header {
         background: var(--primary-color);
         color: var(--text-light);
@@ -189,7 +75,7 @@
         color: var(--text-light);
     }
 
-    /* Card Styling (Matching other pages) */
+    /* Card Styling (Matching Survey Form) */
     .dashboard-card {
         background: var(--ui-surface);
         border-radius: var(--radius-md);
@@ -225,7 +111,7 @@
         font-family: 'Poppins', sans-serif;
     }
 
-    /* Button Styling (Matching other pages) */
+    /* Button Styling (Matching Survey Form) */
     .btn {
         border-radius: var(--radius-sm);
         font-size: 0.875rem;
@@ -255,6 +141,21 @@
         text-decoration: none;
     }
 
+    .btn-success {
+        background-color: var(--feedback-success);
+        border-color: var(--feedback-success);
+        color: var(--text-light);
+    }
+
+    .btn-success:hover {
+        background-color: #38a169;
+        border-color: #38a169;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+
     .btn-outline-secondary {
         background-color: transparent;
         border-color: var(--text-secondary);
@@ -270,18 +171,121 @@
         text-decoration: none;
     }
 
-    /* Form Styling */
-    .form-section {
-        margin-bottom: 2rem;
+    .btn-outline-primary {
+        background-color: transparent;
+        border-color: var(--primary-color);
+        color: var(--primary-color);
     }
 
-    .form-label {
+    .btn-outline-primary:hover {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+    }
+
+    .btn-sm {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.8rem;
+    }
+
+    /* Form Styling (Matching Survey Form) */
+    .form-section {
+        border-bottom: 1px solid var(--ui-border);
+        padding-bottom: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .form-section:last-child {
+        border-bottom: none;
+    }
+
+    .form-section h6 {
         color: var(--text-primary);
         font-weight: 600;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        font-size: 1rem;
     }
 
+    .help-text {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+        line-height: 1.4;
+    }
+
+    .form-tips {
+        background-color: rgba(66, 153, 225, 0.1);
+        border-left: 4px solid var(--feedback-info);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--feedback-info);
+    }
+
+    .form-tips h6 {
+        color: var(--feedback-info);
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+    }
+
+    .form-tips ul {
+        margin-bottom: 0;
+        padding-left: 1.5rem;
+    }
+
+    .form-tips li {
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+    }
+
+    /* Data Availability Info */
+    .data-availability-info {
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 1rem;
+    }
+
+    .data-availability-info.has-data {
+        background: rgba(72, 187, 120, 0.1);
+        border-left: 4px solid var(--feedback-success);
+        color: var(--text-primary);
+    }
+
+    .data-availability-info.no-data {
+        background: rgba(237, 137, 54, 0.1);
+        border-left: 4px solid var(--feedback-warning);
+        color: var(--text-primary);
+    }
+
+    .data-availability-info i {
+        margin-right: 0.5rem;
+    }
+
+    /* Filter Group */
+    .filter-group {
+        padding: 1rem;
+        background: var(--ui-hover);
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--ui-border);
+        margin-top: 1rem;
+        animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Form Controls */
     .form-control, .form-select {
         border: 1px solid var(--ui-border);
         border-radius: var(--radius-sm);
@@ -289,7 +293,6 @@
         font-size: 1rem;
         transition: all 0.2s ease;
         color: var(--text-primary);
-        background-color: var(--ui-surface);
     }
 
     .form-control:focus, .form-select:focus {
@@ -302,48 +305,43 @@
         color: var(--text-muted);
     }
 
-    textarea.form-control {
-        min-height: 120px;
-        resize: vertical;
-    }
-
-    /* Help Text */
-    .help-text {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        margin-top: 0.25rem;
-        line-height: 1.4;
-    }
-
-    /* Error Styling */
-    .invalid-feedback {
-        color: var(--feedback-error);
-        font-size: 0.8rem;
-        margin-top: 0.25rem;
-    }
-
-    .alert {
-        border-radius: var(--radius-sm);
-        border: 1px solid transparent;
+    /* Preview Card */
+    .preview-card {
+        border: 1px dashed var(--ui-border);
         padding: 1rem;
+        border-radius: var(--radius-sm);
         margin-bottom: 1rem;
+        background: var(--ui-hover);
     }
 
-    .alert-danger {
-        background-color: rgba(229, 62, 62, 0.1);
-        border-color: var(--feedback-error);
-        color: var(--feedback-error);
+    .preview-card h5 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.5rem;
     }
 
-    /* Form Actions */
-    .form-actions {
-        border-top: 1px solid var(--ui-border);
-        padding-top: 1.5rem;
-        margin-top: 2rem;
+    .preview-card p {
+        color: var(--text-secondary);
+        margin-bottom: 0.75rem;
+    }
+
+    /* Badge Styling */
+    .badge {
+        padding: 0.5em 1em;
+        font-weight: 500;
+        letter-spacing: 0.5px;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+    }
+
+    .bg-light {
+        background-color: var(--ui-hover) !important;
+        color: var(--text-primary) !important;
+        border: 1px solid var(--ui-border);
     }
 
     /* Responsive Design */
-    @media (max-width: 767.98px) {
+    @media (max-width: 768px) {
         .report-form-page {
             padding: 0.75rem;
         }
@@ -360,19 +358,9 @@
             padding: 1rem;
         }
 
-        .form-actions {
-            flex-direction: column;
-            gap: 1rem;
-        }
-
-        .form-actions .d-flex {
-            flex-direction: column;
-            width: 100%;
-        }
-
-        .form-actions .btn {
-            width: 100%;
-            justify-content: center;
+        .form-section {
+            padding-bottom: 1rem;
+            margin-bottom: 1rem;
         }
     }
 
@@ -392,11 +380,470 @@
         .dashboard-card .card-body {
             padding: 0.75rem;
         }
-
-        .btn {
-            padding: 0.375rem 0.75rem;
-            font-size: 0.8rem;
-        }
     }
 </style>
+{% endblock %}
+
+{% block content %}
+<div class="report-form-page">
+    <div class="container">
+        <!-- Report Form Header (Matching Survey Form) -->
+        <div class="report-header">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-chart-bar fa-3x" style="opacity: 0.8;"></i>
+                </div>
+                <div>
+                    <h1>
+                        {% if form.instance.id %}Edit Report: {{ form.instance.title }}{% else %}Create New Report{% endif %}
+                    </h1>
+                    <p>{% if form.instance.id %}Modify your existing report settings and filters{% else %}Create a comprehensive report with customizable filters and data analysis{% endif %}</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-lg-8">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            {% if form.instance.id %}Edit Report{% else %}Create Report{% endif %}
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        {% if not form.instance.id %}
+                        <div class="form-tips mb-4">
+                            <h6><i class="fas fa-lightbulb me-2"></i>Tips for Creating Effective Reports</h6>
+                            <ul class="mb-0">
+                                <li>Select a report type that matches your data needs</li>
+                                <li>Use filters to refine your report data</li>
+                                <li>Provide a clear title and description for your report</li>
+                                <li>Ensure data is available before creating the report</li>
+                            </ul>
+                        </div>
+                        {% endif %}
+                        
+                        {% if form.errors %}
+                            <div class="alert alert-danger mb-4">
+                                <i class="fas fa-exclamation-triangle me-2"></i>
+                                Please correct the errors below.
+                            </div>
+                        {% endif %}
+                        
+                        <form method="post" id="report-form">
+                            {% csrf_token %}
+                            
+                            <div class="form-section">
+                                <h6>Basic Information</h6>
+                                <div class="row g-3">
+                                    <div class="col-12">
+                                        {{ form.title|as_crispy_field }}
+                                        <div class="help-text">Choose a descriptive title that clearly identifies the purpose of your report</div>
+                                    </div>
+                                    <div class="col-12">
+                                        {{ form.description|as_crispy_field }}
+                                        <div class="help-text">Provide context and purpose for this report</div>
+                                    </div>
+                                    <div class="col-12">
+                                        {{ form.report_type|as_crispy_field }}
+                                        <div class="help-text">Select the type of data you want to analyze in this report</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Data Availability Check -->
+                            <div id="dataAvailabilityCheck" class="form-section" style="display: none;">
+                                <h6>Data Availability</h6>
+                                <div id="dataAvailabilityContent"></div>
+                            </div>
+
+                            <!-- Filter Options Section -->
+                            <div id="filterOptionsSection" class="form-section" style="display: none;">
+                                <h6>Filter Options</h6>
+                                <p class="help-text mb-3">Optional: Apply filters to refine your report data</p>
+                                
+                                <!-- Employment Filters -->
+                                <div id="employmentFilters" class="filter-group" style="display: none;">
+                                    <h6 class="mb-3" style="font-size: 0.875rem;">Employment Filters</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="id_industry" class="form-label">Industry</label>
+                                            <select name="industry" id="id_industry" class="form-select">
+                                                <option value="">All Industries</option>
+                                                {% for industry in filter_options.employment.industries %}
+                                                    <option value="{{ industry }}">{{ industry }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter by specific industry</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_start_year" class="form-label">Start Year</label>
+                                            <select name="start_year" id="id_start_year" class="form-select">
+                                                <option value="">All Years</option>
+                                                {% for year in filter_options.employment.years %}
+                                                    <option value="{{ year }}">{{ year }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter from this year onwards</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_end_year" class="form-label">End Year</label>
+                                            <select name="end_year" id="id_end_year" class="form-select">
+                                                <option value="">All Years</option>
+                                                {% for year in filter_options.employment.years %}
+                                                    <option value="{{ year }}">{{ year }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter up to this year</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Geographic Filters -->
+                                <div id="geographicFilters" class="filter-group" style="display: none;">
+                                    <h6 class="mb-3" style="font-size: 0.875rem;">Geographic Filters</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-6">
+                                            <label for="id_country" class="form-label">Country</label>
+                                            <select name="country" id="id_country" class="form-select">
+                                                <option value="">All Countries</option>
+                                                {% for country in filter_options.geographic.countries %}
+                                                    {% if country %}
+                                                        <option value="{{ country }}">{{ country }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter by specific country</div>
+                                        </div>
+                                        <div class="col-md-6">
+                                            <label for="id_state" class="form-label">State/Province</label>
+                                            <select name="state" id="id_state" class="form-select">
+                                                <option value="">All States/Provinces</option>
+                                                {% for province in filter_options.geographic.provinces %}
+                                                    {% if province %}
+                                                        <option value="{{ province }}">{{ province }}</option>
+                                                    {% endif %}
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter by specific state or province</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Achievements Filters -->
+                                <div id="achievementsFilters" class="filter-group" style="display: none;">
+                                    <h6 class="mb-3" style="font-size: 0.875rem;">Achievement Filters</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="id_achievement_type" class="form-label">Achievement Type</label>
+                                            <select name="achievement_type" id="id_achievement_type" class="form-select">
+                                                <option value="">All Types</option>
+                                                {% for value, label in filter_options.achievements.types %}
+                                                    <option value="{{ value }}">{{ label }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter by achievement type</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_start_date" class="form-label">Start Date</label>
+                                            <input type="date" name="start_date" id="id_start_date" class="form-control">
+                                            <div class="help-text">Filter from this date onwards</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_end_date" class="form-label">End Date</label>
+                                            <input type="date" name="end_date" id="id_end_date" class="form-control">
+                                            <div class="help-text">Filter up to this date</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Donations Filters -->
+                                <div id="donationsFilters" class="filter-group" style="display: none;">
+                                    <h6 class="mb-3" style="font-size: 0.875rem;">Donation Filters</h6>
+                                    <div class="row g-3">
+                                        <div class="col-md-4">
+                                            <label for="id_campaign" class="form-label">Campaign</label>
+                                            <select name="campaign" id="id_campaign" class="form-select">
+                                                <option value="">All Campaigns</option>
+                                                {% for campaign in filter_options.donations.campaigns %}
+                                                    <option value="{{ campaign.id }}">{{ campaign.name }}</option>
+                                                {% endfor %}
+                                            </select>
+                                            <div class="help-text">Filter by specific campaign</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_period" class="form-label">Period</label>
+                                            <select name="period" id="id_period" class="form-select">
+                                                <option value="">All Time</option>
+                                                <option value="today">Today</option>
+                                                <option value="month">This Month</option>
+                                                <option value="year">This Year</option>
+                                            </select>
+                                            <div class="help-text">Filter by time period</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_donation_start_date" class="form-label">Start Date</label>
+                                            <input type="date" name="start_date" id="id_donation_start_date" class="form-control">
+                                            <div class="help-text">Filter from this date onwards</div>
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label for="id_donation_end_date" class="form-label">End Date</label>
+                                            <input type="date" name="end_date" id="id_donation_end_date" class="form-control">
+                                            <div class="help-text">Filter up to this date</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="d-flex justify-content-between mt-4">
+                                <a href="{% url 'surveys:report_list' %}" class="btn btn-outline-secondary">
+                                    <i class="fas fa-arrow-left me-2"></i>Back to Reports
+                                </a>
+                                <div>
+                                    {% if form.instance.id %}
+                                    <a href="{% url 'surveys:report_detail' form.instance.id %}" class="btn btn-outline-primary me-2">
+                                        <i class="fas fa-eye me-1"></i>View Report
+                                    </a>
+                                    <button type="submit" class="btn btn-primary" id="save-btn">
+                                        <i class="fas fa-save me-1"></i>Update Report
+                                    </button>
+                                    {% else %}
+                                    <button type="submit" class="btn btn-success" id="save-btn">
+                                        <i class="fas fa-check me-1"></i>Create Report
+                                    </button>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-4">
+                <div class="dashboard-card">
+                    <div class="card-header">
+                        <h5 class="card-title">
+                            <i class="fas fa-info-circle me-2"></i>Report Preview
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="preview-card">
+                            <h5 id="preview-title">Report Title</h5>
+                            <p id="preview-description" class="text-muted">Report description will appear here...</p>
+                            <div class="d-flex justify-content-between small text-muted mt-3">
+                                <div>
+                                    <i class="fas fa-chart-bar me-1"></i>
+                                    <span id="preview-type">Report Type</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <h6>What's Next?</h6>
+                            <p class="small">After creating your report, you can:</p>
+                            <ul class="small">
+                                <li>View detailed data and analytics</li>
+                                <li>Export the report as PDF</li>
+                                <li>Apply filters to refine data</li>
+                                <li>Track report history and usage</li>
+                            </ul>
+                        </div>
+                        
+                        <div id="preview-data-availability" style="display: none;">
+                            <h6>Data Status</h6>
+                            <div id="preview-data-content"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reportTypeSelect = document.getElementById('id_report_type');
+    const dataAvailabilitySection = document.getElementById('dataAvailabilityCheck');
+    const dataAvailabilityContent = document.getElementById('dataAvailabilityContent');
+    const filterOptionsSection = document.getElementById('filterOptionsSection');
+    const submitBtn = document.getElementById('save-btn');
+    
+    // Filter groups
+    const employmentFilters = document.getElementById('employmentFilters');
+    const geographicFilters = document.getElementById('geographicFilters');
+    const achievementsFilters = document.getElementById('achievementsFilters');
+    const donationsFilters = document.getElementById('donationsFilters');
+    
+    // Preview elements
+    const previewTitle = document.getElementById('preview-title');
+    const previewDescription = document.getElementById('preview-description');
+    const previewType = document.getElementById('preview-type');
+    const previewDataAvailability = document.getElementById('preview-data-availability');
+    const previewDataContent = document.getElementById('preview-data-content');
+    
+    // Data availability data from Django
+    const dataAvailability = {
+        'employment': {
+            has_data: {{ data_availability.employment.has_data|yesno:"true,false" }},
+            count: {{ data_availability.employment.count }},
+            message: '{{ data_availability.employment.message|escapejs }}'
+        },
+        'geographic': {
+            has_data: {{ data_availability.geographic.has_data|yesno:"true,false" }},
+            count: {{ data_availability.geographic.count }},
+            message: '{{ data_availability.geographic.message|escapejs }}'
+        },
+        'achievements': {
+            has_data: {{ data_availability.achievements.has_data|yesno:"true,false" }},
+            count: {{ data_availability.achievements.count }},
+            message: '{{ data_availability.achievements.message|escapejs }}'
+        },
+        'feedback': {
+            has_data: {{ data_availability.feedback.has_data|yesno:"true,false" }},
+            count: {{ data_availability.feedback.count }},
+            message: '{{ data_availability.feedback.message|escapejs }}'
+        },
+        'donations': {
+            has_data: {{ data_availability.donations.has_data|yesno:"true,false" }},
+            count: {{ data_availability.donations.count }},
+            message: '{{ data_availability.donations.message|escapejs }}'
+        },
+        'mentors': {
+            has_data: {{ data_availability.mentors.has_data|yesno:"true,false" }},
+            count: {{ data_availability.mentors.count }},
+            message: '{{ data_availability.mentors.message|escapejs }}'
+        },
+        'groups': {
+            has_data: {{ data_availability.groups.has_data|yesno:"true,false" }},
+            count: {{ data_availability.groups.count }},
+            message: '{{ data_availability.groups.message|escapejs }}'
+        },
+        'custom': {
+            has_data: {{ data_availability.custom.has_data|yesno:"true,false" }},
+            count: {{ data_availability.custom.count }},
+            message: '{{ data_availability.custom.message|escapejs }}'
+        }
+    };
+    
+    // Report type labels
+    const reportTypeLabels = {
+        'employment': 'Employment Trends',
+        'geographic': 'Geographic Distribution',
+        'achievements': 'Alumni Achievements',
+        'feedback': 'Survey Feedback',
+        'donations': 'Donations Report',
+        'mentors': 'Mentors Report',
+        'groups': 'Groups Report',
+        'custom': 'Custom Report'
+    };
+    
+    function updateForm() {
+        const selectedType = reportTypeSelect.value;
+        
+        // Hide all filter groups
+        employmentFilters.style.display = 'none';
+        geographicFilters.style.display = 'none';
+        achievementsFilters.style.display = 'none';
+        donationsFilters.style.display = 'none';
+        filterOptionsSection.style.display = 'none';
+        dataAvailabilitySection.style.display = 'none';
+        previewDataAvailability.style.display = 'none';
+        
+        if (!selectedType) {
+            previewType.textContent = 'Report Type';
+            return;
+        }
+        
+        // Update preview type
+        previewType.textContent = reportTypeLabels[selectedType] || selectedType;
+        
+        // Show data availability
+        const dataInfo = dataAvailability[selectedType];
+        if (dataInfo) {
+            dataAvailabilitySection.style.display = 'block';
+            previewDataAvailability.style.display = 'block';
+            
+            if (dataInfo.has_data) {
+                dataAvailabilityContent.innerHTML = `
+                    <div class="data-availability-info has-data">
+                        <i class="fas fa-check-circle"></i>
+                        <strong>Data Available:</strong> ${dataInfo.count} record(s) found.
+                    </div>
+                `;
+                previewDataContent.innerHTML = `
+                    <div class="data-availability-info has-data">
+                        <i class="fas fa-check-circle"></i>
+                        <small>${dataInfo.count} record(s) available</small>
+                    </div>
+                `;
+                submitBtn.disabled = false;
+                submitBtn.classList.remove('btn-secondary');
+                if (submitBtn.classList.contains('btn-success')) {
+                    submitBtn.classList.add('btn-success');
+                } else {
+                    submitBtn.classList.add('btn-primary');
+                }
+            } else {
+                dataAvailabilityContent.innerHTML = `
+                    <div class="data-availability-info no-data">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <strong>No Data Available:</strong> ${dataInfo.message}
+                    </div>
+                `;
+                previewDataContent.innerHTML = `
+                    <div class="data-availability-info no-data">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <small>No data available</small>
+                    </div>
+                `;
+                submitBtn.disabled = true;
+                submitBtn.classList.remove('btn-primary', 'btn-success');
+                submitBtn.classList.add('btn-secondary');
+            }
+        }
+        
+        // Show relevant filter group
+        switch(selectedType) {
+            case 'employment':
+                employmentFilters.style.display = 'block';
+                filterOptionsSection.style.display = 'block';
+                break;
+            case 'geographic':
+                geographicFilters.style.display = 'block';
+                filterOptionsSection.style.display = 'block';
+                break;
+            case 'achievements':
+                achievementsFilters.style.display = 'block';
+                filterOptionsSection.style.display = 'block';
+                break;
+            case 'donations':
+                donationsFilters.style.display = 'block';
+                filterOptionsSection.style.display = 'block';
+                break;
+            case 'feedback':
+            case 'mentors':
+            case 'groups':
+            case 'custom':
+                // No filters for these types
+                break;
+        }
+    }
+    
+    // Update preview on title/description change
+    document.getElementById('id_title').addEventListener('input', function() {
+        previewTitle.textContent = this.value || 'Report Title';
+    });
+    
+    document.getElementById('id_description').addEventListener('input', function() {
+        previewDescription.textContent = this.value || 'Report description will appear here...';
+    });
+    
+    // Listen for report type changes
+    reportTypeSelect.addEventListener('change', updateForm);
+    
+    // Initialize on page load
+    updateForm();
+});
+</script>
 {% endblock %}

@@ -467,6 +467,9 @@ class Mentor(models.Model):
     verification_date = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='verified_mentors')
     accepting_mentees = models.BooleanField(default=True, help_text="Whether the mentor is currently accepting new mentees")
+    removal_reason = models.TextField(blank=True, null=True, help_text="Reason for removing this mentor")
+    removed_at = models.DateTimeField(null=True, blank=True, help_text="Date and time when mentor was removed")
+    removed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='removed_mentors', help_text="Admin who removed this mentor")
 
     def __str__(self):
         return f"{self.user.get_full_name()}'s Mentor Profile"
@@ -478,6 +481,69 @@ class Mentor(models.Model):
     def save(self, *args, **kwargs):
         if self.current_mentees >= self.max_mentees:
             self.accepting_mentees = False
+        super().save(*args, **kwargs)
+    
+    def has_active_mentorships(self):
+        """Check if mentor has any active mentorships"""
+        return self.mentorship_requests.filter(
+            status__in=['PENDING', 'APPROVED', 'PAUSED']
+        ).exists()
+    
+    def get_active_mentorships_count(self):
+        """Return count of active mentorships"""
+        return self.mentorship_requests.filter(
+            status__in=['PENDING', 'APPROVED', 'PAUSED']
+        ).count()
+    
+    def get_active_mentorships(self):
+        """Return queryset of active mentorships"""
+        return self.mentorship_requests.filter(
+            status__in=['PENDING', 'APPROVED', 'PAUSED']
+        )
+
+class MentorReactivationRequest(models.Model):
+    """Model to track mentor reactivation requests"""
+    STATUS_CHOICES = [
+        ('PENDING', 'Pending Review'),
+        ('APPROVED', 'Approved'),
+        ('REJECTED', 'Rejected'),
+    ]
+
+    mentor = models.ForeignKey(Mentor, on_delete=models.CASCADE, related_name='reactivation_requests')
+    requested_by = models.ForeignKey(User, on_delete=models.CASCADE, related_name='mentor_reactivation_requests')
+    email = models.EmailField(help_text="Email address used for verification")
+    verification_code = models.CharField(max_length=6, blank=True, help_text="OTP verification code")
+    is_verified = models.BooleanField(default=False, help_text="Whether email has been verified")
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='PENDING')
+    request_reason = models.TextField(blank=True, help_text="Optional reason for requesting reactivation")
+    admin_notes = models.TextField(blank=True, help_text="Admin review notes")
+    requested_at = models.DateTimeField(auto_now_add=True)
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    reviewed_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='reviewed_reactivation_requests', help_text="Admin who reviewed the request")
+    verification_code_expires_at = models.DateTimeField(null=True, blank=True, help_text="Expiration time for verification code")
+
+    def __str__(self):
+        return f"Reactivation Request - {self.mentor.user.get_full_name()} ({self.status})"
+
+    class Meta:
+        verbose_name = _('Mentor Reactivation Request')
+        verbose_name_plural = _('Mentor Reactivation Requests')
+        ordering = ['-requested_at']
+    
+    def is_verification_expired(self):
+        """Check if verification code has expired"""
+        if not self.verification_code_expires_at:
+            return False
+        return timezone.now() > self.verification_code_expires_at
+    
+    def is_pending(self):
+        """Check if request is pending"""
+        return self.status == 'PENDING'
+    
+    def save(self, *args, **kwargs):
+        # Set expiration time for verification code if not set
+        if self.verification_code and not self.verification_code_expires_at:
+            self.verification_code_expires_at = timezone.now() + timedelta(minutes=15)
         super().save(*args, **kwargs)
 
 class MentorshipRequest(models.Model):

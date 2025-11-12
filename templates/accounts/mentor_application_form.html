@@ -3,158 +3,641 @@
 
 {% block title %}Apply to be a Mentor{% endblock %}
 
+{% block extra_css %}
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Container Fluid Styling */
+    .container-fluid {
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Dashboard Header - Using container-fluid styling */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        margin-left: 1.5rem;
+        margin-right: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+        width: calc(100% - 3rem);
+        box-sizing: border-box;
+    }
+
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .progressive-container {
+        max-width: 900px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        margin-bottom: 3rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        margin: 0 0.5rem;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #718096;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 0.5rem;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+    }
+    
+    .step.active .step-number {
+        background: #2b3c6b;
+        color: white;
+        transform: scale(1.1);
+    }
+    
+    .step.completed .step-number {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        color: #2d3748;
+        font-size: 0.9rem;
+    }
+    
+    .step.active .step-title {
+        color: #2b3c6b;
+    }
+    
+    .step-connector {
+        width: 60px;
+        height: 2px;
+        background: #e2e8f0;
+        margin: 0 0.5rem;
+    }
+    
+    .step.completed + .step-connector {
+        background: #48bb78;
+    }
+    
+    .phase-container {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .phase-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .phase-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .phase-subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    textarea.form-control {
+        resize: vertical;
+        min-height: 100px;
+    }
+    
+    .form-text {
+        color: #718096;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .invalid-feedback {
+        display: block;
+        color: #e53e3e;
+        font-size: 0.875rem;
+        margin-top: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: #2b3c6b;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-primary:hover {
+        background: #1a2332;
+    }
+    
+    .btn-secondary {
+        background: #718096;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-right: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-secondary:hover {
+        background: #4a5568;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .progress-info {
+        background: #edf2f7;
+        border-radius: 8px;
+        padding: 1.5rem;
+        margin-bottom: 2rem;
+        border-left: 4px solid #2b3c6b;
+    }
+    
+    .progress-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #2d3748;
+        font-size: 1.1rem;
+    }
+    
+    .progress-info p {
+        margin: 0;
+        color: #718096;
+        font-size: 0.95rem;
+    }
+    
+    .alert {
+        padding: 1rem;
+        border-radius: 8px;
+        margin-bottom: 1.5rem;
+    }
+    
+    .alert-info {
+        background: #e6f3ff;
+        border: 1px solid #b3d9ff;
+        color: #004085;
+    }
+    
+    .alert-danger {
+        background: #fee;
+        border: 1px solid #fcc;
+        color: #c33;
+    }
+    
+    .step-content {
+        display: none;
+    }
+    
+    .step-content.active {
+        display: block;
+    }
+    
+    .file-upload-hint {
+        font-size: 0.875rem;
+        color: #718096;
+        margin-top: 0.25rem;
+    }
+    
+    @media (max-width: 768px) {
+        .progressive-container {
+            padding: 1rem;
+        }
+        
+        .step-indicator {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .step-connector {
+            width: 2px;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .directory-header {
+            margin-left: 1rem;
+            margin-right: 1rem;
+            width: calc(100% - 2rem);
+            padding: 1.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .btn-secondary, .btn-primary {
+            width: 100%;
+            margin: 0 0 0.5rem 0;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
-            <div class="card shadow">
-                <div class="card-header bg-primary text-white">
-                    <h3 class="card-title mb-0">
-                        <i class="fas fa-chalkboard-teacher me-2"></i>
-                        Mentor Application
-                    </h3>
-                </div>
-                <div class="card-body">
-                    <div class="alert alert-info">
-                        <i class="fas fa-info-circle me-2"></i>
-                        Please fill out this form to apply as a mentor. Your application will be reviewed by our administrators.
-                    </div>
+<div class="container-fluid">
+    <!-- Header with container-fluid styling -->
+    <div class="directory-header">
+        <h1 class="directory-title">
+            <i class="fas fa-chalkboard-teacher me-2"></i>
+            Mentor Application
+        </h1>
+        <p class="directory-subtitle">Let's guide you through the application process step by step</p>
+    </div>
 
-                    <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
-                        {% csrf_token %}
-                        
-                        {% if form.non_field_errors %}
-                        <div class="alert alert-danger">
-                            {% for error in form.non_field_errors %}
-                            <p class="mb-0">{{ error }}</p>
-                            {% endfor %}
-                        </div>
-                        {% endif %}
-
-                        <div class="mb-4">
-                            <label for="{{ form.expertise_areas.id_for_label }}" class="form-label">
-                                Areas of Expertise
-                                <span class="text-danger">*</span>
-                            </label>
-                            {{ form.expertise_areas }}
-                            {% if form.expertise_areas.help_text %}
-                            <div class="form-text">{{ form.expertise_areas.help_text }}</div>
-                            {% endif %}
-                            {% if form.expertise_areas.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.expertise_areas.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="{{ form.years_of_experience.id_for_label }}" class="form-label">
-                                Years of Experience
-                                <span class="text-danger">*</span>
-                            </label>
-                            {{ form.years_of_experience }}
-                            {% if form.years_of_experience.help_text %}
-                            <div class="form-text">{{ form.years_of_experience.help_text }}</div>
-                            {% endif %}
-                            {% if form.years_of_experience.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.years_of_experience.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="{{ form.certifications.id_for_label }}" class="form-label">
-                                Certifications
-                                <span class="text-danger">*</span>
-                            </label>
-                            {{ form.certifications }}
-                            {% if form.certifications.help_text %}
-                            <div class="form-text">{{ form.certifications.help_text }}</div>
-                            {% endif %}
-                            {% if form.certifications.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.certifications.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="{{ form.training_documents.id_for_label }}" class="form-label">
-                                Training Documents
-                                <span class="text-danger">*</span>
-                            </label>
-                            {{ form.training_documents }}
-                            {% if form.training_documents.help_text %}
-                            <div class="form-text">{{ form.training_documents.help_text }}</div>
-                            {% endif %}
-                            {% if form.training_documents.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.training_documents.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="mb-4">
-                            <label for="{{ form.competency_summary.id_for_label }}" class="form-label">
-                                Competency Summary
-                                <span class="text-danger">*</span>
-                            </label>
-                            {{ form.competency_summary }}
-                            {% if form.competency_summary.help_text %}
-                            <div class="form-text">{{ form.competency_summary.help_text }}</div>
-                            {% endif %}
-                            {% if form.competency_summary.errors %}
-                            <div class="invalid-feedback d-block">
-                                {% for error in form.competency_summary.errors %}
-                                {{ error }}
-                                {% endfor %}
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <div class="d-grid gap-2">
-                            <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane me-2"></i>
-                                Submit Application
-                            </button>
-                            <a href="{% url 'accounts:profile_detail' %}" class="btn btn-outline-secondary">
-                                <i class="fas fa-times me-2"></i>
-                                Cancel
-                            </a>
-                        </div>
-                    </form>
-                </div>
+    <div class="progressive-container">
+        <!-- Step Indicator -->
+        <div class="step-indicator">
+            <div class="step active" data-step="1">
+                <div class="step-number">1</div>
+                <div class="step-title">Expertise</div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step" data-step="2">
+                <div class="step-number">2</div>
+                <div class="step-title">Documents</div>
+            </div>
+            <div class="step-connector"></div>
+            <div class="step" data-step="3">
+                <div class="step-number">3</div>
+                <div class="step-title">Summary</div>
             </div>
         </div>
+        
+        <!-- Progress Info -->
+        <div class="progress-info">
+            <h4><i class="fas fa-info-circle me-2"></i>Application Process</h4>
+            <p>Please complete all steps to submit your mentor application. Your application will be reviewed by our administrators.</p>
+        </div>
+
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate id="mentorApplicationForm">
+            {% csrf_token %}
+            
+            {% if form.non_field_errors %}
+            <div class="alert alert-danger">
+                <i class="fas fa-exclamation-circle me-2"></i>
+                {% for error in form.non_field_errors %}
+                <p class="mb-0">{{ error }}</p>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Step 1: Expertise & Experience -->
+            <div class="phase-container step-content active" id="step1">
+                <div class="phase-header">
+                    <h2 class="phase-title">Step 1: Expertise & Experience</h2>
+                    <p class="phase-subtitle">Tell us about your professional background</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.expertise_areas.id_for_label }}" class="form-label">
+                        Areas of Expertise
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.expertise_areas }}
+                    {% if form.expertise_areas.help_text %}
+                    <div class="form-text">{{ form.expertise_areas.help_text }}</div>
+                    {% endif %}
+                    {% if form.expertise_areas.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.expertise_areas.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.years_of_experience.id_for_label }}" class="form-label">
+                        Years of Experience
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.years_of_experience }}
+                    {% if form.years_of_experience.help_text %}
+                    <div class="form-text">{{ form.years_of_experience.help_text }}</div>
+                    {% endif %}
+                    {% if form.years_of_experience.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.years_of_experience.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <a href="{% url 'accounts:profile_detail' %}" class="btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancel
+                    </a>
+                    <button type="button" class="btn-primary" onclick="nextStep(2)">
+                        Next: Documents <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 2: Documents -->
+            <div class="phase-container step-content" id="step2">
+                <div class="phase-header">
+                    <h2 class="phase-title">Step 2: Documents & Certifications</h2>
+                    <p class="phase-subtitle">Upload your professional documents</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.certifications.id_for_label }}" class="form-label">
+                        Certifications
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.certifications }}
+                    {% if form.certifications.help_text %}
+                    <div class="form-text">{{ form.certifications.help_text }}</div>
+                    {% endif %}
+                    <div class="file-upload-hint">
+                        <i class="fas fa-file-pdf me-1"></i>PDF files only, maximum 5MB
+                    </div>
+                    {% if form.certifications.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.certifications.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.training_documents.id_for_label }}" class="form-label">
+                        Training Documents
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.training_documents }}
+                    {% if form.training_documents.help_text %}
+                    <div class="form-text">{{ form.training_documents.help_text }}</div>
+                    {% endif %}
+                    <div class="file-upload-hint">
+                        <i class="fas fa-file-pdf me-1"></i>PDF files only, maximum 5MB
+                    </div>
+                    {% if form.training_documents.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.training_documents.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="previousStep(1)">
+                        <i class="fas fa-arrow-left me-2"></i>Previous
+                    </button>
+                    <button type="button" class="btn-primary" onclick="nextStep(3)">
+                        Next: Summary <i class="fas fa-arrow-right ms-2"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Step 3: Summary -->
+            <div class="phase-container step-content" id="step3">
+                <div class="phase-header">
+                    <h2 class="phase-title">Step 3: Competency Summary</h2>
+                    <p class="phase-subtitle">Describe your expertise and how you can help mentees</p>
+                </div>
+
+                <div class="form-group">
+                    <label for="{{ form.competency_summary.id_for_label }}" class="form-label">
+                        Competency Summary
+                        <span class="text-danger">*</span>
+                    </label>
+                    {{ form.competency_summary }}
+                    {% if form.competency_summary.help_text %}
+                    <div class="form-text">{{ form.competency_summary.help_text }}</div>
+                    {% endif %}
+                    {% if form.competency_summary.errors %}
+                    <div class="invalid-feedback d-block">
+                        {% for error in form.competency_summary.errors %}
+                        {{ error }}
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="form-actions">
+                    <button type="button" class="btn-secondary" onclick="previousStep(2)">
+                        <i class="fas fa-arrow-left me-2"></i>Previous
+                    </button>
+                    <button type="submit" class="btn-primary">
+                        <i class="fas fa-paper-plane me-2"></i>Submit Application
+                    </button>
+                </div>
+            </div>
+        </form>
     </div>
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block page_specific_js %}
 <script>
+    // Make functions globally available
+    window.currentStep = 1;
+    window.totalSteps = 3;
+
+    window.updateStepIndicator = function(step) {
+        // Update step indicators
+        document.querySelectorAll('.step').forEach((stepEl, index) => {
+            const stepNum = index + 1;
+            if (stepNum < step) {
+                stepEl.classList.add('completed');
+                stepEl.classList.remove('active');
+            } else if (stepNum === step) {
+                stepEl.classList.add('active');
+                stepEl.classList.remove('completed');
+            } else {
+                stepEl.classList.remove('active', 'completed');
+            }
+        });
+    };
+
+    window.showStep = function(step) {
+        // Hide all steps
+        document.querySelectorAll('.step-content').forEach(content => {
+            content.classList.remove('active');
+        });
+        
+        // Show current step
+        const stepContent = document.getElementById('step' + step);
+        if (stepContent) {
+            stepContent.classList.add('active');
+            window.currentStep = step;
+            window.updateStepIndicator(step);
+            
+            // Scroll to top of form
+            stepContent.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    window.nextStep = function(step) {
+        // Validate current step before proceeding
+        const currentStepContent = document.getElementById('step' + window.currentStep);
+        const form = document.getElementById('mentorApplicationForm');
+        
+        if (!currentStepContent) {
+            console.error('Current step content not found');
+            return;
+        }
+        
+        // Get all required fields in current step
+        const requiredFields = currentStepContent.querySelectorAll('[required]');
+        let isValid = true;
+        
+        requiredFields.forEach(field => {
+            if (!field.value.trim()) {
+                isValid = false;
+                field.classList.add('is-invalid');
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        if (isValid) {
+            window.showStep(step);
+        } else {
+            alert('Please fill in all required fields before proceeding.');
+        }
+    };
+
+    window.previousStep = function(step) {
+        window.showStep(step);
+    };
+
     // File input validation
     document.querySelectorAll('input[type="file"]').forEach(input => {
         input.addEventListener('change', function() {
             if (this.files[0]) {
                 const file = this.files[0];
+                const fileSize = file.size / 1024 / 1024; // Size in MB
+                
                 if (!file.name.toLowerCase().endsWith('.pdf')) {
                     this.value = '';
                     alert('Please upload only PDF files.');
-                } else if (file.size > 5 * 1024 * 1024) {
+                    this.classList.add('is-invalid');
+                } else if (fileSize > 5) {
                     this.value = '';
                     alert('File size must be under 5MB.');
+                    this.classList.add('is-invalid');
+                } else {
+                    this.classList.remove('is-invalid');
+                    // Show file name
+                    const label = this.parentElement.querySelector('.form-label');
+                    if (label) {
+                        const fileName = document.createElement('small');
+                        fileName.className = 'file-name text-success';
+                        fileName.textContent = `✓ ${file.name}`;
+                        fileName.style.display = 'block';
+                        fileName.style.marginTop = '0.5rem';
+                        
+                        // Remove previous file name if exists
+                        const prevFileName = label.parentElement.querySelector('.file-name');
+                        if (prevFileName) {
+                            prevFileName.remove();
+                        }
+                        
+                        label.parentElement.appendChild(fileName);
+                    }
                 }
             }
         });
     });
+
+    // Initialize step indicator
+    document.addEventListener('DOMContentLoaded', function() {
+        window.updateStepIndicator(1);
+    });
 </script>
-{% endblock %} 
+{% endblock %}

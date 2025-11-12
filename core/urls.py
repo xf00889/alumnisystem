@@ -54,6 +54,9 @@ urlpatterns = [
     path('api/notifications/mark-all-read/', views.mark_all_notifications_read, name='mark_all_notifications_read'),
     path('api/notifications/unread-count/', views.get_unread_count, name='get_unread_count'),
     
+    # Notifications page
+    path('notifications/', views.all_notifications, name='all_notifications'),
+    
     # Health check endpoint
     path('health/', health_check_view, name='health_check'),
     
@@ -67,6 +70,7 @@ urlpatterns = [
     path('admin-dashboard/smtp/<int:config_id>/activate/', smtp_admin_views.smtp_configuration_activate, name='smtp_configuration_activate'),
     
     # Brevo Configuration URLs
+    path('admin-dashboard/brevo/<int:config_id>/edit/', smtp_admin_views.brevo_configuration_edit, name='brevo_configuration_edit'),
     path('admin-dashboard/brevo/<int:config_id>/test/', smtp_admin_views.brevo_configuration_test, name='brevo_configuration_test'),
     path('admin-dashboard/brevo/<int:config_id>/activate/', smtp_admin_views.brevo_configuration_activate, name='brevo_configuration_activate'),
     path('admin-dashboard/brevo/<int:config_id>/delete/', smtp_admin_views.brevo_configuration_delete, name='brevo_configuration_delete'),

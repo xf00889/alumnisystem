@@ -17,6 +17,7 @@ from .serializers import (
 from rest_framework import serializers
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
+from notifications.signals import notify
 
 # Import messaging views
 from .messaging_views import conversation_list_view, conversation_detail_view, messaging_page, send_message, create_conversation
@@ -79,6 +80,36 @@ def update_request_status(request, request_id):
         mentorship_request.status = new_status
         mentorship_request.save()
         print(f"Status updated successfully to {new_status}")
+        
+        # Send notification to mentee
+        mentor_name = mentorship_request.mentor.user.get_full_name()
+        if new_status == 'APPROVED':
+            notify.send(
+                sender=request.user,
+                recipient=mentorship_request.mentee,
+                verb='accepted your mentorship request',
+                description=f'{mentor_name} has accepted your mentorship request. You can now start your mentorship journey!',
+                action_object=mentorship_request,
+                level='success'
+            )
+        elif new_status == 'REJECTED':
+            notify.send(
+                sender=request.user,
+                recipient=mentorship_request.mentee,
+                verb='declined your mentorship request',
+                description=f'{mentor_name} has declined your mentorship request. You can explore other mentors.',
+                action_object=mentorship_request,
+                level='warning'
+            )
+        elif new_status == 'COMPLETED':
+            notify.send(
+                sender=request.user,
+                recipient=mentorship_request.mentee,
+                verb='marked your mentorship as completed',
+                description=f'{mentor_name} has marked your mentorship as completed. Congratulations on completing your mentorship!',
+                action_object=mentorship_request,
+                level='success'
+            )
         
         return JsonResponse({
             "message": f"Request {new_status.lower()} successfully",
@@ -192,6 +223,17 @@ def request_mentorship(request, mentor_id):
                 status='PENDING'
             )
             
+            # Send notification to mentor
+            mentee_name = request.user.get_full_name()
+            notify.send(
+                sender=request.user,
+                recipient=mentor.user,
+                verb='sent you a mentorship request',
+                description=f'{mentee_name} has requested you as their mentor. Review the request in your dashboard.',
+                action_object=mentorship_request,
+                level='info'
+            )
+            
             messages.success(request, "Your mentorship request has been submitted successfully and is awaiting approval from the mentor. You will be notified when they respond.")
             return redirect('mentorship:mentor_search')
         else:
@@ -261,6 +303,17 @@ def mentor_dashboard(request):
     except:
         pass
 
+    # Check if mentor is disabled
+    is_disabled = not mentor.is_active
+    has_pending_reactivation = False
+    if is_disabled:
+        # Check if there's a pending reactivation request
+        from accounts.models import MentorReactivationRequest
+        has_pending_reactivation = MentorReactivationRequest.objects.filter(
+            mentor=mentor,
+            status='PENDING'
+        ).exists()
+
     context = {
         'mentor': mentor,
         'pending_requests': pending_requests,
@@ -271,6 +324,8 @@ def mentor_dashboard(request):
         'total_active_mentees': total_active_mentees,
         'total_pending_requests': total_pending_requests,
         'unread_messages': unread_messages,
+        'is_disabled': is_disabled,
+        'has_pending_reactivation': has_pending_reactivation,
     }
     
     return render(request, 'mentorship/mentor_dashboard.html', context)
@@ -477,6 +532,17 @@ class MentorshipRequestViewSet(viewsets.ModelViewSet):
                 status='PENDING'
             )
             
+            # Send notification to mentor
+            mentee_name = request.user.get_full_name()
+            notify.send(
+                sender=request.user,
+                recipient=mentor.user,
+                verb='sent you a mentorship request',
+                description=f'{mentee_name} has requested you as their mentor. Review the request in your dashboard.',
+                action_object=mentorship_request,
+                level='info'
+            )
+            
             # Return the created request data
             response_serializer = self.get_serializer(mentorship_request)
             return Response(
@@ -525,6 +591,37 @@ class MentorshipRequestViewSet(viewsets.ModelViewSet):
             mentorship.status = new_status
             mentorship.save()
             print(f"Status updated successfully to {new_status}")
+            
+            # Send notification to mentee
+            mentor_name = mentorship.mentor.user.get_full_name()
+            if new_status == 'APPROVED':
+                notify.send(
+                    sender=request.user,
+                    recipient=mentorship.mentee,
+                    verb='accepted your mentorship request',
+                    description=f'{mentor_name} has accepted your mentorship request. You can now start your mentorship journey!',
+                    action_object=mentorship,
+                    level='success'
+                )
+            elif new_status == 'REJECTED':
+                notify.send(
+                    sender=request.user,
+                    recipient=mentorship.mentee,
+                    verb='declined your mentorship request',
+                    description=f'{mentor_name} has declined your mentorship request. You can explore other mentors.',
+                    action_object=mentorship,
+                    level='warning'
+                )
+            elif new_status == 'COMPLETED':
+                notify.send(
+                    sender=request.user,
+                    recipient=mentorship.mentee,
+                    verb='marked your mentorship as completed',
+                    description=f'{mentor_name} has marked your mentorship as completed. Congratulations on completing your mentorship!',
+                    action_object=mentorship,
+                    level='success'
+                )
+            
             return Response({
                 "message": f"Request {new_status.lower()} successfully",
                 "status": new_status

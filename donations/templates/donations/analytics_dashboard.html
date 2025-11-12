@@ -7,7 +7,6 @@
 
 {% block extra_css %}
 {{ block.super }}
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
     /* System Color Scheme - Dashboard Design (Matching Alumni System) */
     :root {
@@ -42,35 +41,61 @@
         --radius-lg: 0.5rem;
     }
 
-    .analytics-dashboard {
-        font-family: 'Poppins', sans-serif;
-        padding: 1.25rem;
+    body {
         background-color: var(--ui-background);
-        min-height: calc(100vh - 60px);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Override container to use full width for analytics dashboard */
+    .container {
+        max-width: 100% !important;
+        width: 100% !important;
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    /* Hide sidebar and make main content full width for analytics */
+    .row > .col-md-9 {
+        max-width: 100% !important;
+        flex: 0 0 100% !important;
+        width: 100% !important;
+    }
+    
+    .row > .col-md-3 {
+        display: none !important;
     }
 
-    /* Dashboard Header (Matching Location Tracking Style) */
-    .analytics-header {
+    /* Header Section (Matching Alumni List Style) */
+    .directory-header {
         background: var(--primary-color);
         color: var(--text-light);
-        padding: 1.75rem;
+        padding: 2rem;
         border-radius: var(--radius-md);
-        margin-bottom: 1.25rem;
+        margin-bottom: 1.5rem;
         box-shadow: var(--shadow-sm);
-        font-size: 0.875rem;
+        text-align: center;
         font-family: 'Poppins', sans-serif;
     }
-
-    .analytics-header h4 {
-        font-size: 1.5rem;
+    
+    .directory-title {
+        font-size: 2rem;
         font-weight: 600;
-        margin-bottom: 0.25rem;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
     }
-
-    .analytics-header p {
+    
+    .directory-subtitle {
         opacity: 0.9;
-        font-size: 0.875rem;
+        font-size: 1rem;
         margin: 0;
+        font-family: 'Poppins', sans-serif;
     }
 
     /* Card Styling (Matching Location Tracking) */
@@ -276,6 +301,59 @@
         border-radius: var(--radius-sm);
     }
 
+    /* Quick Actions */
+    .quick-action-card {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 1rem;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        text-decoration: none;
+        color: var(--text-primary);
+        transition: all 0.2s ease;
+        height: 100%;
+        min-height: 100px;
+    }
+
+    .quick-action-card:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+        color: var(--text-primary);
+    }
+
+    .quick-action-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--primary-color);
+        color: var(--text-light);
+        font-size: 1.25rem;
+        margin-bottom: 0.75rem;
+        transition: all 0.2s ease;
+    }
+
+    .quick-action-card:hover .quick-action-icon {
+        background: var(--secondary-color);
+        transform: scale(1.1);
+    }
+
+    .quick-action-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        text-align: center;
+        color: var(--text-primary);
+        line-height: 1.3;
+    }
+
     /* Chart Container */
     .chart-container {
         position: relative;
@@ -285,22 +363,16 @@
 
     /* Responsive Design */
     @media (max-width: 768px) {
-        .analytics-dashboard {
-            padding: 0.75rem;
+        .container-fluid {
+            padding: 1rem;
         }
-
-        .analytics-header {
-            padding: 1.25rem;
+        
+        .directory-header {
+            padding: 1.5rem;
         }
-
-        .analytics-header h4 {
-            font-size: 1.25rem;
-        }
-
-        .analytics-header .d-flex {
-            flex-direction: column;
-            text-align: center;
-            gap: 1rem;
+        
+        .directory-title {
+            font-size: 1.5rem;
         }
 
         .dashboard-card .card-body {
@@ -318,19 +390,35 @@
         .metric-card h3 {
             font-size: 1.5rem;
         }
+
+        .quick-action-card {
+            min-height: 80px;
+            padding: 0.75rem;
+        }
+
+        .quick-action-icon {
+            width: 40px;
+            height: 40px;
+            font-size: 1rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .quick-action-title {
+            font-size: 0.75rem;
+        }
     }
 
     @media (max-width: 576px) {
-        .analytics-dashboard {
-            padding: 0.5rem;
-        }
-
-        .analytics-header {
+        .container-fluid {
             padding: 1rem;
         }
-
-        .analytics-header h4 {
-            font-size: 1.125rem;
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.25rem;
         }
 
         .dashboard-card .card-body {
@@ -344,21 +432,13 @@
 </style>
 {% endblock %}
 
-{% block donations_content %}
-<div class="analytics-dashboard">
-    <div class="container">
-        <!-- Analytics Dashboard Header (Matching Location Tracking Style) -->
-        <div class="analytics-header">
-            <div class="d-flex align-items-center">
-                <div class="me-3">
-                    <i class="fas fa-chart-line fa-3x" style="opacity: 0.8;"></i>
-                </div>
-                <div>
-                    <h4>{% trans "Donation Analytics Dashboard" %}</h4>
-                    <p>{% trans "Comprehensive insights into donation performance and campaign analytics" %}</p>
-                </div>
-            </div>
-        </div>
+ {% block donations_content %}
+ <div class="container-fluid">
+     <!-- Header Section (Matching Alumni List Style) -->
+     <div class="directory-header">
+         <h1 class="directory-title">{% trans "Donation Analytics Dashboard" %}</h1>
+         <p class="directory-subtitle">{% trans "Comprehensive insights into donation performance and campaign analytics" %}</p>
+     </div>
 
         <!-- Date Range Filter -->
         <div class="dashboard-card">
@@ -380,6 +460,63 @@
                         <a href="?days=30" class="btn btn-outline-primary {% if days == 30 %}active{% endif %}">{% trans "30 Days" %}</a>
                         <a href="?days=90" class="btn btn-outline-primary {% if days == 90 %}active{% endif %}">{% trans "90 Days" %}</a>
                         <a href="?days=365" class="btn btn-outline-primary {% if days == 365 %}active{% endif %}">{% trans "1 Year" %}</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Quick Actions -->
+        <div class="dashboard-card mb-4">
+            <div class="card-body">
+                <h6 class="mb-3"><i class="fas fa-bolt me-2"></i>{% trans "Quick Actions" %}</h6>
+                <div class="row g-2">
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <a href="{% url 'donations:campaign_list' %}" class="quick-action-card">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-hand-holding-usd"></i>
+                            </div>
+                            <div class="quick-action-title">{% trans "Campaigns" %}</div>
+                        </a>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <a href="{% url 'donations:campaign_create' %}" class="quick-action-card">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-plus-circle"></i>
+                            </div>
+                            <div class="quick-action-title">{% trans "New Campaign" %}</div>
+                        </a>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <a href="{% url 'donations:manage_donations' %}" class="quick-action-card">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-list"></i>
+                            </div>
+                            <div class="quick-action-title">{% trans "All Donations" %}</div>
+                        </a>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <a href="{% url 'donations:fraud_monitoring_dashboard' %}" class="quick-action-card">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-shield-alt"></i>
+                            </div>
+                            <div class="quick-action-title">{% trans "Fraud Monitor" %}</div>
+                        </a>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <a href="{% url 'donations:export_donations' %}" class="quick-action-card">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-download"></i>
+                            </div>
+                            <div class="quick-action-title">{% trans "Export Data" %}</div>
+                        </a>
+                    </div>
+                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
+                        <a href="{% url 'donations:analytics_dashboard' %}" class="quick-action-card">
+                            <div class="quick-action-icon">
+                                <i class="fas fa-chart-bar"></i>
+                            </div>
+                            <div class="quick-action-title">{% trans "Analytics" %}</div>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -459,6 +596,10 @@
                         <div class="chart-container">
                             <canvas id="dailyTrendsChart"></canvas>
                         </div>
+                        <div id="dailyTrendsEmpty" class="text-center text-muted py-4" style="display: none;">
+                            <i class="fas fa-chart-line fa-3x mb-3"></i>
+                            <p>{% trans "No donation data available for the selected date range." %}</p>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -473,6 +614,10 @@
                     <div class="card-body">
                         <div class="chart-container">
                             <canvas id="paymentMethodsChart"></canvas>
+                        </div>
+                        <div id="paymentMethodsEmpty" class="text-center text-muted py-4" style="display: none;">
+                            <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                            <p>{% trans "No payment data available for the selected date range." %}</p>
                         </div>
                     </div>
                 </div>
@@ -587,105 +732,237 @@
 </div>
 {% endblock %}
 
-{% block extra_js %}
+{% block page_specific_js %}
+<!-- Load Chart.js directly (ensures it's available before our script runs) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const chartData = {{ chart_data|safe }};
+// Initialize charts
+console.log('=== ANALYTICS DASHBOARD SCRIPT STARTED ===');
+
+// Initialize charts when page is ready
+(function() {
+    console.log('=== Initializing charts... ===');
+    
+    // Check if Chart.js is available (should be loaded by base.html)
+    if (typeof Chart === 'undefined') {
+        console.error('=== ERROR: Chart.js is not loaded! ===');
+        console.error('=== Loading Chart.js fallback... ===');
+        // Fallback: Load Chart.js if not available
+        const script = document.createElement('script');
+        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
+        script.onload = function() {
+            console.log('=== Chart.js loaded via fallback ===');
+            initCharts();
+        };
+        document.head.appendChild(script);
+        return;
+    }
+    
+    console.log('=== Chart.js is available:', typeof Chart, '===');
+    
+    // Wait for DOM to be ready
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initCharts);
+    } else {
+        // DOM is already ready
+        initCharts();
+    }
+    
+    function initCharts() {
+        console.log('=== initCharts called ===');
+    
+    // Get chart data from template
+    let chartData;
+    try {
+        // Chart data is passed as JSON string from Django
+        const chartDataJson = '{{ chart_data|escapejs }}';
+        console.log('Raw JSON string:', chartDataJson);
+        
+        // Parse JSON string
+        chartData = JSON.parse(chartDataJson);
+        console.log('Parsed chart data:', chartData);
+    } catch (error) {
+        console.error('Error parsing chart data:', error);
+        console.error('Error details:', error.message);
+        chartData = {
+            daily_labels: [],
+            daily_amounts: [],
+            daily_counts: [],
+            payment_methods: { labels: ['GCash'], amounts: [0] }
+        };
+    }
+    
+    // Extract data arrays
+    const dailyLabels = chartData.daily_labels || [];
+    const dailyAmounts = chartData.daily_amounts || [];
+    const dailyCounts = chartData.daily_counts || [];
+    const paymentLabels = chartData.payment_methods?.labels || ['GCash'];
+    const paymentAmounts = chartData.payment_methods?.amounts || [0];
+    
+    console.log('Daily data - Labels:', dailyLabels.length, 'Amounts:', dailyAmounts.length);
+    console.log('Payment data - Labels:', paymentLabels.length, 'Amounts:', paymentAmounts.length);
+    
+    // Get canvas elements
+    const dailyCanvas = document.getElementById('dailyTrendsChart');
+    const paymentCanvas = document.getElementById('paymentMethodsChart');
+    const dailyEmpty = document.getElementById('dailyTrendsEmpty');
+    const paymentEmpty = document.getElementById('paymentMethodsEmpty');
     
     // Daily Trends Chart
-    const dailyCtx = document.getElementById('dailyTrendsChart').getContext('2d');
-    new Chart(dailyCtx, {
-        type: 'line',
-        data: {
-            labels: chartData.daily_labels,
-            datasets: [{
-                label: '{% trans "Amount (₱)" %}',
-                data: chartData.daily_amounts,
-                borderColor: 'rgb(75, 192, 192)',
-                backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                tension: 0.1,
-                yAxisID: 'y'
-            }, {
-                label: '{% trans "Count" %}',
-                data: chartData.daily_counts,
-                borderColor: 'rgb(255, 99, 132)',
-                backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                tension: 0.1,
-                yAxisID: 'y1'
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: {
-                mode: 'index',
-                intersect: false,
-            },
-            scales: {
-                x: {
-                    display: true,
-                    title: {
-                        display: true,
-                        text: '{% trans "Date" %}'
-                    }
-                },
-                y: {
-                    type: 'linear',
-                    display: true,
-                    position: 'left',
-                    title: {
-                        display: true,
-                        text: '{% trans "Amount (₱)" %}'
-                    }
-                },
-                y1: {
-                    type: 'linear',
-                    display: true,
-                    position: 'right',
-                    title: {
-                        display: true,
-                        text: '{% trans "Count" %}'
+    if (dailyCanvas) {
+        if (dailyLabels.length > 0 && dailyAmounts.length > 0) {
+            dailyCanvas.style.display = 'block';
+            if (dailyEmpty) dailyEmpty.style.display = 'none';
+            
+            try {
+                new Chart(dailyCanvas.getContext('2d'), {
+                    type: 'line',
+                    data: {
+                        labels: dailyLabels,
+                        datasets: [{
+                            label: '{% trans "Amount (₱)" %}',
+                            data: dailyAmounts,
+                            borderColor: 'rgb(75, 192, 192)',
+                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                            tension: 0.1,
+                            yAxisID: 'y'
+                        }, {
+                            label: '{% trans "Count" %}',
+                            data: dailyCounts,
+                            borderColor: 'rgb(255, 99, 132)',
+                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                            tension: 0.1,
+                            yAxisID: 'y1'
+                        }]
                     },
-                    grid: {
-                        drawOnChartArea: false,
-                    },
-                }
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                            mode: 'index',
+                            intersect: false
+                        },
+                        scales: {
+                            x: {
+                                display: true,
+                                title: {
+                                    display: true,
+                                    text: '{% trans "Date" %}'
+                                }
+                            },
+                            y: {
+                                type: 'linear',
+                                display: true,
+                                position: 'left',
+                                title: {
+                                    display: true,
+                                    text: '{% trans "Amount (₱)" %}'
+                                },
+                                beginAtZero: true
+                            },
+                            y1: {
+                                type: 'linear',
+                                display: true,
+                                position: 'right',
+                                title: {
+                                    display: true,
+                                    text: '{% trans "Count" %}'
+                                },
+                                beginAtZero: true,
+                                grid: {
+                                    drawOnChartArea: false
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Daily trends chart created successfully');
+            } catch (error) {
+                console.error('Error creating daily trends chart:', error);
+                if (dailyEmpty) dailyEmpty.style.display = 'block';
+                dailyCanvas.style.display = 'none';
             }
+        } else {
+            console.log('No daily trend data - showing empty message');
+            dailyCanvas.style.display = 'none';
+            if (dailyEmpty) dailyEmpty.style.display = 'block';
         }
-    });
+    } else {
+        console.error('Daily trends canvas not found!');
+    }
     
     // Payment Methods Chart
-    const paymentCtx = document.getElementById('paymentMethodsChart').getContext('2d');
-    new Chart(paymentCtx, {
-        type: 'doughnut',
-        data: {
-            labels: chartData.payment_methods.labels,
-            datasets: [{
-                data: chartData.payment_methods.amounts,
-                backgroundColor: [
-                    '#FF6384',
-                    '#36A2EB',
-                    '#FFCE56',
-                    '#4BC0C0',
-                    '#9966FF',
-                    '#FF9F40'
-                ]
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                }
+    if (paymentCanvas) {
+        const hasPaymentData = paymentAmounts.length > 0 && paymentAmounts.some(amt => amt > 0);
+        
+        if (hasPaymentData) {
+            paymentCanvas.style.display = 'block';
+            if (paymentEmpty) paymentEmpty.style.display = 'none';
+            
+            try {
+                new Chart(paymentCanvas.getContext('2d'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: paymentLabels,
+                        datasets: [{
+                            data: paymentAmounts,
+                            backgroundColor: [
+                                '#FF6384',
+                                '#36A2EB',
+                                '#FFCE56',
+                                '#4BC0C0',
+                                '#9966FF',
+                                '#FF9F40'
+                            ]
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: {
+                            legend: {
+                                position: 'bottom'
+                            },
+                            tooltip: {
+                                callbacks: {
+                                    label: function(context) {
+                                        let label = context.label || '';
+                                        if (label) label += ': ';
+                                        if (context.parsed !== null) {
+                                            label += '₱' + context.parsed.toLocaleString('en-US', {
+                                                minimumFractionDigits: 2,
+                                                maximumFractionDigits: 2
+                                            });
+                                        }
+                                        return label;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                });
+                console.log('Payment methods chart created successfully');
+            } catch (error) {
+                console.error('Error creating payment methods chart:', error);
+                if (paymentEmpty) paymentEmpty.style.display = 'block';
+                paymentCanvas.style.display = 'none';
             }
+        } else {
+            console.log('No payment data - showing empty message');
+            paymentCanvas.style.display = 'none';
+            if (paymentEmpty) paymentEmpty.style.display = 'block';
         }
-    });
-});
+    } else {
+        console.error('Payment methods canvas not found!');
+    }
+    
+    console.log('=== Chart initialization complete ===');
+    }
+})();
 
 function exportChart(chartId, filename) {
     const canvas = document.getElementById(chartId);
+    if (!canvas) return;
     const url = canvas.toDataURL('image/png');
     const link = document.createElement('a');
     link.download = filename + '_' + new Date().toISOString().split('T')[0] + '.png';

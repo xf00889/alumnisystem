@@ -16,8 +16,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <!-- Chart.js -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.min.css">
+    <!-- Note: Chart.js 4.x doesn't require CSS - it's pure JavaScript/Canvas -->
     <!-- External CSS Files -->
     <link rel="stylesheet" href="{% static 'css/base.css' %}">
     <link rel="stylesheet" href="{% static 'css/navbar.css' %}">
@@ -172,14 +171,6 @@
          }
          .content-wrapper {
              padding: 2rem;
-         }
-         @media (max-width: 768px) {
-             .sidebar {
-                 margin-left: -250px;
-             }
-             .sidebar.show {
-                 margin-left: 0;
-             }
          }
          
          /* Modern Footer Styles */
@@ -453,58 +444,6 @@
          .footer-bottom-links a:hover {
              color: #3498db;
          }
-         
-         /* Responsive Design */
-         @media (max-width: 991.98px) {
-             .footer-content {
-                 padding: 3rem 0 1.5rem;
-             }
-             
-             .footer-stats {
-                 gap: 1rem;
-             }
-             
-             .social-icons {
-                 justify-content: center;
-             }
-         }
-         
-         @media (max-width: 767.98px) {
-             .footer-content {
-                 padding: 2.5rem 0 1rem;
-             }
-             
-             .brand-logo {
-                 justify-content: center;
-                 text-align: center;
-             }
-             
-             .footer-stats {
-                 justify-content: center;
-             }
-             
-             .footer-bottom-links {
-                 justify-content: center;
-                 margin-top: 1rem;
-             }
-             
-             .copyright {
-                 text-align: center;
-             }
-         }
-         
-         @media (max-width: 575.98px) {
-             .footer-bottom-links {
-                 flex-direction: column;
-                 align-items: center;
-                 gap: 0.75rem;
-             }
-             
-             .social-link {
-                 width: 40px;
-                 height: 40px;
-             }
-         }
      </style>
      {% block extra_css %}{% endblock extra_css %}
 </head>
@@ -706,6 +645,10 @@
                         <i class="fas fa-cogs"></i>
                         <span>Admin Panel</span>
                     </a>
+                    <a class="nav-link" href="{% url 'log_viewer:logs' %}">
+                        <i class="fas fa-file-alt"></i>
+                        <span>Logs</span>
+                    </a>
                     <a class="nav-link" href="{% url 'core:smtp_configuration_list' %}">
                         <i class="fas fa-envelope"></i>
                         <span>SMTP Configuration</span>
@@ -746,41 +689,37 @@
     </button>
     {% elif not request.resolver_match.url_name == 'account_reset_password' %}
     <!-- Professional LinkedIn-Inspired Navbar for NORSU Alumni System -->
-    <nav class="navbar navbar-expand-lg">
-        <div class="container">
+    <nav class="navbar navbar-expand-lg fixed-top">
+        <div class="container-fluid px-3 px-lg-4">
             <!-- Brand -->
-            <a class="navbar-brand" href="{% url 'core:home' %}">
-                <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo">
-                NORSU Alumni
+            <a class="navbar-brand d-flex align-items-center" href="{% url 'core:home' %}">
+                <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="me-2">
+                <span>NORSU Alumni</span>
             </a>
 
             <!-- Navbar Toggler -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                <i class="fas fa-bars"></i>
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+                <i class="fas fa-bars text-white"></i>
             </button>
 
             <!-- Navbar Content -->
             <div class="collapse navbar-collapse" id="navbarNav">
-                <ul class="navbar-nav me-auto">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                     <!-- Home -->
                     <li class="nav-item">
-                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %} d-flex flex-column align-items-center"
-                           style="gap: 0.25rem;"
-                           href="{% url 'core:home' %}" title="Home">
-                           <i class="fas fa-home"></i>
-                           <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Home</span>
+                        <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'core:home' %}" title="Home">
+                           <i class="fas fa-home d-block text-center"></i>
+                           <span class="d-none d-xl-block text-center small">Home</span>
                         </a>
                     </li>
 
                     <!-- Community -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'alumni_groups' or request.resolver_match.namespace == 'announcements' or request.resolver_match.app_name == 'events' or request.resolver_match.app_name == 'donations' %}active{% endif %} d-flex flex-column align-items-center"
-                           style="gap: 0.25rem;"
-                           href="#" id="communityDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Community">
-                            <i class="fas fa-users"></i>
-                            <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Community</span>
+                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'alumni_groups' or request.resolver_match.namespace == 'announcements' or request.resolver_match.app_name == 'events' or request.resolver_match.app_name == 'donations' %}active{% endif %}" href="#" id="communityDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Community">
+                            <i class="fas fa-users d-block text-center"></i>
+                            <span class="d-none d-xl-block text-center small">Community</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-enhanced" aria-labelledby="communityDropdown">
+                        <ul class="dropdown-menu dropdown-menu-enhanced shadow" aria-labelledby="communityDropdown">
                             <li class="dropdown-header">
                                 <i class="fas fa-users me-2"></i>Community Hub
                             </li>
@@ -843,15 +782,13 @@
                     <!-- Communications -->
                     {% if user.is_authenticated %}
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'connections' %}active{% endif %} d-flex flex-column align-items-center position-relative"
-                           style="gap: 0.25rem;"
-                           href="#" id="communicationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Communications">
-                            <i class="fas fa-comments"></i>
-                            <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Communications</span>
+                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'connections' %}active{% endif %} position-relative" href="#" id="communicationsDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Communications">
+                            <i class="fas fa-comments d-block text-center"></i>
+                            <span class="d-none d-xl-block text-center small">Communications</span>
                             {% load connections_tags %}
                             {% get_pending_requests_count user as pending_count %}
                             {% if pending_count > 0 %}
-                                <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle pulse-animation" style="font-size: 0.6rem;">{{ pending_count }}</span>
+                                <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle pulse-animation">{{ pending_count }}</span>
                             {% endif %}
                         </a>
                         <ul class="dropdown-menu dropdown-menu-enhanced" aria-labelledby="communicationsDropdown">
@@ -894,13 +831,11 @@
 
                     <!-- Career Services -->
                     <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'jobs' or request.resolver_match.app_name == 'mentorship' %}active{% endif %} d-flex flex-column align-items-center"
-                           style="gap: 0.25rem;"
-                           href="#" id="careerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Career Services">
-                            <i class="fas fa-briefcase"></i>
-                            <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Career</span>
+                        <a class="nav-link dropdown-toggle {% if request.resolver_match.app_name == 'jobs' or request.resolver_match.app_name == 'mentorship' %}active{% endif %}" href="#" id="careerDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Career Services">
+                            <i class="fas fa-briefcase d-block text-center"></i>
+                            <span class="d-none d-xl-block text-center small">Career</span>
                         </a>
-                        <ul class="dropdown-menu dropdown-menu-enhanced" aria-labelledby="careerDropdown">
+                        <ul class="dropdown-menu dropdown-menu-enhanced shadow" aria-labelledby="careerDropdown">
                             <li class="dropdown-header">
                                 <i class="fas fa-briefcase me-2"></i>Career Development
                             </li>
@@ -948,21 +883,16 @@
                 </ul>
 
                 <!-- Authentication Section -->
-                <ul class="navbar-nav auth-buttons">
+                <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
                     {% if user.is_authenticated %}
                         <!-- Notification Bell -->
                         <li class="nav-item dropdown notification-dropdown">
-                            <a class="nav-link d-flex flex-column align-items-center notification-bell-link" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications"
-                               style="gap: 0.25rem;">
-                                <div class="position-relative">
-                                    <i class="fas fa-bell"></i>
-                                    <span class="notification-badge badge rounded-pill bg-danger" id="notification-count" style="display: none;">
-                                        0
-                                    </span>
-                                </div>
-                                <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Notifications</span>
+                            <a class="nav-link position-relative" href="#" id="notificationDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false" title="Notifications">
+                                <i class="fas fa-bell d-block text-center"></i>
+                                <span class="notification-badge badge rounded-pill bg-danger position-absolute top-0 start-100 translate-middle" id="notification-count" style="display: none;">0</span>
+                                <span class="d-none d-xl-block text-center small">Notifications</span>
                             </a>
-                            <div class="dropdown-menu dropdown-menu-end notification-dropdown-menu" aria-labelledby="notificationDropdown">
+                            <div class="dropdown-menu dropdown-menu-end notification-dropdown-menu shadow" aria-labelledby="notificationDropdown">
                                 <div class="notification-header d-flex justify-content-between align-items-center px-3 py-2 border-bottom">
                                     <h6 class="mb-0">Notifications</h6>
                                     <button class="btn btn-sm btn-link text-muted p-0" id="mark-all-read" title="Mark all as read">
@@ -976,7 +906,7 @@
                                     </div>
                                 </div>
                                 <div class="notification-footer border-top">
-                                    <a href="#" class="dropdown-item text-center py-2" id="view-all-notifications">
+                                    <a href="{% url 'core:all_notifications' %}" class="dropdown-item text-center py-2" id="view-all-notifications">
                                         <small>View all notifications</small>
                                     </a>
                                 </div>
@@ -985,15 +915,30 @@
 
                         <!-- User Profile -->
                         <li class="nav-item dropdown profile-dropdown">
-                            <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                                 {% if user.profile.avatar %}
-                                    <img src="{{ user.profile.avatar.url }}" alt="Profile" class="user-avatar">
+                                    <img src="{{ user.profile.avatar.url }}" alt="Profile" class="user-avatar rounded-circle me-2">
                                 {% else %}
                                     <i class="fas fa-user-circle fa-lg me-2"></i>
                                 {% endif %}
                                 <span class="d-none d-lg-inline">{{ user.get_full_name }}</span>
                             </a>
-                            <ul class="dropdown-menu dropdown-menu-end">
+                            <ul class="dropdown-menu dropdown-menu-end shadow">
+                                <!-- Communications Section - Mobile Only -->
+                                <li class="d-md-none"><h6 class="dropdown-header"><i class="fas fa-comments me-2"></i>Communications</h6></li>
+                                <li class="d-md-none"><a class="dropdown-item" href="{% url 'connections:conversations_list' %}"><i class="fas fa-comments me-2"></i> Messages</a></li>
+                                <li class="d-md-none"><a class="dropdown-item position-relative" href="{% url 'connections:connection_requests' %}">
+                                    <i class="fas fa-user-plus me-2"></i> Connection Requests
+                                    {% load connections_tags %}
+                                    {% get_pending_requests_count user as mobile_pending_count %}
+                                    {% if mobile_pending_count > 0 %}
+                                        <span class="badge bg-danger rounded-pill ms-1">{{ mobile_pending_count }}</span>
+                                    {% endif %}
+                                </a></li>
+                                <li class="d-md-none"><a class="dropdown-item" href="{% url 'connections:my_connections' %}"><i class="fas fa-user-friends me-2"></i> My Connections</a></li>
+                                <li class="d-md-none"><hr class="dropdown-divider"></li>
+                                
+                                <!-- Profile Section -->
                                 <li><a class="dropdown-item" href="{% url 'accounts:profile_detail' %}"><i class="fas fa-user-circle me-2"></i> Profile</a></li>
                                 <li><a class="dropdown-item" href="{% url 'accounts:edit_profile' %}"><i class="fas fa-cog me-2"></i> Settings</a></li>
                                 <li><a class="dropdown-item" href="{% url 'accounts:security_dashboard' %}"><i class="fas fa-shield-alt me-2"></i> Security</a></li>
@@ -1015,17 +960,15 @@
                     {% else %}
                         <!-- Login/Register Buttons -->
                         <li class="nav-item">
-                            <a class="nav-link btn-login d-flex flex-column align-items-center" href="{% url 'account_login' %}" title="Login"
-                               style="gap: 0.25rem;"
-                                <i class="fas fa-sign-in-alt"></i>
-                                <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Login</span>
+                            <a class="nav-link btn-login" href="{% url 'account_login' %}" title="Login">
+                                <i class="fas fa-sign-in-alt d-block text-center"></i>
+                                <span class="d-none d-xl-block text-center small">Login</span>
                             </a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link btn-register d-flex flex-column align-items-center" href="{% url 'account_login' %}" title="Register"
-                               style="gap: 0.25rem;"
-                                <i class="fas fa-user-plus"></i>
-                                <span class="d-none d-xl-inline" style="font-size: 0.875rem; line-height: 1.2;">Register</span>
+                            <a class="nav-link btn-register" href="{% url 'account_login' %}" title="Register">
+                                <i class="fas fa-user-plus d-block text-center"></i>
+                                <span class="d-none d-xl-block text-center small">Register</span>
                             </a>
                         </li>
                     {% endif %}
@@ -1279,5 +1222,148 @@
     {% endif %}
 
     {% block page_specific_js %}{% endblock %}
+
+    <!-- Mobile Bottom Navigation (Only for non-superusers and authenticated users on mobile) -->
+    {% if not user.is_superuser and user.is_authenticated %}
+    <nav class="mobile-bottom-nav">
+        <!-- Home -->
+        <div class="nav-item">
+            <a href="{% url 'core:home' %}" class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}">
+                <i class="fas fa-home"></i>
+                <span class="nav-label">Home</span>
+            </a>
+        </div>
+
+        <!-- Community -->
+        <div class="nav-item">
+            <a href="#" class="nav-link {% if request.resolver_match.app_name == 'alumni_groups' or request.resolver_match.namespace == 'announcements' or request.resolver_match.app_name == 'events' or request.resolver_match.app_name == 'donations' %}active{% endif %}" data-bs-toggle="modal" data-bs-target="#communityBottomSheet">
+                <i class="fas fa-users"></i>
+                <span class="nav-label">Community</span>
+            </a>
+        </div>
+
+        <!-- Messages -->
+        <div class="nav-item">
+            <a href="{% url 'connections:conversations_list' %}" class="nav-link {% if request.resolver_match.app_name == 'connections' and 'direct_messages' in request.resolver_match.url_name %}active{% endif %} position-relative">
+                <i class="fas fa-comments"></i>
+                <span class="nav-label">Messages</span>
+                {% load connections_tags %}
+                {% get_pending_requests_count user as pending_count_bottom %}
+                {% if pending_count_bottom > 0 %}
+                    <span class="badge">{{ pending_count_bottom }}</span>
+                {% endif %}
+            </a>
+        </div>
+
+        <!-- Career -->
+        <div class="nav-item">
+            <a href="#" class="nav-link {% if request.resolver_match.app_name == 'jobs' or request.resolver_match.app_name == 'mentorship' %}active{% endif %}" data-bs-toggle="modal" data-bs-target="#careerBottomSheet">
+                <i class="fas fa-briefcase"></i>
+                <span class="nav-label">Career</span>
+            </a>
+        </div>
+    </nav>
+
+    <!-- Community Bottom Sheet Modal -->
+    <div class="modal fade" id="communityBottomSheet" tabindex="-1" aria-labelledby="communitySheetLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="bottom-sheet-handle"></div>
+                <div class="bottom-sheet-header">
+                    <h3 id="communitySheetLabel">Community</h3>
+                    <button type="button" class="bottom-sheet-close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="bottom-sheet-content">
+                    <a href="{% url 'alumni_groups:group_list' %}" class="bottom-sheet-item">
+                        <i class="fas fa-users text-primary"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Alumni Groups</div>
+                            <div class="bottom-sheet-item-desc">Connect with fellow alumni</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    <a href="{% url 'announcements:announcement-list' %}" class="bottom-sheet-item">
+                        <i class="fas fa-bullhorn text-info"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Announcements</div>
+                            <div class="bottom-sheet-item-desc">Latest news and updates</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    <a href="{% url 'events:event_list' %}" class="bottom-sheet-item">
+                        <i class="fas fa-calendar-alt text-success"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Events</div>
+                            <div class="bottom-sheet-item-desc">Upcoming gatherings</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    <a href="{% url 'donations:campaign_list' %}" class="bottom-sheet-item">
+                        <i class="fas fa-heart text-danger"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Donations</div>
+                            <div class="bottom-sheet-item-desc">Support NORSU campaigns</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Career Bottom Sheet Modal -->
+    <div class="modal fade" id="careerBottomSheet" tabindex="-1" aria-labelledby="careerSheetLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="bottom-sheet-handle"></div>
+                <div class="bottom-sheet-header">
+                    <h3 id="careerSheetLabel">Career Services</h3>
+                    <button type="button" class="bottom-sheet-close" data-bs-dismiss="modal" aria-label="Close">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+                <div class="bottom-sheet-content">
+                    <a href="{% url 'jobs:job_list' %}" class="bottom-sheet-item">
+                        <i class="fas fa-briefcase text-primary"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Job Board</div>
+                            <div class="bottom-sheet-item-desc">Find opportunities</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    <a href="{% url 'mentorship:mentor_search' %}" class="bottom-sheet-item">
+                        <i class="fas fa-hands-helping text-info"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Find a Mentor</div>
+                            <div class="bottom-sheet-item-desc">Get guidance</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    <a href="{% url 'mentorship:mentee_dashboard' %}" class="bottom-sheet-item">
+                        <i class="fas fa-graduation-cap text-success"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Mentee Dashboard</div>
+                            <div class="bottom-sheet-item-desc">Your learning journey</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    {% if user.mentor_profile %}
+                    <a href="{% url 'mentorship:mentor_dashboard' %}" class="bottom-sheet-item">
+                        <i class="fas fa-chalkboard-teacher text-warning"></i>
+                        <div class="bottom-sheet-item-content">
+                            <div class="bottom-sheet-item-title">Mentor Dashboard</div>
+                            <div class="bottom-sheet-item-desc">Guide others</div>
+                        </div>
+                        <i class="fas fa-chevron-right bottom-sheet-item-arrow"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
 </body>
 </html>

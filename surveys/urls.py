@@ -24,6 +24,7 @@ urlpatterns = [
     path('admin/reports/', views.ReportListView.as_view(), name='report_list'),
     path('admin/reports/create/', views.ReportCreateView.as_view(), name='report_create'),
     path('admin/reports/<int:pk>/', views.ReportDetailView.as_view(), name='report_detail'),
+    path('admin/reports/<int:pk>/export-pdf/', views.report_export_pdf, name='report_export_pdf'),
     
     # Employment Record Management
     path('profile/employment/', views.EmploymentRecordListView.as_view(), name='employment_list'),

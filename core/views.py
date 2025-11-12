@@ -595,6 +595,45 @@ def get_notifications(request):
 
 
 @login_required
+def all_notifications(request):
+    """
+    Display all notifications for the current user.
+    """
+    try:
+        # Get filter parameter (all or unread)
+        filter_type = request.GET.get('filter', 'all')
+        
+        # Build query
+        notifications_query = Notification.objects.filter(recipient=request.user).select_related('sender', 'sender__profile')
+        
+        if filter_type == 'unread':
+            notifications_query = notifications_query.filter(is_read=False)
+        
+        # Get all notifications (can add pagination later if needed)
+        notifications = notifications_query.order_by('-created_at')
+        
+        # Get counts
+        total_count = Notification.objects.filter(recipient=request.user).count()
+        unread_count = Notification.get_unread_count(request.user)
+        read_count = total_count - unread_count
+        
+        context = {
+            'notifications': notifications,
+            'total_count': total_count,
+            'unread_count': unread_count,
+            'read_count': read_count,
+            'filter_type': filter_type,
+        }
+        
+        return render(request, 'core/notifications.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error loading notifications page: {str(e)}")
+        messages.error(request, 'An error occurred while loading notifications.')
+        return redirect('core:home')
+
+
+@login_required
 @require_http_methods(["POST"])
 def mark_notification_read(request, notification_id):
     """

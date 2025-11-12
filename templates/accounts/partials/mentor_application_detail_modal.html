@@ -1,0 +1,801 @@
+{% load static %}
+{% load string_filters %}
+
+<style>
+    /* Enhanced Mentor Application Modal Design System */
+    :root {
+        --primary-color: #2b3c6b;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #f7fafc;
+        --ui-subtle: #f8fafc;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --space-xs: 0.375rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
+    }
+
+    /* Clean Modal Structure */
+    .modal-content {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-lg);
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+    }
+
+    .modal-body {
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    /* Refined Tabbed Interface */
+    .nav-tabs {
+        border-bottom: 1px solid var(--ui-border);
+        margin-bottom: 0;
+        background: var(--ui-subtle);
+        padding: var(--space-sm) var(--space-lg) 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.8rem;
+        padding: var(--space-md) var(--space-lg);
+        margin-right: var(--space-xs);
+        background: transparent;
+        transition: all 0.15s ease;
+        position: relative;
+        white-space: nowrap;
+    }
+
+    .nav-tabs .nav-link:hover {
+        background: rgba(43, 60, 107, 0.08);
+        color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    .nav-tabs .nav-link.active {
+        background: var(--ui-surface);
+        color: var(--primary-color);
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+    .nav-tabs .nav-link i {
+        margin-right: var(--space-sm);
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    .nav-tabs .nav-link.active i {
+        opacity: 1;
+    }
+
+    /* Compact Tab Content */
+    .tab-content {
+        background: var(--ui-surface);
+        max-height: 70vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--ui-border) transparent;
+    }
+
+    .tab-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .tab-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .tab-content::-webkit-scrollbar-thumb {
+        background: var(--ui-border);
+        border-radius: 3px;
+    }
+
+    .tab-pane {
+        padding: var(--space-md);
+        animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Clean Document-Style Sections */
+    .content-section {
+        margin-bottom: var(--space-md);
+        padding: var(--space-md);
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .content-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: var(--space-md);
+        display: flex;
+        align-items: center;
+        padding-bottom: var(--space-xs);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .section-header i {
+        margin-right: var(--space-sm);
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    /* Compact Information Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-md);
+        margin-top: var(--space-xs);
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        min-height: 2.5rem;
+    }
+
+    .info-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: var(--space-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+    }
+
+    .info-value {
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .info-value a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .info-value a:hover {
+        color: var(--feedback-info);
+        text-decoration: underline;
+    }
+
+    /* Badge Styling */
+    .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+    }
+
+    .badge-group {
+        display: flex;
+        gap: var(--space-xs);
+        flex-wrap: wrap;
+    }
+
+    /* Button and Interactive Elements */
+    .btn {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-sm);
+        transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    /* Empty State and Text Styling */
+    .text-muted {
+        color: var(--text-muted) !important;
+        font-style: italic;
+        font-size: 0.8rem;
+    }
+
+    .alert {
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
+        font-size: 0.8rem;
+        padding: var(--space-md);
+    }
+
+    /* Application Header */
+    .application-header {
+        border-bottom: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        padding: var(--space-lg);
+    }
+
+    .application-header h5 {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    .application-header p {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        margin: 0;
+    }
+
+    /* Status Badge */
+    .status-badge {
+        display: inline-block;
+        padding: var(--space-xs) var(--space-md);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .status-badge.pending {
+        background: rgba(237, 137, 54, 0.1);
+        color: var(--feedback-warning);
+        border: 1px solid rgba(237, 137, 54, 0.3);
+    }
+
+    .status-badge.approved {
+        background: rgba(72, 187, 120, 0.1);
+        color: var(--feedback-success);
+        border: 1px solid rgba(72, 187, 120, 0.3);
+    }
+
+    .status-badge.rejected {
+        background: rgba(229, 62, 62, 0.1);
+        color: var(--feedback-error);
+        border: 1px solid rgba(229, 62, 62, 0.3);
+    }
+
+    /* Review Form */
+    .review-form {
+        background: var(--ui-subtle);
+        padding: var(--space-md);
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
+    }
+
+    .review-form textarea {
+        font-size: 0.8rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--ui-border);
+    }
+
+    .review-actions {
+        display: flex;
+        gap: var(--space-sm);
+        margin-top: var(--space-md);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .nav-tabs {
+            padding: var(--space-xs) var(--space-sm) 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tabs .nav-link {
+            font-size: 0.75rem;
+            padding: var(--space-sm) var(--space-md);
+            white-space: nowrap;
+        }
+
+        .tab-pane {
+            padding: var(--space-sm);
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: var(--space-sm);
+        }
+
+        .content-section {
+            padding: var(--space-sm);
+            margin-bottom: var(--space-sm);
+        }
+    }
+</style>
+
+<!-- Application Profile Header -->
+<div class="application-header">
+    <div class="d-flex align-items-center justify-content-between">
+        <div class="d-flex align-items-center">
+            <div class="avatar-wrapper me-3">
+                {% if application.user.profile.avatar %}
+                    <img src="{{ application.user.profile.avatar.url }}" alt="{{ application.user.get_full_name }}" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                {% else %}
+                    <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+                {% endif %}
+            </div>
+            <div class="flex-grow-1">
+                <h5>{{ application.user.get_full_name }}</h5>
+                <p>{{ application.user.email }}</p>
+                <p class="text-muted mb-0">
+                    <i class="fas fa-calendar me-1"></i>
+                    Applied: {{ application.application_date|date:"M d, Y" }}
+                </p>
+            </div>
+        </div>
+        <div>
+            <span class="status-badge {{ application.status|lower }}">{{ application.get_status_display }}</span>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Content -->
+<div class="modal-content-wrapper p-0">
+    <!-- Refined Tab Navigation -->
+    <ul class="nav nav-tabs" id="applicationDetailTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                <i class="fas fa-info-circle"></i>
+                Overview
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="expertise-tab" data-bs-toggle="tab" data-bs-target="#expertise" type="button" role="tab" aria-controls="expertise" aria-selected="false">
+                <i class="fas fa-star"></i>
+                Expertise
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="false">
+                <i class="fas fa-file-alt"></i>
+                Documents
+            </button>
+        </li>
+        {% if application.status == 'PENDING' %}
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="review-tab" data-bs-toggle="tab" data-bs-target="#review" type="button" role="tab" aria-controls="review" aria-selected="false">
+                <i class="fas fa-check-circle"></i>
+                Review
+            </button>
+        </li>
+        {% endif %}
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="applicationDetailTabContent">
+        <!-- Overview Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-user"></i>
+                            Applicant Information
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Full Name</span>
+                                <span class="info-value">{{ application.user.get_full_name }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Email</span>
+                                <a href="mailto:{{ application.user.email }}" class="info-value">
+                                    <i class="fas fa-envelope me-1"></i>
+                                    {{ application.user.email }}
+                                </a>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Username</span>
+                                <span class="info-value">{{ application.user.username }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Years of Experience</span>
+                                <span class="info-value">{{ application.years_of_experience }} years</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Application Date</span>
+                                <span class="info-value">{{ application.application_date|date:"M d, Y H:i" }}</span>
+                            </div>
+                            {% if application.review_date %}
+                            <div class="info-item">
+                                <span class="info-label">Review Date</span>
+                                <span class="info-value">{{ application.review_date|date:"M d, Y H:i" }}</span>
+                            </div>
+                            {% endif %}
+                            {% if application.reviewed_by %}
+                            <div class="info-item">
+                                <span class="info-label">Reviewed By</span>
+                                <span class="info-value">{{ application.reviewed_by.get_full_name }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-clipboard-check"></i>
+                            Application Status
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Status</span>
+                                <span class="status-badge {{ application.status|lower }}">{{ application.get_status_display }}</span>
+                            </div>
+                            {% if application.review_notes %}
+                            <div class="info-item" style="grid-column: 1 / -1;">
+                                <span class="info-label">Review Notes</span>
+                                <div class="info-value" style="white-space: pre-wrap;">{{ application.review_notes }}</div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Expertise Tab -->
+        <div class="tab-pane fade" id="expertise" role="tabpanel" aria-labelledby="expertise-tab">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-star"></i>
+                            Areas of Expertise
+                        </div>
+                        {% if application.expertise_areas %}
+                        <div class="mb-3">
+                            <div class="d-flex flex-wrap" style="gap: var(--space-xs);">
+                                {% for area in application.expertise_areas|split:',' %}
+                                <span class="badge bg-primary">{{ area|strip }}</span>
+                                {% endfor %}
+                            </div>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No expertise areas specified</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-file-alt"></i>
+                            Competency Summary
+                        </div>
+                        {% if application.competency_summary %}
+                        <div class="info-value" style="white-space: pre-wrap; line-height: 1.6;">{{ application.competency_summary }}</div>
+                        {% else %}
+                        <p class="text-muted mb-0">No competency summary provided</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Documents Tab -->
+        <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-certificate"></i>
+                            Certifications
+                        </div>
+                        {% if application.certifications %}
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 style="font-size: 0.8rem; margin-bottom: var(--space-xs);">Certifications Document</h6>
+                                <small class="text-muted">
+                                    Uploaded: {{ application.application_date|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            <a href="{{ application.certifications.url }}" target="_blank" class="btn btn-sm btn-primary">
+                                <i class="fas fa-download me-1"></i>
+                                View
+                            </a>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No certifications uploaded</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-graduation-cap"></i>
+                            Training Documents
+                        </div>
+                        {% if application.training_documents %}
+                        <div class="d-flex align-items-center justify-content-between">
+                            <div>
+                                <h6 style="font-size: 0.8rem; margin-bottom: var(--space-xs);">Training Documents</h6>
+                                <small class="text-muted">
+                                    Uploaded: {{ application.application_date|date:"M d, Y" }}
+                                </small>
+                            </div>
+                            <a href="{{ application.training_documents.url }}" target="_blank" class="btn btn-sm btn-primary">
+                                <i class="fas fa-download me-1"></i>
+                                View
+                            </a>
+                        </div>
+                        {% else %}
+                        <p class="text-muted mb-0">No training documents uploaded</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Review Tab (only for pending applications) -->
+        {% if application.status == 'PENDING' %}
+        <div class="tab-pane fade" id="review" role="tabpanel" aria-labelledby="review-tab">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="review-form">
+                        <form id="reviewApplicationForm" method="POST" action="{% url 'accounts:review_mentor_application' application.id %}">
+                            {% csrf_token %}
+                            <div class="mb-3">
+                                <label for="review_notes" class="form-label" style="font-size: 0.8rem; font-weight: 600; color: var(--text-primary);">
+                                    <i class="fas fa-comment-alt me-1"></i>
+                                    Review Notes
+                                </label>
+                                <textarea 
+                                    class="form-control" 
+                                    id="review_notes" 
+                                    name="review_notes" 
+                                    rows="4" 
+                                    placeholder="Enter your review notes here (optional)..."
+                                    style="font-size: 0.8rem;"
+                                >{{ application.review_notes }}</textarea>
+                                <small class="text-muted">These notes will be visible to the applicant if the application is rejected.</small>
+                            </div>
+                            <div class="review-actions">
+                                <button type="submit" name="action" value="approve" class="btn btn-success">
+                                    <i class="fas fa-check me-1"></i>
+                                    Approve Application
+                                </button>
+                                <button type="submit" name="action" value="reject" class="btn btn-danger">
+                                    <i class="fas fa-times me-1"></i>
+                                    Reject Application
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForm = document.getElementById('reviewApplicationForm');
+    
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const formData = new FormData(this);
+            const action = formData.get('action');
+            const actionText = action === 'approve' ? 'approve' : 'reject';
+            const actionTitle = action === 'approve' ? 'Approve' : 'Reject';
+            const actionIcon = action === 'approve' ? 'success' : 'warning';
+            const actionColor = action === 'approve' ? '#10b981' : '#ef4444';
+            const confirmText = action === 'approve' 
+                ? 'This will approve the mentor application and create a mentor profile for the applicant.'
+                : 'This will reject the mentor application. Review notes will be visible to the applicant.';
+            
+            // Show SweetAlert2 confirmation dialog
+            Swal.fire({
+                title: `${actionTitle} Mentor Application?`,
+                html: `<p>${confirmText}</p><p class="text-muted mt-2"><strong>Are you sure you want to proceed?</strong></p>`,
+                icon: actionIcon,
+                showCancelButton: true,
+                confirmButtonColor: actionColor,
+                cancelButtonColor: '#6b7280',
+                confirmButtonText: `Yes, ${actionText} it!`,
+                cancelButtonText: 'Cancel',
+                reverseButtons: true,
+                focusCancel: true,
+                customClass: {
+                    popup: 'swal2-popup-mentor-review',
+                    title: 'swal2-title-mentor-review',
+                    htmlContainer: 'swal2-html-container-mentor-review',
+                    confirmButton: 'swal2-confirm-mentor-review',
+                    cancelButton: 'swal2-cancel-mentor-review'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state with SweetAlert2
+                    Swal.fire({
+                        title: 'Processing...',
+                        html: `Please wait while we ${actionText} the mentor application.`,
+                        icon: 'info',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        showConfirmButton: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Disable form buttons
+                    const submitButtons = this.querySelectorAll('button[type="submit"]');
+                    submitButtons.forEach(btn => {
+                        btn.disabled = true;
+                    });
+                    
+                    // Submit the form
+                    fetch(this.action, {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-Requested-With': 'XMLHttpRequest',
+                        }
+                    })
+                    .then(response => {
+                        if (!response.ok) {
+                            return response.json().then(data => {
+                                throw new Error(data.message || 'Network response was not ok');
+                            });
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data.status === 'success') {
+                            // Show success notification
+                            Swal.fire({
+                                title: `${actionTitle}ed!`,
+                                text: data.message || `Mentor application has been ${actionText}ed successfully.`,
+                                icon: 'success',
+                                confirmButtonColor: actionColor,
+                                confirmButtonText: 'OK',
+                                timer: 3000,
+                                timerProgressBar: true,
+                                customClass: {
+                                    popup: 'swal2-popup-mentor-review',
+                                    title: 'swal2-title-mentor-review',
+                                    confirmButton: 'swal2-confirm-mentor-review'
+                                }
+                            }).then(() => {
+                                // Close modal and reload page
+                                const modal = bootstrap.Modal.getInstance(document.getElementById('mentorApplicationDetailModal'));
+                                if (modal) {
+                                    modal.hide();
+                                }
+                                // Reload page after a short delay
+                                setTimeout(() => {
+                                    window.location.reload();
+                                }, 300);
+                            });
+                        } else {
+                            throw new Error(data.message || 'An error occurred');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        
+                        // Show error notification
+                        Swal.fire({
+                            title: 'Error!',
+                            text: error.message || 'An error occurred while processing the review. Please try again.',
+                            icon: 'error',
+                            confirmButtonColor: '#ef4444',
+                            confirmButtonText: 'OK',
+                            customClass: {
+                                popup: 'swal2-popup-mentor-review',
+                                title: 'swal2-title-mentor-review',
+                                confirmButton: 'swal2-confirm-mentor-review'
+                            }
+                        });
+                        
+                        // Re-enable form buttons
+                        submitButtons.forEach(btn => {
+                            btn.disabled = false;
+                        });
+                    });
+                }
+            });
+        });
+    }
+});
+</script>
+
+<style>
+/* SweetAlert2 Custom Styling for Mentor Review */
+.swal2-popup-mentor-review {
+    font-family: 'Poppins', sans-serif;
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+}
+
+.swal2-title-mentor-review {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.swal2-html-container-mentor-review {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.swal2-confirm-mentor-review {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+}
+
+.swal2-confirm-mentor-review:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+
+.swal2-cancel-mentor-review {
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: var(--space-sm) var(--space-lg);
+    border-radius: var(--radius-sm);
+    transition: all 0.15s ease;
+}
+
+.swal2-cancel-mentor-review:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-sm);
+}
+</style>
+

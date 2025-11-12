@@ -435,10 +435,34 @@ def edit_job(request, slug):
 @user_passes_test(is_hr_or_admin)
 def delete_job(request, slug):
     job = get_object_or_404(JobPosting, slug=slug)
-    if request.method == 'POST':
-        job.delete()
-        messages.success(request, 'Job posting deleted successfully!')
+    
+    # Block GET requests - deletion should only happen via POST with AJAX
+    if request.method == 'GET':
+        messages.error(request, 'Invalid request. Please use the delete button to delete job postings.')
         return redirect('jobs:manage_jobs')
+    
+    if request.method == 'POST':
+        try:
+            job_title = job.job_title
+            job.delete()
+            
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'success',
+                    'message': f'Job posting "{job_title}" was deleted successfully.'
+                })
+            
+            messages.success(request, f'Job posting "{job_title}" was deleted successfully!')
+            return redirect('jobs:manage_jobs')
+        except Exception as e:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'status': 'error',
+                    'message': f'Error deleting job posting: {str(e)}'
+                }, status=500)
+            messages.error(request, f'Error deleting job posting: {str(e)}')
+            return redirect('jobs:manage_jobs')
+    
     return redirect('jobs:job_detail', slug=slug)
 
 @login_required

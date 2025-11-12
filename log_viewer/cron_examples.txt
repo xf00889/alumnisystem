@@ -1,0 +1,168 @@
+# Cron Configuration Examples for Log Cleanup Scheduler
+
+# ============================================================================
+# BASIC EXAMPLES
+# ============================================================================
+
+# Run every hour (recommended for most deployments)
+0 * * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# Run every 30 minutes (for high-volume log systems)
+*/30 * * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# Run daily at 2:00 AM (minimal overhead)
+0 2 * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# Run daily at 3:30 AM
+30 3 * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# ============================================================================
+# PRODUCTION EXAMPLES WITH FULL PATHS
+# ============================================================================
+
+# Standard Linux deployment
+0 * * * * cd /var/www/alumni_system && /var/www/alumni_system/venv/bin/python manage.py run_log_scheduler >> /var/www/alumni_system/logs/scheduler.log 2>&1
+
+# With environment activation
+0 * * * * cd /var/www/alumni_system && source venv/bin/activate && python manage.py run_log_scheduler >> logs/scheduler.log 2>&1
+
+# With explicit Python path
+0 * * * * /var/www/alumni_system/venv/bin/python /var/www/alumni_system/manage.py run_log_scheduler >> /var/www/alumni_system/logs/scheduler.log 2>&1
+
+# ============================================================================
+# ADVANCED EXAMPLES
+# ============================================================================
+
+# Run every 6 hours
+0 */6 * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# Run twice daily (2 AM and 2 PM)
+0 2,14 * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# Run on weekdays only at 2 AM
+0 2 * * 1-5 cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# Run on first day of month at 3 AM
+0 3 1 * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1
+
+# ============================================================================
+# WITH EMAIL NOTIFICATIONS
+# ============================================================================
+
+# Send email on errors only
+0 2 * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler.log 2>&1 || echo "Log cleanup failed" | mail -s "Log Cleanup Error" admin@example.com
+
+# ============================================================================
+# WITH LOGGING ROTATION
+# ============================================================================
+
+# Append to dated log file
+0 * * * * cd /path/to/project && /path/to/venv/bin/python manage.py run_log_scheduler >> /path/to/logs/scheduler_$(date +\%Y\%m\%d).log 2>&1
+
+# ============================================================================
+# MULTIPLE ENVIRONMENTS
+# ============================================================================
+
+# Development environment (every 5 minutes for testing)
+*/5 * * * * cd /home/dev/alumni_system && /home/dev/alumni_system/venv/bin/python manage.py run_log_scheduler >> /home/dev/alumni_system/logs/scheduler.log 2>&1
+
+# Staging environment (every hour)
+0 * * * * cd /var/www/staging/alumni_system && /var/www/staging/alumni_system/venv/bin/python manage.py run_log_scheduler >> /var/www/staging/alumni_system/logs/scheduler.log 2>&1
+
+# Production environment (every hour)
+0 * * * * cd /var/www/production/alumni_system && /var/www/production/alumni_system/venv/bin/python manage.py run_log_scheduler >> /var/www/production/alumni_system/logs/scheduler.log 2>&1
+
+# ============================================================================
+# CRON FORMAT REFERENCE
+# ============================================================================
+#
+# * * * * * command to execute
+# │ │ │ │ │
+# │ │ │ │ └─── Day of week (0-7, Sunday = 0 or 7)
+# │ │ │ └───── Month (1-12)
+# │ │ └─────── Day of month (1-31)
+# │ └───────── Hour (0-23)
+# └─────────── Minute (0-59)
+#
+# Special characters:
+# * - Any value
+# , - Value list separator
+# - - Range of values
+# / - Step values
+#
+# Examples:
+# */15 * * * * - Every 15 minutes
+# 0 */2 * * * - Every 2 hours
+# 0 0 * * 0 - Every Sunday at midnight
+# 0 0 1 * * - First day of every month at midnight
+#
+# ============================================================================
+# INSTALLATION INSTRUCTIONS
+# ============================================================================
+#
+# 1. Edit your crontab:
+#    crontab -e
+#
+# 2. Add one of the above entries (adjust paths as needed)
+#
+# 3. Save and exit
+#
+# 4. Verify the entry was added:
+#    crontab -l
+#
+# 5. Check cron is running:
+#    sudo service cron status
+#
+# 6. Monitor execution:
+#    tail -f /path/to/logs/scheduler.log
+#
+# 7. Check cron logs:
+#    grep CRON /var/log/syslog
+#
+# ============================================================================
+# TROUBLESHOOTING
+# ============================================================================
+#
+# If cron job doesn't run:
+#
+# 1. Check cron service is running:
+#    sudo service cron status
+#    sudo service cron start
+#
+# 2. Check cron logs:
+#    grep CRON /var/log/syslog
+#    tail -f /var/log/syslog
+#
+# 3. Test command manually:
+#    cd /path/to/project
+#    /path/to/venv/bin/python manage.py run_log_scheduler
+#
+# 4. Check permissions:
+#    ls -la /path/to/project
+#    ls -la /path/to/logs
+#
+# 5. Verify paths are absolute (not relative)
+#
+# 6. Check environment variables:
+#    Add to crontab before entries:
+#    SHELL=/bin/bash
+#    PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+#
+# ============================================================================
+# WINDOWS TASK SCHEDULER EQUIVALENT
+# ============================================================================
+#
+# For Windows, use Task Scheduler instead of cron:
+#
+# 1. Open Task Scheduler
+# 2. Create Basic Task
+# 3. Name: "Alumni System Log Cleanup"
+# 4. Trigger: Daily (or your preference)
+# 5. Time: 02:00 AM
+# 6. Action: Start a program
+#    - Program: C:\path\to\venv\Scripts\python.exe
+#    - Arguments: manage.py run_log_scheduler
+#    - Start in: C:\path\to\project
+# 7. Finish and test
+#
+# ============================================================================

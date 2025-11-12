@@ -70,7 +70,8 @@
     
     .container-fluid {
         padding: 1.5rem;
-        max-width: 1200px;
+        width: 100%;
+        max-width: 100%;
         margin: 0 auto;
     }
 
@@ -746,6 +747,14 @@
         .event-meta {
             grid-template-columns: 1fr;
         }
+
+        /* Hide view mode container and toggle controls on mobile */
+        .view-toggle-section,
+        .view-toggle-container,
+        .view-toggle-buttons,
+        .view-toggle-btn {
+            display: none !important;
+        }
         
         .view-toggle-container {
             flex-direction: column;
@@ -909,7 +918,9 @@
                     <i class="fas fa-edit"></i>
                 </a>
                 <a href="{% url 'events:event_delete' event.pk %}" 
-                   class="btn btn-danger">
+                   class="btn btn-danger"
+                   data-event-id="{{ event.pk }}"
+                   data-event-title="{{ event.title }}">
                     <i class="fas fa-trash"></i>
                 </a>
                 {% endif %}
@@ -1438,7 +1449,7 @@ function copyToClipboard(text) {
     });
 }
 
-// Delete event functionality with SweetAlert
+// Delete event functionality with SweetAlert and AJAX
 function deleteEvent(eventId, eventTitle) {
     Swal.fire({
         title: 'Delete Event',
@@ -1465,10 +1476,70 @@ function deleteEvent(eventId, eventTitle) {
                 }
             });
             
-            // Redirect to delete URL
-            window.location.href = `/events/${eventId}/delete/`;
+            // Make AJAX request to delete event
+            const deleteUrl = `/events/${eventId}/delete/`;
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                              document.querySelector('input[name="csrfmiddlewaretoken"]')?.value ||
+                              getCookie('csrftoken');
+            
+            fetch(deleteUrl, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(data => {
+                        throw new Error(data.message || 'Failed to delete event');
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    Swal.fire({
+                        title: 'Deleted!',
+                        text: data.message || 'The event has been deleted.',
+                        icon: 'success',
+                        confirmButtonText: 'OK'
+                    }).then(() => {
+                        // Reload the page to reflect the changes
+                        window.location.reload();
+                    });
+                } else {
+                    throw new Error(data.message || 'Failed to delete event');
+                }
+            })
+            .catch(error => {
+                Swal.fire({
+                    title: 'Error!',
+                    text: error.message || 'An error occurred while deleting the event.',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+            });
         }
     });
+}
+
+// Helper function to get CSRF token from cookies
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
 }
 
 // Initialize delete button event handlers
@@ -1477,8 +1548,37 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.event-card .btn-danger').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const eventId = this.getAttribute('href').split('/').slice(-2, -1)[0];
-            const eventTitle = this.closest('.event-card').querySelector('.event-title a').textContent;
+            // Get ID from data attribute (preferred) or fallback to parsing href
+            let eventId = this.getAttribute('data-event-id');
+            let eventTitle = this.getAttribute('data-event-title');
+            
+            // Fallback: try to extract from href if data attributes not available
+            if (!eventId) {
+                const href = this.getAttribute('href');
+                if (href) {
+                    // Extract ID from href like /events/123/delete/
+                    const parts = href.split('/').filter(part => part !== '' && !isNaN(part));
+                    eventId = parts.find(part => !isNaN(parseInt(part)));
+                }
+            }
+            
+            // Fallback: try to get title from DOM
+            if (!eventTitle) {
+                const titleElement = this.closest('.event-card')?.querySelector('.event-title a');
+                eventTitle = titleElement ? titleElement.textContent.trim() : 'this event';
+            }
+            
+            if (!eventId) {
+                console.error('Could not determine event ID');
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Could not determine event ID',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
             deleteEvent(eventId, eventTitle);
         });
     });
@@ -1487,8 +1587,20 @@ document.addEventListener('DOMContentLoaded', function() {
     document.querySelectorAll('.delete-btn').forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
-            const eventId = this.getAttribute('data-event-id');
-            const eventTitle = this.closest('tr').querySelector('.table-title').textContent;
+            const eventId = this.getAttribute('data-id') || this.getAttribute('data-event-id');
+            const eventTitle = this.closest('tr')?.querySelector('.table-title')?.textContent?.trim() || 'this event';
+            
+            if (!eventId) {
+                console.error('Could not determine event ID');
+                Swal.fire({
+                    title: 'Error!',
+                    text: 'Could not determine event ID',
+                    icon: 'error',
+                    confirmButtonText: 'OK'
+                });
+                return;
+            }
+            
             deleteEvent(eventId, eventTitle);
         });
     });

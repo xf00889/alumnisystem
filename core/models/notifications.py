@@ -27,6 +27,9 @@ class Notification(models.Model):
         ('mentorship_request', _('Mentorship Request')),
         ('mentorship_approved', _('Mentorship Approved')),
         ('mentorship_rejected', _('Mentorship Rejected')),
+        ('mentorship_disabled', _('Mentorship Disabled')),
+        ('mentorship_reactivation_approved', _('Mentorship Reactivation Approved')),
+        ('mentorship_reactivation_rejected', _('Mentorship Reactivation Rejected')),
         
         # Message notifications
         ('new_message', _('New Message')),
@@ -53,7 +56,7 @@ class Notification(models.Model):
     
     # Notification type
     notification_type = models.CharField(
-        max_length=30,
+        max_length=35,
         choices=NOTIFICATION_TYPES
     )
     
