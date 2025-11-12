@@ -9,6 +9,8 @@ from django.contrib.auth import get_user_model
 from django.contrib.contenttypes.models import ContentType
 from django.utils import timezone
 from django.core.exceptions import ObjectDoesNotExist
+from django.apps import apps
+from django.db import connection
 from .models import AuditLog
 
 User = get_user_model()
@@ -16,6 +18,99 @@ logger = logging.getLogger(__name__)
 
 # Store original values before updates
 _original_values_cache = {}
+
+# Cache for table existence check to avoid repeated database queries during migrations
+_table_existence_cache = {}
+
+
+def is_running_in_migration():
+    """
+    Detect if code is currently executing within a migration context.
+    
+    This function checks multiple indicators to determine if Django is currently
+    running migrations:
+    1. Apps registry readiness - during migrations, apps may not be fully loaded
+    2. Migration executor state - checks if we're in an active migration
+    
+    Returns:
+        bool: True if code is executing during migrations, False otherwise.
+    """
+    try:
+        # Check 1: If apps are not ready, we're likely in a migration
+        if not apps.ready:
+            return True
+        
+        # Check 2: Try to access apps registry - if it fails, we're in migration
+        try:
+            apps.check_apps_ready()
+        except Exception:
+            return True
+        
+        # If all checks pass, we're not in a migration
+        return False
+        
+    except Exception as e:
+        # If detection fails, assume we're NOT in a migration (fail-safe)
+        # Log at debug level to avoid noise
+        logger.debug(f"Migration detection check failed: {str(e)}")
+        return False
+
+
+def audit_log_table_exists():
+    """
+    Check if the log_viewer_auditlog table exists in the database.
+    
+    This function queries the database schema to verify that the AuditLog table
+    has been created. It uses caching to avoid repeated database queries during
+    the migration phase.
+    
+    Returns:
+        bool: True if the table exists, False otherwise.
+    """
+    # Check cache first
+    cache_key = 'log_viewer_auditlog'
+    if cache_key in _table_existence_cache:
+        return _table_existence_cache[cache_key]
+    
+    try:
+        # Query database to check if table exists
+        with connection.cursor() as cursor:
+            # Get list of all table names in the database
+            table_names = connection.introspection.table_names(cursor)
+            exists = 'log_viewer_auditlog' in table_names
+            
+            # Cache the result
+            _table_existence_cache[cache_key] = exists
+            return exists
+    
+    except Exception as e:
+        # Specific handling for different types of database errors
+        from django.db import OperationalError, DatabaseError
+        
+        if isinstance(e, OperationalError):
+            # Database connection issues - log at ERROR level
+            logger.error(
+                f"Database connection error while checking audit log table existence: {str(e)}. "
+                "This may indicate the database is not available or migrations haven't run yet.",
+                exc_info=True
+            )
+        elif isinstance(e, DatabaseError):
+            # General database errors - log at ERROR level
+            logger.error(
+                f"Database error while checking audit log table existence: {str(e)}. "
+                "This may indicate schema issues or permission problems.",
+                exc_info=True
+            )
+        else:
+            # Other unexpected errors - log at ERROR level
+            logger.error(
+                f"Unexpected error checking if audit log table exists: {str(e)}",
+                exc_info=True
+            )
+        
+        # Cache negative result to avoid repeated failures during this execution
+        _table_existence_cache[cache_key] = False
+        return False
 
 
 def get_model_field_values(instance, exclude_fields=None):
@@ -109,6 +204,23 @@ def store_original_values(sender, instance, **kwargs):
     """
     Store original values before update so we can compare them later.
     """
+    try:
+        # Skip if running in migration context
+        if is_running_in_migration():
+            return
+    except Exception as e:
+        logger.debug(f"Migration detection failed in store_original_values for {sender._meta.label}: {str(e)}")
+        # Fail-safe: continue execution if detection fails
+    
+    try:
+        # Skip if audit log table doesn't exist yet
+        if not audit_log_table_exists():
+            return
+    except Exception as e:
+        logger.error(f"Table existence check failed in store_original_values for {sender._meta.label}: {str(e)}")
+        # Fail-safe: skip execution if table check fails
+        return
+    
     # Skip for AuditLog itself
     if isinstance(instance, AuditLog):
         return
@@ -133,7 +245,11 @@ def store_original_values(sender, instance, **kwargs):
             # Instance doesn't exist yet, it's a create
             pass
         except Exception as e:
-            logger.error(f"Error storing original values for {sender._meta.label}: {str(e)}")
+            migration_context = "during migration" if is_running_in_migration() else "in normal operation"
+            logger.error(
+                f"Error storing original values for {sender._meta.label} {migration_context}: {str(e)}",
+                exc_info=True
+            )
 
 
 @receiver(post_save)
@@ -141,6 +257,23 @@ def log_create_or_update(sender, instance, created, **kwargs):
     """
     Log CREATE or UPDATE operations for all models.
     """
+    try:
+        # Skip if running in migration context
+        if is_running_in_migration():
+            return
+    except Exception as e:
+        logger.debug(f"Migration detection failed in log_create_or_update for {sender._meta.label}: {str(e)}")
+        # Fail-safe: continue execution if detection fails
+    
+    try:
+        # Skip if audit log table doesn't exist yet
+        if not audit_log_table_exists():
+            return
+    except Exception as e:
+        logger.error(f"Table existence check failed in log_create_or_update for {sender._meta.label}: {str(e)}")
+        # Fail-safe: skip execution if table check fails
+        return
+    
     # Skip logging for AuditLog itself to avoid recursion
     if isinstance(instance, AuditLog):
         return
@@ -225,7 +358,11 @@ def log_create_or_update(sender, instance, created, **kwargs):
         
     except Exception as e:
         # Don't let logging errors break the application
-        logger.error(f"Error creating audit log for {sender._meta.label}: {str(e)}", exc_info=True)
+        migration_context = "during migration" if is_running_in_migration() else "in normal operation"
+        logger.error(
+            f"Error creating audit log for {sender._meta.label} {migration_context}: {str(e)}",
+            exc_info=True
+        )
 
 
 @receiver(pre_delete)
@@ -233,6 +370,23 @@ def log_pre_delete(sender, instance, **kwargs):
     """
     Store original values before deletion so we can log them.
     """
+    try:
+        # Skip if running in migration context
+        if is_running_in_migration():
+            return
+    except Exception as e:
+        logger.debug(f"Migration detection failed in log_pre_delete for {sender._meta.label}: {str(e)}")
+        # Fail-safe: continue execution if detection fails
+    
+    try:
+        # Skip if audit log table doesn't exist yet
+        if not audit_log_table_exists():
+            return
+    except Exception as e:
+        logger.error(f"Table existence check failed in log_pre_delete for {sender._meta.label}: {str(e)}")
+        # Fail-safe: skip execution if table check fails
+        return
+    
     # Skip logging for AuditLog itself
     if isinstance(instance, AuditLog):
         return
@@ -251,7 +405,11 @@ def log_pre_delete(sender, instance, **kwargs):
         cache_key = f"{sender._meta.label}.{instance.pk}"
         _original_values_cache[cache_key] = get_model_field_values(instance)
     except Exception as e:
-        logger.error(f"Error storing pre-delete values for {sender._meta.label}: {str(e)}")
+        migration_context = "during migration" if is_running_in_migration() else "in normal operation"
+        logger.error(
+            f"Error storing pre-delete values for {sender._meta.label} {migration_context}: {str(e)}",
+            exc_info=True
+        )
 
 
 @receiver(post_delete)
@@ -259,6 +417,23 @@ def log_delete(sender, instance, **kwargs):
     """
     Log DELETE operations for all models.
     """
+    try:
+        # Skip if running in migration context
+        if is_running_in_migration():
+            return
+    except Exception as e:
+        logger.debug(f"Migration detection failed in log_delete for {sender._meta.label}: {str(e)}")
+        # Fail-safe: continue execution if detection fails
+    
+    try:
+        # Skip if audit log table doesn't exist yet
+        if not audit_log_table_exists():
+            return
+    except Exception as e:
+        logger.error(f"Table existence check failed in log_delete for {sender._meta.label}: {str(e)}")
+        # Fail-safe: skip execution if table check fails
+        return
+    
     # Skip logging for AuditLog itself
     if isinstance(instance, AuditLog):
         return
@@ -322,5 +497,9 @@ def log_delete(sender, instance, **kwargs):
         
     except Exception as e:
         # Don't let logging errors break the application
-        logger.error(f"Error creating audit log for delete {sender._meta.label}: {str(e)}", exc_info=True)
+        migration_context = "during migration" if is_running_in_migration() else "in normal operation"
+        logger.error(
+            f"Error creating audit log for delete {sender._meta.label} {migration_context}: {str(e)}",
+            exc_info=True
+        )
 
