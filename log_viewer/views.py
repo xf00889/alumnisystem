@@ -9,11 +9,19 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Count
 from django.conf import settings
 from django.utils import timezone
+from django.views.decorators.http import require_POST
 from datetime import datetime, timedelta
 import re
 import csv
 from collections import defaultdict
-from .models import AuditLog
+from .models import (
+    AuditLog, 
+    LogRetentionPolicy, 
+    LogCleanupSchedule, 
+    LogOperationHistory, 
+    ArchiveStorageConfig
+)
+from .services import LogManagementService
 
 logger = logging.getLogger(__name__)
 
@@ -327,35 +335,6 @@ def log_export(request):
     except Exception as e:
         logger.error(f"Error exporting logs: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
-
-@staff_member_required
-def log_clear(request):
-    """
-    Clear log file (admin only)
-    """
-    if request.method == 'POST':
-        try:
-            log_file = request.POST.get('log_file')
-            log_dir = Path(settings.BASE_DIR) / 'logs'
-            file_path = log_dir / log_file
-            
-            if file_path.exists():
-                # Backup old log
-                backup_path = file_path.with_suffix(f'.{timezone.now().strftime("%Y%m%d_%H%M%S")}.bak')
-                file_path.rename(backup_path)
-                
-                # Create new empty file
-                file_path.touch()
-                
-                return JsonResponse({'success': True, 'message': 'Log file cleared successfully'})
-            else:
-                return JsonResponse({'success': False, 'message': 'Log file not found'}, status=404)
-                
-        except Exception as e:
-            logger.error(f"Error clearing log file: {str(e)}")
-            return JsonResponse({'success': False, 'message': str(e)}, status=500)
-    
-    return JsonResponse({'success': False, 'message': 'Invalid request method'}, status=405)
 
 
 @staff_member_required
@@ -823,3 +802,668 @@ def audit_log_export(request):
     except Exception as e:
         logger.error(f"Error exporting audit logs: {str(e)}")
         return JsonResponse({'error': str(e)}, status=500)
+
+
+@staff_member_required
+def log_management_dashboard(request):
+    """
+    Main dashboard for log management configuration and monitoring
+    """
+    try:
+        # Get or create retention policies
+        audit_policy, _ = LogRetentionPolicy.objects.get_or_create(
+            log_type='audit',
+            defaults={
+                'retention_days': 90,
+                'enabled': False,
+                'export_before_delete': True,
+                'export_format': 'csv'
+            }
+        )
+        
+        file_policy, _ = LogRetentionPolicy.objects.get_or_create(
+            log_type='file',
+            defaults={
+                'retention_days': 30,
+                'enabled': False,
+                'export_before_delete': True,
+                'export_format': 'csv'
+            }
+        )
+        
+        # Get or create cleanup schedule
+        schedule = LogCleanupSchedule.objects.first()
+        
+        # Get or create storage config
+        storage_config, _ = ArchiveStorageConfig.objects.get_or_create(
+            defaults={
+                'max_storage_gb': 10.0,
+                'warning_threshold_percent': 80,
+                'critical_threshold_percent': 95,
+                'current_size_gb': 0.0
+            }
+        )
+        
+        # Get recent operations (last 10)
+        recent_operations = LogOperationHistory.objects.all()[:10]
+        
+        # Calculate storage usage percentage
+        storage_usage_percent = storage_config.usage_percent
+        
+        # Determine storage status for color coding
+        storage_status = storage_config.status
+        
+        context = {
+            'audit_policy': audit_policy,
+            'file_policy': file_policy,
+            'schedule': schedule,
+            'recent_operations': recent_operations,
+            'storage_config': storage_config,
+            'storage_usage_percent': storage_usage_percent,
+            'storage_status': storage_status,
+        }
+        
+        return render(request, 'log_viewer/management_dashboard.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in log_management_dashboard view: {str(e)}", exc_info=True)
+        return render(request, 'log_viewer/error.html', {
+            'error_message': f'Error loading log management dashboard: {str(e)}'
+        })
+
+
+@staff_member_required
+@staff_member_required
+@require_POST
+def manual_cleanup_trigger(request):
+    """
+    Manually trigger log cleanup operation.
+    
+    This endpoint allows staff members to trigger a manual cleanup operation
+    outside of the scheduled times. The operation will apply the same retention
+    policies as scheduled cleanup.
+    
+    Returns:
+        JsonResponse with success status, message, and operation metrics
+    """
+    try:
+        logger.info(f"Manual cleanup triggered by user: {request.user.username}")
+        
+        # Instantiate the log management service
+        service = LogManagementService()
+        
+        # Execute cleanup with manual operation type
+        operation = service.execute_cleanup(
+            triggered_by=request.user,
+            operation_type='manual'
+        )
+        
+        # Prepare response based on operation status
+        if operation.status == 'success':
+            message = f'Cleanup completed successfully. Processed {operation.total_processed} log entries, deleted {operation.total_deleted}, created {operation.archives_created} archives.'
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'operation_id': operation.id,
+                'metrics': {
+                    'total_processed': operation.total_processed,
+                    'total_deleted': operation.total_deleted,
+                    'archives_created': operation.archives_created,
+                    'audit_logs_processed': operation.audit_logs_processed,
+                    'audit_logs_deleted': operation.audit_logs_deleted,
+                    'file_logs_processed': operation.file_logs_processed,
+                    'file_logs_deleted': operation.file_logs_deleted,
+                }
+            })
+        elif operation.status == 'partial':
+            message = f'Cleanup completed with warnings. Processed {operation.total_processed} log entries, deleted {operation.total_deleted}. Some operations may have failed.'
+            return JsonResponse({
+                'success': True,
+                'message': message,
+                'operation_id': operation.id,
+                'warning': True,
+                'metrics': {
+                    'total_processed': operation.total_processed,
+                    'total_deleted': operation.total_deleted,
+                    'archives_created': operation.archives_created,
+                }
+            })
+        else:
+            # Failed status
+            error_msg = operation.error_message or 'Unknown error occurred during cleanup'
+            return JsonResponse({
+                'success': False,
+                'message': f'Cleanup failed: {error_msg}',
+                'operation_id': operation.id,
+            }, status=500)
+            
+    except Exception as e:
+        logger.error(f"Error in manual_cleanup_trigger: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': f'Error triggering cleanup: {str(e)}'
+        }, status=500)
+
+
+@staff_member_required
+def unified_dashboard(request):
+    """
+    Unified log management dashboard with inline editing capabilities
+    """
+    try:
+        # Get or create retention policies
+        audit_policy, _ = LogRetentionPolicy.objects.get_or_create(
+            log_type='audit',
+            defaults={
+                'retention_days': 90,
+                'enabled': False,
+                'export_before_delete': True,
+                'export_format': 'csv',
+                'archive_path': 'logs/archives/audit'
+            }
+        )
+        
+        file_policy, _ = LogRetentionPolicy.objects.get_or_create(
+            log_type='file',
+            defaults={
+                'retention_days': 30,
+                'enabled': False,
+                'export_before_delete': True,
+                'export_format': 'csv',
+                'archive_path': 'logs/archives/file'
+            }
+        )
+        
+        # Get or create cleanup schedule
+        schedule = LogCleanupSchedule.objects.first()
+        
+        # Get or create storage config
+        storage_config, _ = ArchiveStorageConfig.objects.get_or_create(
+            defaults={
+                'max_storage_gb': 10.0,
+                'warning_threshold_percent': 80,
+                'critical_threshold_percent': 95,
+                'current_size_gb': 0.0
+            }
+        )
+        
+        # Calculate storage usage percentage
+        storage_usage_percent = storage_config.usage_percent
+        
+        # Determine storage status for color coding
+        storage_status = storage_config.status
+        
+        context = {
+            'audit_policy': audit_policy,
+            'file_policy': file_policy,
+            'schedule': schedule,
+            'storage_config': storage_config,
+            'storage_usage_percent': storage_usage_percent,
+            'storage_status': storage_status,
+        }
+        
+        return render(request, 'log_viewer/unified_dashboard.html', context)
+        
+    except Exception as e:
+        logger.error(f"Error in unified_dashboard view: {str(e)}", exc_info=True)
+        return render(request, 'log_viewer/error.html', {
+            'error_message': f'Error loading unified dashboard: {str(e)}'
+        })
+
+
+@staff_member_required
+@require_POST
+def save_retention_policy(request):
+    """
+    Save retention policy configuration via AJAX
+    """
+    try:
+        import json
+        data = json.loads(request.body)
+        
+        log_type = data.get('log_type')
+        if log_type not in ['audit', 'file']:
+            return JsonResponse({
+                'success': False,
+                'message': 'Invalid log type'
+            }, status=400)
+        
+        # Get or create the policy
+        policy, created = LogRetentionPolicy.objects.get_or_create(
+            log_type=log_type,
+            defaults={
+                'retention_days': 90 if log_type == 'audit' else 30,
+                'enabled': False,
+                'export_before_delete': True,
+                'export_format': 'csv'
+            }
+        )
+        
+        # Validate retention days
+        retention_days = int(data.get('retention_days', policy.retention_days))
+        if retention_days < 1 or retention_days > 3650:
+            return JsonResponse({
+                'success': False,
+                'message': 'Retention days must be between 1 and 3650'
+            }, status=400)
+        
+        # Update policy fields
+        policy.enabled = data.get('enabled', policy.enabled)
+        policy.retention_days = retention_days
+        policy.export_format = data.get('export_format', policy.export_format)
+        policy.archive_path = data.get('archive_path', policy.archive_path)
+        policy.export_before_delete = data.get('export_before_delete', policy.export_before_delete)
+        
+        policy.save()
+        
+        logger.info(f"Retention policy for {log_type} logs updated by {request.user.username}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': f'{log_type.capitalize()} log retention policy saved successfully'
+        })
+        
+    except Exception as e:
+        logger.error(f"Error saving retention policy: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@staff_member_required
+@require_POST
+def save_cleanup_schedule(request):
+    """
+    Save cleanup schedule configuration via AJAX
+    """
+    try:
+        import json
+        from datetime import time as dt_time
+        
+        data = json.loads(request.body)
+        
+        # Get or create schedule
+        schedule = LogCleanupSchedule.objects.first()
+        if not schedule:
+            schedule = LogCleanupSchedule.objects.create(
+                enabled=False,
+                frequency='daily',
+                execution_time=dt_time(2, 0)
+            )
+        
+        # Update schedule fields
+        schedule.enabled = data.get('enabled', schedule.enabled)
+        schedule.frequency = data.get('frequency', schedule.frequency)
+        
+        # Parse execution time
+        execution_time_str = data.get('execution_time')
+        if execution_time_str:
+            hour, minute = map(int, execution_time_str.split(':'))
+            schedule.execution_time = dt_time(hour, minute)
+        
+        # Handle conditional fields
+        if schedule.frequency == 'weekly':
+            schedule.day_of_week = data.get('day_of_week')
+            schedule.day_of_month = None
+        elif schedule.frequency == 'monthly':
+            day_of_month = data.get('day_of_month')
+            if day_of_month:
+                day_of_month = int(day_of_month)
+                if day_of_month < 1 or day_of_month > 28:
+                    return JsonResponse({
+                        'success': False,
+                        'message': 'Day of month must be between 1 and 28'
+                    }, status=400)
+                schedule.day_of_month = day_of_month
+            schedule.day_of_week = None
+        else:  # daily
+            schedule.day_of_week = None
+            schedule.day_of_month = None
+        
+        # Calculate next run time
+        service = LogManagementService()
+        next_run = service.calculate_next_run_time(schedule)
+        
+        # Handle timezone awareness based on USE_TZ setting
+        if next_run:
+            if settings.USE_TZ:
+                # Ensure timezone aware
+                if timezone.is_naive(next_run):
+                    schedule.next_run = timezone.make_aware(next_run)
+                else:
+                    schedule.next_run = next_run
+            else:
+                # Ensure timezone naive
+                if timezone.is_aware(next_run):
+                    schedule.next_run = timezone.make_naive(next_run)
+                else:
+                    schedule.next_run = next_run
+        else:
+            schedule.next_run = next_run
+        
+        schedule.save()
+        
+        logger.info(f"Cleanup schedule updated by {request.user.username}")
+        
+        # Format next run time for response
+        next_run_formatted = schedule.next_run.strftime('%B %d, %Y at %I:%M %p') if schedule.next_run else None
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Cleanup schedule saved successfully',
+            'next_run': next_run_formatted
+        })
+        
+    except Exception as e:
+        logger.error(f"Error saving cleanup schedule: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@staff_member_required
+@require_POST
+def save_storage_config(request):
+    """
+    Save archive storage configuration via AJAX
+    """
+    try:
+        import json
+        from decimal import Decimal
+        
+        data = json.loads(request.body)
+        
+        # Get or create storage config
+        storage_config, created = ArchiveStorageConfig.objects.get_or_create(
+            defaults={
+                'max_storage_gb': 10.0,
+                'warning_threshold_percent': 80,
+                'critical_threshold_percent': 95,
+                'current_size_gb': 0.0
+            }
+        )
+        
+        # Validate thresholds
+        warning_threshold = int(data.get('warning_threshold_percent', storage_config.warning_threshold_percent))
+        critical_threshold = int(data.get('critical_threshold_percent', storage_config.critical_threshold_percent))
+        
+        if warning_threshold < 1 or warning_threshold > 100:
+            return JsonResponse({
+                'success': False,
+                'message': 'Warning threshold must be between 1 and 100'
+            }, status=400)
+        
+        if critical_threshold < 1 or critical_threshold > 100:
+            return JsonResponse({
+                'success': False,
+                'message': 'Critical threshold must be between 1 and 100'
+            }, status=400)
+        
+        if critical_threshold <= warning_threshold:
+            return JsonResponse({
+                'success': False,
+                'message': 'Critical threshold must be greater than warning threshold'
+            }, status=400)
+        
+        # Update storage config
+        storage_config.max_storage_gb = Decimal(str(data.get('max_storage_gb', storage_config.max_storage_gb)))
+        storage_config.warning_threshold_percent = warning_threshold
+        storage_config.critical_threshold_percent = critical_threshold
+        
+        storage_config.save()
+        
+        logger.info(f"Storage configuration updated by {request.user.username}")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Storage configuration saved successfully',
+            'storage_usage_percent': float(storage_config.usage_percent),
+            'current_size_gb': float(storage_config.current_size_gb),
+            'max_storage_gb': float(storage_config.max_storage_gb),
+            'status': storage_config.status
+        })
+        
+    except Exception as e:
+        logger.error(f"Error saving storage config: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@staff_member_required
+@require_POST
+def recalculate_storage(request):
+    """
+    Recalculate archive storage size via AJAX
+    """
+    try:
+        # Get storage config
+        storage_config = ArchiveStorageConfig.objects.first()
+        if not storage_config:
+            return JsonResponse({
+                'success': False,
+                'message': 'Storage configuration not found'
+            }, status=404)
+        
+        # Recalculate storage size
+        service = LogManagementService()
+        service.check_storage_limits()
+        
+        # Refresh from database
+        storage_config.refresh_from_db()
+        
+        logger.info(f"Storage size recalculated by {request.user.username}: {storage_config.current_size_gb} GB")
+        
+        return JsonResponse({
+            'success': True,
+            'message': 'Storage size recalculated successfully',
+            'current_size_gb': float(storage_config.current_size_gb),
+            'max_storage_gb': float(storage_config.max_storage_gb),
+            'storage_usage_percent': float(storage_config.usage_percent),
+            'status': storage_config.status
+        })
+        
+    except Exception as e:
+        logger.error(f"Error recalculating storage: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@staff_member_required
+def filter_operations(request):
+    """
+    Filter and paginate operation history via AJAX
+    """
+    try:
+        # Get filter parameters
+        status_filter = request.GET.get('status', '')
+        operation_type_filter = request.GET.get('operation_type', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        page = int(request.GET.get('page', 1))
+        per_page = 50
+        
+        # Start with all operations
+        operations = LogOperationHistory.objects.all()
+        
+        # Apply filters
+        if status_filter:
+            operations = operations.filter(status=status_filter)
+        
+        if operation_type_filter:
+            operations = operations.filter(operation_type=operation_type_filter)
+        
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                operations = operations.filter(started_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                operations = operations.filter(started_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        # Order by most recent first
+        operations = operations.order_by('-started_at')
+        
+        # Get total count
+        total_count = operations.count()
+        
+        # Paginate
+        paginator = Paginator(operations, per_page)
+        page_obj = paginator.get_page(page)
+        
+        # Serialize operations
+        operations_data = []
+        for op in page_obj:
+            operations_data.append({
+                'id': op.id,
+                'started_at': op.started_at.strftime('%b %d, %Y %I:%M %p'),
+                'operation_type': op.get_operation_type_display(),
+                'status': op.status,
+                'status_display': op.get_status_display(),
+                'total_processed': op.total_processed,
+                'total_deleted': op.total_deleted,
+                'archives_created': op.archives_created,
+                'triggered_by': op.triggered_by.username if op.triggered_by else None
+            })
+        
+        return JsonResponse({
+            'success': True,
+            'operations': operations_data,
+            'page': page,
+            'total_pages': paginator.num_pages,
+            'total_count': total_count
+        })
+        
+    except Exception as e:
+        logger.error(f"Error filtering operations: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@staff_member_required
+def operation_detail(request, operation_id):
+    """
+    Get detailed information about a specific operation via AJAX
+    """
+    try:
+        operation = get_object_or_404(LogOperationHistory, id=operation_id)
+        
+        data = {
+            'success': True,
+            'operation': {
+                'id': operation.id,
+                'operation_type': operation.operation_type,
+                'operation_type_display': operation.get_operation_type_display(),
+                'status': operation.status,
+                'status_display': operation.get_status_display(),
+                'started_at': operation.started_at.strftime('%B %d, %Y at %I:%M %p'),
+                'completed_at': operation.completed_at.strftime('%B %d, %Y at %I:%M %p') if operation.completed_at else None,
+                'audit_logs_processed': operation.audit_logs_processed,
+                'audit_logs_deleted': operation.audit_logs_deleted,
+                'file_logs_processed': operation.file_logs_processed,
+                'file_logs_deleted': operation.file_logs_deleted,
+                'archives_created': operation.archives_created,
+                'error_message': operation.error_message,
+                'archive_files': operation.archive_files,
+                'triggered_by': operation.triggered_by.username if operation.triggered_by else None
+            }
+        }
+        
+        return JsonResponse(data)
+        
+    except Exception as e:
+        logger.error(f"Error getting operation detail: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)
+
+
+@staff_member_required
+def export_operations(request):
+    """
+    Export operation history to CSV
+    """
+    try:
+        # Get filter parameters (same as filter_operations)
+        status_filter = request.GET.get('status', '')
+        operation_type_filter = request.GET.get('operation_type', '')
+        date_from = request.GET.get('date_from', '')
+        date_to = request.GET.get('date_to', '')
+        
+        # Start with all operations
+        operations = LogOperationHistory.objects.all()
+        
+        # Apply filters
+        if status_filter:
+            operations = operations.filter(status=status_filter)
+        
+        if operation_type_filter:
+            operations = operations.filter(operation_type=operation_type_filter)
+        
+        if date_from:
+            try:
+                date_from_obj = datetime.strptime(date_from, '%Y-%m-%d').date()
+                operations = operations.filter(started_at__date__gte=date_from_obj)
+            except ValueError:
+                pass
+        
+        if date_to:
+            try:
+                date_to_obj = datetime.strptime(date_to, '%Y-%m-%d').date()
+                operations = operations.filter(started_at__date__lte=date_to_obj)
+            except ValueError:
+                pass
+        
+        # Order by most recent first
+        operations = operations.order_by('-started_at')
+        
+        # Create CSV response
+        response = HttpResponse(content_type='text/csv')
+        filename = f"operation_history_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        response['Content-Disposition'] = f'attachment; filename="{filename}"'
+        
+        writer = csv.writer(response)
+        writer.writerow([
+            'Started At', 'Completed At', 'Operation Type', 'Status',
+            'Audit Logs Processed', 'Audit Logs Deleted',
+            'File Logs Processed', 'File Logs Deleted',
+            'Archives Created', 'Triggered By', 'Error Message'
+        ])
+        
+        for op in operations:
+            writer.writerow([
+                op.started_at.strftime('%Y-%m-%d %H:%M:%S'),
+                op.completed_at.strftime('%Y-%m-%d %H:%M:%S') if op.completed_at else '',
+                op.get_operation_type_display(),
+                op.get_status_display(),
+                op.audit_logs_processed,
+                op.audit_logs_deleted,
+                op.file_logs_processed,
+                op.file_logs_deleted,
+                op.archives_created,
+                op.triggered_by.username if op.triggered_by else 'System',
+                op.error_message[:200] if op.error_message else ''
+            ])
+        
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error exporting operations: {str(e)}", exc_info=True)
+        return JsonResponse({
+            'success': False,
+            'message': str(e)
+        }, status=500)

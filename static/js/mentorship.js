@@ -11,11 +11,14 @@ function initMentorSearch() {
         await searchMentors();
     });
     
-    // Handle mentorship request submission
-    document.getElementById('submitRequest').addEventListener('click', async () => {
-        await submitMentorshipRequest();
-        requestModal.hide();
-    });
+    // Handle mentorship request submission (guard against missing button)
+    const submitRequestBtn = document.getElementById('submitRequest');
+    if (submitRequestBtn) {
+        submitRequestBtn.addEventListener('click', async () => {
+            await submitMentorshipRequest();
+            requestModal.hide();
+        });
+    }
     
     // Handle view toggle
     const gridViewBtn = document.getElementById('gridView');
@@ -249,41 +252,80 @@ function getAvailabilityClass(status) {
 
 function openRequestModal(mentor) {
     const modal = document.getElementById('mentorshipRequestModal');
-    const mentorIdInput = document.getElementById('mentorId');
-    const errorContainer = modal.querySelector('.alert');
-    
+    if (!modal) {
+        // If modal is missing, show a toast and bail gracefully
+        showErrorMessage('Mentorship request modal not found on this page.');
+        return;
+    }
+
+    const form = document.getElementById('mentorshipRequestForm');
+    const modalBody = modal.querySelector('.modal-body');
+    let errorContainer = modal.querySelector('.modal-body .alert');
+
+    // Create alert container if it doesn't exist
+    if (!errorContainer && modalBody) {
+        errorContainer = document.createElement('div');
+        errorContainer.className = 'alert alert-info';
+        modalBody.prepend(errorContainer);
+    }
+
     // Reset form and error state
-    document.getElementById('mentorshipRequestForm').reset();
-    errorContainer.className = 'alert alert-info';
-    errorContainer.innerHTML = '<i class="fas fa-info-circle me-2"></i>Please provide details about what you\'re looking to gain from this mentorship. Be specific about your goals and what skills you\'re hoping to develop.';
-    
-    // Set mentor ID
-    mentorIdInput.value = mentor.id;
-    
+    if (form) form.reset();
+    if (errorContainer) {
+        errorContainer.className = 'alert alert-info';
+        errorContainer.innerHTML = '<i class="fas fa-info-circle me-2"></i>Please provide details about what you\'re looking to gain from this mentorship. Be specific about your goals and what skills you\'re hoping to develop.';
+    }
+
+    // Set mentor ID (create input if missing)
+    let mentorIdInput = document.getElementById('mentorId');
+    if (!mentorIdInput && form) {
+        mentorIdInput = document.createElement('input');
+        mentorIdInput.type = 'hidden';
+        mentorIdInput.id = 'mentorId';
+        mentorIdInput.name = 'mentorId';
+        form.prepend(mentorIdInput);
+    }
+    if (mentorIdInput) mentorIdInput.value = mentor.id;
+
     // Pre-fill skills field with mentor's expertise if available
     const skillsInput = document.getElementById('skillsSeeking');
-    if (mentor.expertise_list && Array.isArray(mentor.expertise_list)) {
-        skillsInput.value = mentor.expertise_list.slice(0, 3).join(', ');
-    } else if (mentor.expertise_areas) {
-        skillsInput.value = mentor.expertise_areas.split(',').slice(0, 3).join(', ');
+    if (skillsInput) {
+        if (mentor.expertise_list && Array.isArray(mentor.expertise_list)) {
+            skillsInput.value = mentor.expertise_list.slice(0, 3).join(', ');
+        } else if (mentor.expertise_areas) {
+            skillsInput.value = mentor.expertise_areas.split(',').slice(0, 3).join(', ');
+        }
     }
-    
+
     // Add mentor name to modal title
     const modalTitle = modal.querySelector('.modal-title');
-    modalTitle.innerHTML = `<i class="fas fa-handshake me-2"></i>Request Mentorship from ${mentor.user.full_name}`;
-    
+    if (modalTitle) {
+        modalTitle.innerHTML = `<i class="fas fa-handshake me-2"></i>Request Mentorship from ${mentor.user.full_name}`;
+    }
+
     new bootstrap.Modal(modal).show();
 }
 
 async function submitMentorshipRequest() {
     const form = document.getElementById('mentorshipRequestForm');
     const submitButton = document.getElementById('submitRequest');
-    const errorContainer = document.querySelector('.mentorship-request-modal .alert-info');
+    // Find an existing alert in the modal body; create one if absent
+    const modal = document.getElementById('mentorshipRequestModal');
+    const modalBody = modal ? modal.querySelector('.modal-body') : null;
+    let errorContainer = modalBody ? modalBody.querySelector('.alert') : null;
+    if (!errorContainer && modalBody) {
+        errorContainer = document.createElement('div');
+        errorContainer.className = 'alert alert-info';
+        modalBody.prepend(errorContainer);
+    }
     
     // Validate form fields
+    if (!form || !submitButton) return;
     if (!form.skillsSeeking.value.trim() || !form.goals.value.trim() || !form.message.value.trim()) {
-        errorContainer.className = 'alert alert-danger';
-        errorContainer.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please fill out all required fields.';
+        if (errorContainer) {
+            errorContainer.className = 'alert alert-danger';
+            errorContainer.innerHTML = '<i class="fas fa-exclamation-circle me-2"></i>Please fill out all required fields.';
+        }
         return;
     }
     
@@ -322,8 +364,12 @@ async function submitMentorshipRequest() {
         
     } catch (error) {
         console.error('Request error:', error);
-        errorContainer.className = 'alert alert-danger';
-        errorContainer.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${error.message}`;
+        if (errorContainer) {
+            errorContainer.className = 'alert alert-danger';
+            errorContainer.innerHTML = `<i class="fas fa-exclamation-circle me-2"></i>${error.message}`;
+        } else {
+            showErrorMessage(error.message);
+        }
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = '<i class="fas fa-paper-plane me-2"></i>Send Request';

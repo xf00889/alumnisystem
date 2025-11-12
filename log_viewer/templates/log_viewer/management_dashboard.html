@@ -1,0 +1,749 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Log Management Dashboard{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    .dashboard-container {
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .dashboard-header {
+        background: var(--primary-color, #2b3c6b);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .dashboard-header-content {
+        flex: 1;
+    }
+    
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header-actions {
+        display: flex;
+        gap: 0.75rem;
+    }
+    
+    .btn-back {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+    
+    .btn-back i {
+        font-size: 1rem;
+    }
+    
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+    
+    .dashboard-card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1a202c;
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+    }
+    
+    .card-body {
+        color: #4a5568;
+    }
+    
+    .policy-info {
+        margin-bottom: 0.75rem;
+    }
+    
+    .policy-label {
+        font-weight: 500;
+        color: #2d3748;
+        margin-right: 0.5rem;
+    }
+    
+    .policy-value {
+        color: #4a5568;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .status-enabled {
+        background-color: #c6f6d5;
+        color: #22543d;
+    }
+    
+    .status-disabled {
+        background-color: #fed7d7;
+        color: #742a2a;
+    }
+    
+    .status-success {
+        background-color: #c6f6d5;
+        color: #22543d;
+    }
+    
+    .status-failed {
+        background-color: #fed7d7;
+        color: #742a2a;
+    }
+    
+    .status-partial {
+        background-color: #feebc8;
+        color: #7c2d12;
+    }
+    
+    .btn-configure {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: var(--primary-color, #2b3c6b);
+        color: white;
+        text-decoration: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-configure:hover {
+        background-color: #1e2a4a;
+        color: white;
+        text-decoration: none;
+    }
+    
+    .btn-trigger {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background-color: #48bb78;
+        color: white;
+        text-decoration: none;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: background-color 0.2s;
+        border: none;
+        cursor: pointer;
+    }
+    
+    .btn-trigger:hover {
+        background-color: #38a169;
+        color: white;
+    }
+    
+    .btn-trigger:disabled {
+        background-color: #cbd5e0;
+        cursor: not-allowed;
+    }
+    
+    .schedule-info {
+        background-color: #f7fafc;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+    }
+    
+    .schedule-row {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: 0.5rem;
+    }
+    
+    .schedule-row:last-child {
+        margin-bottom: 0;
+    }
+    
+    .next-run-highlight {
+        background-color: #edf2f7;
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        border-left: 4px solid var(--primary-color, #2b3c6b);
+        margin-bottom: 1rem;
+    }
+    
+    .next-run-label {
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.25rem;
+    }
+    
+    .next-run-time {
+        font-size: 1.125rem;
+        color: var(--primary-color, #2b3c6b);
+        font-weight: 500;
+    }
+    
+    .storage-progress {
+        width: 100%;
+        height: 2rem;
+        background-color: #e2e8f0;
+        border-radius: 0.5rem;
+        overflow: hidden;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .storage-progress-bar {
+        height: 100%;
+        transition: width 0.3s ease;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    
+    .storage-normal {
+        background-color: #48bb78;
+    }
+    
+    .storage-warning {
+        background-color: #ed8936;
+    }
+    
+    .storage-critical {
+        background-color: #f56565;
+    }
+    
+    .storage-details {
+        display: flex;
+        justify-content: space-between;
+        color: #4a5568;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+    }
+    
+    .storage-alert {
+        padding: 0.75rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+    }
+    
+    .storage-alert-warning {
+        background-color: #feebc8;
+        color: #7c2d12;
+        border-left: 4px solid #ed8936;
+    }
+    
+    .storage-alert-critical {
+        background-color: #fed7d7;
+        color: #742a2a;
+        border-left: 4px solid #f56565;
+    }
+    
+    .operations-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .operations-table th {
+        background-color: #f7fafc;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        color: #2d3748;
+        border-bottom: 2px solid #e2e8f0;
+        font-size: 0.875rem;
+    }
+    
+    .operations-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+        color: #4a5568;
+        font-size: 0.875rem;
+    }
+    
+    .operations-table tr:hover {
+        background-color: #f7fafc;
+    }
+    
+    .no-operations {
+        text-align: center;
+        padding: 2rem;
+        color: #718096;
+    }
+    
+    .full-width-card {
+        grid-column: 1 / -1;
+    }
+    
+    .icon {
+        margin-right: 0.5rem;
+    }
+    
+    .no-schedule {
+        background-color: #fef5e7;
+        padding: 1rem;
+        border-radius: 0.375rem;
+        border-left: 4px solid #f39c12;
+        color: #7c4a00;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <div class="dashboard-header-content">
+            <h1 class="dashboard-title">Log Management Dashboard</h1>
+            <p class="dashboard-subtitle">Configure automated log retention, cleanup schedules, and monitor operations</p>
+        </div>
+        <div class="dashboard-header-actions">
+            <a href="{% url 'log_viewer:unified_dashboard' %}" class="btn-back">
+                <i class="fas fa-th-large"></i>
+                Unified Dashboard
+            </a>
+            <a href="{% url 'log_viewer:logs' %}" class="btn-back">
+                <i class="fas fa-arrow-left"></i>
+                Back to Logs
+            </a>
+        </div>
+    </div>
+    
+    <!-- Retention Policies Section -->
+    <div class="dashboard-grid">
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2 class="card-title">Audit Logs Policy</h2>
+                <span class="status-badge {% if audit_policy.enabled %}status-enabled{% else %}status-disabled{% endif %}">
+                    {% if audit_policy.enabled %}✓ Enabled{% else %}✗ Disabled{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="policy-info">
+                    <span class="policy-label">Retention Period:</span>
+                    <span class="policy-value">{{ audit_policy.retention_days }} days</span>
+                </div>
+                <div class="policy-info">
+                    <span class="policy-label">Export Format:</span>
+                    <span class="policy-value">{{ audit_policy.get_export_format_display }}</span>
+                </div>
+                <div class="policy-info">
+                    <span class="policy-label">Export Before Delete:</span>
+                    <span class="policy-value">{% if audit_policy.export_before_delete %}Yes{% else %}No{% endif %}</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'admin:log_viewer_logretentionpolicy_change' audit_policy.id %}" class="btn-configure">
+                        Configure
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="dashboard-card">
+            <div class="card-header">
+                <h2 class="card-title">File Logs Policy</h2>
+                <span class="status-badge {% if file_policy.enabled %}status-enabled{% else %}status-disabled{% endif %}">
+                    {% if file_policy.enabled %}✓ Enabled{% else %}✗ Disabled{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <div class="policy-info">
+                    <span class="policy-label">Retention Period:</span>
+                    <span class="policy-value">{{ file_policy.retention_days }} days</span>
+                </div>
+                <div class="policy-info">
+                    <span class="policy-label">Export Format:</span>
+                    <span class="policy-value">{{ file_policy.get_export_format_display }}</span>
+                </div>
+                <div class="policy-info">
+                    <span class="policy-label">Export Before Delete:</span>
+                    <span class="policy-value">{% if file_policy.export_before_delete %}Yes{% else %}No{% endif %}</span>
+                </div>
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'admin:log_viewer_logretentionpolicy_change' file_policy.id %}" class="btn-configure">
+                        Configure
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Cleanup Schedule Section -->
+    <div class="dashboard-grid">
+        <div class="dashboard-card full-width-card">
+            <div class="card-header">
+                <h2 class="card-title">Cleanup Schedule</h2>
+                {% if schedule %}
+                <span class="status-badge {% if schedule.enabled %}status-enabled{% else %}status-disabled{% endif %}">
+                    {% if schedule.enabled %}✓ Enabled{% else %}✗ Disabled{% endif %}
+                </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if schedule %}
+                    {% if schedule.next_run %}
+                    <div class="next-run-highlight">
+                        <div class="next-run-label">Next Scheduled Run:</div>
+                        <div class="next-run-time">{{ schedule.next_run|date:"F d, Y \a\t g:i A" }}</div>
+                    </div>
+                    {% endif %}
+                    
+                    <div class="schedule-info">
+                        <div class="schedule-row">
+                            <span class="policy-label">Frequency:</span>
+                            <span class="policy-value">{{ schedule.get_frequency_display }}</span>
+                        </div>
+                        <div class="schedule-row">
+                            <span class="policy-label">Execution Time:</span>
+                            <span class="policy-value">{{ schedule.execution_time|time:"g:i A" }}</span>
+                        </div>
+                        {% if schedule.frequency == 'weekly' and schedule.day_of_week is not None %}
+                        <div class="schedule-row">
+                            <span class="policy-label">Day of Week:</span>
+                            <span class="policy-value">{{ schedule.get_day_of_week_display }}</span>
+                        </div>
+                        {% endif %}
+                        {% if schedule.frequency == 'monthly' and schedule.day_of_month %}
+                        <div class="schedule-row">
+                            <span class="policy-label">Day of Month:</span>
+                            <span class="policy-value">{{ schedule.day_of_month }}</span>
+                        </div>
+                        {% endif %}
+                        {% if schedule.last_run %}
+                        <div class="schedule-row">
+                            <span class="policy-label">Last Run:</span>
+                            <span class="policy-value">{{ schedule.last_run|date:"F d, Y \a\t g:i A" }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <a href="{% url 'admin:log_viewer_logcleanupschedule_change' schedule.id %}" class="btn-configure">
+                            Configure Schedule
+                        </a>
+                        <button type="button" class="btn-trigger" id="triggerCleanupBtn">
+                            Trigger Now
+                        </button>
+                    </div>
+                {% else %}
+                    <div class="no-schedule">
+                        <strong>No schedule configured.</strong> Create a cleanup schedule to enable automated log management.
+                    </div>
+                    <div style="margin-top: 1rem;">
+                        <a href="{% url 'admin:log_viewer_logcleanupschedule_add' %}" class="btn-configure">
+                            Create Schedule
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <!-- Storage Status Section -->
+    <div class="dashboard-grid">
+        <div class="dashboard-card full-width-card">
+            <div class="card-header">
+                <h2 class="card-title">Archive Storage Status</h2>
+            </div>
+            <div class="card-body">
+                {% if storage_status == 'critical' %}
+                <div class="storage-alert storage-alert-critical">
+                    <span class="icon">⚠</span>
+                    <strong>Critical:</strong> Archive storage has reached {{ storage_usage_percent|floatformat:1 }}% capacity. Archival operations are paused.
+                </div>
+                {% elif storage_status == 'warning' %}
+                <div class="storage-alert storage-alert-warning">
+                    <span class="icon">⚠</span>
+                    <strong>Warning:</strong> Archive storage is at {{ storage_usage_percent|floatformat:1 }}% capacity. Consider increasing storage limit or cleaning old archives.
+                </div>
+                {% endif %}
+                
+                <div class="storage-progress">
+                    <div class="storage-progress-bar storage-{{ storage_status }}" 
+                         style="width: {% if storage_usage_percent > 100 %}100{% else %}{{ storage_usage_percent|floatformat:0 }}{% endif %}%;">
+                        {{ storage_usage_percent|floatformat:1 }}%
+                    </div>
+                </div>
+                
+                <div class="storage-details">
+                    <span>
+                        <strong>Used:</strong> {{ storage_config.current_size_gb }} GB
+                    </span>
+                    <span>
+                        <strong>Total:</strong> {{ storage_config.max_storage_gb }} GB
+                    </span>
+                </div>
+                
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'admin:log_viewer_archivestorageconfig_change' storage_config.id %}" class="btn-configure">
+                        Configure Storage
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Recent Operations Section -->
+    <div class="dashboard-grid">
+        <div class="dashboard-card full-width-card">
+            <div class="card-header">
+                <h2 class="card-title">Recent Operations</h2>
+            </div>
+            <div class="card-body">
+                {% if recent_operations %}
+                <table class="operations-table">
+                    <thead>
+                        <tr>
+                            <th>Date & Time</th>
+                            <th>Type</th>
+                            <th>Status</th>
+                            <th>Records Processed</th>
+                            <th>Records Deleted</th>
+                            <th>Archives Created</th>
+                            <th>Triggered By</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for operation in recent_operations %}
+                        <tr>
+                            <td>{{ operation.started_at|date:"M d, Y g:i A" }}</td>
+                            <td>{{ operation.get_operation_type_display }}</td>
+                            <td>
+                                <span class="status-badge status-{{ operation.status }}">
+                                    {{ operation.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ operation.total_processed }}</td>
+                            <td>{{ operation.total_deleted }}</td>
+                            <td>{{ operation.archives_created }}</td>
+                            <td>
+                                {% if operation.triggered_by %}
+                                    {{ operation.triggered_by.username }}
+                                {% else %}
+                                    System
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                <div style="margin-top: 1rem;">
+                    <a href="{% url 'admin:log_viewer_logoperationhistory_changelist' %}" class="btn-configure">
+                        View All Operations
+                    </a>
+                </div>
+                {% else %}
+                <div class="no-operations">
+                    <p>No cleanup operations have been performed yet.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const triggerBtn = document.getElementById('triggerCleanupBtn');
+    
+    if (triggerBtn) {
+        triggerBtn.addEventListener('click', function() {
+            if (!confirm('Are you sure you want to trigger a manual cleanup now? This will process logs according to the configured retention policies.')) {
+                return;
+            }
+            
+            // Disable button and show loading state
+            triggerBtn.disabled = true;
+            const originalText = triggerBtn.textContent;
+            triggerBtn.innerHTML = '<span class="spinner">⏳</span> Processing...';
+            
+            // Get CSRF token
+            const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+                             getCookie('csrftoken');
+            
+            // Make AJAX request to trigger cleanup
+            fetch('{% url "log_viewer:manual_cleanup_trigger" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': csrfToken,
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'same-origin'
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    // Show success message
+                    showMessage('success', data.message);
+                    
+                    // Refresh the page after a short delay to show updated operation history
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    // Show error message
+                    showMessage('error', data.message);
+                    
+                    // Re-enable button
+                    triggerBtn.disabled = false;
+                    triggerBtn.textContent = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error triggering cleanup:', error);
+                showMessage('error', 'An error occurred while triggering the cleanup. Please try again.');
+                
+                // Re-enable button
+                triggerBtn.disabled = false;
+                triggerBtn.textContent = originalText;
+            });
+        });
+    }
+    
+    // Helper function to get CSRF token from cookies
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Helper function to show messages
+    function showMessage(type, message) {
+        // Remove any existing messages
+        const existingMessages = document.querySelectorAll('.cleanup-message');
+        existingMessages.forEach(msg => msg.remove());
+        
+        // Create message element
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `cleanup-message cleanup-message-${type}`;
+        messageDiv.innerHTML = `
+            <span class="message-icon">${type === 'success' ? '✓' : '✗'}</span>
+            <span class="message-text">${message}</span>
+        `;
+        
+        // Insert message before the dashboard grid
+        const dashboardContainer = document.querySelector('.dashboard-container');
+        const dashboardHeader = document.querySelector('.dashboard-header');
+        dashboardContainer.insertBefore(messageDiv, dashboardHeader.nextSibling);
+        
+        // Auto-remove success messages after 5 seconds
+        if (type === 'success') {
+            setTimeout(() => {
+                messageDiv.style.opacity = '0';
+                setTimeout(() => messageDiv.remove(), 300);
+            }, 5000);
+        }
+    }
+});
+</script>
+
+<style>
+.cleanup-message {
+    padding: 1rem 1.5rem;
+    border-radius: 0.375rem;
+    margin: 1.5rem 0;
+    display: flex;
+    align-items: center;
+    font-weight: 500;
+    transition: opacity 0.3s ease;
+}
+
+.cleanup-message-success {
+    background-color: #c6f6d5;
+    color: #22543d;
+    border-left: 4px solid #48bb78;
+}
+
+.cleanup-message-error {
+    background-color: #fed7d7;
+    color: #742a2a;
+    border-left: 4px solid #f56565;
+}
+
+.message-icon {
+    font-size: 1.25rem;
+    margin-right: 0.75rem;
+}
+
+.message-text {
+    flex: 1;
+}
+
+.spinner {
+    display: inline-block;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+{% endblock %}

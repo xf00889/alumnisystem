@@ -1,0 +1,1808 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Unified Log Management{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    * {
+        box-sizing: border-box;
+    }
+    
+    .unified-dashboard {
+        padding: 1.5rem;
+        max-width: 1600px;
+        margin: 0 auto;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header {
+        background: linear-gradient(135deg, #2b3c6b 0%, #1e2a4a 100%);
+        color: white;
+        padding: 2rem;
+        border-radius: 0.5rem;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    .dashboard-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin: 0 0 0.5rem 0;
+    }
+    
+    .dashboard-header p {
+        margin: 0;
+        opacity: 0.9;
+        font-size: 1rem;
+    }
+    
+    .header-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 1rem;
+    }
+    
+    .btn-back {
+        background: rgba(255, 255, 255, 0.2);
+        color: white;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.2s ease;
+    }
+    
+    .btn-back:hover {
+        background: rgba(255, 255, 255, 0.3);
+        color: white;
+        text-decoration: none;
+    }
+    
+    /* Tab Navigation */
+    .tab-navigation {
+        display: flex;
+        gap: 0.5rem;
+        border-bottom: 2px solid #e2e8f0;
+        margin-bottom: 2rem;
+        overflow-x: auto;
+    }
+    
+    .tab-button {
+        padding: 1rem 1.5rem;
+        background: none;
+        border: none;
+        border-bottom: 3px solid transparent;
+        color: #64748b;
+        font-size: 1rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        white-space: nowrap;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .tab-button:hover {
+        color: #2b3c6b;
+        background: #f8fafc;
+    }
+    
+    .tab-button.active {
+        color: #2b3c6b;
+        border-bottom-color: #2b3c6b;
+        font-weight: 600;
+    }
+    
+    /* Tab Content */
+    .tab-content {
+        display: none;
+    }
+    
+    .tab-content.active {
+        display: block;
+        animation: fadeIn 0.3s ease;
+    }
+    
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+    
+    /* Cards */
+    .card {
+        background: white;
+        border-radius: 0.5rem;
+        padding: 1.5rem;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        border: 1px solid #e2e8f0;
+        margin-bottom: 1.5rem;
+    }
+    
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .card-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #1a202c;
+        margin: 0;
+    }
+    
+    .card-body {
+        color: #4a5568;
+    }
+    
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.25rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 500;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #cbd5e0;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        transition: border-color 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    .form-check {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        cursor: pointer;
+    }
+    
+    .form-check-label {
+        font-size: 0.875rem;
+        color: #4a5568;
+        cursor: pointer;
+    }
+    
+    .form-row {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+    
+    /* Buttons */
+    .btn {
+        padding: 0.625rem 1.25rem;
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .btn-primary {
+        background-color: #2b3c6b;
+        color: white;
+    }
+    
+    .btn-primary:hover {
+        background-color: #1e2a4a;
+    }
+    
+    .btn-success {
+        background-color: #48bb78;
+        color: white;
+    }
+    
+    .btn-success:hover {
+        background-color: #38a169;
+    }
+    
+    .btn-secondary {
+        background-color: #718096;
+        color: white;
+    }
+    
+    .btn-secondary:hover {
+        background-color: #4a5568;
+    }
+    
+    .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+    
+    /* Status Badge */
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.25rem 0.75rem;
+        border-radius: 9999px;
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .status-enabled {
+        background-color: #c6f6d5;
+        color: #22543d;
+    }
+    
+    .status-disabled {
+        background-color: #fed7d7;
+        color: #742a2a;
+    }
+    
+    /* Alert Messages */
+    .alert {
+        padding: 1rem;
+        border-radius: 0.375rem;
+        margin-bottom: 1rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+    
+    .alert-success {
+        background-color: #c6f6d5;
+        color: #22543d;
+        border-left: 4px solid #48bb78;
+    }
+    
+    .alert-error {
+        background-color: #fed7d7;
+        color: #742a2a;
+        border-left: 4px solid #f56565;
+    }
+    
+    .alert-warning {
+        background-color: #feebc8;
+        color: #7c2d12;
+        border-left: 4px solid #ed8936;
+    }
+    
+    .alert-info {
+        background-color: #bee3f8;
+        color: #2c5282;
+        border-left: 4px solid #4299e1;
+    }
+    
+    /* Loading Spinner */
+    .spinner {
+        display: inline-block;
+        width: 1rem;
+        height: 1rem;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+    
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .unified-dashboard {
+            padding: 1rem;
+        }
+        
+        .dashboard-header {
+            padding: 1.5rem;
+        }
+        
+        .dashboard-header h1 {
+            font-size: 1.5rem;
+        }
+        
+        .tab-button {
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+        }
+        
+        .form-row {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="unified-dashboard">
+    <!-- Header -->
+    <div class="dashboard-header">
+        <h1>Unified Log Management</h1>
+        <p>Manage all log retention policies, schedules, storage, and operations from one place</p>
+        <div class="header-actions">
+            <a href="{% url 'log_viewer:logs' %}" class="btn-back">
+                <i class="fas fa-arrow-left"></i>
+                Back to Logs
+            </a>
+            <a href="{% url 'admin:index' %}" class="btn-back">
+                <i class="fas fa-cog"></i>
+                Admin Panel
+            </a>
+        </div>
+    </div>
+    
+    <!-- Tab Navigation -->
+    <div class="tab-navigation">
+        <button class="tab-button active" data-tab="overview">
+            <i class="fas fa-chart-line"></i> Overview
+        </button>
+        <button class="tab-button" data-tab="policies">
+            <i class="fas fa-file-alt"></i> Retention Policies
+        </button>
+        <button class="tab-button" data-tab="schedule">
+            <i class="fas fa-clock"></i> Cleanup Schedule
+        </button>
+        <button class="tab-button" data-tab="storage">
+            <i class="fas fa-database"></i> Archive Storage
+        </button>
+        <button class="tab-button" data-tab="operations">
+            <i class="fas fa-history"></i> Operation History
+        </button>
+    </div>
+    
+    <!-- Tab Content -->
+    <div id="overview-tab" class="tab-content active">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">System Overview</h2>
+            </div>
+            <div class="card-body">
+                <p style="margin-bottom: 2rem;">Welcome to the unified log management dashboard. Use the tabs above to configure and monitor your log management system.</p>
+                
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem;">
+                    <!-- Retention Policies Summary -->
+                    <div style="background: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #2b3c6b;">
+                        <h3 style="font-size: 1rem; font-weight: 600; color: #2d3748; margin: 0 0 1rem 0;">Retention Policies</h3>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #4a5568; font-size: 0.875rem;">Audit Logs:</span>
+                                <span class="status-badge {% if audit_policy.enabled %}status-enabled{% else %}status-disabled{% endif %}" style="font-size: 0.75rem;">
+                                    {% if audit_policy.enabled %}{{ audit_policy.retention_days }}d{% else %}Disabled{% endif %}
+                                </span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #4a5568; font-size: 0.875rem;">File Logs:</span>
+                                <span class="status-badge {% if file_policy.enabled %}status-enabled{% else %}status-disabled{% endif %}" style="font-size: 0.75rem;">
+                                    {% if file_policy.enabled %}{{ file_policy.retention_days }}d{% else %}Disabled{% endif %}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Schedule Summary -->
+                    <div style="background: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid #48bb78;">
+                        <h3 style="font-size: 1rem; font-weight: 600; color: #2d3748; margin: 0 0 1rem 0;">Cleanup Schedule</h3>
+                        {% if schedule %}
+                            <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #4a5568; font-size: 0.875rem;">Status:</span>
+                                    <span class="status-badge {% if schedule.enabled %}status-enabled{% else %}status-disabled{% endif %}" style="font-size: 0.75rem;">
+                                        {% if schedule.enabled %}Active{% else %}Inactive{% endif %}
+                                    </span>
+                                </div>
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="color: #4a5568; font-size: 0.875rem;">Frequency:</span>
+                                    <span style="color: #2d3748; font-weight: 500; font-size: 0.875rem;">{{ schedule.get_frequency_display }}</span>
+                                </div>
+                            </div>
+                        {% else %}
+                            <p style="color: #718096; font-size: 0.875rem; margin: 0;">Not configured</p>
+                        {% endif %}
+                    </div>
+                    
+                    <!-- Storage Summary -->
+                    <div style="background: #f7fafc; padding: 1.5rem; border-radius: 0.5rem; border-left: 4px solid {% if storage_status == 'critical' %}#f56565{% elif storage_status == 'warning' %}#ed8936{% else %}#4299e1{% endif %};">
+                        <h3 style="font-size: 1rem; font-weight: 600; color: #2d3748; margin: 0 0 1rem 0;">Archive Storage</h3>
+                        <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #4a5568; font-size: 0.875rem;">Usage:</span>
+                                <span style="color: #2d3748; font-weight: 600; font-size: 0.875rem;">{{ storage_usage_percent|floatformat:1 }}%</span>
+                            </div>
+                            <div style="display: flex; justify-content: space-between; align-items: center;">
+                                <span style="color: #4a5568; font-size: 0.875rem;">Size:</span>
+                                <span style="color: #2d3748; font-weight: 500; font-size: 0.875rem;">{{ storage_config.current_size_gb }} / {{ storage_config.max_storage_gb }} GB</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 2rem; padding: 1.5rem; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 0.5rem; color: white;">
+                    <h3 style="font-size: 1.125rem; font-weight: 600; margin: 0 0 0.5rem 0;">Quick Actions</h3>
+                    <p style="margin: 0 0 1rem 0; opacity: 0.9; font-size: 0.875rem;">Manage your log system with these quick actions</p>
+                    <div style="display: flex; gap: 1rem; flex-wrap: wrap;">
+                        <a href="#policies" onclick="document.querySelector('[data-tab=policies]').click()" style="background: rgba(255, 255, 255, 0.2); color: white; padding: 0.625rem 1.25rem; border-radius: 0.375rem; text-decoration: none; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.3); transition: all 0.2s;">
+                            <i class="fas fa-file-alt"></i> Configure Policies
+                        </a>
+                        <a href="#schedule" onclick="document.querySelector('[data-tab=schedule]').click()" style="background: rgba(255, 255, 255, 0.2); color: white; padding: 0.625rem 1.25rem; border-radius: 0.375rem; text-decoration: none; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.3); transition: all 0.2s;">
+                            <i class="fas fa-clock"></i> Set Schedule
+                        </a>
+                        <a href="#operations" onclick="document.querySelector('[data-tab=operations]').click()" style="background: rgba(255, 255, 255, 0.2); color: white; padding: 0.625rem 1.25rem; border-radius: 0.375rem; text-decoration: none; font-size: 0.875rem; font-weight: 500; border: 1px solid rgba(255, 255, 255, 0.3); transition: all 0.2s;">
+                            <i class="fas fa-history"></i> View History
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="policies-tab" class="tab-content">
+        <!-- Audit Log Policy -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Audit Log Retention Policy</h2>
+                <span class="status-badge {% if audit_policy.enabled %}status-enabled{% else %}status-disabled{% endif %}" id="audit-status-badge">
+                    {% if audit_policy.enabled %}✓ Enabled{% else %}✗ Disabled{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <form id="audit-policy-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" id="audit-enabled" name="enabled" {% if audit_policy.enabled %}checked{% endif %}>
+                                <span class="form-check-label">Enable automatic cleanup</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="audit-retention-days">Retention Period (days)</label>
+                            <input type="number" class="form-control" id="audit-retention-days" name="retention_days" 
+                                   value="{{ audit_policy.retention_days }}" min="1" max="3650" required>
+                            <small style="color: #718096; font-size: 0.75rem;">Must be between 1 and 3650 days</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="audit-export-format">Export Format</label>
+                            <select class="form-control" id="audit-export-format" name="export_format">
+                                <option value="csv" {% if audit_policy.export_format == 'csv' %}selected{% endif %}>CSV</option>
+                                <option value="pdf" {% if audit_policy.export_format == 'pdf' %}selected{% endif %}>PDF</option>
+                                <option value="both" {% if audit_policy.export_format == 'both' %}selected{% endif %}>Both CSV and PDF</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="audit-archive-path">Archive Path</label>
+                            <input type="text" class="form-control" id="audit-archive-path" name="archive_path" 
+                                   value="{{ audit_policy.archive_path }}" required>
+                            <small style="color: #718096; font-size: 0.75rem;">Path relative to MEDIA_ROOT</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" id="audit-export-before-delete" name="export_before_delete" 
+                                       {% if audit_policy.export_before_delete %}checked{% endif %}>
+                                <span class="form-check-label">Export before delete</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="resetAuditForm()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- File Log Policy -->
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">File Log Retention Policy</h2>
+                <span class="status-badge {% if file_policy.enabled %}status-enabled{% else %}status-disabled{% endif %}" id="file-status-badge">
+                    {% if file_policy.enabled %}✓ Enabled{% else %}✗ Disabled{% endif %}
+                </span>
+            </div>
+            <div class="card-body">
+                <form id="file-policy-form">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" id="file-enabled" name="enabled" {% if file_policy.enabled %}checked{% endif %}>
+                                <span class="form-check-label">Enable automatic cleanup</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="file-retention-days">Retention Period (days)</label>
+                            <input type="number" class="form-control" id="file-retention-days" name="retention_days" 
+                                   value="{{ file_policy.retention_days }}" min="1" max="3650" required>
+                            <small style="color: #718096; font-size: 0.75rem;">Must be between 1 and 3650 days</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="file-export-format">Export Format</label>
+                            <select class="form-control" id="file-export-format" name="export_format">
+                                <option value="csv" {% if file_policy.export_format == 'csv' %}selected{% endif %}>CSV</option>
+                                <option value="pdf" {% if file_policy.export_format == 'pdf' %}selected{% endif %}>PDF</option>
+                                <option value="both" {% if file_policy.export_format == 'both' %}selected{% endif %}>Both CSV and PDF</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="file-archive-path">Archive Path</label>
+                            <input type="text" class="form-control" id="file-archive-path" name="archive_path" 
+                                   value="{{ file_policy.archive_path }}" required>
+                            <small style="color: #718096; font-size: 0.75rem;">Path relative to MEDIA_ROOT</small>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-check">
+                                <input type="checkbox" class="form-check-input" id="file-export-before-delete" name="export_before_delete" 
+                                       {% if file_policy.export_before_delete %}checked{% endif %}>
+                                <span class="form-check-label">Export before delete</span>
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Save Changes
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="resetFileForm()">
+                            <i class="fas fa-undo"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+    <div id="schedule-tab" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Cleanup Schedule</h2>
+                {% if schedule %}
+                <span class="status-badge {% if schedule.enabled %}status-enabled{% else %}status-disabled{% endif %}" id="schedule-status-badge">
+                    {% if schedule.enabled %}✓ Enabled{% else %}✗ Disabled{% endif %}
+                </span>
+                {% endif %}
+            </div>
+            <div class="card-body">
+                {% if schedule %}
+                    <!-- Next Run Info -->
+                    <div class="alert alert-info" id="next-run-info" style="margin-bottom: 1.5rem;">
+                        <i class="fas fa-clock"></i>
+                        <div>
+                            <strong>Next Scheduled Run:</strong>
+                            <span id="next-run-time">{{ schedule.next_run|date:"F d, Y \a\t g:i A" }}</span>
+                        </div>
+                    </div>
+                    
+                    {% if schedule.last_run %}
+                    <div style="margin-bottom: 1.5rem; padding: 0.75rem; background: #f7fafc; border-radius: 0.375rem;">
+                        <strong style="color: #2d3748;">Last Run:</strong>
+                        <span style="color: #4a5568;">{{ schedule.last_run|date:"F d, Y \a\t g:i A" }}</span>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Schedule Form -->
+                    <form id="schedule-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="schedule-enabled" name="enabled" {% if schedule.enabled %}checked{% endif %}>
+                                    <span class="form-check-label">Enable automatic cleanup schedule</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="schedule-frequency">Frequency</label>
+                                <select class="form-control" id="schedule-frequency" name="frequency" required>
+                                    <option value="daily" {% if schedule.frequency == 'daily' %}selected{% endif %}>Daily</option>
+                                    <option value="weekly" {% if schedule.frequency == 'weekly' %}selected{% endif %}>Weekly</option>
+                                    <option value="monthly" {% if schedule.frequency == 'monthly' %}selected{% endif %}>Monthly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="schedule-execution-time">Execution Time</label>
+                                <input type="time" class="form-control" id="schedule-execution-time" name="execution_time" 
+                                       value="{{ schedule.execution_time|time:'H:i' }}" required>
+                            </div>
+                        </div>
+                        
+                        <!-- Conditional Fields -->
+                        <div class="form-row" id="weekly-fields" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="schedule-day-of-week">Day of Week</label>
+                                <select class="form-control" id="schedule-day-of-week" name="day_of_week">
+                                    <option value="0" {% if schedule.day_of_week == 0 %}selected{% endif %}>Monday</option>
+                                    <option value="1" {% if schedule.day_of_week == 1 %}selected{% endif %}>Tuesday</option>
+                                    <option value="2" {% if schedule.day_of_week == 2 %}selected{% endif %}>Wednesday</option>
+                                    <option value="3" {% if schedule.day_of_week == 3 %}selected{% endif %}>Thursday</option>
+                                    <option value="4" {% if schedule.day_of_week == 4 %}selected{% endif %}>Friday</option>
+                                    <option value="5" {% if schedule.day_of_week == 5 %}selected{% endif %}>Saturday</option>
+                                    <option value="6" {% if schedule.day_of_week == 6 %}selected{% endif %}>Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row" id="monthly-fields" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="schedule-day-of-month">Day of Month</label>
+                                <input type="number" class="form-control" id="schedule-day-of-month" name="day_of_month" 
+                                       value="{{ schedule.day_of_month }}" min="1" max="28">
+                                <small style="color: #718096; font-size: 0.75rem;">Must be between 1 and 28</small>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Schedule
+                            </button>
+                            <button type="button" class="btn btn-success" id="trigger-manual-cleanup">
+                                <i class="fas fa-play"></i> Trigger Now
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetScheduleForm()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>No cleanup schedule configured. Create one below to enable automated log management.</span>
+                    </div>
+                    
+                    <!-- Create Schedule Form -->
+                    <form id="create-schedule-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-check">
+                                    <input type="checkbox" class="form-check-input" id="create-schedule-enabled" name="enabled" checked>
+                                    <span class="form-check-label">Enable automatic cleanup schedule</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="create-schedule-frequency">Frequency</label>
+                                <select class="form-control" id="create-schedule-frequency" name="frequency" required>
+                                    <option value="daily" selected>Daily</option>
+                                    <option value="weekly">Weekly</option>
+                                    <option value="monthly">Monthly</option>
+                                </select>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="create-schedule-execution-time">Execution Time</label>
+                                <input type="time" class="form-control" id="create-schedule-execution-time" name="execution_time" 
+                                       value="02:00" required>
+                                <small style="color: #718096; font-size: 0.75rem;">Recommended: 2:00 AM (off-peak hours)</small>
+                            </div>
+                        </div>
+                        
+                        <!-- Conditional Fields for Create -->
+                        <div class="form-row" id="create-weekly-fields" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="create-schedule-day-of-week">Day of Week</label>
+                                <select class="form-control" id="create-schedule-day-of-week" name="day_of_week">
+                                    <option value="0">Monday</option>
+                                    <option value="1">Tuesday</option>
+                                    <option value="2">Wednesday</option>
+                                    <option value="3">Thursday</option>
+                                    <option value="4">Friday</option>
+                                    <option value="5">Saturday</option>
+                                    <option value="6" selected>Sunday</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <div class="form-row" id="create-monthly-fields" style="display: none;">
+                            <div class="form-group">
+                                <label class="form-label" for="create-schedule-day-of-month">Day of Month</label>
+                                <input type="number" class="form-control" id="create-schedule-day-of-month" name="day_of_month" 
+                                       value="1" min="1" max="28">
+                                <small style="color: #718096; font-size: 0.75rem;">Must be between 1 and 28</small>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #e3f2fd; padding: 1rem; border-radius: 0.375rem; margin-bottom: 1rem; border-left: 4px solid #2196f3;">
+                            <strong style="color: #1565c0;">💡 Tip:</strong>
+                            <span style="color: #1976d2; font-size: 0.875rem;">
+                                Schedule cleanup during off-peak hours (e.g., 2:00 AM) to minimize impact on system performance.
+                            </span>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-plus"></i> Create Schedule
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetCreateScheduleForm()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div id="storage-tab" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Archive Storage Configuration</h2>
+            </div>
+            <div class="card-body">
+                {% if storage_config %}
+                    <!-- Storage Usage Alert -->
+                    {% if storage_status == 'critical' %}
+                    <div class="alert alert-error" style="margin-bottom: 1.5rem;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <div>
+                            <strong>Critical:</strong> Archive storage has reached {{ storage_usage_percent|floatformat:1 }}% capacity. 
+                            Archival operations are paused.
+                        </div>
+                    </div>
+                    {% elif storage_status == 'warning' %}
+                    <div class="alert alert-warning" style="margin-bottom: 1.5rem;">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <div>
+                            <strong>Warning:</strong> Archive storage is at {{ storage_usage_percent|floatformat:1 }}% capacity. 
+                            Consider increasing storage limit or cleaning old archives.
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    <!-- Storage Progress Bar -->
+                    <div style="margin-bottom: 1.5rem;">
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.5rem;">
+                            <span style="font-weight: 500; color: #2d3748;">Storage Usage</span>
+                            <span style="font-weight: 600; color: #2d3748;" id="storage-percentage">{{ storage_usage_percent|floatformat:1 }}%</span>
+                        </div>
+                        <div style="width: 100%; height: 2rem; background-color: #e2e8f0; border-radius: 0.5rem; overflow: hidden; position: relative;">
+                            <div id="storage-progress-bar" style="height: 100%; transition: width 0.3s ease, background-color 0.3s ease; display: flex; align-items: center; justify-content: center; color: white; font-weight: 500; font-size: 0.875rem; width: {% if storage_usage_percent > 100 %}100{% else %}{{ storage_usage_percent|floatformat:0 }}{% endif %}%; background-color: {% if storage_status == 'critical' %}#f56565{% elif storage_status == 'warning' %}#ed8936{% else %}#48bb78{% endif %};">
+                                <span id="storage-used-display">{{ storage_config.current_size_gb }} GB</span> / <span id="storage-max-display">{{ storage_config.max_storage_gb }} GB</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Storage Configuration Form -->
+                    <form id="storage-form">
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label class="form-label" for="storage-max-gb">Maximum Storage (GB)</label>
+                                <input type="number" class="form-control" id="storage-max-gb" name="max_storage_gb" 
+                                       value="{{ storage_config.max_storage_gb }}" min="1" step="0.1" required>
+                                <small style="color: #718096; font-size: 0.75rem;">Total storage limit for archives</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="storage-warning-threshold">Warning Threshold (%)</label>
+                                <input type="number" class="form-control" id="storage-warning-threshold" name="warning_threshold_percent" 
+                                       value="{{ storage_config.warning_threshold_percent }}" min="1" max="100" required>
+                                <small style="color: #718096; font-size: 0.75rem;">Show warning at this percentage</small>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="form-label" for="storage-critical-threshold">Critical Threshold (%)</label>
+                                <input type="number" class="form-control" id="storage-critical-threshold" name="critical_threshold_percent" 
+                                       value="{{ storage_config.critical_threshold_percent }}" min="1" max="100" required>
+                                <small style="color: #718096; font-size: 0.75rem;">Pause archival at this percentage</small>
+                            </div>
+                        </div>
+                        
+                        <div style="display: flex; gap: 1rem; margin-top: 1rem;">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Configuration
+                            </button>
+                            <button type="button" class="btn btn-secondary" id="recalculate-storage-btn">
+                                <i class="fas fa-sync"></i> Recalculate Size
+                            </button>
+                            <button type="button" class="btn btn-secondary" onclick="resetStorageForm()">
+                                <i class="fas fa-undo"></i> Reset
+                            </button>
+                        </div>
+                    </form>
+                {% else %}
+                    <div class="alert alert-warning">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <span>No storage configuration found. Please create one in the admin panel.</span>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div id="operations-tab" class="tab-content">
+        <div class="card">
+            <div class="card-header">
+                <h2 class="card-title">Operation History</h2>
+            </div>
+            <div class="card-body">
+                <!-- Filters -->
+                <div style="background: #f7fafc; padding: 1rem; border-radius: 0.375rem; margin-bottom: 1.5rem;">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label class="form-label" for="filter-status">Status</label>
+                            <select class="form-control" id="filter-status">
+                                <option value="">All Statuses</option>
+                                <option value="success">Success</option>
+                                <option value="partial">Partial Success</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="filter-type">Operation Type</label>
+                            <select class="form-control" id="filter-type">
+                                <option value="">All Types</option>
+                                <option value="scheduled">Scheduled</option>
+                                <option value="manual">Manual</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="filter-date-from">Date From</label>
+                            <input type="date" class="form-control" id="filter-date-from">
+                        </div>
+                        
+                        <div class="form-group">
+                            <label class="form-label" for="filter-date-to">Date To</label>
+                            <input type="date" class="form-control" id="filter-date-to">
+                        </div>
+                    </div>
+                    
+                    <div style="display: flex; gap: 1rem;">
+                        <button type="button" class="btn btn-primary" id="apply-filters-btn">
+                            <i class="fas fa-filter"></i> Apply Filters
+                        </button>
+                        <button type="button" class="btn btn-secondary" id="clear-filters-btn">
+                            <i class="fas fa-times"></i> Clear Filters
+                        </button>
+                        <button type="button" class="btn btn-success" id="export-operations-btn">
+                            <i class="fas fa-download"></i> Export to CSV
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Operations Table -->
+                <div id="operations-table-container">
+                    <table style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr style="background-color: #f7fafc; border-bottom: 2px solid #e2e8f0;">
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Date & Time</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Type</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Status</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Processed</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Deleted</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Archives</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Triggered By</th>
+                                <th style="padding: 0.75rem; text-align: left; font-weight: 600; color: #2d3748; font-size: 0.875rem;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="operations-tbody">
+                            <tr>
+                                <td colspan="8" style="padding: 2rem; text-align: center; color: #718096;">
+                                    <i class="fas fa-spinner fa-spin"></i> Loading operations...
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                
+                <!-- Pagination -->
+                <div id="pagination-container" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-top: 1.5rem;">
+                    <!-- Pagination will be inserted here -->
+                </div>
+            </div>
+        </div>
+        
+        <!-- Operation Detail Modal -->
+        <div id="operation-detail-modal" style="display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0, 0, 0, 0.5); z-index: 1000; align-items: center; justify-content: center;">
+            <div style="background: white; border-radius: 0.5rem; max-width: 800px; width: 90%; max-height: 90vh; overflow-y: auto; padding: 2rem;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem;">
+                    <h3 style="margin: 0; font-size: 1.5rem; font-weight: 600;">Operation Details</h3>
+                    <button onclick="closeOperationModal()" style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #718096;">×</button>
+                </div>
+                <div id="operation-detail-content">
+                    <!-- Content will be inserted here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Tab switching functionality
+    const tabButtons = document.querySelectorAll('.tab-button');
+    const tabContents = document.querySelectorAll('.tab-content');
+    
+    // Function to switch tabs
+    function switchTab(tabName) {
+        // Update buttons
+        tabButtons.forEach(btn => {
+            if (btn.dataset.tab === tabName) {
+                btn.classList.add('active');
+            } else {
+                btn.classList.remove('active');
+            }
+        });
+        
+        // Update content
+        tabContents.forEach(content => {
+            if (content.id === `${tabName}-tab`) {
+                content.classList.add('active');
+            } else {
+                content.classList.remove('active');
+            }
+        });
+        
+        // Update URL hash
+        window.location.hash = tabName;
+    }
+    
+    // Add click handlers to tab buttons
+    tabButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            switchTab(this.dataset.tab);
+        });
+    });
+    
+    // Handle initial hash or default to overview
+    const initialHash = window.location.hash.substring(1);
+    if (initialHash && ['overview', 'policies', 'schedule', 'storage', 'operations'].includes(initialHash)) {
+        switchTab(initialHash);
+    }
+    
+    // Handle hash changes (browser back/forward)
+    window.addEventListener('hashchange', function() {
+        const hash = window.location.hash.substring(1);
+        if (hash && ['overview', 'policies', 'schedule', 'storage', 'operations'].includes(hash)) {
+            switchTab(hash);
+        }
+    });
+    
+    // Helper function to get CSRF token
+    function getCsrfToken() {
+        return document.querySelector('[name=csrfmiddlewaretoken]')?.value || 
+               document.cookie.split('; ').find(row => row.startsWith('csrftoken='))?.split('=')[1];
+    }
+    
+    // Helper function to show alert messages
+    function showAlert(type, message, targetElement) {
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type}`;
+        alert.innerHTML = `
+            <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
+            <span>${message}</span>
+        `;
+        
+        // Insert before the target element
+        targetElement.parentNode.insertBefore(alert, targetElement);
+        
+        // Auto-remove after 5 seconds
+        setTimeout(() => {
+            alert.style.opacity = '0';
+            alert.style.transition = 'opacity 0.3s ease';
+            setTimeout(() => alert.remove(), 300);
+        }, 5000);
+    }
+    
+    // Audit Policy Form Submission
+    const auditPolicyForm = document.getElementById('audit-policy-form');
+    if (auditPolicyForm) {
+        auditPolicyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate retention days
+            const retentionDays = parseInt(document.getElementById('audit-retention-days').value);
+            if (retentionDays < 1 || retentionDays > 3650) {
+                showAlert('error', 'Retention days must be between 1 and 3650', auditPolicyForm);
+                return;
+            }
+            
+            // Prepare form data
+            const formData = {
+                log_type: 'audit',
+                enabled: document.getElementById('audit-enabled').checked,
+                retention_days: retentionDays,
+                export_format: document.getElementById('audit-export-format').value,
+                archive_path: document.getElementById('audit-archive-path').value,
+                export_before_delete: document.getElementById('audit-export-before-delete').checked
+            };
+            
+            // Disable submit button
+            const submitBtn = auditPolicyForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+            
+            // Send AJAX request
+            fetch('{% url "log_viewer:save_retention_policy" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'Audit log policy saved successfully!', auditPolicyForm);
+                    
+                    // Update status badge
+                    const badge = document.getElementById('audit-status-badge');
+                    if (formData.enabled) {
+                        badge.className = 'status-badge status-enabled';
+                        badge.textContent = '✓ Enabled';
+                    } else {
+                        badge.className = 'status-badge status-disabled';
+                        badge.textContent = '✗ Disabled';
+                    }
+                } else {
+                    showAlert('error', data.message || 'Failed to save policy', auditPolicyForm);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while saving the policy', auditPolicyForm);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // File Policy Form Submission
+    const filePolicyForm = document.getElementById('file-policy-form');
+    if (filePolicyForm) {
+        filePolicyForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate retention days
+            const retentionDays = parseInt(document.getElementById('file-retention-days').value);
+            if (retentionDays < 1 || retentionDays > 3650) {
+                showAlert('error', 'Retention days must be between 1 and 3650', filePolicyForm);
+                return;
+            }
+            
+            // Prepare form data
+            const formData = {
+                log_type: 'file',
+                enabled: document.getElementById('file-enabled').checked,
+                retention_days: retentionDays,
+                export_format: document.getElementById('file-export-format').value,
+                archive_path: document.getElementById('file-archive-path').value,
+                export_before_delete: document.getElementById('file-export-before-delete').checked
+            };
+            
+            // Disable submit button
+            const submitBtn = filePolicyForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+            
+            // Send AJAX request
+            fetch('{% url "log_viewer:save_retention_policy" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'File log policy saved successfully!', filePolicyForm);
+                    
+                    // Update status badge
+                    const badge = document.getElementById('file-status-badge');
+                    if (formData.enabled) {
+                        badge.className = 'status-badge status-enabled';
+                        badge.textContent = '✓ Enabled';
+                    } else {
+                        badge.className = 'status-badge status-disabled';
+                        badge.textContent = '✗ Disabled';
+                    }
+                } else {
+                    showAlert('error', data.message || 'Failed to save policy', filePolicyForm);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while saving the policy', filePolicyForm);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Schedule Form - Dynamic field visibility
+    const scheduleFrequency = document.getElementById('schedule-frequency');
+    const weeklyFields = document.getElementById('weekly-fields');
+    const monthlyFields = document.getElementById('monthly-fields');
+    
+    function updateScheduleFields() {
+        if (!scheduleFrequency) return;
+        
+        const frequency = scheduleFrequency.value;
+        
+        if (weeklyFields) {
+            weeklyFields.style.display = frequency === 'weekly' ? 'grid' : 'none';
+        }
+        if (monthlyFields) {
+            monthlyFields.style.display = frequency === 'monthly' ? 'grid' : 'none';
+        }
+    }
+    
+    if (scheduleFrequency) {
+        scheduleFrequency.addEventListener('change', updateScheduleFields);
+        updateScheduleFields(); // Initial call
+    }
+    
+    // Schedule Form Submission
+    const scheduleForm = document.getElementById('schedule-form');
+    if (scheduleForm) {
+        scheduleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Prepare form data
+            const formData = {
+                enabled: document.getElementById('schedule-enabled').checked,
+                frequency: document.getElementById('schedule-frequency').value,
+                execution_time: document.getElementById('schedule-execution-time').value
+            };
+            
+            // Add conditional fields
+            if (formData.frequency === 'weekly') {
+                formData.day_of_week = parseInt(document.getElementById('schedule-day-of-week').value);
+            } else if (formData.frequency === 'monthly') {
+                const dayOfMonth = parseInt(document.getElementById('schedule-day-of-month').value);
+                if (dayOfMonth < 1 || dayOfMonth > 28) {
+                    showAlert('error', 'Day of month must be between 1 and 28', scheduleForm);
+                    return;
+                }
+                formData.day_of_month = dayOfMonth;
+            }
+            
+            // Disable submit button
+            const submitBtn = scheduleForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+            
+            // Send AJAX request
+            fetch('{% url "log_viewer:save_cleanup_schedule" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'Cleanup schedule saved successfully!', scheduleForm);
+                    
+                    // Update status badge
+                    const badge = document.getElementById('schedule-status-badge');
+                    if (badge) {
+                        if (formData.enabled) {
+                            badge.className = 'status-badge status-enabled';
+                            badge.textContent = '✓ Enabled';
+                        } else {
+                            badge.className = 'status-badge status-disabled';
+                            badge.textContent = '✗ Disabled';
+                        }
+                    }
+                    
+                    // Update next run time
+                    if (data.next_run) {
+                        const nextRunElement = document.getElementById('next-run-time');
+                        if (nextRunElement) {
+                            nextRunElement.textContent = data.next_run;
+                        }
+                    }
+                } else {
+                    showAlert('error', data.message || 'Failed to save schedule', scheduleForm);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while saving the schedule', scheduleForm);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Create Schedule Form Submission
+    const createScheduleForm = document.getElementById('create-schedule-form');
+    if (createScheduleForm) {
+        // Dynamic field visibility for create form
+        const createFrequency = document.getElementById('create-schedule-frequency');
+        const createWeeklyFields = document.getElementById('create-weekly-fields');
+        const createMonthlyFields = document.getElementById('create-monthly-fields');
+        
+        function updateCreateScheduleFields() {
+            if (!createFrequency) return;
+            
+            const frequency = createFrequency.value;
+            
+            if (createWeeklyFields) {
+                createWeeklyFields.style.display = frequency === 'weekly' ? 'grid' : 'none';
+            }
+            if (createMonthlyFields) {
+                createMonthlyFields.style.display = frequency === 'monthly' ? 'grid' : 'none';
+            }
+        }
+        
+        createFrequency.addEventListener('change', updateCreateScheduleFields);
+        updateCreateScheduleFields(); // Initial call
+        
+        createScheduleForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Prepare form data
+            const formData = {
+                enabled: document.getElementById('create-schedule-enabled').checked,
+                frequency: document.getElementById('create-schedule-frequency').value,
+                execution_time: document.getElementById('create-schedule-execution-time').value
+            };
+            
+            // Add conditional fields
+            if (formData.frequency === 'weekly') {
+                formData.day_of_week = parseInt(document.getElementById('create-schedule-day-of-week').value);
+            } else if (formData.frequency === 'monthly') {
+                const dayOfMonth = parseInt(document.getElementById('create-schedule-day-of-month').value);
+                if (dayOfMonth < 1 || dayOfMonth > 28) {
+                    showAlert('error', 'Day of month must be between 1 and 28', createScheduleForm);
+                    return;
+                }
+                formData.day_of_month = dayOfMonth;
+            }
+            
+            // Disable submit button
+            const submitBtn = createScheduleForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Creating...';
+            
+            // Send AJAX request
+            fetch('{% url "log_viewer:save_cleanup_schedule" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'Cleanup schedule created successfully! Reloading page...', createScheduleForm);
+                    
+                    // Reload page after 2 seconds to show the new schedule
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 2000);
+                } else {
+                    showAlert('error', data.message || 'Failed to create schedule', createScheduleForm);
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = originalText;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while creating the schedule', createScheduleForm);
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Manual Cleanup Trigger
+    const triggerBtn = document.getElementById('trigger-manual-cleanup');
+    if (triggerBtn) {
+        triggerBtn.addEventListener('click', function() {
+            if (!confirm('Are you sure you want to trigger a manual cleanup now? This will process logs according to the configured retention policies.')) {
+                return;
+            }
+            
+            const originalText = triggerBtn.innerHTML;
+            triggerBtn.disabled = true;
+            triggerBtn.innerHTML = '<span class="spinner"></span> Processing...';
+            
+            fetch('{% url "log_viewer:manual_cleanup_trigger" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', data.message, scheduleForm);
+                } else {
+                    showAlert('error', data.message || 'Failed to trigger cleanup', scheduleForm);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while triggering cleanup', scheduleForm);
+            })
+            .finally(() => {
+                triggerBtn.disabled = false;
+                triggerBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Storage Form Submission
+    const storageForm = document.getElementById('storage-form');
+    if (storageForm) {
+        storageForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Validate thresholds
+            const warningThreshold = parseInt(document.getElementById('storage-warning-threshold').value);
+            const criticalThreshold = parseInt(document.getElementById('storage-critical-threshold').value);
+            
+            if (warningThreshold < 1 || warningThreshold > 100) {
+                showAlert('error', 'Warning threshold must be between 1 and 100', storageForm);
+                return;
+            }
+            
+            if (criticalThreshold < 1 || criticalThreshold > 100) {
+                showAlert('error', 'Critical threshold must be between 1 and 100', storageForm);
+                return;
+            }
+            
+            if (criticalThreshold <= warningThreshold) {
+                showAlert('error', 'Critical threshold must be greater than warning threshold', storageForm);
+                return;
+            }
+            
+            // Prepare form data
+            const formData = {
+                max_storage_gb: parseFloat(document.getElementById('storage-max-gb').value),
+                warning_threshold_percent: warningThreshold,
+                critical_threshold_percent: criticalThreshold
+            };
+            
+            // Disable submit button
+            const submitBtn = storageForm.querySelector('button[type="submit"]');
+            const originalText = submitBtn.innerHTML;
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<span class="spinner"></span> Saving...';
+            
+            // Send AJAX request
+            fetch('{% url "log_viewer:save_storage_config" %}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': getCsrfToken()
+                },
+                body: JSON.stringify(formData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', 'Storage configuration saved successfully!', storageForm);
+                    
+                    // Update progress bar if needed
+                    if (data.storage_usage_percent !== undefined) {
+                        updateStorageDisplay(data.storage_usage_percent, data.current_size_gb, data.max_storage_gb, data.status);
+                    }
+                } else {
+                    showAlert('error', data.message || 'Failed to save storage configuration', storageForm);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while saving the storage configuration', storageForm);
+            })
+            .finally(() => {
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Recalculate Storage Button
+    const recalculateBtn = document.getElementById('recalculate-storage-btn');
+    if (recalculateBtn) {
+        recalculateBtn.addEventListener('click', function() {
+            const originalText = recalculateBtn.innerHTML;
+            recalculateBtn.disabled = true;
+            recalculateBtn.innerHTML = '<span class="spinner"></span> Calculating...';
+            
+            fetch('{% url "log_viewer:recalculate_storage" %}', {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCsrfToken()
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    showAlert('success', `Storage recalculated: ${data.current_size_gb} GB used`, storageForm);
+                    
+                    // Update display
+                    updateStorageDisplay(data.storage_usage_percent, data.current_size_gb, data.max_storage_gb, data.status);
+                } else {
+                    showAlert('error', data.message || 'Failed to recalculate storage', storageForm);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                showAlert('error', 'An error occurred while recalculating storage', storageForm);
+            })
+            .finally(() => {
+                recalculateBtn.disabled = false;
+                recalculateBtn.innerHTML = originalText;
+            });
+        });
+    }
+    
+    // Helper function to update storage display
+    function updateStorageDisplay(percentage, currentSize, maxSize, status) {
+        const progressBar = document.getElementById('storage-progress-bar');
+        const percentageDisplay = document.getElementById('storage-percentage');
+        const usedDisplay = document.getElementById('storage-used-display');
+        const maxDisplay = document.getElementById('storage-max-display');
+        
+        if (progressBar) {
+            progressBar.style.width = `${Math.min(percentage, 100)}%`;
+            
+            // Update color based on status
+            if (status === 'critical') {
+                progressBar.style.backgroundColor = '#f56565';
+            } else if (status === 'warning') {
+                progressBar.style.backgroundColor = '#ed8936';
+            } else {
+                progressBar.style.backgroundColor = '#48bb78';
+            }
+        }
+        
+        if (percentageDisplay) {
+            percentageDisplay.textContent = `${percentage.toFixed(1)}%`;
+        }
+        
+        if (usedDisplay) {
+            usedDisplay.textContent = `${currentSize} GB`;
+        }
+        
+        if (maxDisplay) {
+            maxDisplay.textContent = `${maxSize} GB`;
+        }
+    }
+    
+    // Operations History
+    let currentPage = 1;
+    let currentFilters = {};
+    
+    function loadOperations(page = 1) {
+        const tbody = document.getElementById('operations-tbody');
+        tbody.innerHTML = '<tr><td colspan="8" style="padding: 2rem; text-align: center; color: #718096;"><i class="fas fa-spinner fa-spin"></i> Loading operations...</td></tr>';
+        
+        const params = new URLSearchParams({
+            page: page,
+            ...currentFilters
+        });
+        
+        fetch(`{% url "log_viewer:filter_operations" %}?${params}`)
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    renderOperations(data.operations);
+                    renderPagination(data.page, data.total_pages, data.total_count);
+                    currentPage = page;
+                } else {
+                    tbody.innerHTML = `<tr><td colspan="8" style="padding: 2rem; text-align: center; color: #e53e3e;">Error loading operations: ${data.message}</td></tr>`;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                tbody.innerHTML = '<tr><td colspan="8" style="padding: 2rem; text-align: center; color: #e53e3e;">Error loading operations</td></tr>';
+            });
+    }
+    
+    function renderOperations(operations) {
+        const tbody = document.getElementById('operations-tbody');
+        
+        if (operations.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="8" style="padding: 2rem; text-align: center; color: #718096;">No operations found</td></tr>';
+            return;
+        }
+        
+        tbody.innerHTML = operations.map(op => `
+            <tr style="border-bottom: 1px solid #e2e8f0;">
+                <td style="padding: 0.75rem; color: #4a5568; font-size: 0.875rem;">${op.started_at}</td>
+                <td style="padding: 0.75rem; color: #4a5568; font-size: 0.875rem;">${op.operation_type}</td>
+                <td style="padding: 0.75rem; font-size: 0.875rem;">
+                    <span class="status-badge status-${op.status}">${op.status_display}</span>
+                </td>
+                <td style="padding: 0.75rem; color: #4a5568; font-size: 0.875rem;">${op.total_processed}</td>
+                <td style="padding: 0.75rem; color: #4a5568; font-size: 0.875rem;">${op.total_deleted}</td>
+                <td style="padding: 0.75rem; color: #4a5568; font-size: 0.875rem;">${op.archives_created}</td>
+                <td style="padding: 0.75rem; color: #4a5568; font-size: 0.875rem;">${op.triggered_by || 'System'}</td>
+                <td style="padding: 0.75rem; font-size: 0.875rem;">
+                    <button onclick="viewOperationDetail(${op.id})" class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.75rem;">
+                        <i class="fas fa-eye"></i> View
+                    </button>
+                </td>
+            </tr>
+        `).join('');
+    }
+    
+    function renderPagination(currentPage, totalPages, totalCount) {
+        const container = document.getElementById('pagination-container');
+        
+        if (totalPages <= 1) {
+            container.innerHTML = `<span style="color: #718096; font-size: 0.875rem;">Total: ${totalCount} operations</span>`;
+            return;
+        }
+        
+        let html = '<span style="color: #718096; font-size: 0.875rem; margin-right: 1rem;">Total: ' + totalCount + ' operations</span>';
+        
+        // Previous button
+        if (currentPage > 1) {
+            html += `<button onclick="loadOperations(${currentPage - 1})" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"><i class="fas fa-chevron-left"></i></button>`;
+        }
+        
+        // Page numbers
+        const maxVisible = 5;
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisible - 1);
+        
+        if (endPage - startPage < maxVisible - 1) {
+            startPage = Math.max(1, endPage - maxVisible + 1);
+        }
+        
+        for (let i = startPage; i <= endPage; i++) {
+            if (i === currentPage) {
+                html += `<button class="btn btn-primary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;">${i}</button>`;
+            } else {
+                html += `<button onclick="loadOperations(${i})" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;">${i}</button>`;
+            }
+        }
+        
+        // Next button
+        if (currentPage < totalPages) {
+            html += `<button onclick="loadOperations(${currentPage + 1})" class="btn btn-secondary" style="padding: 0.375rem 0.75rem; font-size: 0.875rem;"><i class="fas fa-chevron-right"></i></button>`;
+        }
+        
+        container.innerHTML = html;
+    }
+    
+    // Apply Filters
+    const applyFiltersBtn = document.getElementById('apply-filters-btn');
+    if (applyFiltersBtn) {
+        applyFiltersBtn.addEventListener('click', function() {
+            currentFilters = {
+                status: document.getElementById('filter-status').value,
+                operation_type: document.getElementById('filter-type').value,
+                date_from: document.getElementById('filter-date-from').value,
+                date_to: document.getElementById('filter-date-to').value
+            };
+            
+            // Remove empty filters
+            Object.keys(currentFilters).forEach(key => {
+                if (!currentFilters[key]) {
+                    delete currentFilters[key];
+                }
+            });
+            
+            loadOperations(1);
+        });
+    }
+    
+    // Clear Filters
+    const clearFiltersBtn = document.getElementById('clear-filters-btn');
+    if (clearFiltersBtn) {
+        clearFiltersBtn.addEventListener('click', function() {
+            document.getElementById('filter-status').value = '';
+            document.getElementById('filter-type').value = '';
+            document.getElementById('filter-date-from').value = '';
+            document.getElementById('filter-date-to').value = '';
+            currentFilters = {};
+            loadOperations(1);
+        });
+    }
+    
+    // Export Operations
+    const exportOperationsBtn = document.getElementById('export-operations-btn');
+    if (exportOperationsBtn) {
+        exportOperationsBtn.addEventListener('click', function() {
+            const params = new URLSearchParams(currentFilters);
+            window.location.href = `{% url "log_viewer:export_operations" %}?${params}`;
+        });
+    }
+    
+    // Load operations when operations tab is active
+    const operationsTab = document.querySelector('[data-tab="operations"]');
+    if (operationsTab) {
+        operationsTab.addEventListener('click', function() {
+            // Small delay to ensure tab is switched
+            setTimeout(() => loadOperations(1), 100);
+        });
+    }
+});
+
+// View Operation Detail (global function)
+function viewOperationDetail(operationId) {
+    const modal = document.getElementById('operation-detail-modal');
+    const content = document.getElementById('operation-detail-content');
+    
+    content.innerHTML = '<div style="text-align: center; padding: 2rem;"><i class="fas fa-spinner fa-spin"></i> Loading...</div>';
+    modal.style.display = 'flex';
+    
+    fetch(`{% url "log_viewer:operation_detail" 0 %}`.replace('0', operationId))
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const op = data.operation;
+                content.innerHTML = `
+                    <div style="display: grid; gap: 1rem;">
+                        <div>
+                            <strong style="color: #2d3748;">Operation Type:</strong>
+                            <span style="color: #4a5568;">${op.operation_type_display}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">Status:</strong>
+                            <span class="status-badge status-${op.status}">${op.status_display}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">Started At:</strong>
+                            <span style="color: #4a5568;">${op.started_at}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">Completed At:</strong>
+                            <span style="color: #4a5568;">${op.completed_at || 'N/A'}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">Triggered By:</strong>
+                            <span style="color: #4a5568;">${op.triggered_by || 'System'}</span>
+                        </div>
+                        <hr style="border: none; border-top: 1px solid #e2e8f0;">
+                        <div>
+                            <strong style="color: #2d3748;">Audit Logs Processed:</strong>
+                            <span style="color: #4a5568;">${op.audit_logs_processed}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">Audit Logs Deleted:</strong>
+                            <span style="color: #4a5568;">${op.audit_logs_deleted}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">File Logs Processed:</strong>
+                            <span style="color: #4a5568;">${op.file_logs_processed}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">File Logs Deleted:</strong>
+                            <span style="color: #4a5568;">${op.file_logs_deleted}</span>
+                        </div>
+                        <div>
+                            <strong style="color: #2d3748;">Archives Created:</strong>
+                            <span style="color: #4a5568;">${op.archives_created}</span>
+                        </div>
+                        ${op.error_message ? `
+                        <hr style="border: none; border-top: 1px solid #e2e8f0;">
+                        <div>
+                            <strong style="color: #e53e3e;">Error Message:</strong>
+                            <pre style="background: #fed7d7; padding: 1rem; border-radius: 0.375rem; color: #742a2a; white-space: pre-wrap; margin-top: 0.5rem;">${op.error_message}</pre>
+                        </div>
+                        ` : ''}
+                        ${op.archive_files && op.archive_files.length > 0 ? `
+                        <hr style="border: none; border-top: 1px solid #e2e8f0;">
+                        <div>
+                            <strong style="color: #2d3748;">Archive Files:</strong>
+                            <ul style="margin-top: 0.5rem; padding-left: 1.5rem;">
+                                ${op.archive_files.map(file => `<li style="color: #4a5568;">${file}</li>`).join('')}
+                            </ul>
+                        </div>
+                        ` : ''}
+                    </div>
+                `;
+            } else {
+                content.innerHTML = `<div style="color: #e53e3e; text-align: center;">Error loading operation details</div>`;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            content.innerHTML = `<div style="color: #e53e3e; text-align: center;">Error loading operation details</div>`;
+        });
+}
+
+function closeOperationModal() {
+    document.getElementById('operation-detail-modal').style.display = 'none';
+}
+
+// Reset form functions
+function resetAuditForm() {
+    document.getElementById('audit-policy-form').reset();
+}
+
+function resetFileForm() {
+    document.getElementById('file-policy-form').reset();
+}
+
+function resetScheduleForm() {
+    document.getElementById('schedule-form').reset();
+    // Trigger field visibility update
+    const event = new Event('change');
+    document.getElementById('schedule-frequency').dispatchEvent(event);
+}
+
+function resetStorageForm() {
+    document.getElementById('storage-form').reset();
+}
+
+function resetCreateScheduleForm() {
+    const form = document.getElementById('create-schedule-form');
+    if (form) {
+        form.reset();
+        // Trigger field visibility update
+        const event = new Event('change');
+        document.getElementById('create-schedule-frequency').dispatchEvent(event);
+    }
+}
+</script>
+{% endblock %}
