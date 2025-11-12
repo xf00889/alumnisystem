@@ -490,6 +490,8 @@
                     
                     <form method="POST" action="{% url 'accounts:resend_verification_from_inactive' %}" id="resendForm">
                         {% csrf_token %}
+                        <!-- Hidden email field that will be populated by JavaScript -->
+                        <input type="hidden" name="email" id="emailField" value="">
                         <button type="submit" class="btn-auth btn-auth-primary" id="resendBtn">
                             <i class="fas fa-paper-plane"></i>
                             Resend Verification Email
@@ -527,14 +529,65 @@
 
     <!-- JavaScript -->
     <script>
+        // Try to get email from URL parameters or localStorage
+        function getEmailFromStorage() {
+            // Check URL parameters first
+            const urlParams = new URLSearchParams(window.location.search);
+            const emailFromUrl = urlParams.get('email');
+            if (emailFromUrl) {
+                localStorage.setItem('inactive_account_email', emailFromUrl);
+                return emailFromUrl;
+            }
+            
+            // Check localStorage
+            return localStorage.getItem('inactive_account_email') || '';
+        }
+        
+        // Set email field on page load
+        window.addEventListener('DOMContentLoaded', function() {
+            const email = getEmailFromStorage();
+            if (email) {
+                document.getElementById('emailField').value = email;
+            }
+        });
+        
         // Handle resend form submission
-        document.getElementById('resendForm').addEventListener('submit', function(e) {
+        document.getElementById('resendForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
             const form = this;
             const btn = document.getElementById('resendBtn');
             const countdownTimer = document.getElementById('countdownTimer');
             const countdownSpan = document.getElementById('countdown');
+            const emailField = document.getElementById('emailField');
+            
+            // Check if email is available, if not prompt user
+            if (!emailField.value) {
+                const { value: email } = await Swal.fire({
+                    title: 'Enter Your Email',
+                    input: 'email',
+                    inputLabel: 'Please enter the email address you used to sign up',
+                    inputPlaceholder: 'your.email@example.com',
+                    confirmButtonText: 'Continue',
+                    confirmButtonColor: '#2b3c6b',
+                    showCancelButton: true,
+                    inputValidator: (value) => {
+                        if (!value) {
+                            return 'Please enter your email address';
+                        }
+                        if (!value.includes('@')) {
+                            return 'Please enter a valid email address';
+                        }
+                    }
+                });
+                
+                if (!email) {
+                    return; // User cancelled
+                }
+                
+                emailField.value = email;
+                localStorage.setItem('inactive_account_email', email);
+            }
             
             // Disable button and show loading state
             btn.disabled = true;

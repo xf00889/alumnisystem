@@ -76,3 +76,16 @@ class CustomAccountAdapter(DefaultAccountAdapter):
             # Return True if user is active, False otherwise
             return user.is_active
         return False
+    
+    def respond_user_inactive(self, request, user):
+        """
+        Handle inactive user login attempt by storing email in session
+        and redirecting to custom inactive page with email parameter
+        """
+        from django.shortcuts import redirect
+        
+        # Store the user's email in session for resend verification
+        request.session['inactive_account_email'] = user.email
+        
+        # Redirect to custom inactive page with email parameter
+        return redirect(f'/accounts/inactive/?email={user.email}')
