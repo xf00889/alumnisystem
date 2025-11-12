@@ -11,7 +11,7 @@ User = get_user_model()
 class UserBasicSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source='get_full_name', read_only=True)
     avatar = serializers.SerializerMethodField()
-    current_position = serializers.CharField(source='profile.current_position', read_only=True)
+    current_position = serializers.SerializerMethodField()
     
     class Meta:
         model = User
@@ -19,8 +19,21 @@ class UserBasicSerializer(serializers.ModelSerializer):
         read_only_fields = ['email']
 
     def get_avatar(self, obj):
-        if hasattr(obj, 'profile') and obj.profile.avatar:
-            return obj.profile.avatar.url
+        """Safely get user avatar or return None"""
+        try:
+            if hasattr(obj, 'profile') and obj.profile and obj.profile.avatar:
+                return obj.profile.avatar.url
+        except Exception:
+            pass
+        return None
+    
+    def get_current_position(self, obj):
+        """Safely get user current position or return None"""
+        try:
+            if hasattr(obj, 'profile') and obj.profile:
+                return obj.profile.current_position
+        except Exception:
+            pass
         return None
 
 class MentorSerializer(serializers.ModelSerializer):

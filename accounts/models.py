@@ -9,6 +9,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
 from core.models.contact import Address, ContactInfo
+import logging
 
 User = get_user_model()
 
@@ -588,12 +589,54 @@ class MentorshipRequest(models.Model):
             self.mentor.save()
         super().save(*args, **kwargs)
 
+logger = logging.getLogger('accounts')
+
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
+    """Create a Profile for newly created User instances"""
     if created:
-        Profile.objects.create(user=instance)
+        try:
+            profile, profile_created = Profile.objects.get_or_create(user=instance)
+            if profile_created:
+                logger.info(f"Profile created successfully for user {instance.id} ({instance.email})")
+            else:
+                logger.info(f"Profile already exists for user {instance.id} ({instance.email})")
+        except Exception as e:
+            logger.error(
+                f"Failed to create profile for user {instance.id} ({instance.email}): {str(e)}",
+                exc_info=True,
+                extra={
+                    'user_id': instance.id,
+                    'user_email': instance.email,
+                    'signal': 'create_user_profile'
+                }
+            )
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    if hasattr(instance, 'profile'):
-        instance.profile.save()
+    """Save the Profile when User is saved, creating it if missing"""
+    try:
+        if hasattr(instance, 'profile') and instance.profile:
+            instance.profile.save()
+        else:
+            # Profile doesn't exist, create it
+            profile, created = Profile.objects.get_or_create(user=instance)
+            if created:
+                logger.warning(
+                    f"Profile was missing for user {instance.id} ({instance.email}), created new profile in save signal",
+                    extra={
+                        'user_id': instance.id,
+                        'user_email': instance.email,
+                        'signal': 'save_user_profile'
+                    }
+                )
+    except Exception as e:
+        logger.error(
+            f"Error saving profile for user {instance.id} ({instance.email}): {str(e)}",
+            exc_info=True,
+            extra={
+                'user_id': instance.id,
+                'user_email': instance.email,
+                'signal': 'save_user_profile'
+            }
+        )
