@@ -68,6 +68,7 @@ urlpatterns = [
     path('resend-verification-code/', security_views.resend_verification_code, name='resend_verification_code'),
     path('check-resend-countdown/', security_views.check_resend_countdown, name='check_resend_countdown'),
     path('signup-redirect/', security_views.custom_signup_redirect, name='custom_signup_redirect'),
+    path('resend-verification-from-inactive/', security_views.resend_verification_from_inactive, name='resend_verification_from_inactive'),
     
     # Enhanced Password Reset Flow
     path('password-reset-email/', security_views.password_reset_email, name='password_reset_email'),

@@ -243,6 +243,37 @@
                 <i class="fas fa-shield-alt"></i>
             </div>
             
+            <!-- Check Your Email Message -->
+            {% if user_email %}
+            <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); color: var(--info-color); border-color: rgba(59, 130, 246, 0.2); margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: start; gap: 0.75rem;">
+                    <i class="fas fa-info-circle" style="font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                    <div>
+                        <strong>Check your email!</strong>
+                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">
+                            We've sent a verification code to <strong>{{ user_email }}</strong>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+            
+            <!-- Troubleshooting Tips -->
+            <div class="alert" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem;">
+                <div style="display: flex; align-items: start; gap: 0.75rem;">
+                    <i class="fas fa-lightbulb" style="font-size: 1.25rem; margin-top: 0.125rem;"></i>
+                    <div>
+                        <strong>Didn't receive the email?</strong>
+                        <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.875rem; line-height: 1.6;">
+                            <li>Check your spam or junk folder</li>
+                            <li>Make sure you entered the correct email address</li>
+                            <li>Wait a few minutes - emails can take time to arrive</li>
+                            <li>Click "Resend Code" below if you still don't see it</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            
             {% if messages %}
                 {% for message in messages %}
                     <div class="alert alert-{{ message.tags }}">
@@ -272,7 +303,7 @@
                     <small class="text-muted">Enter the 6-digit code from your email</small>
                 </div>
                 
-                <button type="submit" class="btn btn-primary btn-block">
+                <button type="submit" class="btn btn-primary btn-block" id="verifyBtn">
                     <i class="fas fa-check"></i> Verify Email
                 </button>
             </form>
@@ -344,6 +375,12 @@ document.addEventListener('DOMContentLoaded', function() {
         // Auto-submit when 6 digits are entered and email is filled
         if (value.length === 6 && emailInput.value.trim()) {
             setTimeout(() => {
+                const verifyBtn = document.getElementById('verifyBtn');
+                
+                // Disable button and show loading state
+                verifyBtn.disabled = true;
+                verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                
                 // Show loading SweetAlert
                 Swal.fire({
                     title: 'Verifying...',
@@ -373,6 +410,12 @@ document.addEventListener('DOMContentLoaded', function() {
         
         if (pastedData.length === 6 && emailInput.value.trim()) {
             setTimeout(() => {
+                const verifyBtn = document.getElementById('verifyBtn');
+                
+                // Disable button and show loading state
+                verifyBtn.disabled = true;
+                verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+                
                 // Show loading SweetAlert
                 Swal.fire({
                     title: 'Verifying...',
@@ -598,6 +641,7 @@ document.addEventListener('DOMContentLoaded', function() {
     document.getElementById('verificationForm').addEventListener('submit', function(e) {
         const emailValue = emailInput.value.trim();
         const otpValue = otpInput.value.trim();
+        const verifyBtn = document.getElementById('verifyBtn');
         
         if (!emailValue) {
             e.preventDefault();
@@ -623,6 +667,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
         
+        // Disable button and show loading state
+        verifyBtn.disabled = true;
+        verifyBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Verifying...';
+        
         // Show loading SweetAlert
         Swal.fire({
             title: 'Verifying...',
@@ -647,16 +695,25 @@ document.addEventListener('DOMContentLoaded', function() {
                 // Only show "Email Verified!" if the message explicitly says "Email verified successfully"
                 // Otherwise, it's just the signup success message - show it as info, not "Email Verified"
                 {% if 'Email verified successfully' in message %}
-                    // This is the actual verification success - show "Email Verified!" and redirect
+                    // This is the actual verification success - show "Email Verified!" with 2-second delay before redirect
                     Swal.fire({
                         icon: 'success',
                         title: 'Email Verified!',
                         text: '{{ message }}',
                         confirmButtonColor: '#2b3c6b',
-                        confirmButtonText: 'OK'
+                        timer: 2000,
+                        timerProgressBar: true,
+                        showConfirmButton: false,
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            // Show a loading spinner during the delay
+                            Swal.showLoading();
+                        }
                     }).then(() => {
-                        // Redirect to post registration page
-                        window.location.href = '{% url "accounts:post_registration" %}';
+                        // After 2 seconds, redirect (handled automatically by timer)
+                        // The redirect will happen via the server-side redirect in the view
+                        // But we keep this for fallback in case JavaScript needs to handle it
                     });
                 {% else %}
                     // This is the signup success message - just remove the HTML alert, don't show SweetAlert

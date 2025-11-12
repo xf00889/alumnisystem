@@ -159,6 +159,10 @@ class RateLimiter:
         cache_key = f"rate_limit_{action}_{identifier}"
         attempts = cache.get(cache_key, 0) + 1
         cache.set(cache_key, attempts, timeout=window_minutes * 60)
+        
+        # Log rate limit attempt for security audit
+        logger.info(f"Rate limit attempt recorded: {action} for {identifier} (attempt {attempts}/{max_attempts})")
+        
         return attempts
     
     @staticmethod
@@ -173,6 +177,15 @@ class RateLimiter:
         """Reset rate limit for identifier"""
         cache_key = f"rate_limit_{action}_{identifier}"
         cache.delete(cache_key)
+        logger.info(f"Rate limit reset: {action} for {identifier}")
+    
+    @staticmethod
+    def get_remaining_time(identifier, action):
+        """Get remaining time in seconds before rate limit expires"""
+        cache_key = f"rate_limit_{action}_{identifier}"
+        # Get the TTL (time to live) of the cache key
+        ttl = cache.ttl(cache_key)
+        return max(0, ttl) if ttl is not None else 0
 
 class PasswordValidator:
     """Enhanced password validation"""

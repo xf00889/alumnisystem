@@ -63,6 +63,15 @@ def post_registration(request):
     # Redirect if already completed registration
     if profile.has_completed_registration:
         return redirect('core:home')
+    
+    # Check if there's a verification success message to display
+    verification_success = request.session.get('verification_success', False)
+    verification_message = request.session.get('verification_message', '')
+    
+    # Clear the session variables after reading them
+    if verification_success:
+        request.session.pop('verification_success', None)
+        request.session.pop('verification_message', None)
 
     if request.method == 'POST':
         form = PostRegistrationForm(request.POST)
@@ -124,6 +133,8 @@ def post_registration(request):
     return render(request, 'accounts/post_registration.html', {
         'form': form,
         'title': 'Complete Registration',
+        'verification_success': verification_success,
+        'verification_message': verification_message,
     })
 
 @login_required
