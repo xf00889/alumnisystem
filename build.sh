@@ -6,6 +6,10 @@ echo "🚀 Starting Django build process..."
 # Set strict error handling
 set -e
 
+# Create logs directory if it doesn't exist
+echo "📂 Creating logs directory..."
+mkdir -p logs
+
 # Install dependencies
 echo "📦 Installing Python dependencies..."
 pip install -r requirements.txt

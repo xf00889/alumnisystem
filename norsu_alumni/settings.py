@@ -387,95 +387,174 @@ CSRF_TRUSTED_ORIGINS = [
 # CSRF trusted origins configured above
 
 # Logging Configuration
-LOGGING = {
-    'version': 1,
-    'disable_existing_loggers': False,
-    'formatters': {
-        'verbose': {
-            'format': '{levelname} {asctime} {module} {message}',
-            'style': '{',
+# Use console-only logging in production (Render captures stdout/stderr)
+# Use file logging in development for persistent logs
+if DATABASE_URL:
+    # Production: Console-only logging
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {message}',
+                'style': '{',
+            },
         },
-    },
-    'handlers': {
-        'console': {
-            'class': 'logging.StreamHandler',
-            'formatter': 'verbose',
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
         },
-        'file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'alumni_system.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'level': 'INFO',
+        'loggers': {
+            'announcements': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'allauth': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'accounts': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'django.request': {
+                'handlers': ['console'],
+                'level': 'ERROR',
+                'propagate': True,
+            },
+            'core.view_handlers.error_handlers': {
+                'handlers': ['console'],
+                'level': 'ERROR',
+                'propagate': True,
+            },
+            'django_recaptcha': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'recaptcha': {
+                'handlers': ['console'],
+                'level': 'WARNING',
+                'propagate': True,
+            },
+            'surveys': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'donations': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'alumni_directory': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'log_viewer': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
         },
-        'error_file': {
-            'class': 'logging.handlers.RotatingFileHandler',
-            'filename': BASE_DIR / 'logs' / 'errors.log',
-            'maxBytes': 1024 * 1024 * 10,  # 10 MB
-            'backupCount': 5,
-            'formatter': 'verbose',
-            'level': 'ERROR',
+    }
+else:
+    # Development: File + Console logging
+    LOGGING = {
+        'version': 1,
+        'disable_existing_loggers': False,
+        'formatters': {
+            'verbose': {
+                'format': '{levelname} {asctime} {module} {message}',
+                'style': '{',
+            },
         },
-    },
-    'loggers': {
-        'announcements': {  # Add logging for our app
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
+        'handlers': {
+            'console': {
+                'class': 'logging.StreamHandler',
+                'formatter': 'verbose',
+            },
+            'file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'alumni_system.log',
+                'maxBytes': 1024 * 1024 * 10,  # 10 MB
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'level': 'INFO',
+            },
+            'error_file': {
+                'class': 'logging.handlers.RotatingFileHandler',
+                'filename': BASE_DIR / 'logs' / 'errors.log',
+                'maxBytes': 1024 * 1024 * 10,  # 10 MB
+                'backupCount': 5,
+                'formatter': 'verbose',
+                'level': 'ERROR',
+            },
         },
-        'allauth': {  # Add logging for allauth
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
+        'loggers': {
+            'announcements': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'allauth': {
+                'handlers': ['console', 'file'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'accounts': {
+                'handlers': ['console', 'file'],
+                'level': 'DEBUG',
+                'propagate': True,
+            },
+            'django.request': {
+                'handlers': ['console', 'error_file'],
+                'level': 'ERROR',
+                'propagate': True,
+            },
+            'core.view_handlers.error_handlers': {
+                'handlers': ['console', 'error_file'],
+                'level': 'ERROR',
+                'propagate': True,
+            },
+            'django_recaptcha': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'recaptcha': {
+                'handlers': ['console', 'file'],
+                'level': 'WARNING',
+                'propagate': True,
+            },
+            'surveys': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'donations': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'alumni_directory': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
+            'log_viewer': {
+                'handlers': ['console', 'file'],
+                'level': 'INFO',
+                'propagate': True,
+            },
         },
-        'accounts': {  # Add logging for accounts app
-            'handlers': ['console', 'file'],
-            'level': 'DEBUG',
-            'propagate': True,
-        },
-        'django.request': {  # Add logging for Django requests
-            'handlers': ['console', 'error_file'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-        'core.view_handlers.error_handlers': {  # Add logging for error handlers
-            'handlers': ['console', 'error_file'],
-            'level': 'ERROR',
-            'propagate': True,
-        },
-        'django_recaptcha': {  # Add logging for reCAPTCHA
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'recaptcha': {  # Add logging for reCAPTCHA failures
-            'handlers': ['console', 'file'],
-            'level': 'WARNING',
-            'propagate': True,
-        },
-        'surveys': {  # Add logging for surveys
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'donations': {  # Add logging for donations
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'alumni_directory': {  # Add logging for alumni directory
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-        'log_viewer': {  # Add logging for log viewer
-            'handlers': ['console', 'file'],
-            'level': 'INFO',
-            'propagate': True,
-        },
-    },
-}
+    }
 
 # Cache settings
 CACHES = {
