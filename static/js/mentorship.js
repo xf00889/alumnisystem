@@ -144,14 +144,19 @@ function displaySearchResults(mentors) {
     mentors.forEach(mentor => {
         const card = template.content.cloneNode(true);
         
-        // Fill in mentor details
-        card.querySelector('.card-title').textContent = mentor.user.full_name;
-        card.querySelector('.mentor-position').textContent = mentor.user.current_position || 'Mentor';
+        // Fill in mentor details - safely handle missing data
+        const fullName = mentor.user?.full_name || 'Mentor';
+        card.querySelector('.card-title').textContent = fullName;
         
-        // Set avatar
+        // Safely get position with multiple fallbacks
+        const position = mentor.user?.current_position || 'Mentor';
+        card.querySelector('.mentor-position').textContent = position;
+        
+        // Set avatar with safe fallback
         const avatarImg = card.querySelector('.mentor-avatar');
-        avatarImg.src = mentor.user.avatar || '/static/images/default-avatar.png';
-        avatarImg.alt = `${mentor.user.full_name}'s profile picture`;
+        const avatarUrl = mentor.user?.avatar || '/static/images/default-avatar.png';
+        avatarImg.src = avatarUrl;
+        avatarImg.alt = `${fullName}'s profile picture`;
         avatarImg.onerror = function() {
             this.src = '/static/images/default-avatar.png';
         };
@@ -194,7 +199,7 @@ function displaySearchResults(mentors) {
         // Get current user ID from meta tag
         const currentUserId = document.querySelector('meta[name="user-id"]')?.content;
         
-        if (currentUserId && mentor.user.id === parseInt(currentUserId)) {
+        if (currentUserId && mentor.user?.id === parseInt(currentUserId)) {
             // This is the current user's mentor profile
             requestBtn.textContent = 'This is Your Profile';
             requestBtn.classList.remove('btn-primary');
@@ -300,7 +305,8 @@ function openRequestModal(mentor) {
     // Add mentor name to modal title
     const modalTitle = modal.querySelector('.modal-title');
     if (modalTitle) {
-        modalTitle.innerHTML = `<i class="fas fa-handshake me-2"></i>Request Mentorship from ${mentor.user.full_name}`;
+        const mentorName = mentor.user?.full_name || 'Mentor';
+        modalTitle.innerHTML = `<i class="fas fa-handshake me-2"></i>Request Mentorship from ${mentorName}`;
     }
 
     new bootstrap.Modal(modal).show();

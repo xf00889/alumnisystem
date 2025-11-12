@@ -1,6 +1,8 @@
 from django import template
+import logging
 
 register = template.Library()
+logger = logging.getLogger('mentorship')
 
 @register.filter(name='multiply')
 def multiply(value, arg):
@@ -52,3 +54,55 @@ def format_location(profile):
         parts.append(str(profile.country.name))
 
     return ", ".join(parts) if parts else "Location not set"
+
+@register.filter(name='safe_avatar')
+def safe_avatar(user):
+    """Safely get user avatar or return default"""
+    try:
+        if user and hasattr(user, 'profile') and user.profile and user.profile.avatar:
+            return user.profile.avatar.url
+        return '/static/images/default-avatar.png'
+    except Exception as e:
+        logger.warning(f"Error accessing avatar for user {getattr(user, 'id', 'unknown')}: {str(e)}")
+        return '/static/images/default-avatar.png'
+
+@register.filter(name='safe_location')
+def safe_location(user):
+    """Safely get user location or return default"""
+    try:
+        if user and hasattr(user, 'profile') and user.profile:
+            # Try the location property first
+            if hasattr(user.profile, 'location') and user.profile.location:
+                return user.profile.location
+            
+            # Fallback to individual fields
+            parts = []
+            if hasattr(user.profile, 'city') and user.profile.city:
+                parts.append(user.profile.city)
+            if hasattr(user.profile, 'state') and user.profile.state:
+                parts.append(user.profile.state)
+            if hasattr(user.profile, 'country') and user.profile.country:
+                parts.append(str(user.profile.country.name))
+            
+            if parts:
+                return ", ".join(parts)
+        
+        return "Location not set"
+    except Exception as e:
+        logger.warning(f"Error accessing location for user {getattr(user, 'id', 'unknown')}: {str(e)}")
+        return "Location not set"
+
+@register.filter(name='safe_position')
+def safe_position(user):
+    """Safely get user current position or return empty string"""
+    try:
+        if user and hasattr(user, 'profile') and user.profile:
+            if hasattr(user.profile, 'current_position') and user.profile.current_position:
+                return user.profile.current_position
+            # Also check for 'position' field as a fallback
+            if hasattr(user.profile, 'position') and user.profile.position:
+                return user.profile.position
+        return ""
+    except Exception as e:
+        logger.warning(f"Error accessing position for user {getattr(user, 'id', 'unknown')}: {str(e)}")
+        return ""

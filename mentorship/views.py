@@ -18,16 +18,33 @@ from rest_framework import serializers
 from django.http import JsonResponse
 from django.shortcuts import render, get_object_or_404, redirect
 from notifications.signals import notify
+import logging
 
 # Import messaging views
 from .messaging_views import conversation_list_view, conversation_detail_view, messaging_page, send_message, create_conversation
+
+# Initialize logger
+logger = logging.getLogger('mentorship')
 
 @login_required
 def mentor_search(request):
     """
     View for searching and filtering mentors
     """
-    return render(request, 'mentorship/mentor_search.html')
+    try:
+        return render(request, 'mentorship/mentor_search.html')
+    except Exception as e:
+        logger.error(
+            f"Error in mentor_search for user {request.user.id}: {str(e)}",
+            exc_info=True,
+            extra={
+                'user_id': request.user.id,
+                'user_email': request.user.email,
+                'view': 'mentor_search'
+            }
+        )
+        messages.error(request, "An error occurred while loading the mentor search page. Please try again or contact support.")
+        return redirect('home')
 
 @login_required
 def requests_list(request):
@@ -128,61 +145,74 @@ def mentee_dashboard(request):
     """
     View for mentee's dashboard showing their mentorship requests and active mentorships
     """
-    # Get mentorship requests grouped by status
-    pending_requests = MentorshipRequest.objects.filter(
-        mentee=request.user,
-        status='PENDING'
-    ).select_related('mentor', 'mentor__user', 'mentor__user__profile').order_by('-created_at')
-    
-    active_mentorships = MentorshipRequest.objects.filter(
-        mentee=request.user,
-        status='APPROVED'
-    ).select_related('mentor', 'mentor__user', 'mentor__user__profile').order_by('-start_date', '-created_at')
-    
-    completed_mentorships = MentorshipRequest.objects.filter(
-        mentee=request.user,
-        status='COMPLETED'
-    ).select_related('mentor', 'mentor__user', 'mentor__user__profile').order_by('-end_date', '-created_at')
-    
-    rejected_requests = MentorshipRequest.objects.filter(
-        mentee=request.user,
-        status='REJECTED'
-    ).select_related('mentor', 'mentor__user', 'mentor__user__profile').order_by('-updated_at')
-    
-    # Get upcoming meetings
-    upcoming_meetings = MentorshipMeeting.objects.filter(
-        mentorship__mentee=request.user,
-        mentorship__status='APPROVED',
-        status='SCHEDULED',
-        meeting_date__gt=timezone.now()
-    ).select_related('mentorship', 'mentorship__mentor', 'mentorship__mentor__user').order_by('meeting_date')[:5]
-    
-    # Get recent messages
-    recent_messages = MentorshipMessage.objects.filter(
-        mentorship__mentee=request.user,
-        mentorship__status='APPROVED'
-    ).select_related('sender', 'mentorship').order_by('-created_at')[:5]
-    
-    # Get progress updates
-    progress_updates = MentorshipProgress.objects.filter(
-        mentorship__mentee=request.user
-    ).select_related('mentorship', 'created_by').order_by('-created_at')[:5]
-    
-    context = {
-        'user': request.user,
-        'pending_requests': pending_requests,
-        'active_mentorships': active_mentorships,
-        'completed_mentorships': completed_mentorships,
-        'rejected_requests': rejected_requests,
-        'upcoming_meetings': upcoming_meetings,
-        'recent_messages': recent_messages,
-        'progress_updates': progress_updates,
-        'total_active_mentorships': active_mentorships.count(),
-        'total_pending_requests': pending_requests.count(),
-        'total_completed_mentorships': completed_mentorships.count()
-    }
-    
-    return render(request, 'mentorship/mentee_dashboard.html', context)
+    try:
+        # Get mentorship requests grouped by status
+        pending_requests = MentorshipRequest.objects.filter(
+            mentee=request.user,
+            status='PENDING'
+        ).select_related('mentor', 'mentor__user').order_by('-created_at')
+        
+        active_mentorships = MentorshipRequest.objects.filter(
+            mentee=request.user,
+            status='APPROVED'
+        ).select_related('mentor', 'mentor__user').order_by('-start_date', '-created_at')
+        
+        completed_mentorships = MentorshipRequest.objects.filter(
+            mentee=request.user,
+            status='COMPLETED'
+        ).select_related('mentor', 'mentor__user').order_by('-end_date', '-created_at')
+        
+        rejected_requests = MentorshipRequest.objects.filter(
+            mentee=request.user,
+            status='REJECTED'
+        ).select_related('mentor', 'mentor__user').order_by('-updated_at')
+        
+        # Get upcoming meetings
+        upcoming_meetings = MentorshipMeeting.objects.filter(
+            mentorship__mentee=request.user,
+            mentorship__status='APPROVED',
+            status='SCHEDULED',
+            meeting_date__gt=timezone.now()
+        ).select_related('mentorship', 'mentorship__mentor', 'mentorship__mentor__user').order_by('meeting_date')[:5]
+        
+        # Get recent messages
+        recent_messages = MentorshipMessage.objects.filter(
+            mentorship__mentee=request.user,
+            mentorship__status='APPROVED'
+        ).select_related('sender', 'mentorship').order_by('-created_at')[:5]
+        
+        # Get progress updates
+        progress_updates = MentorshipProgress.objects.filter(
+            mentorship__mentee=request.user
+        ).select_related('mentorship', 'created_by').order_by('-created_at')[:5]
+        
+        context = {
+            'user': request.user,
+            'pending_requests': pending_requests,
+            'active_mentorships': active_mentorships,
+            'completed_mentorships': completed_mentorships,
+            'rejected_requests': rejected_requests,
+            'upcoming_meetings': upcoming_meetings,
+            'recent_messages': recent_messages,
+            'progress_updates': progress_updates,
+            'total_active_mentorships': active_mentorships.count(),
+            'total_pending_requests': pending_requests.count(),
+            'total_completed_mentorships': completed_mentorships.count()
+        }
+        
+        return render(request, 'mentorship/mentee_dashboard.html', context)
+    except Exception as e:
+        logger.error(
+            f"Error in mentee_dashboard for user {request.user.id}: {str(e)}",
+            exc_info=True,
+            extra={
+                'user_id': request.user.id,
+                'user_email': request.user.email,
+                'view': 'mentee_dashboard'
+            }
+        )
+        messages.error(request, "An error occurred while loading your dashboard. Please try again or contact support.")
+        return redirect('home')
 
 @login_required
 def request_mentorship(request, mentor_id):
@@ -252,83 +282,96 @@ def mentor_dashboard(request):
     """
     View for mentor's dashboard showing their mentorship requests and current mentees
     """
-    if not hasattr(request.user, 'mentor_profile'):
-        messages.error(request, "You need to be a verified mentor to access this page.")
-        return redirect('accounts:apply_mentor')
-    
-    mentor = request.user.mentor_profile
-    
-    # Get mentorship requests grouped by status
-    pending_requests = MentorshipRequest.objects.filter(
-        mentor=mentor,
-        status='PENDING'
-    ).select_related('mentee', 'mentee__profile').order_by('-created_at')
-    
-    active_mentorships = MentorshipRequest.objects.filter(
-        mentor=mentor,
-        status='APPROVED'
-    ).select_related('mentee', 'mentee__profile').order_by('-start_date', '-created_at')
-    
-    completed_mentorships = MentorshipRequest.objects.filter(
-        mentor=mentor,
-        status='COMPLETED'
-    ).select_related('mentee', 'mentee__profile').order_by('-end_date', '-created_at')
-    
-    # Get upcoming meetings
-    upcoming_meetings = MentorshipMeeting.objects.filter(
-        mentorship__mentor=mentor,
-        mentorship__status='APPROVED',
-        status='SCHEDULED',
-        meeting_date__gt=timezone.now()
-    ).select_related('mentorship', 'mentorship__mentee').order_by('meeting_date')[:5]
-
-    # Get recent progress updates
-    recent_progress = MentorshipProgress.objects.filter(
-        mentorship__mentor=mentor,
-        mentorship__status='APPROVED'
-    ).select_related('mentorship', 'mentorship__mentee').order_by('-created_at')[:5]
-
-    # Calculate statistics for the analytics cards
-    total_active_mentees = active_mentorships.count()
-    total_pending_requests = pending_requests.count()
-
-    # Get unread messages count (if messaging system is implemented)
-    unread_messages = 0
     try:
-        from .models import MentorshipMessage
-        unread_messages = MentorshipMessage.objects.filter(
-            conversation__participants=mentor.user,
-            is_read=False
-        ).exclude(sender=mentor.user).count()
-    except:
-        pass
-
-    # Check if mentor is disabled
-    is_disabled = not mentor.is_active
-    has_pending_reactivation = False
-    if is_disabled:
-        # Check if there's a pending reactivation request
-        from accounts.models import MentorReactivationRequest
-        has_pending_reactivation = MentorReactivationRequest.objects.filter(
+        if not hasattr(request.user, 'mentor_profile'):
+            messages.error(request, "You need to be a verified mentor to access this page.")
+            return redirect('accounts:apply_mentor')
+        
+        mentor = request.user.mentor_profile
+        
+        # Get mentorship requests grouped by status
+        pending_requests = MentorshipRequest.objects.filter(
             mentor=mentor,
             status='PENDING'
-        ).exists()
+        ).select_related('mentee').order_by('-created_at')
+        
+        active_mentorships = MentorshipRequest.objects.filter(
+            mentor=mentor,
+            status='APPROVED'
+        ).select_related('mentee').order_by('-start_date', '-created_at')
+        
+        completed_mentorships = MentorshipRequest.objects.filter(
+            mentor=mentor,
+            status='COMPLETED'
+        ).select_related('mentee').order_by('-end_date', '-created_at')
+        
+        # Get upcoming meetings
+        upcoming_meetings = MentorshipMeeting.objects.filter(
+            mentorship__mentor=mentor,
+            mentorship__status='APPROVED',
+            status='SCHEDULED',
+            meeting_date__gt=timezone.now()
+        ).select_related('mentorship', 'mentorship__mentee').order_by('meeting_date')[:5]
 
-    context = {
-        'mentor': mentor,
-        'pending_requests': pending_requests,
-        'active_mentorships': active_mentorships,
-        'completed_mentorships': completed_mentorships,
-        'upcoming_meetings': upcoming_meetings,
-        'recent_progress': recent_progress,
-        'total_active_mentees': total_active_mentees,
-        'total_pending_requests': total_pending_requests,
-        'unread_messages': unread_messages,
-        'is_disabled': is_disabled,
-        'has_pending_reactivation': has_pending_reactivation,
-    }
-    
-    return render(request, 'mentorship/mentor_dashboard.html', context)
+        # Get recent progress updates
+        recent_progress = MentorshipProgress.objects.filter(
+            mentorship__mentor=mentor,
+            mentorship__status='APPROVED'
+        ).select_related('mentorship', 'mentorship__mentee').order_by('-created_at')[:5]
+
+        # Calculate statistics for the analytics cards
+        total_active_mentees = active_mentorships.count()
+        total_pending_requests = pending_requests.count()
+
+        # Get unread messages count (if messaging system is implemented)
+        unread_messages = 0
+        try:
+            from .models import MentorshipMessage
+            unread_messages = MentorshipMessage.objects.filter(
+                conversation__participants=mentor.user,
+                is_read=False
+            ).exclude(sender=mentor.user).count()
+        except:
+            pass
+
+        # Check if mentor is disabled
+        is_disabled = not mentor.is_active
+        has_pending_reactivation = False
+        if is_disabled:
+            # Check if there's a pending reactivation request
+            from accounts.models import MentorReactivationRequest
+            has_pending_reactivation = MentorReactivationRequest.objects.filter(
+                mentor=mentor,
+                status='PENDING'
+            ).exists()
+
+        context = {
+            'mentor': mentor,
+            'pending_requests': pending_requests,
+            'active_mentorships': active_mentorships,
+            'completed_mentorships': completed_mentorships,
+            'upcoming_meetings': upcoming_meetings,
+            'recent_progress': recent_progress,
+            'total_active_mentees': total_active_mentees,
+            'total_pending_requests': total_pending_requests,
+            'unread_messages': unread_messages,
+            'is_disabled': is_disabled,
+            'has_pending_reactivation': has_pending_reactivation,
+        }
+        
+        return render(request, 'mentorship/mentor_dashboard.html', context)
+    except Exception as e:
+        logger.error(
+            f"Error in mentor_dashboard for user {request.user.id}: {str(e)}",
+            exc_info=True,
+            extra={
+                'user_id': request.user.id,
+                'user_email': request.user.email,
+                'view': 'mentor_dashboard'
+            }
+        )
+        messages.error(request, "An error occurred while loading your dashboard. Please try again or contact support.")
+        return redirect('home')
 
 # Create your views here.
 
