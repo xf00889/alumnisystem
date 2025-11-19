@@ -24,7 +24,7 @@ python manage.py migrate --noinput
 
 # Populate CMS data
 echo "📝 Populating CMS data..."
-python manage.py populate_cms_data
+python manage.py seed_cms_data
 
 # Run system checks
 echo "🔍 Running system checks..."

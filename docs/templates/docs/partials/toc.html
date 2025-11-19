@@ -1,0 +1,34 @@
+{% comment %}
+Table of Contents Partial Template
+Recursively renders the documentation navigation tree with expand/collapse functionality
+{% endcomment %}
+
+<ul class="docs-toc-list">
+    {% for item in items %}
+    <li class="docs-toc-item">
+        {% if item.type == 'folder' %}
+            {# Folder with children - expand if current path is within this folder #}
+            <div class="docs-toc-folder {% if current_path and item.path in current_path %}expanded{% endif %}">
+                <button type="button" class="docs-toc-folder-toggle" aria-expanded="{% if current_path and item.path in current_path %}true{% else %}false{% endif %}">
+                    <i class="fas fa-folder{% if current_path and item.path in current_path %}-open{% endif %} me-2"></i>
+                    <span>{{ item.name }}</span>
+                    <i class="fas fa-chevron-down ms-auto"></i>
+                </button>
+                {% if item.children %}
+                <div class="docs-toc-folder-content">
+                    {% include 'docs/partials/toc.html' with items=item.children current_path=current_path %}
+                </div>
+                {% endif %}
+            </div>
+        {% elif item.type == 'file' %}
+            {# File link - highlight if this is the current document #}
+            <a href="{% url 'docs:document' item.path %}" 
+               class="docs-toc-link {% if item.path == current_path %}active{% endif %}"
+               aria-current="{% if item.path == current_path %}page{% endif %}">
+                <i class="fas fa-file-alt me-2"></i>
+                <span>{{ item.name }}</span>
+            </a>
+        {% endif %}
+    </li>
+    {% endfor %}
+</ul>

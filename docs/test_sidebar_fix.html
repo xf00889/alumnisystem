@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sidebar Expansion Test</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        .test-container {
+            max-width: 400px;
+            border: 1px solid #ddd;
+            padding: 20px;
+        }
+        .docs-toc-folder {
+            margin-bottom: 10px;
+        }
+        .docs-toc-folder-toggle {
+            display: flex;
+            align-items: center;
+            padding: 10px;
+            width: 100%;
+            text-align: left;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            color: #495057;
+        }
+        .docs-toc-folder-toggle:hover {
+            background-color: rgba(43, 60, 107, 0.08);
+        }
+        .docs-toc-folder-toggle .fa-chevron-down {
+            margin-left: auto;
+            transition: transform 0.3s ease;
+        }
+        .docs-toc-folder.expanded .fa-chevron-down {
+            transform: rotate(180deg);
+        }
+        .docs-toc-folder-content {
+            display: none;
+            padding-left: 20px;
+        }
+        .docs-toc-folder.expanded .docs-toc-folder-content {
+            display: block;
+        }
+        .docs-toc-link {
+            display: flex;
+            align-items: center;
+            padding: 8px 10px;
+            color: #495057;
+            text-decoration: none;
+        }
+        .docs-toc-link:hover {
+            background-color: rgba(43, 60, 107, 0.08);
+        }
+        .me-2 {
+            margin-right: 8px;
+        }
+        .ms-auto {
+            margin-left: auto;
+        }
+    </style>
+</head>
+<body>
+    <h1>Sidebar Expansion Test</h1>
+    <p>Click on the folder items to test expansion:</p>
+    
+    <div class="test-container">
+        <div class="docs-toc-folder">
+            <button type="button" class="docs-toc-folder-toggle" aria-expanded="false">
+                <i class="fas fa-folder me-2"></i>
+                <span>Admin Features</span>
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </button>
+            <div class="docs-toc-folder-content">
+                <a href="#" class="docs-toc-link">
+                    <i class="fas fa-file-alt me-2"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="docs-toc-link">
+                    <i class="fas fa-file-alt me-2"></i>
+                    <span>Settings</span>
+                </a>
+            </div>
+        </div>
+        
+        <div class="docs-toc-folder">
+            <button type="button" class="docs-toc-folder-toggle" aria-expanded="false">
+                <i class="fas fa-folder me-2"></i>
+                <span>User Features</span>
+                <i class="fas fa-chevron-down ms-auto"></i>
+            </button>
+            <div class="docs-toc-folder-content">
+                <a href="#" class="docs-toc-link">
+                    <i class="fas fa-file-alt me-2"></i>
+                    <span>Profile</span>
+                </a>
+                <a href="#" class="docs-toc-link">
+                    <i class="fas fa-file-alt me-2"></i>
+                    <span>Messages</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Test the folder toggle functionality
+        function initTOCFolders() {
+            const tocFolders = document.querySelectorAll('.docs-toc-folder');
+            
+            tocFolders.forEach(function(folder) {
+                const toggle = folder.querySelector('.docs-toc-folder-toggle');
+                const content = folder.querySelector('.docs-toc-folder-content');
+                
+                if (toggle && content) {
+                    toggle.addEventListener('click', function(e) {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        
+                        const isExpanded = folder.classList.contains('expanded');
+                        
+                        if (isExpanded) {
+                            folder.classList.remove('expanded');
+                            toggle.setAttribute('aria-expanded', 'false');
+                            
+                            const folderIcon = toggle.querySelector('.fa-folder, .fa-folder-open');
+                            if (folderIcon) {
+                                folderIcon.classList.remove('fa-folder-open');
+                                folderIcon.classList.add('fa-folder');
+                            }
+                        } else {
+                            folder.classList.add('expanded');
+                            toggle.setAttribute('aria-expanded', 'true');
+                            
+                            const folderIcon = toggle.querySelector('.fa-folder, .fa-folder-open');
+                            if (folderIcon) {
+                                folderIcon.classList.remove('fa-folder');
+                                folderIcon.classList.add('fa-folder-open');
+                            }
+                        }
+                    });
+                }
+            });
+        }
+        
+        // Initialize when DOM is ready
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', initTOCFolders);
+        } else {
+            initTOCFolders();
+        }
+    </script>
+</body>
+</html>

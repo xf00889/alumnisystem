@@ -84,6 +84,7 @@ INSTALLED_APPS = [
     'cms.apps.CmsConfig',  # Content Management System
     'setup',  # Setup app for automated deployment configuration
     'log_viewer',  # Log viewer app for admin log management
+    'docs.apps.DocsConfig',  # Documentation viewer
 ]
 
 MIDDLEWARE = [
@@ -557,16 +558,45 @@ else:
     }
 
 # Cache settings
-CACHES = {
-    'default': {
-        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
-        'LOCATION': 'unique-snowflake',
-        'TIMEOUT': 300,  # 5 minutes
-        'OPTIONS': {
-            'MAX_ENTRIES': 1000
+# Production: Use Redis for caching when REDIS_URL is available
+# Development: Use local memory cache as fallback
+REDIS_URL = config('REDIS_URL', default=None)
+
+if REDIS_URL:
+    # Production: Use Redis
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'LOCATION': REDIS_URL,
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+                'SOCKET_CONNECT_TIMEOUT': 5,
+                'SOCKET_TIMEOUT': 5,
+            },
+            'KEY_PREFIX': 'norsu_alumni',
+            'TIMEOUT': 300,  # 5 minutes default
         }
     }
-}
+else:
+    # Development: Use local memory cache
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+            'TIMEOUT': 300,  # 5 minutes
+            'OPTIONS': {
+                'MAX_ENTRIES': 1000
+            }
+        }
+    }
+
+# Documentation cache settings
+DOCS_CACHE_TIMEOUT = 3600  # 1 hour for rendered markdown
+DOCS_TOC_CACHE_TIMEOUT = 3600  # 1 hour for table of contents
 
 # Cache middleware settings
 CACHE_MIDDLEWARE_ALIAS = 'default'
@@ -669,6 +699,9 @@ ACCOUNT_FORMS = {
 }
 
 # Rate Limiting Settings
+RATELIMIT_ENABLE = True
+RATELIMIT_USE_CACHE = 'default'
+
 # Session Settings
 SESSION_COOKIE_DOMAIN = None
 SESSION_COOKIE_PATH = '/'

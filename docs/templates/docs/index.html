@@ -1,0 +1,42 @@
+{% extends "docs/base.html" %}
+
+{% block doc_title %}Documentation Home{% endblock %}
+
+{% block page_title %}
+    {% if readme_title %}{{ readme_title }}{% else %}Documentation{% endif %}
+{% endblock %}
+
+{% block doc_content %}
+<div class="docs-content-inner">
+    {% if content_error %}
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            <strong>Error:</strong> {{ error_message }}
+        </div>
+        <p>Please contact the administrator if this problem persists.</p>
+    {% elif readme_content %}
+        {{ readme_content|safe }}
+    {% else %}
+        <div class="docs-welcome">
+            <h2>Welcome to the Documentation</h2>
+            <p>Select a topic from the sidebar to get started.</p>
+        </div>
+    {% endif %}
+    
+    {% if toc_error %}
+        <div class="alert alert-info mt-4" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            <strong>Note:</strong> The table of contents could not be loaded. Some navigation features may be unavailable.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block doc_footer %}
+    <!-- No prev/next navigation on index page -->
+    
+    <!-- Scroll to Top Button -->
+    <button class="docs-scroll-top" id="scrollToTop" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+{% endblock %}

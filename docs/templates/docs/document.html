@@ -1,0 +1,70 @@
+{% extends "docs/base.html" %}
+
+{% block doc_title %}{{ title|default:"Document" }}{% endblock %}
+
+{% block page_title %}{{ title|default:"Document" }}{% endblock %}
+
+{% block doc_content %}
+<div class="docs-content-inner">
+    {% if content_error %}
+        <!-- Error Display -->
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            <strong>Error:</strong> {{ error_message }}
+        </div>
+        <p>
+            <a href="{% url 'docs:index' %}" class="btn btn-primary">
+                <i class="fas fa-home me-2"></i>Return to Documentation Home
+            </a>
+        </p>
+    {% elif content %}
+        <!-- Rendered Markdown Content -->
+        {{ content|safe }}
+    {% else %}
+        <!-- Empty Document Warning -->
+        <div class="alert alert-warning" role="alert">
+            <i class="fas fa-file-alt me-2"></i>
+            This document appears to be empty.
+        </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block doc_footer %}
+{% if not content_error %}
+    <!-- Previous/Next Navigation -->
+    {% if prev_doc or next_doc %}
+    <nav class="docs-pagination" aria-label="Document navigation">
+        <div class="row">
+            <div class="col-6">
+                {% if prev_doc %}
+                <a href="{% url 'docs:document' prev_doc.path %}" class="docs-nav-link docs-nav-prev" title="Previous: {{ prev_doc.name }}">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    <div class="docs-nav-content">
+                        <span class="docs-nav-label">Previous</span>
+                        <span class="docs-nav-title">{{ prev_doc.name }}</span>
+                    </div>
+                </a>
+                {% endif %}
+            </div>
+            <div class="col-6 text-end">
+                {% if next_doc %}
+                <a href="{% url 'docs:document' next_doc.path %}" class="docs-nav-link docs-nav-next" title="Next: {{ next_doc.name }}">
+                    <div class="docs-nav-content">
+                        <span class="docs-nav-label">Next</span>
+                        <span class="docs-nav-title">{{ next_doc.name }}</span>
+                    </div>
+                    <i class="fas fa-arrow-right ms-2"></i>
+                </a>
+                {% endif %}
+            </div>
+        </div>
+    </nav>
+    {% endif %}
+{% endif %}
+
+<!-- Scroll to Top Button -->
+<button class="docs-scroll-top" id="scrollToTop" aria-label="Scroll to top">
+    <i class="fas fa-arrow-up"></i>
+</button>
+{% endblock %}

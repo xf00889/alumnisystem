@@ -1,0 +1,158 @@
+{% extends "docs/base_standalone.html" %}
+{% load static %}
+
+{% block title %}{% block doc_title %}Documentation{% endblock %} | NORSU Alumni{% endblock %}
+
+{% block content %}
+<div class="docs-container">
+    <!-- Sidebar Toggle Button (Mobile) - Requirements: 8.1, 8.2, 8.4 -->
+    <button class="docs-sidebar-toggle d-lg-none" 
+            id="docsSidebarToggle" 
+            aria-label="Open documentation navigation menu"
+            aria-expanded="false"
+            aria-controls="docsSidebar">
+        <i class="fas fa-bars"></i>
+    </button>
+
+    <!-- Sidebar with Table of Contents - Requirements: 8.1, 8.2, 8.3 -->
+    <aside class="docs-sidebar" 
+           id="docsSidebar" 
+           role="navigation"
+           aria-label="Documentation navigation">
+        <!-- Close button for mobile -->
+        <button class="docs-sidebar-close d-lg-none" 
+                id="docsSidebarClose" 
+                aria-label="Close documentation navigation menu">
+            <i class="fas fa-times" aria-hidden="true"></i>
+        </button>
+
+        <!-- Search Box - Requirements: 8.4 -->
+        <div class="docs-search-box">
+            <form action="{% url 'docs:search' %}" method="get" class="docs-search-form" role="search">
+                <div class="input-group">
+                    <span class="input-group-text">
+                        <i class="fas fa-search" aria-hidden="true"></i>
+                    </span>
+                    <input 
+                        type="search" 
+                        name="q" 
+                        class="form-control" 
+                        placeholder="Search documentation..." 
+                        value="{{ query|default:'' }}"
+                        autocomplete="off"
+                        aria-label="Search documentation"
+                        inputmode="search"
+                    >
+                </div>
+            </form>
+        </div>
+
+        <!-- Table of Contents -->
+        <nav class="docs-toc" aria-label="Documentation navigation">
+            {% block sidebar_content %}
+            {% if toc %}
+                {% include 'docs/partials/toc.html' with items=toc current_path=current_path %}
+            {% else %}
+                <div class="docs-toc-empty">
+                    <p class="text-muted">No documentation available</p>
+                </div>
+            {% endif %}
+            {% endblock %}
+        </nav>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="docs-main">
+        <!-- Document Header -->
+        <header class="docs-header">
+            {% block doc_header %}
+            <div class="docs-breadcrumbs">
+                {% if breadcrumbs %}
+                <nav aria-label="breadcrumb">
+                    <ol class="breadcrumb">
+                        {% for crumb in breadcrumbs %}
+                        <li class="breadcrumb-item {% if forloop.last %}active{% endif %}" {% if forloop.last %}aria-current="page"{% endif %}>
+                            {% if crumb.url %}
+                            <a href="{{ crumb.url }}">{{ crumb.name }}</a>
+                            {% else %}
+                            {{ crumb.name }}
+                            {% endif %}
+                        </li>
+                        {% endfor %}
+                    </ol>
+                </nav>
+                {% endif %}
+            </div>
+
+            <h1 class="docs-page-title">
+                {% block page_title %}Documentation{% endblock %}
+            </h1>
+            {% endblock %}
+        </header>
+
+        <!-- Document Content -->
+        <article class="docs-content">
+            {% block doc_content %}
+            <div class="docs-content-inner">
+                {% if content %}
+                    {{ content|safe }}
+                {% else %}
+                    <p class="text-muted">No content available.</p>
+                {% endif %}
+            </div>
+            {% endblock %}
+        </article>
+
+        <!-- Document Footer with Prev/Next Navigation -->
+        <footer class="docs-footer">
+            {% block doc_footer %}
+            {% if prev_next %}
+            <nav class="docs-pagination" aria-label="Document navigation">
+                <div class="row">
+                    <div class="col-6">
+                        {% if prev_next.prev %}
+                        <a href="{% url 'docs:document' prev_next.prev.path %}" class="docs-nav-link docs-nav-prev">
+                            <i class="fas fa-arrow-left me-2"></i>
+                            <div class="docs-nav-content">
+                                <span class="docs-nav-label">Previous</span>
+                                <span class="docs-nav-title">{{ prev_next.prev.name }}</span>
+                            </div>
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div class="col-6 text-end">
+                        {% if prev_next.next %}
+                        <a href="{% url 'docs:document' prev_next.next.path %}" class="docs-nav-link docs-nav-next">
+                            <div class="docs-nav-content">
+                                <span class="docs-nav-label">Next</span>
+                                <span class="docs-nav-title">{{ prev_next.next.name }}</span>
+                            </div>
+                            <i class="fas fa-arrow-right ms-2"></i>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </nav>
+            {% endif %}
+
+            <!-- Scroll to Top Button - Requirements: 8.4 -->
+            <button class="docs-scroll-top" 
+                    id="scrollToTop" 
+                    aria-label="Scroll to top of page"
+                    title="Scroll to top">
+                <i class="fas fa-arrow-up" aria-hidden="true"></i>
+            </button>
+            {% endblock %}
+        </footer>
+    </main>
+</div>
+
+<!-- Sidebar Overlay (Mobile) - Requirements: 8.1, 8.2 -->
+<div class="docs-sidebar-overlay" 
+     id="docsSidebarOverlay" 
+     aria-hidden="true"></div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script src="{% static 'docs/js/documentation.js' %}"></script>
+{% endblock %}

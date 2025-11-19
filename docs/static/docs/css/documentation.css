@@ -1,0 +1,2104 @@
+/* ============================================
+   Documentation Viewer Styles
+   ============================================ */
+
+:root {
+    --docs-primary: #2b3c6b;
+    --docs-primary-light: #3d5a9e;
+    --docs-secondary: #6c757d;
+    --docs-bg: #f8f9fa;
+    --docs-sidebar-bg: #ffffff;
+    --docs-sidebar-width: 280px;
+    --docs-content-max-width: 900px;
+    --docs-border-color: #dee2e6;
+    --docs-hover-bg: rgba(43, 60, 107, 0.08);
+    --docs-active-bg: rgba(43, 60, 107, 0.12);
+    --docs-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    --docs-transition: all 0.3s ease;
+}
+
+/* Smooth scrolling for the entire page */
+html {
+    scroll-behavior: smooth;
+}
+
+/* Focus styles for accessibility */
+*:focus {
+    outline: 2px solid var(--docs-primary);
+    outline-offset: 2px;
+}
+
+*:focus:not(:focus-visible) {
+    outline: none;
+}
+
+*:focus-visible {
+    outline: 2px solid var(--docs-primary);
+    outline-offset: 2px;
+}
+
+/* ============================================
+   Standalone Documentation Styles
+   ============================================ */
+
+/* Top navigation bar for standalone mode */
+.docs-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 60px;
+    background-color: #2b3c6b;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 1100;
+}
+
+.docs-topbar-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: white;
+    text-decoration: none;
+}
+
+.docs-topbar-brand:hover {
+    color: white;
+    opacity: 0.9;
+}
+
+.docs-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.docs-topbar-link {
+    color: white;
+    text-decoration: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    transition: background-color 0.2s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.docs-topbar-link:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+}
+
+.docs-topbar-user {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.9rem;
+}
+
+/* ============================================
+   Main Container Layout
+   ============================================ */
+
+.docs-container {
+    display: flex;
+    min-height: calc(100vh - 60px);
+    background-color: var(--docs-bg);
+    position: relative;
+    margin-top: 60px;
+}
+
+/* ============================================
+   Sidebar Styles
+   ============================================ */
+
+.docs-sidebar {
+    width: var(--docs-sidebar-width);
+    background-color: var(--docs-sidebar-bg);
+    border-right: 1px solid var(--docs-border-color);
+    position: fixed;
+    top: 60px;
+    left: 0;
+    bottom: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--docs-shadow);
+    transition: var(--docs-transition);
+}
+
+.docs-sidebar-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    background: none;
+    border: none;
+    color: var(--docs-primary);
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0.5rem;
+    line-height: 1;
+    opacity: 0.7;
+    transition: opacity 0.2s;
+    z-index: 10;
+    display: none;
+}
+
+.docs-sidebar-close:hover {
+    opacity: 1;
+}
+
+/* Show close button only on mobile */
+@media (max-width: 991px) {
+    .docs-sidebar-close {
+        display: block;
+    }
+}
+
+/* Search Box */
+.docs-search-box {
+    padding: 1.25rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--docs-border-color);
+    flex-shrink: 0;
+}
+
+.docs-search-form .input-group-text {
+    background-color: white;
+    border-right: none;
+    color: var(--docs-secondary);
+}
+
+.docs-search-form .form-control {
+    border-left: none;
+    padding-left: 0;
+}
+
+.docs-search-form .form-control:focus {
+    box-shadow: none;
+    border-color: var(--docs-primary);
+}
+
+.docs-search-form .input-group:focus-within .input-group-text {
+    border-color: var(--docs-primary);
+}
+
+/* Table of Contents */
+.docs-toc {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1rem 0;
+}
+
+.docs-toc-empty {
+    padding: 2rem 1.25rem;
+    text-align: center;
+}
+
+/* TOC List Styles */
+.docs-toc-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.docs-toc-item {
+    margin: 0;
+}
+
+.docs-toc-link,
+.docs-toc-folder-toggle {
+    display: flex;
+    align-items: center;
+    padding: 0.625rem 1.25rem;
+    color: #495057;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    font-size: 0.9rem;
+    border-left: 3px solid transparent;
+    position: relative;
+    width: 100%;
+    text-align: left;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+}
+
+.docs-toc-link:hover,
+.docs-toc-folder-toggle:hover {
+    background-color: var(--docs-hover-bg);
+    color: var(--docs-primary);
+}
+
+.docs-toc-link.active {
+    background-color: var(--docs-active-bg);
+    color: var(--docs-primary);
+    font-weight: 600;
+    border-left-color: var(--docs-primary);
+}
+
+.docs-toc-link i,
+.docs-toc-folder-toggle i {
+    font-size: 0.875rem;
+    opacity: 0.7;
+}
+
+.docs-toc-folder {
+    position: relative;
+}
+
+.docs-toc-folder-toggle {
+    cursor: pointer;
+    font-weight: 500;
+    font-family: inherit;
+    line-height: inherit;
+}
+
+.docs-toc-folder-toggle .fa-chevron-down {
+    transition: transform 0.3s ease;
+    font-size: 0.75rem;
+}
+
+.docs-toc-folder.expanded .fa-chevron-down {
+    transform: rotate(180deg);
+}
+
+.docs-toc-folder-content {
+    display: none;
+    overflow: hidden;
+}
+
+.docs-toc-folder.expanded .docs-toc-folder-content {
+    display: block;
+}
+
+/* Nested items indentation */
+.docs-toc-folder-content .docs-toc-link,
+.docs-toc-folder-content .docs-toc-folder-toggle {
+    padding-left: 2.5rem;
+}
+
+.docs-toc-folder-content .docs-toc-folder-content .docs-toc-link,
+.docs-toc-folder-content .docs-toc-folder-content .docs-toc-folder-toggle {
+    padding-left: 3.75rem;
+}
+
+.docs-toc-folder-content .docs-toc-folder-content .docs-toc-folder-content .docs-toc-link,
+.docs-toc-folder-content .docs-toc-folder-content .docs-toc-folder-content .docs-toc-folder-toggle {
+    padding-left: 5rem;
+}
+
+/* TOC link hover effects */
+.docs-toc-link::before,
+.docs-toc-folder-toggle::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background-color: transparent;
+    transition: background-color 0.2s ease;
+}
+
+.docs-toc-link:hover::before,
+.docs-toc-folder-toggle:hover::before {
+    background-color: var(--docs-primary);
+    opacity: 0.3;
+}
+
+.docs-toc-link.active::before {
+    background-color: var(--docs-primary);
+    opacity: 1;
+}
+
+/* Focus styles for keyboard navigation */
+.docs-toc-link:focus,
+.docs-toc-folder-toggle:focus {
+    outline: 2px solid var(--docs-primary);
+    outline-offset: -2px;
+    background-color: var(--docs-hover-bg);
+}
+
+.docs-toc-link:focus-visible,
+.docs-toc-folder-toggle:focus-visible {
+    outline: 2px solid var(--docs-primary);
+    outline-offset: -2px;
+}
+
+.docs-toc-link:focus:not(:focus-visible),
+.docs-toc-folder-toggle:focus:not(:focus-visible) {
+    outline: none;
+}
+
+/* ============================================
+   Main Content Area
+   ============================================ */
+
+.docs-main {
+    flex: 1;
+    margin-left: var(--docs-sidebar-width);
+    padding: 2rem;
+    max-width: 100%;
+}
+
+/* Document Header */
+.docs-header {
+    margin-bottom: 2rem;
+}
+
+.docs-breadcrumbs {
+    margin-bottom: 1rem;
+}
+
+.docs-breadcrumbs .breadcrumb {
+    background-color: transparent;
+    padding: 0;
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.docs-breadcrumbs .breadcrumb-item + .breadcrumb-item::before {
+    content: "›";
+    color: var(--docs-secondary);
+}
+
+.docs-breadcrumbs .breadcrumb-item a {
+    color: var(--docs-primary);
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.docs-breadcrumbs .breadcrumb-item a:hover {
+    color: var(--docs-primary-light);
+    text-decoration: underline;
+}
+
+.docs-page-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--docs-primary);
+    margin: 0;
+    line-height: 1.2;
+}
+
+/* Document Content */
+.docs-content {
+    background-color: white;
+    border-radius: 8px;
+    padding: 2.5rem;
+    box-shadow: var(--docs-shadow);
+    margin-bottom: 2rem;
+}
+
+.docs-content-inner {
+    max-width: var(--docs-content-max-width);
+}
+
+/* Typography for Markdown Content */
+.docs-content-inner h1,
+.docs-content-inner h2,
+.docs-content-inner h3,
+.docs-content-inner h4,
+.docs-content-inner h5,
+.docs-content-inner h6 {
+    color: var(--docs-primary);
+    font-weight: 600;
+    margin-top: 2rem;
+    margin-bottom: 1rem;
+    line-height: 1.3;
+}
+
+.docs-content-inner h1 {
+    font-size: 2.25rem;
+    border-bottom: 2px solid var(--docs-border-color);
+    padding-bottom: 0.5rem;
+    position: relative;
+}
+
+/* Hide the first H1 heading since it's already shown in the breadcrumb */
+.docs-content-inner h1:first-of-type {
+    display: none;
+}
+
+/* Remove top margin from the first visible heading after hiding H1 */
+.docs-content-inner h1:first-of-type + * {
+    margin-top: 0 !important;
+}
+
+.docs-content-inner h2 {
+    font-size: 1.875rem;
+    border-bottom: 1px solid var(--docs-border-color);
+    padding-bottom: 0.5rem;
+    position: relative;
+}
+
+.docs-content-inner h3 {
+    font-size: 1.5rem;
+    position: relative;
+}
+
+.docs-content-inner h4 {
+    font-size: 1.25rem;
+    position: relative;
+}
+
+.docs-content-inner h5 {
+    font-size: 1.125rem;
+    position: relative;
+}
+
+.docs-content-inner h6 {
+    font-size: 1rem;
+    position: relative;
+}
+
+/* Header anchor links */
+.docs-content-inner h1 .headerlink,
+.docs-content-inner h2 .headerlink,
+.docs-content-inner h3 .headerlink,
+.docs-content-inner h4 .headerlink,
+.docs-content-inner h5 .headerlink,
+.docs-content-inner h6 .headerlink {
+    opacity: 0;
+    margin-left: 0.5rem;
+    font-size: 0.8em;
+    color: var(--docs-secondary);
+    text-decoration: none;
+    border: none;
+    transition: opacity 0.2s ease;
+}
+
+.docs-content-inner h1:hover .headerlink,
+.docs-content-inner h2:hover .headerlink,
+.docs-content-inner h3:hover .headerlink,
+.docs-content-inner h4:hover .headerlink,
+.docs-content-inner h5:hover .headerlink,
+.docs-content-inner h6:hover .headerlink {
+    opacity: 1;
+}
+
+.docs-content-inner .headerlink:hover {
+    color: var(--docs-primary);
+}
+
+/* Target highlighting for anchor links */
+.docs-content-inner h1:target,
+.docs-content-inner h2:target,
+.docs-content-inner h3:target,
+.docs-content-inner h4:target,
+.docs-content-inner h5:target,
+.docs-content-inner h6:target {
+    animation: highlight-target 2s ease;
+}
+
+@keyframes highlight-target {
+    0% {
+        background-color: rgba(43, 60, 107, 0.15);
+    }
+    100% {
+        background-color: transparent;
+    }
+}
+
+.docs-content-inner p {
+    line-height: 1.7;
+    margin-bottom: 1rem;
+    color: #24292e;
+    font-size: 1rem;
+}
+
+.docs-content-inner a {
+    color: var(--docs-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.docs-content-inner a:hover {
+    border-bottom-color: var(--docs-primary);
+    color: var(--docs-primary-light);
+}
+
+.docs-content-inner a:visited {
+    color: #6f42c1;
+}
+
+.docs-content-inner a code {
+    color: inherit;
+}
+
+/* Lists */
+.docs-content-inner ul,
+.docs-content-inner ol {
+    margin-bottom: 1rem;
+    padding-left: 2rem;
+    line-height: 1.7;
+}
+
+.docs-content-inner li {
+    margin-bottom: 0.5rem;
+    line-height: 1.7;
+    color: #24292e;
+}
+
+.docs-content-inner li > p {
+    margin-bottom: 0.5rem;
+}
+
+.docs-content-inner li:last-child {
+    margin-bottom: 0;
+}
+
+.docs-content-inner ul {
+    list-style-type: disc;
+}
+
+.docs-content-inner ul ul {
+    list-style-type: circle;
+}
+
+.docs-content-inner ul ul ul {
+    list-style-type: square;
+}
+
+.docs-content-inner ol {
+    list-style-type: decimal;
+}
+
+.docs-content-inner ol ol {
+    list-style-type: lower-alpha;
+}
+
+.docs-content-inner ol ol ol {
+    list-style-type: lower-roman;
+}
+
+/* Code Blocks */
+.docs-content-inner code {
+    background-color: #f5f5f5;
+    padding: 0.2rem 0.4rem;
+    border-radius: 3px;
+    font-size: 0.875em;
+    color: #e83e8c;
+    font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
+    word-wrap: break-word;
+}
+
+.docs-content-inner pre {
+    background-color: #f6f8fa;
+    border: 1px solid var(--docs-border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+    position: relative;
+    line-height: 1.45;
+}
+
+.docs-content-inner pre code {
+    background-color: transparent;
+    padding: 0;
+    color: #24292e;
+    font-size: 0.875rem;
+    word-wrap: normal;
+    white-space: pre;
+}
+
+/* Tables */
+.docs-content-inner table {
+    width: 100%;
+    margin-bottom: 1.5rem;
+    border-collapse: collapse;
+    border: 1px solid var(--docs-border-color);
+    border-radius: 6px;
+    overflow: hidden;
+    display: block;
+    overflow-x: auto;
+}
+
+.docs-content-inner table th,
+.docs-content-inner table td {
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--docs-border-color);
+    text-align: left;
+    vertical-align: top;
+}
+
+.docs-content-inner table th {
+    background-color: var(--docs-primary);
+    font-weight: 600;
+    color: white;
+    white-space: nowrap;
+}
+
+.docs-content-inner table tbody tr:nth-child(even) {
+    background-color: #f8f9fa;
+}
+
+.docs-content-inner table tbody tr:hover {
+    background-color: var(--docs-hover-bg);
+}
+
+.docs-content-inner table td code {
+    white-space: nowrap;
+}
+
+/* Responsive table wrapper */
+.docs-content-inner .table-wrapper {
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+    border-radius: 6px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* Blockquotes */
+.docs-content-inner blockquote {
+    border-left: 4px solid var(--docs-primary);
+    padding: 0.5rem 1rem;
+    margin: 1.5rem 0;
+    color: var(--docs-secondary);
+    background-color: #f8f9fa;
+    border-radius: 0 4px 4px 0;
+}
+
+.docs-content-inner blockquote p {
+    margin-bottom: 0.5rem;
+}
+
+.docs-content-inner blockquote p:last-child {
+    margin-bottom: 0;
+}
+
+.docs-content-inner blockquote code {
+    background-color: rgba(27, 31, 35, 0.05);
+}
+
+/* Images */
+.docs-content-inner img {
+    max-width: 100%;
+    height: auto;
+    border-radius: 6px;
+    margin: 1.5rem 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    display: block;
+}
+
+.docs-content-inner img[alt] {
+    font-style: italic;
+    color: var(--docs-secondary);
+    font-size: 0.875rem;
+}
+
+/* Image with caption */
+.docs-content-inner figure {
+    margin: 1.5rem 0;
+    text-align: center;
+}
+
+.docs-content-inner figure img {
+    margin: 0 auto;
+}
+
+.docs-content-inner figcaption {
+    margin-top: 0.5rem;
+    font-size: 0.875rem;
+    color: var(--docs-secondary);
+    font-style: italic;
+}
+
+/* Horizontal Rules */
+.docs-content-inner hr {
+    border: none;
+    border-top: 1px solid var(--docs-border-color);
+    margin: 2rem 0;
+}
+
+/* Code Copy Button */
+.docs-code-copy {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--docs-border-color);
+    border-radius: 4px;
+    padding: 0.375rem 0.625rem;
+    cursor: pointer;
+    font-size: 0.875rem;
+    color: var(--docs-secondary);
+    transition: all 0.2s;
+    opacity: 0;
+}
+
+.docs-content-inner pre:hover .docs-code-copy {
+    opacity: 1;
+}
+
+.docs-code-copy:hover {
+    background-color: white;
+    color: var(--docs-primary);
+    border-color: var(--docs-primary);
+}
+
+.docs-code-copy.copied {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+/* ============================================
+   Document Footer & Navigation
+   ============================================ */
+
+.docs-footer {
+    position: relative;
+}
+
+.docs-pagination {
+    background-color: white;
+    border-radius: 8px;
+    padding: 1.5rem;
+    box-shadow: var(--docs-shadow);
+    margin-bottom: 2rem;
+}
+
+.docs-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    border-radius: 6px;
+    text-decoration: none;
+    color: var(--docs-primary);
+    background-color: var(--docs-bg);
+    transition: var(--docs-transition);
+    border: 1px solid var(--docs-border-color);
+}
+
+.docs-nav-link:hover {
+    background-color: var(--docs-hover-bg);
+    border-color: var(--docs-primary);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.docs-nav-prev {
+    justify-content: flex-start;
+}
+
+.docs-nav-next {
+    justify-content: flex-end;
+}
+
+.docs-nav-content {
+    display: flex;
+    flex-direction: column;
+}
+
+.docs-nav-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: var(--docs-secondary);
+    margin-bottom: 0.25rem;
+}
+
+.docs-nav-title {
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Scroll to Top Button */
+.docs-scroll-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background-color: var(--docs-primary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    transition: var(--docs-transition);
+    z-index: 999;
+}
+
+.docs-scroll-top:hover {
+    background-color: var(--docs-primary-light);
+    transform: translateY(-4px);
+}
+
+.docs-scroll-top.visible {
+    display: flex;
+}
+
+/* ============================================
+   Mobile Sidebar Toggle
+   ============================================ */
+
+.docs-sidebar-toggle {
+    position: fixed;
+    top: 70px;
+    left: 1rem;
+    z-index: 1001;
+    background-color: var(--docs-primary);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    width: 44px;
+    height: 44px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: var(--docs-shadow);
+    transition: var(--docs-transition);
+}
+
+.docs-sidebar-toggle:hover {
+    background-color: var(--docs-primary-light);
+}
+
+.docs-sidebar-overlay {
+    display: none;
+    position: fixed;
+    top: 60px;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+    opacity: 0;
+    transition: opacity 0.3s;
+}
+
+.docs-sidebar-overlay.active {
+    display: block;
+    opacity: 1;
+}
+
+/* ============================================
+   Responsive Design
+   ============================================ */
+
+/* Large tablets and below (Requirements: 8.1, 8.2, 8.3, 8.4, 8.5) */
+@media (max-width: 1199px) {
+    .docs-content-inner {
+        max-width: 100%;
+    }
+}
+
+/* Tablet and below (Requirements: 8.1, 8.2, 8.3, 8.4, 8.5) */
+@media (max-width: 991px) {
+    .docs-sidebar {
+        transform: translateX(-100%);
+        box-shadow: 2px 0 12px rgba(0, 0, 0, 0.15);
+    }
+
+    .docs-sidebar.active {
+        transform: translateX(0);
+    }
+
+    .docs-main {
+        margin-left: 0;
+        padding: 1.5rem;
+    }
+
+    .docs-sidebar-toggle {
+        display: flex;
+    }
+
+    .docs-content {
+        padding: 1.5rem;
+    }
+
+    .docs-page-title {
+        font-size: 2rem;
+    }
+    
+    /* Touch-friendly navigation controls (Requirement: 8.4) */
+    .docs-nav-link {
+        min-height: 48px;
+        padding: 1.25rem;
+    }
+    
+    /* Improve touch targets for TOC items */
+    .docs-toc-link,
+    .docs-toc-folder-toggle {
+        min-height: 44px;
+        padding: 0.75rem 1.25rem;
+    }
+    
+    /* Larger search input for touch */
+    .docs-search-form .form-control {
+        font-size: 16px; /* Prevents zoom on iOS */
+        padding: 0.625rem 0.75rem;
+    }
+    
+    /* Adjust breadcrumbs for tablet */
+    .docs-breadcrumbs .breadcrumb {
+        font-size: 0.8125rem;
+    }
+}
+
+/* Small tablets and large phones (Requirements: 8.1, 8.2, 8.3, 8.4, 8.5) */
+@media (max-width: 767px) {
+    .docs-topbar {
+        padding: 0 1rem;
+    }
+    
+    .docs-topbar-brand {
+        font-size: 1.1rem;
+    }
+    
+    .docs-topbar-user {
+        display: none;
+    }
+    
+    .docs-sidebar {
+        width: 85%;
+        max-width: 340px;
+    }
+    
+    .docs-main {
+        padding: 1.25rem;
+    }
+    
+    .docs-content {
+        padding: 1.25rem;
+        border-radius: 6px;
+    }
+    
+    .docs-page-title {
+        font-size: 1.875rem;
+        line-height: 1.3;
+    }
+    
+    /* Optimize content layout for small screens (Requirement: 8.3) */
+    .docs-content-inner h1 {
+        font-size: 1.875rem;
+        margin-top: 1.5rem;
+    }
+
+    .docs-content-inner h2 {
+        font-size: 1.625rem;
+        margin-top: 1.5rem;
+    }
+
+    .docs-content-inner h3 {
+        font-size: 1.375rem;
+        margin-top: 1.25rem;
+    }
+
+    .docs-content-inner h4 {
+        font-size: 1.125rem;
+        margin-top: 1rem;
+    }
+
+    .docs-content-inner h5,
+    .docs-content-inner h6 {
+        font-size: 1rem;
+        margin-top: 1rem;
+    }
+    
+    /* Improve readability on smaller screens */
+    .docs-content-inner p {
+        font-size: 0.9375rem;
+        line-height: 1.65;
+    }
+    
+    /* Touch-friendly navigation (Requirement: 8.4) */
+    .docs-nav-link {
+        min-height: 52px;
+        padding: 1rem;
+        font-size: 0.9375rem;
+    }
+    
+    .docs-nav-label {
+        font-size: 0.6875rem;
+    }
+    
+    .docs-nav-title {
+        font-size: 0.9375rem;
+    }
+}
+
+/* Mobile phones (Requirements: 8.1, 8.2, 8.3, 8.4, 8.5) */
+@media (max-width: 575px) {
+    .docs-sidebar {
+        width: 85%;
+        max-width: 320px;
+    }
+
+    .docs-main {
+        padding: 1rem;
+    }
+
+    .docs-content {
+        padding: 1rem;
+        border-radius: 4px;
+    }
+
+    .docs-page-title {
+        font-size: 1.75rem;
+        line-height: 1.25;
+        word-break: break-word;
+    }
+
+    .docs-content-inner h1 {
+        font-size: 1.75rem;
+        word-break: break-word;
+    }
+
+    .docs-content-inner h2 {
+        font-size: 1.5rem;
+        word-break: break-word;
+    }
+
+    .docs-content-inner h3 {
+        font-size: 1.25rem;
+    }
+
+    .docs-content-inner h4 {
+        font-size: 1.125rem;
+    }
+
+    .docs-content-inner h5,
+    .docs-content-inner h6 {
+        font-size: 1rem;
+    }
+    
+    /* Optimize content for small screens (Requirement: 8.3) */
+    .docs-content-inner p {
+        font-size: 0.9375rem;
+        line-height: 1.6;
+    }
+
+    /* Mobile code blocks */
+    .docs-content-inner pre {
+        padding: 0.75rem;
+        font-size: 0.8125rem;
+        border-radius: 4px;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch; /* Smooth scrolling on iOS */
+    }
+
+    .docs-content-inner code {
+        font-size: 0.8125em;
+        word-break: break-word;
+    }
+
+    /* Mobile tables - enable horizontal scroll */
+    .docs-content-inner table {
+        font-size: 0.875rem;
+        display: block;
+        width: 100%;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .docs-content-inner table th,
+    .docs-content-inner table td {
+        padding: 0.5rem 0.75rem;
+        white-space: nowrap;
+    }
+
+    /* Mobile blockquotes */
+    .docs-content-inner blockquote {
+        padding: 0.5rem 0.75rem;
+        margin: 1rem 0;
+        font-size: 0.9375rem;
+        border-left-width: 3px;
+    }
+
+    /* Mobile lists */
+    .docs-content-inner ul,
+    .docs-content-inner ol {
+        padding-left: 1.5rem;
+        font-size: 0.9375rem;
+    }
+    
+    /* Mobile images */
+    .docs-content-inner img {
+        margin: 1rem 0;
+        border-radius: 4px;
+    }
+
+    .docs-pagination {
+        padding: 1rem;
+    }
+
+    /* Touch-friendly navigation controls (Requirement: 8.4) */
+    .docs-nav-link {
+        padding: 0.875rem;
+        font-size: 0.875rem;
+        min-height: 56px;
+    }
+
+    .docs-scroll-top {
+        bottom: 1rem;
+        right: 1rem;
+        width: 44px;
+        height: 44px;
+    }
+
+    /* Stack prev/next navigation on mobile */
+    .docs-pagination .row {
+        flex-direction: column;
+    }
+
+    .docs-pagination .col-6 {
+        width: 100%;
+        margin-bottom: 0.75rem;
+    }
+
+    .docs-pagination .col-6:last-child {
+        margin-bottom: 0;
+    }
+
+    .docs-pagination .col-6.text-end {
+        text-align: left !important;
+    }
+    
+    /* Adjust sidebar header for mobile */
+    .docs-sidebar-header {
+        padding: 1.25rem 1rem;
+    }
+    
+    .docs-sidebar-title {
+        font-size: 1.125rem;
+    }
+    
+    /* Adjust search box for mobile */
+    .docs-search-box {
+        padding: 0.875rem 1rem;
+    }
+    
+    /* Touch-friendly TOC items (Requirement: 8.4) */
+    .docs-toc-link,
+    .docs-toc-folder-toggle {
+        min-height: 44px;
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+    }
+    
+    /* Adjust breadcrumbs for mobile */
+    .docs-breadcrumbs .breadcrumb {
+        font-size: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    .docs-breadcrumbs .breadcrumb-item {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+    /* Hamburger menu button positioning */
+    .docs-sidebar-toggle {
+        top: 70px;
+        left: 0.75rem;
+        width: 48px;
+        height: 48px;
+        font-size: 1.125rem;
+    }
+}
+
+/* Very small screens - 320px minimum (Requirement: 8.5) */
+@media (max-width: 374px) {
+    .docs-sidebar {
+        width: 90%;
+        max-width: 100%;
+    }
+
+    .docs-page-title {
+        font-size: 1.5rem;
+        line-height: 1.2;
+    }
+    
+    .docs-main {
+        padding: 0.75rem;
+    }
+    
+    .docs-content {
+        padding: 0.875rem;
+    }
+    
+    .docs-content-inner h1 {
+        font-size: 1.5rem;
+    }
+    
+    .docs-content-inner h2 {
+        font-size: 1.375rem;
+    }
+    
+    .docs-content-inner h3 {
+        font-size: 1.125rem;
+    }
+    
+    .docs-content-inner p,
+    .docs-content-inner li {
+        font-size: 0.875rem;
+    }
+    
+    /* Ensure touch targets remain accessible */
+    .docs-nav-link {
+        min-height: 48px;
+        padding: 0.75rem;
+    }
+    
+    .docs-toc-link,
+    .docs-toc-folder-toggle {
+        min-height: 44px;
+        padding: 0.625rem 0.875rem;
+        font-size: 0.8125rem;
+    }
+    
+    .docs-sidebar-toggle {
+        width: 44px;
+        height: 44px;
+        font-size: 1rem;
+    }
+    
+    .docs-scroll-top {
+        width: 40px;
+        height: 40px;
+        bottom: 0.75rem;
+        right: 0.75rem;
+    }
+    
+    /* Adjust sidebar header */
+    .docs-sidebar-header {
+        padding: 1rem 0.875rem;
+    }
+    
+    .docs-sidebar-title {
+        font-size: 1rem;
+    }
+    
+    /* Adjust search box */
+    .docs-search-box {
+        padding: 0.75rem 0.875rem;
+    }
+    
+    .docs-search-form .form-control {
+        font-size: 14px;
+        padding: 0.5rem 0.625rem;
+    }
+}
+
+/* Extra small screens - exactly 320px (Requirement: 8.5) */
+@media (max-width: 320px) {
+    .docs-sidebar {
+        width: 100%;
+    }
+
+    .docs-page-title {
+        font-size: 1.375rem;
+    }
+    
+    .docs-content-inner h1 {
+        font-size: 1.375rem;
+    }
+    
+    .docs-content-inner h2 {
+        font-size: 1.25rem;
+    }
+    
+    /* Ensure minimum padding */
+    .docs-main {
+        padding: 0.5rem;
+    }
+    
+    .docs-content {
+        padding: 0.75rem;
+    }
+}
+
+/* ============================================
+   Pygments Syntax Highlighting Styles
+   ============================================ */
+
+/* GitHub-style syntax highlighting */
+.docs-content-inner .highlight {
+    background-color: #f6f8fa;
+    border-radius: 6px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.docs-content-inner .highlight pre {
+    background-color: transparent;
+    border: none;
+    padding: 0;
+    margin: 0;
+}
+
+/* Syntax highlighting token styles */
+.highlight .hll { background-color: #ffffcc; }  /* Highlighted line */
+.highlight .c { color: #6a737d; font-style: italic; }  /* Comment */
+.highlight .err { color: #a61717; background-color: #e3d2d2; }  /* Error */
+.highlight .k { color: #d73a49; font-weight: bold; }  /* Keyword */
+.highlight .o { color: #d73a49; }  /* Operator */
+.highlight .cm { color: #6a737d; font-style: italic; }  /* Comment.Multiline */
+.highlight .cp { color: #d73a49; font-weight: bold; }  /* Comment.Preproc */
+.highlight .c1 { color: #6a737d; font-style: italic; }  /* Comment.Single */
+.highlight .cs { color: #6a737d; font-weight: bold; font-style: italic; }  /* Comment.Special */
+.highlight .gd { color: #b31d28; background-color: #ffeef0; }  /* Generic.Deleted */
+.highlight .ge { font-style: italic; }  /* Generic.Emph */
+.highlight .gr { color: #a61717; }  /* Generic.Error */
+.highlight .gh { color: #005cc5; font-weight: bold; }  /* Generic.Heading */
+.highlight .gi { color: #22863a; background-color: #f0fff4; }  /* Generic.Inserted */
+.highlight .go { color: #6a737d; }  /* Generic.Output */
+.highlight .gp { color: #6a737d; }  /* Generic.Prompt */
+.highlight .gs { font-weight: bold; }  /* Generic.Strong */
+.highlight .gu { color: #6f42c1; font-weight: bold; }  /* Generic.Subheading */
+.highlight .gt { color: #0044dd; }  /* Generic.Traceback */
+.highlight .kc { color: #005cc5; font-weight: bold; }  /* Keyword.Constant */
+.highlight .kd { color: #d73a49; font-weight: bold; }  /* Keyword.Declaration */
+.highlight .kn { color: #d73a49; font-weight: bold; }  /* Keyword.Namespace */
+.highlight .kp { color: #d73a49; font-weight: bold; }  /* Keyword.Pseudo */
+.highlight .kr { color: #d73a49; font-weight: bold; }  /* Keyword.Reserved */
+.highlight .kt { color: #d73a49; font-weight: bold; }  /* Keyword.Type */
+.highlight .m { color: #005cc5; }  /* Literal.Number */
+.highlight .s { color: #032f62; }  /* Literal.String */
+.highlight .na { color: #005cc5; }  /* Name.Attribute */
+.highlight .nb { color: #005cc5; }  /* Name.Builtin */
+.highlight .nc { color: #6f42c1; font-weight: bold; }  /* Name.Class */
+.highlight .no { color: #005cc5; }  /* Name.Constant */
+.highlight .nd { color: #6f42c1; }  /* Name.Decorator */
+.highlight .ni { color: #005cc5; }  /* Name.Entity */
+.highlight .ne { color: #005cc5; font-weight: bold; }  /* Name.Exception */
+.highlight .nf { color: #6f42c1; }  /* Name.Function */
+.highlight .nl { color: #005cc5; }  /* Name.Label */
+.highlight .nn { color: #6f42c1; }  /* Name.Namespace */
+.highlight .nt { color: #22863a; }  /* Name.Tag */
+.highlight .nv { color: #e36209; }  /* Name.Variable */
+.highlight .ow { color: #d73a49; font-weight: bold; }  /* Operator.Word */
+.highlight .w { color: #6a737d; }  /* Text.Whitespace */
+.highlight .mf { color: #005cc5; }  /* Literal.Number.Float */
+.highlight .mh { color: #005cc5; }  /* Literal.Number.Hex */
+.highlight .mi { color: #005cc5; }  /* Literal.Number.Integer */
+.highlight .mo { color: #005cc5; }  /* Literal.Number.Oct */
+.highlight .sb { color: #032f62; }  /* Literal.String.Backtick */
+.highlight .sc { color: #032f62; }  /* Literal.String.Char */
+.highlight .sd { color: #032f62; font-style: italic; }  /* Literal.String.Doc */
+.highlight .s2 { color: #032f62; }  /* Literal.String.Double */
+.highlight .se { color: #032f62; font-weight: bold; }  /* Literal.String.Escape */
+.highlight .sh { color: #032f62; }  /* Literal.String.Heredoc */
+.highlight .si { color: #032f62; }  /* Literal.String.Interpol */
+.highlight .sx { color: #032f62; }  /* Literal.String.Other */
+.highlight .sr { color: #032f62; }  /* Literal.String.Regex */
+.highlight .s1 { color: #032f62; }  /* Literal.String.Single */
+.highlight .ss { color: #032f62; }  /* Literal.String.Symbol */
+.highlight .bp { color: #005cc5; }  /* Name.Builtin.Pseudo */
+.highlight .vc { color: #e36209; }  /* Name.Variable.Class */
+.highlight .vg { color: #e36209; }  /* Name.Variable.Global */
+.highlight .vi { color: #e36209; }  /* Name.Variable.Instance */
+.highlight .il { color: #005cc5; }  /* Literal.Number.Integer.Long */
+
+/* Language-specific adjustments */
+.highlight .language-python .k { color: #d73a49; }
+.highlight .language-javascript .k { color: #d73a49; }
+.highlight .language-java .k { color: #d73a49; }
+.highlight .language-css .k { color: #d73a49; }
+.highlight .language-html .nt { color: #22863a; }
+.highlight .language-xml .nt { color: #22863a; }
+
+/* ============================================
+   Additional Markdown Elements
+   ============================================ */
+
+/* Definition Lists */
+.docs-content-inner dl {
+    margin-bottom: 1rem;
+}
+
+.docs-content-inner dt {
+    font-weight: 600;
+    margin-top: 1rem;
+    color: var(--docs-primary);
+}
+
+.docs-content-inner dd {
+    margin-left: 2rem;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+/* Task Lists */
+.docs-content-inner input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+.docs-content-inner .task-list-item {
+    list-style-type: none;
+    margin-left: -1.5rem;
+}
+
+.docs-content-inner .task-list-item input[type="checkbox"] {
+    margin-right: 0.5rem;
+}
+
+/* Keyboard Keys */
+.docs-content-inner kbd {
+    display: inline-block;
+    padding: 0.2rem 0.4rem;
+    font-size: 0.875em;
+    font-family: 'SFMono-Regular', 'Consolas', 'Liberation Mono', 'Menlo', 'Courier', monospace;
+    color: #24292e;
+    background-color: #fafbfc;
+    border: 1px solid #d1d5da;
+    border-radius: 3px;
+    box-shadow: inset 0 -1px 0 #d1d5da;
+}
+
+/* Abbreviations */
+.docs-content-inner abbr[title] {
+    border-bottom: 1px dotted var(--docs-secondary);
+    cursor: help;
+    text-decoration: none;
+}
+
+/* Mark/Highlight */
+.docs-content-inner mark {
+    background-color: #fff3cd;
+    padding: 0.1rem 0.2rem;
+    border-radius: 2px;
+}
+
+/* Subscript and Superscript */
+.docs-content-inner sub,
+.docs-content-inner sup {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    vertical-align: baseline;
+}
+
+.docs-content-inner sup {
+    top: -0.5em;
+}
+
+.docs-content-inner sub {
+    bottom: -0.25em;
+}
+
+/* Footnotes */
+.docs-content-inner .footnote {
+    font-size: 0.875rem;
+    color: var(--docs-secondary);
+}
+
+.docs-content-inner .footnote-ref {
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Admonitions/Alerts (if using extensions) */
+.docs-content-inner .admonition {
+    padding: 1rem;
+    margin: 1.5rem 0;
+    border-left: 4px solid var(--docs-primary);
+    border-radius: 4px;
+    background-color: #f8f9fa;
+}
+
+.docs-content-inner .admonition-title {
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--docs-primary);
+}
+
+.docs-content-inner .admonition.note {
+    border-left-color: #0366d6;
+    background-color: #f1f8ff;
+}
+
+.docs-content-inner .admonition.warning {
+    border-left-color: #f9c513;
+    background-color: #fffbdd;
+}
+
+.docs-content-inner .admonition.danger {
+    border-left-color: #d73a49;
+    background-color: #ffeef0;
+}
+
+.docs-content-inner .admonition.tip {
+    border-left-color: #28a745;
+    background-color: #f0fff4;
+}
+
+/* Details/Summary (collapsible sections) */
+.docs-content-inner details {
+    margin: 1rem 0;
+    padding: 1rem;
+    border: 1px solid var(--docs-border-color);
+    border-radius: 6px;
+    background-color: #f8f9fa;
+}
+
+.docs-content-inner summary {
+    cursor: pointer;
+    font-weight: 600;
+    color: var(--docs-primary);
+    user-select: none;
+    outline: none;
+}
+
+.docs-content-inner summary:hover {
+    color: var(--docs-primary-light);
+}
+
+.docs-content-inner details[open] summary {
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--docs-border-color);
+}
+
+/* Nested Lists */
+.docs-content-inner ul ul,
+.docs-content-inner ul ol,
+.docs-content-inner ol ul,
+.docs-content-inner ol ol {
+    margin-top: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+/* Strikethrough */
+.docs-content-inner del,
+.docs-content-inner s {
+    text-decoration: line-through;
+    color: var(--docs-secondary);
+}
+
+/* Emphasis combinations */
+.docs-content-inner strong em,
+.docs-content-inner em strong {
+    font-weight: 700;
+    font-style: italic;
+}
+
+/* ============================================
+   Mobile-Specific Enhancements
+   ============================================ */
+
+/* Prevent text size adjustment on orientation change (iOS) */
+@media (max-width: 991px) {
+    html {
+        -webkit-text-size-adjust: 100%;
+        -ms-text-size-adjust: 100%;
+    }
+    
+    /* Improve tap highlight color (Requirement: 8.4) */
+    * {
+        -webkit-tap-highlight-color: rgba(43, 60, 107, 0.1);
+    }
+    
+    /* Remove tap highlight for specific elements */
+    button,
+    a {
+        -webkit-tap-highlight-color: transparent;
+    }
+    
+    /* Add active state feedback for touch (Requirement: 8.4) */
+    .docs-toc-link:active,
+    .docs-toc-folder-toggle:active,
+    .docs-nav-link:active,
+    .docs-sidebar-toggle:active,
+    .docs-sidebar-close:active,
+    .docs-scroll-top:active {
+        transform: scale(0.97);
+        opacity: 0.8;
+    }
+    
+    /* Smooth momentum scrolling for sidebar */
+    .docs-sidebar {
+        -webkit-overflow-scrolling: touch;
+    }
+    
+    /* Prevent pull-to-refresh when sidebar is open */
+    body.sidebar-open {
+        overflow: hidden;
+        position: fixed;
+        width: 100%;
+        height: 100%;
+    }
+    
+    /* Improve button touch targets (Requirement: 8.4) */
+    button,
+    .btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Improve link touch targets (Requirement: 8.4) */
+    a {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    /* Optimize font rendering on mobile */
+    body {
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
+    
+    /* Prevent zoom on input focus (iOS) */
+    input[type="text"],
+    input[type="search"],
+    textarea {
+        font-size: 16px !important;
+    }
+    
+    /* Improve scrollbar appearance on mobile */
+    .docs-sidebar::-webkit-scrollbar {
+        width: 6px;
+    }
+    
+    .docs-sidebar::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    
+    .docs-sidebar::-webkit-scrollbar-thumb {
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 3px;
+    }
+    
+    .docs-sidebar::-webkit-scrollbar-thumb:hover {
+        background: rgba(0, 0, 0, 0.3);
+    }
+}
+
+/* Landscape orientation adjustments for phones */
+@media (max-width: 767px) and (orientation: landscape) {
+    .docs-sidebar {
+        width: 60%;
+        max-width: 400px;
+    }
+    
+    .docs-sidebar-header {
+        padding: 1rem;
+    }
+    
+    .docs-search-box {
+        padding: 0.75rem 1rem;
+    }
+    
+    .docs-toc {
+        padding: 0.75rem 0;
+    }
+}
+
+/* High DPI screens - improve rendering */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+    .docs-content-inner img {
+        image-rendering: -webkit-optimize-contrast;
+        image-rendering: crisp-edges;
+    }
+}
+
+/* Dark mode support for mobile devices */
+@media (prefers-color-scheme: dark) and (max-width: 991px) {
+    /* Optional: Add dark mode styles if needed in future */
+}
+
+/* Reduced motion support for accessibility */
+@media (prefers-reduced-motion: reduce) {
+    * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .docs-sidebar {
+        transition: none;
+    }
+    
+    .docs-sidebar-overlay {
+        transition: none;
+    }
+}
+
+/* ============================================
+   Print Styles
+   ============================================ */
+
+@media print {
+    .docs-sidebar,
+    .docs-sidebar-toggle,
+    .docs-sidebar-overlay,
+    .docs-scroll-top,
+    .docs-pagination {
+        display: none !important;
+    }
+
+    .docs-main {
+        margin-left: 0;
+        padding: 0;
+    }
+
+    .docs-content {
+        box-shadow: none;
+        border: none;
+    }
+}
+
+/* ============================================
+   Scroll to Top Button
+   ============================================ */
+
+.docs-scroll-top {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    width: 3rem;
+    height: 3rem;
+    background-color: var(--docs-primary);
+    color: white;
+    border: none;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(20px);
+    transition: all 0.3s ease;
+    z-index: 999;
+}
+
+.docs-scroll-top:hover {
+    background-color: var(--docs-primary-light);
+    transform: translateY(0) scale(1.1);
+}
+
+.docs-scroll-top:active {
+    transform: translateY(0) scale(0.95);
+}
+
+.docs-scroll-top.visible {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.docs-scroll-top i {
+    font-size: 1.25rem;
+}
+
+/* ============================================
+   Code Block Copy Button
+   ============================================ */
+
+.docs-code-copy {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--docs-border-color);
+    border-radius: 0.25rem;
+    padding: 0.375rem 0.625rem;
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.2s ease;
+    font-size: 0.875rem;
+    color: var(--docs-secondary);
+    z-index: 10;
+}
+
+.docs-content-inner pre:hover .docs-code-copy {
+    opacity: 1;
+}
+
+.docs-code-copy:hover {
+    background-color: white;
+    color: var(--docs-primary);
+    border-color: var(--docs-primary);
+}
+
+.docs-code-copy:active {
+    transform: scale(0.95);
+}
+
+.docs-code-copy.copied {
+    color: #28a745;
+    border-color: #28a745;
+}
+
+.docs-code-copy i {
+    font-size: 0.875rem;
+}
+
+/* ============================================
+   Mobile Responsive Adjustments for JS Features
+   ============================================ */
+
+@media (max-width: 991.98px) {
+    .docs-scroll-top {
+        bottom: 1rem;
+        right: 1rem;
+        width: 2.5rem;
+        height: 2.5rem;
+    }
+    
+    .docs-scroll-top i {
+        font-size: 1rem;
+    }
+    
+    .docs-code-copy {
+        opacity: 1;
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .docs-scroll-top {
+        bottom: 0.75rem;
+        right: 0.75rem;
+        width: 2.25rem;
+        height: 2.25rem;
+    }
+}
+
+/* ============================================
+   Error Pages
+   ============================================ */
+
+.docs-error-page {
+    text-align: center;
+    padding: 3rem 1rem;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.docs-error-icon {
+    margin-bottom: 2rem;
+    animation: fadeInDown 0.6s ease;
+}
+
+.docs-error-icon i {
+    opacity: 0.8;
+}
+
+.docs-error-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--docs-primary);
+    margin-bottom: 1.5rem;
+    animation: fadeInUp 0.6s ease 0.1s both;
+}
+
+.docs-error-message {
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.6s ease 0.2s both;
+}
+
+.docs-error-message .lead {
+    font-size: 1.25rem;
+    color: var(--docs-secondary);
+    margin-bottom: 1.5rem;
+}
+
+.docs-error-message .alert {
+    text-align: left;
+    margin-bottom: 1rem;
+}
+
+.docs-error-message .alert code {
+    word-break: break-all;
+}
+
+.docs-error-actions {
+    text-align: left;
+    margin-bottom: 2rem;
+    animation: fadeInUp 0.6s ease 0.3s both;
+}
+
+.docs-error-actions h3 {
+    font-size: 1.5rem;
+    color: var(--docs-primary);
+    margin-bottom: 1rem;
+}
+
+.docs-error-suggestions {
+    list-style: none;
+    padding-left: 0;
+}
+
+.docs-error-suggestions li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--docs-border-color);
+    display: flex;
+    align-items: flex-start;
+}
+
+.docs-error-suggestions li:last-child {
+    border-bottom: none;
+}
+
+.docs-error-suggestions li i {
+    color: var(--docs-primary);
+    margin-right: 0.75rem;
+    margin-top: 0.25rem;
+    flex-shrink: 0;
+}
+
+.docs-error-suggestions li a {
+    color: var(--docs-primary);
+    text-decoration: none;
+    border-bottom: 1px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.docs-error-suggestions li a:hover {
+    border-bottom-color: var(--docs-primary);
+}
+
+.docs-error-buttons {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    animation: fadeInUp 0.6s ease 0.4s both;
+}
+
+.docs-error-buttons .btn {
+    min-width: 200px;
+}
+
+.docs-error-technical {
+    margin-top: 3rem;
+    text-align: left;
+    animation: fadeInUp 0.6s ease 0.5s both;
+}
+
+.docs-error-technical summary {
+    cursor: pointer;
+    padding: 0.75rem;
+    background-color: var(--docs-bg);
+    border: 1px solid var(--docs-border-color);
+    border-radius: 6px;
+    transition: all 0.2s ease;
+}
+
+.docs-error-technical summary:hover {
+    background-color: var(--docs-hover-bg);
+    border-color: var(--docs-primary);
+}
+
+.docs-error-technical details[open] summary {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    border-bottom: none;
+}
+
+.docs-error-technical .bg-light {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+}
+
+.docs-error-technical p {
+    margin-bottom: 0.5rem;
+}
+
+.docs-error-technical p:last-child {
+    margin-bottom: 0;
+}
+
+/* Error page animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* Mobile responsive error pages */
+@media (max-width: 767px) {
+    .docs-error-page {
+        padding: 2rem 1rem;
+    }
+
+    .docs-error-icon i {
+        font-size: 3rem !important;
+    }
+
+    .docs-error-title {
+        font-size: 1.75rem;
+    }
+
+    .docs-error-message .lead {
+        font-size: 1.125rem;
+    }
+
+    .docs-error-actions h3 {
+        font-size: 1.25rem;
+    }
+
+    .docs-error-buttons {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .docs-error-buttons .btn {
+        min-width: auto;
+        width: 100%;
+    }
+
+    .docs-error-suggestions li {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .docs-error-suggestions li i {
+        margin-bottom: 0.25rem;
+    }
+}
+
+@media (max-width: 575px) {
+    .docs-error-page {
+        padding: 1.5rem 0.5rem;
+    }
+
+    .docs-error-icon i {
+        font-size: 2.5rem !important;
+    }
+
+    .docs-error-title {
+        font-size: 1.5rem;
+    }
+}

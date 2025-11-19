@@ -43,7 +43,7 @@ class Command(BaseCommand):
             # Populate CMS data
             if not skip_cms:
                 self.stdout.write('📝 Populating CMS data...')
-                call_command('populate_cms_data')
+                call_command('seed_cms_data')
             
             # Create superuser if needed
             self.stdout.write('👤 Checking superuser...')

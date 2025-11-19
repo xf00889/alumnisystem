@@ -121,7 +121,7 @@ else:
     echo "✅ CMS data verified"
 else
     echo "⚠️ CMS data missing, populating..."
-    python manage.py populate_cms_data
+    python manage.py seed_cms_data
     echo "✅ CMS data populated"
 fi
 

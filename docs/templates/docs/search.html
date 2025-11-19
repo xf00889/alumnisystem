@@ -1,0 +1,187 @@
+{% extends "docs/base.html" %}
+
+{% block doc_title %}Search{% if query %}: {{ query }}{% endif %}{% endblock %}
+
+{% block page_title %}Search Documentation{% endblock %}
+
+{% block doc_content %}
+<div class="docs-content-inner">
+    <!-- Search Header -->
+    <div class="docs-search-header mb-4">
+        <form action="{% url 'docs:search' %}" method="get" class="docs-search-form-main">
+            <div class="input-group input-group-lg">
+                <span class="input-group-text">
+                    <i class="fas fa-search"></i>
+                </span>
+                <input 
+                    type="text" 
+                    name="q" 
+                    class="form-control" 
+                    placeholder="Search documentation..." 
+                    value="{{ query|default:'' }}"
+                    autocomplete="off"
+                    autofocus
+                >
+                <button type="submit" class="btn btn-primary">
+                    Search
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <!-- Search Results Message -->
+    {% if message %}
+    <div class="docs-search-message mb-4">
+        {% if error %}
+        <div class="alert alert-danger" role="alert">
+            <i class="fas fa-exclamation-circle me-2"></i>
+            {{ message }}
+        </div>
+        {% elif result_count > 0 %}
+        <div class="alert alert-success" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            {{ message }}
+        </div>
+        {% else %}
+        <div class="alert alert-info" role="alert">
+            <i class="fas fa-info-circle me-2"></i>
+            {{ message }}
+        </div>
+        {% endif %}
+    </div>
+    {% endif %}
+
+    <!-- Search Results -->
+    {% if results %}
+    <div class="docs-search-results">
+        {% for result in results %}
+        <div class="docs-search-result">
+            <h3 class="docs-search-result-title">
+                <a href="{{ result.url }}">
+                    {{ result.title }}
+                </a>
+            </h3>
+            <div class="docs-search-result-path">
+                <i class="fas fa-folder me-1"></i>
+                {{ result.path }}
+            </div>
+            {% if result.matches %}
+            <div class="docs-search-result-matches">
+                {% for match in result.matches %}
+                <div class="docs-search-result-match">
+                    {{ match.context|safe }}
+                </div>
+                {% endfor %}
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+    {% elif query %}
+    <!-- No Results -->
+    <div class="docs-search-no-results text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h3>No results found</h3>
+        <p class="text-muted">Try different keywords or check your spelling.</p>
+        <div class="mt-4">
+            <a href="{% url 'docs:index' %}" class="btn btn-outline-primary">
+                <i class="fas fa-home me-2"></i>Back to Documentation Home
+            </a>
+        </div>
+    </div>
+    {% else %}
+    <!-- Empty State -->
+    <div class="docs-search-empty text-center py-5">
+        <i class="fas fa-search fa-3x text-muted mb-3"></i>
+        <h3>Search the Documentation</h3>
+        <p class="text-muted">Enter keywords to find relevant documentation pages.</p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}
+
+{% block doc_footer %}
+    <!-- Scroll to Top Button -->
+    <button class="docs-scroll-top" id="scrollToTop" aria-label="Scroll to top">
+        <i class="fas fa-arrow-up"></i>
+    </button>
+{% endblock %}
+
+<style>
+/* Search-specific styles */
+.docs-search-form-main .input-group-text {
+    background-color: white;
+    border-right: none;
+}
+
+.docs-search-form-main .form-control {
+    border-left: none;
+    border-right: none;
+}
+
+.docs-search-form-main .form-control:focus {
+    box-shadow: none;
+    border-color: var(--docs-primary);
+}
+
+.docs-search-form-main .input-group:focus-within .input-group-text,
+.docs-search-form-main .input-group:focus-within .btn {
+    border-color: var(--docs-primary);
+}
+
+.docs-search-result {
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--docs-border-color);
+    border-radius: 8px;
+    background-color: white;
+    transition: all 0.2s;
+}
+
+.docs-search-result:hover {
+    border-color: var(--docs-primary);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.docs-search-result-title {
+    font-size: 1.25rem;
+    margin-bottom: 0.5rem;
+}
+
+.docs-search-result-title a {
+    color: var(--docs-primary);
+    text-decoration: none;
+}
+
+.docs-search-result-title a:hover {
+    text-decoration: underline;
+}
+
+.docs-search-result-path {
+    font-size: 0.875rem;
+    color: var(--docs-secondary);
+    margin-bottom: 1rem;
+}
+
+.docs-search-result-matches {
+    margin-top: 1rem;
+}
+
+.docs-search-result-match {
+    padding: 0.75rem;
+    background-color: var(--docs-bg);
+    border-left: 3px solid var(--docs-primary);
+    margin-bottom: 0.5rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+}
+
+.docs-search-result-match mark,
+.docs-search-result-match .search-highlight {
+    background-color: #fff3cd;
+    padding: 0.1rem 0.2rem;
+    border-radius: 2px;
+    font-weight: 600;
+    color: #856404;
+}
+</style>
