@@ -42,6 +42,26 @@
   
   /* Dimensions */
   --sidebar-width: 280px;
+  
+  /* Mobile-specific spacing */
+  --mobile-spacing: 12px;
+  --mobile-spacing-lg: 20px;
+  --mobile-spacing-sm: 8px;
+  
+  /* Touch target sizes */
+  --touch-target-min: 44px;
+  --touch-target-comfortable: 48px;
+  
+  /* Mobile typography */
+  --mobile-font-base: 16px;
+  --mobile-font-sm: 14px;
+  --mobile-font-xs: 12px;
+  --mobile-font-lg: 18px;
+  
+  /* Z-index layers */
+  --z-overlay: 999;
+  --z-sidebar: 1000;
+  --z-toggle: 1001;
 }
 
 /* ===== Sidebar Structure ===== */
@@ -521,27 +541,35 @@
   position: fixed;
   bottom: 20px;
   right: 20px;
-  width: 50px;
-  height: 50px;
+  width: 56px;
+  height: 56px;
   border-radius: 50%;
   background-color: var(--primary);
   color: white;
   text-align: center;
-  font-size: 1.2rem;
-  line-height: 50px;
+  font-size: 1.3rem;
+  line-height: 56px;
   box-shadow: var(--shadow-lg);
-  z-index: 999;
+  z-index: var(--z-toggle);
   border: none;
   cursor: pointer;
   transition: all var(--transition-fast);
+  align-items: center;
+  justify-content: center;
 }
 
 .toggle-sidebar:hover {
   transform: scale(1.1);
+  box-shadow: 0 8px 30px rgba(43, 60, 107, 0.4);
 }
 
 .toggle-sidebar:active {
   transform: scale(0.95);
+}
+
+.toggle-sidebar:focus {
+  outline: 3px solid rgba(43, 60, 107, 0.5);
+  outline-offset: 2px;
 }
 
 /* Overlay for mobile */
@@ -573,44 +601,243 @@
   }
   
   .custom-sidebar {
+    /* Hardware-accelerated transform for smooth animations */
     transform: translateX(-100%);
+    -webkit-transform: translateX(-100%);
+    will-change: transform;
+    backface-visibility: hidden;
+    -webkit-backface-visibility: hidden;
     box-shadow: var(--shadow-lg);
+    z-index: var(--z-sidebar);
+    width: 90%;
+    max-width: 300px;
   }
   
   .custom-sidebar.active {
     transform: translateX(0);
+    -webkit-transform: translateX(0);
   }
   
+  /* ===== TASK 2: Enhanced Touch Targets & Interactive Elements ===== */
+  
+  /* Enhanced touch targets for category headers - minimum 44x44px */
   .sidebar-category-header {
-    padding: 10px 15px;
+    padding: 14px 16px; /* Ensures min 44px height with content */
+    min-height: var(--touch-target-min);
+    font-size: var(--mobile-font-sm);
+    /* Add larger tap area for easier interaction */
+    margin-bottom: 8px;
   }
   
+  .sidebar-category-header > span {
+    font-size: var(--mobile-font-base);
+    line-height: 1.3;
+  }
+  
+  .sidebar-category-header i:first-of-type {
+    margin-right: 12px; /* Increased spacing for better visual separation */
+    font-size: 1rem;
+  }
+  
+  /* Improved spacing for menu items - minimum 44x44px touch targets */
   .sidebar-category-content a {
-    padding: 12px var(--spacing) 12px calc(var(--spacing) + 24px);
+    padding: 14px var(--spacing) 14px calc(var(--spacing) + 24px);
+    min-height: var(--touch-target-min);
+    font-size: var(--mobile-font-sm);
+    /* Enhanced spacing between items */
+    margin-bottom: 2px;
+    /* Better visual feedback area */
+    display: flex;
+    align-items: center;
+  }
+  
+  .sidebar-category-content a i {
+    margin-right: 12px; /* Increased icon spacing */
+    font-size: 1rem;
+  }
+  
+  /* Better touch targets for quick access grid */
+  .sidebar-nav-grid {
+    gap: 12px; /* Increased gap for better separation */
+    padding: 0 var(--spacing);
+    margin-bottom: 20px;
   }
   
   .sidebar-nav-grid a {
-    padding: 20px 8px;
+    padding: 16px 10px; /* Increased padding for comfortable tapping */
+    min-height: var(--touch-target-min);
+    /* Ensure proper touch target dimensions */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .sidebar-nav-grid i {
+    font-size: 1.75rem; /* Larger icons for better visibility */
+    margin-bottom: 10px;
+  }
+  
+  .sidebar-nav-grid span {
+    font-size: 0.8rem; /* Slightly larger text */
+    line-height: 1.2;
+  }
+  
+  /* Optimized search input for mobile - minimum 44px height */
+  .sidebar-search {
+    padding: var(--mobile-spacing-lg) var(--spacing);
   }
   
   .sidebar-search input {
-    padding: 12px 16px 12px 36px;
+    padding: 14px 16px 14px 40px; /* Increased padding for 44px+ height */
+    font-size: var(--mobile-font-base);
+    min-height: var(--touch-target-min);
+    /* Better touch interaction */
+    -webkit-appearance: none;
+    appearance: none;
+  }
+  
+  .sidebar-search i {
+    left: 28px; /* Adjusted for new padding */
     font-size: 1rem;
   }
 
+  /* Improved category grouping spacing */
   .sidebar-category-group {
     margin-bottom: 1rem;
     padding-bottom: 0.5rem;
   }
   
+  /* Better related items spacing */
   .related-items {
-    padding-left: 8px;
-    margin-left: 3px;
+    padding-left: var(--mobile-spacing);
+    margin-left: 4px;
   }
   
-  .custom-sidebar {
-    width: 90%;
-    max-width: 300px;
+  /* Enhanced overlay with proper z-index */
+  .sidebar-overlay {
+    z-index: var(--z-overlay);
+  }
+  
+  /* Improved toggle button - 48x48px for comfortable tapping */
+  .toggle-sidebar {
+    z-index: var(--z-toggle);
+    width: var(--touch-target-comfortable);
+    height: var(--touch-target-comfortable);
+    font-size: 1.3rem;
+    /* Enhanced visual feedback */
+    transition: all var(--transition-fast);
+  }
+  
+  .toggle-sidebar:active {
+    transform: scale(0.9);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  }
+  
+  /* Better spacing for user header */
+  .sidebar-header {
+    padding: var(--mobile-spacing-lg) var(--spacing);
+    min-height: 60px; /* Ensure adequate height */
+  }
+  
+  .user-avatar {
+    width: 44px; /* Increased for better visibility */
+    height: 44px;
+    margin-right: 14px;
+  }
+  
+  .user-name {
+    font-size: 1rem;
+    line-height: 1.3;
+  }
+  
+  .user-role {
+    font-size: 0.75rem;
+  }
+  
+  /* Improved submenu spacing - minimum 44px touch targets */
+  .submenu a {
+    padding: 14px var(--spacing) 14px calc(var(--spacing) + 48px) !important;
+    font-size: var(--mobile-font-sm) !important;
+    min-height: var(--touch-target-min);
+    margin-bottom: 2px;
+  }
+  
+  .submenu .submenu a {
+    padding: 12px var(--spacing) 12px calc(var(--spacing) + 72px) !important;
+    font-size: var(--mobile-font-xs) !important;
+    min-height: 40px; /* Slightly smaller for nested items but still tappable */
+  }
+  
+  /* Enhanced recent items for mobile - minimum 44px touch targets */
+  .recent-item {
+    padding: 12px 14px;
+    min-height: var(--touch-target-min);
+    font-size: var(--mobile-font-sm);
+    margin-bottom: 6px; /* Increased spacing between items */
+    /* Better tap area */
+    display: flex;
+    align-items: center;
+  }
+  
+  .recent-item-icon {
+    font-size: 1rem; /* Larger icon */
+    margin-right: 12px;
+  }
+  
+  .recent-item-name {
+    font-size: var(--mobile-font-sm);
+    line-height: 1.3;
+  }
+  
+  .recent-item-type {
+    font-size: 0.7rem;
+    padding: 3px 8px;
+  }
+  
+  /* Better close button sizing - minimum 44x44px */
+  .close-sidebar {
+    width: var(--touch-target-min);
+    height: var(--touch-target-min);
+    top: var(--mobile-spacing-sm);
+    right: var(--mobile-spacing-sm);
+    font-size: 1.2rem;
+    /* Enhanced visual feedback */
+    transition: all var(--transition-fast);
+  }
+  
+  .close-sidebar:active {
+    transform: scale(0.9);
+    background-color: rgba(0, 0, 0, 0.1);
+  }
+  
+  /* Enhanced section titles for better readability */
+  .sidebar-section-title {
+    font-size: 0.8rem;
+    margin: 20px 0 12px 0;
+    padding: 0 var(--spacing);
+  }
+  
+  /* Better badge sizing for mobile */
+  .sidebar-badge {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 7px;
+    font-size: 0.7rem;
+    margin-left: 10px;
+  }
+  
+  /* Enhanced footer spacing */
+  .sidebar-footer {
+    padding: var(--mobile-spacing-lg) var(--spacing);
+    font-size: 0.8rem;
+    margin-top: 20px;
+  }
+  
+  /* Improved has-submenu indicator */
+  .has-submenu > a::after {
+    font-size: 0.8rem;
+    margin-left: 8px;
   }
 }
 

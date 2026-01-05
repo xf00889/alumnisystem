@@ -152,7 +152,7 @@
          */
         checkMobileView: function() {
             const wasMobile = this.isMobile;
-            this.isMobile = window.innerWidth < 992; // Bootstrap lg breakpoint
+            this.isMobile = window.innerWidth <= 768; // Match CSS breakpoint
 
             if (wasMobile !== this.isMobile) {
                 if (this.isMobile) {
