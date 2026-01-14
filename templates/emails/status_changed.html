@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Account Status Changed - NORSU Alumni System</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f8f9fa;
+            line-height: 1.5;
+        }
+        
+        .email-container {
+            max-width: 500px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        
+        .header {
+            background: #2b3c6b;
+            padding: 25px 20px;
+            text-align: center;
+            color: white;
+        }
+        
+        .logo-text {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 0;
+        }
+        
+        .content {
+            padding: 25px 20px;
+            color: #333333;
+        }
+        
+        .content h2 {
+            color: #2b3c6b;
+            font-size: 24px;
+            margin-top: 0;
+            margin-bottom: 15px;
+        }
+        
+        .content p {
+            margin-bottom: 15px;
+        }
+        
+        .status-box {
+            {% if is_active %}
+            background-color: #d4edda;
+            border-left: 5px solid #28a745;
+            {% else %}
+            background-color: #f8d7da;
+            border-left: 5px solid #dc3545;
+            {% endif %}
+            padding: 20px 25px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .status-box p {
+            margin: 8px 0;
+            font-size: 14px;
+        }
+        
+        .status-text {
+            font-size: 24px;
+            font-weight: bold;
+            {% if is_active %}
+            color: #155724;
+            {% else %}
+            color: #721c24;
+            {% endif %}
+            margin: 10px 0;
+            display: block;
+        }
+        
+        .reason-box {
+            background-color: #e0f7fa;
+            border-left: 5px solid #2b3c6b;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+        }
+        
+        .reason-box p {
+            margin: 5px 0;
+            font-size: 14px;
+        }
+        
+        .button-container {
+            text-align: center;
+            margin: 25px 0;
+        }
+        
+        .button {
+            display: inline-block;
+            background-color: #2b3c6b;
+            color: white;
+            padding: 12px 25px;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+        }
+        
+        .footer {
+            background-color: #f1f1f1;
+            padding: 20px 20px;
+            text-align: center;
+            font-size: 12px;
+            color: #777777;
+            border-top: 1px solid #e0e0e0;
+        }
+        
+        .footer p {
+            margin: 5px 0;
+        }
+        
+        .footer a {
+            color: #2b3c6b;
+            text-decoration: none;
+        }
+        
+        .footer a:hover {
+            text-decoration: underline;
+        }
+        
+        /* Responsive adjustments */
+        @media only screen and (max-width: 600px) {
+            .email-container {
+                width: 100%;
+                border-radius: 0;
+                box-shadow: none;
+            }
+            .header, .content, .footer {
+                padding: 20px 15px;
+            }
+            .status-box, .reason-box {
+                padding: 15px 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="email-container">
+        <div class="header">
+            <h1 class="logo-text">NORSU Alumni System</h1>
+        </div>
+        <div class="content">
+            <h2>Account Status Changed</h2>
+            <p style="font-size: 18px; color: #2b3c6b; font-weight: bold; margin-bottom: 20px;">Hello {{ user.first_name }} {{ user.last_name }},</p>
+            
+            <p>Your account status in the <strong>NORSU Alumni System</strong> has been updated by an administrator.</p>
+            
+            <div class="status-box">
+                <p><strong>New Account Status:</strong></p>
+                <span class="status-text">{% if is_active %}ENABLED{% else %}DISABLED{% endif %}</span>
+                <p style="margin-top: 10px; font-size: 14px;">
+                    {% if is_active %}
+                    Your account is now active and you can log in to access all features.
+                    {% else %}
+                    Your account has been temporarily disabled. You will not be able to log in until it is re-enabled.
+                    {% endif %}
+                </p>
+            </div>
+            
+            {% if reason %}
+            <div class="reason-box">
+                <p><strong>Reason for Change:</strong></p>
+                <p>{{ reason }}</p>
+            </div>
+            {% endif %}
+            
+            {% if is_active %}
+            <div class="button-container">
+                <a href="{{ site_url }}" class="button">Log In Now</a>
+            </div>
+            
+            <p><strong>What You Can Do Now:</strong></p>
+            <ul style="padding-left: 20px;">
+                <li style="margin-bottom: 10px;">Log in to your account</li>
+                <li style="margin-bottom: 10px;">Access all system features</li>
+                <li style="margin-bottom: 10px;">Update your profile</li>
+                <li>Connect with the alumni community</li>
+            </ul>
+            {% else %}
+            <p><strong>What This Means:</strong></p>
+            <ul style="padding-left: 20px;">
+                <li style="margin-bottom: 10px;">You cannot log in to your account</li>
+                <li style="margin-bottom: 10px;">Your profile is not visible to other users</li>
+                <li style="margin-bottom: 10px;">You will not receive system notifications</li>
+                <li>Any active sessions have been terminated</li>
+            </ul>
+            {% endif %}
+            
+            <p style="margin-top: 25px;">If you have any questions or believe this change was made in error, please contact the administrator immediately.</p>
+            <p>Best regards,<br>The NORSU Alumni System Team</p>
+        </div>
+        <div class="footer">
+            <p>&copy; {{ "now"|date:"Y" }} NORSU Alumni System. All rights reserved.</p>
+            <p><a href="#" style="color: #2b3c6b;">Privacy Policy</a> | <a href="#" style="color: #2b3c6b;">Terms of Service</a></p>
+        </div>
+    </div>
+</body>
+</html>

@@ -7,6 +7,7 @@ from .models.content import Post, Comment, Reaction
 from .models.smtp_config import SMTPConfig
 from .models.brevo_config import BrevoConfig
 from .models.email_provider import EmailProvider
+from .models.user_management import UserAuditLog, UserStatusChange
 
 # Register existing models if they aren't already registered
 try:
@@ -140,3 +141,73 @@ class EmailProviderAdmin(admin.ModelAdmin):
     activate_provider.short_description = "Activate Provider"
     deactivate_provider.short_description = "Deactivate Provider"
     reset_statistics.short_description = "Reset Statistics"
+
+
+# User Audit Log Admin
+@admin.register(UserAuditLog)
+class UserAuditLogAdmin(admin.ModelAdmin):
+    """Admin interface for User Audit Log"""
+    
+    list_display = ['user', 'action', 'performed_by', 'timestamp', 'ip_address']
+    list_filter = ['action', 'timestamp']
+    search_fields = ['user__email', 'user__first_name', 'user__last_name', 
+                     'performed_by__email', 'reason']
+    readonly_fields = ['user', 'action', 'performed_by', 'timestamp', 
+                       'details', 'reason', 'ip_address']
+    date_hierarchy = 'timestamp'
+    
+    fieldsets = (
+        ('Action Information', {
+            'fields': ('action', 'user', 'performed_by', 'timestamp')
+        }),
+        ('Details', {
+            'fields': ('details', 'reason', 'ip_address')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent manual creation of audit logs"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of audit logs"""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Prevent modification of audit logs"""
+        return False
+
+
+# User Status Change Admin
+@admin.register(UserStatusChange)
+class UserStatusChangeAdmin(admin.ModelAdmin):
+    """Admin interface for User Status Changes"""
+    
+    list_display = ['user', 'status_display', 'changed_by', 'timestamp', 'ip_address']
+    list_filter = ['new_status', 'timestamp']
+    search_fields = ['user__email', 'user__first_name', 'user__last_name', 
+                     'changed_by__email', 'reason']
+    readonly_fields = ['user', 'changed_by', 'timestamp', 'old_status', 
+                       'new_status', 'reason', 'ip_address']
+    date_hierarchy = 'timestamp'
+    
+    fieldsets = (
+        ('Status Change Information', {
+            'fields': ('user', 'changed_by', 'timestamp')
+        }),
+        ('Status Details', {
+            'fields': ('old_status', 'new_status', 'reason', 'ip_address')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent manual creation of status change records"""
+        return False
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deletion of status change records"""
+        return False
+    
+    def has_change_permission(self, request, obj=None):
+        """Prevent modification of status change records"""
+        return False

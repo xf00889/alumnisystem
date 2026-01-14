@@ -1,0 +1,737 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}User Management - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+    }
+
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .container-fluid {
+        padding: 1.5rem;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+    }
+
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Dashboard Card */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+        background: var(--ui-hover);
+        padding: 1rem 1.5rem;
+        border-bottom: 1px solid var(--ui-border);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+
+    .card-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .card-title i {
+        color: var(--primary-color);
+    }
+
+    .card-body {
+        padding: 1.5rem;
+    }
+
+    /* Search and Filter Section */
+    .search-filter-card {
+        padding: 1.5rem;
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+
+    /* Bulk Actions Bar */
+    .bulk-actions-bar {
+        background: var(--feedback-info);
+        color: white;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1rem;
+        display: none;
+        align-items: center;
+        justify-content: space-between;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .bulk-actions-bar.show {
+        display: flex;
+    }
+
+    /* Table Styles */
+    .table-responsive {
+        overflow-x: auto;
+    }
+
+    .user-table {
+        width: 100%;
+        margin-bottom: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .user-table thead th {
+        background: var(--primary-color);
+        color: white;
+        font-weight: 600;
+        padding: 1rem;
+        border-bottom: 2px solid var(--ui-border);
+        white-space: nowrap;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .user-table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .user-table tbody tr:hover {
+        background-color: var(--ui-hover);
+    }
+
+    .user-table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    /* User Info */
+    .user-avatar {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 2px solid var(--ui-border);
+    }
+
+    .user-info {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .user-details {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .user-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.125rem;
+    }
+
+    .user-email {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+
+    /* Badges */
+    .badge {
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-success {
+        background-color: var(--feedback-success);
+        color: white;
+    }
+
+    .badge-danger {
+        background-color: var(--feedback-error);
+        color: white;
+    }
+
+    .badge-primary {
+        background-color: var(--primary-color);
+        color: white;
+    }
+
+    .badge-info {
+        background-color: var(--feedback-info);
+        color: white;
+    }
+
+    .badge-warning {
+        background-color: var(--feedback-warning);
+        color: white;
+    }
+
+    .badge-secondary {
+        background-color: var(--secondary-color);
+        color: white;
+    }
+
+    .role-badges {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+    }
+
+    /* Buttons */
+    .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: var(--feedback-error);
+        border-color: var(--feedback-error);
+        color: white;
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+        border-color: #bd2130;
+        transform: translateY(-1px);
+    }
+
+    .btn-success {
+        background: var(--feedback-success);
+        border-color: var(--feedback-success);
+        color: white;
+    }
+
+    .btn-success:hover {
+        background: #218838;
+        border-color: #1e7e34;
+        transform: translateY(-1px);
+    }
+
+    .btn-action {
+        padding: 0.375rem 0.75rem;
+        font-size: 0.875rem;
+        transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-action i {
+        color: inherit;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    /* Pagination */
+    .pagination-container {
+        background: var(--ui-surface);
+        padding: 1.25rem 1.5rem;
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        margin-top: 1.5rem;
+    }
+    
+    .pagination-info {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+    }
+
+    .pagination {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 0.25rem;
+    }
+
+    .page-item {
+        display: flex;
+    }
+
+    .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .page-link:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+        transform: translateY(-1px);
+    }
+
+    .page-item.active .page-link {
+        background: var(--primary-color);
+        color: white;
+        border-color: var(--primary-color);
+    }
+    
+    /* Sortable Table Headers */
+    .sortable-header {
+        cursor: pointer;
+        user-select: none;
+        position: relative;
+        padding-right: 1.5rem;
+    }
+    
+    .sortable-header:hover {
+        background: var(--primary-dark);
+    }
+    
+    .sort-icon {
+        position: absolute;
+        right: 0.5rem;
+        top: 50%;
+        transform: translateY(-50%);
+        opacity: 0.5;
+        font-size: 0.75rem;
+    }
+    
+    .sortable-header.active .sort-icon {
+        opacity: 1;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 0.75rem;
+        }
+
+        .directory-header {
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .directory-title {
+            font-size: 1.5rem;
+        }
+
+        .directory-subtitle {
+            font-size: 0.875rem;
+        }
+
+        .search-filter-card {
+            padding: 1rem;
+        }
+
+        .card-header {
+            flex-direction: column;
+            gap: 1rem;
+            align-items: flex-start;
+        }
+
+        .action-buttons {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .action-buttons .btn {
+            width: 100%;
+        }
+
+        .bulk-actions-bar {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+    }
+</style>
+{% endblock %}
+
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="directory-header">
+        <h1 class="directory-title">User Management</h1>
+        <p class="directory-subtitle">Manage user accounts, roles, and permissions</p>
+    </div>
+
+    <!-- Bulk Actions Bar -->
+    <div class="bulk-actions-bar" id="bulkActionsBar">
+        <div>
+            <strong id="selectedCount">0</strong> users selected
+        </div>
+        <div class="d-flex gap-2">
+            <button class="btn btn-light btn-sm" id="bulkEnableBtn">
+                <i class="fas fa-check-circle me-1"></i> Enable Selected
+            </button>
+            <button class="btn btn-light btn-sm" id="bulkDisableBtn">
+                <i class="fas fa-ban me-1"></i> Disable Selected
+            </button>
+            <button class="btn btn-outline-light btn-sm" id="clearSelectionBtn">
+                <i class="fas fa-times me-1"></i> Clear Selection
+            </button>
+        </div>
+    </div>
+
+    <!-- Search and Filter Card -->
+    <div class="dashboard-card search-filter-card">
+        <form method="get" action="{% url 'core:user_list' %}" id="searchForm">
+            <div class="row g-3">
+                <div class="col-md-4">
+                    <label for="search" class="form-label">Search</label>
+                    <input type="text" class="form-control" id="search" name="search" 
+                           placeholder="Search by name or email..." value="{{ request.GET.search }}">
+                </div>
+                <div class="col-md-3">
+                    <label for="role" class="form-label">Role</label>
+                    <select class="form-select" id="role" name="role">
+                        <option value="">All Roles</option>
+                        <option value="superuser" {% if request.GET.role == 'superuser' %}selected{% endif %}>Superuser</option>
+                        <option value="admin" {% if request.GET.role == 'admin' %}selected{% endif %}>Admin</option>
+                        <option value="hr" {% if request.GET.role == 'hr' %}selected{% endif %}>HR</option>
+                        <option value="mentor" {% if request.GET.role == 'mentor' %}selected{% endif %}>Mentor</option>
+                        <option value="alumni" {% if request.GET.role == 'alumni' %}selected{% endif %}>Alumni</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="status" class="form-label">Status</label>
+                    <select class="form-select" id="status" name="status">
+                        <option value="">All Status</option>
+                        <option value="active" {% if request.GET.status == 'active' %}selected{% endif %}>Active</option>
+                        <option value="inactive" {% if request.GET.status == 'inactive' %}selected{% endif %}>Inactive</option>
+                    </select>
+                </div>
+                <div class="col-md-2 d-flex align-items-end">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="fas fa-search me-1"></i> Search
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- User Table Card -->
+    <div class="dashboard-card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title">
+                <i class="fas fa-users me-2"></i>
+                Users ({{ page_obj.paginator.count|intcomma }})
+            </h5>
+            <a href="{% url 'core:user_create' %}" class="btn btn-primary">
+                <i class="fas fa-plus me-1"></i> Create User
+            </a>
+        </div>
+
+        <div class="table-responsive">
+            <table class="table user-table">
+                <thead>
+                    <tr>
+                        <th style="width: 40px;">
+                            <input type="checkbox" id="selectAll" class="form-check-input">
+                        </th>
+                        <th class="sortable-header {% if request.GET.sort == 'name' or request.GET.sort == '-name' %}active{% endif %}" 
+                            data-sort="name">
+                            User
+                            <i class="fas fa-sort{% if request.GET.sort == 'name' %}-up{% elif request.GET.sort == '-name' %}-down{% endif %} sort-icon"></i>
+                        </th>
+                        <th>Roles</th>
+                        <th class="sortable-header {% if request.GET.sort == 'status' or request.GET.sort == '-status' %}active{% endif %}" 
+                            data-sort="status">
+                            Status
+                            <i class="fas fa-sort{% if request.GET.sort == 'status' %}-up{% elif request.GET.sort == '-status' %}-down{% endif %} sort-icon"></i>
+                        </th>
+                        <th class="sortable-header {% if request.GET.sort == 'last_login' or request.GET.sort == '-last_login' %}active{% endif %}" 
+                            data-sort="last_login">
+                            Last Login
+                            <i class="fas fa-sort{% if request.GET.sort == 'last_login' %}-up{% elif request.GET.sort == '-last_login' %}-down{% endif %} sort-icon"></i>
+                        </th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for user_obj in users %}
+                    <tr>
+                        <td>
+                            <input type="checkbox" class="form-check-input user-checkbox" 
+                                   data-user-id="{{ user_obj.id }}">
+                        </td>
+                        <td>
+                            <div class="user-info">
+                                {% if user_obj.profile.avatar %}
+                                    <img src="{{ user_obj.profile.avatar.url }}" alt="{{ user_obj.get_full_name }}" 
+                                         class="user-avatar">
+                                {% else %}
+                                    <div class="user-avatar bg-secondary d-flex align-items-center justify-content-center text-white">
+                                        {{ user_obj.first_name|first }}{{ user_obj.last_name|first }}
+                                    </div>
+                                {% endif %}
+                                <div class="user-details">
+                                    <div class="user-name">{{ user_obj.get_full_name }}</div>
+                                    <div class="user-email">{{ user_obj.email }}</div>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <div class="role-badges">
+                                {% if user_obj.is_superuser %}
+                                    <span class="badge badge-danger">Superuser</span>
+                                {% endif %}
+                                {% if user_obj.is_staff %}
+                                    <span class="badge badge-primary">Admin</span>
+                                {% endif %}
+                                {% if user_obj.profile.is_hr %}
+                                    <span class="badge badge-info">HR</span>
+                                {% endif %}
+                                {% if user_obj.mentor_profile %}
+                                    <span class="badge badge-warning">Mentor</span>
+                                {% endif %}
+                                {% if not user_obj.is_superuser and not user_obj.is_staff and not user_obj.profile.is_hr and not user_obj.mentor_profile %}
+                                    <span class="badge badge-secondary">Alumni</span>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            {% if user_obj.is_active %}
+                                <span class="badge badge-success">Active</span>
+                            {% else %}
+                                <span class="badge badge-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if user_obj.last_login %}
+                                {{ user_obj.last_login|naturaltime }}
+                            {% else %}
+                                <span class="text-muted">Never</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <div class="action-buttons">
+                                <a href="{% url 'core:user_detail' user_obj.pk %}" 
+                                   class="btn btn-sm btn-primary btn-action" title="View Details">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                {% if user_obj.is_active %}
+                                    <button class="btn btn-sm btn-danger btn-action toggle-status-btn" 
+                                            data-user-id="{{ user_obj.id }}" 
+                                            data-action="disable"
+                                            title="Disable User">
+                                        <i class="fas fa-ban"></i>
+                                    </button>
+                                {% else %}
+                                    <button class="btn btn-sm btn-success btn-action toggle-status-btn" 
+                                            data-user-id="{{ user_obj.id }}" 
+                                            data-action="enable"
+                                            title="Enable User">
+                                        <i class="fas fa-check-circle"></i>
+                                    </button>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-5">
+                            <i class="fas fa-users fa-3x text-muted mb-3"></i>
+                            <p class="text-muted">No users found</p>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if page_obj.has_other_pages %}
+        <div class="pagination-container">
+            <div class="pagination-info">
+                Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} users
+            </div>
+            <ul class="pagination">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" aria-label="First page">
+                        <i class="fas fa-angle-double-left"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" aria-label="Previous page">
+                        <i class="fas fa-angle-left"></i>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in page_obj.paginator.page_range %}
+                {% if page_obj.number == num %}
+                <li class="page-item active">
+                    <span class="page-link">{{ num }}</span>
+                </li>
+                {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ num }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}">{{ num }}</a>
+                </li>
+                {% endif %}
+                {% endfor %}
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" aria-label="Next page">
+                        <i class="fas fa-angle-right"></i>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.search %}&search={{ request.GET.search }}{% endif %}{% if request.GET.role %}&role={{ request.GET.role }}{% endif %}{% if request.GET.status %}&status={{ request.GET.status }}{% endif %}{% if request.GET.sort %}&sort={{ request.GET.sort }}{% endif %}" aria-label="Last page">
+                        <i class="fas fa-angle-double-right"></i>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/user_management.js' %}"></script>
+<script>
+// Handle sortable table headers
+document.addEventListener('DOMContentLoaded', function() {
+    const sortableHeaders = document.querySelectorAll('.sortable-header');
+    
+    sortableHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortField = this.dataset.sort;
+            const currentSort = new URLSearchParams(window.location.search).get('sort');
+            
+            // Determine new sort direction
+            let newSort = sortField;
+            if (currentSort === sortField) {
+                // Toggle to descending
+                newSort = '-' + sortField;
+            } else if (currentSort === '-' + sortField) {
+                // Remove sort (back to default)
+                newSort = '';
+            }
+            
+            // Build new URL with sort parameter
+            const url = new URL(window.location);
+            if (newSort) {
+                url.searchParams.set('sort', newSort);
+            } else {
+                url.searchParams.delete('sort');
+            }
+            
+            // Navigate to new URL
+            window.location.href = url.toString();
+        });
+    });
+});
+</script>
+{% endblock %}

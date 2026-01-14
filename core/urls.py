@@ -6,6 +6,8 @@ from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
 from . import views
+# Import user management views from view_handlers
+from .view_handlers import user_management_views
 
 app_name = 'core'
 
@@ -88,4 +90,12 @@ urlpatterns = [
     path('admin-dashboard/recaptcha/analytics/', recaptcha_analytics_views.ReCaptchaAnalyticsView.as_view(), name='recaptcha_analytics'),
     path('admin-dashboard/recaptcha/analytics/api/', recaptcha_analytics_views.recaptcha_analytics_api, name='recaptcha_analytics_api'),
     path('admin-dashboard/recaptcha/analytics/reset/', recaptcha_analytics_views.recaptcha_analytics_reset, name='recaptcha_analytics_reset'),
+    
+    # User Management URLs
+    path('admin-dashboard/users/', user_management_views.UserListView.as_view(), name='user_list'),
+    path('admin-dashboard/users/create/', user_management_views.UserCreateView.as_view(), name='user_create'),
+    path('admin-dashboard/users/<int:pk>/', user_management_views.UserDetailView.as_view(), name='user_detail'),
+    path('admin-dashboard/users/<int:pk>/roles/', user_management_views.UserRoleManagementView.as_view(), name='user_role_management'),
+    path('admin-dashboard/users/<int:pk>/toggle/', user_management_views.UserStatusToggleView.as_view(), name='user_status_toggle'),
+    path('admin-dashboard/users/bulk-action/', user_management_views.UserBulkActionView.as_view(), name='user_bulk_action'),
 ]

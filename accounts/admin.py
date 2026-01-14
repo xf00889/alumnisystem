@@ -95,11 +95,43 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     form = ProfileAdminForm
-    list_display = ('user', 'phone_number', 'birth_date', 'country')
+    list_display = ('user', 'phone_number', 'birth_date', 'country', 'is_hr')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'phone_number')
-    list_filter = ('is_public', 'created_at')
+    list_filter = ('is_hr', 'is_public', 'created_at')
     inlines = [EducationInline, ExperienceInline, SkillInline, DocumentInline]
     readonly_fields = ('created_at', 'updated_at')
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user', 'avatar', 'bio')
+        }),
+        ('Contact Information', {
+            'fields': ('phone_number', 'country', 'city', 'address')
+        }),
+        ('Personal Information', {
+            'fields': ('birth_date', 'gender')
+        }),
+        ('Professional Information', {
+            'fields': (
+                'current_position',
+                'current_employer',
+                'industry',
+                'employment_status',
+                'salary_range'
+            )
+        }),
+        ('Permissions', {
+            'fields': ('is_hr',),
+            'description': 'HR users can post jobs and manage job applications.'
+        }),
+        ('Settings', {
+            'fields': ('is_public', 'has_completed_registration')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',),
+        }),
+    )
 
 @admin.register(Education)
 class EducationAdmin(admin.ModelAdmin):

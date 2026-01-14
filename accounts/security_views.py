@@ -56,12 +56,16 @@ def custom_login_view(request):
 def enhanced_signup(request):
     """Enhanced signup view with email verification - handles POST from tabbed login page"""
     if request.method == 'POST':
+        # Log the incoming request for debugging
+        logger.info(f"Signup attempt from IP: {request.META.get('REMOTE_ADDR')}")
+        
         form = EnhancedSignupForm(request.POST)
         
         if form.is_valid():
             try:
                 # Create user
                 user = form.save(request)
+                logger.info(f"User created successfully: {user.email}")
                 
                 # Send verification email
                 verification_code = SecurityCodeManager.generate_code()
@@ -105,7 +109,7 @@ NORSU Alumni Network Team
                         messages.warning(request, 'Account created but email could not be sent. Please contact support.')
                         
                 except Exception as email_error:
-                    logger.error(f"Failed to send email to {user.email}: {str(email_error)}")
+                    logger.error(f"Failed to send email to {user.email}: {str(email_error)}", exc_info=True)
                     # Don't fail the signup if email sending fails
                     messages.warning(request, 'Account created but email could not be sent. Please contact support.')
                 
@@ -127,9 +131,11 @@ NORSU Alumni Network Team
                 # Redirect back to login page with error message
                 return redirect('accounts:custom_login')
         else:
-            # Form is not valid - redirect back to login page with error messages
+            # Form is not valid - log the errors for debugging
+            logger.warning(f"Signup form validation failed. Errors: {form.errors.as_json()}")
             for field, errors in form.errors.items():
                 for error in errors:
+                    logger.warning(f"Form error - {field}: {error}")
                     messages.error(request, f"{field}: {error}")
             return redirect('accounts:custom_login')
     else:

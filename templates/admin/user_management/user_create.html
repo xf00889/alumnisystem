@@ -1,0 +1,564 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}Create User - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.5rem;
+        --radius-lg: 0.75rem;
+    }
+
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .container-fluid {
+        padding: 1.5rem;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: white;
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+    }
+
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Dashboard Card */
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        padding: 2rem;
+        width: 100%;
+    }
+
+    /* Form Sections */
+    .form-section {
+        margin-bottom: 2rem;
+    }
+
+    .form-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 2px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-section-title i {
+        color: var(--primary-color);
+    }
+
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-control, .form-select {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        transition: all 0.2s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+
+    .form-text {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .invalid-feedback {
+        color: var(--feedback-error);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .is-invalid {
+        border-color: var(--feedback-error);
+    }
+
+    /* Password Strength Indicator */
+    .password-strength {
+        margin-top: 0.5rem;
+    }
+
+    .strength-bar {
+        height: 4px;
+        background-color: var(--ui-border);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-bottom: 0.5rem;
+    }
+
+    .strength-bar-fill {
+        height: 100%;
+        transition: all 0.3s ease;
+        width: 0%;
+    }
+
+    .strength-weak {
+        background-color: var(--feedback-error);
+        width: 33%;
+    }
+
+    .strength-medium {
+        background-color: var(--feedback-warning);
+        width: 66%;
+    }
+
+    .strength-strong {
+        background-color: var(--feedback-success);
+        width: 100%;
+    }
+
+    .strength-text {
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .password-requirements {
+        background: var(--ui-hover);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        margin-top: 0.5rem;
+    }
+
+    .password-requirements ul {
+        margin: 0;
+        padding-left: 1.5rem;
+    }
+
+    .password-requirements li {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        margin-bottom: 0.25rem;
+    }
+
+    .password-requirements li.met {
+        color: var(--feedback-success);
+    }
+
+    .password-requirements li.met::marker {
+        content: "✓ ";
+    }
+
+    /* Action Buttons */
+    .btn-group-actions {
+        display: flex;
+        gap: 1rem;
+        justify-content: flex-end;
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+    }
+
+    .btn i {
+        color: inherit;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+        transform: translateY(-1px);
+    }
+
+    .btn-loading {
+        position: relative;
+        pointer-events: none;
+    }
+
+    .btn-loading::after {
+        content: "";
+        position: absolute;
+        width: 16px;
+        height: 16px;
+        top: 50%;
+        left: 50%;
+        margin-left: -8px;
+        margin-top: -8px;
+        border: 2px solid transparent;
+        border-top-color: currentColor;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+    }
+
+    @keyframes spin {
+        to { transform: rotate(360deg); }
+    }
+
+    /* Loading Overlay */
+    .loading-overlay {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 9999;
+    }
+
+    .loading-overlay.show {
+        display: flex;
+    }
+
+    .loading-spinner {
+        background: white;
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        text-align: center;
+    }
+
+    .spinner-border {
+        width: 3rem;
+        height: 3rem;
+        border-width: 0.3rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 0.75rem;
+        }
+
+        .directory-header {
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+        }
+
+        .directory-title {
+            font-size: 1.5rem;
+        }
+
+        .directory-subtitle {
+            font-size: 0.875rem;
+        }
+
+        .dashboard-card {
+            padding: 1.5rem;
+        }
+
+        .btn-group-actions {
+            flex-direction: column;
+        }
+
+        .btn-group-actions .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="directory-header">
+        <h1 class="directory-title">Create New User</h1>
+        <p class="directory-subtitle">Add a new user account to the system</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="dashboard-card">
+        <form method="post" id="userCreateForm" novalidate>
+            {% csrf_token %}
+
+            <!-- Basic Information Section -->
+            <div class="form-section">
+                <h3 class="form-section-title">
+                    <i class="fas fa-user me-2"></i>Basic Information
+                </h3>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_email" class="form-label">Email Address *</label>
+                        {{ form.email }}
+                        {% if form.email.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.email.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text">This will be used as the username for login</small>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_first_name" class="form-label">First Name *</label>
+                        {{ form.first_name }}
+                        {% if form.first_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.first_name.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="id_last_name" class="form-label">Last Name *</label>
+                        {{ form.last_name }}
+                        {% if form.last_name.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.last_name.errors.0 }}
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Password Section -->
+            <div class="form-section">
+                <h3 class="form-section-title">
+                    <i class="fas fa-lock me-2"></i>Password
+                </h3>
+
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="id_password" class="form-label">Password *</label>
+                        {{ form.password }}
+                        {% if form.password.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.password.errors.0 }}
+                            </div>
+                        {% endif %}
+                        
+                        <!-- Password Strength Indicator -->
+                        <div class="password-strength" id="passwordStrength" style="display: none;">
+                            <div class="strength-bar">
+                                <div class="strength-bar-fill" id="strengthBarFill"></div>
+                            </div>
+                            <div class="strength-text" id="strengthText"></div>
+                        </div>
+
+                        <!-- Password Requirements -->
+                        <div class="password-requirements">
+                            <strong class="d-block mb-2">Password Requirements:</strong>
+                            <ul id="passwordRequirements">
+                                <li id="req-length">At least 8 characters</li>
+                                <li id="req-uppercase">Contains uppercase letter</li>
+                                <li id="req-lowercase">Contains lowercase letter</li>
+                                <li id="req-number">Contains number</li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="id_password_confirm" class="form-label">Confirm Password *</label>
+                        {{ form.password_confirm }}
+                        {% if form.password_confirm.errors %}
+                            <div class="invalid-feedback d-block">
+                                {{ form.password_confirm.errors.0 }}
+                            </div>
+                        {% endif %}
+                        <small class="form-text">Re-enter the password to confirm</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Notification Section -->
+            <div class="form-section">
+                <h3 class="form-section-title">
+                    <i class="fas fa-envelope me-2"></i>Notifications
+                </h3>
+
+                <div class="form-check">
+                    {{ form.send_welcome_email }}
+                    <label class="form-check-label" for="id_send_welcome_email">
+                        Send welcome email with login credentials
+                    </label>
+                    <small class="form-text d-block mt-1">
+                        The user will receive an email with their login information
+                    </small>
+                </div>
+            </div>
+
+            <!-- Form Errors -->
+            {% if form.non_field_errors %}
+                <div class="alert alert-danger" role="alert">
+                    {{ form.non_field_errors.0 }}
+                </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="btn-group-actions">
+                <a href="{% url 'core:user_list' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-1"></i> Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" id="submitBtn">
+                    <i class="fas fa-save me-1"></i> Create User
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+    <div class="loading-spinner">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Loading...</span>
+        </div>
+        <p class="mt-3 mb-0">Creating user account...</p>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('userCreateForm');
+    const submitBtn = document.getElementById('submitBtn');
+    const loadingOverlay = document.getElementById('loadingOverlay');
+    const passwordInput = document.getElementById('id_password');
+    const passwordConfirmInput = document.getElementById('id_password_confirm');
+    const passwordStrength = document.getElementById('passwordStrength');
+    const strengthBarFill = document.getElementById('strengthBarFill');
+    const strengthText = document.getElementById('strengthText');
+
+    // Password strength checker
+    if (passwordInput) {
+        passwordInput.addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length === 0) {
+                passwordStrength.style.display = 'none';
+                return;
+            }
+
+            passwordStrength.style.display = 'block';
+
+            // Check requirements
+            const requirements = {
+                length: password.length >= 8,
+                uppercase: /[A-Z]/.test(password),
+                lowercase: /[a-z]/.test(password),
+                number: /[0-9]/.test(password)
+            };
+
+            // Update requirement indicators
+            document.getElementById('req-length').classList.toggle('met', requirements.length);
+            document.getElementById('req-uppercase').classList.toggle('met', requirements.uppercase);
+            document.getElementById('req-lowercase').classList.toggle('met', requirements.lowercase);
+            document.getElementById('req-number').classList.toggle('met', requirements.number);
+
+            // Calculate strength
+            const metCount = Object.values(requirements).filter(Boolean).length;
+            
+            strengthBarFill.className = 'strength-bar-fill';
+            if (metCount <= 2) {
+                strengthBarFill.classList.add('strength-weak');
+                strengthText.textContent = 'Weak';
+                strengthText.style.color = 'var(--feedback-error)';
+            } else if (metCount === 3) {
+                strengthBarFill.classList.add('strength-medium');
+                strengthText.textContent = 'Medium';
+                strengthText.style.color = 'var(--feedback-warning)';
+            } else {
+                strengthBarFill.classList.add('strength-strong');
+                strengthText.textContent = 'Strong';
+                strengthText.style.color = 'var(--feedback-success)';
+            }
+        });
+    }
+
+    // Form submission with loading indicator
+    form.addEventListener('submit', function(e) {
+        // Basic client-side validation
+        let isValid = true;
+        const email = document.getElementById('id_email').value.trim();
+        const firstName = document.getElementById('id_first_name').value.trim();
+        const lastName = document.getElementById('id_last_name').value.trim();
+        const password = passwordInput.value;
+        const passwordConfirm = passwordConfirmInput.value;
+
+        if (!email || !firstName || !lastName || !password || !passwordConfirm) {
+            e.preventDefault();
+            alert('Please fill in all required fields');
+            return;
+        }
+
+        if (password !== passwordConfirm) {
+            e.preventDefault();
+            alert('Passwords do not match');
+            passwordConfirmInput.focus();
+            return;
+        }
+
+        if (password.length < 8) {
+            e.preventDefault();
+            alert('Password must be at least 8 characters long');
+            passwordInput.focus();
+            return;
+        }
+
+        // Show loading overlay
+        loadingOverlay.classList.add('show');
+        submitBtn.disabled = true;
+        submitBtn.classList.add('btn-loading');
+    });
+});
+</script>
+{% endblock %}

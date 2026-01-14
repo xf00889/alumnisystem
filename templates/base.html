@@ -70,7 +70,7 @@
          .dropdown-menu-enhanced {
              border: none;
              border-radius: 12px;
-             padding: 0.75rem 0;
+             padding: 0.5rem 0;
              min-width: 280px;
              background: white;
              backdrop-filter: blur(20px);
@@ -79,26 +79,39 @@
              margin-top: 0.5rem;
          }
 
+         .dropdown-menu-enhanced .dropdown-item {
+             border-radius: 0;
+             margin: 0;
+             background-color: transparent;
+         }
+
+         .dropdown-menu-enhanced .dropdown-item:hover,
+         .dropdown-menu-enhanced .dropdown-item:focus {
+             background-color: rgba(43, 60, 107, 0.08);
+         }
+
          .dropdown-item-enhanced {
              padding: 0.75rem 1.25rem;
              border-radius: 8px;
-             margin: 0.125rem 0.75rem;
+             margin: 0.25rem 0.75rem;
              transition: all 0.2s ease;
              display: flex;
              align-items: center;
              text-decoration: none;
              color: #495057;
              font-weight: 500;
+             background-color: transparent;
          }
 
-         .dropdown-item-enhanced:hover {
-             background-color: rgba(43, 60, 107, 0.08);
+         .dropdown-item-enhanced:hover,
+         .dropdown-item-enhanced:focus {
+             background-color: rgba(43, 60, 107, 0.08) !important;
              color: var(--primary-color);
-             transform: translateX(4px);
          }
 
-         .dropdown-item-enhanced.active {
-             background-color: rgba(43, 60, 107, 0.12);
+         .dropdown-item-enhanced.active,
+         .dropdown-item-enhanced:active {
+             background-color: rgba(43, 60, 107, 0.12) !important;
              color: var(--primary-color);
              font-weight: 600;
          }
@@ -651,6 +664,10 @@
                     <i class="fas fa-chevron-down toggle-icon"></i>
                 </div>
                 <div class="nav-group collapse show" id="system">
+                    <a class="nav-link {% if request.resolver_match.url_name == 'user_list' %}active{% endif %}" href="{% url 'core:user_list' %}">
+                        <i class="fas fa-users-cog"></i>
+                        <span>User Management</span>
+                    </a>
                     <a class="nav-link {% if request.resolver_match.app_name == 'docs' %}active{% endif %}" href="{% url 'docs:index' %}">
                         <i class="fas fa-book"></i>
                         <span>Documentation</span>
@@ -893,6 +910,30 @@
                                     <small class="text-muted">Guide others</small>
                                 </div>
                             </a></li>
+                            {% endif %}
+                            {% if user.is_authenticated %}
+                                {% if user.is_superuser or user.profile.is_hr %}
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-header">
+                                        <i class="fas fa-briefcase me-2"></i>HR Management
+                                    </li>
+                                    <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.url_name == 'manage_jobs' %}active{% endif %}"
+                                           href="{% url 'jobs:manage_jobs' %}">
+                                        <i class="fas fa-tasks me-3 text-primary"></i>
+                                        <div class="dropdown-item-content">
+                                            <div class="fw-medium">Manage Jobs</div>
+                                            <small class="text-muted">Oversee job postings</small>
+                                        </div>
+                                    </a></li>
+                                    <li><a class="dropdown-item dropdown-item-enhanced {% if request.resolver_match.url_name == 'post_job' %}active{% endif %}"
+                                           href="{% url 'jobs:post_job' %}">
+                                        <i class="fas fa-plus-circle me-3 text-success"></i>
+                                        <div class="dropdown-item-content">
+                                            <div class="fw-medium">Post Job</div>
+                                            <small class="text-muted">Create new job posting</small>
+                                        </div>
+                                    </a></li>
+                                {% endif %}
                             {% endif %}
                         </ul>
                     </li>

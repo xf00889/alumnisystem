@@ -3,9 +3,14 @@ Custom decorators for authentication and email verification
 """
 from django.shortcuts import redirect
 from django.contrib import messages
+from django.contrib.auth.decorators import user_passes_test
+from django.core.exceptions import PermissionDenied
 from django.urls import reverse
 from django.core.paginator import Paginator
 from functools import wraps
+import logging
+
+logger = logging.getLogger('accounts')
 
 def email_verified_required(view_func):
     """
@@ -76,3 +81,45 @@ def paginate(per_page=10):
             return result
         return wrapper
     return decorator
+
+
+def hr_required(function=None, redirect_field_name='next', login_url=None):
+    """
+    Decorator for views that checks that the user is logged in and has HR status.
+    Logs unauthorized access attempts.
+    Superusers always have access regardless of HR status.
+    """
+    def check_hr(user):
+        if not user.is_authenticated:
+            return False
+        
+        # Superusers always have access
+        if user.is_superuser:
+            return True
+        
+        # Check if user has HR status
+        try:
+            has_hr = user.profile.is_hr
+            if not has_hr:
+                logger.warning(
+                    f"Unauthorized HR access attempt by user {user.id} ({user.email})",
+                    extra={'user_id': user.id, 'user_email': user.email}
+                )
+            return has_hr
+        except Exception as e:
+            logger.error(
+                f"Error checking HR status for user {user.id}: {str(e)}",
+                extra={'user_id': user.id},
+                exc_info=True
+            )
+            return False
+    
+    actual_decorator = user_passes_test(
+        check_hr,
+        login_url=login_url,
+        redirect_field_name=redirect_field_name
+    )
+    
+    if function:
+        return actual_decorator(function)
+    return actual_decorator

@@ -1,4 +1,10 @@
+from django.contrib.auth.mixins import UserPassesTestMixin
+from django.core.exceptions import PermissionDenied
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
+import logging
+
+logger = logging.getLogger('accounts')
+
 
 class PaginationMixin:
     """
@@ -35,3 +41,54 @@ class PaginationMixin:
             context['page_obj'] = self.paginate_queryset(queryset)
             context['object_list'] = context['page_obj'].object_list
         return context 
+
+
+class HRRequiredMixin(UserPassesTestMixin):
+    """
+    Mixin for class-based views that checks that the user has HR status.
+    Logs unauthorized access attempts.
+    Superusers always have access regardless of HR status.
+    """
+    
+    def test_func(self):
+        user = self.request.user
+        
+        if not user.is_authenticated:
+            return False
+        
+        # Superusers always have access
+        if user.is_superuser:
+            return True
+        
+        # Check if user has HR status
+        try:
+            has_hr = user.profile.is_hr
+            if not has_hr:
+                logger.warning(
+                    f"Unauthorized HR access attempt by user {user.id} ({user.email})",
+                    extra={
+                        'user_id': user.id,
+                        'user_email': user.email,
+                        'view': self.__class__.__name__
+                    }
+                )
+            return has_hr
+        except Exception as e:
+            logger.error(
+                f"Error checking HR status for user {user.id}: {str(e)}",
+                extra={'user_id': user.id},
+                exc_info=True
+            )
+            return False
+    
+    def handle_no_permission(self):
+        """Log and raise PermissionDenied for unauthorized access"""
+        logger.warning(
+            f"Permission denied for user {self.request.user.id} accessing {self.__class__.__name__}",
+            extra={
+                'user_id': self.request.user.id,
+                'view': self.__class__.__name__,
+                'path': self.request.path
+            }
+        )
+        raise PermissionDenied("You do not have permission to access this resource.")

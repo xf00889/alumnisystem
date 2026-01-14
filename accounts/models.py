@@ -108,6 +108,10 @@ class Profile(models.Model):
 
     # Metadata
     is_public = models.BooleanField(default=True)
+    is_hr = models.BooleanField(
+        default=False,
+        help_text="Designates whether this user has HR permissions for job management"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     has_completed_registration = models.BooleanField(default=False)

@@ -12,9 +12,18 @@ def filename(value):
 @register.filter
 def is_hr_or_admin(user):
     """Check if user is HR or admin"""
+    if not user.is_authenticated:
+        return False
+    
+    # Superusers always have access
     if user.is_superuser:
         return True
-    return user.groups.filter(name='HR').exists()
+    
+    # Check HR status
+    try:
+        return user.profile.is_hr
+    except:
+        return False
 
 @register.filter
 def get_item(dictionary, key):

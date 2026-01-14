@@ -4,9 +4,9 @@ from .models import JobPosting, JobApplication
 
 @admin.register(JobPosting)
 class JobPostingAdmin(admin.ModelAdmin):
-    list_display = ('job_title', 'company_name', 'location', 'job_type', 'source_type', 'posted_date', 'is_featured', 'is_active')
-    list_filter = ('job_type', 'source_type', 'is_featured', 'is_active', 'posted_date', 'accepts_internal_applications')
-    search_fields = ('job_title', 'company_name', 'location', 'job_description')
+    list_display = ('job_title', 'company_name', 'location', 'job_type', 'source_type', 'posted_by', 'posted_date', 'is_featured', 'is_active')
+    list_filter = ('job_type', 'source_type', 'is_featured', 'is_active', 'posted_by', 'posted_date', 'accepts_internal_applications')
+    search_fields = ('job_title', 'company_name', 'location', 'job_description', 'posted_by__username', 'posted_by__email')
     prepopulated_fields = {'slug': ('job_title', 'company_name',)}
     date_hierarchy = 'posted_date'
     ordering = ('-posted_date',)

@@ -463,6 +463,11 @@ if DATABASE_URL:
                 'level': 'INFO',
                 'propagate': True,
             },
+            'core': {
+                'handlers': ['console'],
+                'level': 'INFO',
+                'propagate': True,
+            },
         },
     }
 else:
@@ -552,6 +557,11 @@ else:
             'log_viewer': {
                 'handlers': ['console', 'file'],
                 'level': 'INFO',
+                'propagate': True,
+            },
+            'core': {
+                'handlers': ['console', 'file'],
+                'level': 'DEBUG',
                 'propagate': True,
             },
         },

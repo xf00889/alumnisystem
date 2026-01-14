@@ -27,7 +27,18 @@ logger = logging.getLogger(__name__)
 
 def is_hr_or_admin(user):
     """Check if user is HR or admin"""
-    return user.is_superuser or user.groups.filter(name='HR').exists()
+    if not user.is_authenticated:
+        return False
+    
+    # Superusers always have access
+    if user.is_superuser:
+        return True
+    
+    # Check HR status
+    try:
+        return user.profile.is_hr
+    except:
+        return False
 
 def careers(request):
     """Public careers page for job listings"""
