@@ -1017,46 +1017,31 @@
                 passwordMatchIndicator.style.visibility = 'visible';
             }
             
-            // More comprehensive error detection
-            const hasErrors = document.querySelector('.alert-danger, .errorlist, .form-error, [class*="error"]');
-            const hasFormErrors = document.querySelector('.form-group .error, .form-group .invalid-feedback');
-            const hasDjangoErrors = document.querySelector('.errorlist li, .nonfield .errorlist');
-            const hasMessages = document.querySelector('.messages .alert-danger, .messages .alert-error');
-            const hasUrlErrors = window.location.search.includes('error') || window.location.search.includes('invalid');
+            // Check for ACTUAL authentication errors (visible error messages from failed login attempts)
+            // Only look for Django form errors that are actually rendered on the page
+            const hasLoginErrors = document.querySelector('.alert-danger:not(:empty)');
+            const hasDjangoFormErrors = document.querySelector('.errorlist li');
+            const hasUrlErrors = window.location.search.includes('error=') || window.location.search.includes('invalid=');
+            
+            // Only consider it an auth error if there's actual visible error content
+            const hasAuthErrors = hasLoginErrors || hasDjangoFormErrors || hasUrlErrors;
             
             // Debug logging
             console.log('Login - Error detection:', {
-                hasErrors: !!hasErrors,
-                hasFormErrors: !!hasFormErrors,
-                hasDjangoErrors: !!hasDjangoErrors,
-                hasMessages: !!hasMessages,
+                hasLoginErrors: !!hasLoginErrors,
+                hasDjangoFormErrors: !!hasDjangoFormErrors,
                 hasUrlErrors: hasUrlErrors,
-                currentUrl: window.location.href,
+                hasAuthErrors: hasAuthErrors,
                 sessionStorage: sessionStorage.getItem('norsu_terms_agreed')
             });
             
-            // Debug password criteria elements
-            console.log('Password criteria elements:', {
-                passwordCriteria: !!passwordCriteria,
-                passwordMatchIndicator: !!passwordMatchIndicator,
-                passwordCriteriaDisplay: passwordCriteria ? passwordCriteria.style.display : 'not found',
-                passwordMatchDisplay: passwordMatchIndicator ? passwordMatchIndicator.style.display : 'not found'
-            });
-            
-            // SMART APPROACH: Only clear session storage if there are authentication errors
+            // Only clear terms agreement if there was an actual authentication failure
             // This preserves the user's terms agreement on normal page visits
             const hasAgreedToTerms = sessionStorage.getItem('norsu_terms_agreed');
-            
-            // Check for authentication errors
-            const hasAuthErrors = hasErrors || hasFormErrors || hasDjangoErrors || hasMessages || hasUrlErrors;
             
             if (hasAuthErrors) {
                 console.log('Login - Authentication errors detected, clearing session storage');
                 sessionStorage.removeItem('norsu_terms_agreed');
-            } else if (hasAgreedToTerms) {
-                console.log('Login - No errors detected, preserving terms agreement');
-            } else {
-                console.log('Login - No previous agreement, will show terms disclaimer');
             }
             
             // Show disclaimer automatically when page loads (only if no previous agreement)
@@ -1292,6 +1277,11 @@
             script.src = 'https://www.google.com/recaptcha/api.js?render={{ recaptcha_public_key }}';
             script.async = true;
             script.defer = true;
+            script.onerror = function() {
+                console.error('Failed to load reCAPTCHA script');
+                // Allow form submission without reCAPTCHA if script fails to load
+                window.recaptchaFailed = true;
+            };
             document.head.appendChild(script);
             
             // Handle signup form submission with reCAPTCHA
@@ -1302,9 +1292,29 @@
                 signupForm.addEventListener('submit', function(e) {
                     e.preventDefault();
                     
+                    // Disable submit button to prevent double submission
+                    signupSubmitBtn.disabled = true;
+                    signupSubmitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Creating Account...';
+                    
+                    // If reCAPTCHA failed to load, submit without it
+                    if (window.recaptchaFailed) {
+                        console.log('Submitting form without reCAPTCHA (script failed to load)');
+                        signupForm.submit();
+                        return;
+                    }
+                    
+                    // Check if grecaptcha is available
+                    if (typeof grecaptcha === 'undefined') {
+                        console.error('grecaptcha is not defined - reCAPTCHA may not have loaded');
+                        // Submit form anyway
+                        signupForm.submit();
+                        return;
+                    }
+                    
                     // Execute reCAPTCHA
                     grecaptcha.ready(function() {
                         grecaptcha.execute('{{ recaptcha_public_key }}', {action: 'signup'}).then(function(token) {
+                            console.log('reCAPTCHA token obtained successfully');
                             // Add the token to the form
                             const tokenInput = document.createElement('input');
                             tokenInput.type = 'hidden';
@@ -1316,12 +1326,27 @@
                             signupForm.submit();
                         }).catch(function(error) {
                             console.error('reCAPTCHA execution failed:', error);
-                            // Still submit the form if reCAPTCHA fails
-                            signupForm.submit();
+                            // Re-enable button and show error
+                            signupSubmitBtn.disabled = false;
+                            signupSubmitBtn.innerHTML = '<i class="fas fa-user-plus me-2"></i>Create Account';
+                            
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Security Verification Issue',
+                                text: 'There was an issue with security verification. The form will be submitted anyway.',
+                                confirmButtonText: 'Continue',
+                                confirmButtonColor: '#2b3c6b'
+                            }).then(function() {
+                                // Submit the form without reCAPTCHA
+                                signupForm.submit();
+                            });
                         });
                     });
                 });
             }
+            {% else %}
+            // reCAPTCHA not enabled - allow normal form submission
+            console.log('reCAPTCHA is not enabled, form will submit normally');
             {% endif %}
             
             // Handle form validation errors with SweetAlert
