@@ -1,0 +1,338 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Alumni Group - Progressive{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .dashboard-header-content {
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .progressive-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 3rem;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        margin: 0 1rem;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #718096;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+    
+    .step.active .step-number {
+        background: #2b3c6b;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .step.active .step-title {
+        color: #2b3c6b;
+    }
+    
+    .step-connector {
+        width: 60px;
+        height: 2px;
+        background: #e2e8f0;
+        margin: 0 1rem;
+    }
+    
+    .step.completed + .step-connector {
+        background: #48bb78;
+    }
+    
+    .phase-container {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .phase-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .phase-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .phase-subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    .btn-primary {
+        background: #2b3c6b;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #1a2332;
+    }
+    
+    .btn-secondary {
+        background: #718096;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-right: 1rem;
+    }
+    
+    .btn-secondary:hover {
+        background: #4a5568;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+    }
+    
+    .progress-info {
+        background: #edf2f7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .progress-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #2d3748;
+    }
+    
+    .progress-info p {
+        margin: 0;
+        color: #718096;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="dashboard-header-content">
+        <h1 class="dashboard-title">Create Alumni Group</h1>
+        <p class="dashboard-subtitle">Let's create your alumni group step by step</p>
+    </div>
+</div>
+
+<div class="progressive-container">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step active">
+            <div class="step-number">1</div>
+            <div class="step-title">Basic Info</div>
+        </div>
+        <div class="step-connector"></div>
+        <div class="step">
+            <div class="step-number">2</div>
+            <div class="step-title">Group Details</div>
+        </div>
+    </div>
+    
+    <!-- Progress Info -->
+    <div class="progress-info">
+        <h4>🎓 Let's Create Your Alumni Group</h4>
+        <p>We'll guide you through creating your alumni group step by step. First, we need some basic information about your batch and course.</p>
+    </div>
+    
+    <!-- Phase Container -->
+    <div class="phase-container">
+        <div class="phase-header">
+            <h2 class="phase-title">Phase 1: Basic Information</h2>
+            <p class="phase-subtitle">Tell us about your batch and course details</p>
+        </div>
+        
+        <form method="post" action="{% url 'alumni_groups:group_create_phase1' %}">
+            {% csrf_token %}
+            
+            <div class="form-group">
+                <label class="form-label" for="batch_start_year">📅 Batch Start Year</label>
+                <input type="number" id="batch_start_year" name="batch_start_year" class="form-control" 
+                       min="1900" max="2030" required placeholder="e.g., 2020">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="batch_end_year">📅 Batch End Year</label>
+                <input type="number" id="batch_end_year" name="batch_end_year" class="form-control" 
+                       min="1900" max="2030" required placeholder="e.g., 2024">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="course">🎓 Course Name</label>
+                <input type="text" id="course" name="course" class="form-control" 
+                       required placeholder="e.g., Bachelor of Science in Computer Science">
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="campus">🏫 Campus</label>
+                <select id="campus" name="campus" class="form-control" required>
+                    <option value="">Select your campus</option>
+                    <option value="MAIN">NORSU Main Campus</option>
+                    <option value="GUIHULNGAN">NORSU Guihulngan Campus</option>
+                    <option value="SIATON">NORSU Siaton Campus</option>
+                    <option value="PAMPLONA">NORSU Pamplona Campus</option>
+                    <option value="BAIS">NORSU Bais Campus</option>
+                    <option value="BSC">NORSU BSC (Bayawan-Sta. Catalina) Campus</option>
+                </select>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'alumni_groups:group_list' %}" class="btn-secondary">Cancel</a>
+                <button type="submit" class="btn-primary">Continue to Phase 2 →</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Process any Django messages as SweetAlert notifications
+    if (typeof SweetAlertUtils !== 'undefined') {
+        SweetAlertUtils.processDjangoMessages();
+    }
+    
+    // Form validation
+    const form = document.querySelector('form');
+    const batchStartYear = document.getElementById('batch_start_year');
+    const batchEndYear = document.getElementById('batch_end_year');
+    
+    form.addEventListener('submit', function(e) {
+        const startYear = parseInt(batchStartYear.value);
+        const endYear = parseInt(batchEndYear.value);
+        
+        if (startYear && endYear && startYear > endYear) {
+            e.preventDefault();
+            Swal.fire({
+                title: 'Invalid Year Range',
+                text: 'Start year must be less than or equal to end year.',
+                icon: 'error',
+                confirmButtonColor: '#2b3c6b'
+            });
+        }
+    });
+});
+</script>
+{% endblock %}

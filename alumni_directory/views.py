@@ -1,4 +1,5 @@
 import logging
+import io
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q, Count, F
@@ -7,7 +8,7 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import get_user_model
 from .models import Alumni, AlumniDocument, Achievement, ProfessionalExperience
 from django.core.exceptions import PermissionDenied
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.http import Http404
 from django.core.mail import send_mail
 from django.urls import reverse
@@ -798,29 +799,47 @@ def alumni_management(request):
                                 updated_count += 1
                             except Alumni.DoesNotExist:
                                 # Create new user and alumni
-                                user = User.objects.create_user(
-                                    username=f"{first_name.lower()}.{last_name.lower()}.{graduation_year}",
-                                    first_name=first_name,
-                                    last_name=last_name,
-                                    email=f"{first_name.lower()}.{last_name.lower()}@example.com"
-                                )
-                                
-                                alumni = Alumni.objects.create(
-                                    user=user,
-                                    graduation_year=graduation_year,
-                                    course=course,
-                                    job_title=occupation,
-                                    current_company=company
-                                )
-                                
-                                if address:
-                                    address_parts = address.split(', ')
-                                    if len(address_parts) >= 2:
-                                        alumni.city = address_parts[0]
-                                        alumni.province = address_parts[1]
-                                        alumni.save()
-                                
-                                imported_count += 1
+                                try:
+                                    user = User.objects.create_user(
+                                        username=f"{first_name.lower()}.{last_name.lower()}.{graduation_year}",
+                                        first_name=first_name,
+                                        last_name=last_name,
+                                        email=f"{first_name.lower()}.{last_name.lower()}@example.com"
+                                    )
+                                    
+                                    alumni = Alumni.objects.create(
+                                        user=user,
+                                        graduation_year=graduation_year,
+                                        course=course,
+                                        job_title=occupation,
+                                        current_company=company
+                                    )
+                                    
+                                    if address:
+                                        address_parts = address.split(', ')
+                                        if len(address_parts) >= 2:
+                                            alumni.city = address_parts[0]
+                                            alumni.province = address_parts[1]
+                                            alumni.save()
+                                    
+                                    imported_count += 1
+                                except IntegrityError as ie:
+                                    # Handle database constraint violation (duplicate email/username)
+                                    error_count += 1
+                                    error_details.append({
+                                        'row': full_name,
+                                        'error': 'Unable to create account. A user with this email or username already exists.'
+                                    })
+                                    logger.error(
+                                        f"Database constraint violation during CSV import: {full_name}",
+                                        extra={
+                                            'row_data': full_name,
+                                            'error_type': 'IntegrityError',
+                                            'error_message': str(ie),
+                                            'file_name': file_name,
+                                            'action': 'csv_import_integrity_error'
+                                        }
+                                    )
                             except Exception as row_error:
                                 error_count += 1
                                 error_details.append({
@@ -922,40 +941,302 @@ def alumni_management(request):
         if college:
             queryset = queryset.filter(college__in=college)
             
-        # Export to CSV if requested
-        if request.GET.get('format') == 'csv':
+        # Export if requested
+        export_format = request.GET.get('format')
+        if export_format in ['csv', 'excel', 'pdf']:
             # Apply selective export filters
             export_queryset, filename, has_selective_filters = apply_selective_export_filters(request)
 
             # If no selective filters are applied, use the current filtered queryset
             if not has_selective_filters:
                 export_queryset = queryset
-                filename = f"alumni_management_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                filename = f"alumni_management_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
-            response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            # Define field configuration for exports
+            field_names = ['id', 'full_name', 'college_display', 'graduation_year', 'course', 
+                          'job_title', 'current_company', 'employment_address']
+            field_labels = ['ID', 'Full Name', 'College', 'Year', 'Course', 
+                           'Present Occupation', 'Name of Company', 'Employment Address']
 
-            writer = csv.writer(response)
-            writer.writerow(['ID', 'Full Name', 'College', 'Year', 'Course', 'Present Occupation', 'Name of Company', 'Employment Address'])
+            if export_format == 'csv':
+                response = HttpResponse(content_type='text/csv')
+                response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
 
-            for alumni in export_queryset:
-                # Get current experience for occupation and company
-                current_exp = None
-                if hasattr(alumni.user, 'profile'):
-                    current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                writer = csv.writer(response)
+                writer.writerow(field_labels)
 
-                writer.writerow([
-                    alumni.id,
-                    alumni.full_name,
-                    alumni.college_display if alumni.college else 'Not specified',
-                    alumni.graduation_year,
-                    alumni.course,
-                    current_exp.position if current_exp else alumni.job_title,
-                    current_exp.company if current_exp else alumni.current_company,
-                    current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
-                ])
+                for alumni in export_queryset:
+                    # Get current experience for occupation and company
+                    current_exp = None
+                    if hasattr(alumni.user, 'profile'):
+                        current_exp = alumni.user.profile.experience.filter(is_current=True).first()
 
-            return response
+                    writer.writerow([
+                        alumni.id,
+                        alumni.full_name,
+                        alumni.college_display if alumni.college else 'Not specified',
+                        alumni.graduation_year,
+                        alumni.course,
+                        current_exp.position if current_exp else alumni.job_title,
+                        current_exp.company if current_exp else alumni.current_company,
+                        current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
+                    ])
+
+                return response
+            
+            elif export_format == 'excel':
+                from core.export_utils import ExportMixin, LogoHeaderService
+                from openpyxl import Workbook
+                from openpyxl.styles import Font, PatternFill, Alignment
+                from openpyxl.cell.cell import MergedCell
+                
+                wb = Workbook()
+                ws = wb.active
+                ws.title = "Alumni Data"
+                
+                # Get logo path and add header
+                logo_path = LogoHeaderService.get_logo_path()
+                header_start_row = LogoHeaderService.add_excel_header(ws, logo_path, title="NORSU Alumni System")
+                
+                # Style for header row
+                header_font = Font(bold=True, color="FFFFFF")
+                header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+                header_alignment = Alignment(horizontal="center", vertical="center")
+                
+                # Write header row
+                for col, label in enumerate(field_labels, 1):
+                    cell = ws.cell(row=header_start_row, column=col, value=label)
+                    cell.font = header_font
+                    cell.fill = header_fill
+                    cell.alignment = header_alignment
+                
+                # Write data rows
+                data_start_row = header_start_row + 1
+                for row_idx, alumni in enumerate(export_queryset, data_start_row):
+                    # Get current experience for occupation and company
+                    current_exp = None
+                    if hasattr(alumni.user, 'profile'):
+                        current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                    
+                    row_data = [
+                        alumni.id,
+                        alumni.full_name,
+                        alumni.college_display if alumni.college else 'Not specified',
+                        alumni.graduation_year,
+                        alumni.course,
+                        current_exp.position if current_exp else alumni.job_title,
+                        current_exp.company if current_exp else alumni.current_company,
+                        current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
+                    ]
+                    
+                    for col, value in enumerate(row_data, 1):
+                        ws.cell(row=row_idx, column=col, value=str(value) if value else '')
+                
+                # Auto-adjust column widths
+                for column in ws.columns:
+                    max_length = 0
+                    column_letter = None
+                    for cell in column:
+                        if not isinstance(cell, MergedCell):
+                            column_letter = cell.column_letter
+                            break
+                    
+                    if column_letter is None:
+                        continue
+                    
+                    for cell in column:
+                        try:
+                            if not isinstance(cell, MergedCell) and len(str(cell.value)) > max_length:
+                                max_length = len(str(cell.value))
+                        except:
+                            pass
+                    adjusted_width = min(max_length + 2, 50)
+                    ws.column_dimensions[column_letter].width = adjusted_width
+                
+                # Save to response
+                response = HttpResponse(
+                    content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                )
+                response['Content-Disposition'] = f'attachment; filename="{filename}.xlsx"'
+                
+                output = io.BytesIO()
+                wb.save(output)
+                output.seek(0)
+                response.write(output.getvalue())
+                
+                return response
+            
+            elif export_format == 'pdf':
+                from core.export_utils import LogoHeaderService
+                from reportlab.lib import colors
+                from reportlab.lib.pagesizes import A4, landscape
+                from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+                from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+                from reportlab.lib.enums import TA_CENTER, TA_LEFT
+                from reportlab.pdfgen import canvas as pdf_canvas
+                from django.utils import timezone
+                
+                response = HttpResponse(content_type='application/pdf')
+                response['Content-Disposition'] = f'attachment; filename="{filename}.pdf"'
+                
+                # Get logo path
+                logo_path = LogoHeaderService.get_logo_path()
+                
+                # Determine page orientation (landscape for wide tables)
+                use_landscape = len(field_labels) > 6
+                pagesize = landscape(A4) if use_landscape else A4
+                
+                # Prepare export info for footer
+                export_info = f"Exported on: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')} | Total Records: {export_queryset.count()}"
+                
+                # Custom canvas class to add header and footer
+                class HeaderFooterCanvas(pdf_canvas.Canvas):
+                    def __init__(self, *args, **kwargs):
+                        pdf_canvas.Canvas.__init__(self, *args, **kwargs)
+                        self.pages = []
+                        
+                    def showPage(self):
+                        self.pages.append(dict(self.__dict__))
+                        self._startPage()
+                        
+                    def save(self):
+                        page_count = len(self.pages)
+                        for page_num, page in enumerate(self.pages, 1):
+                            self.__dict__.update(page)
+                            LogoHeaderService.add_pdf_header(self, doc, logo_path, title="NORSU Alumni System")
+                            self.draw_footer(page_num, page_count, export_info, pagesize)
+                            pdf_canvas.Canvas.showPage(self)
+                        pdf_canvas.Canvas.save(self)
+                        
+                    def draw_footer(self, page_num, page_count, info_text, page_size):
+                        self.saveState()
+                        self.setFont('Helvetica', 7)
+                        self.setFillColor(colors.black)
+                        text_width = self.stringWidth(info_text, 'Helvetica', 7)
+                        x_position = page_size[0] - text_width - 15
+                        y_position = 15
+                        self.drawString(x_position, y_position, info_text)
+                        self.restoreState()
+                
+                doc = SimpleDocTemplate(
+                    response, 
+                    pagesize=pagesize, 
+                    rightMargin=15, 
+                    leftMargin=15, 
+                    topMargin=80,
+                    bottomMargin=25
+                )
+                elements = []
+                
+                # Get styles
+                styles = getSampleStyleSheet()
+                title_style = ParagraphStyle(
+                    'CustomTitle',
+                    parent=styles['Heading1'],
+                    fontSize=14,
+                    spaceAfter=12,
+                    alignment=TA_CENTER,
+                    textColor=colors.black
+                )
+                
+                # Add title
+                elements.append(Paragraph("Alumni Management Report", title_style))
+                elements.append(Spacer(1, 18))
+                
+                # Prepare table data
+                table_data = []
+                
+                # Header row
+                header_row = []
+                cell_style = ParagraphStyle(
+                    'HeaderCell',
+                    parent=styles['Normal'],
+                    fontSize=7 if use_landscape else 8,
+                    textColor=colors.white,
+                    alignment=TA_CENTER,
+                    fontName='Helvetica-Bold'
+                )
+                for label in field_labels:
+                    header_row.append(Paragraph(str(label), cell_style))
+                table_data.append(header_row)
+                
+                # Data cell style
+                data_cell_style = ParagraphStyle(
+                    'DataCell',
+                    parent=styles['Normal'],
+                    fontSize=6 if use_landscape else 7,
+                    textColor=colors.black,
+                    alignment=TA_LEFT,
+                    fontName='Helvetica',
+                    leading=8 if use_landscape else 9
+                )
+                
+                # Limit to 1000 rows
+                max_rows = 1000
+                export_queryset_limited = export_queryset[:max_rows]
+                
+                for alumni in export_queryset_limited:
+                    # Get current experience
+                    current_exp = None
+                    if hasattr(alumni.user, 'profile'):
+                        current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                    
+                    row_data = [
+                        str(alumni.id),
+                        alumni.full_name,
+                        alumni.college_display if alumni.college else 'Not specified',
+                        str(alumni.graduation_year),
+                        alumni.course or '',
+                        current_exp.position if current_exp else (alumni.job_title or ''),
+                        current_exp.company if current_exp else (alumni.current_company or ''),
+                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "")
+                    ]
+                    
+                    row = [Paragraph(str(val), data_cell_style) for val in row_data]
+                    table_data.append(row)
+                
+                # Calculate column widths
+                available_width = pagesize[0] - 30
+                col_widths = [0.08, 0.15, 0.12, 0.08, 0.15, 0.15, 0.15, 0.12]
+                final_col_widths = [w * available_width for w in col_widths]
+                
+                # Create table
+                table = Table(table_data, colWidths=final_col_widths, repeatRows=1)
+                
+                # Table styling
+                table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+                    ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+                    ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, 0), 7 if use_landscape else 8),
+                    ('BOTTOMPADDING', (0, 0), (-1, 0), 8),
+                    ('TOPPADDING', (0, 0), (-1, 0), 8),
+                    ('BACKGROUND', (0, 1), (-1, -1), colors.white),
+                    ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+                    ('ALIGN', (0, 1), (-1, -1), 'LEFT'),
+                    ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+                    ('FONTSIZE', (0, 1), (-1, -1), 6 if use_landscape else 7),
+                    ('BOTTOMPADDING', (0, 1), (-1, -1), 5),
+                    ('TOPPADDING', (0, 1), (-1, -1), 5),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 4),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+                    ('GRID', (0, 0), (-1, -1), 0.5, colors.black),
+                    ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#E8E8E8')]),
+                    ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                ]))
+                
+                elements.append(table)
+                
+                # Add note if truncated
+                if export_queryset.count() > max_rows:
+                    elements.append(Spacer(1, 10))
+                    note_style = ParagraphStyle('Note', parent=styles['Normal'], fontSize=7, textColor=colors.black, alignment=TA_LEFT)
+                    elements.append(Paragraph(f"Note: Showing first {max_rows} records out of {export_queryset.count()} total records.", note_style))
+                
+                # Build PDF
+                doc.build(elements, canvasmaker=HeaderFooterCanvas)
+                return response
         
         # Pagination
         paginator = Paginator(queryset, 25)  # 25 items per page

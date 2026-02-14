@@ -184,7 +184,6 @@ class EventDetailView(LoginRequiredMixin, DetailView):
         context['rsvp_counts'] = {
             'attending': self.object.rsvps.filter(status='yes').count(),
             'not_attending': self.object.rsvps.filter(status='no').count(),
-            'maybe': self.object.rsvps.filter(status='maybe').count(),
         }
         
         # Log performance metrics
@@ -223,7 +222,6 @@ class EventModalView(LoginRequiredMixin, DetailView):
         context['rsvp_counts'] = {
             'attending': self.object.rsvps.filter(status='yes').count(),
             'not_attending': self.object.rsvps.filter(status='no').count(),
-            'maybe': self.object.rsvps.filter(status='maybe').count(),
         }
         return context
 
@@ -362,8 +360,26 @@ def event_rsvp(request, pk):
                     'notes': form.cleaned_data['notes']
                 }
             )
+            
+            # Check if this is an AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': 'Your RSVP has been recorded successfully!',
+                    'status': rsvp.get_status_display(),
+                    'created': created
+                })
+            
             messages.success(request, 'Your RSVP has been recorded.')
         else:
+            # Check if this is an AJAX request
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': 'There was an error with your RSVP. Please try again.',
+                    'errors': form.errors
+                }, status=400)
+            
             messages.error(request, 'There was an error with your RSVP.')
     return redirect('events:event_detail', pk=pk)
 
@@ -449,7 +465,6 @@ class PublicEventDetailView(DetailView):
         context['rsvp_counts'] = {
             'attending': self.object.rsvps.filter(status='yes').count(),
             'not_attending': self.object.rsvps.filter(status='no').count(),
-            'maybe': self.object.rsvps.filter(status='maybe').count(),
         }
         return context
 

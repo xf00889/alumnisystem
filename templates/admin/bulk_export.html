@@ -664,11 +664,24 @@ document.addEventListener('DOMContentLoaded', function() {
         })
         .then(response => {
             if (!response.ok) {
-                throw new Error('Export failed');
+                // Try to get error message from response
+                return response.text().then(text => {
+                    throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+                });
+            }
+            // Check if response is actually a zip file
+            const contentType = response.headers.get('content-type');
+            if (!contentType || !contentType.includes('application/zip')) {
+                throw new Error('Invalid response format. Expected a ZIP file.');
             }
             return response.blob();
         })
         .then(blob => {
+            // Verify blob has content
+            if (!blob || blob.size === 0) {
+                throw new Error('Export file is empty');
+            }
+            
             // Create download link
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -677,14 +690,18 @@ document.addEventListener('DOMContentLoaded', function() {
             a.download = `bulk_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.zip`;
             document.body.appendChild(a);
             a.click();
-            window.URL.revokeObjectURL(url);
-            document.body.removeChild(a);
+            
+            // Clean up
+            setTimeout(() => {
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            }, 100);
             
             // Show success message
             Swal.fire({
                 icon: 'success',
                 title: 'Export Completed!',
-                text: 'Your files have been downloaded successfully.',
+                text: `Successfully exported ${selectedModels.length} data type(s) in ${selectedFormat.toUpperCase()} format.`,
                 confirmButtonText: 'OK'
             });
         })
@@ -693,8 +710,9 @@ document.addEventListener('DOMContentLoaded', function() {
             Swal.fire({
                 icon: 'error',
                 title: 'Export Failed',
-                text: 'An error occurred during export. Please try again.',
-                confirmButtonText: 'OK'
+                text: error.message || 'An error occurred during export. Please try again.',
+                confirmButtonText: 'OK',
+                footer: 'If the problem persists, please contact the administrator.'
             });
         });
     });

@@ -3,8 +3,18 @@ from django.urls import path, include
 from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponseRedirect, Http404
+from django.contrib.sitemaps.views import sitemap
 from accounts import security_views
+from core.sitemaps import StaticPageSitemap, EventSitemap, JobSitemap
+from core import views
 import os
+
+# Sitemap configuration
+sitemaps = {
+    'static': StaticPageSitemap,
+    'events': EventSitemap,
+    'jobs': JobSitemap,
+}
 
 def profile_search_connected_users(request):
     """Handle old profile API endpoint by calling the accounts API view"""
@@ -17,9 +27,15 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # Setup URLs - must be before other URLs to catch setup redirects
     path('setup/', include('setup.urls')),
+    # Sitemap
+    path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
+    # Robots.txt
+    path('robots.txt', views.robots_txt, name='robots_txt'),
     # Handle old profile API endpoint by calling the accounts API view
     path('profile/api/search-connected-users/', profile_search_connected_users, name='profile_search_connected_users'),
-    # Removed redundant signup page - signup is now handled in the tabbed login page
+    # Custom login view with rate limiting (must be before allauth.urls to override)
+    path('accounts/login/', security_views.custom_login_view, name='account_login'),
+    # Allauth URLs (includes Google OAuth)
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
     path('accounts/', include('accounts.urls')),

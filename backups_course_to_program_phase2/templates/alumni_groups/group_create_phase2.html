@@ -1,0 +1,885 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Alumni Group - Phase 2{% endblock %}
+
+
+{% block extra_css %}
+<style>
+    /* CSS Variables */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --text-light: #ffffff;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
+
+    /* Dashboard Header */
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        margin-bottom: 2rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+        width: 100%;
+        box-sizing: border-box;
+        overflow: hidden;
+    }
+
+    .dashboard-header-content {
+        flex: 1;
+        text-align: center;
+        min-width: 0;
+        overflow: hidden;
+    }
+
+    .dashboard-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .dashboard-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        color: var(--text-light);
+    }
+
+    .progressive-container {
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 2rem;
+    }
+    
+    .step-indicator {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 3rem;
+    }
+    
+    .step {
+        display: flex;
+        align-items: center;
+        margin: 0 1rem;
+    }
+    
+    .step-number {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%;
+        background: #e2e8f0;
+        color: #718096;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-right: 0.5rem;
+    }
+    
+    .step.active .step-number {
+        background: #2b3c6b;
+        color: white;
+    }
+    
+    .step.completed .step-number {
+        background: #48bb78;
+        color: white;
+    }
+    
+    .step-title {
+        font-weight: 600;
+        color: #2d3748;
+    }
+    
+    .step.active .step-title {
+        color: #2b3c6b;
+    }
+    
+    .step-connector {
+        width: 60px;
+        height: 2px;
+        background: #e2e8f0;
+        margin: 0 1rem;
+    }
+    
+    .step.completed + .step-connector {
+        background: #48bb78;
+    }
+    
+    .phase-container {
+        background: white;
+        border-radius: 12px;
+        padding: 2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        margin-bottom: 2rem;
+    }
+    
+    .phase-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+    
+    .phase-title {
+        font-size: 1.5rem;
+        font-weight: bold;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .phase-subtitle {
+        color: #718096;
+        font-size: 1rem;
+    }
+    
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+    
+    .form-label {
+        display: block;
+        font-weight: 600;
+        color: #2d3748;
+        margin-bottom: 0.5rem;
+    }
+    
+    .form-control {
+        width: 100%;
+        padding: 0.75rem;
+        border: 2px solid #e2e8f0;
+        border-radius: 8px;
+        font-size: 1rem;
+        transition: border-color 0.2s;
+    }
+    
+    .form-control:focus {
+        outline: none;
+        border-color: #2b3c6b;
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    .form-control[type="file"] {
+        padding: 0.5rem;
+    }
+    
+    .btn-primary {
+        background: #2b3c6b;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+    }
+    
+    .btn-primary:hover {
+        background: #1a2332;
+    }
+    
+    .btn-secondary {
+        background: #718096;
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 8px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background-color 0.2s;
+        margin-right: 1rem;
+    }
+    
+    .btn-secondary:hover {
+        background: #4a5568;
+    }
+    
+    .form-actions {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 2rem;
+    }
+    
+    .success-info {
+        background: #f0fff4;
+        border: 2px solid #48bb78;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 2rem;
+    }
+    
+    .success-info h4 {
+        margin: 0 0 0.5rem 0;
+        color: #2f855a;
+    }
+    
+    .success-info p {
+        margin: 0;
+        color: #2f855a;
+    }
+    
+    .interview-style {
+        background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+        color: white;
+        border-radius: 12px;
+        padding: 2rem;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+    
+    .interview-style h3 {
+        margin: 0 0 1rem 0;
+        font-size: 1.5rem;
+    }
+    
+    .interview-style p {
+        margin: 0;
+        opacity: 0.9;
+    }
+    
+    .checkbox-group {
+        display: flex;
+        align-items: center;
+        margin-bottom: 1rem;
+    }
+    
+    .checkbox-group input[type="checkbox"] {
+        margin-right: 0.5rem;
+        transform: scale(1.2);
+    }
+    
+    .checkbox-group label {
+        margin: 0;
+        font-weight: 500;
+    }
+    
+    .suggested-name {
+        background: #edf2f7;
+        border-radius: 8px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        border-left: 4px solid #2b3c6b;
+    }
+    
+    .suggested-name h5 {
+        margin: 0 0 0.5rem 0;
+        color: #2d3748;
+    }
+    
+    .suggested-name p {
+        margin: 0;
+        color: #718096;
+        font-size: 0.9rem;
+    }
+    
+    /* Image Upload Styles */
+    .image-upload-container {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .image-preview-wrapper {
+        position: relative;
+        width: 100%;
+        min-height: 200px;
+        border: 2px dashed #e2e8f0;
+        border-radius: 8px;
+        overflow: hidden;
+        background: #f7fafc;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .image-preview-wrapper.profile-preview {
+        min-height: 250px;
+    }
+
+    .preview-image {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+    }
+
+    .image-placeholder {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 2rem;
+        color: #a0aec0;
+        text-align: center;
+    }
+
+    .image-placeholder i {
+        font-size: 3rem;
+        margin-bottom: 0.5rem;
+        color: #a0aec0;
+    }
+
+    .image-placeholder.profile-placeholder {
+        min-height: 250px;
+    }
+
+    .image-placeholder p {
+        margin: 0;
+        font-size: 0.875rem;
+        color: #718096;
+    }
+
+    .image-overlay {
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.5);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        opacity: 0;
+        transition: opacity 0.25s ease;
+    }
+
+    .image-preview-wrapper:hover .image-overlay {
+        opacity: 1;
+    }
+
+    .btn-remove-image {
+        background: #e53e3e;
+        color: white;
+        border: none;
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 600;
+        transition: background-color 0.25s ease;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-remove-image:hover {
+        background: #c53030;
+        transform: translateY(-2px);
+    }
+
+    .file-input-wrapper {
+        position: relative;
+    }
+
+    .file-input {
+        position: absolute;
+        opacity: 0;
+        width: 0;
+        height: 0;
+    }
+
+    .file-input-label {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1.5rem;
+        background: #2b3c6b;
+        color: white;
+        border-radius: 8px;
+        cursor: pointer;
+        transition: background-color 0.25s ease;
+        font-weight: 600;
+        border: 2px solid #2b3c6b;
+    }
+
+    .file-input-label:hover {
+        background: #1a2332;
+        border-color: #1a2332;
+        transform: translateY(-1px);
+    }
+
+    .file-input-label i {
+        font-size: 1.25rem;
+    }
+
+    .file-input:focus + .file-input-label {
+        outline: 3px solid rgba(43, 60, 107, 0.15);
+        outline-offset: 2px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Dashboard Header -->
+<div class="dashboard-header">
+    <div class="dashboard-header-content">
+        <h1 class="dashboard-title">Create Alumni Group - Phase 2</h1>
+        <p class="dashboard-subtitle">Finalize your group details and settings</p>
+    </div>
+</div>
+
+<div class="progressive-container">
+    <!-- Step Indicator -->
+    <div class="step-indicator">
+        <div class="step completed">
+            <div class="step-number">✓</div>
+            <div class="step-title">Basic Info</div>
+        </div>
+        <div class="step-connector" style="background: #48bb78;"></div>
+        <div class="step active">
+            <div class="step-number">2</div>
+            <div class="step-title">Group Details</div>
+        </div>
+    </div>
+    
+    <!-- Success Info -->
+    <div class="success-info">
+        <h4>✅ Great! No duplicate groups found</h4>
+        <p>Your batch information is unique. Now let's create your group with some additional details.</p>
+    </div>
+    
+    <!-- Interview Style Header -->
+    <div class="interview-style">
+        <h3>🎉 Perfect! Let's Finalize Your Group</h3>
+        <p>Now I'll help you set up the group name, type, and other important settings.</p>
+    </div>
+    
+    <!-- Phase Container -->
+    <div class="phase-container">
+        <div class="phase-header">
+            <h2 class="phase-title">Phase 2: Group Details</h2>
+            <p class="phase-subtitle">Complete your group setup</p>
+        </div>
+        
+        <!-- Ensure previewImage function is available before form loads -->
+        <script>
+        if (typeof window.previewImage === 'undefined') {
+            window.previewImage = function(input, previewId, imgId, placeholderId) {
+                const file = input.files[0];
+                const previewWrapper = document.getElementById(previewId);
+                const placeholder = document.getElementById(placeholderId);
+                
+                if (file) {
+                    if (file.size > 5 * 1024 * 1024) {
+                        alert('File size must be less than 5MB');
+                        input.value = '';
+                        return;
+                    }
+                    
+                    if (!file.type.startsWith('image/')) {
+                        alert('Please select an image file');
+                        input.value = '';
+                        return;
+                    }
+                    
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        if (placeholder) {
+                            placeholder.style.display = 'none';
+                        }
+                        
+                        let img = document.getElementById(imgId);
+                        if (!img) {
+                            img = document.createElement('img');
+                            img.id = imgId;
+                            img.className = 'preview-image';
+                            img.alt = 'Preview';
+                            previewWrapper.appendChild(img);
+                        }
+                        
+                        img.src = e.target.result;
+                        
+                        let overlay = previewWrapper.querySelector('.image-overlay');
+                        if (!overlay) {
+                            overlay = document.createElement('div');
+                            overlay.className = 'image-overlay';
+                            const removeBtn = document.createElement('button');
+                            removeBtn.type = 'button';
+                            removeBtn.className = 'btn-remove-image';
+                            removeBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+                            removeBtn.onclick = function() {
+                                window.clearImage(input.name, previewId);
+                            };
+                            overlay.appendChild(removeBtn);
+                            previewWrapper.appendChild(overlay);
+                        }
+                    };
+                    reader.readAsDataURL(file);
+                }
+            };
+        }
+        
+        if (typeof window.clearImage === 'undefined') {
+            window.clearImage = function(inputName, previewId) {
+                const input = document.getElementById(inputName);
+                const previewWrapper = document.getElementById(previewId);
+                const img = previewWrapper.querySelector('.preview-image');
+                const placeholder = previewWrapper.querySelector('.image-placeholder');
+                const overlay = previewWrapper.querySelector('.image-overlay');
+                
+                if (input) {
+                    input.value = '';
+                }
+                
+                if (img) {
+                    img.remove();
+                }
+                
+                if (overlay) {
+                    overlay.remove();
+                }
+                
+                if (!placeholder) {
+                    const newPlaceholder = document.createElement('div');
+                    newPlaceholder.className = 'image-placeholder';
+                    if (inputName === 'profile_photo') {
+                        newPlaceholder.classList.add('profile-placeholder');
+                        newPlaceholder.innerHTML = '<i class="fas fa-user-circle"></i><p>No profile photo</p>';
+                    } else {
+                        newPlaceholder.innerHTML = '<i class="fas fa-image"></i><p>No cover image</p>';
+                    }
+                    previewWrapper.appendChild(newPlaceholder);
+                } else {
+                    placeholder.style.display = 'flex';
+                }
+            };
+        }
+        </script>
+        
+        <form method="post" action="{% url 'alumni_groups:group_create_phase2' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Suggested Group Name -->
+            <div class="suggested-name">
+                <h5>💡 Suggested Group Name</h5>
+                <p>Based on your information: <strong>{{ phase1_data.course }} {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}</strong></p>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="group_name">🏷️ What should we call your group?</label>
+                <input type="text" id="group_name" name="group_name" class="form-control" 
+                       required placeholder="e.g., BSCS Batch 2020-2024" 
+                       value="{{ phase1_data.course }} {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}">
+                <small style="color: #718096; font-size: 0.875rem;">Choose a name that represents your batch and course</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="group_type">🔧 What type of group is this?</label>
+                <select id="group_type" name="group_type" class="form-control" required>
+                    <option value="">Select group type</option>
+                    <option value="AUTO">Automatic - Anyone with matching criteria can join</option>
+                    <option value="MANUAL">Manual - Admin approval required for all members</option>
+                    <option value="HYBRID">Hybrid - Some members auto-approved, others need approval</option>
+                </select>
+                <small style="color: #718096; font-size: 0.875rem;">This determines how new members can join your group</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="description">📝 Tell us about your group</label>
+                <textarea id="description" name="description" class="form-control" rows="4" 
+                          required placeholder="Describe your batch, shared experiences, goals, etc."></textarea>
+                <small style="color: #718096; font-size: 0.875rem;">Help others understand what your group is about</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="visibility">👁️ Who can see this group?</label>
+                <select id="visibility" name="visibility" class="form-control" required>
+                    <option value="">Select visibility</option>
+                    <option value="PUBLIC">Public - Everyone can see and find this group</option>
+                    <option value="PRIVATE">Private - Only members can see this group</option>
+                    <option value="RESTRICTED">Restricted - Visible but requires approval to join</option>
+                </select>
+                <small style="color: #718096; font-size: 0.875rem;">Control who can discover and access your group</small>
+            </div>
+            
+            <!-- Cover Image Upload -->
+            <div class="form-group">
+                <label class="form-label">🖼️ Group Cover Image (Optional)</label>
+                <div class="image-upload-container">
+                    <div class="image-preview-wrapper" id="coverImagePreview">
+                        <div class="image-placeholder" id="coverImagePlaceholder">
+                            <i class="fas fa-image"></i>
+                            <p>No cover image</p>
+                        </div>
+                    </div>
+                    <div class="file-input-wrapper">
+                        <input type="file" 
+                               id="cover_image" 
+                               name="cover_image" 
+                               accept="image/*" 
+                               class="file-input"
+                               onchange="previewImage(this, 'coverImagePreview', 'coverImagePreviewImg', 'coverImagePlaceholder')">
+                        <label for="cover_image" class="file-input-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Choose Cover Image</span>
+                        </label>
+                    </div>
+                    <small style="color: #718096; font-size: 0.875rem;">Upload a cover image to make your group more attractive (Recommended: 1200x400px)</small>
+                </div>
+            </div>
+            
+            <!-- Profile Photo Upload -->
+            <div class="form-group">
+                <label class="form-label">👤 Group Profile Photo (Optional)</label>
+                <div class="image-upload-container">
+                    <div class="image-preview-wrapper profile-preview" id="profilePhotoPreview">
+                        <div class="image-placeholder profile-placeholder" id="profilePhotoPlaceholder">
+                            <i class="fas fa-user-circle"></i>
+                            <p>No profile photo</p>
+                        </div>
+                    </div>
+                    <div class="file-input-wrapper">
+                        <input type="file" 
+                               id="profile_photo" 
+                               name="profile_photo" 
+                               accept="image/*" 
+                               class="file-input"
+                               onchange="previewImage(this, 'profilePhotoPreview', 'profilePhotoPreviewImg', 'profilePhotoPlaceholder')">
+                        <label for="profile_photo" class="file-input-label">
+                            <i class="fas fa-cloud-upload-alt"></i>
+                            <span>Choose Profile Photo</span>
+                        </label>
+                    </div>
+                    <small style="color: #718096; font-size: 0.875rem;">Upload a profile photo that represents your group (Recommended: 400x400px, square)</small>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="tags">🏷️ Tags (Optional)</label>
+                <input type="text" id="tags" name="tags" class="form-control" 
+                       placeholder="e.g., alumni, computer science, batch 2020, friends">
+                <small style="color: #718096; font-size: 0.875rem;">Add tags to help people find your group (separate with commas)</small>
+            </div>
+            
+            <div class="form-group">
+                <label class="form-label" for="max_members">👥 Maximum Members (Optional)</label>
+                <input type="number" id="max_members" name="max_members" class="form-control" 
+                       min="1" placeholder="e.g., 100">
+                <small style="color: #718096; font-size: 0.875rem;">Leave empty for unlimited members</small>
+            </div>
+            
+            <!-- Additional Settings -->
+            <div class="form-group">
+                <h4 style="color: #2d3748; margin-bottom: 1rem;">⚙️ Additional Settings</h4>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="requires_approval" name="requires_approval">
+                    <label for="requires_approval">Require admin approval for new members</label>
+                </div>
+                
+                <div class="checkbox-group">
+                    <input type="checkbox" id="has_security_questions" name="has_security_questions">
+                    <label for="has_security_questions">Use security questions for member verification</label>
+                </div>
+            </div>
+            
+            <div class="form-actions">
+                <a href="{% url 'alumni_groups:group_create_phase1' %}" class="btn-secondary">← Back to Phase 1</a>
+                <button type="submit" class="btn-primary">Create Group 🎉</button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{% static 'js/utils/sweet-alerts.js' %}"></script>
+<script>
+// Image preview functionality - explicitly attached to window object
+window.previewImage = function(input, previewId, imgId, placeholderId) {
+    const file = input.files[0];
+    const previewWrapper = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
+    
+    if (file) {
+        // Check file size (max 5MB)
+        if (file.size > 5 * 1024 * 1024) {
+            alert('File size must be less than 5MB');
+            input.value = '';
+            return;
+        }
+        
+        // Check if it's an image
+        if (!file.type.startsWith('image/')) {
+            alert('Please select an image file');
+            input.value = '';
+            return;
+        }
+        
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            // Hide placeholder if exists
+            if (placeholder) {
+                placeholder.style.display = 'none';
+            }
+            
+            // Create or update preview image
+            let img = document.getElementById(imgId);
+            if (!img) {
+                img = document.createElement('img');
+                img.id = imgId;
+                img.className = 'preview-image';
+                img.alt = 'Preview';
+                previewWrapper.appendChild(img);
+            }
+            
+            img.src = e.target.result;
+            
+            // Create overlay if it doesn't exist
+            let overlay = previewWrapper.querySelector('.image-overlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.className = 'image-overlay';
+                const removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn-remove-image';
+                removeBtn.innerHTML = '<i class="fas fa-trash"></i> Remove';
+                removeBtn.onclick = function() {
+                    clearImage(input.name, previewId);
+                };
+                overlay.appendChild(removeBtn);
+                previewWrapper.appendChild(overlay);
+            }
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+window.clearImage = function(inputName, previewId) {
+    const input = document.getElementById(inputName);
+    const previewWrapper = document.getElementById(previewId);
+    const img = previewWrapper.querySelector('.preview-image');
+    const placeholder = previewWrapper.querySelector('.image-placeholder');
+    const overlay = previewWrapper.querySelector('.image-overlay');
+    
+    // Clear file input
+    if (input) {
+        input.value = '';
+    }
+    
+    // Remove preview image
+    if (img) {
+        img.remove();
+    }
+    
+    // Remove overlay
+    if (overlay) {
+        overlay.remove();
+    }
+    
+    // Show placeholder
+    if (!placeholder) {
+        const newPlaceholder = document.createElement('div');
+        newPlaceholder.className = 'image-placeholder';
+        if (inputName === 'profile_photo') {
+            newPlaceholder.classList.add('profile-placeholder');
+            newPlaceholder.innerHTML = '<i class="fas fa-user-circle"></i><p>No profile photo</p>';
+        } else {
+            newPlaceholder.innerHTML = '<i class="fas fa-image"></i><p>No cover image</p>';
+        }
+        previewWrapper.appendChild(newPlaceholder);
+    } else {
+        placeholder.style.display = 'flex';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Process any Django messages as SweetAlert notifications
+    if (typeof SweetAlertUtils !== 'undefined') {
+        SweetAlertUtils.processDjangoMessages();
+    }
+    
+    // Auto-fill description based on group type
+    const groupTypeSelect = document.getElementById('group_type');
+    const descriptionTextarea = document.getElementById('description');
+    
+    if (groupTypeSelect && descriptionTextarea) {
+    groupTypeSelect.addEventListener('change', function() {
+        const selectedType = this.value;
+        let description = '';
+        
+        switch(selectedType) {
+            case 'AUTO':
+                description = 'This is an automatic group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Anyone with matching criteria can join automatically.';
+                break;
+            case 'MANUAL':
+                description = 'This is a manual group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. All new members require admin approval.';
+                break;
+            case 'HYBRID':
+                description = 'This is a hybrid group for {{ phase1_data.course }} batch {{ phase1_data.batch_start_year }}-{{ phase1_data.batch_end_year }}. Some members are auto-approved while others need approval.';
+                break;
+        }
+        
+        if (description && !descriptionTextarea.value) {
+            descriptionTextarea.value = description;
+        }
+    });
+    }
+    
+    // Form submission confirmation
+    const form = document.querySelector('form');
+    let formSubmitted = false;
+    
+    form.addEventListener('submit', function(e) {
+        if (!formSubmitted) {
+        e.preventDefault();
+            
+            // Verify files are still attached
+            const coverImageInput = document.getElementById('cover_image');
+            const profilePhotoInput = document.getElementById('profile_photo');
+        
+        Swal.fire({
+            title: 'Create Group?',
+            text: 'Are you ready to create your alumni group?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#2b3c6b',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, create it!',
+            cancelButtonText: 'Cancel'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Show loading state
+                Swal.fire({
+                    title: 'Creating Group...',
+                    text: 'Please wait while we create your group.',
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    showConfirmButton: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+                
+                    // Mark as submitted and submit the form properly
+                    formSubmitted = true;
+                    
+                    // Create a new form submission event
+                    const submitEvent = new Event('submit', {
+                        bubbles: true,
+                        cancelable: true
+                    });
+                    
+                    // Remove the event listener to prevent infinite loop
+                    form.removeEventListener('submit', arguments.callee);
+                    
+                    // Submit the form naturally (this will include all files)
+                form.submit();
+            }
+        });
+        }
+    });
+});
+</script>
+{% endblock %}

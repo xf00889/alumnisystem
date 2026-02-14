@@ -75,10 +75,16 @@ def home(request):
             logger.error(f"Error fetching events for authenticated user: {e}")
             upcoming_events = []
 
+        # Add breadcrumbs for SEO (just home page for authenticated users)
+        breadcrumbs = [
+            {'name': 'Home', 'url': '/'}
+        ]
+
         context = {
             'announcements': announcements,
             'upcoming_events': upcoming_events,
             'user': request.user,
+            'breadcrumbs': breadcrumbs,
         }
 
         return render(request, 'authenticated_home.html', context)
@@ -216,6 +222,11 @@ def home(request):
     group_count_display = f"{group_count:,}" if group_count else "25+"
     job_count_display = f"{job_count:,}" if job_count else "100+"
 
+    # Add breadcrumbs for SEO (just home page)
+    breadcrumbs = [
+        {'name': 'Home', 'url': '/'}
+    ]
+
     context = {
         'announcements': announcements,
         'upcoming_events': upcoming_events,
@@ -239,6 +250,7 @@ def home(request):
         'staff_members': staff_members,
         'alumni_statistics': alumni_statistics,
         'cms_contact_info': cms_contact_info,
+        'breadcrumbs': breadcrumbs,
     }
 
     response = render(request, 'home.html', context)
@@ -395,7 +407,6 @@ def calculate_event_metrics(days=30):
         event__in=events
     ).aggregate(
         attending=Count(Case(When(status='yes', then=1))),
-        maybe=Count(Case(When(status='maybe', then=1))),
         declined=Count(Case(When(status='no', then=1)))
     )
     
@@ -830,12 +841,19 @@ def landing_events(request):
             logger.error(f"Error initializing feedback form: {e}")
             feedback_form = None
 
+    # Add breadcrumbs for SEO
+    breadcrumbs = [
+        {'name': 'Home', 'url': '/'},
+        {'name': 'Events', 'url': '/landing/events/'}
+    ]
+
     context = {
         'items': items,
-        'events': items,  # Keep for backward compatibility
+        'events': events_list,  # Pass events queryset for structured data
         'page_title': 'Events & Campaigns',
         'page_subtitle': 'Discover exciting events and fundraising campaigns in the NORSU alumni community',
-        'feedback_form': feedback_form
+        'feedback_form': feedback_form,
+        'breadcrumbs': breadcrumbs,
     }
 
     return render(request, 'landing/events.html', context)
@@ -946,6 +964,23 @@ def about_us(request):
         about_config = None
         timeline_items = []
 
+    # Get OrganizationSchema for structured data
+    organization_schema = None
+    try:
+        from core.models.seo import OrganizationSchema
+        org = OrganizationSchema.objects.filter(is_active=True).first()
+        if org:
+            import json
+            organization_schema = json.dumps(org.to_json_ld())
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching OrganizationSchema: {e}")
+
+    # Add breadcrumbs for SEO
+    breadcrumbs = [
+        {'name': 'Home', 'url': '/'},
+        {'name': 'About Us', 'url': '/about-us/'}
+    ]
+
     context = {
         'page_title': about_config.about_page_title if about_config else 'About NORSU Alumni Network',
         'page_subtitle': about_config.about_page_subtitle if about_config else 'Learn more about our university, mission, and the people behind our alumni community',
@@ -955,6 +990,8 @@ def about_us(request):
         'event_count': event_count,
         'job_count': job_count,
         'timeline_items': timeline_items,
+        'organization_schema': organization_schema,
+        'breadcrumbs': breadcrumbs,
     }
 
     return render(request, 'landing/about_us.html', context)
@@ -990,6 +1027,41 @@ def contact_us(request):
         faqs = []
         social_media_links = []
     
+    # Get OrganizationSchema for LocalBusiness structured data
+    local_business_schema = None
+    try:
+        from core.models.seo import OrganizationSchema
+        org = OrganizationSchema.objects.filter(is_active=True).first()
+        if org:
+            import json
+            # Generate LocalBusiness JSON-LD (similar to Organization schema)
+            local_business_data = {
+                "@context": "https://schema.org",
+                "@type": "LocalBusiness",
+                "name": org.name,
+                "image": org.logo,
+                "url": org.url,
+                "telephone": org.telephone,
+                "email": org.email,
+                "address": {
+                    "@type": "PostalAddress",
+                    "streetAddress": org.street_address,
+                    "addressLocality": org.address_locality,
+                    "addressRegion": org.address_region,
+                    "postalCode": org.postal_code,
+                    "addressCountry": org.address_country
+                }
+            }
+            local_business_schema = json.dumps(local_business_data)
+    except (ImportError, Exception) as e:
+        logger.error(f"Error fetching OrganizationSchema for LocalBusiness: {e}")
+
+    # Add breadcrumbs for SEO
+    breadcrumbs = [
+        {'name': 'Home', 'url': '/'},
+        {'name': 'Contact Us', 'url': '/contact-us/'}
+    ]
+    
     context = {
         'page_title': 'Contact Us',
         'page_subtitle': 'Get in touch with the NORSU Alumni Network team',
@@ -998,6 +1070,8 @@ def contact_us(request):
         'contact_info': contact_info,
         'faqs': faqs,
         'social_media_links': social_media_links,
+        'local_business_schema': local_business_schema,
+        'breadcrumbs': breadcrumbs,
     }
 
     return render(request, 'landing/contact_us.html', context)
@@ -1206,3 +1280,22 @@ class SuperuserCreationView(View):
             logger.error(f"Error sending contact form email: {str(e)}")
             messages.error(request, 'There was an error sending your message. Please try again later.')
             return redirect('core:contact_us')
+
+
+def robots_txt(request):
+    """
+    Serves robots.txt file with sitemap reference.
+    """
+    from django.http import HttpResponse
+    
+    lines = [
+        "User-agent: *",
+        "Allow: /",
+        "Disallow: /admin/",
+        "Disallow: /accounts/profile/",
+        "Disallow: /accounts/settings/",
+        "Disallow: /connections/messages/",
+        "",
+        f"Sitemap: {request.scheme}://{request.get_host()}/sitemap.xml",
+    ]
+    return HttpResponse("\n".join(lines), content_type="text/plain")

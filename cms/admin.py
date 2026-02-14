@@ -5,7 +5,7 @@ from django.utils.safestring import mark_safe
 from .models import (
     SiteConfig, PageSection, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic
+    AboutPageConfig, AlumniStatistic, FooterLink
 )
 
 
@@ -310,6 +310,40 @@ class AlumniStatisticAdmin(admin.ModelAdmin):
             'fields': ('icon', 'icon_color', 'order', 'is_active')
         }),
     )
+
+
+@admin.register(FooterLink)
+class FooterLinkAdmin(admin.ModelAdmin):
+    """
+    Admin interface for Footer Links
+    """
+    list_display = ['title', 'section', 'url_preview', 'icon', 'open_in_new_tab', 'order', 'is_active']
+    list_filter = ['section', 'open_in_new_tab', 'is_active', 'created']
+    search_fields = ['title', 'url']
+    list_editable = ['order', 'is_active']
+    ordering = ['section', 'order', 'title']
+    
+    fieldsets = (
+        ('Link Information', {
+            'fields': ('title', 'url', 'section'),
+            'description': 'Enter the link title and URL. For internal links, use Django URL names (e.g., "core:home") or paths (e.g., "/about/"). For external links, use full URLs (e.g., "https://example.com").'
+        }),
+        ('Display Settings', {
+            'fields': ('icon', 'open_in_new_tab', 'order', 'is_active')
+        }),
+    )
+    
+    def url_preview(self, obj):
+        """Display URL preview in list view"""
+        try:
+            url = obj.get_url()
+            return format_html('<a href="{}" target="_blank">{}</a>', url, url[:50] + '...' if len(url) > 50 else url)
+        except Exception as e:
+            return format_html('<span style="color: red;">Error: {}</span>', str(e))
+    url_preview.short_description = "URL"
+    
+    def get_queryset(self, request):
+        return super().get_queryset(request).order_by('section', 'order')
 
 
 

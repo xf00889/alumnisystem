@@ -3,6 +3,31 @@
 
 {% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
 
+{% block extra_head %}
+<!-- LocalBusiness Structured Data -->
+{% if organization_schema %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LocalBusiness",
+  "name": "{{ organization_schema.name }}",
+  "image": "{{ organization_schema.logo }}",
+  "url": "{{ organization_schema.url }}",
+  "telephone": "{{ organization_schema.telephone }}",
+  "email": "{{ organization_schema.email }}",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "{{ organization_schema.street_address }}",
+    "addressLocality": "{{ organization_schema.address_locality }}",
+    "addressRegion": "{{ organization_schema.address_region }}",
+    "postalCode": "{{ organization_schema.postal_code }}",
+    "addressCountry": "{{ organization_schema.address_country }}"
+  }
+}
+</script>
+{% endif %}
+{% endblock %}
+
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -709,7 +734,7 @@
                                 {% endif %}
                             </div>
                             <div class="contact-details">
-                                <h6>{{ info.get_contact_type_display }}</h6>
+                                <h4>{{ info.get_contact_type_display }}</h4>
                                 <p>{{ info.value|linebreaksbr }}</p>
                             </div>
                         </div>
@@ -721,7 +746,7 @@
                                 <i class="fas fa-map-marker-alt"></i>
                             </div>
                             <div class="contact-details">
-                                <h6>Office Address</h6>
+                                <h4>Office Address</h4>
                                 <p>{% if site_config.contact_address %}
                                     {{ site_config.contact_address|linebreaksbr }}
                                    {% else %}
@@ -738,7 +763,7 @@
                                 <i class="fas fa-phone"></i>
                             </div>
                             <div class="contact-details">
-                                <h6>Phone Number</h6>
+                                <h4>Phone Number</h4>
                                 <p>{% if site_config.contact_phone %}
                                     {{ site_config.contact_phone }}
                                    {% else %}
@@ -753,7 +778,7 @@
                                 <i class="fas fa-envelope"></i>
                             </div>
                             <div class="contact-details">
-                                <h6>Email Address</h6>
+                                <h4>Email Address</h4>
                                 <p>{% if site_config.contact_email %}
                                     {{ site_config.contact_email }}
                                    {% else %}
@@ -768,7 +793,7 @@
                                 <i class="fas fa-clock"></i>
                             </div>
                             <div class="contact-details">
-                                <h6>Office Hours</h6>
+                                <h4>Office Hours</h4>
                                 <p>Monday - Friday: 8:00 AM - 5:00 PM<br>
                                    Saturday: 8:00 AM - 12:00 PM<br>
                                    Sunday: Closed</p>
@@ -927,7 +952,7 @@
                                 <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
                                     <div class="accordion-body">
                                         Click on the "Sign Up" button in the navigation menu and fill out the registration form with your details. 
-                                        You'll need to provide your graduation year, course, and other relevant information for verification.
+                                        You'll need to provide your graduation year, program, and other relevant information for verification.
                                     </div>
                                 </div>
                             </div>
@@ -955,7 +980,7 @@
                                 <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
                                     <div class="accordion-body">
                                         Use the Alumni Directory to search for classmates and colleagues. You can filter by graduation year, 
-                                        course, location, or industry. Send connection requests to build your professional network.
+                                        program, location, or industry. Send connection requests to build your professional network.
                                     </div>
                                 </div>
                             </div>

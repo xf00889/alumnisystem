@@ -84,9 +84,16 @@ def careers(request):
         'locations': JobPosting.objects.filter(is_active=True).values_list('location', flat=True).distinct().order_by('location'),
     }
     
+    # Add breadcrumbs for SEO
+    breadcrumbs = [
+        {'name': 'Home', 'url': '/'},
+        {'name': 'Careers', 'url': '/jobs/careers/'}
+    ]
+    
     context = {
         'featured_jobs': featured_jobs,
         'recent_jobs': recent_jobs,
+        'jobs': jobs,  # Pass jobs queryset for structured data
         'stats': stats,
         'filter_options': filter_options,
         'current_filters': {
@@ -97,6 +104,7 @@ def careers(request):
         },
         'page_title': 'Career Opportunities - NORSU Alumni',
         'page_description': 'Discover exciting career opportunities and job postings from NORSU alumni network. Find your next career move with our exclusive job board.',
+        'breadcrumbs': breadcrumbs,
     }
     return render(request, 'jobs/careers.html', context)
 
@@ -686,6 +694,8 @@ def send_application_email(request, application_id):
 @user_passes_test(is_hr_or_admin)
 def export_applicants(request, job_id):
     """Export job applicants to Excel file"""
+    from core.export_utils import LogoHeaderService
+    
     job = get_object_or_404(JobPosting, id=job_id)
     applicants = job.applications.all().select_related('applicant')
     
@@ -699,15 +709,23 @@ def export_applicants(request, job_id):
     worksheet = workbook.active
     worksheet.title = 'Applicants'
     
+    # Add logo header and get starting row
+    logo_path = LogoHeaderService.get_logo_path()
+    start_row = LogoHeaderService.add_excel_header(
+        worksheet, 
+        logo_path,
+        title=f"Job Applicants - {job.job_title}"
+    )
+    
     # Define the column headers
     columns = [
         'ID', 'Name', 'Email', 'Application Date', 'Status', 
         'Phone', 'Location', 'Skills', 'Experience', 'Notes'
     ]
     
-    # Write the headers to the worksheet
+    # Write the headers to the worksheet (at start_row instead of row 1)
     for col_num, column_title in enumerate(columns, 1):
-        cell = worksheet.cell(row=1, column=col_num)
+        cell = worksheet.cell(row=start_row, column=col_num)
         cell.value = column_title
         cell.font = Font(bold=True)
         cell.fill = PatternFill(start_color='FFCCCCCC', end_color='FFCCCCCC', fill_type='solid')
@@ -718,8 +736,8 @@ def export_applicants(request, job_id):
             bottom=Side(border_style='thin', color='FF000000')
         )
     
-    # Write the data to the worksheet
-    row_num = 2
+    # Write the data to the worksheet (starting at start_row + 1 instead of row 2)
+    row_num = start_row + 1
     for application in applicants:
         user = application.applicant
         

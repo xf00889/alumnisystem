@@ -1,0 +1,525 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}SEO Management - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* NORSU Alumni System - Consistent Design */
+    :root {
+        /* NORSU Brand Colors */
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        
+        /* UI Colors */
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        
+        /* Spacing */
+        --space-4: 1rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .container-fluid {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Stats Section */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .stat-card {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.25rem;
+        text-align: center;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: var(--primary-color);
+        margin-bottom: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .stat-label {
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Search Section */
+    .search-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .search-section-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .search-section-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .search-form {
+        display: grid;
+        grid-template-columns: 2fr 1fr auto;
+        gap: 1rem;
+        align-items: end;
+    }
+    
+    .search-actions {
+        display: flex;
+        gap: 0.5rem;
+        align-items: end;
+    }
+
+    .search-group {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .search-input,
+    .search-select {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+    }
+
+    .search-input:focus,
+    .search-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+        outline: none;
+    }
+
+    .btn-search,
+    .btn-clear {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .btn-search {
+        background: var(--primary-color);
+        color: white;
+        border: none;
+    }
+
+    .btn-search:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-clear {
+        background: var(--ui-hover);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+    }
+
+    .btn-clear:hover {
+        background: var(--ui-border);
+    }
+
+    /* Table Section */
+    .table-section {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        overflow: hidden;
+    }
+
+    .table-responsive {
+        border-radius: var(--radius-md);
+        overflow-x: auto;
+    }
+
+    .table {
+        margin-bottom: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .table thead th {
+        background: var(--ui-hover);
+        color: var(--text-primary);
+        font-weight: 600;
+        border-bottom: 2px solid var(--ui-border);
+        padding: 1rem;
+        font-size: 0.875rem;
+        white-space: nowrap;
+    }
+
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        font-size: 0.875rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .table tbody tr:last-child td {
+        border-bottom: none;
+    }
+
+    .table tbody tr:hover {
+        background: var(--ui-hover);
+    }
+
+    .badge {
+        padding: 0.375rem 0.75rem;
+        font-weight: 500;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .char-count {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.5rem;
+        border-radius: var(--radius-sm);
+        display: inline-block;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .char-count.valid {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .char-count.invalid {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        margin: 0 2px;
+        border-radius: var(--radius-sm);
+        transition: all 0.3s ease;
+    }
+
+    .btn-action:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    /* Pagination */
+    .pagination {
+        margin-top: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .page-link {
+        color: var(--primary-color);
+        border-color: var(--ui-border);
+        font-size: 0.875rem;
+    }
+
+    .page-link:hover {
+        background: var(--ui-hover);
+        border-color: var(--ui-border);
+    }
+
+    .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    /* Empty State */
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: var(--text-muted);
+    }
+
+    .empty-state i {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+        opacity: 0.5;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="directory-header">
+        <h1 class="directory-title">
+            <i class="fas fa-search-plus"></i> SEO Management
+        </h1>
+        <p class="directory-subtitle">
+            Manage meta tags, Open Graph data, and structured data for all pages
+        </p>
+    </div>
+
+    <!-- Statistics -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ status_counts.total }}</div>
+            <div class="stat-label">Total Pages</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ status_counts.active }}</div>
+            <div class="stat-label">Active</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ status_counts.inactive }}</div>
+            <div class="stat-label">Inactive</div>
+        </div>
+    </div>
+
+    <!-- Search and Actions -->
+    <div class="search-section">
+        <div class="search-section-header">
+            <h2 class="search-section-title">
+                <i class="fas fa-list"></i> Page SEO Configurations
+            </h2>
+            <div>
+                {% if can_create %}
+                <a href="{% url 'core:seo_page_create' %}" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Add New Page
+                </a>
+                {% endif %}
+                <a href="{% url 'core:seo_organization_edit' %}" class="btn btn-secondary btn-sm">
+                    <i class="fas fa-building"></i> Organization Schema
+                </a>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <form method="get" class="search-form">
+            <div class="search-group">
+                <label class="search-label">Search</label>
+                <input type="text" name="search" class="search-input" placeholder="Search by page path or title..." value="{{ current_search }}">
+            </div>
+            <div class="search-group">
+                <label class="search-label">Status</label>
+                <select name="status" class="search-select">
+                    <option value="">All Status</option>
+                    <option value="active" {% if current_status == 'active' %}selected{% endif %}>Active</option>
+                    <option value="inactive" {% if current_status == 'inactive' %}selected{% endif %}>Inactive</option>
+                </select>
+            </div>
+            <div class="search-actions">
+                <button type="submit" class="btn btn-search">
+                    <i class="fas fa-search"></i> Search
+                </button>
+                {% if current_search or current_status %}
+                <a href="{% url 'core:seo_page_list' %}" class="btn btn-clear">
+                    <i class="fas fa-times"></i> Clear
+                </a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+
+    <!-- Table -->
+    <div class="table-section">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>Page Path</th>
+                        <th>Meta Title</th>
+                        <th>Status</th>
+                        <th>Updated</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for page_seo in page_seos %}
+                    <tr>
+                        <td>
+                            <strong>{{ page_seo.page_path }}</strong>
+                        </td>
+                        <td>
+                            {{ page_seo.meta_title|truncatewords:8 }}
+                            <br>
+                            {% with title_len=page_seo.meta_title|length %}
+                            <span class="char-count {% if title_len >= 50 and title_len <= 60 %}valid{% else %}invalid{% endif %}">
+                                {{ title_len }} chars
+                            </span>
+                            {% endwith %}
+                        </td>
+                        <td>
+                            {% if page_seo.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-secondary">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <small class="text-muted">{{ page_seo.updated_at|naturaltime }}</small>
+                        </td>
+                        <td>
+                            {% if can_modify %}
+                            <a href="{% url 'core:seo_page_edit' page_seo.pk %}" class="btn btn-sm btn-primary btn-action" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            {% if is_superuser %}
+                            <a href="{% url 'core:seo_page_delete' page_seo.pk %}" class="btn btn-sm btn-danger btn-action" title="Delete">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                            {% endif %}
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="empty-state">
+                                <i class="fas fa-inbox d-block"></i>
+                                <p class="mb-2">No SEO configurations found.</p>
+                                {% if can_create %}
+                                <a href="{% url 'core:seo_page_create' %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus"></i> Create First Configuration
+                                </a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination -->
+        {% if is_paginated %}
+        <nav aria-label="Page navigation" class="p-3">
+            <ul class="pagination justify-content-center mb-0">
+                {% if page_obj.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if current_search %}&search={{ current_search }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">First</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Previous</a>
+                </li>
+                {% endif %}
+
+                <li class="page-item active">
+                    <span class="page-link">Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+                </li>
+
+                {% if page_obj.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.next_page_number }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Next</a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if current_search %}&search={{ current_search }}{% endif %}{% if current_status %}&status={{ current_status }}{% endif %}">Last</a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

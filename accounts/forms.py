@@ -11,6 +11,7 @@ from django_countries.fields import CountryField
 from django_countries import countries
 from allauth.account.forms import SignupForm, ResetPasswordForm, LoginForm
 from .security import PasswordValidator, RateLimiter, SecurityAuditLogger
+from .validators import UniqueFieldValidator
 from django.utils.crypto import get_random_string
 from django.core.mail import send_mail
 from django.conf import settings
@@ -113,26 +114,64 @@ class CustomSignupForm(SignupForm):
             if RateLimiter.is_rate_limited(email, 'signup_attempt'):
                 raise forms.ValidationError("Too many signup attempts. Please try again later.")
             
-            # Check if email already exists
-            if User.objects.filter(email=email).exists():
+            # Normalize email to lowercase
+            email = UniqueFieldValidator.normalize_email(email)
+            
+            # Check if email already exists (case-insensitive)
+            if UniqueFieldValidator.is_email_taken(email):
                 raise forms.ValidationError("An account with this email already exists.")
         
         return email
+
+    def clean_username(self):
+        """Validate username uniqueness (case-insensitive)."""
+        username = self.cleaned_data.get('username')
+        if username:
+            # Check if username already exists (case-insensitive)
+            if UniqueFieldValidator.is_username_taken(username):
+                raise forms.ValidationError("This username is already taken.")
+        
+        return username
 
     def save(self, request):
         # Create user manually instead of using allauth's save method
         # to avoid allauth's built-in redirect behavior
         from django.contrib.auth import get_user_model
+        from django.db import IntegrityError
+        import logging
+        logger = logging.getLogger(__name__)
+        
         User = get_user_model()
         
-        user = User.objects.create_user(
-            username=self.cleaned_data['email'],  # Use email as username
-            email=self.cleaned_data['email'],
-            password=self.cleaned_data['password1'],
-            first_name=self.cleaned_data['first_name'],
-            last_name=self.cleaned_data['last_name'],
-            is_active=False  # Keep user inactive until email verification
-        )
+        # Normalize email to lowercase before saving
+        normalized_email = UniqueFieldValidator.normalize_email(self.cleaned_data['email'])
+        
+        try:
+            user = User.objects.create_user(
+                username=normalized_email,  # Use normalized email as username
+                email=normalized_email,
+                password=self.cleaned_data['password1'],
+                first_name=self.cleaned_data['first_name'],
+                last_name=self.cleaned_data['last_name'],
+                is_active=False  # Keep user inactive until email verification
+            )
+        except IntegrityError as e:
+            # Log the database constraint violation for monitoring
+            logger.error(
+                f"Database constraint violation during user creation: email={normalized_email}",
+                extra={
+                    'email': normalized_email,
+                    'error_type': 'IntegrityError',
+                    'error_message': str(e),
+                    'ip_address': self.get_client_ip(request),
+                    'action': 'user_creation_failed'
+                },
+                exc_info=True
+            )
+            # Raise a user-friendly validation error
+            raise forms.ValidationError(
+                "Unable to create account. Please try again or use a different email/username."
+            )
         
         # Create profile if it doesn't exist
         Profile.objects.get_or_create(user=user)
@@ -173,8 +212,6 @@ NORSU Alumni System Team
             )
         except Exception as e:
             # Log email sending error but don't fail the signup
-            import logging
-            logger = logging.getLogger(__name__)
             logger.error(f"Failed to send verification email to {user.email}: {str(e)}")
         
         # Log account creation
@@ -460,7 +497,7 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your current job title'
+            'placeholder': 'e.g. Software Engineer, Teacher, Nurse'
         }),
         help_text="Your current job title or position"
     )
@@ -469,9 +506,9 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your current company'
+            'placeholder': 'e.g. Accenture Philippines, DepEd, Provincial Hospital'
         }),
-        help_text="The name of the company you currently work for"
+        help_text="The name of the company or organization you currently work for"
     )
 
     def __init__(self, *args, **kwargs):
@@ -689,11 +726,11 @@ class ProfileUpdateForm(forms.ModelForm):
             'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'bio': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
-            'phone_number': forms.TextInput(attrs={'placeholder': '+1-555-123-4567', 'class': 'form-control'}),
-            'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'Enter your full address', 'class': 'form-control'}),
-            'city': forms.TextInput(attrs={'placeholder': 'e.g. New York', 'class': 'form-control'}),
-            'state': forms.TextInput(attrs={'placeholder': 'e.g. New York', 'class': 'form-control'}),
-            'postal_code': forms.TextInput(attrs={'placeholder': 'e.g. 10001', 'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={'placeholder': '+639519021544', 'class': 'form-control'}),
+            'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g. 123 Rizal Street, Barangay Poblacion', 'class': 'form-control'}),
+            'city': forms.TextInput(attrs={'placeholder': 'e.g. Bayawan City', 'class': 'form-control'}),
+            'state': forms.TextInput(attrs={'placeholder': 'e.g. Negros Oriental', 'class': 'form-control'}),
+            'postal_code': forms.TextInput(attrs={'placeholder': 'e.g. 6221', 'class': 'form-control'}),
             'linkedin_profile': forms.URLInput(attrs={'placeholder': 'https://linkedin.com/in/yourprofile', 'class': 'form-control'}),
             'facebook_profile': forms.URLInput(attrs={'placeholder': 'https://facebook.com/yourprofile', 'class': 'form-control'}),
             'twitter_profile': forms.URLInput(attrs={'placeholder': 'https://twitter.com/yourprofile', 'class': 'form-control'}),
@@ -709,9 +746,9 @@ class ProfileUpdateForm(forms.ModelForm):
             'phone_number': 'Phone Number',
             'address': 'Address',
             'city': 'City',
-            'state': 'State/Province',
+            'state': 'Province',
             'country': 'Country',
-            'postal_code': 'ZIP/Postal Code',
+            'postal_code': 'Postal Code',
             'linkedin_profile': 'LinkedIn Profile',
             'facebook_profile': 'Facebook Profile', 
             'twitter_profile': 'Twitter Profile',
@@ -723,7 +760,7 @@ class ProfileUpdateForm(forms.ModelForm):
         }
         help_texts = {
             'gender': 'Select your gender (optional)',
-            'phone_number': 'Your phone number (optional)',
+            'phone_number': 'Your mobile number (e.g. +639519021544)',
             'address': 'Your full address (optional)',
             'city': 'Your city (optional)',
             'state': 'Your state or province (optional)',
@@ -765,7 +802,8 @@ class EducationForm(forms.ModelForm):
     )
     graduation_year = forms.IntegerField(
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'})
+        widget=forms.NumberInput(attrs={'class': 'form-control'}),
+        label='Year Graduated'
     )
     
     class Meta:
@@ -774,6 +812,9 @@ class EducationForm(forms.ModelForm):
         widgets = {
             'major': forms.TextInput(attrs={'class': 'form-control'}),
             'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+        }
+        labels = {
+            'graduation_year': 'Year Graduated',
         }
         help_texts = {
             'program': 'Your program',
@@ -792,22 +833,23 @@ class ExperienceForm(forms.ModelForm):
             'achievements', 'salary_range', 'skills_gained'
         ]
         widgets = {
-            'company': forms.TextInput(attrs={'class': 'form-control'}),
-            'position': forms.TextInput(attrs={'class': 'form-control'}),
-            'location': forms.TextInput(attrs={'class': 'form-control'}),
+            'company': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Accenture Philippines'}),
+            'position': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Senior Software Developer'}),
+            'location': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'e.g. Dumaguete City, Negros Oriental'}),
             'start_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'end_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'is_current': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
-            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'description': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'Describe your responsibilities and key projects'}),
             'career_significance': forms.Select(attrs={'class': 'form-select'}),
-            'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
+            'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control', 'placeholder': 'e.g. Led a team of 5 developers, Increased system efficiency by 30%'}),
             'salary_range': forms.Select(attrs={'class': 'form-select'}),
-            'skills_gained': forms.Textarea(attrs={'rows': 2, 'class': 'form-control'}),
+            'skills_gained': forms.Textarea(attrs={'rows': 2, 'class': 'form-control', 'placeholder': 'e.g. Python, Django, React, Project Management'}),
         }
         help_texts = {
             'is_current': 'Check this if this is your current job. This will update your profile\'s current position.',
             'skills_gained': 'Enter skills gained in this role, separated by commas.',
             'achievements': 'List your key achievements in this role.',
+            'location': 'City and province where you worked',
         }
 
     def clean(self):

@@ -54,20 +54,22 @@ def notify_groups(event, group_pks=None):
 def create_notification(user, event, group, message):
     """
     Helper function to create a notification for a user.
-    Creates an announcement for the event notification.
+    Creates a private notification for the specific user about the event.
     """
     try:
-        from announcements.models import Announcement
-        Announcement.objects.create(
+        from core.models.notifications import Notification
+        
+        # Create a private notification for the user
+        Notification.create_notification(
+            recipient=user,
+            notification_type='event',
             title=f"New Event: {event.title}",
-            content=message,
-            priority_level='MEDIUM',
-            target_audience='ALL',
-            is_active=True,
-            date_posted=timezone.now()
+            message=message,
+            content_object=event,
+            action_url=f'/events/{event.pk}/'
         )
     except ImportError:
-        # If announcements app is not available, you might want to log this
+        # If core.models.notifications is not available, log this
         pass
 
 @receiver(post_save, sender=EventRSVP)
@@ -83,20 +85,22 @@ def rsvp_post_save(sender, instance, created, **kwargs):
 def send_rsvp_confirmation(rsvp):
     """
     Helper function to send RSVP confirmation.
-    Creates an announcement for the RSVP confirmation.
+    Creates a private notification for the user who made the RSVP.
     """
     message = f"Your RSVP for '{rsvp.event.title}' has been recorded as '{rsvp.get_status_display()}'."
     
     try:
-        from announcements.models import Announcement
-        Announcement.objects.create(
+        from core.models.notifications import Notification
+        
+        # Create a private notification for the user
+        Notification.create_notification(
+            recipient=rsvp.user,
+            notification_type='event',
             title=f"RSVP Confirmation: {rsvp.event.title}",
-            content=message,
-            priority_level='LOW',
-            target_audience='ALL',
-            is_active=True,
-            date_posted=timezone.now()
+            message=message,
+            content_object=rsvp.event,
+            action_url=f'/events/{rsvp.event.pk}/'
         )
     except ImportError:
-        # If announcements app is not available, you might want to log this
+        # If core.models.notifications is not available, log this
         pass 

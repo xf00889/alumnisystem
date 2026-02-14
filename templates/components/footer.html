@@ -1,0 +1,131 @@
+{% load static %}
+{% load cms_tags %}
+
+<!-- Unified Dynamic Footer -->
+<footer class="{% if is_landing %}landing-footer{% else %}footer-modern{% endif %}">
+    <div class="footer-content">
+        <div class="container">
+            <div class="row {% if not is_landing %}g-4{% endif %}">
+                <!-- Brand Section -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="footer-brand">
+                        <div class="brand-logo">
+                            <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="footer-logo">
+                            <h5 class="brand-title">NORSU Alumni</h5>
+                        </div>
+                        <p class="brand-description">
+                            Connect with fellow alumni, stay updated with university news, and explore career opportunities in our growing community.
+                        </p>
+                    </div>
+                </div>
+
+                <!-- Quick Links -->
+                {% if footer_quick_links %}
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6 class="footer-title">Quick Links</h6>
+                        <ul class="footer-links">
+                            {% for link in footer_quick_links %}
+                            <li>
+                                <a href="{{ link.get_url }}" {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
+                                    <i class="{{ link.icon }}"></i>{{ link.title }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Information -->
+                {% if footer_information_links %}
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6 class="footer-title">Information</h6>
+                        <ul class="footer-links">
+                            {% for link in footer_information_links %}
+                            <li>
+                                <a href="{{ link.get_url }}" {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
+                                    <i class="{{ link.icon }}"></i>{{ link.title }}
+                                </a>
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Contact Info -->
+                <div class="col-lg-3 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6 class="footer-title">Contact Info</h6>
+                        <div class="contact-info">
+                            {% get_site_config as site_config %}
+                            <p class="contact-item">
+                                <i class="fas fa-envelope me-2"></i>
+                                <a href="mailto:{{ site_config.contact_email }}">{{ site_config.contact_email }}</a>
+                            </p>
+                            <p class="contact-item">
+                                <i class="fas fa-phone me-2"></i>
+                                <a href="tel:{{ site_config.contact_phone }}">{{ site_config.contact_phone }}</a>
+                            </p>
+                            <p class="contact-item">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                {{ site_config.contact_address|linebreaksbr }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Follow Us -->
+                <div class="col-lg-2 col-md-6 mb-4">
+                    <div class="footer-section">
+                        <h6 class="footer-title">Follow Us</h6>
+                        <div class="{% if is_landing %}social-links{% else %}social-icons{% endif %}">
+                            {% get_site_config as site_config %}
+                            {% if site_config.facebook_url %}
+                            <a href="{{ site_config.facebook_url }}" class="social-link facebook" title="Facebook" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-facebook-f"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_config.twitter_url %}
+                            <a href="{{ site_config.twitter_url }}" class="social-link twitter" title="Twitter" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-twitter"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_config.linkedin_url %}
+                            <a href="{{ site_config.linkedin_url }}" class="social-link linkedin" title="LinkedIn" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-linkedin-in"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_config.instagram_url %}
+                            <a href="{{ site_config.instagram_url }}" class="social-link instagram" title="Instagram" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-instagram"></i>
+                            </a>
+                            {% endif %}
+                            {% if site_config.youtube_url %}
+                            <a href="{{ site_config.youtube_url }}" class="social-link youtube" title="YouTube" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-youtube"></i>
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer Bottom -->
+    <div class="footer-bottom">
+        <p class="copyright">&copy; {% now "Y" %} NORSU Alumni Network. All rights reserved.{% if is_landing %} | Developed with ❤️ for NORSU Community{% endif %}</p>
+        {% if footer_legal_links %}
+        <div class="footer-bottom-links">
+            {% for link in footer_legal_links %}
+            <a href="{{ link.get_url }}" {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
+                {{ link.title }}
+            </a>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</footer>

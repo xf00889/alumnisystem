@@ -8,6 +8,8 @@ from django.views.generic.base import RedirectView
 from . import views
 # Import user management views from view_handlers
 from .view_handlers import user_management_views
+# Import SEO management views from view_handlers
+from .view_handlers import seo_admin_views
 
 app_name = 'core'
 
@@ -98,4 +100,11 @@ urlpatterns = [
     path('admin-dashboard/users/<int:pk>/roles/', user_management_views.UserRoleManagementView.as_view(), name='user_role_management'),
     path('admin-dashboard/users/<int:pk>/toggle/', user_management_views.UserStatusToggleView.as_view(), name='user_status_toggle'),
     path('admin-dashboard/users/bulk-action/', user_management_views.UserBulkActionView.as_view(), name='user_bulk_action'),
+    
+    # SEO Management URLs
+    path('admin-dashboard/seo/', seo_admin_views.PageSEOListView.as_view(), name='seo_page_list'),
+    path('admin-dashboard/seo/create/', seo_admin_views.PageSEOCreateView.as_view(), name='seo_page_create'),
+    path('admin-dashboard/seo/<int:pk>/edit/', seo_admin_views.PageSEOEditView.as_view(), name='seo_page_edit'),
+    path('admin-dashboard/seo/<int:pk>/delete/', seo_admin_views.PageSEODeleteView.as_view(), name='seo_page_delete'),
+    path('admin-dashboard/seo/organization/', seo_admin_views.OrganizationSchemaEditView.as_view(), name='seo_organization_edit'),
 ]

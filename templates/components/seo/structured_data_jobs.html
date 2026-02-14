@@ -1,0 +1,43 @@
+{% if jobs %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "itemListElement": [
+    {% for job in jobs %}
+    {
+      "@type": "JobPosting",
+      "title": "{{ job.job_title|escapejs }}",
+      "description": "{{ job.job_description|striptags|truncatewords:100|escapejs }}",
+      "datePosted": "{{ job.posted_date|date:'c' }}",
+      "hiringOrganization": {
+        "@type": "Organization",
+        "name": "{{ job.company_name|escapejs }}"{% if job.application_link %},
+        "sameAs": "{{ job.application_link }}"{% endif %}
+      },
+      "jobLocation": {
+        "@type": "Place",
+        "address": {
+          "@type": "PostalAddress",
+          "addressLocality": "{{ job.location|escapejs }}",
+          "addressCountry": "PH"
+        }
+      },
+      "employmentType": "{{ job.get_job_type_display|upper|escapejs }}",
+      "url": "{{ request.scheme }}://{{ request.get_host }}{% url 'jobs:job_detail' job.slug %}"{% if job.salary_range %},
+      "baseSalary": {
+        "@type": "MonetaryAmount",
+        "currency": "PHP",
+        "value": {
+          "@type": "QuantitativeValue",
+          "value": "{{ job.salary_range|escapejs }}"
+        }
+      }{% endif %}{% if job.experience_level %},
+      "experienceRequirements": "{{ job.get_experience_level_display|escapejs }}"{% endif %}{% if job.education_requirements %},
+      "educationRequirements": "{{ job.education_requirements|striptags|truncatewords:20|escapejs }}"{% endif %}
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}

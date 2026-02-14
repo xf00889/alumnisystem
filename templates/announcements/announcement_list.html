@@ -1281,14 +1281,11 @@
                         </div>
                     </div>
             <div class="action-group">
-                {% if user.is_authenticated %}
+                {% if user.is_staff %}
                     <a href="{% url 'announcements:announcement-create' %}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>New Announcement
                     </a>
                 {% endif %}
-                <button class="btn btn-secondary" onclick="handleExport()">
-                    <i class="fas fa-download me-2"></i>Export
-                </button>
                     </div>
                         </div>
             </div>
@@ -1302,9 +1299,6 @@
             <button class="btn btn-warning" onclick="handleBulkDelete()">
                 <i class="fas fa-trash me-2"></i>Delete Selected
                         </button>
-            <button class="btn btn-secondary" onclick="handleBulkExport()">
-                <i class="fas fa-download me-2"></i>Export Selected
-            </button>
                     </div>
             </div>
 
@@ -1371,7 +1365,7 @@
                     <i class="fas fa-eye me-1"></i>
                     View Details
                 </button>
-                {% if user.is_authenticated %}
+                {% if user.is_staff %}
                                             <a href="{% url 'announcements:announcement-update' announcement.pk %}" 
                                                class="btn btn-warning">
                                                 <i class="fas fa-edit"></i>
@@ -1846,15 +1840,6 @@ function handleBulkDelete() {
     });
 }
 
-function handleBulkExport() {
-    const selectedCount = document.getElementById('selectedCount').textContent;
-    SweetAlertUtils.success('Export Started', `Exporting ${selectedCount} announcements...`);
-}
-
-function handleExport() {
-    SweetAlertUtils.success('Export Started', 'Exporting all announcements...');
-}
-
 // Modal Functions
 function openAnnouncementModal(announcementId) {
     console.log('Opening modal for announcement ID:', announcementId);
@@ -1944,9 +1929,11 @@ function openAnnouncementModal(announcementId) {
             };
             setCurrentAnnouncementData(announcementData);
             
-            // Show action buttons for authenticated users
+            // Show action buttons only for staff users
             const isAuthenticated = document.body.dataset.userAuthenticated === 'true';
-            if (isAuthenticated) {
+            const isStaff = document.body.dataset.userIsStaff === 'true';
+            
+            if (isAuthenticated && isStaff) {
                 modalEditBtn.style.display = 'inline-flex';
                 modalDeleteBtn.style.display = 'inline-flex';
                 modalEditBtn.onclick = () => window.location.href = `/announcements/${announcementId}/edit/`;

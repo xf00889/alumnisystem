@@ -187,6 +187,117 @@ class RateLimiter:
         ttl = cache.ttl(cache_key)
         return max(0, ttl) if ttl is not None else 0
 
+
+class AccountLockout:
+    """Account lockout mechanism for failed login attempts"""
+    
+    # Configuration
+    MAX_FAILED_ATTEMPTS = 5  # Lock account after 5 failed attempts
+    LOCKOUT_DURATION_MINUTES = 15  # Lock for 15 minutes
+    PROGRESSIVE_LOCKOUT = True  # Enable progressive lockout (longer lockouts for repeated failures)
+    
+    @staticmethod
+    def record_failed_login(identifier):
+        """
+        Record a failed login attempt for an account
+        identifier can be username or email
+        """
+        cache_key = f"failed_login_{identifier}"
+        lockout_key = f"lockout_count_{identifier}"
+        
+        # Get current failed attempts
+        failed_attempts = cache.get(cache_key, 0) + 1
+        
+        # Store failed attempts with 15-minute expiry
+        cache.set(cache_key, failed_attempts, timeout=AccountLockout.LOCKOUT_DURATION_MINUTES * 60)
+        
+        # Check if account should be locked
+        if failed_attempts >= AccountLockout.MAX_FAILED_ATTEMPTS:
+            # Get lockout count for progressive lockout
+            lockout_count = cache.get(lockout_key, 0) + 1
+            
+            # Calculate lockout duration (progressive)
+            if AccountLockout.PROGRESSIVE_LOCKOUT:
+                # First lockout: 15 min, Second: 30 min, Third+: 60 min
+                lockout_duration = min(lockout_count * 15, 60)
+            else:
+                lockout_duration = AccountLockout.LOCKOUT_DURATION_MINUTES
+            
+            # Lock the account
+            lock_key = f"account_locked_{identifier}"
+            cache.set(lock_key, {
+                'locked_at': timezone.now().isoformat(),
+                'attempts': failed_attempts,
+                'lockout_count': lockout_count,
+                'duration_minutes': lockout_duration
+            }, timeout=lockout_duration * 60)
+            
+            # Store lockout count (expires after 24 hours)
+            cache.set(lockout_key, lockout_count, timeout=86400)
+            
+            logger.warning(
+                f"Account locked: {identifier} after {failed_attempts} failed attempts "
+                f"(lockout #{lockout_count}, duration: {lockout_duration} minutes)"
+            )
+            
+            return True, lockout_duration
+        
+        logger.info(f"Failed login recorded for {identifier}: {failed_attempts}/{AccountLockout.MAX_FAILED_ATTEMPTS}")
+        return False, 0
+    
+    @staticmethod
+    def is_account_locked(identifier):
+        """Check if account is currently locked"""
+        lock_key = f"account_locked_{identifier}"
+        lock_data = cache.get(lock_key)
+        
+        if lock_data:
+            # Get remaining time
+            ttl = cache.ttl(lock_key)
+            remaining_minutes = max(0, ttl // 60) if ttl else 0
+            
+            logger.info(f"Account locked check: {identifier} is locked (remaining: {remaining_minutes} minutes)")
+            return True, remaining_minutes, lock_data.get('attempts', 0)
+        
+        return False, 0, 0
+    
+    @staticmethod
+    def get_failed_attempts(identifier):
+        """Get number of failed login attempts"""
+        cache_key = f"failed_login_{identifier}"
+        return cache.get(cache_key, 0)
+    
+    @staticmethod
+    def get_remaining_attempts(identifier):
+        """Get remaining login attempts before lockout"""
+        failed_attempts = AccountLockout.get_failed_attempts(identifier)
+        return max(0, AccountLockout.MAX_FAILED_ATTEMPTS - failed_attempts)
+    
+    @staticmethod
+    def reset_failed_attempts(identifier):
+        """Reset failed login attempts (called on successful login)"""
+        cache_key = f"failed_login_{identifier}"
+        lock_key = f"account_locked_{identifier}"
+        
+        cache.delete(cache_key)
+        cache.delete(lock_key)
+        
+        logger.info(f"Failed login attempts reset for {identifier}")
+    
+    @staticmethod
+    def unlock_account(identifier):
+        """Manually unlock an account (admin function)"""
+        cache_key = f"failed_login_{identifier}"
+        lock_key = f"account_locked_{identifier}"
+        lockout_key = f"lockout_count_{identifier}"
+        
+        cache.delete(cache_key)
+        cache.delete(lock_key)
+        cache.delete(lockout_key)
+        
+        logger.info(f"Account manually unlocked: {identifier}")
+        return True
+
 class PasswordValidator:
     """Enhanced password validation"""
     

@@ -1,0 +1,1004 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock title %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+        line-height: 1.7;
+    }
+
+    /* Hero Section */
+    .contact-hero {
+        background: linear-gradient(rgba(43, 60, 107, 0.85), rgba(26, 37, 68, 0.9)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        padding: 4rem 0 2rem;
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .contact-hero::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="hero-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/><circle cx="25" cy="25" r="0.5" fill="%23ffffff" opacity="0.05"/><circle cx="75" cy="75" r="0.5" fill="%23ffffff" opacity="0.05"/></pattern></defs><rect width="1000" height="1000" fill="url(%23hero-pattern)"/></svg>') repeat;
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    .contact-hero-content {
+        position: relative;
+        z-index: 2;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .contact-hero h1 {
+        font-size: 2.5rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.2;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .contact-hero p {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .contact-stats {
+        display: flex;
+        justify-content: center;
+        gap: 2rem;
+        margin-top: 1.5rem;
+    }
+
+    .contact-stat {
+        text-align: center;
+    }
+
+    .contact-stat-number {
+        font-size: 1.5rem;
+        font-weight: 700;
+        margin-bottom: 0.3rem;
+        color: var(--text-light);
+    }
+
+    .contact-stat-label {
+        font-size: 0.8rem;
+        opacity: 0.8;
+        font-weight: 500;
+    }
+
+    /* Contact Section */
+    .contact-section {
+        padding: 4rem 0;
+        background-color: var(--ui-background);
+    }
+
+    .section-header {
+        text-align: center;
+        margin-bottom: 3rem;
+    }
+
+    .section-badge {
+        display: inline-block;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        color: var(--text-light);
+        padding: 0.5rem 1.25rem;
+        border-radius: 50px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+
+    .section-title {
+        font-size: 2.25rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .section-subtitle {
+        font-size: 1rem;
+        color: var(--text-secondary);
+        max-width: 600px;
+        margin: 0 auto;
+        line-height: 1.6;
+    }
+
+    /* Contact Cards */
+    .contact-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+        height: 100%;
+        overflow: hidden;
+        position: relative;
+    }
+
+    .contact-card:hover {
+        transform: translateY(-5px);
+        box-shadow: var(--shadow-lg);
+    }
+
+    .contact-card-header {
+        padding: 1.5rem 1.5rem 0.75rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .contact-card-title {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .contact-card-body {
+        padding: 1.25rem 1.5rem;
+        flex-grow: 1;
+    }
+
+    /* Contact Items */
+    .contact-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 1rem;
+        padding: 1rem 0;
+        border-bottom: 1px solid var(--ui-border);
+        transition: all 0.3s ease;
+    }
+
+    .contact-item:last-child {
+        border-bottom: none;
+    }
+
+    .contact-item:hover {
+        background: var(--ui-hover);
+        margin: 0 -1.5rem;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-md);
+    }
+
+    .contact-icon {
+        width: 40px;
+        height: 40px;
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        flex-shrink: 0;
+        font-size: 1rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .contact-details h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+        font-size: 0.95rem;
+    }
+
+    .contact-details p {
+        color: var(--text-secondary);
+        margin: 0;
+        line-height: 1.5;
+        font-size: 0.9rem;
+    }
+
+    /* Social Links */
+    .social-links {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 0.75rem;
+        max-width: 450px;
+        margin: 0 auto;
+    }
+
+    .social-link {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.75rem 1rem;
+        border-radius: 10px;
+        text-decoration: none;
+        color: white;
+        font-weight: 500;
+        transition: all 0.3s ease;
+        justify-content: center;
+        font-size: 0.85rem;
+        box-shadow: var(--shadow-sm);
+    }
+
+    .social-link.facebook {
+        background: linear-gradient(135deg, #1877f2, #0d5bb8);
+    }
+
+    .social-link.twitter {
+        background: linear-gradient(135deg, #1da1f2, #0d8bd9);
+    }
+
+    .social-link.instagram {
+        background: linear-gradient(45deg, #f09433, #e6683c, #dc2743, #cc2366, #bc1888);
+    }
+
+    .social-link.linkedin {
+        background: linear-gradient(135deg, #0077b5, #005885);
+    }
+
+    .social-link.youtube {
+        background: linear-gradient(135deg, #ff0000, #cc0000);
+    }
+
+    .social-link:hover {
+        transform: translateY(-3px);
+        box-shadow: var(--shadow-md);
+        color: white;
+    }
+
+    /* Quick Links */
+    .quick-links {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+
+    .quick-links li {
+        margin-bottom: 0.5rem;
+    }
+
+    .quick-links a {
+        color: var(--text-secondary);
+        text-decoration: none;
+        transition: all 0.3s ease;
+        display: flex;
+        align-items: center;
+        padding: 0.4rem 0.6rem;
+        border-radius: 6px;
+        font-size: 0.9rem;
+    }
+
+    .quick-links a:hover {
+        color: var(--primary-color);
+        background: var(--ui-hover);
+        transform: translateX(8px);
+    }
+
+    /* Form Enhancements */
+    .form-control, .form-select {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 0.6rem 0.8rem;
+        transition: all 0.3s ease;
+        font-size: 0.9rem;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
+        background: #fafbfc;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.3rem;
+        font-size: 0.9rem;
+    }
+
+    /* Buttons */
+    .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border: none;
+        border-radius: var(--radius-md);
+        padding: 0.6rem 1.5rem;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        box-shadow: var(--shadow-sm);
+        font-size: 0.9rem;
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        background: linear-gradient(135deg, var(--secondary-color), var(--primary-color));
+    }
+
+    /* Accordion */
+    .accordion-button {
+        font-weight: 500;
+        color: var(--text-primary);
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--ui-border);
+        margin-bottom: 0.5rem;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, rgba(43, 60, 107, 0.1), rgba(43, 60, 107, 0.05));
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.15);
+    }
+
+    .accordion-item {
+        border: none;
+        margin-bottom: 0.5rem;
+    }
+
+    /* Call to Action */
+    .cta-section {
+        padding: 4rem 0;
+        background: linear-gradient(rgba(43, 60, 107, 0.92), rgba(26, 37, 68, 0.96)),
+                    url('{% static "images/bg.jpg" %}') no-repeat center center;
+        background-size: cover;
+        background-attachment: fixed;
+        color: var(--text-light);
+        text-align: center;
+        position: relative;
+        overflow: hidden;
+    }
+
+    .cta-section::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="cta-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="1000" height="1000" fill="url(%23cta-pattern)"/></svg>') repeat;
+        pointer-events: none;
+    }
+
+    .cta-content {
+        position: relative;
+        z-index: 1;
+        max-width: 800px;
+        margin: 0 auto;
+    }
+
+    .cta-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 1rem;
+        line-height: 1.3;
+    }
+
+    .cta-text {
+        font-size: 1rem;
+        margin-bottom: 1.5rem;
+        opacity: 0.95;
+        line-height: 1.6;
+    }
+
+    .cta-buttons {
+        display: flex;
+        justify-content: center;
+        gap: 1rem;
+        flex-wrap: wrap;
+    }
+
+    .btn-cta {
+        padding: 0.75rem 1.5rem;
+        font-size: 0.9rem;
+        font-weight: 600;
+        border-radius: 50px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        transition: all 0.3s ease;
+    }
+
+    .btn-cta-primary {
+        background: linear-gradient(135deg, var(--ui-surface) 0%, #f0f4f8 100%);
+        color: var(--primary-color);
+        border: 2px solid var(--ui-surface);
+    }
+
+    .btn-cta-primary:hover {
+        background: linear-gradient(135deg, #ffffff 0%, var(--ui-surface) 100%);
+        color: var(--primary-color);
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.2);
+    }
+
+    .btn-cta-outline {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        color: var(--text-light);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .btn-cta-outline:hover {
+        background: rgba(255, 255, 255, 0.2);
+        color: var(--text-light);
+        border-color: rgba(255, 255, 255, 0.5);
+        transform: translateY(-2px);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .contact-hero {
+            padding: 3rem 0 1.5rem;
+        }
+
+        .contact-hero h1 {
+            font-size: 2rem;
+        }
+
+        .contact-hero p {
+            font-size: 0.9rem;
+        }
+
+        .contact-stats {
+            flex-direction: column;
+            gap: 1rem;
+            margin-top: 1rem;
+        }
+
+        .section-title {
+            font-size: 2rem;
+        }
+
+        .contact-card-header,
+        .contact-card-body {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+
+        .contact-item {
+            flex-direction: column;
+            text-align: center;
+            gap: 1rem;
+        }
+
+        .contact-icon {
+            margin: 0 auto;
+        }
+
+        .social-links {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        .social-link {
+            min-width: 200px;
+            margin: 0 auto;
+        }
+
+        .quick-links a:hover {
+            transform: none;
+        }
+
+        .cta-title {
+            font-size: 1.8rem;
+        }
+
+        .cta-buttons {
+            flex-direction: column;
+            align-items: center;
+        }
+    }
+
+    @media (max-width: 576px) {
+        .contact-hero {
+            padding: 2.5rem 0 1rem;
+        }
+
+        .contact-hero h1 {
+            font-size: 1.8rem;
+        }
+
+        .contact-hero p {
+            font-size: 0.85rem;
+        }
+
+        .section-title {
+            font-size: 1.8rem;
+        }
+    }
+</style>
+{% endblock extra_css %}
+
+{% block content %}
+<!-- Hero Section -->
+<section class="contact-hero">
+    <div class="container">
+        <div class="contact-hero-content">
+            <h1>{{ page_title }}</h1>
+            <p>{{ page_subtitle }}</p>
+            <div class="contact-stats">
+                <div class="contact-stat">
+                    <div class="contact-stat-number">24/7</div>
+                    <div class="contact-stat-label">Support Available</div>
+            </div>
+                <div class="contact-stat">
+                    <div class="contact-stat-number">< 24h</div>
+                    <div class="contact-stat-label">Response Time</div>
+                        </div>
+                <div class="contact-stat">
+                    <div class="contact-stat-number">100%</div>
+                    <div class="contact-stat-label">Satisfaction</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Contact Section -->
+<section class="contact-section">
+    <div class="container">
+        <div class="section-header">
+            <div class="section-badge">Get in Touch</div>
+            <h2 class="section-title">We're Here to Help</h2>
+            <p class="section-subtitle">Have questions or need assistance? We're just a message away.</p>
+</div>
+
+    <!-- Contact Form and Info -->
+        <div class="row mb-4">
+        <!-- Contact Form -->
+            <div class="col-lg-6 mb-3">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-envelope"></i>Send us a Message
+                    </h3>
+                    </div>
+                    <div class="contact-card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+                    
+                    <form method="post" action="{% url 'core:contact_us_submit' %}" id="contactForm">
+                        {% csrf_token %}
+                        <div class="row">
+                                <div class="col-md-6 mb-2">
+                                <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }} *</label>
+                                {{ form.name }}
+                                {% if form.name.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.name.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                                <div class="col-md-6 mb-2">
+                                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }} *</label>
+                                {{ form.email }}
+                                {% if form.email.errors %}
+                                    <div class="text-danger small mt-1">
+                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                            <div class="mb-2">
+                            <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }} *</label>
+                            {{ form.subject }}
+                            {% if form.subject.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.subject.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                            <div class="mb-2">
+                            <label for="{{ form.message.id_for_label }}" class="form-label">{{ form.message.label }} *</label>
+                            {{ form.message }}
+                            {% if form.message.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.message.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <!-- reCAPTCHA Section -->
+                            <div class="mb-3">
+                            <label class="form-label">{{ form.captcha.label }}</label>
+                            {{ form.captcha }}
+                            <small class="form-text text-muted">
+                                <i class="fas fa-shield-alt"></i> This helps us prevent spam and protect our system
+                            </small>
+                            {% if form.captcha.errors %}
+                                <div class="text-danger small mt-1">
+                                    {% for error in form.captcha.errors %}{{ error }}{% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>Send Message
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Contact Information -->
+            <div class="col-lg-6">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-info-circle"></i>Contact Information
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
+                    {% if contact_info %}
+                        {% for info in contact_info %}
+                            <div class="contact-item">
+                            <div class="contact-icon">
+                                {% if info.contact_type == 'address' %}
+                                    <i class="fas fa-map-marker-alt"></i>
+                                {% elif info.contact_type == 'phone' %}
+                                    <i class="fas fa-phone"></i>
+                                {% elif info.contact_type == 'email' %}
+                                    <i class="fas fa-envelope"></i>
+                                {% elif info.contact_type == 'hours' %}
+                                    <i class="fas fa-clock"></i>
+                                {% else %}
+                                    <i class="fas fa-info-circle"></i>
+                                {% endif %}
+                            </div>
+                            <div class="contact-details">
+                                <h6>{{ info.get_contact_type_display }}</h6>
+                                <p>{{ info.value|linebreaksbr }}</p>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    {% else %}
+                        <!-- Fallback contact information if no CMS data -->
+                            <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-map-marker-alt"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Office Address</h6>
+                                <p>{% if site_config.contact_address %}
+                                    {{ site_config.contact_address|linebreaksbr }}
+                                   {% else %}
+                                    Negros Oriental State University<br>
+                                    Kagawasan, Ave. Rizal<br>
+                                    Dumaguete City, 6200<br>
+                                    Negros Oriental, Philippines
+                                   {% endif %}</p>
+                            </div>
+                        </div>
+                        
+                            <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-phone"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Phone Number</h6>
+                                <p>{% if site_config.contact_phone %}
+                                    {{ site_config.contact_phone }}
+                                   {% else %}
+                                    +63 35 422 6002<br>
+                                    +63 35 225 2376
+                                   {% endif %}</p>
+                            </div>
+                        </div>
+                        
+                            <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-envelope"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Email Address</h6>
+                                <p>{% if site_config.contact_email %}
+                                    {{ site_config.contact_email }}
+                                   {% else %}
+                                    alumni@norsu.edu.ph<br>
+                                    info@norsu.edu.ph
+                                   {% endif %}</p>
+                            </div>
+                        </div>
+                        
+                            <div class="contact-item">
+                            <div class="contact-icon">
+                                <i class="fas fa-clock"></i>
+                            </div>
+                            <div class="contact-details">
+                                <h6>Office Hours</h6>
+                                <p>Monday - Friday: 8:00 AM - 5:00 PM<br>
+                                   Saturday: 8:00 AM - 12:00 PM<br>
+                                   Sunday: Closed</p>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Social Media and Additional Info -->
+        <div class="row mb-4">
+        <!-- Social Media -->
+            <div class="col-lg-6 mb-3">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-share-alt"></i>Follow Us
+                        </h3>
+                    </div>
+                    <div class="contact-card-body text-center">
+                        <p class="text-muted mb-3">Stay connected with us on social media for the latest updates and news.</p>
+                    
+                    <div class="social-links">
+                        {% if site_config.facebook_url %}
+                        <a href="{{ site_config.facebook_url }}" class="social-link facebook" target="_blank">
+                            <i class="fab fa-facebook-f"></i>
+                            <span>Facebook</span>
+                        </a>
+                        {% else %}
+                        <a href="https://facebook.com/norsuofficial" class="social-link facebook" target="_blank">
+                            <i class="fab fa-facebook-f"></i>
+                            <span>Facebook</span>
+                        </a>
+                        {% endif %}
+                        
+                        {% if site_config.twitter_url %}
+                        <a href="{{ site_config.twitter_url }}" class="social-link twitter" target="_blank">
+                            <i class="fab fa-twitter"></i>
+                            <span>Twitter</span>
+                        </a>
+                        {% else %}
+                        <a href="https://twitter.com/norsuofficial" class="social-link twitter" target="_blank">
+                            <i class="fab fa-twitter"></i>
+                            <span>Twitter</span>
+                        </a>
+                        {% endif %}
+                        
+                        {% if site_config.instagram_url %}
+                        <a href="{{ site_config.instagram_url }}" class="social-link instagram" target="_blank">
+                            <i class="fab fa-instagram"></i>
+                            <span>Instagram</span>
+                        </a>
+                        {% else %}
+                        <a href="https://instagram.com/norsuofficial" class="social-link instagram" target="_blank">
+                            <i class="fab fa-instagram"></i>
+                            <span>Instagram</span>
+                        </a>
+                        {% endif %}
+                        
+                        {% if site_config.linkedin_url %}
+                        <a href="{{ site_config.linkedin_url }}" class="social-link linkedin" target="_blank">
+                            <i class="fab fa-linkedin-in"></i>
+                            <span>LinkedIn</span>
+                        </a>
+                        {% else %}
+                        <a href="https://linkedin.com/school/norsuofficial" class="social-link linkedin" target="_blank">
+                            <i class="fab fa-linkedin-in"></i>
+                            <span>LinkedIn</span>
+                        </a>
+                        {% endif %}
+                        
+                        {% if site_config.youtube_url %}
+                        <a href="{{ site_config.youtube_url }}" class="social-link youtube" target="_blank">
+                            <i class="fab fa-youtube"></i>
+                            <span>YouTube</span>
+                        </a>
+                        {% else %}
+                        <a href="https://youtube.com/norsuofficial" class="social-link youtube" target="_blank">
+                            <i class="fab fa-youtube"></i>
+                            <span>YouTube</span>
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Quick Links -->
+            <div class="col-lg-6 mb-3">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-link"></i>Quick Links
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
+                    <div class="row">
+                        <div class="col-6">
+                            <ul class="quick-links">
+                                <li><a href="{% url 'core:home' %}"><i class="fas fa-home me-2"></i>Home</a></li>
+                                <li><a href="{% url 'core:landing_events' %}"><i class="fas fa-calendar-alt me-2"></i>Events</a></li>
+                                <li><a href="{% url 'core:landing_announcements' %}"><i class="fas fa-bullhorn me-2"></i>Announcements</a></li>
+                                <li><a href="{% url 'core:landing_news' %}"><i class="fas fa-newspaper me-2"></i>News</a></li>
+                            </ul>
+                        </div>
+                        <div class="col-6">
+                            <ul class="quick-links">
+                                <li><a href="{% url 'core:about_us' %}"><i class="fas fa-info-circle me-2"></i>About Us</a></li>
+                                <li><a href="{% url 'account_login' %}"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
+                                <li><a href="{% url 'account_login' %}"><i class="fas fa-user-plus me-2"></i>Sign Up</a></li>
+                                <li><a href="#"><i class="fas fa-shield-alt me-2"></i>Privacy Policy</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- FAQ Section -->
+        <div class="row mb-4">
+        <div class="col-12">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-question-circle"></i>Frequently Asked Questions
+                    </h3>
+                    </div>
+                    <div class="contact-card-body">
+                    <div class="accordion" id="faqAccordion">
+                        {% if faqs %}
+                            {% for faq in faqs %}
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq{{ forloop.counter }}">
+                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
+                                        {{ faq.question }}
+                                    </button>
+                                </h2>
+                                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        {{ faq.answer|linebreaks }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <!-- Fallback FAQs if no CMS data -->
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq1">
+                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
+                                        How do I register for the alumni network?
+                                    </button>
+                                </h2>
+                                <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Click on the "Sign Up" button in the navigation menu and fill out the registration form with your details. 
+                                        You'll need to provide your graduation year, course, and other relevant information for verification.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq2">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
+                                        How can I update my profile information?
+                                    </button>
+                                </h2>
+                                <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        After logging in, go to your profile page where you can edit your personal information, 
+                                        contact details, professional background, and other profile settings.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq3">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
+                                        How do I find and connect with other alumni?
+                                    </button>
+                                </h2>
+                                <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Use the Alumni Directory to search for classmates and colleagues. You can filter by graduation year, 
+                                        course, location, or industry. Send connection requests to build your professional network.
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div class="accordion-item">
+                                <h2 class="accordion-header" id="faq4">
+                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
+                                        Can I post job opportunities on the platform?
+                                    </button>
+                                </h2>
+                                <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                                    <div class="accordion-body">
+                                        Yes! Registered alumni can post job opportunities through the Job Board. 
+                                        This helps fellow alumni find career opportunities and strengthens our professional network.
+                                    </div>
+                                </div>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+</section>
+
+<!-- Call to Action Section -->
+<section class="cta-section">
+    <div class="container">
+        <div class="cta-content">
+            <h2 class="cta-title">Ready to Join Our Community?</h2>
+            <p class="cta-text">Connect with fellow NORSU alumni, access exclusive opportunities, and be part of our growing network.</p>
+            <div class="cta-buttons">
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-primary">
+                    <i class="fas fa-user-plus"></i>
+                    Join the Network
+                </a>
+                <a href="{% url 'account_login' %}" class="btn-cta btn-cta-outline">
+                    <i class="fas fa-sign-in-alt"></i>
+                    Member Login
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+{% endblock content %}

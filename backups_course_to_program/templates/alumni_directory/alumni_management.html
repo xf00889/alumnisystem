@@ -1,0 +1,1428 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Alumni Management{% endblock %}
+
+
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* NORSU Alumni System - Card Design */
+    :root {
+        /* NORSU Brand Colors */
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        
+        /* UI Colors - Consistent with system */
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --ui-selected: #e3f2fd;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors - NORSU Theme */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        
+        /* Priority Colors - Professional Theme */
+        --priority-urgent: #dc3545;
+        --priority-high: #fd7e14;
+        --priority-medium: #17a2b8;
+        --priority-low: #28a745;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 350ms ease;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    .dashboard-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header h1 {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-header p {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        padding: 2rem;
+        margin-bottom: 1.5rem;
+        border: 1px solid var(--ui-border);
+        font-size: 1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .dashboard-card:hover {
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        border: 1px solid var(--primary-color);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-primary:hover {
+        background: #1e2a54;
+        border-color: #1e2a54;
+    }
+    
+    .btn-success {
+        background: var(--feedback-success);
+        border: 1px solid var(--feedback-success);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-success:hover {
+        background: #38a169;
+        border-color: #38a169;
+    }
+    
+    .btn-info {
+        background: var(--feedback-info);
+        border: 1px solid var(--feedback-info);
+        border-radius: var(--radius-sm);
+        padding: 0.5rem 1rem;
+        font-weight: 500;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-info:hover {
+        background: #3182ce;
+        border-color: #3182ce;
+    }
+    
+    .table-responsive {
+        border-radius: var(--radius-md);
+        overflow: hidden;
+    }
+    
+    .table {
+        margin-bottom: 0;
+        font-size: 0.875rem;
+    }
+    
+    .table thead th {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: none;
+        font-weight: 600;
+        padding: 1rem;
+        text-align: center;
+        font-size: 0.875rem;
+    }
+    
+    .table tbody td {
+        padding: 1rem;
+        vertical-align: middle;
+        border-bottom: 1px solid var(--ui-border);
+        text-align: center;
+        font-size: 0.875rem;
+    }
+    
+    .table tbody tr:hover {
+        background-color: var(--ui-hover);
+    }
+    
+    .form-control, .form-select {
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--ui-border);
+        padding: 0.5rem;
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+    }
+    
+    .form-control:focus, .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+    
+    .input-group-text {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border: 1px solid var(--primary-color);
+        border-radius: var(--radius-sm) 0 0 var(--radius-sm);
+        font-size: 0.875rem;
+    }
+    
+    .pagination .page-link {
+        border-radius: var(--radius-sm);
+        margin: 0 2px;
+        border: 1px solid var(--ui-border);
+        color: var(--primary-color);
+        font-weight: 500;
+        font-size: 0.875rem;
+    }
+    
+    .pagination .page-item.active .page-link {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .modal-content {
+        border-radius: var(--radius-md);
+        border: none;
+        box-shadow: var(--shadow-md);
+    }
+    
+    .modal-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        padding: 1.5rem;
+    }
+    
+    .modal-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+    }
+    
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        border-radius: var(--radius-sm);
+        margin: 0 2px;
+    }
+    
+    .filter-controls {
+        background: var(--ui-surface);
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .analytics-period-selector {
+        background: rgba(255, 255, 255, 0.15);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: var(--radius-lg);
+        padding: 1.25rem;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .analytics-label {
+        color: var(--text-light);
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: 0.75rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .analytics-select {
+        background: var(--ui-surface);
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        color: var(--text-primary);
+        width: 100%;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .analytics-select:focus {
+        outline: none;
+        border-color: var(--text-light);
+        box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+    }
+    
+    .analytics-select:hover {
+        border-color: rgba(255, 255, 255, 0.5);
+    }
+
+    /* Export Options Modal Styles */
+    .export-section {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1rem;
+        height: 100%;
+    }
+
+    .export-section-title {
+        color: var(--primary-color);
+        font-size: 0.875rem;
+        font-weight: 600;
+        margin-bottom: 0.75rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .college-options, .course-options, .year-options,
+    .employment-options, .verification-options {
+        max-height: 180px;
+        overflow-y: auto;
+        padding-right: 0.5rem;
+    }
+
+    .college-options::-webkit-scrollbar,
+    .course-options::-webkit-scrollbar,
+    .year-options::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .college-options::-webkit-scrollbar-track,
+    .course-options::-webkit-scrollbar-track,
+    .year-options::-webkit-scrollbar-track {
+        background: var(--ui-border);
+        border-radius: 2px;
+    }
+
+    .college-options::-webkit-scrollbar-thumb,
+    .course-options::-webkit-scrollbar-thumb,
+    .year-options::-webkit-scrollbar-thumb {
+        background: var(--primary-color);
+        border-radius: 2px;
+    }
+
+    .form-check {
+        margin-bottom: 0.5rem;
+    }
+
+    .form-check-label {
+        font-size: 0.875rem;
+        cursor: pointer;
+    }
+
+    .year-range-options {
+        background: rgba(var(--primary-color-rgb), 0.05);
+        border: 1px solid rgba(var(--primary-color-rgb), 0.1);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+    }
+
+    #exportSummary {
+        font-size: 0.875rem;
+        line-height: 1.4;
+    }
+
+    .dropdown-menu {
+        border: none;
+        box-shadow: var(--shadow-md);
+        border-radius: var(--radius-md);
+    }
+
+    .dropdown-item {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+    }
+
+    .dropdown-item:hover {
+        background-color: var(--primary-color);
+        color: white;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Dashboard Header -->
+    <div class="dashboard-header">
+        <h1 class="page-title">Alumni Management</h1>
+        <p class="mb-0">Manage and view all alumni records with advanced filtering and export capabilities</p>
+    </div>
+    
+    <div class="row">
+        <div class="col-12">
+            <!-- Action Buttons -->
+            <div class="d-flex justify-content-end mb-3">
+                <button type="button" class="btn btn-info me-2 import-modal-trigger" data-bs-target="#importModal">
+                    <i class="fas fa-file-import me-1"></i> Import Data
+                </button>
+
+                <!-- Export Dropdown -->
+                <div class="dropdown">
+                    <button class="btn btn-success dropdown-toggle" type="button" id="exportDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-file-csv me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="exportDropdown">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'alumni_directory:alumni_management' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}">
+                                <i class="fas fa-download me-2"></i> Export All (Current Filters)
+                            </a>
+                        </li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li>
+                            <a class="dropdown-item export-options-trigger" href="#" data-bs-target="#exportOptionsModal">
+                                <i class="fas fa-cog me-2"></i> Export Options...
+                            </a>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Search and Filter Section -->
+            <div class="filter-controls">
+                <form method="get" action="{% url 'alumni_directory:alumni_management' %}" class="needs-validation" novalidate>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="search" class="form-label">Search</label>
+                                <div class="input-group">
+                                    <span class="input-group-text"><i class="fas fa-search"></i></span>
+                                    <input type="text" id="search" name="search" value="{{ search_query }}" 
+                                           class="form-control" placeholder="Search by name, course, college, or location">
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="college" class="form-label">College</label>
+                                <select id="college" name="college" class="form-select">
+                                    <option value="">All Colleges</option>
+                                    {% for college_code, college_name in colleges %}
+                                    <option value="{{ college_code }}" {% if selected_college == college_code %}selected{% endif %}>{{ college_name }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="graduation_year" class="form-label">Graduation Year</label>
+                                <select id="graduation_year" name="graduation_year" class="form-select">
+                                    <option value="">All Years</option>
+                                    {% for year in graduation_years %}
+                                    <option value="{{ year }}" {% if selected_year == year|stringformat:"i" %}selected{% endif %}>{{ year }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="course" class="form-label">Course</label>
+                                <select id="course" name="course" class="form-select">
+                                    <option value="">All Courses</option>
+                                    {% for course_item in courses %}
+                                    <option value="{{ course_item }}" {% if selected_course == course_item %}selected{% endif %}>{{ course_item }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-2 d-flex align-items-end">
+                            <button type="submit" class="btn btn-primary w-100">
+                                <i class="fas fa-filter me-1"></i> Apply Filters
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        
+            <!-- Results Count -->
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">
+                    <i class="fas fa-users me-1"></i> Showing {{ alumni_list.paginator.count }} alumni records
+                </p>
+            </div>
+            
+            <!-- Tabular List -->
+            <div class="dashboard-card">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Full Name</th>
+                                <th>College</th>
+                                <th>Year</th>
+                                <th>Course</th>
+                                <th>Present Occupation</th>
+                                <th>Name of Company</th>
+                                <th>Employment Address</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for alumni in alumni_list %}
+                            <tr>
+                                <td>{{ alumni.id }}</td>
+                                <td>
+                                    <strong>{{ alumni.full_name }}</strong>
+                                </td>
+                                <td>
+                                    {% if alumni.college %}
+                                        <span class="badge bg-info text-dark">{{ alumni.college_display }}</span>
+                                    {% else %}
+                                        <span class="text-muted">Not specified</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ alumni.graduation_year }}</td>
+                                <td>{{ alumni.course }}</td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.position }}
+                                    {% else %}
+                                        {{ alumni.job_title|default:"None" }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.company }}
+                                    {% else %}
+                                        {{ alumni.current_company|default:"None" }}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    {% with current_exp=alumni.current_experience %}
+                                    {% if current_exp %}
+                                        {{ current_exp.location }}
+                                    {% else %}
+                                        {% if alumni.city or alumni.province %}
+                                            {{ alumni.city }}, {{ alumni.province }}
+                                        {% else %}
+                                            None
+                                        {% endif %}
+                                    {% endif %}
+                                    {% endwith %}
+                                </td>
+                                <td>
+                                    <button type="button" class="btn btn-primary btn-action view-alumni-btn" 
+                                            data-alumni-id="{{ alumni.id }}">
+                                        <i class="fas fa-eye"></i> View
+                                    </button>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="9" class="text-center py-4">
+                                    <div class="alert alert-info mb-0">
+                                        <i class="fas fa-info-circle me-2"></i>
+                                        No alumni records found matching your criteria.
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            
+            <!-- Pagination -->
+        {% if alumni_list.has_other_pages %}
+        <nav aria-label="Alumni pagination">
+            <ul class="pagination justify-content-center">
+                {% if alumni_list.has_previous %}
+                <li class="page-item">
+                    <a class="page-link" href="?page=1{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="First">
+                        <span aria-hidden="true">&laquo;&laquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.previous_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Previous">
+                        <span aria-hidden="true">&laquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+
+                {% for num in alumni_list.paginator.page_range %}
+                    {% if alumni_list.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > alumni_list.number|add:'-3' and num < alumni_list.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?page={{ num }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+
+                {% if alumni_list.has_next %}
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.next_page_number }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Next">
+                        <span aria-hidden="true">&raquo;</span>
+                    </a>
+                </li>
+                <li class="page-item">
+                    <a class="page-link" href="?page={{ alumni_list.paginator.num_pages }}{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}" aria-label="Last">
+                        <span aria-hidden="true">&raquo;&raquo;</span>
+                    </a>
+                </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="importModalLabel">
+                    <i class="fas fa-file-import me-2"></i>Import Alumni Data
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form method="post" enctype="multipart/form-data" action="{% url 'alumni_directory:alumni_management' %}">
+                <div class="modal-body">
+                    {% csrf_token %}
+                    <div class="mb-3">
+                        <label for="csvFile" class="form-label">Select CSV File</label>
+                        <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
+                        <div class="form-text">
+                            Please upload a CSV file with the following columns: Full Name, Year, Course, Present Occupation, Name of Company, Employment Address
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> The CSV file should have headers matching the table columns. Existing records with the same name and graduation year will be updated.
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" name="import_csv" class="btn btn-primary">
+                        <i class="fas fa-upload me-1"></i>Import Data
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Alumni Detail Modal -->
+<div class="modal fade" id="alumniDetailModal" tabindex="-1" aria-labelledby="alumniDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="alumniDetailModalLabel">
+                    <i class="fas fa-user me-2"></i>Alumni Details
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="alumniDetailContent">
+                <!-- Content will be loaded via AJAX -->
+                <div class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Export Options Modal -->
+<div class="modal fade" id="exportOptionsModal" tabindex="-1" aria-labelledby="exportOptionsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportOptionsModalLabel">
+                    <i class="fas fa-cog me-2"></i>Export Options
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="exportOptionsForm">
+                <div class="modal-body">
+                    <div class="row g-4">
+                        <!-- College Selection -->
+                        <div class="col-md-6">
+                            <div class="export-section">
+                                <h6 class="export-section-title">
+                                    <i class="fas fa-university me-2"></i>Colleges
+                                </h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="selectAllColleges" checked>
+                                    <label class="form-check-label fw-bold" for="selectAllColleges">
+                                        Select All Colleges
+                                    </label>
+                                </div>
+                                <div class="college-options">
+                                    {% for college_code, college_name in colleges %}
+                                    <div class="form-check">
+                                        <input class="form-check-input college-checkbox" type="checkbox"
+                                               id="college_{{ college_code }}" name="colleges" value="{{ college_code }}" checked>
+                                        <label class="form-check-label" for="college_{{ college_code }}">
+                                            {{ college_name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Course Selection -->
+                        <div class="col-md-6">
+                            <div class="export-section">
+                                <h6 class="export-section-title">
+                                    <i class="fas fa-graduation-cap me-2"></i>Courses
+                                </h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="selectAllCourses" checked>
+                                    <label class="form-check-label fw-bold" for="selectAllCourses">
+                                        Select All Courses
+                                    </label>
+                                </div>
+                                <div class="course-options" style="max-height: 200px; overflow-y: auto;">
+                                    {% for course_item in courses %}
+                                    <div class="form-check">
+                                        <input class="form-check-input course-checkbox" type="checkbox"
+                                               id="course_{{ course_item|slugify }}" name="courses" value="{{ course_item }}" checked>
+                                        <label class="form-check-label" for="course_{{ course_item|slugify }}">
+                                            {{ course_item }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Graduation Year Selection -->
+                        <div class="col-md-6">
+                            <div class="export-section">
+                                <h6 class="export-section-title">
+                                    <i class="fas fa-calendar me-2"></i>Graduation Years
+                                </h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="selectAllYears" checked>
+                                    <label class="form-check-label fw-bold" for="selectAllYears">
+                                        Select All Years
+                                    </label>
+                                </div>
+                                <div class="year-range-options mb-3">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <label for="yearFrom" class="form-label small">From Year</label>
+                                            <select class="form-select form-select-sm" id="yearFrom" name="year_from">
+                                                <option value="">Any</option>
+                                                {% for year in graduation_years %}
+                                                <option value="{{ year }}">{{ year }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                        <div class="col-6">
+                                            <label for="yearTo" class="form-label small">To Year</label>
+                                            <select class="form-select form-select-sm" id="yearTo" name="year_to">
+                                                <option value="">Any</option>
+                                                {% for year in graduation_years %}
+                                                <option value="{{ year }}">{{ year }}</option>
+                                                {% endfor %}
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="year-options" style="max-height: 150px; overflow-y: auto;">
+                                    {% for year in graduation_years %}
+                                    <div class="form-check">
+                                        <input class="form-check-input year-checkbox" type="checkbox"
+                                               id="year_{{ year }}" name="years" value="{{ year }}" checked>
+                                        <label class="form-check-label" for="year_{{ year }}">
+                                            {{ year }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Status Selection -->
+                        <div class="col-md-6">
+                            <div class="export-section">
+                                <h6 class="export-section-title">
+                                    <i class="fas fa-user-check me-2"></i>Status Filters
+                                </h6>
+
+                                <!-- Employment Status -->
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Employment Status</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllEmployment" checked>
+                                        <label class="form-check-label fw-bold" for="selectAllEmployment">
+                                            All Employment Status
+                                        </label>
+                                    </div>
+                                    <div class="employment-options">
+                                        <div class="form-check">
+                                            <input class="form-check-input employment-checkbox" type="checkbox"
+                                                   id="emp_employed" name="employment_status" value="EMPLOYED_FULL" checked>
+                                            <label class="form-check-label" for="emp_employed">Employed (Full-time)</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input employment-checkbox" type="checkbox"
+                                                   id="emp_part_time" name="employment_status" value="EMPLOYED_PART" checked>
+                                            <label class="form-check-label" for="emp_part_time">Employed (Part-time)</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input employment-checkbox" type="checkbox"
+                                                   id="emp_self" name="employment_status" value="SELF_EMPLOYED" checked>
+                                            <label class="form-check-label" for="emp_self">Self-employed</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input employment-checkbox" type="checkbox"
+                                                   id="emp_unemployed" name="employment_status" value="UNEMPLOYED" checked>
+                                            <label class="form-check-label" for="emp_unemployed">Unemployed</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input employment-checkbox" type="checkbox"
+                                                   id="emp_student" name="employment_status" value="STUDENT" checked>
+                                            <label class="form-check-label" for="emp_student">Student</label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Verification Status -->
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">Verification Status</label>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="selectAllVerification" checked>
+                                        <label class="form-check-label fw-bold" for="selectAllVerification">
+                                            All Verification Status
+                                        </label>
+                                    </div>
+                                    <div class="verification-options">
+                                        <div class="form-check">
+                                            <input class="form-check-input verification-checkbox" type="checkbox"
+                                                   id="verified_yes" name="verification_status" value="true" checked>
+                                            <label class="form-check-label" for="verified_yes">Verified Alumni</label>
+                                        </div>
+                                        <div class="form-check">
+                                            <input class="form-check-input verification-checkbox" type="checkbox"
+                                                   id="verified_no" name="verification_status" value="false" checked>
+                                            <label class="form-check-label" for="verified_no">Unverified Alumni</label>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Summary -->
+                    <div class="row mt-4">
+                        <div class="col-12">
+                            <div class="alert alert-info">
+                                <h6 class="alert-heading">
+                                    <i class="fas fa-info-circle me-2"></i>Export Summary
+                                </h6>
+                                <p class="mb-0" id="exportSummary">
+                                    Ready to export all alumni records matching the selected criteria.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="button" class="btn btn-primary" id="previewExportBtn">
+                        <i class="fas fa-eye me-1"></i>Preview Results
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-download me-1"></i>Export CSV
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script>
+    // Handle alumni detail modal
+    document.addEventListener('DOMContentLoaded', function() {
+        // Ensure Bootstrap is loaded
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            return;
+        }
+
+        const alumniDetailModal = document.getElementById('alumniDetailModal');
+
+        if (!alumniDetailModal) {
+            return;
+        }
+
+        // Get CSRF token
+        function getCookie(name) {
+            let cookieValue = null;
+            if (document.cookie && document.cookie !== '') {
+                const cookies = document.cookie.split(';');
+                for (let i = 0; i < cookies.length; i++) {
+                    const cookie = cookies[i].trim();
+                    if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                        break;
+                    }
+                }
+            }
+            return cookieValue;
+        }
+        const csrftoken = getCookie('csrftoken');
+
+        // Wait for Bootstrap to be fully loaded
+        if (typeof bootstrap === 'undefined' || typeof bootstrap.Modal === 'undefined') {
+            console.error('Bootstrap Modal is not available');
+            return;
+        }
+
+        // Ensure modal element exists and has proper structure
+        if (!alumniDetailModal.querySelector('.modal-dialog')) {
+            console.error('Modal dialog not found in modal structure');
+            return;
+        }
+
+        // Manually initialize the modal with explicit options to prevent backdrop error
+        let modalInstance;
+        try {
+            // Initialize modal with explicit options
+            const modalOptions = {
+                backdrop: true,
+                keyboard: true,
+                focus: true,
+                show: false  // Don't show immediately
+            };
+            
+            modalInstance = bootstrap.Modal.getOrCreateInstance(alumniDetailModal, modalOptions);
+        } catch (error) {
+            console.error('Error initializing modal:', error);
+            console.error('Error details:', error.message, error.stack);
+            
+            // Try alternative initialization without options (uses defaults)
+            try {
+                modalInstance = bootstrap.Modal.getOrCreateInstance(alumniDetailModal);
+            } catch (fallbackError) {
+                console.error('Error with fallback modal initialization:', fallbackError);
+                console.error('Fallback error details:', fallbackError.message, fallbackError.stack);
+                return;
+            }
+        }
+
+        // Handle button clicks to show modal
+        document.querySelectorAll('.view-alumni-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const alumniId = this.getAttribute('data-alumni-id');
+
+                if (!alumniId) {
+                    console.error('No alumni ID found on button');
+                    return;
+                }
+
+                // Ensure modal element exists
+                if (!alumniDetailModal) {
+                    console.error('Alumni detail modal element not found');
+                    return;
+                }
+
+                // Find modal body within the modal element (more reliable than getElementById)
+                let modalBody = alumniDetailModal.querySelector('#alumniDetailContent');
+                
+                // If not found, try to find it by class within modal-content
+                if (!modalBody) {
+                    const modalContent = alumniDetailModal.querySelector('.modal-content');
+                    if (modalContent) {
+                        modalBody = modalContent.querySelector('.modal-body');
+                    }
+                }
+                
+                // If still not found, try getElementById as fallback
+                if (!modalBody) {
+                    modalBody = document.getElementById('alumniDetailContent');
+                }
+
+                if (!modalBody) {
+                    console.error('Modal body not found. Modal structure:', {
+                        modal: alumniDetailModal,
+                        hasModalDialog: !!alumniDetailModal.querySelector('.modal-dialog'),
+                        hasModalContent: !!alumniDetailModal.querySelector('.modal-content'),
+                        modalBodyInModal: !!alumniDetailModal.querySelector('.modal-body'),
+                        modalBodyById: !!document.getElementById('alumniDetailContent'),
+                        modalHTML: alumniDetailModal.innerHTML.substring(0, 200)
+                    });
+                    return;
+                }
+
+                // Show modal first with loading spinner
+                if (modalInstance) {
+                    // Show loading spinner before showing modal
+                    modalBody.innerHTML = `
+                        <div class="text-center py-4">
+                            <div class="spinner-border text-primary" role="status">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <p class="mt-2 text-muted">Loading alumni details...</p>
+                        </div>
+                    `;
+                    
+                    // Show modal immediately with loading state
+                    modalInstance.show();
+                }
+
+                // Fetch alumni details
+                const url = `/alumni/alumni/${alumniId}/detail-modal/`;
+
+                fetch(url, {
+                    method: 'GET',
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'text/html',
+                        'X-CSRFToken': csrftoken,
+                    }
+                })
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.text();
+                    })
+                    .then(html => {
+                        // Find modal body again (in case Bootstrap moved it)
+                        let updatedModalBody = alumniDetailModal.querySelector('#alumniDetailContent') || 
+                                             alumniDetailModal.querySelector('.modal-body') ||
+                                             document.getElementById('alumniDetailContent');
+                        
+                        if (updatedModalBody) {
+                            updatedModalBody.innerHTML = html;
+                        } else {
+                            console.error('Could not find modal body to update content');
+                        }
+                    })
+                    .catch(error => {
+                        // Find modal body again for error message
+                        let updatedModalBody = alumniDetailModal.querySelector('#alumniDetailContent') || 
+                                             alumniDetailModal.querySelector('.modal-body') ||
+                                             document.getElementById('alumniDetailContent');
+                        
+                        if (updatedModalBody) {
+                            updatedModalBody.innerHTML = `
+                                <div class="alert alert-danger">
+                                    <i class="fas fa-exclamation-triangle me-2"></i>
+                                    Error loading alumni details: ${error.message}
+                                </div>
+                            `;
+                        } else {
+                            console.error('Could not find modal body to show error:', error);
+                        }
+                    });
+            });
+        });
+
+        // Export Options Modal Functionality
+        const exportOptionsModal = document.getElementById('exportOptionsModal');
+        
+        if (!exportOptionsModal) {
+            console.error('Export options modal not found');
+            return;
+        }
+
+        // Ensure modal structure is correct
+        if (!exportOptionsModal.querySelector('.modal-dialog')) {
+            console.error('Export modal dialog not found in modal structure');
+            return;
+        }
+
+        // Manually initialize export modal to prevent backdrop error
+        let exportModalInstance;
+        try {
+            const exportModalOptions = {
+                backdrop: true,
+                keyboard: true,
+                focus: true,
+                show: false
+            };
+            exportModalInstance = bootstrap.Modal.getOrCreateInstance(exportOptionsModal, exportModalOptions);
+        } catch (error) {
+            console.error('Error initializing export modal:', error);
+            try {
+                exportModalInstance = bootstrap.Modal.getOrCreateInstance(exportOptionsModal);
+            } catch (fallbackError) {
+                console.error('Error with fallback export modal initialization:', fallbackError);
+            }
+        }
+
+        // Handle export options trigger button
+        document.querySelectorAll('.export-options-trigger').forEach(trigger => {
+            trigger.addEventListener('click', function(e) {
+                e.preventDefault();
+                if (exportModalInstance) {
+                    exportModalInstance.show();
+                }
+            });
+        });
+
+        // Initialize Import Modal to prevent backdrop error
+        const importModal = document.getElementById('importModal');
+        let importModalInstance = null;
+        if (importModal && importModal.querySelector('.modal-dialog')) {
+            try {
+                importModalInstance = bootstrap.Modal.getOrCreateInstance(importModal, {
+                    backdrop: true,
+                    keyboard: true,
+                    focus: true,
+                    show: false
+                });
+            } catch (error) {
+                console.error('Error initializing import modal:', error);
+                try {
+                    importModalInstance = bootstrap.Modal.getOrCreateInstance(importModal);
+                } catch (fallbackError) {
+                    console.error('Error with fallback import modal initialization:', fallbackError);
+                }
+            }
+
+            // Handle import modal trigger button
+            document.querySelectorAll('.import-modal-trigger').forEach(trigger => {
+                trigger.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    if (importModalInstance) {
+                        importModalInstance.show();
+                    }
+                });
+            });
+        }
+        
+        const exportOptionsForm = document.getElementById('exportOptionsForm');
+        const exportSummary = document.getElementById('exportSummary');
+        const previewExportBtn = document.getElementById('previewExportBtn');
+
+        // Select All functionality for each section
+        const selectAllColleges = document.getElementById('selectAllColleges');
+        const collegeCheckboxes = document.querySelectorAll('.college-checkbox');
+
+        const selectAllCourses = document.getElementById('selectAllCourses');
+        const courseCheckboxes = document.querySelectorAll('.course-checkbox');
+
+        const selectAllYears = document.getElementById('selectAllYears');
+        const yearCheckboxes = document.querySelectorAll('.year-checkbox');
+
+        const selectAllEmployment = document.getElementById('selectAllEmployment');
+        const employmentCheckboxes = document.querySelectorAll('.employment-checkbox');
+
+        const selectAllVerification = document.getElementById('selectAllVerification');
+        const verificationCheckboxes = document.querySelectorAll('.verification-checkbox');
+
+        // Handle Select All Colleges
+        selectAllColleges.addEventListener('change', function() {
+            collegeCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateExportSummary();
+        });
+
+        // Handle individual college checkboxes
+        collegeCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(collegeCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(collegeCheckboxes).every(cb => !cb.checked);
+
+                selectAllColleges.checked = allChecked;
+                selectAllColleges.indeterminate = !allChecked && !noneChecked;
+                updateExportSummary();
+            });
+        });
+
+        // Handle Select All Courses
+        selectAllCourses.addEventListener('change', function() {
+            courseCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateExportSummary();
+        });
+
+        // Handle individual course checkboxes
+        courseCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(courseCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(courseCheckboxes).every(cb => !cb.checked);
+
+                selectAllCourses.checked = allChecked;
+                selectAllCourses.indeterminate = !allChecked && !noneChecked;
+                updateExportSummary();
+            });
+        });
+
+        // Handle Select All Years
+        selectAllYears.addEventListener('change', function() {
+            yearCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            // Clear year range when selecting all
+            if (this.checked) {
+                document.getElementById('yearFrom').value = '';
+                document.getElementById('yearTo').value = '';
+            }
+            updateExportSummary();
+        });
+
+        // Handle individual year checkboxes
+        yearCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(yearCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(yearCheckboxes).every(cb => !cb.checked);
+
+                selectAllYears.checked = allChecked;
+                selectAllYears.indeterminate = !allChecked && !noneChecked;
+                updateExportSummary();
+            });
+        });
+
+        // Handle year range changes
+        document.getElementById('yearFrom').addEventListener('change', function() {
+            if (this.value) {
+                selectAllYears.checked = false;
+                yearCheckboxes.forEach(cb => cb.checked = false);
+            }
+            updateExportSummary();
+        });
+
+        document.getElementById('yearTo').addEventListener('change', function() {
+            if (this.value) {
+                selectAllYears.checked = false;
+                yearCheckboxes.forEach(cb => cb.checked = false);
+            }
+            updateExportSummary();
+        });
+
+        // Handle Select All Employment Status
+        selectAllEmployment.addEventListener('change', function() {
+            employmentCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateExportSummary();
+        });
+
+        // Handle individual employment checkboxes
+        employmentCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(employmentCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(employmentCheckboxes).every(cb => !cb.checked);
+
+                selectAllEmployment.checked = allChecked;
+                selectAllEmployment.indeterminate = !allChecked && !noneChecked;
+                updateExportSummary();
+            });
+        });
+
+        // Handle Select All Verification Status
+        selectAllVerification.addEventListener('change', function() {
+            verificationCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateExportSummary();
+        });
+
+        // Handle individual verification checkboxes
+        verificationCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(verificationCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(verificationCheckboxes).every(cb => !cb.checked);
+
+                selectAllVerification.checked = allChecked;
+                selectAllVerification.indeterminate = !allChecked && !noneChecked;
+                updateExportSummary();
+            });
+        });
+
+        // Update export summary
+        function updateExportSummary() {
+            const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).length;
+            const selectedCourses = Array.from(courseCheckboxes).filter(cb => cb.checked).length;
+            const selectedYears = Array.from(yearCheckboxes).filter(cb => cb.checked).length;
+            const yearFrom = document.getElementById('yearFrom').value;
+            const yearTo = document.getElementById('yearTo').value;
+            const selectedEmployment = Array.from(employmentCheckboxes).filter(cb => cb.checked).length;
+            const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).length;
+
+            let summaryParts = [];
+
+            if (selectedColleges === collegeCheckboxes.length) {
+                summaryParts.push('All colleges');
+            } else if (selectedColleges > 0) {
+                summaryParts.push(`${selectedColleges} college${selectedColleges > 1 ? 's' : ''}`);
+            }
+
+            if (selectedCourses === courseCheckboxes.length) {
+                summaryParts.push('all courses');
+            } else if (selectedCourses > 0) {
+                summaryParts.push(`${selectedCourses} course${selectedCourses > 1 ? 's' : ''}`);
+            }
+
+            if (yearFrom || yearTo) {
+                if (yearFrom && yearTo) {
+                    summaryParts.push(`years ${yearFrom}-${yearTo}`);
+                } else if (yearFrom) {
+                    summaryParts.push(`from year ${yearFrom}`);
+                } else if (yearTo) {
+                    summaryParts.push(`up to year ${yearTo}`);
+                }
+            } else if (selectedYears === yearCheckboxes.length) {
+                summaryParts.push('all years');
+            } else if (selectedYears > 0) {
+                summaryParts.push(`${selectedYears} year${selectedYears > 1 ? 's' : ''}`);
+            }
+
+            if (selectedEmployment < employmentCheckboxes.length && selectedEmployment > 0) {
+                summaryParts.push(`${selectedEmployment} employment status${selectedEmployment > 1 ? 'es' : ''}`);
+            }
+
+            if (selectedVerification < verificationCheckboxes.length && selectedVerification > 0) {
+                summaryParts.push(`${selectedVerification} verification status${selectedVerification > 1 ? 'es' : ''}`);
+            }
+
+            if (summaryParts.length === 0) {
+                exportSummary.textContent = 'No criteria selected. Please select at least one option.';
+                exportSummary.parentElement.className = 'alert alert-warning';
+            } else {
+                exportSummary.textContent = `Ready to export alumni records matching: ${summaryParts.join(', ')}.`;
+                exportSummary.parentElement.className = 'alert alert-info';
+            }
+        }
+
+        // Handle export form submission
+        exportOptionsForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Build export URL with selected parameters
+            const baseUrl = '{% url "alumni_directory:alumni_management" %}';
+            const params = new URLSearchParams();
+            params.append('format', 'csv');
+
+            // Add selected colleges
+            const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (selectedColleges.length > 0 && selectedColleges.length < collegeCheckboxes.length) {
+                selectedColleges.forEach(college => params.append('export_colleges', college));
+            }
+
+            // Add selected courses
+            const selectedCourses = Array.from(courseCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (selectedCourses.length > 0 && selectedCourses.length < courseCheckboxes.length) {
+                selectedCourses.forEach(course => params.append('export_courses', course));
+            }
+
+            // Add selected years or year range
+            const yearFrom = document.getElementById('yearFrom').value;
+            const yearTo = document.getElementById('yearTo').value;
+
+            if (yearFrom) params.append('export_year_from', yearFrom);
+            if (yearTo) params.append('export_year_to', yearTo);
+
+            if (!yearFrom && !yearTo) {
+                const selectedYears = Array.from(yearCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedYears.length > 0 && selectedYears.length < yearCheckboxes.length) {
+                    selectedYears.forEach(year => params.append('export_years', year));
+                }
+            }
+
+            // Add selected employment status
+            const selectedEmployment = Array.from(employmentCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (selectedEmployment.length > 0 && selectedEmployment.length < employmentCheckboxes.length) {
+                selectedEmployment.forEach(status => params.append('export_employment_status', status));
+            }
+
+            // Add selected verification status
+            const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+            if (selectedVerification.length > 0 && selectedVerification.length < verificationCheckboxes.length) {
+                selectedVerification.forEach(status => params.append('export_verification_status', status));
+            }
+
+            // Hide modal before redirecting if it exists and is visible
+            if (exportModalInstance) {
+                try {
+                    exportModalInstance.hide();
+                } catch (error) {
+                    // Modal instance might not exist, continue with redirect
+                    console.log('Error hiding modal, continuing with redirect:', error);
+                }
+            }
+
+            // Redirect to export URL
+            const exportUrl = `${baseUrl}?${params.toString()}`;
+            window.location.href = exportUrl;
+        });
+
+        // Handle preview button
+        previewExportBtn.addEventListener('click', function() {
+            // This could be enhanced to show a preview of the data
+            alert('Preview functionality can be implemented to show a sample of the export data.');
+        });
+
+        // Initialize summary on modal show
+        exportOptionsModal.addEventListener('shown.bs.modal', function() {
+            updateExportSummary();
+        });
+    });
+</script>
+{% endblock %}

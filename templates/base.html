@@ -8,7 +8,14 @@
     {% if user.is_authenticated %}
     <meta name="user-id" content="{{ user.id }}">
     {% endif %}
-    <title>{% block title %}NORSU Alumni Tracking System{% endblock title %}</title>
+    
+    <!-- SEO Meta Tags -->
+    {% include 'components/seo/seo_meta_tags.html' %}
+    
+    <!-- Breadcrumb Structured Data -->
+    {% include 'components/seo/structured_data_breadcrumbs.html' %}
+    
+    <title>{% block title %}{{ seo.title|default:"NORSU Alumni Tracking System" }}{% endblock title %}</title>
     
     <!-- Google Fonts - Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -23,6 +30,7 @@
     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
     <link rel="stylesheet" href="{% static 'css/toasts.css' %}">
     <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
     <!-- Custom CSS -->
      <style>
          .sidebar {
@@ -200,281 +208,10 @@
              }
          }
          
-         /* Modern Footer Styles */
-          .footer-modern {
-              background: #1a1a1a;
-              color: #ecf0f1;
-              margin-top: auto;
-              position: relative;
-              overflow: hidden;
-          }
-         
-         .footer-modern::before {
-             content: '';
-             position: absolute;
-             top: 0;
-             left: 0;
-             right: 0;
-             bottom: 0;
-             background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="%23ffffff" opacity="0.03"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
-             pointer-events: none;
-         }
-         
-         .footer-content {
-             padding: 4rem 0 2rem;
-             position: relative;
-             z-index: 1;
-         }
-         
-         .footer-brand {
-             margin-bottom: 2rem;
-         }
-         
-         .brand-logo {
-             display: flex;
-             align-items: center;
-             margin-bottom: 1.5rem;
-         }
-         
-         .footer-logo {
-             width: 50px;
-             height: 50px;
-             margin-right: 1rem;
-             border-radius: 8px;
-             box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-         }
-         
-         .brand-title {
-             color: #ffffff;
-             font-weight: 600;
-             margin: 0;
-             font-size: 1.5rem;
-             background: linear-gradient(45deg, #3498db, #2ecc71);
-             -webkit-background-clip: text;
-             -webkit-text-fill-color: transparent;
-             background-clip: text;
-         }
-         
-         .brand-description {
-             color: #bdc3c7;
-             line-height: 1.6;
-             margin-bottom: 1.5rem;
-             font-size: 0.95rem;
-         }
-         
-         .footer-stats {
-             display: flex;
-             gap: 2rem;
-         }
-         
-         .stat-item {
-             text-align: center;
-         }
-         
-         .stat-number {
-             display: block;
-             font-size: 1.5rem;
-             font-weight: 700;
-             color: #3498db;
-             margin-bottom: 0.25rem;
-         }
-         
-         .stat-label {
-             font-size: 0.85rem;
-             color: #95a5a6;
-             text-transform: uppercase;
-             letter-spacing: 0.5px;
-         }
-         
-         .footer-section {
-             margin-bottom: 2rem;
-         }
-         
-         .footer-title {
-             color: #ffffff;
-             font-weight: 600;
-             margin-bottom: 1.5rem;
-             font-size: 1.1rem;
-             position: relative;
-             padding-bottom: 0.5rem;
-         }
-         
-         .footer-title::after {
-             content: '';
-             position: absolute;
-             bottom: 0;
-             left: 0;
-             width: 30px;
-             height: 2px;
-             background: linear-gradient(45deg, #3498db, #2ecc71);
-             border-radius: 1px;
-         }
-         
-         .footer-links {
-             list-style: none;
-             padding: 0;
-             margin: 0;
-         }
-         
-         .footer-links li {
-             margin-bottom: 0.75rem;
-         }
-         
-         .footer-links a {
-             color: #bdc3c7;
-             text-decoration: none;
-             display: flex;
-             align-items: center;
-             transition: all 0.3s ease;
-             padding: 0.25rem 0;
-             border-radius: 4px;
-         }
-         
-         .footer-links a:hover {
-             color: #3498db;
-             transform: translateX(5px);
-             padding-left: 0.5rem;
-         }
-         
-         .footer-links a i {
-             width: 20px;
-             margin-right: 0.75rem;
-             font-size: 0.9rem;
-         }
-         
-         .contact-info {
-             margin-bottom: 2rem;
-         }
-         
-         .contact-item {
-             display: flex;
-             align-items: flex-start;
-             margin-bottom: 1rem;
-             padding: 0.5rem 0;
-         }
-         
-         .contact-item i {
-             color: #3498db;
-             margin-right: 1rem;
-             margin-top: 0.25rem;
-             width: 16px;
-             flex-shrink: 0;
-         }
-         
-         .contact-item span {
-             color: #bdc3c7;
-             line-height: 1.5;
-         }
-         
-         .social-section {
-             margin-top: 2rem;
-         }
-         
-         .social-title {
-             color: #ffffff;
-             font-weight: 500;
-             margin-bottom: 1rem;
-             font-size: 1rem;
-         }
-         
-         .social-icons {
-             display: flex;
-             gap: 0.75rem;
-             flex-wrap: wrap;
-         }
-         
-         .social-link {
-             display: flex;
-             align-items: center;
-             justify-content: center;
-             width: 45px;
-             height: 45px;
-             border-radius: 12px;
-             text-decoration: none;
-             transition: all 0.3s ease;
-             position: relative;
-             overflow: hidden;
-         }
-         
-         .social-link::before {
-             content: '';
-             position: absolute;
-             top: 0;
-             left: 0;
-             right: 0;
-             bottom: 0;
-             border-radius: 12px;
-             transition: all 0.3s ease;
-             z-index: 1;
-         }
-         
-         .social-link i {
-             position: relative;
-             z-index: 2;
-             font-size: 1.1rem;
-             color: #ffffff;
-         }
-         
-         .social-link.facebook::before {
-             background: linear-gradient(45deg, #3b5998, #4267B2);
-         }
-         
-         .social-link.twitter::before {
-             background: linear-gradient(45deg, #1da1f2, #0d8bd9);
-         }
-         
-         .social-link.linkedin::before {
-             background: linear-gradient(45deg, #0077b5, #005885);
-         }
-         
-         .social-link.instagram::before {
-             background: linear-gradient(45deg, #e4405f, #fd1d1d, #fcb045);
-         }
-         
-         .social-link.youtube::before {
-             background: linear-gradient(45deg, #ff0000, #cc0000);
-         }
-         
-         .social-link:hover {
-             transform: translateY(-3px) scale(1.05);
-             box-shadow: 0 8px 25px rgba(0,0,0,0.3);
-         }
-         
-         .footer-bottom {
-             background: rgba(0,0,0,0.2);
-             padding: 1.5rem 0;
-             border-top: 1px solid rgba(255,255,255,0.1);
-             position: relative;
-             z-index: 1;
-         }
-         
-         .copyright {
-             color: #95a5a6;
-             margin: 0;
-             font-size: 0.9rem;
-         }
-         
-         .footer-bottom-links {
-             display: flex;
-             justify-content: flex-end;
-             gap: 1.5rem;
-             flex-wrap: wrap;
-         }
-         
-         .footer-bottom-links a {
-             color: #95a5a6;
-             text-decoration: none;
-             font-size: 0.9rem;
-             transition: color 0.3s ease;
-         }
-         
-         .footer-bottom-links a:hover {
-             color: #3498db;
-         }
      </style>
      {% block extra_css %}{% endblock extra_css %}
 </head>
-<body>
+<body data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}" data-user-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}">
     {% if user.is_superuser %}
     <!-- Sidebar for superuser -->
     <div class="sidebar" id="sidebar">
@@ -695,6 +432,10 @@
                     <a class="nav-link" href="{% url 'core:recaptcha_analytics' %}">
                         <i class="fas fa-chart-bar"></i>
                         <span>reCAPTCHA Analytics</span>
+                    </a>
+                    <a class="nav-link {% if request.resolver_match.url_name in 'seo_page_list,seo_page_create,seo_page_edit,seo_page_delete,seo_organization_edit' %}active{% endif %}" href="{% url 'core:seo_page_list' %}">
+                        <i class="fas fa-search-plus"></i>
+                        <span>SEO Management</span>
                     </a>
                 </div>
             </li>
@@ -1039,7 +780,7 @@
     {% endif %}
 
     <!-- Main Content -->
-    <div class="content-wrapper {% if user.is_superuser %}with-sidebar{% endif %}" {% if not user.is_superuser and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: 76px;"{% endif %}>
+    <main class="content-wrapper {% if user.is_superuser %}with-sidebar{% endif %}" {% if not user.is_superuser and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: 76px;"{% endif %}>
         {% comment %}
         Django messages framework disabled to prevent toast notifications
         {% if messages %}
@@ -1070,143 +811,11 @@
         <div class="main-content">
             {% block content %}{% endblock %}
         </div>
-    </div>
+    </main>
 
     <!-- Footer -->
     {% if not user.is_superuser and not request.resolver_match.url_name == 'account_reset_password' %}
-    <footer class="footer-modern">
-        <div class="footer-content">
-            <div class="container">
-                <div class="row g-4">
-                    <!-- Brand Section -->
-                    <div class="col-lg-4 col-md-6">
-                        <div class="footer-brand">
-                            <div class="brand-logo">
-                                <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="footer-logo">
-                                <h4 class="brand-title">NORSU Alumni</h4>
-                            </div>
-                            <p class="brand-description">Connecting graduates, building futures, and fostering lifelong relationships within the NORSU community.</p>
-                            <div class="footer-stats">
-                                <div class="stat-item">
-                                    <span class="stat-number">5,000+</span>
-                                    <span class="stat-label">Alumni</span>
-                                </div>
-                                <div class="stat-item">
-                                    <span class="stat-number">50+</span>
-                                    <span class="stat-label">Countries</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    
-                    <!-- Quick Links -->
-                    <div class="col-lg-2 col-md-6">
-                        <div class="footer-section">
-                            <h5 class="footer-title">Quick Links</h5>
-                            <ul class="footer-links">
-                                <li><a href="{% url 'core:home' %}"><i class="fas fa-home"></i>Home</a></li>
-                                <li><a href="{% url 'alumni_groups:group_list' %}"><i class="fas fa-users"></i>Alumni Groups</a></li>
-                                <li><a href="{% url 'jobs:job_list' %}"><i class="fas fa-briefcase"></i>Job Board</a></li>
-                                <li><a href="{% url 'events:event_list' %}"><i class="fas fa-calendar"></i>Events</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <!-- Services -->
-                    <div class="col-lg-2 col-md-6">
-                        <div class="footer-section">
-                            <h5 class="footer-title">Services</h5>
-                            <ul class="footer-links">
-                                <li><a href="{% url 'mentorship:mentor_search' %}"><i class="fas fa-hands-helping"></i>Mentorship</a></li>
-                                <li><a href="{% url 'surveys:survey_list_public' %}"><i class="fas fa-poll"></i>Surveys</a></li>
-                                <li><a href="{% url 'announcements:announcement-list' %}"><i class="fas fa-bullhorn"></i>News</a></li>
-                                <li><a href="{% url 'feedback:submit_feedback' %}"><i class="fas fa-comment"></i>Feedback</a></li>
-                            </ul>
-                        </div>
-                    </div>
-                    
-                    <!-- Contact & Social -->
-                    <div class="col-lg-4 col-md-6">
-                        <div class="footer-section">
-                            <h5 class="footer-title">Stay Connected</h5>
-                            <div class="contact-info">
-                                {% load cms_tags %}
-                                {% get_contact_info as cms_contact_info %}
-                                {% if cms_contact_info %}
-                                    {% for info in cms_contact_info %}
-                                        {% if info.contact_type == 'address' or info.contact_type == 'email' or info.contact_type == 'phone' %}
-                                        <div class="contact-item">
-                                            {% if info.contact_type == 'address' %}
-                                                <i class="fas fa-map-marker-alt"></i>
-                                            {% elif info.contact_type == 'email' %}
-                                                <i class="fas fa-envelope"></i>
-                                            {% elif info.contact_type == 'phone' %}
-                                                <i class="fas fa-phone"></i>
-                                            {% endif %}
-                                            <span>{{ info.value|linebreaksbr }}</span>
-                                        </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    <!-- Fallback contact information -->
-                                    <div class="contact-item">
-                                        <i class="fas fa-map-marker-alt"></i>
-                                        <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
-                                    </div>
-                                    <div class="contact-item">
-                                        <i class="fas fa-envelope"></i>
-                                        <span>alumni@norsu.edu.ph</span>
-                                    </div>
-                                    <div class="contact-item">
-                                        <i class="fas fa-phone"></i>
-                                        <span>+63 35 422 6002</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <div class="social-section">
-                                <h6 class="social-title">Follow Us</h6>
-                                <div class="social-icons">
-                                    <a href="javascript:void(0)" class="social-link facebook" title="Facebook">
-                                        <i class="fab fa-facebook-f"></i>
-                                    </a>
-                                    <a href="javascript:void(0)" class="social-link twitter" title="Twitter">
-                                        <i class="fab fa-twitter"></i>
-                                    </a>
-                                    <a href="javascript:void(0)" class="social-link linkedin" title="LinkedIn">
-                                        <i class="fab fa-linkedin-in"></i>
-                                    </a>
-                                    <a href="javascript:void(0)" class="social-link instagram" title="Instagram">
-                                        <i class="fab fa-instagram"></i>
-                                    </a>
-                                    <a href="javascript:void(0)" class="social-link youtube" title="YouTube">
-                                        <i class="fab fa-youtube"></i>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Footer Bottom -->
-        <div class="footer-bottom">
-            <div class="container">
-                <div class="row align-items-center">
-                    <div class="col-md-6">
-                        <p class="copyright">&copy; {% now "Y" %} NORSU Alumni Tracking System. All rights reserved.</p>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="footer-bottom-links">
-                            <a href="javascript:void(0)">Privacy Policy</a>
-                            <a href="javascript:void(0)">Terms of Service</a>
-                            <a href="javascript:void(0)">Cookie Policy</a>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </footer>
+    {% include 'components/footer.html' with is_landing=False %}
     {% endif %}
 
     <!-- jQuery first -->

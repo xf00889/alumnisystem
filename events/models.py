@@ -51,7 +51,6 @@ class EventRSVP(models.Model):
     RSVP_CHOICES = [
         ('yes', 'Attending'),
         ('no', 'Not Attending'),
-        ('maybe', 'Maybe'),
     ]
 
     event = models.ForeignKey(Event, on_delete=models.CASCADE, related_name='rsvps')

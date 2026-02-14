@@ -1,0 +1,251 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load crispy_forms_tags %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* NORSU Alumni System - Consistent Design */
+    :root {
+        /* NORSU Brand Colors */
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        
+        /* UI Colors */
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        
+        /* Spacing */
+        --space-4: 1rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .container-fluid {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Form Section */
+    .form-section {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        padding: 2rem;
+    }
+
+    fieldset {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    legend {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        padding: 0 0.5rem;
+        width: auto;
+        margin-bottom: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .alert {
+        border-radius: var(--radius-md);
+        border: none;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    }
+
+    #title-status.valid,
+    #description-status.valid {
+        color: var(--feedback-success);
+    }
+
+    #title-status.invalid,
+    #description-status.invalid {
+        color: var(--feedback-error);
+    }
+
+    .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-action {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        margin: 0 2px;
+        border-radius: var(--radius-sm);
+    }
+
+    /* Center form buttons */
+    .form-section form .form-actions,
+    .form-section form .btn-group {
+        display: flex;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    /* Make form buttons equal width */
+    .form-section .btn {
+        min-width: 120px;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header -->
+    <div class="directory-header">
+        <h1 class="directory-title">
+            <i class="fas fa-{% if is_edit %}edit{% else %}plus{% endif %}"></i> {{ page_title }}
+        </h1>
+        <p class="directory-subtitle">
+            {% if is_edit %}
+            Update SEO configuration for this page
+            {% else %}
+            Create a new SEO configuration for a page
+            {% endif %}
+        </p>
+    </div>
+
+    <!-- Form -->
+    <div class="form-section">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {% crispy form %}
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Character count for meta title
+    const titleInput = document.getElementById('id_meta_title');
+    const titleCount = document.getElementById('title-count');
+    const titleStatus = document.getElementById('title-status');
+    
+    if (titleInput && titleCount && titleStatus) {
+        function updateTitleCount() {
+            const length = titleInput.value.length;
+            titleCount.textContent = length;
+            
+            if (length >= 50 && length <= 60) {
+                titleStatus.textContent = '✓ Optimal';
+                titleStatus.className = 'ms-2 valid';
+            } else if (length < 50) {
+                titleStatus.textContent = '⚠ Too short';
+                titleStatus.className = 'ms-2 invalid';
+            } else {
+                titleStatus.textContent = '⚠ Too long';
+                titleStatus.className = 'ms-2 invalid';
+            }
+        }
+        
+        titleInput.addEventListener('input', updateTitleCount);
+        updateTitleCount(); // Initial update
+    }
+    
+    // Character count for meta description
+    const descInput = document.getElementById('id_meta_description');
+    const descCount = document.getElementById('description-count');
+    const descStatus = document.getElementById('description-status');
+    
+    if (descInput && descCount && descStatus) {
+        function updateDescCount() {
+            const length = descInput.value.length;
+            descCount.textContent = length;
+            
+            if (length >= 150 && length <= 160) {
+                descStatus.textContent = '✓ Optimal';
+                descStatus.className = 'ms-2 valid';
+            } else if (length < 150) {
+                descStatus.textContent = '⚠ Too short';
+                descStatus.className = 'ms-2 invalid';
+            } else {
+                descStatus.textContent = '⚠ Too long';
+                descStatus.className = 'ms-2 invalid';
+            }
+        }
+        
+        descInput.addEventListener('input', updateDescCount);
+        updateDescCount(); // Initial update
+    }
+});
+</script>
+{% endblock %}

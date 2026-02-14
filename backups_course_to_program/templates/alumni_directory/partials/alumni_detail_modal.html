@@ -1,0 +1,967 @@
+{% load static %}
+{% load jobs_extras %}
+{% load string_filters %}
+
+<style>
+    /* Enhanced Alumni Modal Design System */
+    :root {
+        --primary-color: #2b3c6b;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #f7fafc;
+        --ui-subtle: #f8fafc;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --space-xs: 0.375rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
+    }
+
+    /* Clean Modal Structure */
+    .modal-content {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-lg);
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+    }
+
+    .modal-body {
+        padding: 0;
+        font-size: 0.8rem;
+        line-height: 1.4;
+    }
+
+    /* Refined Tabbed Interface */
+    .nav-tabs {
+        border-bottom: 1px solid var(--ui-border);
+        margin-bottom: 0;
+        background: var(--ui-subtle);
+        padding: var(--space-sm) var(--space-lg) 0;
+        position: sticky;
+        top: 0;
+        z-index: 10;
+    }
+
+    .nav-tabs .nav-link {
+        border: none;
+        border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-size: 0.8rem;
+        padding: var(--space-md) var(--space-lg);
+        margin-right: var(--space-xs);
+        background: transparent;
+        transition: all 0.15s ease;
+        position: relative;
+        white-space: nowrap;
+    }
+
+    .nav-tabs .nav-link:hover {
+        background: rgba(43, 60, 107, 0.08);
+        color: var(--primary-color);
+        transform: translateY(-1px);
+    }
+
+    .nav-tabs .nav-link.active {
+        background: var(--ui-surface);
+        color: var(--primary-color);
+        font-weight: 600;
+        box-shadow: var(--shadow-sm);
+        border-bottom: 2px solid var(--primary-color);
+    }
+
+    .nav-tabs .nav-link i {
+        margin-right: var(--space-sm);
+        font-size: 0.75rem;
+        opacity: 0.8;
+    }
+
+    .nav-tabs .nav-link.active i {
+        opacity: 1;
+    }
+
+    /* Compact Tab Content */
+    .tab-content {
+        background: var(--ui-surface);
+        max-height: 70vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--ui-border) transparent;
+    }
+
+    .tab-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .tab-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .tab-content::-webkit-scrollbar-thumb {
+        background: var(--ui-border);
+        border-radius: 3px;
+    }
+
+    .tab-pane {
+        padding: var(--space-md);
+        animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Clean Document-Style Sections */
+    .content-section {
+        margin-bottom: var(--space-md);
+        padding: var(--space-md);
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .content-section:last-child {
+        margin-bottom: 0;
+    }
+
+    .section-header {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: var(--space-md);
+        display: flex;
+        align-items: center;
+        padding-bottom: var(--space-xs);
+        border-bottom: 1px solid var(--ui-border);
+    }
+
+    .section-header i {
+        margin-right: var(--space-sm);
+        font-size: 0.8rem;
+        opacity: 0.8;
+    }
+
+    /* Compact Information Grid */
+    .info-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+        gap: var(--space-md);
+        margin-top: var(--space-xs);
+    }
+
+    .info-item {
+        display: flex;
+        flex-direction: column;
+        min-height: 2.5rem;
+    }
+
+    .info-label {
+        font-size: 0.7rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        margin-bottom: var(--space-xs);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        line-height: 1.2;
+    }
+
+    .info-value {
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        line-height: 1.3;
+        word-break: break-word;
+    }
+
+    .info-value a {
+        color: var(--primary-color);
+        text-decoration: none;
+        transition: all 0.15s ease;
+    }
+
+    .info-value a:hover {
+        color: var(--feedback-info);
+        text-decoration: underline;
+    }
+
+    /* Enhanced List and Timeline Elements */
+    .list-group-item {
+        border: 1px solid var(--ui-border);
+        transition: all 0.15s ease;
+        padding: var(--space-md);
+        font-size: 0.8rem;
+    }
+
+    .list-group-item:hover {
+        background: var(--ui-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .badge {
+        font-size: 0.7rem;
+        font-weight: 500;
+        padding: var(--space-xs) var(--space-sm);
+        border-radius: var(--radius-sm);
+    }
+
+    .badge-group {
+        display: flex;
+        gap: var(--space-xs);
+        flex-wrap: wrap;
+    }
+
+    .timeline-item-simple {
+        transition: all 0.15s ease;
+        padding: var(--space-md);
+        border-radius: var(--radius-md);
+        margin-bottom: var(--space-md);
+        border-left: 2px solid transparent;
+    }
+
+    .timeline-item-simple:hover {
+        background: var(--ui-hover);
+        transform: translateX(2px);
+    }
+
+    .timeline-item-simple.current-position {
+        background: rgba(43, 60, 107, 0.04);
+        border-left: 3px solid var(--primary-color);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .timeline-item-simple.current-position:hover {
+        background: rgba(43, 60, 107, 0.06);
+    }
+
+    /* Button and Interactive Elements */
+    .btn {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: var(--space-sm) var(--space-md);
+        border-radius: var(--radius-sm);
+        transition: all 0.15s ease;
+    }
+
+    .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    .btn-sm {
+        font-size: 0.75rem;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    /* Empty State and Text Styling */
+    .text-muted {
+        color: var(--text-muted) !important;
+        font-style: italic;
+        font-size: 0.8rem;
+    }
+
+    .alert {
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
+        font-size: 0.8rem;
+        padding: var(--space-md);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .nav-tabs {
+            padding: var(--space-xs) var(--space-sm) 0;
+            overflow-x: auto;
+            scrollbar-width: none;
+        }
+
+        .nav-tabs::-webkit-scrollbar {
+            display: none;
+        }
+
+        .nav-tabs .nav-link {
+            font-size: 0.75rem;
+            padding: var(--space-sm) var(--space-md);
+            white-space: nowrap;
+        }
+
+        .tab-pane {
+            padding: var(--space-sm);
+        }
+
+        .info-grid {
+            grid-template-columns: 1fr;
+            gap: var(--space-sm);
+        }
+
+        .content-section {
+            padding: var(--space-sm);
+            margin-bottom: var(--space-sm);
+        }
+    }
+
+    /* Alumni Profile Header */
+    .alumni-profile-header {
+        border-bottom: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        padding: var(--space-lg);
+    }
+
+    .alumni-profile-header h5 {
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 1rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    .alumni-profile-header p {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        margin: 0;
+    }
+
+    /* Progress and Status Elements */
+    .progress {
+        height: 4px;
+        border-radius: var(--radius-sm);
+        background-color: var(--ui-border);
+    }
+
+    .progress-bar {
+        background: var(--feedback-success);
+        border-radius: var(--radius-sm);
+        transition: width 0.6s ease;
+    }
+
+    .profile-progress {
+        height: 4px;
+    }
+
+    /* Timeline and Employment Styles */
+    .timeline-simple {
+        position: relative;
+    }
+
+    .timeline-item-simple h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 0.875rem;
+        margin-bottom: var(--space-xs);
+    }
+
+    .timeline-item-simple .text-primary {
+        color: var(--primary-color) !important;
+        font-weight: 500;
+        font-size: 0.8rem;
+    }
+
+    .timeline-item-simple .badge-sm {
+        font-size: 0.7rem;
+        padding: var(--space-xs) var(--space-sm);
+    }
+
+    /* Button Variants */
+    .btn-outline-dark {
+        border-color: var(--ui-border);
+        color: var(--text-primary);
+        background: transparent;
+    }
+
+    .btn-outline-dark:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    .btn-close {
+        filter: brightness(0) invert(1);
+        font-size: 0.8rem;
+    }
+</style>
+
+<!-- Clean Alumni Profile Header -->
+<div class="alumni-profile-header">
+    <div class="d-flex align-items-center">
+        <div class="avatar-wrapper me-3">
+            {% if profile.avatar %}
+                <img src="{{ profile.avatar.url }}" alt="{{ alumni.full_name }}" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+            {% else %}
+                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" class="rounded-circle" style="width: 48px; height: 48px; object-fit: cover;">
+            {% endif %}
+        </div>
+        <div class="flex-grow-1">
+            <h5>{{ alumni.full_name }}</h5>
+            <p>{{ alumni.course }} ({{ alumni.graduation_year }})</p>
+            {% if alumni.college %}
+            <p class="text-muted mb-0">
+                <i class="fas fa-university me-1"></i>
+                {{ alumni.college_display }}
+            </p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal Content (without modal-body wrapper since it's inserted into existing modal-body) -->
+<div class="modal-content-wrapper p-0">
+
+    <!-- Compact Profile Completion -->
+    <div class="alert {% if profile_completion.total >= 75 %}alert-success{% elif profile_completion.total >= 50 %}alert-warning{% else %}alert-danger{% endif %} d-flex align-items-center" style="margin: var(--space-md); margin-bottom: 0; border-radius: var(--radius-md);">
+        <div class="flex-grow-1">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <span class="fw-semibold" style="font-size: 0.8rem;">Profile: {{ profile_completion.total|floatformat:0 }}%</span>
+                <small class="text-muted">
+                    Req: {{ profile_completion.required|floatformat:0 }}% | Opt: {{ profile_completion.optional|floatformat:0 }}%
+                </small>
+            </div>
+            <div class="progress profile-progress">
+                <div class="progress-bar" role="progressbar" style="width: {{ profile_completion.total }}%" aria-valuenow="{{ profile_completion.total|floatformat:0 }}" aria-valuemin="0" aria-valuemax="100"></div>
+            </div>
+        </div>
+        {% if profile_completion.total < 100 %}
+        <button type="button" class="btn btn-sm btn-outline-dark ms-3" id="reminderBtn">
+            <i class="fas fa-bell me-1"></i>
+            Remind
+        </button>
+        {% endif %}
+    </div>
+
+    <!-- Refined Tab Navigation -->
+    <ul class="nav nav-tabs" id="alumniDetailTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active" id="overview-tab" data-bs-toggle="tab" data-bs-target="#overview" type="button" role="tab" aria-controls="overview" aria-selected="true">
+                <i class="fas fa-user"></i>
+                Personal
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="professional-tab" data-bs-toggle="tab" data-bs-target="#professional" type="button" role="tab" aria-controls="professional" aria-selected="false">
+                <i class="fas fa-briefcase"></i>
+                Career
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="academic-tab" data-bs-toggle="tab" data-bs-target="#academic" type="button" role="tab" aria-controls="academic" aria-selected="false">
+                <i class="fas fa-graduation-cap"></i>
+                Education
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="documents-tab" data-bs-toggle="tab" data-bs-target="#documents" type="button" role="tab" aria-controls="documents" aria-selected="false">
+                <i class="fas fa-file-alt"></i>
+                Files
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link" id="additional-tab" data-bs-toggle="tab" data-bs-target="#additional" type="button" role="tab" aria-controls="additional" aria-selected="false">
+                <i class="fas fa-info-circle"></i>
+                More
+            </button>
+        </li>
+    </ul>
+
+    <!-- Tab Content -->
+    <div class="tab-content" id="alumniDetailTabContent">
+        <!-- Personal Tab -->
+        <div class="tab-pane fade show active" id="overview" role="tabpanel" aria-labelledby="overview-tab">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-user"></i>
+                            Personal Info
+                        </div>
+                        {% if empty_sections.personal %}
+                        <p class="text-muted mb-0">No additional personal information provided</p>
+                        {% else %}
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Gender</span>
+                                <span class="info-value">{{ alumni.get_gender_display }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">DOB</span>
+                                <span class="info-value">{{ alumni.date_of_birth|date:"M d, Y" }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Email</span>
+                                <a href="mailto:{{ alumni.email }}" class="info-value">
+                                    <i class="fas fa-envelope me-1"></i>
+                                    {{ alumni.email }}
+                                </a>
+                            </div>
+                            {% if alumni.alternate_email %}
+                            <div class="info-item">
+                                <span class="info-label">Alt Email</span>
+                                <a href="mailto:{{ alumni.alternate_email }}" class="info-value">
+                                    <i class="fas fa-envelope me-1"></i>
+                                    {{ alumni.alternate_email }}
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% if alumni.phone_number %}
+                            <div class="info-item">
+                                <span class="info-label">Phone</span>
+                                <a href="tel:{{ alumni.phone_number }}" class="info-value">
+                                    <i class="fas fa-phone me-1"></i>
+                                    {{ alumni.phone_number }}
+                                </a>
+                            </div>
+                            {% endif %}
+                            {% if alumni.linkedin_profile %}
+                            <div class="info-item">
+                                <span class="info-label">LinkedIn</span>
+                                <a href="{{ alumni.linkedin_profile }}" target="_blank" class="info-value">
+                                    <i class="fab fa-linkedin me-1"></i>
+                                    Profile
+                                </a>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-map-marker-alt"></i>
+                            Location
+                        </div>
+                        {% if empty_sections.location %}
+                        <p class="text-muted mb-0">No location information provided</p>
+                        {% else %}
+                        <div class="info-grid">
+                            {% if alumni.country %}
+                            <div class="info-item">
+                                <span class="info-label">Country</span>
+                                <span class="info-value">{{ alumni.country.name }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="info-item">
+                                <span class="info-label">Province</span>
+                                <span class="info-value">{{ alumni.province|default:"Not specified" }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">City</span>
+                                <span class="info-value">{{ alumni.city|default:"Not specified" }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Address</span>
+                                <span class="info-value">{{ alumni.address|default:"Not specified" }}</span>
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Career Tab -->
+        <div class="tab-pane fade" id="professional" role="tabpanel" aria-labelledby="professional-tab">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-briefcase"></i>
+                            Current Status
+                        </div>
+                        {% if empty_sections.professional %}
+                        <p class="text-muted mb-0">No professional information provided</p>
+                        {% else %}
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="info-label">Status</span>
+                                <span class="badge bg-primary">{{ alumni.get_employment_status_display }}</span>
+                            </div>
+                            {% if alumni.current_company %}
+                            <div class="info-item">
+                                <span class="info-label">Company</span>
+                                <span class="info-value">{{ alumni.current_company }}</span>
+                            </div>
+                            {% endif %}
+                            {% if alumni.job_title %}
+                            <div class="info-item">
+                                <span class="info-label">Position</span>
+                                <span class="info-value">{{ alumni.job_title }}</span>
+                            </div>
+                            {% endif %}
+                            {% if alumni.industry %}
+                            <div class="info-item">
+                                <span class="info-label">Industry</span>
+                                <span class="info-value">{{ alumni.industry }}</span>
+                            </div>
+                            {% endif %}
+                            {% if alumni.current_experience and alumni.current_experience.location %}
+                            <div class="info-item">
+                                <span class="info-label">Location</span>
+                                <span class="info-value">{{ alumni.current_experience.location }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Employment History -->
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-history"></i>
+                                Work History
+                            </span>
+                            {% if unified_experience %}
+                            <span class="badge bg-secondary">{{ unified_experience|length }}</span>
+                            {% endif %}
+                        </div>
+                        {% if unified_experience %}
+                            <div class="timeline-simple">
+                                {% for exp in unified_experience %}
+                                <div class="timeline-item-simple {% if exp.is_current %}current-position{% endif %}">
+                                    <div class="d-flex justify-content-between align-items-start mb-1">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1">{{ exp.position }}</h6>
+                                            <p class="mb-1 text-primary">{{ exp.company }}</p>
+                                            <small class="text-muted">
+                                                <i class="far fa-calendar-alt me-1"></i>
+                                                {{ exp.start_date|date:"M Y" }}{% if exp.end_date %} - {{ exp.end_date|date:"M Y" }}{% elif exp.is_current %} - <span class="badge bg-success badge-sm">Now</span>{% endif %}
+                                            </small>
+                                            {% if exp.location %}
+                                            <br><small class="text-muted">
+                                                <i class="fas fa-map-marker-alt me-1"></i>
+                                                {{ exp.location }}
+                                            </small>
+                                            {% endif %}
+                                        </div>
+                                        {% if exp.experience_type != 'REGULAR' %}
+                                        <span class="badge bg-info">{{ exp.experience_type|title }}</span>
+                                        {% endif %}
+                                    </div>
+                                    {% if exp.description %}
+                                    <div class="mt-1">
+                                        <small class="text-muted">{{ exp.description|truncatewords:15 }}</small>
+                                    </div>
+                                    {% endif %}
+                                    {% if not forloop.last %}
+                                    <hr style="margin: var(--space-md) 0;">
+                                    {% endif %}
+                                </div>
+                                {% endfor %}
+                            </div>
+                        {% else %}
+                            <p class="text-muted mb-0">No employment history available</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <!-- Skills and Interests -->
+                {% if alumni.skills or alumni.interests %}
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-star"></i>
+                            Skills & Interests
+                        </div>
+                        <div class="row">
+                            {% if alumni.skills %}
+                            <div class="col-md-6 mb-2 mb-md-0">
+                                <span class="info-label d-block mb-2">Skills</span>
+                                <div class="d-flex flex-wrap" style="gap: var(--space-xs);">
+                                    {% for skill in alumni.skills|split:',' %}
+                                    <span class="badge bg-primary">{{ skill|strip }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% if alumni.interests %}
+                            <div class="col-md-6">
+                                <span class="info-label d-block mb-2">Interests</span>
+                                <div class="d-flex flex-wrap" style="gap: var(--space-xs);">
+                                    {% for interest in alumni.interests|split:',' %}
+                                    <span class="badge bg-secondary">{{ interest|strip }}</span>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Education Tab -->
+        <div class="tab-pane fade" id="academic" role="tabpanel" aria-labelledby="academic-tab">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-graduation-cap"></i>
+                            Education Details
+                        </div>
+                        <div class="info-grid">
+                            {% if alumni.college %}
+                            <div class="info-item">
+                                <span class="info-label">College</span>
+                                <span class="info-value">
+                                    <i class="fas fa-university me-1"></i>
+                                    {{ alumni.college_display }}
+                                </span>
+                            </div>
+                            {% endif %}
+                            <div class="info-item">
+                                <span class="info-label">Course</span>
+                                <span class="info-value">{{ alumni.course }}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">Grad Year</span>
+                                <span class="info-value">{{ alumni.graduation_year }}</span>
+                            </div>
+                            {% if alumni.major %}
+                            <div class="info-item">
+                                <span class="info-label">Major</span>
+                                <span class="info-value">{{ alumni.major }}</span>
+                            </div>
+                            {% endif %}
+                            {% if alumni.honors %}
+                            <div class="info-item">
+                                <span class="info-label">Honors</span>
+                                <span class="info-value">{{ alumni.honors }}</span>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% if empty_sections.academic %}
+                        <p class="text-muted mt-2 mb-0">
+                            <i class="fas fa-info-circle me-1"></i>
+                            No additional academic information provided
+                        </p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Files Tab -->
+        <div class="tab-pane fade" id="documents" role="tabpanel" aria-labelledby="documents-tab">
+            <div class="row g-3">
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header d-flex justify-content-between align-items-center">
+                            <span>
+                                <i class="fas fa-file-alt"></i>
+                                Documents
+                            </span>
+                            <div class="badge-group">
+                                <span class="badge bg-primary">{{ doc_stats.total }}</span>
+                                <span class="badge bg-success">{{ doc_stats.verified }}</span>
+                                <span class="badge bg-warning">{{ doc_stats.pending }}</span>
+                            </div>
+                        </div>
+                        {% if empty_sections.documents %}
+                        <p class="text-muted mb-0">No documents uploaded yet</p>
+                        {% else %}
+                        <div class="row g-3">
+                            {% for doc_type, doc_label in document_types %}
+                            {% with type_docs=documents|get_item:doc_type %}
+                            {% if type_docs %}
+                            <div class="col-md-6">
+                                <span class="info-label d-block mb-2">{{ doc_label }}</span>
+                                <div class="list-group">
+                                    {% for doc in type_docs %}
+                                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                                        <div class="flex-grow-1">
+                                            <h6 class="mb-1" style="font-size: 0.8rem;">{{ doc.title }}</h6>
+                                            <small class="text-muted">
+                                                {{ doc.file_size }} • {{ doc.uploaded_at|date:"M d" }}
+                                            </small>
+                                        </div>
+                                        <div class="d-flex align-items-center" style="gap: var(--space-xs);">
+                                            {% if doc.is_verified %}
+                                            <span class="badge bg-success">✓</span>
+                                            {% else %}
+                                            <span class="badge bg-warning">⏳</span>
+                                            {% endif %}
+                                            <a href="{% url 'alumni_directory:download_document' doc.id %}"
+                                               class="btn btn-sm btn-primary download-document-btn">
+                                                <i class="fas fa-download"></i>
+                                            </a>
+                                        </div>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                            {% endif %}
+                            {% endwith %}
+                            {% endfor %}
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- More Tab -->
+        <div class="tab-pane fade" id="additional" role="tabpanel" aria-labelledby="additional-tab">
+            <div class="row g-3">
+                {% if alumni.bio or alumni.achievements %}
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-info-circle"></i>
+                            Additional Info
+                        </div>
+                        {% if empty_sections.additional %}
+                        <p class="text-muted mb-0">No additional information provided</p>
+                        {% else %}
+                        {% if alumni.bio %}
+                        <div class="mb-3">
+                            <span class="info-label d-block mb-2">Bio</span>
+                            <div class="info-value">{{ alumni.bio|linebreaks }}</div>
+                        </div>
+                        {% endif %}
+                        {% if alumni.achievements %}
+                        <div>
+                            <span class="info-label d-block mb-2">Achievements</span>
+                            <div class="info-value">{{ alumni.achievements|linebreaks }}</div>
+                        </div>
+                        {% endif %}
+                        {% endif %}
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header">
+                            <i class="fas fa-info-circle"></i>
+                            Additional Info
+                        </div>
+                        <p class="text-muted mb-0">No additional information provided</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+<!-- End modal-content-wrapper -->
+
+<!-- Send Reminder Modal -->
+<div class="modal fade" id="reminderModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Send Profile Completion Reminder</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Send a reminder to {{ alumni.full_name }} to complete their profile information?</p>
+                <div class="alert alert-info">
+                    <strong>Missing Information:</strong>
+                    <ul class="mb-0">
+                        {% if empty_sections.personal %}<li>Personal Information</li>{% endif %}
+                        {% if empty_sections.location %}<li>Location Information</li>{% endif %}
+                        {% if empty_sections.professional %}<li>Professional Information</li>{% endif %}
+                        {% if empty_sections.academic %}<li>Academic Information</li>{% endif %}
+                        {% if empty_sections.skills %}<li>Skills</li>{% endif %}
+                        {% if empty_sections.interests %}<li>Interests</li>{% endif %}
+                        {% if empty_sections.documents %}<li>Documents</li>{% endif %}
+                        {% if empty_sections.additional %}<li>Additional Information</li>{% endif %}
+                    </ul>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="sendReminderBtn">
+                    <i class="fas fa-paper-plane me-1"></i>
+                    Send Reminder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const reminderBtn = document.getElementById('reminderBtn');
+    const reminderModal = document.getElementById('reminderModal') ? new bootstrap.Modal(document.getElementById('reminderModal')) : null;
+    const sendReminderBtn = document.getElementById('sendReminderBtn');
+    const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+
+    function showError(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-danger alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.alumni-detail-header').insertAdjacentElement('afterend', alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    function showSuccess(message) {
+        const alertDiv = document.createElement('div');
+        alertDiv.className = 'alert alert-success alert-dismissible fade show';
+        alertDiv.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        document.querySelector('.alumni-detail-header').insertAdjacentElement('afterend', alertDiv);
+        setTimeout(() => alertDiv.remove(), 5000);
+    }
+
+    if (reminderBtn && reminderModal) {
+        reminderBtn.addEventListener('click', function() {
+            try {
+                reminderModal.show();
+            } catch (error) {
+                console.error('Error showing modal:', error);
+                showError('Failed to show reminder modal. Please try again.');
+            }
+        });
+    }
+
+    if (sendReminderBtn && csrfToken) {
+        sendReminderBtn.addEventListener('click', async function() {
+            try {
+                const response = await fetch(`/alumni/{{ alumni.id }}/send-reminder/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrfToken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.message || 'Failed to send reminder');
+                }
+
+                reminderModal?.hide();
+                showSuccess(data.message || 'Reminder sent successfully!');
+            } catch (error) {
+                console.error('Error:', error);
+                showError(error.message || 'Failed to send reminder. Please try again.');
+            }
+        });
+    }
+});
+</script>

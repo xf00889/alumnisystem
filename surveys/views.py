@@ -1582,6 +1582,8 @@ def report_export_pdf(request, pk):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
+    from reportlab.pdfgen import canvas
+    from core.export_utils import LogoHeaderService
     
     report = get_object_or_404(Report, pk=pk)
     
@@ -1603,18 +1605,36 @@ def report_export_pdf(request, pk):
         detail_view.object = report
         report_data = detail_view.generate_report_data(report)
         
+        # Get logo path for header
+        logo_path = LogoHeaderService.get_logo_path()
+        
         # Create PDF response
         response = HttpResponse(content_type='application/pdf')
         filename = f"{report.title.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
-        # Create PDF document
+        # Create custom canvas class with logo header
+        class HeaderCanvas(canvas.Canvas):
+            def __init__(self, *args, **kwargs):
+                canvas.Canvas.__init__(self, *args, **kwargs)
+            
+            def showPage(self):
+                # Add logo header to each page
+                LogoHeaderService.add_pdf_header(
+                    self, 
+                    None,  # doc parameter not needed for this implementation
+                    logo_path,
+                    title="NORSU Alumni System - Survey Report"
+                )
+                canvas.Canvas.showPage(self)
+        
+        # Create PDF document with increased top margin
         doc = SimpleDocTemplate(
             response,
             pagesize=A4,
             rightMargin=30,
             leftMargin=30,
-            topMargin=30,
+            topMargin=80,  # Increased from 30 to 80 for logo header
             bottomMargin=30
         )
         elements = []
@@ -2007,8 +2027,8 @@ def report_export_pdf(request, pk):
                         styles['Normal']
                     ))
     
-        # Build PDF
-        doc.build(elements)
+        # Build PDF with custom canvas
+        doc.build(elements, canvasmaker=HeaderCanvas)
         
         # Calculate export time
         elapsed_time = time.time() - start_time

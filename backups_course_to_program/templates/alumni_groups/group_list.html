@@ -1,0 +1,1960 @@
+{% extends 'base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}Alumni Groups{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* NORSU Alumni System - Groups Design */
+    :root {
+        /* NORSU Brand Colors */
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        
+        /* UI Colors - Consistent with system */
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --ui-selected: #e3f2fd;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors - NORSU Theme */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        
+        /* Group Status Colors */
+        --status-active: #28a745;
+        --status-inactive: #6c757d;
+        --status-private: #dc3545;
+        --status-public: #17a2b8;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 300ms ease;
+    }
+
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+    }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Search Section */
+    .search-section {
+        background: var(--ui-surface);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-form {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1fr;
+        gap: 2rem;
+        align-items: end;
+    }
+    
+    .search-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .search-container {
+        position: relative;
+    }
+
+    .search-input {
+        width: 100%;
+        padding: 0.75rem 1rem 0.75rem 2.5rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        transition: all var(--transition-normal);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .filter-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .filter-buttons {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+    }
+
+    .filter-button {
+        padding: 0.5rem 1rem;
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all var(--transition-normal);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .filter-button:hover {
+        border-color: var(--primary-color);
+        background: var(--ui-hover);
+    }
+    
+    .filter-button.active {
+        border-color: var(--primary-color);
+        background: var(--ui-selected);
+        color: var(--primary-color);
+    }
+    
+    /* Dropdown Styles */
+    .filter-dropdown {
+        position: relative;
+        display: inline-block;
+    }
+    
+    .dropdown-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.5rem;
+    }
+    
+    .dropdown-toggle i {
+        font-size: 0.6rem;
+        transition: transform var(--transition-normal);
+    }
+    
+    .dropdown-toggle.active i {
+        transform: rotate(180deg);
+    }
+    
+    .dropdown-menu {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        box-shadow: var(--shadow-lg);
+        z-index: 1000;
+        max-height: 300px;
+        overflow: hidden;
+        display: none;
+        margin-top: 0.25rem;
+    }
+    
+    .dropdown-menu.show {
+        display: block;
+    }
+    
+    .dropdown-search {
+        padding: 0.75rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+    
+    .dropdown-search-input {
+        width: 100%;
+        padding: 0.5rem;
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        background: var(--ui-surface);
+    }
+
+    .dropdown-search-input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+    }
+    
+    .dropdown-items {
+        max-height: 200px;
+        overflow-y: auto;
+    }
+    
+    .dropdown-item {
+        padding: 0.5rem 0.75rem;
+        cursor: pointer;
+        font-size: 0.75rem;
+        color: var(--text-primary);
+        border-bottom: 1px solid var(--ui-border);
+        transition: background-color var(--transition-fast);
+    }
+
+    .dropdown-item:hover {
+        background: var(--ui-hover);
+    }
+
+    .dropdown-item.selected {
+        background: var(--ui-selected);
+        color: var(--primary-color);
+        font-weight: 500;
+    }
+    
+    .dropdown-item:last-child {
+        border-bottom: none;
+    }
+    
+    .action-group {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+    }
+    
+    /* View Toggle Styles */
+    .view-toggle-section {
+        background: var(--ui-surface);
+        padding: var(--space-4);
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .view-toggle-container {
+        display: flex;
+        align-items: center;
+        gap: var(--space-4);
+    }
+
+    .view-toggle-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+
+    .view-toggle-buttons {
+        display: flex;
+        gap: var(--space-2);
+    }
+    
+    .view-toggle-btn {
+        display: flex;
+        align-items: center;
+        gap: var(--space-2);
+        padding: var(--space-2) var(--space-4);
+        border: 2px solid var(--ui-border);
+        background: var(--ui-surface);
+        color: var(--text-secondary);
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+    
+    .view-toggle-btn:hover {
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+    
+    .view-toggle-btn.active {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-color: var(--primary-color);
+    }
+    
+    /* Table View Styles */
+    .groups-table {
+        display: none;
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        overflow: hidden;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 2rem;
+    }
+    
+    .groups-table.show {
+        display: block;
+    }
+    
+    .groups-table table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .groups-table th {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: var(--space-4);
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+    
+    .groups-table td {
+        padding: var(--space-4);
+        border-bottom: 1px solid var(--ui-border);
+        vertical-align: top;
+    }
+    
+    .groups-table tr:hover {
+        background: var(--ui-hover);
+    }
+    
+    .groups-table tr:last-child td {
+        border-bottom: none;
+    }
+    
+    .table-title {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-1);
+    }
+    
+    .table-content {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        margin-bottom: var(--space-2);
+    }
+    
+    .table-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: var(--space-3);
+        font-size: 0.75rem;
+        color: var(--text-muted);
+    }
+    
+    .table-actions {
+        display: flex;
+        gap: var(--space-2);
+        align-items: center;
+        justify-content: center;
+    }
+
+    .table-action-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: var(--space-1);
+        padding: var(--space-2) var(--space-3);
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        color: var(--text-secondary);
+        border-radius: var(--radius-md);
+        font-size: 0.8rem;
+        font-weight: 500;
+        text-decoration: none;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        min-width: 100px;
+        justify-content: center;
+        white-space: nowrap;
+    }
+    
+    .table-action-btn:hover {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-color: var(--primary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    .table-action-btn i {
+        font-size: 0.9rem;
+    }
+    
+    .view-details-btn {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-color: var(--primary-color);
+    }
+    
+    .view-details-btn:hover {
+        background: var(--primary-dark);
+        border-color: var(--primary-dark);
+    }
+    
+    .table-checkbox {
+        margin-right: var(--space-2);
+    }
+
+    /* Groups Grid */
+    .groups-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .group-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 0 1.5rem 1.5rem 1.5rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: visible;
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+    }
+
+    .group-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .group-card.selected {
+        border-color: var(--primary-color);
+        background: var(--ui-selected);
+    }
+    
+    .group-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 1rem;
+    }
+    
+    .group-cover {
+        height: 120px;
+        background-size: cover;
+        background-position: center;
+        background-repeat: no-repeat;
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        padding-bottom: 0.75rem;
+        overflow: hidden;
+        z-index: 1;
+        background-color: var(--primary-color);
+    }
+    
+    .group-cover::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+        z-index: 1;
+    }
+    
+    .group-profile-photo {
+        position: relative;
+        z-index: 2;
+    }
+    
+    .profile-image-placeholder {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        border: 4px solid var(--text-light);
+        background: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        font-size: 2.25rem;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .profile-image {
+        width: 90px;
+        height: 90px;
+        border-radius: 50%;
+        border: 4px solid var(--text-light);
+        object-fit: cover;
+        box-shadow: var(--shadow-lg);
+    }
+    
+    .table-profile-placeholder {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: var(--text-light);
+        font-size: 1.75rem;
+        flex-shrink: 0;
+    }
+    
+    .table-profile-image {
+        width: 65px;
+        height: 65px;
+        border-radius: 50%;
+        object-fit: cover;
+        flex-shrink: 0;
+    }
+    
+    .group-checkbox {
+        position: absolute;
+        top: 1rem;
+        left: 1rem;
+    }
+    
+    .group-content {
+        flex-grow: 1;
+        display: flex;
+        flex-direction: column;
+        margin-top: 120px;
+        padding-top: 0.5rem;
+        position: relative;
+        z-index: 2;
+        background: var(--ui-surface);
+    }
+    
+
+    .group-title {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0 0 0.5rem 0;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.3;
+    }
+    
+    .group-title a {
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+    
+    .group-title a:hover {
+        color: var(--primary-color);
+    }
+    
+    .group-preview {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        line-height: 1.4;
+        margin: 0 0 1rem 0;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .group-meta {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .meta-item {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        font-family: 'Poppins', sans-serif;
+        line-height: 1.2;
+    }
+    
+    .meta-item i {
+        width: 12px;
+        color: var(--primary-color);
+        flex-shrink: 0;
+    }
+    
+    .group-actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .view-details-btn {
+        flex: 1;
+        min-width: 100px;
+    }
+
+    .btn {
+        padding: 0.375rem 0.75rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.375rem;
+        justify-content: center;
+        white-space: nowrap;
+    }
+
+    .btn-primary {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+
+    .btn-primary:hover {
+        background: var(--primary-dark);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: var(--text-light);
+    }
+
+    .btn-warning {
+        background: var(--feedback-warning);
+        color: var(--text-primary);
+    }
+
+    .btn-warning:hover {
+        background: #e0a800;
+        transform: translateY(-1px);
+    }
+
+    .btn-danger {
+        background: var(--feedback-error);
+        color: var(--text-light);
+    }
+
+    .btn-danger:hover {
+        background: #c82333;
+        transform: translateY(-1px);
+    }
+
+    .btn-secondary {
+        background: var(--ui-hover);
+        color: var(--text-primary);
+        border: 1px solid var(--ui-border);
+    }
+
+    .btn-secondary:hover {
+        background: var(--ui-border);
+        color: var(--text-primary);
+        text-decoration: none;
+    }
+
+    /* Pagination */
+    .pagination-container {
+        background: var(--ui-surface);
+        padding: var(--space-5);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .pagination-info {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .pagination {
+        display: flex;
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        gap: 0.25rem;
+    }
+
+    .page-item {
+        display: flex;
+    }
+
+    .page-link {
+        padding: 0.5rem 0.75rem;
+        border: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        text-decoration: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all var(--transition-normal);
+        display: flex;
+        align-items: center;
+        gap: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .page-link:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .page-item.active .page-link {
+        background: var(--primary-color);
+        color: var(--text-light);
+        border-color: var(--primary-color);
+    }
+
+    /* Responsive Design */
+    @media (max-width: 1024px) {
+        .search-form {
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+        }
+        
+        .action-group {
+            grid-column: 1 / -1;
+            justify-self: start;
+            margin-top: 1rem;
+        }
+    }
+
+    @media (max-width: 768px) {
+        /* HIDE VIEW MODE SECTION ON MOBILE - CRITICAL */
+        div.view-toggle-section,
+        .view-toggle-section {
+            display: none !important;
+            visibility: hidden !important;
+            height: 0 !important;
+            overflow: hidden !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+
+        div.view-toggle-container,
+        .view-toggle-container {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        /* Adjust body padding for bottom nav */
+        body {
+            padding-bottom: 60px;
+        }
+
+        .container-fluid {
+            padding: 0.75rem;
+        }
+
+        /* Compact header */
+        .directory-header {
+            padding: 1.25rem;
+            margin-bottom: 1rem;
+            border-radius: 0;
+        }
+
+        .directory-title {
+            font-size: 1.5rem;
+            margin-bottom: 0.25rem;
+        }
+
+        .directory-subtitle {
+            font-size: 0.875rem;
+        }
+
+        /* COMPACT SEARCH SECTION */
+        .search-section {
+            padding: 1rem;
+            margin-bottom: 1rem;
+            border-radius: var(--radius-md);
+        }
+
+        .search-form {
+            grid-template-columns: 1fr;
+            gap: 0.75rem;
+        }
+
+        /* Compact search input */
+        .search-input {
+            padding: 0.5rem 0.75rem 0.5rem 2rem;
+            font-size: 0.875rem;
+        }
+
+        .search-icon {
+            left: 0.5rem;
+            font-size: 0.875rem;
+        }
+
+        /* COMPACT FILTER BUTTONS */
+        .filter-buttons {
+            grid-template-columns: repeat(3, 1fr);
+            gap: 0.5rem;
+        }
+
+        .filter-button {
+            padding: 0.5rem 0.5rem;
+            font-size: 0.75rem;
+            white-space: nowrap;
+        }
+
+        /* Compact action buttons */
+        .action-group {
+            display: flex;
+            gap: 0.5rem;
+            width: 100%;
+        }
+
+        .btn-primary, .btn-outline-secondary {
+            flex: 1;
+            padding: 0.625rem 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        .btn-primary i, .btn-outline-secondary i {
+            margin-right: 0.25rem;
+            font-size: 0.875rem;
+        }
+
+        /* Groups grid */
+        .groups-grid {
+            grid-template-columns: 1fr;
+            gap: 1rem;
+        }
+
+        /* FIX: Group card cover overlap */
+        .group-card {
+            position: relative;
+            overflow: visible !important;
+            padding-top: 50px !important; /* Space for cover */
+        }
+
+        .group-cover {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 80px;
+            margin: 0 !important;
+            border-radius: var(--radius-md) var(--radius-md) 0 0;
+        }
+
+        .group-header {
+            margin-top: 0.75rem;
+        }
+
+        /* Compact group images */
+        .profile-image-placeholder {
+            width: 70px;
+            height: 70px;
+            font-size: 1.75rem;
+        }
+
+        .profile-image {
+            width: 70px;
+            height: 70px;
+        }
+
+        .group-name {
+            font-size: 1rem;
+            margin-top: 0.5rem;
+        }
+
+        .group-type-badge {
+            font-size: 0.6875rem;
+            padding: 0.25rem 0.5rem;
+        }
+
+        .group-description {
+            font-size: 0.8125rem;
+            line-height: 1.4;
+            margin: 0.5rem 0;
+        }
+
+        .group-meta {
+            grid-template-columns: 1fr 1fr;
+            gap: 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .meta-item {
+            padding: 0.375rem 0.5rem;
+        }
+
+        .meta-item i {
+            font-size: 0.75rem;
+        }
+
+        .group-actions {
+            flex-direction: row;
+            gap: 0.5rem;
+        }
+
+        .view-details-btn {
+            flex: 1;
+            padding: 0.625rem 0.75rem;
+            font-size: 0.8125rem;
+        }
+
+        /* Results and view toggle buttons */
+        .results-count {
+            font-size: 0.875rem;
+        }
+
+        div.view-toggle-buttons,
+        .view-toggle-buttons,
+        .view-toggle-btn {
+            display: none !important;
+            visibility: hidden !important;
+        }
+
+        /* Force card view, hide table view */
+        .groups-grid {
+            display: grid !important;
+        }
+
+        .groups-table {
+            display: none !important;
+        }
+
+        /* Table view */
+        .groups-table {
+            overflow-x: auto;
+            border-radius: var(--radius-md);
+        }
+
+        .groups-table table {
+            min-width: 600px;
+            font-size: 0.8125rem;
+        }
+
+        .table-actions {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .table-action-btn {
+            min-width: 70px;
+            padding: 0.375rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .table-action-btn span {
+            display: none;
+        }
+
+        /* Pagination */
+        .pagination-container {
+            flex-direction: column;
+            gap: 0.75rem;
+            text-align: center;
+            padding: 1rem 0;
+        }
+
+        .pagination {
+            justify-content: center;
+        }
+
+        .page-link {
+            padding: 0.5rem 0.75rem;
+            font-size: 0.875rem;
+        }
+    }
+
+    @media (max-width: 480px) {
+        /* Extra small screens */
+        .container-fluid {
+            padding: 0.5rem;
+        }
+
+        .directory-header {
+            padding: 1rem;
+        }
+
+        .directory-title {
+            font-size: 1.25rem;
+        }
+
+        .directory-subtitle {
+            font-size: 0.8125rem;
+        }
+
+        .search-section {
+            padding: 0.75rem;
+        }
+
+        /* Stack filter buttons on very small screens */
+        .filter-buttons {
+            grid-template-columns: repeat(2, 1fr);
+        }
+
+        /* Smaller group cards */
+        .group-card {
+            padding: 0.75rem;
+            padding-top: 45px !important;
+        }
+
+        .group-cover {
+            height: 70px;
+        }
+
+        .profile-image-placeholder,
+        .profile-image {
+            width: 60px;
+            height: 60px;
+            font-size: 1.5rem;
+        }
+
+        .group-name {
+            font-size: 0.9375rem;
+        }
+
+        .group-meta {
+            grid-template-columns: 1fr;
+            font-size: 0.6875rem;
+        }
+
+        .action-group {
+            flex-direction: column;
+        }
+
+        .btn-primary, .btn-outline-secondary {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">Alumni Groups</h1>
+        <p class="directory-subtitle">Connect with fellow alumni and join groups based on your interests and background</p>
+            </div>
+    
+    <!-- View Toggle Section -->
+    <div class="view-toggle-section">
+        <div class="view-toggle-container">
+            <label class="view-toggle-label">View Mode:</label>
+            <div class="view-toggle-buttons">
+                <button type="button" id="cardViewBtn" class="view-toggle-btn active" data-view="card">
+                    <i class="fas fa-th-large"></i>
+                    Card View
+                </button>
+                <button type="button" id="tableViewBtn" class="view-toggle-btn" data-view="table">
+                    <i class="fas fa-table"></i>
+                    Tabular View
+                </button>
+        </div>
+    </div>
+</div>
+
+    <!-- Search Section -->
+    <div class="search-section">
+        <div class="search-form">
+            <div class="search-group">
+                <label for="searchInput" class="form-label">Search Groups</label>
+                <div class="search-container">
+                    <i class="fas fa-search search-icon"></i>
+                <input type="text" 
+                           id="searchInput" 
+                       class="search-input" 
+                           placeholder="Search by name or description...">
+            </div>
+                </div>
+            <div class="filter-group">
+                <label class="form-label">Filter by Type</label>
+                <div class="filter-buttons">
+                    <button class="filter-button active" data-filter="all">All</button>
+                    <div class="filter-dropdown">
+                        <button class="filter-button dropdown-toggle" data-filter="batch" type="button">
+                            Batch <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu" id="batchDropdown">
+                            <div class="dropdown-search">
+                                <input type="text" placeholder="Search batches..." class="dropdown-search-input" data-search="batch">
+            </div>
+                            <div class="dropdown-items" id="batchItems">
+                                <!-- Will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+                    <div class="filter-dropdown">
+                        <button class="filter-button dropdown-toggle" data-filter="course" type="button">
+                            Course <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <div class="dropdown-menu" id="courseDropdown">
+                            <div class="dropdown-search">
+                                <input type="text" placeholder="Search courses..." class="dropdown-search-input" data-search="course">
+                    </div>
+                            <div class="dropdown-items" id="courseItems">
+                                <!-- Will be populated by JavaScript -->
+                </div>
+            </div>
+                    </div>
+                </div>
+            </div>
+            <div class="action-group">
+                {% if user.is_authenticated %}
+                    <a href="{% url 'alumni_groups:group_create_progressive' %}" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>Create Group
+                    </a>
+                {% endif %}
+                <button class="btn btn-secondary" onclick="handleExport()">
+                    <i class="fas fa-download me-2"></i>Export
+                </button>
+                    </div>
+                </div>
+                </div>
+
+    <!-- Groups Grid -->
+    {% if groups %}
+    <div class="groups-grid" id="groupsGrid">
+                    {% for group in groups %}
+        <div class="group-card" data-id="{{ group.pk }}">
+            <div class="group-header">
+                <div class="group-checkbox">
+                    <input type="checkbox" class="row-checkbox form-check-input" 
+                           value="{{ group.pk }}">
+                        </div>
+            </div>
+
+            <div class="group-cover" style="{% if group.cover_image %}background-image: url('{{ group.cover_image.url }}');{% endif %}">
+                <div class="group-profile-photo">
+                    {% if group.profile_photo %}
+                        <img src="{{ group.profile_photo.url }}" alt="{{ group.name }}" class="profile-image">
+                    {% else %}
+                        <div class="profile-image-placeholder">
+                            <i class="fas fa-users"></i>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="group-content">
+                <h3 class="group-title">
+                    <a href="{% url 'alumni_groups:group_detail' group.slug %}">
+                        {{ group.name }}
+                    </a>
+                </h3>
+                <p class="group-preview">
+                    {{ group.description|truncatewords:15 }}
+                </p>
+                </div>
+
+                            <div class="group-meta">
+                <div class="meta-item">
+                                    <i class="fas fa-graduation-cap"></i>
+                    <span>{{ group.batch_start_year }}-{{ group.batch_end_year }}</span>
+                </div>
+                <div class="meta-item">
+                                    <i class="fas fa-book"></i>
+                    <span>{{ group.course }}</span>
+                            </div>
+                <div class="meta-item">
+                    <i class="fas fa-map-marker-alt"></i>
+                    <span>{{ group.region }}</span>
+                        </div>
+                <div class="meta-item">
+                                <i class="fas fa-users"></i>
+                    <span>{{ group.member_count }} members</span>
+                                </div>
+                            </div>
+
+            <div class="group-actions">
+                <button class="btn btn-primary view-details-btn" 
+                        data-group-id="{{ group.pk }}">
+                    <i class="fas fa-eye me-1"></i>
+                    View Details
+                </button>
+                                {% if group.id not in user_memberships %}
+                <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" 
+                   class="btn btn-secondary">
+                                    <i class="fas fa-user-plus"></i>
+                                    Join
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
+        {% endfor %}
+                </div>
+
+    <!-- Table View -->
+    <div class="groups-table" id="groupsTable">
+        <table>
+            <thead>
+                <tr>
+                    <th width="5%">
+                        <input type="checkbox" id="selectAllTable" class="form-check-input">
+                    </th>
+                    <th width="30%">Name</th>
+                    <th width="30%">Description</th>
+                    <th width="15%">Members</th>
+                    <th width="20%">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                    {% for group in groups %}
+                <tr data-id="{{ group.pk }}">
+                    <td>
+                        <input type="checkbox" class="row-checkbox form-check-input table-checkbox" 
+                               value="{{ group.pk }}">
+                    </td>
+                    <td>
+                        <div class="d-flex align-items-center gap-3">
+                            {% if group.profile_photo %}
+                                <img src="{{ group.profile_photo.url }}" alt="{{ group.name }}" class="table-profile-image">
+                            {% else %}
+                                <div class="table-profile-placeholder">
+                                    <i class="fas fa-users"></i>
+                                </div>
+                            {% endif %}
+                            <div>
+                                <div class="table-title">{{ group.name }}</div>
+                                <div class="table-meta">
+                                    <span><i class="fas fa-graduation-cap"></i> {{ group.batch_start_year }}-{{ group.batch_end_year }}</span>
+                                    <span><i class="fas fa-book"></i> {{ group.course }}</span>
+                            </div>
+                        </div>
+                                </div>
+                    </td>
+                    <td>
+                        <div class="table-content">{{ group.description|truncatewords:20 }}</div>
+                        <div class="table-meta">
+                            <span><i class="fas fa-map-marker-alt"></i> {{ group.region }}</span>
+                            </div>
+                    </td>
+                    <td>
+                        <div class="table-meta">
+                            <span><i class="fas fa-users"></i> {{ group.member_count }} members</span>
+                        </div>
+                    </td>
+                    <td>
+                        <div class="table-actions">
+                            <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="table-action-btn view-details-btn" data-group-id="{{ group.pk }}">
+                                <i class="fas fa-eye"></i>
+                                <span>View Details</span>
+                            </a>
+                            {% if group.id not in user_memberships %}
+                            <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" class="table-action-btn">
+                                <i class="fas fa-user-plus"></i>
+                                <span>Join</span>
+                            </a>
+                        {% endif %}
+                    </div>
+                    </td>
+                </tr>
+                    {% endfor %}
+            </tbody>
+        </table>
+                </div>
+
+                            {% else %}
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-users fa-3x text-muted"></i>
+            </div>
+        <h4 class="text-muted mb-3">No groups found</h4>
+        <p class="text-muted mb-4">
+            {% if user.is_authenticated %}
+            Create your first group to get started
+            {% else %}
+            There are no groups available at the moment
+                            {% endif %}
+                        </p>
+        {% if user.is_authenticated %}
+        <a href="{% url 'alumni_groups:group_create_progressive' %}" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>
+            Create Group
+                            </a>
+                        {% endif %}
+                    </div>
+    {% endif %}
+
+            <!-- Pagination -->
+            {% if is_paginated %}
+    <div class="pagination-container">
+        <div class="pagination-info">
+            Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} groups
+        </div>
+                <ul class="pagination">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page=1" aria-label="First page">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.previous_page_number }}" aria-label="Previous page">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                    <li class="page-item active">
+                        <span class="page-link">{{ num }}</span>
+                    </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ num }}">{{ num }}</a>
+                    </li>
+                    {% endif %}
+                    {% endfor %}
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.next_page_number }}" aria-label="Next page">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}" aria-label="Last page">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+    </div>
+            {% endif %}
+    </div>
+
+<script>
+class GroupsTable {
+    constructor() {
+        this.selectedRows = new Set();
+        this.searchInput = document.getElementById('searchInput');
+        this.currentView = localStorage.getItem('groupsView') || 'card';
+        this.initViewToggle();
+        this.selectedCount = document.getElementById('selectedCount');
+        this.filterButtons = document.querySelectorAll('.filter-button');
+        this.cards = document.querySelectorAll('.group-card');
+        this.dropdowns = document.querySelectorAll('.filter-dropdown');
+        this.selectedFilters = {
+            batch: null,
+            course: null
+        };
+        
+        this.init();
+    }
+    
+    init() {
+        this.setupSearch();
+        this.setupFilters();
+        this.setupDropdowns();
+        this.setupCheckboxes();
+        this.setInitialView();
+        this.populateDropdowns();
+    }
+    
+    initViewToggle() {
+        const cardViewBtn = document.getElementById('cardViewBtn');
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        const groupsGrid = document.getElementById('groupsGrid');
+        const groupsTable = document.getElementById('groupsTable');
+        
+        if (cardViewBtn) {
+            cardViewBtn.addEventListener('click', () => {
+                this.switchView('card');
+            });
+        }
+        
+        if (tableViewBtn) {
+            tableViewBtn.addEventListener('click', () => {
+                this.switchView('table');
+            });
+        }
+    }
+    
+    switchView(view) {
+        const cardViewBtn = document.getElementById('cardViewBtn');
+        const tableViewBtn = document.getElementById('tableViewBtn');
+        const groupsGrid = document.getElementById('groupsGrid');
+        const groupsTable = document.getElementById('groupsTable');
+        
+        // Update button states
+        if (view === 'card') {
+            cardViewBtn.classList.add('active');
+            tableViewBtn.classList.remove('active');
+            groupsGrid.style.display = 'grid';
+            groupsTable.classList.remove('show');
+        } else {
+            tableViewBtn.classList.add('active');
+            cardViewBtn.classList.remove('active');
+            groupsGrid.style.display = 'none';
+            groupsTable.classList.add('show');
+        }
+        
+        // Save preference
+        localStorage.setItem('groupsView', view);
+        this.currentView = view;
+    }
+    
+    setInitialView() {
+        this.switchView(this.currentView);
+    }
+    
+    setupSearch() {
+        if (this.searchInput) {
+            this.searchInput.addEventListener('input', this.debounce((e) => {
+                this.filterCards();
+            }, 300));
+        }
+    }
+    
+    setupFilters() {
+        this.filterButtons.forEach(button => {
+            if (!button.classList.contains('dropdown-toggle')) {
+                button.addEventListener('click', (e) => {
+                    this.filterButtons.forEach(btn => btn.classList.remove('active'));
+                    button.classList.add('active');
+                    this.clearSelectedFilters();
+                    this.filterCards();
+                });
+            }
+        });
+    }
+    
+    setupDropdowns() {
+        this.dropdowns.forEach(dropdown => {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            const menu = dropdown.querySelector('.dropdown-menu');
+            const searchInput = dropdown.querySelector('.dropdown-search-input');
+            
+            // Toggle dropdown
+            toggle.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.closeAllDropdowns();
+                menu.classList.toggle('show');
+                toggle.classList.toggle('active');
+            });
+            
+            // Search within dropdown
+            if (searchInput) {
+                searchInput.addEventListener('input', (e) => {
+                    this.filterDropdownItems(menu, e.target.value);
+                });
+            }
+            
+            // Close dropdown when clicking outside
+            document.addEventListener('click', (e) => {
+                if (!dropdown.contains(e.target)) {
+                    menu.classList.remove('show');
+                    toggle.classList.remove('active');
+                }
+            });
+        });
+    }
+    
+    closeAllDropdowns() {
+        this.dropdowns.forEach(dropdown => {
+            const menu = dropdown.querySelector('.dropdown-menu');
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            menu.classList.remove('show');
+            toggle.classList.remove('active');
+        });
+    }
+    
+    populateDropdowns() {
+        // Predefined lists of all possible courses and batches
+        const allBatches = this.getAllPossibleBatches();
+        const allCourses = this.getAllPossibleCourses();
+        
+        // Populate batch dropdown
+        this.populateDropdown('batchItems', allBatches, 'batch');
+        
+        // Populate course dropdown
+        this.populateDropdown('courseItems', allCourses, 'course');
+    }
+    
+    getAllPossibleBatches() {
+        // Generate batch years from 1990 to current year + 5
+        const currentYear = new Date().getFullYear();
+        const batches = [];
+        
+        for (let year = 1990; year <= currentYear + 5; year++) {
+            batches.push(`Batch ${year}`);
+        }
+        
+        return batches.reverse(); // Most recent first
+    }
+    
+    getAllPossibleCourses() {
+        return [
+            // College of Agriculture
+            'Bachelor of Science in Agriculture',
+            'Bachelor of Science in Agricultural Technology',
+            'Bachelor of Science in Animal Science',
+            'Bachelor of Science in Crop Science',
+            'Bachelor of Science in Soil Science',
+            'Bachelor of Science in Agricultural Economics',
+            'Bachelor of Science in Agricultural Extension',
+            'Bachelor of Science in Food Technology',
+            'Bachelor of Science in Horticulture',
+            'Bachelor of Science in Forestry',
+            'Bachelor of Science in Fisheries',
+            'Bachelor of Science in Environmental Science',
+            
+            // College of Arts and Sciences
+            'Bachelor of Arts in English',
+            'Bachelor of Arts in History',
+            'Bachelor of Arts in Political Science',
+            'Bachelor of Arts in Psychology',
+            'Bachelor of Science in Biology',
+            'Bachelor of Science in Chemistry',
+            'Bachelor of Science in Mathematics',
+            'Bachelor of Science in Physics',
+            'Bachelor of Science in Statistics',
+            'Bachelor of Science in Computer Science',
+            'Bachelor of Science in Information Technology',
+            'Bachelor of Science in Environmental Science',
+            
+            // College of Business and Management
+            'Bachelor of Science in Business Administration',
+            'Bachelor of Science in Accountancy',
+            'Bachelor of Science in Economics',
+            'Bachelor of Science in Entrepreneurship',
+            'Bachelor of Science in Marketing',
+            'Bachelor of Science in Management',
+            'Bachelor of Science in Office Administration',
+            'Bachelor of Science in Tourism Management',
+            'Bachelor of Science in Hospitality Management',
+            
+            // College of Education
+            'Bachelor of Elementary Education',
+            'Bachelor of Secondary Education',
+            'Bachelor of Secondary Education - English',
+            'Bachelor of Secondary Education - Mathematics',
+            'Bachelor of Secondary Education - Science',
+            'Bachelor of Secondary Education - Social Studies',
+            'Bachelor of Secondary Education - Filipino',
+            'Bachelor of Physical Education',
+            'Bachelor of Early Childhood Education',
+            'Bachelor of Special Needs Education',
+            
+            // College of Engineering
+            'Bachelor of Science in Civil Engineering',
+            'Bachelor of Science in Electrical Engineering',
+            'Bachelor of Science in Mechanical Engineering',
+            'Bachelor of Science in Electronics Engineering',
+            'Bachelor of Science in Computer Engineering',
+            'Bachelor of Science in Industrial Engineering',
+            'Bachelor of Science in Chemical Engineering',
+            'Bachelor of Science in Agricultural Engineering',
+            'Bachelor of Science in Geodetic Engineering',
+            'Bachelor of Science in Mining Engineering',
+            
+            // College of Nursing
+            'Bachelor of Science in Nursing',
+            'Bachelor of Science in Midwifery',
+            'Bachelor of Science in Medical Technology',
+            'Bachelor of Science in Radiologic Technology',
+            'Bachelor of Science in Physical Therapy',
+            'Bachelor of Science in Occupational Therapy',
+            
+            // College of Veterinary Medicine
+            'Doctor of Veterinary Medicine',
+            'Bachelor of Science in Veterinary Medicine',
+            
+            // Graduate Programs
+            'Master of Arts in Education',
+            'Master of Science in Agriculture',
+            'Master of Business Administration',
+            'Master of Science in Biology',
+            'Master of Science in Chemistry',
+            'Master of Science in Mathematics',
+            'Master of Science in Physics',
+            'Master of Science in Psychology',
+            'Master of Science in Environmental Science',
+            'Master of Science in Information Technology',
+            'Master of Science in Engineering',
+            'Master of Science in Nursing',
+            'Master of Science in Veterinary Medicine',
+            'Doctor of Philosophy in Education',
+            'Doctor of Philosophy in Agriculture',
+            'Doctor of Philosophy in Biology',
+            'Doctor of Philosophy in Chemistry',
+            'Doctor of Philosophy in Mathematics',
+            'Doctor of Philosophy in Physics',
+            'Doctor of Philosophy in Psychology',
+            'Doctor of Philosophy in Environmental Science',
+            'Doctor of Philosophy in Engineering',
+            'Doctor of Philosophy in Nursing',
+            'Doctor of Philosophy in Veterinary Medicine',
+            
+            // Technical/Vocational Programs
+            'Associate in Computer Technology',
+            'Associate in Information Technology',
+            'Associate in Office Administration',
+            'Associate in Tourism',
+            'Associate in Hotel and Restaurant Management',
+            'Associate in Agriculture',
+            'Associate in Business Administration',
+            'Associate in Education',
+            'Associate in Engineering Technology',
+            'Associate in Nursing',
+            'Associate in Veterinary Technology'
+        ];
+    }
+    
+    
+    populateDropdown(containerId, items, type) {
+        const container = document.getElementById(containerId);
+        container.innerHTML = '';
+        
+        items.forEach(item => {
+            if (item && item.trim() !== '') {
+                const itemElement = document.createElement('div');
+                itemElement.className = 'dropdown-item';
+                itemElement.textContent = item;
+                itemElement.dataset.value = item;
+                itemElement.dataset.type = type;
+                
+                itemElement.addEventListener('click', (e) => {
+                    this.selectDropdownItem(itemElement, type, item);
+                });
+                
+                container.appendChild(itemElement);
+            }
+        });
+    }
+    
+    selectDropdownItem(itemElement, type, value) {
+        // Remove selection from other items of the same type
+        const container = itemElement.parentElement;
+        container.querySelectorAll('.dropdown-item').forEach(item => {
+            item.classList.remove('selected');
+        });
+        
+        // Select current item
+        itemElement.classList.add('selected');
+        
+        // Update selected filters
+        this.selectedFilters[type] = value;
+        
+        // Update dropdown button text
+        const dropdown = itemElement.closest('.filter-dropdown');
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        toggle.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)}: ${value} <i class="fas fa-chevron-down"></i>`;
+        
+        // Close dropdown
+        const menu = dropdown.querySelector('.dropdown-menu');
+        menu.classList.remove('show');
+        toggle.classList.remove('active');
+        
+        // Apply filters
+        this.filterCards();
+    }
+    
+    clearSelectedFilters() {
+        this.selectedFilters = {
+            batch: null,
+            course: null
+        };
+        
+        // Reset dropdown buttons
+        this.dropdowns.forEach(dropdown => {
+            const toggle = dropdown.querySelector('.dropdown-toggle');
+            const type = toggle.dataset.filter;
+            toggle.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} <i class="fas fa-chevron-down"></i>`;
+        });
+    }
+    
+    filterDropdownItems(menu, searchTerm) {
+        const items = menu.querySelectorAll('.dropdown-item');
+        items.forEach(item => {
+            const text = item.textContent.toLowerCase();
+            if (text.includes(searchTerm.toLowerCase())) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+    
+    setupCheckboxes() {
+        // Select all checkbox
+        const selectAll = document.getElementById('selectAllTable');
+        if (selectAll) {
+            selectAll.addEventListener('change', (e) => {
+                this.cards.forEach(card => {
+                    const checkbox = card.querySelector('.row-checkbox');
+                    if (checkbox) {
+                        checkbox.checked = e.target.checked;
+                        if (e.target.checked) {
+                            this.selectedRows.add(checkbox.value);
+                            card.classList.add('selected');
+            } else {
+                            this.selectedRows.delete(checkbox.value);
+                            card.classList.remove('selected');
+                        }
+                    }
+                });
+                this.updateBulkActions();
+            });
+        }
+        
+        // Individual checkboxes
+        this.cards.forEach(card => {
+            const checkbox = card.querySelector('.row-checkbox');
+            if (checkbox) {
+                checkbox.addEventListener('change', (e) => {
+                    if (e.target.checked) {
+                        this.selectedRows.add(e.target.value);
+                        card.classList.add('selected');
+        } else {
+                        this.selectedRows.delete(e.target.value);
+                        card.classList.remove('selected');
+                    }
+                    this.updateBulkActions();
+                });
+            }
+        });
+    }
+    
+    filterCards() {
+        const searchTerm = this.searchInput ? this.searchInput.value.toLowerCase() : '';
+        const activeFilter = document.querySelector('.filter-button.active');
+        const filterValue = activeFilter ? activeFilter.dataset.filter : 'all';
+        
+        // Filter card view
+        this.cards.forEach(card => {
+            const title = card.querySelector('.group-title a').textContent.toLowerCase();
+            const content = card.querySelector('.group-preview').textContent.toLowerCase();
+            
+            // Get group data attributes for filtering
+            const courseElement = card.querySelector('.group-meta .meta-item:nth-child(2) span');
+            const batchElement = card.querySelector('.group-meta .meta-item:nth-child(1) span');
+            
+            const course = courseElement ? courseElement.textContent.toLowerCase().trim() : '';
+            const batch = batchElement ? batchElement.textContent.toLowerCase().trim() : '';
+            
+            const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm) || 
+                                course.includes(searchTerm) || batch.includes(searchTerm);
+            
+            let matchesFilter = true;
+            
+            // Check if specific dropdown filters are selected
+            if (this.selectedFilters.batch) {
+                const selectedBatch = this.selectedFilters.batch.toLowerCase();
+                const batchYear = selectedBatch.replace('batch ', '');
+                matchesFilter = matchesFilter && (batch.includes(batchYear) || batch.includes(selectedBatch));
+            }
+            if (this.selectedFilters.course) {
+                const selectedCourse = this.selectedFilters.course.toLowerCase();
+                matchesFilter = matchesFilter && course.includes(selectedCourse);
+            }
+            
+            // Legacy filter logic for non-dropdown filters
+            if (filterValue !== 'all' && !this.hasActiveDropdownFilters()) {
+                switch(filterValue) {
+                    case 'batch':
+                        matchesFilter = batch.length > 0;
+                        break;
+                    case 'course':
+                        matchesFilter = course.length > 0;
+                        break;
+                }
+            }
+            
+            if (matchesSearch && matchesFilter) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+        
+        // Filter table view
+        const tableRows = document.querySelectorAll('#groupsTable tbody tr');
+        tableRows.forEach(row => {
+            const title = row.querySelector('.table-title').textContent.toLowerCase();
+            const content = row.querySelector('.table-content').textContent.toLowerCase();
+            
+            // Get table data for filtering
+            const courseElement = row.querySelector('.table-meta span:nth-child(2)');
+            const batchElement = row.querySelector('.table-meta span:nth-child(1)');
+            
+            const course = courseElement ? courseElement.textContent.toLowerCase().trim() : '';
+            const batch = batchElement ? batchElement.textContent.toLowerCase().trim() : '';
+            
+            const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm) || 
+                                course.includes(searchTerm) || batch.includes(searchTerm);
+            
+            let matchesFilter = true;
+            
+            // Check if specific dropdown filters are selected
+            if (this.selectedFilters.batch) {
+                const selectedBatch = this.selectedFilters.batch.toLowerCase();
+                const batchYear = selectedBatch.replace('batch ', '');
+                matchesFilter = matchesFilter && (batch.includes(batchYear) || batch.includes(selectedBatch));
+            }
+            if (this.selectedFilters.course) {
+                const selectedCourse = this.selectedFilters.course.toLowerCase();
+                matchesFilter = matchesFilter && course.includes(selectedCourse);
+            }
+            
+            // Legacy filter logic for non-dropdown filters
+            if (filterValue !== 'all' && !this.hasActiveDropdownFilters()) {
+                switch(filterValue) {
+                    case 'batch':
+                        matchesFilter = batch.length > 0;
+                        break;
+                    case 'course':
+                        matchesFilter = course.length > 0;
+                        break;
+                }
+            }
+            
+            if (matchesSearch && matchesFilter) {
+                row.style.display = 'table-row';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+    
+    hasActiveDropdownFilters() {
+        return this.selectedFilters.batch || this.selectedFilters.course;
+    }
+    
+    updateBulkActions() {
+        // This would be implemented if bulk actions are needed
+    }
+    
+    debounce(func, wait) {
+        let timeout;
+        return function executedFunction(...args) {
+            const later = () => {
+                clearTimeout(timeout);
+                func(...args);
+            };
+            clearTimeout(timeout);
+            timeout = setTimeout(later, wait);
+        };
+    }
+}
+
+// Initialize when DOM is loaded
+document.addEventListener('DOMContentLoaded', () => {
+    new GroupsTable();
+    
+    // Handle view details button clicks
+    document.addEventListener('click', (e) => {
+        if (e.target.closest('.view-details-btn')) {
+            const button = e.target.closest('.view-details-btn');
+            const groupId = button.dataset.groupId;
+            
+            // If it's already a link, let it navigate naturally
+            if (button.tagName === 'A') {
+                return;
+            }
+            
+            if (groupId) {
+                // Find the group slug from the card
+                const groupCard = button.closest('.group-card');
+                const groupLink = groupCard.querySelector('.group-title a');
+                if (groupLink) {
+                    window.location.href = groupLink.href;
+                } else {
+                    // Fallback to group detail URL
+                    window.location.href = `/groups/${groupId}/`;
+                }
+            }
+        }
+    });
+});
+
+function handleExport() {
+    alert('Export functionality would be implemented here');
+}
+</script>
+{% endblock %}

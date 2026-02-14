@@ -14,6 +14,7 @@ from django.urls import reverse_lazy
 from django.utils import timezone
 from django.core.cache import cache
 from django.conf import settings
+from django_ratelimit.decorators import ratelimit
 import json
 import logging
 
@@ -32,8 +33,58 @@ logger = logging.getLogger(__name__)
 User = get_user_model()
 
 
+@ratelimit(key='ip', rate='10/m', method='ALL', block=True)
 def custom_login_view(request):
-    """Custom login view that includes reCAPTCHA context"""
+    """Custom login view with reCAPTCHA context, rate limiting, and account lockout protection"""
+    from .security import AccountLockout
+    
+    # Check if request was rate limited by IP
+    if getattr(request, 'limited', False):
+        logger.warning(f"Rate limit exceeded for login from IP: {request.META.get('REMOTE_ADDR')}")
+        messages.error(request, "Too many login attempts from your IP address. Please wait a moment and try again.")
+        return redirect('account_login')
+    
+    # Check for account lockout on POST (login attempt)
+    if request.method == 'POST':
+        username = request.POST.get('login', '')  # allauth uses 'login' field
+        
+        if username:
+            # Check if account is locked
+            is_locked, remaining_minutes, failed_attempts = AccountLockout.is_account_locked(username)
+            
+            if is_locked:
+                logger.warning(
+                    f"Login attempt for locked account: {username} from IP {request.META.get('REMOTE_ADDR')} "
+                    f"({remaining_minutes} minutes remaining)"
+                )
+                
+                # Display lockout message
+                if remaining_minutes > 0:
+                    messages.error(
+                        request,
+                        f"Your account has been temporarily locked due to multiple failed login attempts. "
+                        f"Please try again in {remaining_minutes} minute{'s' if remaining_minutes != 1 else ''}. "
+                        f"If you forgot your password, use the 'Forgot Password' link."
+                    )
+                else:
+                    messages.error(
+                        request,
+                        "Your account has been temporarily locked due to multiple failed login attempts. "
+                        "Please try again in a few moments."
+                    )
+                
+                # Redirect back to login page
+                return redirect('account_login')
+            
+            # Check remaining attempts and show warning if low
+            remaining_attempts = AccountLockout.get_remaining_attempts(username)
+            if 0 < remaining_attempts <= 2:
+                messages.warning(
+                    request,
+                    f"Warning: You have {remaining_attempts} login attempt{'s' if remaining_attempts != 1 else ''} "
+                    f"remaining before your account is temporarily locked."
+                )
+    
     from allauth.account.views import LoginView
     
     # Get reCAPTCHA context
@@ -53,9 +104,16 @@ def custom_login_view(request):
     return response
 
 
+@ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def enhanced_signup(request):
-    """Enhanced signup view with email verification - handles POST from tabbed login page"""
+    """Enhanced signup view with email verification and rate limiting - handles POST from tabbed login page"""
     if request.method == 'POST':
+        # Check if request was rate limited
+        if getattr(request, 'limited', False):
+            logger.warning(f"Rate limit exceeded for signup from IP: {request.META.get('REMOTE_ADDR')}")
+            messages.error(request, "Too many signup attempts. Please wait a moment and try again.")
+            return redirect('account_login')
+        
         # Log the incoming request for debugging
         logger.info(f"Signup attempt from IP: {request.META.get('REMOTE_ADDR')}")
         

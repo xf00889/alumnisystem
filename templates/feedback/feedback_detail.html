@@ -1,0 +1,307 @@
+{% extends 'base.html' %}
+{% load humanize %}
+
+{% block title %}Feedback Details{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .container-fluid {
+        padding-left: 1.5rem;
+        padding-right: 1.5rem;
+        max-width: none;
+    }
+    
+    .page-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 1.75rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.25rem;
+        box-shadow: var(--shadow-sm);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .page-header h2 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+    
+    .feedback-detail-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-md);
+        border: 1px solid var(--ui-border);
+        overflow: hidden;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .feedback-detail-header {
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--ui-border);
+        background: var(--ui-hover);
+    }
+    
+    .feedback-detail-header h4 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .feedback-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        font-size: 0.875rem;
+        color: var(--text-secondary);
+    }
+    
+    .feedback-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.375rem;
+    }
+    
+    .feedback-status {
+        font-size: 0.75rem;
+        font-weight: 500;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-md);
+        text-transform: capitalize;
+    }
+    
+    .status-pending {
+        background: rgba(237, 137, 54, 0.1);
+        color: #ed8936;
+    }
+    
+    .status-in_progress {
+        background: rgba(66, 153, 225, 0.1);
+        color: #4299e1;
+    }
+    
+    .status-resolved {
+        background: rgba(72, 187, 120, 0.1);
+        color: #48bb78;
+    }
+    
+    .status-closed {
+        background: rgba(160, 174, 192, 0.1);
+        color: #718096;
+    }
+    
+    .feedback-detail-body {
+        padding: 1.5rem;
+    }
+    
+    .feedback-message {
+        font-size: 0.9375rem;
+        line-height: 1.7;
+        color: var(--text-primary);
+        white-space: pre-wrap;
+    }
+    
+    .feedback-info-list {
+        margin-top: 1.5rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--ui-border);
+    }
+    
+    .info-item {
+        display: flex;
+        justify-content: space-between;
+        padding: 0.75rem 0;
+        border-bottom: 1px solid var(--ui-border);
+    }
+    
+    .info-item:last-child {
+        border-bottom: none;
+    }
+    
+    .info-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .info-value {
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-weight: 500;
+    }
+    
+    .btn {
+        font-family: 'Poppins', sans-serif;
+        font-weight: 500;
+        padding: 0.75rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-size: 0.875rem;
+        transition: all 0.3s ease;
+        border: 2px solid transparent;
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .btn-primary:hover {
+        background: var(--secondary-color);
+        border-color: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+    }
+    
+    .btn-outline-secondary {
+        background: transparent;
+        border-color: var(--ui-border);
+        color: var(--text-secondary);
+    }
+    
+    .btn-outline-secondary:hover {
+        background: var(--ui-hover);
+        border-color: var(--secondary-color);
+        color: var(--text-primary);
+    }
+    
+    @media (max-width: 768px) {
+        .page-header {
+            padding: 1.25rem;
+        }
+        
+        .page-header h2 {
+            font-size: 1.25rem;
+        }
+        
+        .feedback-meta {
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .feedback-detail-header,
+        .feedback-detail-body {
+            padding: 1rem;
+        }
+        
+        .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+        
+        .d-flex {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="row align-items-center">
+            <div class="col-md-8">
+                <h2 class="mb-2"><i class="fas fa-eye me-3"></i>Feedback Details</h2>
+                <p class="mb-0" style="opacity: 0.9; font-size: 0.875rem;">View the details of your submitted feedback.</p>
+            </div>
+            <div class="col-md-4 text-end">
+                <a href="{% url 'feedback:my_feedbacks' %}" class="btn btn-light">
+                    <i class="fas fa-arrow-left me-2"></i>
+                    Back to My Feedbacks
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="feedback-detail-card">
+        <div class="feedback-detail-header">
+            <div class="d-flex justify-content-between align-items-start flex-wrap mb-3">
+                <h4 class="mb-0">{{ feedback.subject }}</h4>
+                <span class="feedback-status status-{{ feedback.status }}">
+                    {{ feedback.get_status_display }}
+                </span>
+            </div>
+            <div class="feedback-meta">
+                <span>
+                    <i class="fas fa-tag"></i>
+                    {{ feedback.get_category_display }}
+                </span>
+                <span>
+                    <i class="fas fa-calendar"></i>
+                    Submitted: {{ feedback.created_at|date:"F d, Y" }}
+                </span>
+                {% if feedback.updated_at != feedback.created_at %}
+                <span>
+                    <i class="fas fa-edit"></i>
+                    Last updated: {{ feedback.updated_at|date:"F d, Y" }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        
+        <div class="feedback-detail-body">
+            <h6 class="text-muted mb-3" style="font-size: 0.875rem; font-weight: 600;">Message</h6>
+            <div class="feedback-message">
+                {{ feedback.message|linebreaks }}
+            </div>
+            
+            <div class="feedback-info-list">
+                <div class="info-item">
+                    <span class="info-label">Category</span>
+                    <span class="info-value">{{ feedback.get_category_display }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Status</span>
+                    <span class="info-value">{{ feedback.get_status_display }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Submitted On</span>
+                    <span class="info-value">{{ feedback.created_at|date:"F d, Y at h:i A" }}</span>
+                </div>
+                {% if feedback.updated_at != feedback.created_at %}
+                <div class="info-item">
+                    <span class="info-label">Last Updated</span>
+                    <span class="info-value">{{ feedback.updated_at|date:"F d, Y at h:i A" }}</span>
+                </div>
+                {% endif %}
+                {% if feedback.admin_notes %}
+                <div class="info-item">
+                    <span class="info-label">Admin Response</span>
+                    <span class="info-value">{{ feedback.admin_notes }}</span>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

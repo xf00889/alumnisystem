@@ -19,6 +19,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer, PageBreak
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
+from reportlab.pdfgen import canvas
 
 from .models import (
     AuditLog,
@@ -808,16 +809,22 @@ class LogManagementService:
             filepath: Full path to output PDF file
         """
         try:
+            # Import LogoHeaderService
+            from core.export_utils import LogoHeaderService
+            
             # Ensure directory exists
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            # Create PDF document
+            # Get logo path
+            logo_path = LogoHeaderService.get_logo_path()
+            
+            # Create PDF document with increased top margin for header
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=A4,
                 rightMargin=30,
                 leftMargin=30,
-                topMargin=30,
+                topMargin=80,
                 bottomMargin=30
             )
             
@@ -898,8 +905,21 @@ class LogManagementService:
             
             elements.append(table)
             
-            # Build PDF
-            doc.build(elements)
+            # Create custom canvas class for header
+            class HeaderCanvas(canvas.Canvas):
+                def __init__(self, *args, **kwargs):
+                    canvas.Canvas.__init__(self, *args, **kwargs)
+                
+                def showPage(self):
+                    # Add logo header to each page
+                    LogoHeaderService.add_pdf_header(
+                        self, doc, logo_path,
+                        title="NORSU Alumni System - Audit Logs"
+                    )
+                    canvas.Canvas.showPage(self)
+            
+            # Build PDF with custom canvas
+            doc.build(elements, canvasmaker=HeaderCanvas)
             
             self.logger.info(f"Exported {len(logs)} audit logs to PDF: {filepath}")
             
@@ -917,16 +937,22 @@ class LogManagementService:
             log_filename: Name of the source log file
         """
         try:
+            # Import LogoHeaderService
+            from core.export_utils import LogoHeaderService
+            
             # Ensure directory exists
             os.makedirs(os.path.dirname(filepath), exist_ok=True)
             
-            # Create PDF document
+            # Get logo path
+            logo_path = LogoHeaderService.get_logo_path()
+            
+            # Create PDF document with increased top margin for header
             doc = SimpleDocTemplate(
                 filepath,
                 pagesize=A4,
                 rightMargin=30,
                 leftMargin=30,
-                topMargin=30,
+                topMargin=80,
                 bottomMargin=30
             )
             
@@ -997,8 +1023,21 @@ class LogManagementService:
                 elements.append(Spacer(1, 20))
                 elements.append(note)
             
-            # Build PDF
-            doc.build(elements)
+            # Create custom canvas class for header
+            class HeaderCanvas(canvas.Canvas):
+                def __init__(self, *args, **kwargs):
+                    canvas.Canvas.__init__(self, *args, **kwargs)
+                
+                def showPage(self):
+                    # Add logo header to each page
+                    LogoHeaderService.add_pdf_header(
+                        self, doc, logo_path,
+                        title="NORSU Alumni System - File Logs"
+                    )
+                    canvas.Canvas.showPage(self)
+            
+            # Build PDF with custom canvas
+            doc.build(elements, canvasmaker=HeaderCanvas)
             
             self.logger.info(f"Exported {len(log_entries)} file log entries to PDF: {filepath}")
             

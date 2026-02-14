@@ -2,7 +2,7 @@
 Service layer for user management operations
 Provides transaction-safe methods for user creation, role assignment, and audit logging
 """
-from django.db import transaction
+from django.db import transaction, IntegrityError
 from django.contrib.auth import get_user_model
 from django.contrib.sessions.models import Session
 from django.utils import timezone
@@ -152,6 +152,21 @@ NORSU Alumni System
             )
             
             return (user, profile, True, None)
+        
+        except IntegrityError as e:
+            # Handle database constraint violations (duplicate email/username)
+            logger.error(
+                f"Database constraint violation during user creation: email={email}",
+                extra={
+                    'email': email,
+                    'error_type': 'IntegrityError',
+                    'error_message': str(e),
+                    'created_by': created_by.email if created_by else None,
+                    'action': 'user_creation_failed'
+                },
+                exc_info=True
+            )
+            return (None, None, False, "Unable to create account. Please try again or use a different email/username.")
             
         except Exception as e:
             logger.error(

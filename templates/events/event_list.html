@@ -1214,14 +1214,14 @@
                 </div>
             </div>
             <div class="action-group">
-                {% if user.is_authenticated %}
+                {% if user.is_staff %}
                     <a href="{% url 'events:event_create' %}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>New Event
                     </a>
+                    <button class="btn btn-secondary" onclick="handleExport()">
+                        <i class="fas fa-download me-2"></i>Export
+                    </button>
                 {% endif %}
-                <button class="btn btn-secondary" onclick="handleExport()">
-                    <i class="fas fa-download me-2"></i>Export
-                </button>
             </div>
         </div>
     </div>
@@ -1280,7 +1280,7 @@
                     <i class="fas fa-eye me-1"></i>
                     View Details
                 </button>
-                {% if user.is_authenticated %}
+                {% if user.is_staff %}
                 <a href="{% url 'events:event_update' event.pk %}" 
                    class="btn btn-warning">
                     <i class="fas fa-edit"></i>
@@ -1389,7 +1389,7 @@
     <div class="modal" id="eventModal">
         <div class="modal-dialog">
             <div class="modal-header">
-                <h2 class="modal-title">Event Details</h2>
+                <h3 class="modal-title">Event Details</h3>
                 <button class="modal-close" onclick="closeEventModal()">
                     <i class="fas fa-times"></i>
                 </button>
@@ -1770,9 +1770,11 @@ function openEventModal(eventId) {
             };
             setCurrentEventData(eventData);
             
-            // Show action buttons for authenticated users
+            // Show action buttons only for staff users
             const isAuthenticated = document.body.dataset.userAuthenticated === 'true';
-            if (isAuthenticated) {
+            const isStaff = document.body.dataset.userIsStaff === 'true';
+            
+            if (isAuthenticated && isStaff) {
                 modalEditBtn.style.display = 'inline-flex';
                 modalDeleteBtn.style.display = 'inline-flex';
                 modalEditBtn.onclick = () => window.location.href = `/events/${eventId}/update/`;

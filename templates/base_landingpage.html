@@ -5,7 +5,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}NORSU Alumni Network{% endblock title %}</title>
+    
+    <!-- SEO Meta Tags -->
+    {% include 'components/seo/seo_meta_tags.html' %}
+    
+    <!-- Breadcrumb Structured Data -->
+    {% include 'components/seo/structured_data_breadcrumbs.html' %}
+    
+    <title>{% block title %}{{ seo.title|default:"NORSU Alumni Network" }}{% endblock title %}</title>
     
     <!-- Google Fonts - Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -16,6 +23,8 @@
     <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css" rel="stylesheet">
     <!-- Fallback Font Awesome 5 -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+    <!-- Unified Footer CSS -->
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
     
     <style>
         /* NORSU Alumni Landing Page Styles */
@@ -566,119 +575,6 @@
             transform: translateY(-1px);
         }
 
-        /* Footer Styles */
-        .landing-footer {
-            background: linear-gradient(135deg, var(--primary-dark) 0%, #1a1a2e 100%);
-            color: var(--text-light);
-            padding: 3rem 0 1rem;
-            margin-top: 4rem;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .landing-footer::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><defs><pattern id="grain" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="0.5" fill="%23ffffff" opacity="0.03"/></pattern></defs><rect width="100" height="100" fill="url(%23grain)"/></svg>') repeat;
-            pointer-events: none;
-        }
-
-        .footer-content {
-            position: relative;
-            z-index: 1;
-        }
-
-        .footer-brand {
-            margin-bottom: 2rem;
-        }
-
-        .footer-brand .brand-logo {
-            display: flex;
-            align-items: center;
-            margin-bottom: 1rem;
-        }
-
-        .footer-brand .footer-logo {
-            width: 50px;
-            height: 50px;
-            margin-right: 1rem;
-            border-radius: var(--radius-md);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-
-        .footer-brand .brand-title {
-            color: var(--text-light);
-            font-weight: 600;
-            margin: 0;
-            font-size: 1.5rem;
-        }
-
-        .footer-brand .brand-description {
-            color: rgba(255, 255, 255, 0.8);
-            line-height: 1.6;
-            margin-bottom: 1.5rem;
-        }
-
-        .footer-section .footer-title {
-            color: var(--text-light);
-            font-weight: 600;
-            margin-bottom: 1.5rem;
-            font-size: 1.1rem;
-            position: relative;
-            padding-bottom: 0.5rem;
-        }
-
-        .footer-section .footer-title::after {
-            content: '';
-            position: absolute;
-            bottom: 0;
-            left: 0;
-            width: 30px;
-            height: 2px;
-            background: linear-gradient(45deg, var(--feedback-info), var(--feedback-success));
-            border-radius: 1px;
-        }
-
-        .footer-links {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-
-        .footer-links li {
-            margin-bottom: 0.75rem;
-        }
-
-        .footer-links a {
-            color: rgba(255, 255, 255, 0.8);
-            text-decoration: none;
-            transition: all 0.3s ease;
-            display: flex;
-            align-items: center;
-        }
-
-        .footer-links a:hover {
-            color: var(--feedback-info);
-            transform: translateX(5px);
-        }
-
-        .footer-links a i {
-            width: 20px;
-            margin-right: 0.75rem;
-        }
-
-        .footer-bottom {
-            border-top: 1px solid rgba(255, 255, 255, 0.1);
-            padding-top: 2rem;
-            margin-top: 2rem;
-            text-align: center;
-            color: rgba(255, 255, 255, 0.7);
-        }
-
         /* Responsive Design */
         @media (max-width: 768px) {
             .page-title {
@@ -759,6 +655,7 @@
         }
     </style>
     {% block extra_css %}{% endblock %}
+    {% block extra_head %}{% endblock %}
 </head>
 <body>
     <!-- Landing Page Navbar -->
@@ -837,98 +734,7 @@
     </main>
 
     <!-- Footer -->
-    <footer class="landing-footer">
-        <div class="footer-content">
-            <div class="container">
-                <div class="row">
-                    <!-- Brand Section -->
-                    <div class="col-lg-4 col-md-6 mb-4">
-                        <div class="footer-brand">
-                            <div class="brand-logo">
-                                <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="footer-logo">
-                                <h5 class="brand-title">NORSU Alumni</h5>
-                            </div>
-                            <p class="brand-description">
-                                Connecting NORSU alumni worldwide through a comprehensive network that fosters professional growth, 
-                                community engagement, and lifelong relationships.
-                            </p>
-                        </div>
-                    </div>
-
-                    <!-- Quick Links -->
-                    <div class="col-lg-2 col-md-6 mb-4">
-                        <div class="footer-section">
-                            <h6 class="footer-title">Quick Links</h6>
-                            <ul class="footer-links">
-                                <li><a href="{% url 'core:home' %}"><i class="fas fa-home"></i>Home</a></li>
-                                <li><a href="{% url 'core:landing_events' %}"><i class="fas fa-calendar-alt"></i>Events</a></li>
-                                <li><a href="{% url 'core:landing_announcements' %}"><i class="fas fa-bullhorn"></i>Announcements</a></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Information -->
-                    <div class="col-lg-3 col-md-6 mb-4">
-                        <div class="footer-section">
-                            <h6 class="footer-title">Information</h6>
-                            <ul class="footer-links">
-                                <li><a href="{% url 'core:about_us' %}"><i class="fas fa-info-circle"></i>About Us</a></li>
-                                <li><a href="{% url 'core:contact_us' %}"><i class="fas fa-envelope"></i>Contact Us</a></li>
-                                <li><a href="#"><i class="fas fa-shield-alt"></i>Privacy Policy</a></li>
-                                <li><a href="#"><i class="fas fa-file-contract"></i>Terms of Service</a></li>
-                            </ul>
-                        </div>
-                    </div>
-
-                    <!-- Contact Info -->
-                    <div class="col-lg-3 col-md-6 mb-4">
-                        <div class="footer-section">
-                            <h6 class="footer-title">Contact Info</h6>
-                            <div class="contact-info">
-                                {% load cms_tags %}
-                                {% get_contact_info as cms_contact_info %}
-                                {% if cms_contact_info %}
-                                    {% for info in cms_contact_info %}
-                                        {% if info.contact_type == 'address' or info.contact_type == 'email' or info.contact_type == 'phone' %}
-                                        <div class="contact-item mb-3">
-                                            {% if info.contact_type == 'address' %}
-                                                <i class="fas fa-map-marker-alt me-2"></i>
-                                            {% elif info.contact_type == 'email' %}
-                                                <i class="fas fa-envelope me-2"></i>
-                                            {% elif info.contact_type == 'phone' %}
-                                                <i class="fas fa-phone me-2"></i>
-                                            {% endif %}
-                                            <span>{{ info.value|linebreaksbr }}</span>
-                                        </div>
-                                        {% endif %}
-                                    {% endfor %}
-                                {% else %}
-                                    <!-- Fallback contact information -->
-                                    <div class="contact-item mb-3">
-                                        <i class="fas fa-map-marker-alt me-2"></i>
-                                        <span>Negros Oriental State University<br>Dumaguete City, Philippines</span>
-                                    </div>
-                                    <div class="contact-item mb-3">
-                                        <i class="fas fa-phone me-2"></i>
-                                        <span>+63 35 422 6002</span>
-                                    </div>
-                                    <div class="contact-item mb-3">
-                                        <i class="fas fa-envelope me-2"></i>
-                                        <span>alumni@norsu.edu.ph</span>
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Footer Bottom -->
-                <div class="footer-bottom">
-                    <p>&copy; {% now "Y" %} NORSU Alumni Network. All rights reserved. | Developed with ❤️ for NORSU Community</p>
-                </div>
-            </div>
-        </div>
-    </footer>
+    {% include 'components/footer.html' with is_landing=True %}
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>

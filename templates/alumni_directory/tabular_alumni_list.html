@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+<!--  -->{% extends 'base.html' %}
 {% load static %}
 
 {% block title %}Alumni Directory - Tabular View{% endblock %}
@@ -17,9 +17,28 @@
                 <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-secondary me-2">
                     <i class="fas fa-th-large me-1"></i> Card View
                 </a>
-                <a href="{% url 'alumni_directory:tabular_alumni_list' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}" class="btn btn-success">
-                    <i class="fas fa-file-csv me-1"></i> Export to CSV
-                </a>
+                <div class="btn-group" role="group">
+                    <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-download me-1"></i> Export
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li>
+                            <a class="dropdown-item" href="{% url 'alumni_directory:tabular_alumni_list' %}?format=csv{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}">
+                                <i class="fas fa-file-csv me-2"></i> CSV
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'alumni_directory:tabular_alumni_list' %}?format=excel{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}">
+                                <i class="fas fa-file-excel me-2"></i> Excel
+                            </a>
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="{% url 'alumni_directory:tabular_alumni_list' %}?format=pdf{% if search_query %}&search={{ search_query }}{% endif %}{% if selected_year %}&graduation_year={{ selected_year }}{% endif %}{% if selected_course %}&course={{ selected_course }}{% endif %}{% if selected_college %}&college={{ selected_college }}{% endif %}">
+                                <i class="fas fa-file-pdf me-2"></i> PDF
+                            </a>
+                        </li>
+                    </ul>
+                </div>
             </div>
         </div>
         
@@ -34,7 +53,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                                     <input type="text" id="search" name="search" value="{{ search_query }}" 
-                                           class="form-control" placeholder="Search by name, course, college, or location">
+                                           class="form-control" placeholder="Search by name, program, college, or location">
                                 </div>
                             </div>
                         </div>
@@ -62,9 +81,9 @@
                         </div>
                         <div class="col-md-3">
                             <div class="form-group">
-                                <label for="course" class="form-label">Course</label>
+                                <label for="course" class="form-label">Program</label>
                                 <select id="course" name="course" class="form-select">
-                                    <option value="">All Courses</option>
+                                    <option value="">All Programs</option>
                                     {% for course_item in courses %}
                                     <option value="{{ course_item }}" {% if selected_course == course_item %}selected{% endif %}>{{ course_item }}</option>
                                     {% endfor %}
@@ -99,7 +118,7 @@
                                 <th>Full Name</th>
                                 <th>College</th>
                                 <th>Year</th>
-                                <th>Course</th>
+                                <th>Program</th>
                                 <th>Present Occupation</th>
                                 <th>Name of Company</th>
                                 <th>Employment Address</th>

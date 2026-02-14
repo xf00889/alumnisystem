@@ -2531,3 +2531,110 @@ def edit_experience(request, pk):
         return render(request, 'accounts/forms/experience_form.html', {'form': form})
     
     return redirect('accounts:profile_detail')
+
+
+# Availability check endpoint for real-time email/username validation
+import json
+from django_ratelimit.decorators import ratelimit
+from django_ratelimit.exceptions import Ratelimited
+from .validators import UniqueFieldValidator
+
+
+@require_POST
+@ratelimit(key='ip', rate='10/m', method='POST')
+def check_availability(request):
+    """
+    Check if email or username is available for registration.
+    
+    Request body:
+        {"field": "email", "value": "user@example.com"}
+        or
+        {"field": "username", "value": "johndoe"}
+    
+    Response:
+        {"available": true/false, "message": "..."}
+        
+    Rate limited to 10 requests per minute per IP address.
+    When rate limited, returns a generic response that doesn't reveal account existence.
+    
+    Requirements: 3.2, 3.3, 4.2, 4.3, 6.1, 6.2, 6.3
+    """
+    # Check if rate limited
+    was_limited = getattr(request, 'limited', False)
+    if was_limited:
+        logger.warning(
+            f"Rate limit exceeded for availability check: IP={request.META.get('REMOTE_ADDR')}",
+            extra={
+                'ip': request.META.get('REMOTE_ADDR'),
+                'action': 'availability_check_rate_limited'
+            }
+        )
+        # Return generic response that doesn't reveal account existence
+        return JsonResponse({
+            'available': None,
+            'message': 'Please wait before checking again.'
+        }, status=429)
+    
+    try:
+        # Parse JSON body
+        try:
+            data = json.loads(request.body)
+        except json.JSONDecodeError:
+            return JsonResponse({
+                'error': 'Invalid JSON in request body.'
+            }, status=400)
+        
+        field = data.get('field', '').strip().lower()
+        value = data.get('value', '').strip()
+        
+        # Validate field type
+        if field not in ('email', 'username'):
+            return JsonResponse({
+                'error': 'Invalid field specified. Must be "email" or "username".'
+            }, status=400)
+        
+        # Validate value is provided
+        if not value:
+            return JsonResponse({
+                'error': 'Value is required.'
+            }, status=400)
+        
+        # Check availability based on field type
+        if field == 'email':
+            is_taken = UniqueFieldValidator.is_email_taken(value)
+            if is_taken:
+                return JsonResponse({
+                    'available': False,
+                    'message': 'An account with this email already exists.'
+                })
+            else:
+                return JsonResponse({
+                    'available': True,
+                    'message': 'Email is available.'
+                })
+        else:  # username
+            is_taken = UniqueFieldValidator.is_username_taken(value)
+            if is_taken:
+                return JsonResponse({
+                    'available': False,
+                    'message': 'This username is already taken.'
+                })
+            else:
+                return JsonResponse({
+                    'available': True,
+                    'message': 'Username is available.'
+                })
+                
+    except Exception as e:
+        logger.error(
+            f"Error in availability check: {str(e)}",
+            extra={
+                'ip': request.META.get('REMOTE_ADDR'),
+                'error_type': type(e).__name__,
+                'action': 'availability_check_error'
+            },
+            exc_info=True
+        )
+        return JsonResponse({
+            'error': 'An error occurred while checking availability.'
+        }, status=500)

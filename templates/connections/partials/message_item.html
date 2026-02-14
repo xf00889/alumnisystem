@@ -1,81 +1,168 @@
 <!-- Individual Message Item for HTMX -->
-<div class="message {% if message.sender == request.user %}own{% endif %}" data-message-id="{{ message.id }}">
-    <!-- Avatar for other users (left side) -->
-    {% if message.sender != request.user %}
-        <div class="me-3">
-            {% if message.sender.profile.avatar %}
-                <img src="{{ message.sender.profile.avatar.url }}"
-                     alt="{{ message.sender.get_full_name }}"
-                     class="message-avatar"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="message-avatar d-none align-items-center justify-content-center text-white fw-bold user-avatar"
-                     data-user-id="{{ message.sender.id }}"
-                     data-first-name="{{ message.sender.first_name }}"
-                     data-last-name="{{ message.sender.last_name }}"
-                     data-username="{{ message.sender.username }}"
-                     style="font-size: 16px;">
-                    <!-- Initials and gradient will be set by JavaScript -->
-                </div>
-            {% else %}
-                <div class="message-avatar d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
-                     data-user-id="{{ message.sender.id }}"
-                     data-first-name="{{ message.sender.first_name }}"
-                     data-last-name="{{ message.sender.last_name }}"
-                     data-username="{{ message.sender.username }}"
-                     style="font-size: 16px;">
-                    <!-- Initials and gradient will be set by JavaScript -->
-                </div>
-            {% endif %}
-        </div>
-    {% endif %}
-    
-    <div class="message-content">
-        <div class="message-text">{{ message.content }}</div>
+<div class="message-wrapper {% if message.sender == request.user %}own-message{% else %}other-message{% endif %}" data-message-id="{{ message.id }}">
+    <div class="message-row d-flex {% if message.sender == request.user %}justify-content-end{% else %}justify-content-start{% endif %} align-items-end mb-3">
         
-        {% if message.attachment %}
-            <div class="message-attachment mt-2">
-                {% if message.attachment.name|slice:"-4:" in ".jpg,.png,.gif,.jpeg" %}
-                    <img src="{{ message.attachment.url }}" alt="Attachment" class="attachment-preview">
+        <!-- Avatar for other users (left side) -->
+        {% if message.sender != request.user %}
+            <div class="message-avatar-container me-2">
+                {% if message.sender.profile.avatar %}
+                    <img src="{{ message.sender.profile.avatar.url }}"
+                         alt="{{ message.sender.get_full_name }}"
+                         class="message-avatar rounded-circle"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="message-avatar rounded-circle d-none align-items-center justify-content-center text-white fw-bold user-avatar"
+                         data-user-id="{{ message.sender.id }}"
+                         data-first-name="{{ message.sender.first_name }}"
+                         data-last-name="{{ message.sender.last_name }}"
+                         data-username="{{ message.sender.username }}">
+                        <!-- Initials and gradient will be set by JavaScript -->
+                    </div>
                 {% else %}
-                    <a href="{{ message.attachment.url }}" class="file-attachment" target="_blank">
-                        <i class="fas fa-file me-2"></i>
-                        {{ message.attachment.name }}
-                    </a>
+                    <div class="message-avatar rounded-circle d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
+                         data-user-id="{{ message.sender.id }}"
+                         data-first-name="{{ message.sender.first_name }}"
+                         data-last-name="{{ message.sender.last_name }}"
+                         data-username="{{ message.sender.username }}">
+                        <!-- Initials and gradient will be set by JavaScript -->
+                    </div>
                 {% endif %}
             </div>
         {% endif %}
         
-        <div class="message-time">
-            {{ message.created_at|date:"M d, Y H:i" }}
+        <!-- Message Bubble -->
+        <div class="message-bubble-container">
+            <div class="message-bubble {% if message.sender == request.user %}own-bubble{% else %}other-bubble{% endif %}">
+                <div class="message-text">{{ message.content }}</div>
+                
+                {% if message.attachment %}
+                    <div class="message-attachment mt-2">
+                        {% if message.attachment.name|slice:"-4:" in ".jpg,.png,.gif,.jpeg" %}
+                            <img src="{{ message.attachment.url }}" alt="Attachment" class="attachment-preview">
+                        {% else %}
+                            <a href="{{ message.attachment.url }}" class="file-attachment" target="_blank">
+                                <i class="fas fa-file me-2"></i>
+                                {{ message.attachment.name }}
+                            </a>
+                        {% endif %}
+                    </div>
+                {% endif %}
+            </div>
+            
+            <!-- Timestamp -->
+            <div class="message-timestamp {% if message.sender == request.user %}text-end{% else %}text-start{% endif %}">
+                {{ message.created_at|date:"M d, Y G:i" }}
+            </div>
         </div>
+        
+        <!-- Avatar for own messages (right side) -->
+        {% if message.sender == request.user %}
+            <div class="message-avatar-container ms-2">
+                {% if message.sender.profile.avatar %}
+                    <img src="{{ message.sender.profile.avatar.url }}"
+                         alt="{{ message.sender.get_full_name }}"
+                         class="message-avatar rounded-circle"
+                         onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                    <div class="message-avatar rounded-circle d-none align-items-center justify-content-center text-white fw-bold user-avatar"
+                         data-user-id="{{ message.sender.id }}"
+                         data-first-name="{{ message.sender.first_name }}"
+                         data-last-name="{{ message.sender.last_name }}"
+                         data-username="{{ message.sender.username }}">
+                        <!-- Initials and gradient will be set by JavaScript -->
+                    </div>
+                {% else %}
+                    <div class="message-avatar rounded-circle d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
+                         data-user-id="{{ message.sender.id }}"
+                         data-first-name="{{ message.sender.first_name }}"
+                         data-last-name="{{ message.sender.last_name }}"
+                         data-username="{{ message.sender.username }}">
+                        <!-- Initials and gradient will be set by JavaScript -->
+                    </div>
+                {% endif %}
+            </div>
+        {% endif %}
+        
     </div>
-    
-    <!-- Avatar for own messages (right side) -->
-    {% if message.sender == request.user %}
-        <div class="ms-3">
-            {% if message.sender.profile.avatar %}
-                <img src="{{ message.sender.profile.avatar.url }}"
-                     alt="{{ message.sender.get_full_name }}"
-                     class="message-avatar"
-                     onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
-                <div class="message-avatar d-none align-items-center justify-content-center text-white fw-bold user-avatar"
-                     data-user-id="{{ message.sender.id }}"
-                     data-first-name="{{ message.sender.first_name }}"
-                     data-last-name="{{ message.sender.last_name }}"
-                     data-username="{{ message.sender.username }}"
-                     style="font-size: 16px;">
-                    <!-- Initials and gradient will be set by JavaScript -->
-                </div>
-            {% else %}
-                <div class="message-avatar d-flex align-items-center justify-content-center text-white fw-bold user-avatar"
-                     data-user-id="{{ message.sender.id }}"
-                     data-first-name="{{ message.sender.first_name }}"
-                     data-last-name="{{ message.sender.last_name }}"
-                     data-username="{{ message.sender.username }}"
-                     style="font-size: 16px;">
-                    <!-- Initials and gradient will be set by JavaScript -->
-                </div>
-            {% endif %}
-        </div>
-    {% endif %}
 </div>
+
+<style>
+.message-wrapper {
+    margin-bottom: 0.5rem;
+}
+
+.message-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    font-size: 12px;
+}
+
+.message-bubble-container {
+    max-width: 70%;
+    min-width: 100px;
+}
+
+.message-bubble {
+    padding: 12px 16px;
+    border-radius: 18px;
+    position: relative;
+    word-wrap: break-word;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.message-bubble.own-bubble {
+    background: #007bff;
+    color: white;
+    border-bottom-right-radius: 4px;
+}
+
+.message-bubble.other-bubble {
+    background: #f1f3f4;
+    color: #333;
+    border-bottom-left-radius: 4px;
+}
+
+.message-text {
+    margin: 0;
+    line-height: 1.4;
+}
+
+.message-timestamp {
+    font-size: 11px;
+    color: #6c757d;
+    margin-top: 4px;
+    padding: 0 4px;
+}
+
+.attachment-preview {
+    max-width: 200px;
+    max-height: 200px;
+    border-radius: 8px;
+    margin-top: 8px;
+}
+
+.file-attachment {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    margin-top: 8px;
+    text-decoration: none;
+    color: inherit;
+    font-size: 14px;
+    transition: all 0.2s ease;
+}
+
+.file-attachment:hover {
+    background: rgba(255, 255, 255, 0.3);
+    color: inherit;
+}
+
+.other-bubble .file-attachment {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.other-bubble .file-attachment:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+</style>

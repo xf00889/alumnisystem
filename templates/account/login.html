@@ -540,6 +540,26 @@
             box-shadow: var(--shadow-md);
         }
 
+        /* Google Sign-In Button */
+        .google-btn {
+            background: var(--ui-surface);
+            border: 2px solid #dc3545;
+            color: #dc3545;
+            text-decoration: none;
+        }
+
+        .google-btn:hover {
+            background: #dc3545;
+            color: var(--text-light);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .google-btn:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(220, 53, 69, 0.25);
+        }
+
         /* Links */
         .auth-links {
             text-align: center;
@@ -694,7 +714,7 @@
 
                             <div class="form-group">
                                 <input type="text" class="form-input" name="login" placeholder=" " required>
-                                <label class="form-label">Email or Username</label>
+                                <label class="form-label">Email</label>
                             </div>
 
                             <div class="form-group password-field">
@@ -714,24 +734,27 @@
                             <input type="hidden" name="{{ redirect_field_name }}" value="{{ redirect_field_value }}" />
                             {% endif %}
 
-                            <!-- reCAPTCHA Section -->
-                            <div class="form-group">
-                                <label class="form-label">Security Verification</label>
-                                {{ form.captcha }}
-                                <small class="form-text text-muted">
-                                    <i class="fas fa-shield-alt"></i> This helps us prevent spam and protect your account
-                                </small>
-                                {% if form.captcha.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {% for error in form.captcha.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-
                             <button class="btn-auth btn-auth-primary" type="submit">
                                 <i class="fas fa-sign-in-alt me-2"></i>{% trans "Sign In" %}
                             </button>
                         </form>
+
+                        <!-- Social Login Section -->
+                        {% load socialaccount %}
+                        <div class="social-login-section" style="margin-top: 1.5rem;">
+                            <div class="divider" style="display: flex; align-items: center; text-align: center; margin: 1rem 0;">
+                                <div style="flex: 1; border-bottom: 1px solid var(--ui-border);"></div>
+                                <span style="padding: 0 1rem; color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">OR</span>
+                                <div style="flex: 1; border-bottom: 1px solid var(--ui-border);"></div>
+                            </div>
+                            
+                            <a href="{% provider_login_url 'google' %}" 
+                               class="btn btn-outline-danger w-100 google-btn"
+                               style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem; border-radius: var(--radius-md); font-weight: 600; transition: all 0.3s ease;">
+                                <i class="fab fa-google"></i>
+                                Sign in with Google
+                            </a>
+                        </div>
 
                         {% if messages %}
                         <div class="mt-2">
@@ -762,7 +785,7 @@
                             </div>
 
                             <div class="form-group">
-                                <input type="email" class="form-input" name="email" placeholder=" " required>
+                                <input type="email" class="form-input" name="email" placeholder=" " required id="signupEmail">
                                 <label class="form-label">Email Address</label>
                             </div>
 
@@ -827,8 +850,24 @@
                             </button>
                         </form>
 
+                        <!-- Social Signup Section -->
+                        <div class="social-login-section" style="margin-top: 1.5rem;">
+                            <div class="divider" style="display: flex; align-items: center; text-align: center; margin: 1rem 0;">
+                                <div style="flex: 1; border-bottom: 1px solid var(--ui-border);"></div>
+                                <span style="padding: 0 1rem; color: var(--text-secondary); font-size: 0.875rem; font-weight: 500;">OR</span>
+                                <div style="flex: 1; border-bottom: 1px solid var(--ui-border);"></div>
+                            </div>
+                            
+                            <a href="{% provider_login_url 'google' %}" 
+                               class="btn btn-outline-danger w-100 google-btn"
+                               style="display: flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.875rem; border-radius: var(--radius-md); font-weight: 600; transition: all 0.3s ease;">
+                                <i class="fab fa-google"></i>
+                                Sign up with Google
+                            </a>
+                        </div>
+
                         <div class="auth-links">
-                            <p><small>By creating an account, you agree to our Terms of Service and Privacy Policy.</small></p>
+                            <p><small>By creating an account, you agree to our <a href="javascript:void(0)" onclick="showTermsPopup()" style="color: var(--primary-color); text-decoration: underline; cursor: pointer;">Terms of Service and Privacy Policy</a>.</small></p>
                         </div>
                     </div>
                 </div>
@@ -1112,53 +1151,90 @@
             console.log('Login - Showing full terms disclaimer');
             
             Swal.fire({
-                title: '<strong>Terms and Conditions</strong>',
+                title: '<strong>Terms of Service and Privacy Policy</strong>',
                 html: `
-                    <div style="text-align: left; max-height: 450px; overflow-y: auto; padding: 15px; font-family: 'Poppins', sans-serif;">
-                        <div style="text-align: center; margin-bottom: 20px; padding: 15px; background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%); border-radius: 8px; border-left: 4px solid #2b3c6b;">
-                            <h5 style="color: #2b3c6b; margin: 0; font-weight: 600; font-size: 18px;">📋 NORSU Alumni Network</h5>
-                            <p style="margin: 5px 0 0 0; color: #4a5568; font-size: 14px;">Terms of Service & Privacy Agreement</p>
+                    <div style="text-align: left; max-height: 500px; overflow-y: auto; padding: 25px 30px; font-family: 'Poppins', sans-serif; color: #2d3748; background: #ffffff;">
+                        <!-- Letterhead -->
+                        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px double #2b3c6b;">
+                            <h5 style="color: #2b3c6b; margin: 0; font-weight: 700; font-size: 22px; letter-spacing: 1px; text-transform: uppercase;">Negros Oriental State University</h5>
+                            <p style="margin: 8px 0 0 0; color: #4a5568; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Alumni Network Platform</p>
+                            <p style="margin: 5px 0 0 0; color: #718096; font-size: 12px; font-style: italic;">Dumaguete City, Philippines</p>
                         </div>
                         
-                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🔐 Account Registration</h6>
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">By creating an account, you agree to provide accurate and complete information. You are responsible for maintaining the confidentiality of your account credentials and all activities that occur under your account.</p>
+                        <!-- Document Title -->
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h6 style="color: #2b3c6b; margin: 0; font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: 1.5px;">Terms of Service and Privacy Policy</h6>
+                            <p style="margin: 10px 0 0 0; color: #718096; font-size: 12px; font-style: italic;">Effective Date: February 12, 2026</p>
                         </div>
                         
-                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🛡️ Privacy and Data Protection</h6>
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">We collect and process your personal information in accordance with our Privacy Policy. Your data will be used to facilitate alumni connections, share university updates, and provide career opportunities. We never sell your personal information to third parties.</p>
+                        <!-- Introduction -->
+                        <div style="margin-bottom: 25px; text-align: justify;">
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-indent: 40px;">This document constitutes a legally binding agreement between you (the "User") and Negros Oriental State University (the "University") regarding your use of the NORSU Alumni Network platform (the "Platform"). By accessing or using the Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and Privacy Policy.</p>
                         </div>
                         
-                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🤝 Community Guidelines</h6>
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">Users must maintain respectful communication, avoid spam or inappropriate content, and respect the intellectual property rights of others. We foster a positive, professional environment for all alumni.</p>
+                        <!-- Article I -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article I. Acceptance of Terms</h6>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Your access to and use of the Platform is conditioned upon your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who access or use the Platform. If you disagree with any part of these Terms, you must not access or use the Platform.</p>
                         </div>
                         
-                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">🎯 Platform Usage</h6>
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">This platform is intended for NORSU alumni networking, career development, and university-related activities. Commercial use requires prior approval from the administration.</p>
+                        <!-- Article II -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article II. Account Registration and Security</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Users are required to provide accurate, current, and complete information during the registration process. You are solely responsible for maintaining the confidentiality of your account credentials, including your username and password, and for all activities that occur under your account.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">You agree to immediately notify the University of any unauthorized use of your account or any other breach of security. The University shall not be liable for any loss or damage arising from your failure to comply with this security obligation.</p>
                         </div>
                         
-                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 15px; border: 1px solid #e2e8f0;">
-                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">📄 Content and Intellectual Property</h6>
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">Users retain ownership of their content but grant NORSU Alumni Network a license to use, display, and distribute content within the platform for networking and educational purposes.</p>
+                        <!-- Article III -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article III. Privacy and Data Protection</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The University collects, processes, and stores personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173) and other applicable data protection laws and regulations. Your personal data will be used exclusively for the following purposes: facilitating alumni connections, disseminating university updates, providing career development opportunities, and improving Platform services.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The University is committed to protecting your privacy and will not sell, rent, lease, or share your personal information with third parties for commercial purposes without your explicit written consent, except as required by law or as necessary to provide Platform services.</p>
                         </div>
                         
-                        <div style="background: #f7fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #e2e8f0;">
-                            <h6 style="color: #2b3c6b; margin: 0 0 10px 0; font-weight: 600; font-size: 15px;">⚖️ Limitation of Liability</h6>
-                            <p style="margin: 0; font-size: 13px; line-height: 1.5; color: #4a5568;">NORSU Alumni Network is provided "as is" without warranties. We are not liable for any damages arising from platform use, but we strive to maintain a secure and reliable service.</p>
+                        <!-- Article IV -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article IV. Acceptable Use and Conduct</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Users must maintain professional and respectful communication at all times while using the Platform. Prohibited activities include, but are not limited to: posting offensive, defamatory, obscene, or inappropriate content; engaging in harassment, discrimination, or hate speech; distributing spam, unsolicited commercial messages, or chain letters; violating intellectual property rights of others; impersonating any person or entity; and attempting to compromise Platform security or interfere with its proper functioning.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Violation of these guidelines may result in immediate account suspension or termination, at the sole discretion of the University, without prior notice.</p>
                         </div>
                         
-                        <div style="text-align: center; padding: 15px; background: linear-gradient(135deg, #2b3c6b 0%, #1a2544 100%); border-radius: 8px; color: white;">
-                            <p style="margin: 0; font-size: 13px; font-weight: 500;"><strong>✅ By clicking "I Agree", you acknowledge that you have read, understood, and agree to be bound by these Terms and Conditions.</strong></p>
+                        <!-- Article V -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article V. Intellectual Property Rights</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Users retain all ownership rights to content they submit to the Platform. However, by posting, uploading, or otherwise making available any content on the Platform, you hereby grant the University a non-exclusive, worldwide, perpetual, irrevocable, royalty-free, sublicensable, and transferable license to use, reproduce, modify, adapt, publish, translate, create derivative works from, distribute, perform, and display such content in any media formats and through any media channels.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">This license is granted solely for the purposes of operating, promoting, and improving the Platform and facilitating alumni networking, educational, and career development activities.</p>
+                        </div>
+                        
+                        <!-- Article VI -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article VI. Disclaimer of Warranties and Limitation of Liability</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The Platform is provided on an "as is" and "as available" basis without warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, or non-infringement. The University does not warrant that the Platform will be uninterrupted, secure, or error-free.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">To the fullest extent permitted by applicable law, the University and its officers, employees, agents, and affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, use, goodwill, or other intangible losses, arising from or relating to your use of or inability to use the Platform.</p>
+                        </div>
+                        
+                        <!-- Article VII -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article VII. Modifications and Amendments</h6>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The University reserves the right to modify, amend, or update these Terms of Service and Privacy Policy at any time, at its sole discretion. Users will be notified of material changes through the Platform or via email to the address associated with their account. Your continued use of the Platform following the posting of revised Terms constitutes your acceptance of such changes.</p>
+                        </div>
+                        
+                        <!-- Closing Statement -->
+                        <div style="margin-top: 35px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; font-weight: 600;">By proceeding with registration and clicking "I Agree" or by accessing and using the Platform, you acknowledge that you have read, understood, and agree to be legally bound by these Terms of Service and Privacy Policy in their entirety.</p>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0; font-size: 11px; color: #a0aec0; font-style: italic;">Document Reference: NORSU-AN-TOS-2026-001</p>
+                            <p style="margin: 5px 0 0 0; font-size: 11px; color: #a0aec0; font-style: italic;">Last Revised: February 12, 2026</p>
                         </div>
                     </div>
                 `,
-                width: '650px',
+                width: '750px',
                 showCancelButton: true,
-                confirmButtonText: '<i class="fas fa-check-circle"></i> I Agree & Continue',
-                cancelButtonText: '<i class="fas fa-times-circle"></i> Cancel',
+                confirmButtonText: 'I Agree & Continue',
+                cancelButtonText: 'Cancel',
                 confirmButtonColor: '#2b3c6b',
                 cancelButtonColor: '#718096',
                 reverseButtons: true,
@@ -1189,10 +1265,120 @@
                  }
              });
         }
+
+        // Show Terms Popup (for viewing only, no agreement required)
+        function showTermsPopup() {
+            Swal.fire({
+                title: '<strong>Terms of Service and Privacy Policy</strong>',
+                html: `
+                    <div style="text-align: left; max-height: 500px; overflow-y: auto; padding: 25px 30px; font-family: 'Poppins', sans-serif; color: #2d3748; background: #ffffff;">
+                        <!-- Letterhead -->
+                        <div style="text-align: center; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 3px double #2b3c6b;">
+                            <h5 style="color: #2b3c6b; margin: 0; font-weight: 700; font-size: 22px; letter-spacing: 1px; text-transform: uppercase;">Negros Oriental State University</h5>
+                            <p style="margin: 8px 0 0 0; color: #4a5568; font-size: 14px; font-weight: 500; letter-spacing: 0.5px;">Alumni Network Platform</p>
+                            <p style="margin: 5px 0 0 0; color: #718096; font-size: 12px; font-style: italic;">Dumaguete City, Philippines</p>
+                        </div>
+                        
+                        <!-- Document Title -->
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h6 style="color: #2b3c6b; margin: 0; font-weight: 700; font-size: 18px; text-transform: uppercase; letter-spacing: 1.5px;">Terms of Service and Privacy Policy</h6>
+                            <p style="margin: 10px 0 0 0; color: #718096; font-size: 12px; font-style: italic;">Effective Date: February 12, 2026</p>
+                        </div>
+                        
+                        <!-- Introduction -->
+                        <div style="margin-bottom: 25px; text-align: justify;">
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-indent: 40px;">This document constitutes a legally binding agreement between you (the "User") and Negros Oriental State University (the "University") regarding your use of the NORSU Alumni Network platform (the "Platform"). By accessing or using the Platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and Privacy Policy.</p>
+                        </div>
+                        
+                        <!-- Article I -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article I. Acceptance of Terms</h6>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Your access to and use of the Platform is conditioned upon your acceptance of and compliance with these Terms. These Terms apply to all visitors, users, and others who access or use the Platform. If you disagree with any part of these Terms, you must not access or use the Platform.</p>
+                        </div>
+                        
+                        <!-- Article II -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article II. Account Registration and Security</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Users are required to provide accurate, current, and complete information during the registration process. You are solely responsible for maintaining the confidentiality of your account credentials, including your username and password, and for all activities that occur under your account.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">You agree to immediately notify the University of any unauthorized use of your account or any other breach of security. The University shall not be liable for any loss or damage arising from your failure to comply with this security obligation.</p>
+                        </div>
+                        
+                        <!-- Article III -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article III. Privacy and Data Protection</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The University collects, processes, and stores personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173) and other applicable data protection laws and regulations. Your personal data will be used exclusively for the following purposes: facilitating alumni connections, disseminating university updates, providing career development opportunities, and improving Platform services.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The University is committed to protecting your privacy and will not sell, rent, lease, or share your personal information with third parties for commercial purposes without your explicit written consent, except as required by law or as necessary to provide Platform services.</p>
+                        </div>
+                        
+                        <!-- Article IV -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article IV. Acceptable Use and Conduct</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Users must maintain professional and respectful communication at all times while using the Platform. Prohibited activities include, but are not limited to: posting offensive, defamatory, obscene, or inappropriate content; engaging in harassment, discrimination, or hate speech; distributing spam, unsolicited commercial messages, or chain letters; violating intellectual property rights of others; impersonating any person or entity; and attempting to compromise Platform security or interfere with its proper functioning.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Violation of these guidelines may result in immediate account suspension or termination, at the sole discretion of the University, without prior notice.</p>
+                        </div>
+                        
+                        <!-- Article V -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article V. Intellectual Property Rights</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">Users retain all ownership rights to content they submit to the Platform. However, by posting, uploading, or otherwise making available any content on the Platform, you hereby grant the University a non-exclusive, worldwide, perpetual, irrevocable, royalty-free, sublicensable, and transferable license to use, reproduce, modify, adapt, publish, translate, create derivative works from, distribute, perform, and display such content in any media formats and through any media channels.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">This license is granted solely for the purposes of operating, promoting, and improving the Platform and facilitating alumni networking, educational, and career development activities.</p>
+                        </div>
+                        
+                        <!-- Article VI -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article VI. Disclaimer of Warranties and Limitation of Liability</h6>
+                            <p style="margin: 0 0 10px 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The Platform is provided on an "as is" and "as available" basis without warranties of any kind, either express or implied, including but not limited to implied warranties of merchantability, fitness for a particular purpose, or non-infringement. The University does not warrant that the Platform will be uninterrupted, secure, or error-free.</p>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">To the fullest extent permitted by applicable law, the University and its officers, employees, agents, and affiliates shall not be liable for any indirect, incidental, special, consequential, or punitive damages, including but not limited to loss of profits, data, use, goodwill, or other intangible losses, arising from or relating to your use of or inability to use the Platform.</p>
+                        </div>
+                        
+                        <!-- Article VII -->
+                        <div style="margin-bottom: 25px;">
+                            <h6 style="color: #2b3c6b; margin: 0 0 12px 0; font-weight: 700; font-size: 15px; text-transform: uppercase; letter-spacing: 0.8px;">Article VII. Modifications and Amendments</h6>
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; text-indent: 40px;">The University reserves the right to modify, amend, or update these Terms of Service and Privacy Policy at any time, at its sole discretion. Users will be notified of material changes through the Platform or via email to the address associated with their account. Your continued use of the Platform following the posting of revised Terms constitutes your acceptance of such changes.</p>
+                        </div>
+                        
+                        <!-- Closing Statement -->
+                        <div style="margin-top: 35px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0; font-size: 14px; line-height: 1.8; color: #4a5568; text-align: justify; font-weight: 600;">By proceeding with registration and clicking "I Agree" or by accessing and using the Platform, you acknowledge that you have read, understood, and agree to be legally bound by these Terms of Service and Privacy Policy in their entirety.</p>
+                        </div>
+                        
+                        <!-- Footer -->
+                        <div style="text-align: center; margin-top: 30px; padding-top: 15px; border-top: 1px solid #e2e8f0;">
+                            <p style="margin: 0; font-size: 11px; color: #a0aec0; font-style: italic;">Document Reference: NORSU-AN-TOS-2026-001</p>
+                            <p style="margin: 5px 0 0 0; font-size: 11px; color: #a0aec0; font-style: italic;">Last Revised: February 12, 2026</p>
+                        </div>
+                    </div>
+                `,
+                width: '750px',
+                confirmButtonText: 'Close',
+                confirmButtonColor: '#2b3c6b',
+                customClass: {
+                    popup: 'terms-popup',
+                    title: 'terms-title',
+                    htmlContainer: 'terms-content'
+                }
+            });
+        }
     </script>
 
     <!-- Bootstrap 5 JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Availability Checker Styles and Script -->
+    <link rel="stylesheet" href="{% static 'css/availability-checker.css' %}">
+    <script src="{% static 'js/availability-checker.js' %}"></script>
+    <script>
+        // Initialize availability checker for email field when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Initialize email availability checker
+            const emailChecker = new AvailabilityChecker(
+                'signupEmail',
+                'email',
+                '{% url "accounts:check_availability" %}',
+                500  // 500ms debounce delay
+            );
+        });
+    </script>
     
     <!-- reCAPTCHA callback functions -->
     <script>

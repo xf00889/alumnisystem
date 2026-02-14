@@ -63,6 +63,9 @@ urlpatterns = [
     # Custom login view with reCAPTCHA context
     path('login/', security_views.custom_login_view, name='custom_login'),
     
+    # Availability check endpoint for real-time email/username validation
+    path('check-availability/', views.check_availability, name='check_availability'),
+    
     # Email verification endpoints
     path('verify-email/', security_views.verify_email, name='verify_email'),
     path('resend-verification-code/', security_views.resend_verification_code, name='resend_verification_code'),

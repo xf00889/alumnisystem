@@ -846,14 +846,14 @@
                 </div>
             </div>
             <div class="action-group">
-                {% if user.is_authenticated %}
+                {% if user.is_staff %}
                     <a href="{% url 'events:event_create' %}" class="btn btn-primary">
                         <i class="fas fa-plus me-2"></i>New Event
                     </a>
+                    <button class="btn btn-secondary" onclick="handleExport()">
+                        <i class="fas fa-download me-2"></i>Export
+                    </button>
                 {% endif %}
-                <button class="btn btn-secondary" onclick="handleExport()">
-                    <i class="fas fa-download me-2"></i>Export
-                </button>
             </div>
         </div>
     </div>
@@ -912,7 +912,7 @@
                     <i class="fas fa-eye me-1"></i>
                     View Details
                 </button>
-                {% if user.is_authenticated %}
+                {% if user.is_staff %}
                 <a href="{% url 'events:event_update' event.pk %}" 
                    class="btn btn-warning">
                     <i class="fas fa-edit"></i>
@@ -1322,8 +1322,11 @@ function openEventModal(eventId) {
             // The response is already the modal content
             modalBody.innerHTML = html;
             
-            // Show action buttons if user is staff
-            if (modalEditBtn && modalDeleteBtn) {
+            // Show action buttons only for staff users
+            const isAuthenticated = document.body.dataset.userAuthenticated === 'true';
+            const isStaff = document.body.dataset.userIsStaff === 'true';
+            
+            if (modalEditBtn && modalDeleteBtn && isAuthenticated && isStaff) {
                 modalEditBtn.style.display = 'inline-block';
                 modalDeleteBtn.style.display = 'inline-block';
                 
@@ -1335,6 +1338,76 @@ function openEventModal(eventId) {
                     const eventTitle = document.querySelector('#eventModal .modal-title').textContent;
                     deleteEvent(eventId, eventTitle);
                 };
+            }
+            
+            // Setup RSVP form handler for regular users
+            if (isAuthenticated && !isStaff) {
+                const rsvpForm = modalBody.querySelector('.rsvp-form');
+                if (rsvpForm) {
+                    rsvpForm.addEventListener('submit', function(e) {
+                        e.preventDefault();
+                        
+                        const submitBtn = rsvpForm.querySelector('button[type="submit"]');
+                        const originalBtnText = submitBtn.innerHTML;
+                        
+                        // Disable button and show loading state
+                        submitBtn.disabled = true;
+                        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Submitting...';
+                        
+                        const formData = new FormData(rsvpForm);
+                        
+                        fetch(rsvpForm.action, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'X-Requested-With': 'XMLHttpRequest',
+                                'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                            }
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            // Re-enable button
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnText;
+                            
+                            if (data.success) {
+                                // Show success alert
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'RSVP Recorded!',
+                                    text: data.message,
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#2b3c6b'
+                                });
+                            } else {
+                                // Show error alert
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'RSVP Failed',
+                                    text: data.message || 'There was an error submitting your RSVP. Please try again.',
+                                    confirmButtonText: 'OK',
+                                    confirmButtonColor: '#2b3c6b'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            
+                            // Re-enable button
+                            submitBtn.disabled = false;
+                            submitBtn.innerHTML = originalBtnText;
+                            
+                            // Show error alert
+                            Swal.fire({
+                                icon: 'error',
+                                title: 'Connection Error',
+                                text: 'Unable to submit your RSVP. Please check your connection and try again.',
+                                confirmButtonText: 'OK',
+                                confirmButtonColor: '#2b3c6b'
+                            });
+                        });
+                    });
+                }
             }
         })
         .catch(error => {

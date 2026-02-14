@@ -8,6 +8,7 @@ from .models.smtp_config import SMTPConfig
 from .models.brevo_config import BrevoConfig
 from .models.email_provider import EmailProvider
 from .models.user_management import UserAuditLog, UserStatusChange
+from .models.seo import PageSEO, OrganizationSchema
 
 # Register existing models if they aren't already registered
 try:
@@ -211,3 +212,67 @@ class UserStatusChangeAdmin(admin.ModelAdmin):
     def has_change_permission(self, request, obj=None):
         """Prevent modification of status change records"""
         return False
+
+
+# PageSEO Admin
+@admin.register(PageSEO)
+class PageSEOAdmin(admin.ModelAdmin):
+    """Admin interface for Page SEO configuration"""
+    
+    list_display = ['page_path', 'meta_title', 'title_length', 'description_length', 'is_active', 'updated_at']
+    list_filter = ['is_active', 'sitemap_changefreq']
+    search_fields = ['page_path', 'meta_title', 'meta_description']
+    readonly_fields = ['created_at', 'updated_at', 'title_length', 'description_length']
+    
+    fieldsets = (
+        ('Page Information', {
+            'fields': ('page_path', 'is_active')
+        }),
+        ('Meta Tags', {
+            'fields': ('meta_title', 'title_length', 'meta_description', 'description_length', 'meta_keywords')
+        }),
+        ('Social Media', {
+            'fields': ('og_image', 'twitter_image')
+        }),
+        ('SEO Settings', {
+            'fields': ('canonical_url', 'sitemap_priority', 'sitemap_changefreq')
+        }),
+        ('Timestamps', {
+            'fields': ('created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def title_length(self, obj):
+        """Display title length with color coding (green for valid, red for invalid)"""
+        length = len(obj.meta_title) if obj.meta_title else 0
+        color = 'green' if 50 <= length <= 60 else 'red'
+        return format_html('<span style="color: {};">{} chars</span>', color, length)
+    title_length.short_description = 'Title Length'
+    
+    def description_length(self, obj):
+        """Display description length with color coding (green for valid, red for invalid)"""
+        length = len(obj.meta_description) if obj.meta_description else 0
+        color = 'green' if 150 <= length <= 160 else 'red'
+        return format_html('<span style="color: {};">{} chars</span>', color, length)
+    description_length.short_description = 'Description Length'
+
+
+# OrganizationSchema Admin
+@admin.register(OrganizationSchema)
+class OrganizationSchemaAdmin(admin.ModelAdmin):
+    """Admin interface for Organization Schema configuration"""
+    
+    list_display = ['name', 'email', 'telephone', 'is_active']
+    
+    fieldsets = (
+        ('Organization Details', {
+            'fields': ('name', 'logo', 'url', 'is_active')
+        }),
+        ('Contact Information', {
+            'fields': ('telephone', 'email')
+        }),
+        ('Address', {
+            'fields': ('street_address', 'address_locality', 'address_region', 'postal_code', 'address_country')
+        }),
+    )

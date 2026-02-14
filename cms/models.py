@@ -567,6 +567,82 @@ class AlumniStatistic(TimeStampedModel):
         return f"{self.get_statistic_type_display()} - {self.value}"
 
 
+class FooterLink(TimeStampedModel):
+    """
+    Model for managing footer links dynamically
+    """
+    LINK_SECTION_CHOICES = [
+        ('quick_links', _('Quick Links')),
+        ('information', _('Information')),
+        ('legal', _('Legal')),
+        ('resources', _('Resources')),
+    ]
+
+    title = models.CharField(
+        max_length=100,
+        help_text=_("Link text to display")
+    )
+    url = models.CharField(
+        max_length=500,
+        help_text=_("URL or Django URL name (e.g., 'core:home' or '/about/')")
+    )
+    section = models.CharField(
+        max_length=20,
+        choices=LINK_SECTION_CHOICES,
+        default='information',
+        help_text=_("Which footer section this link belongs to")
+    )
+    icon = models.CharField(
+        max_length=50,
+        default="fas fa-link",
+        help_text=_("Font Awesome icon class (e.g., 'fas fa-home')")
+    )
+    open_in_new_tab = models.BooleanField(
+        default=False,
+        help_text=_("Open link in a new browser tab")
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Display order within section (lower numbers appear first)")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Whether this link should be displayed")
+    )
+
+    class Meta:
+        verbose_name = _('Footer Link')
+        verbose_name_plural = _('Footer Links')
+        ordering = ['section', 'order', 'title']
+        indexes = [
+            models.Index(fields=['section', 'is_active', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.get_section_display()} - {self.title}"
+
+    def get_url(self):
+        """
+        Get the actual URL, handling both Django URL names and direct URLs
+        """
+        from django.urls import reverse, NoReverseMatch
+        
+        # If it starts with http:// or https://, it's an external URL
+        if self.url.startswith('http://') or self.url.startswith('https://'):
+            return self.url
+        
+        # If it starts with /, it's a direct path
+        if self.url.startswith('/'):
+            return self.url
+        
+        # Try to reverse it as a Django URL name
+        try:
+            return reverse(self.url)
+        except NoReverseMatch:
+            # If reverse fails, return as-is
+            return self.url
+
+
 # Signal to automatically sync site config tagline with hero section title
 @receiver(post_save, sender=SiteConfig)
 def sync_site_tagline_with_hero(sender, instance, **kwargs):

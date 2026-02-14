@@ -514,8 +514,7 @@ def bulk_export_interface(request):
 def bulk_export_process(request):
     """Process bulk export request"""
     if not request.user.is_staff and not request.user.is_superuser:
-        messages.error(request, _('You do not have permission to access this page.'))
-        return redirect('core:home')
+        return JsonResponse({'error': 'Permission denied'}, status=403)
     
     if request.method == 'POST':
         selected_models = request.POST.getlist('models')
@@ -534,156 +533,214 @@ def bulk_export_process(request):
         )
         
         if not selected_models:
-            messages.error(request, _('Please select at least one model to export.'))
-            return redirect('core:bulk_export_interface')
+            logger.warning(
+                f"Bulk export failed: No models selected",
+                extra={
+                    'user_id': request.user.id,
+                    'action': 'bulk_export_validation_failed'
+                }
+            )
+            return JsonResponse({'error': 'Please select at least one model to export.'}, status=400)
         
-        # Create a zip file containing all selected exports
-        import zipfile
-        import tempfile
-        from django.core.files.base import ContentFile
-        
-        exported_count = 0
-        failed_count = 0
-        failed_models = []
-        
-        # Create temporary file for zip
-        with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
-            with zipfile.ZipFile(tmp_file.name, 'w') as zip_file:
-                
-                for model_name in selected_models:
-                    try:
-                        # Get the appropriate queryset and config based on model
-                        if model_name == 'alumni':
-                            queryset = Alumni.objects.select_related('user').all()
-                            export_config = ModelExporter.get_alumni_export_config()
-                        elif model_name == 'users':
-                            queryset = User.objects.all()
-                            export_config = ModelExporter.get_user_export_config()
-                        elif model_name == 'jobs':
-                            queryset = JobPosting.objects.all()
-                            export_config = ModelExporter.get_job_export_config()
-                        elif model_name == 'mentorships':
-                            queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee__user').all()
-                            export_config = ModelExporter.get_mentorship_export_config()
-                        elif model_name == 'events':
-                            queryset = Event.objects.all()
-                            export_config = ModelExporter.get_event_export_config()
-                        elif model_name == 'donations':
-                            queryset = Donation.objects.select_related('donor__user', 'campaign').all()
-                            export_config = ModelExporter.get_donation_export_config()
-                        elif model_name == 'announcements':
-                            queryset = Announcement.objects.select_related('category', 'author').all()
-                            export_config = ModelExporter.get_announcement_export_config()
-                        elif model_name == 'feedback':
-                            queryset = Feedback.objects.select_related('user').all()
-                            export_config = ModelExporter.get_feedback_export_config()
-                        elif model_name == 'surveys':
-                            queryset = Survey.objects.select_related('created_by').all()
-                            export_config = ModelExporter.get_survey_export_config()
-                        else:
+        try:
+            # Create a zip file containing all selected exports
+            import zipfile
+            import tempfile
+            from django.core.files.base import ContentFile
+            
+            exported_count = 0
+            failed_count = 0
+            failed_models = []
+            
+            # Create temporary file for zip
+            with tempfile.NamedTemporaryFile(delete=False, suffix='.zip') as tmp_file:
+                with zipfile.ZipFile(tmp_file.name, 'w') as zip_file:
+                    
+                    for model_name in selected_models:
+                        try:
+                            # Get the appropriate queryset and config based on model
+                            if model_name == 'alumni':
+                                queryset = Alumni.objects.select_related('user').all()
+                                export_config = ModelExporter.get_alumni_export_config()
+                            elif model_name == 'users':
+                                queryset = User.objects.all()
+                                export_config = ModelExporter.get_user_export_config()
+                            elif model_name == 'jobs':
+                                queryset = JobPosting.objects.all()
+                                export_config = ModelExporter.get_job_export_config()
+                            elif model_name == 'mentorships':
+                                queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee__user').all()
+                                export_config = ModelExporter.get_mentorship_export_config()
+                            elif model_name == 'events':
+                                queryset = Event.objects.all()
+                                export_config = ModelExporter.get_event_export_config()
+                            elif model_name == 'donations':
+                                queryset = Donation.objects.select_related('donor__user', 'campaign').all()
+                                export_config = ModelExporter.get_donation_export_config()
+                            elif model_name == 'announcements':
+                                queryset = Announcement.objects.select_related('category', 'author').all()
+                                export_config = ModelExporter.get_announcement_export_config()
+                            elif model_name == 'feedback':
+                                queryset = Feedback.objects.select_related('user').all()
+                                export_config = ModelExporter.get_feedback_export_config()
+                            elif model_name == 'surveys':
+                                queryset = Survey.objects.select_related('created_by').all()
+                                export_config = ModelExporter.get_survey_export_config()
+                            else:
+                                logger.warning(
+                                    f"Unknown model in bulk export: {model_name}",
+                                    extra={
+                                        'model_name': model_name,
+                                        'user_id': request.user.id,
+                                        'action': 'bulk_export_unknown_model'
+                                    }
+                                )
+                                continue
+                            
+                            # Generate the export
+                            if format_type == 'csv':
+                                response = ExportMixin().export_csv(
+                                    queryset, 
+                                    f"{model_name}_export", 
+                                    export_config.get('field_names'),
+                                    export_config.get('field_labels')
+                                )
+                                filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                            elif format_type == 'excel':
+                                response = ExportMixin().export_excel(
+                                    queryset, 
+                                    f"{model_name}_export", 
+                                    export_config.get('field_names'),
+                                    export_config.get('field_labels'),
+                                    export_config.get('sheet_name', 'Data')
+                                )
+                                filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                            elif format_type == 'pdf':
+                                response = ExportMixin().export_pdf(
+                                    queryset, 
+                                    f"{model_name}_export", 
+                                    export_config.get('field_names'),
+                                    export_config.get('field_labels'),
+                                    export_config.get('sheet_name', 'Data Export')
+                                )
+                                filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                            else:
+                                logger.warning(
+                                    f"Unknown format in bulk export: {format_type}",
+                                    extra={
+                                        'format_type': format_type,
+                                        'user_id': request.user.id,
+                                        'action': 'bulk_export_unknown_format'
+                                    }
+                                )
+                                continue
+                            
+                            # Add file to zip
+                            zip_file.writestr(filename, response.content)
+                            exported_count += 1
+                            
+                            logger.info(
+                                f"Model exported successfully: Model={model_name}, Format={format_type}",
+                                extra={
+                                    'model_name': model_name,
+                                    'format_type': format_type,
+                                    'user_id': request.user.id,
+                                    'action': 'model_export_success'
+                                }
+                            )
+                            
+                        except Exception as e:
+                            # Log error but continue with other models
+                            failed_count += 1
+                            failed_models.append(model_name)
+                            logger.error(
+                                f"Error exporting model: Model={model_name}, Format={format_type}, Error={str(e)}",
+                                extra={
+                                    'model_name': model_name,
+                                    'format_type': format_type,
+                                    'user_id': request.user.id,
+                                    'error_type': type(e).__name__,
+                                    'action': 'model_export_failed'
+                                },
+                                exc_info=True
+                            )
                             continue
-                        
-                        # Generate the export
-                        if format_type == 'csv':
-                            response = ExportMixin().export_csv(
-                                queryset, 
-                                f"{model_name}_export", 
-                                export_config.get('field_names'),
-                                export_config.get('field_labels')
-                            )
-                            filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
-                        elif format_type == 'excel':
-                            response = ExportMixin().export_excel(
-                                queryset, 
-                                f"{model_name}_export", 
-                                export_config.get('field_names'),
-                                export_config.get('field_labels'),
-                                export_config.get('sheet_name', 'Data')
-                            )
-                            filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-                        elif format_type == 'pdf':
-                            response = ExportMixin().export_pdf(
-                                queryset, 
-                                f"{model_name}_export", 
-                                export_config.get('field_names'),
-                                export_config.get('field_labels'),
-                                export_config.get('sheet_name', 'Data Export')
-                            )
-                            filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
-                        else:
-                            continue
-                        
-                        # Add file to zip
-                        zip_file.writestr(filename, response.content)
-                        exported_count += 1
-                        
-                        logger.info(
-                            f"Model exported successfully: Model={model_name}, Format={format_type}",
-                            extra={
-                                'model_name': model_name,
-                                'format_type': format_type,
-                                'user_id': request.user.id,
-                                'action': 'model_export_success'
-                            }
-                        )
-                        
-                    except Exception as e:
-                        # Log error but continue with other models
-                        failed_count += 1
-                        failed_models.append(model_name)
+                    
+                    # Check if any files were exported
+                    if exported_count == 0:
                         logger.error(
-                            f"Error exporting model: Model={model_name}, Format={format_type}, Error={str(e)}",
+                            f"Bulk export failed: No files exported",
                             extra={
-                                'model_name': model_name,
-                                'format_type': format_type,
+                                'selected_models': selected_models,
+                                'failed_models': failed_models,
                                 'user_id': request.user.id,
-                                'error_type': type(e).__name__,
-                                'exc_info': True,
-                                'action': 'model_export_failed'
+                                'action': 'bulk_export_no_files'
                             }
                         )
-                        continue
-                
-                # Add a README file to the zip
-                readme_content = f"""Bulk Export Report
+                        return JsonResponse({
+                            'error': 'Failed to export any files. Please check the logs for details.'
+                        }, status=500)
+                    
+                    # Add a README file to the zip
+                    readme_content = f"""Bulk Export Report
 Generated on: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}
 Format: {format_type.upper()}
-Models exported: {', '.join(selected_models)}
-Total files: {len(selected_models)}
+Models requested: {', '.join(selected_models)}
+Successfully exported: {exported_count}
+Failed: {failed_count}
+Total files: {exported_count}
 
 This zip file contains exported data from the following models:
-{chr(10).join([f"- {model}" for model in selected_models])}
+{chr(10).join([f"- {model}" for model in selected_models if model not in failed_models])}
+
+{f"Failed exports: {', '.join(failed_models)}" if failed_models else ""}
 
 Each file is named with the model name and timestamp for easy identification.
 """
-                zip_file.writestr('README.txt', readme_content)
-        
-        # Read the zip file and create response
-        with open(tmp_file.name, 'rb') as f:
-            zip_content = f.read()
-        
-        # Clean up temporary file
-        import os
-        os.unlink(tmp_file.name)
-        
-        # Log bulk export completion
-        logger.info(
-            f"Bulk export completed: Exported={exported_count}, Failed={failed_count}, Format={format_type}",
-            extra={
-                'exported_count': exported_count,
-                'failed_count': failed_count,
-                'failed_models': failed_models,
-                'format_type': format_type,
-                'total_models': len(selected_models),
-                'user_id': request.user.id,
-                'action': 'bulk_export_complete'
-            }
-        )
-        
-        # Create response
-        response = HttpResponse(zip_content, content_type='application/zip')
-        response['Content-Disposition'] = f'attachment; filename="bulk_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
-        
-        return response
+                    zip_file.writestr('README.txt', readme_content)
+            
+            # Read the zip file and create response
+            with open(tmp_file.name, 'rb') as f:
+                zip_content = f.read()
+            
+            # Clean up temporary file
+            import os
+            os.unlink(tmp_file.name)
+            
+            # Log bulk export completion
+            logger.info(
+                f"Bulk export completed: Exported={exported_count}, Failed={failed_count}, Format={format_type}",
+                extra={
+                    'exported_count': exported_count,
+                    'failed_count': failed_count,
+                    'failed_models': failed_models,
+                    'format_type': format_type,
+                    'total_models': len(selected_models),
+                    'user_id': request.user.id,
+                    'action': 'bulk_export_complete'
+                }
+            )
+            
+            # Create response
+            response = HttpResponse(zip_content, content_type='application/zip')
+            response['Content-Disposition'] = f'attachment; filename="bulk_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
+            
+            return response
+            
+        except Exception as e:
+            logger.error(
+                f"Bulk export critical error: {str(e)}",
+                extra={
+                    'selected_models': selected_models,
+                    'format_type': format_type,
+                    'user_id': request.user.id,
+                    'error_type': type(e).__name__,
+                    'action': 'bulk_export_critical_error'
+                },
+                exc_info=True
+            )
+            return JsonResponse({
+                'error': f'Export failed: {str(e)}'
+            }, status=500)
     
     return redirect('core:bulk_export_interface')

@@ -440,7 +440,7 @@
                                 <div class="input-group">
                                     <span class="input-group-text"><i class="fas fa-search"></i></span>
                                     <input type="text" id="search" name="search" value="{{ search_query }}" 
-                                           class="form-control" placeholder="Search by name, course, college, or location">
+                                           class="form-control" placeholder="Search by name, program, college, or location">
                                 </div>
                             </div>
                         </div>
@@ -468,9 +468,9 @@
                         </div>
                         <div class="col-md-2">
                             <div class="form-group">
-                                <label for="course" class="form-label">Course</label>
+                                <label for="course" class="form-label">Program</label>
                                 <select id="course" name="course" class="form-select">
-                                    <option value="">All Courses</option>
+                                    <option value="">All Programs</option>
                                     {% for course_item in courses %}
                                     <option value="{{ course_item }}" {% if selected_course == course_item %}selected{% endif %}>{{ course_item }}</option>
                                     {% endfor %}
@@ -503,7 +503,7 @@
                                 <th>Full Name</th>
                                 <th>College</th>
                                 <th>Year</th>
-                                <th>Course</th>
+                                <th>Program</th>
                                 <th>Present Occupation</th>
                                 <th>Name of Company</th>
                                 <th>Employment Address</th>
@@ -644,7 +644,7 @@
                         <label for="csvFile" class="form-label">Select CSV File</label>
                         <input type="file" class="form-control" id="csvFile" name="csv_file" accept=".csv" required>
                         <div class="form-text">
-                            Please upload a CSV file with the following columns: Full Name, Year, Course, Present Occupation, Name of Company, Employment Address
+                            Please upload a CSV file with the following columns: Full Name, Year, Program, Present Occupation, Name of Company, Employment Address
                         </div>
                     </div>
                     <div class="alert alert-info">
@@ -724,11 +724,11 @@
                             </div>
                         </div>
 
-                        <!-- Course Selection -->
+                        <!-- program Selection -->
                         <div class="col-md-6">
                             <div class="export-section">
                                 <h6 class="export-section-title">
-                                    <i class="fas fa-graduation-cap me-2"></i>Courses
+                                    <i class="fas fa-graduation-cap me-2"></i>Programs
                                 </h6>
                                 <div class="form-check mb-2">
                                     <input class="form-check-input" type="checkbox" id="selectAllCourses" checked>
@@ -888,9 +888,28 @@
                     <button type="button" class="btn btn-primary" id="previewExportBtn">
                         <i class="fas fa-eye me-1"></i>Preview Results
                     </button>
-                    <button type="submit" class="btn btn-success">
-                        <i class="fas fa-download me-1"></i>Export CSV
-                    </button>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-success dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="fas fa-download me-1"></i>Export
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li>
+                                <button type="button" class="dropdown-item export-format-btn" data-format="csv">
+                                    <i class="fas fa-file-csv me-2"></i>CSV
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item export-format-btn" data-format="excel">
+                                    <i class="fas fa-file-excel me-2"></i>Excel
+                                </button>
+                            </li>
+                            <li>
+                                <button type="button" class="dropdown-item export-format-btn" data-format="pdf">
+                                    <i class="fas fa-file-pdf me-2"></i>PDF
+                                </button>
+                            </li>
+                        </ul>
+                    </div>
                 </div>
             </form>
         </div>
@@ -1351,66 +1370,69 @@
             }
         }
 
-        // Handle export form submission
-        exportOptionsForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Handle export format buttons
+        document.querySelectorAll('.export-format-btn').forEach(button => {
+            button.addEventListener('click', function(e) {
+                e.preventDefault();
+                const format = this.dataset.format;
+                
+                // Build export URL with selected parameters
+                const baseUrl = '{% url "alumni_directory:alumni_management" %}';
+                const params = new URLSearchParams();
+                params.append('format', format);
 
-            // Build export URL with selected parameters
-            const baseUrl = '{% url "alumni_directory:alumni_management" %}';
-            const params = new URLSearchParams();
-            params.append('format', 'csv');
-
-            // Add selected colleges
-            const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-            if (selectedColleges.length > 0 && selectedColleges.length < collegeCheckboxes.length) {
-                selectedColleges.forEach(college => params.append('export_colleges', college));
-            }
-
-            // Add selected courses
-            const selectedCourses = Array.from(courseCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-            if (selectedCourses.length > 0 && selectedCourses.length < courseCheckboxes.length) {
-                selectedCourses.forEach(course => params.append('export_courses', course));
-            }
-
-            // Add selected years or year range
-            const yearFrom = document.getElementById('yearFrom').value;
-            const yearTo = document.getElementById('yearTo').value;
-
-            if (yearFrom) params.append('export_year_from', yearFrom);
-            if (yearTo) params.append('export_year_to', yearTo);
-
-            if (!yearFrom && !yearTo) {
-                const selectedYears = Array.from(yearCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                if (selectedYears.length > 0 && selectedYears.length < yearCheckboxes.length) {
-                    selectedYears.forEach(year => params.append('export_years', year));
+                // Add selected colleges
+                const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedColleges.length > 0 && selectedColleges.length < collegeCheckboxes.length) {
+                    selectedColleges.forEach(college => params.append('export_colleges', college));
                 }
-            }
 
-            // Add selected employment status
-            const selectedEmployment = Array.from(employmentCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-            if (selectedEmployment.length > 0 && selectedEmployment.length < employmentCheckboxes.length) {
-                selectedEmployment.forEach(status => params.append('export_employment_status', status));
-            }
-
-            // Add selected verification status
-            const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-            if (selectedVerification.length > 0 && selectedVerification.length < verificationCheckboxes.length) {
-                selectedVerification.forEach(status => params.append('export_verification_status', status));
-            }
-
-            // Hide modal before redirecting if it exists and is visible
-            if (exportModalInstance) {
-                try {
-                    exportModalInstance.hide();
-                } catch (error) {
-                    // Modal instance might not exist, continue with redirect
-                    console.log('Error hiding modal, continuing with redirect:', error);
+                // Add selected courses
+                const selectedCourses = Array.from(courseCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedCourses.length > 0 && selectedCourses.length < courseCheckboxes.length) {
+                    selectedCourses.forEach(course => params.append('export_courses', course));
                 }
-            }
 
-            // Redirect to export URL
-            const exportUrl = `${baseUrl}?${params.toString()}`;
-            window.location.href = exportUrl;
+                // Add selected years or year range
+                const yearFrom = document.getElementById('yearFrom').value;
+                const yearTo = document.getElementById('yearTo').value;
+
+                if (yearFrom) params.append('export_year_from', yearFrom);
+                if (yearTo) params.append('export_year_to', yearTo);
+
+                if (!yearFrom && !yearTo) {
+                    const selectedYears = Array.from(yearCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                    if (selectedYears.length > 0 && selectedYears.length < yearCheckboxes.length) {
+                        selectedYears.forEach(year => params.append('export_years', year));
+                    }
+                }
+
+                // Add selected employment status
+                const selectedEmployment = Array.from(employmentCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedEmployment.length > 0 && selectedEmployment.length < employmentCheckboxes.length) {
+                    selectedEmployment.forEach(status => params.append('export_employment_status', status));
+                }
+
+                // Add selected verification status
+                const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedVerification.length > 0 && selectedVerification.length < verificationCheckboxes.length) {
+                    selectedVerification.forEach(status => params.append('export_verification_status', status));
+                }
+
+                // Hide modal before redirecting if it exists and is visible
+                if (exportModalInstance) {
+                    try {
+                        exportModalInstance.hide();
+                    } catch (error) {
+                        // Modal instance might not exist, continue with redirect
+                        console.log('Error hiding modal, continuing with redirect:', error);
+                    }
+                }
+
+                // Redirect to export URL
+                const exportUrl = `${baseUrl}?${params.toString()}`;
+                window.location.href = exportUrl;
+            });
         });
 
         // Handle preview button

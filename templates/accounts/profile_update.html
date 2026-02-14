@@ -4,6 +4,13 @@
 
 {% block title %}Edit Profile{% endblock %}
 
+{% block extra_head %}
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+<meta name="theme-color" content="#2b3c6b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+{% endblock %}
+
 {% block extra_css %}
 <style>
     /* Core variables */
@@ -18,53 +25,29 @@
 
     /* Profile Edit Header */
     .profile-edit {
-        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
-        padding: 4rem 0 8rem;
+        background: var(--primary-color);
+        padding: 2.5rem 0;
         position: relative;
-        overflow: hidden;
-    }
-
-    .profile-edit::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg width="20" height="20" xmlns="http://www.w3.org/2000/svg"><rect width="20" height="20" fill="none"/><circle cx="3" cy="3" r="1" fill="rgba(255,255,255,0.1)"/></svg>') repeat;
-    }
-
-    .profile-edit::after {
-        content: '';
-        position: absolute;
-        bottom: 0;
-        left: 0;
-        width: 100%;
-        height: 180px;
-        background: white;
-        clip-path: ellipse(65% 65% at 50% 100%);
+        margin-bottom: 3rem;
     }
 
     .edit-title {
         color: white;
-        font-size: 2.5rem;
-        font-weight: 800;
-        margin-bottom: 1.5rem;
-        text-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        position: relative;
-        z-index: 1;
+        font-size: 2rem;
+        font-weight: 700;
+        margin-bottom: 0.5rem;
+        text-align: center;
     }
 
     .edit-subtitle {
-        color: rgba(255,255,255,0.8);
-        font-size: 1.2rem;
-        position: relative;
-        z-index: 1;
+        color: rgba(255,255,255,0.9);
+        font-size: 1rem;
+        text-align: center;
+        margin: 0;
     }
 
     /* Content Layout */
     .edit-content {
-        margin-top: -5rem;
         position: relative;
         z-index: 2;
         padding-bottom: 4rem;
@@ -100,6 +83,77 @@
     .edit-card h3 i {
         color: var(--primary-color);
         opacity: 0.8;
+    }
+
+    /* Accordion Styling */
+    .accordion-item {
+        border: none;
+        margin-bottom: 1.5rem;
+        border-radius: var(--border-radius) !important;
+        overflow: hidden;
+        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
+    }
+
+    .accordion-button {
+        background: white;
+        color: var(--primary-color);
+        font-size: 1.3rem;
+        font-weight: 700;
+        padding: 1.5rem 2rem;
+        border: none;
+        box-shadow: none;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: var(--primary-color);
+        color: white;
+        box-shadow: none;
+    }
+
+    .accordion-button:focus {
+        box-shadow: none;
+        border: none;
+    }
+
+    .accordion-button::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%232b3c6b'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+
+    .accordion-button:not(.collapsed)::after {
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
+    }
+
+    .accordion-body {
+        padding: 2rem;
+        background: white;
+    }
+
+    .section-icon {
+        margin-right: 0.75rem;
+        font-size: 1.2rem;
+    }
+
+    .section-badge {
+        font-size: 0.75rem;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        margin-left: 0.5rem;
+        font-weight: 600;
+    }
+
+    .badge-required {
+        background: #dc3545;
+        color: white;
+    }
+
+    .badge-optional {
+        background: #6c757d;
+        color: white;
+    }
+
+    .badge-count {
+        background: var(--primary-color);
+        color: white;
     }
 
     /* Form Styling */
@@ -417,24 +471,272 @@
 
     /* Responsive Adjustments */
     @media (max-width: 768px) {
+        /* Header adjustments */
         .profile-edit {
-            padding: 3rem 0 6rem;
+            padding: 2rem 0;
+            margin-bottom: 2rem;
         }
 
         .edit-title {
-            font-size: 2rem;
+            font-size: 1.5rem;
+            margin-bottom: 0.5rem;
         }
 
         .edit-subtitle {
+            font-size: 0.9rem;
+        }
+
+        /* Content spacing */
+        .edit-content {
+            padding-bottom: 2rem;
+        }
+
+        /* Accordion improvements */
+        .accordion-button {
+            font-size: 1.1rem;
+            padding: 1rem 1.25rem;
+        }
+
+        .section-icon {
+            font-size: 1rem;
+            margin-right: 0.5rem;
+        }
+
+        .section-badge {
+            font-size: 0.65rem;
+            padding: 0.2rem 0.5rem;
+            margin-left: 0.25rem;
+        }
+
+        .accordion-body {
+            padding: 1rem;
+        }
+
+        /* Avatar section */
+        .current-avatar {
+            width: 120px;
+            height: 120px;
+        }
+
+        .avatar-controls {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .avatar-controls .btn {
+            width: 100%;
+            max-width: 250px;
+        }
+
+        /* Form fields - stack on mobile */
+        .formset-item {
+            padding: 1rem;
+            padding-right: 1rem;
+            min-height: auto;
+        }
+
+        .formset-item .row {
+            max-width: 100%;
+        }
+
+        .formset-item .col-md-6 {
+            max-width: 100%;
+            margin-bottom: 0.75rem;
+        }
+
+        /* Delete button repositioning for mobile */
+        .formset-item .delete-row {
+            position: static;
+            display: flex;
+            justify-content: center;
+            margin-top: 1rem;
+            padding-top: 1rem;
+            border-top: 1px solid rgba(43, 60, 107, 0.1);
+        }
+
+        .formset-item .delete-row::after {
+            position: static;
+            margin: 0;
+        }
+
+        .formset-item .delete-row .btn {
+            position: static;
+            width: 100%;
+            max-width: 200px;
+            border-radius: 10px;
+            height: auto;
+            padding: 0.5rem 1rem;
+        }
+
+        /* Add form button */
+        .add-form {
+            padding: 1rem;
+            font-size: 0.95rem;
+        }
+
+        /* Document sections */
+        .document-section {
+            padding: 1rem;
+        }
+
+        .document-title {
             font-size: 1rem;
         }
 
-        .edit-card {
-            padding: var(--spacing-unit);
+        .document-upload {
+            padding: 1.5rem 1rem;
         }
 
+        .document-upload i {
+            font-size: 2rem;
+            margin-bottom: 1rem;
+        }
+
+        /* Action buttons */
+        .btn-save,
+        .btn-cancel {
+            width: 100%;
+            margin-bottom: 0.75rem;
+            padding: 0.875rem 1.5rem;
+        }
+
+        .btn-save {
+            margin-right: 0 !important;
+        }
+
+        /* Form controls - better touch targets */
+        .form-control,
+        .form-select {
+            font-size: 16px; /* Prevents zoom on iOS */
+            padding: 0.75rem;
+            min-height: 44px; /* Apple's recommended touch target */
+        }
+
+        textarea.form-control {
+            min-height: 100px;
+        }
+
+        /* Loading overlay text */
+        .loading-text {
+            font-size: 0.9rem;
+        }
+
+        /* Alert messages */
+        .alert {
+            font-size: 0.9rem;
+        }
+
+        .alert-heading {
+            font-size: 1rem;
+        }
+    }
+
+    @media (max-width: 576px) {
+        /* Extra small devices */
+        .profile-edit {
+            padding: 1.5rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .edit-title {
+            font-size: 1.35rem;
+        }
+
+        .edit-subtitle {
+            font-size: 0.85rem;
+        }
+
+        .accordion-button {
+            font-size: 1rem;
+            padding: 0.875rem 1rem;
+        }
+
+        .section-badge {
+            display: block;
+            margin-left: 0;
+            margin-top: 0.25rem;
+            width: fit-content;
+        }
+
+        .current-avatar {
+            width: 100px;
+            height: 100px;
+        }
+
+        .no-avatar i {
+            font-size: 3rem;
+        }
+
+        /* Tighter spacing for small screens */
         .formset-item {
-            padding: var(--spacing-unit);
+            padding: 0.875rem;
+            margin-bottom: 1rem;
+        }
+
+        .document-upload {
+            padding: 1.25rem 0.75rem;
+        }
+
+        .document-upload i {
+            font-size: 1.75rem;
+        }
+
+        .document-upload p {
+            font-size: 0.875rem;
+        }
+
+        /* Container padding */
+        .container {
+            padding-left: 1rem;
+            padding-right: 1rem;
+        }
+    }
+
+    /* Landscape mobile optimization */
+    @media (max-width: 768px) and (orientation: landscape) {
+        .profile-edit {
+            padding: 1.25rem 0;
+            margin-bottom: 1.5rem;
+        }
+
+        .current-avatar {
+            width: 80px;
+            height: 80px;
+        }
+    }
+
+    /* Touch device optimizations */
+    @media (hover: none) and (pointer: coarse) {
+        /* Larger touch targets */
+        .accordion-button {
+            min-height: 56px;
+        }
+
+        .add-form {
+            min-height: 48px;
+        }
+
+        .btn {
+            min-height: 44px;
+        }
+
+        /* Remove hover effects on touch devices */
+        .formset-item:hover {
+            background: rgba(43, 60, 107, 0.02);
+            border-color: rgba(43, 60, 107, 0.1);
+        }
+
+        .add-form:hover {
+            background: rgba(43, 60, 107, 0.05);
+        }
+
+        /* Better tap feedback */
+        .accordion-button:active {
+            transform: scale(0.98);
+        }
+
+        .btn:active {
+            transform: scale(0.97);
         }
     }
 
@@ -517,6 +819,175 @@
     .document-section:hover .document-upload {
         border-color: var(--primary-color);
     }
+
+    /* Sticky action buttons for mobile */
+    .action-buttons-wrapper {
+        position: relative;
+    }
+
+    @media (max-width: 768px) {
+        .action-buttons-wrapper {
+            position: sticky;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            padding: 1rem;
+            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
+            z-index: 100;
+            margin: 0 -1rem;
+        }
+
+        .action-buttons-wrapper .text-center {
+            margin-bottom: 0 !important;
+        }
+    }
+
+    /* Improved form label visibility on mobile */
+    @media (max-width: 768px) {
+        .form-label {
+            font-weight: 600;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+        }
+
+        /* Better spacing for crispy forms */
+        .mb-3 {
+            margin-bottom: 1rem !important;
+        }
+    }
+
+    /* Smooth scrolling for better UX */
+    html {
+        scroll-behavior: smooth;
+    }
+
+    /* Focus states for accessibility */
+    .accordion-button:focus,
+    .form-control:focus,
+    .form-select:focus,
+    .btn:focus {
+        outline: 2px solid var(--primary-color);
+        outline-offset: 2px;
+    }
+
+    /* Prevent text selection on buttons */
+    .accordion-button,
+    .btn,
+    .add-form {
+        user-select: none;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+    }
+
+    /* Mobile animations */
+    @keyframes slideUp {
+        from {
+            transform: translateX(-50%) translateY(20px);
+            opacity: 0;
+        }
+        to {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+    }
+
+    @keyframes bounce {
+        0%, 20%, 50%, 80%, 100% {
+            transform: translateY(0);
+        }
+        40% {
+            transform: translateY(-10px);
+        }
+        60% {
+            transform: translateY(-5px);
+        }
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* Mobile toast notifications */
+    .mobile-toast {
+        animation: slideUp 0.3s ease;
+    }
+
+    /* Improved accordion transition on mobile */
+    @media (max-width: 768px) {
+        .accordion-collapse {
+            transition: height 0.25s ease;
+        }
+
+        .accordion-item {
+            animation: fadeIn 0.3s ease;
+        }
+    }
+
+    /* Safe area insets for notched devices */
+    @supports (padding: max(0px)) {
+        @media (max-width: 768px) {
+            .action-buttons-wrapper {
+                padding-bottom: max(1rem, env(safe-area-inset-bottom));
+            }
+
+            .container {
+                padding-left: max(1rem, env(safe-area-inset-left));
+                padding-right: max(1rem, env(safe-area-inset-right));
+            }
+        }
+    }
+
+    /* Prevent overscroll on iOS */
+    @media (max-width: 768px) {
+        body {
+            overscroll-behavior-y: contain;
+        }
+    }
+
+    /* Better form field appearance on iOS */
+    @media (max-width: 768px) {
+        input[type="text"],
+        input[type="email"],
+        input[type="tel"],
+        input[type="number"],
+        input[type="date"],
+        select,
+        textarea {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+        }
+
+        /* Custom select arrow for mobile */
+        .form-select {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 16px 12px;
+            padding-right: 2.5rem;
+        }
+    }
+
+    /* Loading overlay improvements for mobile */
+    @media (max-width: 768px) {
+        .loading-overlay {
+            backdrop-filter: blur(4px);
+        }
+
+        .loading-spinner i {
+            font-size: 2.5rem;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -557,184 +1028,239 @@
                     </div>
                     {% endif %}
 
-                    <!-- Personal Information -->
-                    <div class="edit-card">
-                        <h3><i class="fas fa-user"></i> Personal Information</h3>
+                    <!-- Accordion for Form Sections -->
+                    <div class="accordion" id="profileAccordion">
                         
-                        <!-- Avatar Upload Section -->
-                        <div class="avatar-upload-section mb-4">
-                            <div class="current-avatar mb-3">
-                                {% if profile_form.instance.avatar %}
-                                    <img src="{{ profile_form.instance.avatar.url }}" alt="Current Avatar" class="avatar-preview" id="avatarPreview">
-                                {% else %}
-                                    <div class="no-avatar" id="avatarPreview">
-                                        <i class="fas fa-user"></i>
+                        <!-- Personal Information (Always Expanded) -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingPersonal">
+                                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePersonal" aria-expanded="true" aria-controls="collapsePersonal">
+                                    <i class="fas fa-user section-icon"></i>
+                                    Personal Information
+                                    <span class="section-badge badge-required">Required</span>
+                                </button>
+                            </h2>
+                            <div id="collapsePersonal" class="accordion-collapse collapse show" aria-labelledby="headingPersonal" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <!-- Avatar Upload Section -->
+                                    <div class="avatar-upload-section mb-4">
+                                        <div class="current-avatar mb-3">
+                                            {% if profile_form.instance.avatar %}
+                                                <img src="{{ profile_form.instance.avatar.url }}" alt="Current Avatar" class="avatar-preview" id="avatarPreview">
+                                            {% else %}
+                                                <div class="no-avatar" id="avatarPreview">
+                                                    <i class="fas fa-user"></i>
+                                                </div>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        <div class="avatar-controls">
+                                            <label for="id_avatar" class="btn btn-primary me-2">
+                                                <i class="fas fa-camera me-2"></i>Change Picture
+                                            </label>
+                                            {% if profile_form.instance.avatar %}
+                                                <button type="button" class="btn btn-outline-danger" id="removeAvatar">
+                                                    <i class="fas fa-trash-alt me-2"></i>Remove
+                                                </button>
+                                            {% endif %}
+                                            <input type="hidden" name="remove_avatar" id="removeAvatarInput" value="false">
+                                        </div>
+                                        
+                                        <!-- Hidden file input -->
+                                        <div style="display: none;">
+                                            {{ profile_form.avatar }}
+                                        </div>
                                     </div>
-                                {% endif %}
-                            </div>
-                            
-                            <div class="avatar-controls">
-                                <label for="id_avatar" class="btn btn-primary me-2">
-                                    <i class="fas fa-camera me-2"></i>Change Picture
-                                </label>
-                                {% if profile_form.instance.avatar %}
-                                    <button type="button" class="btn btn-outline-danger" id="removeAvatar">
-                                        <i class="fas fa-trash-alt me-2"></i>Remove
-                                    </button>
-                                {% endif %}
-                                <input type="hidden" name="remove_avatar" id="removeAvatarInput" value="false">
-                            </div>
-                            
-                            <!-- Hidden file input -->
-                            <div style="display: none;">
-                                {{ profile_form.avatar }}
-                            </div>
-                        </div>
 
-                        {{ user_form|crispy }}
-                        {{ profile_form|crispy }}
-                    </div>
-
-                    <!-- Education -->
-                    <div class="edit-card">
-                        <h3><i class="fas fa-graduation-cap"></i> Education</h3>
-                        {{ education_formset.management_form }}
-                        <div id="education-forms">
-                            {% for form in education_formset %}
-                                <div class="formset-item">
-                                    {{ form|crispy }}
-                                    {% if form.instance.pk %}
-                                        <div class="delete-row">
-                                            {{ form.DELETE|crispy }}
-                                        </div>
-                                    {% endif %}
+                                    {{ user_form|crispy }}
+                                    {{ profile_form|crispy }}
                                 </div>
-                            {% endfor %}
+                            </div>
                         </div>
-                        <a href="#" class="add-form" id="add-education">
-                            <i class="fas fa-plus-circle"></i> Add Education
-                        </a>
-                    </div>
 
-                    <!-- Experience -->
-                    <div class="edit-card">
-                        <h3><i class="fas fa-briefcase"></i> Experience</h3>
-                        {{ experience_formset.management_form }}
-                        <div id="experience-forms">
-                            {% for form in experience_formset %}
-                                <div class="formset-item">
-                                    {{ form|crispy }}
-                                    {% if form.instance.pk %}
-                                        <div class="delete-row">
-                                            {{ form.DELETE|crispy }}
-                                        </div>
-                                    {% endif %}
+                        <!-- Education -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingEducation">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEducation" aria-expanded="false" aria-controls="collapseEducation">
+                                    <i class="fas fa-graduation-cap section-icon"></i>
+                                    Education
+                                    <span class="section-badge badge-count" id="educationCount">{{ education_formset.total_form_count }}</span>
+                                </button>
+                            </h2>
+                            <div id="collapseEducation" class="accordion-collapse collapse" aria-labelledby="headingEducation" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    {{ education_formset.management_form }}
+                                    <div id="education-forms">
+                                        {% for form in education_formset %}
+                                            <div class="formset-item">
+                                                {{ form|crispy }}
+                                                {% if form.instance.pk %}
+                                                    <div class="delete-row">
+                                                        {{ form.DELETE|crispy }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <a href="#" class="add-form" id="add-education">
+                                        <i class="fas fa-plus-circle"></i> Add Education
+                                    </a>
                                 </div>
-                            {% endfor %}
+                            </div>
                         </div>
-                        <a href="#" class="add-form" id="add-experience">
-                            <i class="fas fa-plus-circle"></i> Add Experience
-                        </a>
-                    </div>
 
-                    <!-- Skills -->
-                    <div class="edit-card">
-                        <h3><i class="fas fa-star"></i> Skills</h3>
-                        {{ skill_formset.management_form }}
-                        <div id="skill-forms">
-                            {% for form in skill_formset %}
-                                <div class="formset-item">
-                                    {{ form|crispy }}
-                                    {% if form.instance.pk %}
-                                        <div class="delete-row">
-                                            {{ form.DELETE|crispy }}
-                                        </div>
-                                    {% endif %}
+                        <!-- Experience -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingExperience">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExperience" aria-expanded="false" aria-controls="collapseExperience">
+                                    <i class="fas fa-briefcase section-icon"></i>
+                                    Work Experience
+                                    <span class="section-badge badge-count" id="experienceCount">{{ experience_formset.total_form_count }}</span>
+                                </button>
+                            </h2>
+                            <div id="collapseExperience" class="accordion-collapse collapse" aria-labelledby="headingExperience" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    {{ experience_formset.management_form }}
+                                    <div id="experience-forms">
+                                        {% for form in experience_formset %}
+                                            <div class="formset-item">
+                                                {{ form|crispy }}
+                                                {% if form.instance.pk %}
+                                                    <div class="delete-row">
+                                                        {{ form.DELETE|crispy }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <a href="#" class="add-form" id="add-experience">
+                                        <i class="fas fa-plus-circle"></i> Add Experience
+                                    </a>
                                 </div>
-                            {% endfor %}
+                            </div>
                         </div>
-                        <a href="#" class="add-form" id="add-skill">
-                            <i class="fas fa-plus-circle"></i> Add Skill
-                        </a>
+
+                        <!-- Skills -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingSkills">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkills" aria-expanded="false" aria-controls="collapseSkills">
+                                    <i class="fas fa-star section-icon"></i>
+                                    Skills
+                                    <span class="section-badge badge-count" id="skillCount">{{ skill_formset.total_form_count }}</span>
+                                </button>
+                            </h2>
+                            <div id="collapseSkills" class="accordion-collapse collapse" aria-labelledby="headingSkills" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    {{ skill_formset.management_form }}
+                                    <div id="skill-forms">
+                                        {% for form in skill_formset %}
+                                            <div class="formset-item">
+                                                {{ form|crispy }}
+                                                {% if form.instance.pk %}
+                                                    <div class="delete-row">
+                                                        {{ form.DELETE|crispy }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                        {% endfor %}
+                                    </div>
+                                    <a href="#" class="add-form" id="add-skill">
+                                        <i class="fas fa-plus-circle"></i> Add Skill
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Documents (Optional) -->
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="headingDocuments">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDocuments" aria-expanded="false" aria-controls="collapseDocuments">
+                                    <i class="fas fa-file-alt section-icon"></i>
+                                    Documents
+                                    <span class="section-badge badge-optional">Optional</span>
+                                </button>
+                            </h2>
+                            <div id="collapseDocuments" class="accordion-collapse collapse" aria-labelledby="headingDocuments" data-bs-parent="#profileAccordion">
+                                <div class="accordion-body">
+                                    <!-- Academic Transcript -->
+                                    <div class="document-section mb-4">
+                                        <h4 class="document-title">
+                                            <i class="fas fa-graduation-cap text-primary"></i>
+                                            Academic Transcript
+                                        </h4>
+                                        <div class="document-upload">
+                                            <i class="fas fa-file-alt"></i>
+                                            <p>Upload your academic transcript</p>
+                                            <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                            {{ transcript_form|crispy }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Certificates -->
+                                    <div class="document-section mb-4">
+                                        <h4 class="document-title">
+                                            <i class="fas fa-certificate text-primary"></i>
+                                            Certificates
+                                        </h4>
+                                        <div class="document-upload">
+                                            <i class="fas fa-file-certificate"></i>
+                                            <p>Upload your certificates</p>
+                                            <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                            {{ certificate_form|crispy }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Diploma -->
+                                    <div class="document-section mb-4">
+                                        <h4 class="document-title">
+                                            <i class="fas fa-scroll text-primary"></i>
+                                            Diploma
+                                        </h4>
+                                        <div class="document-upload">
+                                            <i class="fas fa-file-alt"></i>
+                                            <p>Upload your diploma</p>
+                                            <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                            {{ diploma_form|crispy }}
+                                        </div>
+                                    </div>
+
+                                    <!-- Resume/CV -->
+                                    <div class="document-section">
+                                        <h4 class="document-title">
+                                            <i class="fas fa-file-user text-primary"></i>
+                                            Resume/CV
+                                        </h4>
+                                        <div class="document-upload">
+                                            <i class="fas fa-file-alt"></i>
+                                            <p>Upload your resume or CV</p>
+                                            <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
+                                            {{ resume_form|crispy }}
+                                        </div>
+                                    </div>
+
+                                    <div class="upload-progress">
+                                        <div class="progress">
+                                            <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+                                        </div>
+                                        <small class="text-muted mt-1 d-block">Uploading file...</small>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                     </div>
-
-                    <!-- Documents (Optional) -->
-                    <div class="edit-card optional-section">
-                        <span class="optional-badge">Optional</span>
-                        <h3><i class="fas fa-file-alt"></i> Documents</h3>
-                        
-                        <!-- Academic Transcript -->
-                        <div class="document-section mb-4">
-                            <h4 class="document-title">
-                                <i class="fas fa-graduation-cap text-primary"></i>
-                                Academic Transcript
-                            </h4>
-                            <div class="document-upload">
-                                <i class="fas fa-file-alt"></i>
-                                <p>Upload your academic transcript</p>
-                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
-                                {{ transcript_form|crispy }}
-                            </div>
-                        </div>
-
-                        <!-- Certificates -->
-                        <div class="document-section mb-4">
-                            <h4 class="document-title">
-                                <i class="fas fa-certificate text-primary"></i>
-                                Certificates
-                            </h4>
-                            <div class="document-upload">
-                                <i class="fas fa-file-certificate"></i>
-                                <p>Upload your certificates</p>
-                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
-                                {{ certificate_form|crispy }}
-                            </div>
-                        </div>
-
-                        <!-- Diploma -->
-                        <div class="document-section mb-4">
-                            <h4 class="document-title">
-                                <i class="fas fa-scroll text-primary"></i>
-                                Diploma
-                            </h4>
-                            <div class="document-upload">
-                                <i class="fas fa-file-alt"></i>
-                                <p>Upload your diploma</p>
-                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
-                                {{ diploma_form|crispy }}
-                            </div>
-                        </div>
-
-                        <!-- Resume/CV -->
-                        <div class="document-section">
-                            <h4 class="document-title">
-                                <i class="fas fa-file-user text-primary"></i>
-                                Resume/CV
-                            </h4>
-                            <div class="document-upload">
-                                <i class="fas fa-file-alt"></i>
-                                <p>Upload your resume or CV</p>
-                                <p class="text-muted small">PDF format preferred (Max size: 5MB)</p>
-                                {{ resume_form|crispy }}
-                            </div>
-                        </div>
-
-                        <div class="upload-progress">
-                            <div class="progress">
-                                <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
-                            </div>
-                            <small class="text-muted mt-1 d-block">Uploading file...</small>
-                        </div>
-                    </div>
+                    <!-- End Accordion -->
 
                     <!-- Submit Buttons -->
-                    <div class="text-center mb-5">
-                        <button type="submit" class="btn btn-save me-3" id="saveButton">
-                            <i class="fas fa-save me-2"></i> Save Changes
-                        </button>
-                        <a href="{% url 'accounts:profile_detail' %}" class="btn btn-cancel" id="cancelButton">
-                            <i class="fas fa-times me-2"></i> Cancel
-                        </a>
+                    <div class="action-buttons-wrapper">
+                        <div class="text-center mb-5">
+                            <button type="submit" class="btn btn-save me-3" id="saveButton">
+                                <i class="fas fa-save me-2"></i> Save Changes
+                            </button>
+                            <a href="{% url 'accounts:profile_detail' %}" class="btn btn-cancel" id="cancelButton">
+                                <i class="fas fa-times me-2"></i> Cancel
+                            </a>
+                        </div>
                     </div>
                 </form>
             </div>
@@ -749,6 +1275,15 @@
         const addButton = document.getElementById(addButtonId);
         const totalForms = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
         const container = document.getElementById(`${formsetPrefix}-forms`);
+        
+        // Function to update count badge
+        function updateCountBadge() {
+            const countBadge = document.getElementById(`${formsetPrefix}Count`);
+            if (countBadge) {
+                const visibleForms = container.querySelectorAll('.formset-item:not([style*="height: 0"])').length;
+                countBadge.textContent = visibleForms;
+            }
+        }
         
         addButton.addEventListener('click', function(e) {
             e.preventDefault();
@@ -985,6 +1520,9 @@
             // Update total forms count
             totalForms.value = formCount + 1;
             
+            // Update count badge
+            updateCountBadge();
+            
             // Show success message
             Swal.fire({
                 title: 'Added!',
@@ -1037,6 +1575,11 @@
                         formsetItem.style.margin = '0';
                         formsetItem.style.padding = '0';
                         formsetItem.style.overflow = 'hidden';
+                        
+                        // Update count badge after deletion animation
+                        setTimeout(() => {
+                            updateCountBadge();
+                        }, 300);
                     }, 300);
                         
                         // Show success message
@@ -1052,6 +1595,119 @@
                 });
             }
         });
+        
+        // Initialize count badge on page load
+        updateCountBadge();
+    }
+
+    // Mobile-specific optimizations
+    function initMobileOptimizations() {
+        // Detect if user is on mobile
+        const isMobile = window.innerWidth <= 768;
+        
+        if (isMobile) {
+            // Auto-scroll to opened accordion section
+            const accordionButtons = document.querySelectorAll('.accordion-button');
+            accordionButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    setTimeout(() => {
+                        if (!this.classList.contains('collapsed')) {
+                            this.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }, 350); // Wait for accordion animation
+                });
+            });
+
+            // Prevent zoom on double-tap for buttons
+            let lastTouchEnd = 0;
+            document.addEventListener('touchend', function(event) {
+                const now = Date.now();
+                if (now - lastTouchEnd <= 300) {
+                    event.preventDefault();
+                }
+                lastTouchEnd = now;
+            }, false);
+
+            // Add haptic feedback for touch devices (if supported)
+            if ('vibrate' in navigator) {
+                document.querySelectorAll('.btn, .accordion-button, .add-form').forEach(element => {
+                    element.addEventListener('touchstart', function() {
+                        navigator.vibrate(10); // Short vibration
+                    });
+                });
+            }
+
+            // Optimize file input for mobile
+            const fileInputs = document.querySelectorAll('input[type="file"]');
+            fileInputs.forEach(input => {
+                input.addEventListener('change', function() {
+                    const fileName = this.files[0]?.name;
+                    if (fileName) {
+                        // Show toast notification on mobile
+                        const toast = document.createElement('div');
+                        toast.className = 'mobile-toast';
+                        toast.textContent = `Selected: ${fileName}`;
+                        toast.style.cssText = `
+                            position: fixed;
+                            bottom: 80px;
+                            left: 50%;
+                            transform: translateX(-50%);
+                            background: rgba(43, 60, 107, 0.95);
+                            color: white;
+                            padding: 0.75rem 1.5rem;
+                            border-radius: 25px;
+                            z-index: 9999;
+                            font-size: 0.875rem;
+                            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+                            animation: slideUp 0.3s ease;
+                        `;
+                        document.body.appendChild(toast);
+                        setTimeout(() => {
+                            toast.style.opacity = '0';
+                            toast.style.transition = 'opacity 0.3s ease';
+                            setTimeout(() => toast.remove(), 300);
+                        }, 2000);
+                    }
+                });
+            });
+
+            // Add pull-to-refresh hint (visual only)
+            const container = document.querySelector('.edit-content .container');
+            if (container && window.scrollY === 0) {
+                const hint = document.createElement('div');
+                hint.className = 'mobile-hint';
+                hint.innerHTML = '<i class="fas fa-chevron-down"></i> Scroll to see all sections';
+                hint.style.cssText = `
+                    text-align: center;
+                    color: var(--text-secondary);
+                    font-size: 0.8rem;
+                    padding: 0.5rem;
+                    animation: bounce 2s infinite;
+                `;
+                container.insertBefore(hint, container.firstChild);
+                
+                // Remove hint after first scroll
+                window.addEventListener('scroll', function removeHint() {
+                    if (window.scrollY > 50) {
+                        hint.style.opacity = '0';
+                        hint.style.transition = 'opacity 0.3s ease';
+                        setTimeout(() => hint.remove(), 300);
+                        window.removeEventListener('scroll', removeHint);
+                    }
+                }, { passive: true });
+            }
+        }
+
+        // Handle orientation change
+        window.addEventListener('orientationchange', function() {
+            setTimeout(() => {
+                // Recalculate viewport height for sticky elements
+                document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
+            }, 100);
+        });
+
+        // Set initial viewport height
+        document.documentElement.style.setProperty('--vh', `${window.innerHeight * 0.01}px`);
     }
 
     // Initialize formsets
@@ -1060,6 +1716,7 @@
         initFormset('add-experience', 'experience');
         initFormset('add-skill', 'skill');
         addFieldValidation();
+        initMobileOptimizations();
 
         const form = document.getElementById('profileForm');
         const loadingOverlay = document.getElementById('loadingOverlay');

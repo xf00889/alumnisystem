@@ -1,0 +1,33 @@
+{% if events %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  "itemListElement": [
+    {% for event in events %}
+    {
+      "@type": "Event",
+      "name": "{{ event.title|escapejs }}",
+      "startDate": "{{ event.start_date|date:'c' }}",
+      "endDate": "{{ event.end_date|date:'c' }}",
+      "location": {
+        "@type": "Place",
+        "name": "{{ event.location|escapejs }}"{% if event.is_virtual and event.virtual_link %},
+        "url": "{{ event.virtual_link }}"{% endif %}
+      },
+      "description": "{{ event.description|striptags|truncatewords:50|escapejs }}",
+      "organizer": {
+        "@type": "Organization",
+        "name": "NORSU Alumni System",
+        "url": "{{ request.scheme }}://{{ request.get_host }}"
+      }{% if event.image %},
+      "image": "{{ request.scheme }}://{{ request.get_host }}{{ event.image.url }}"{% endif %},
+      "url": "{{ request.scheme }}://{{ request.get_host }}{% url 'events:event_detail' event.id %}",
+      "eventStatus": "https://schema.org/EventScheduled",
+      "eventAttendanceMode": "{% if event.is_virtual %}https://schema.org/OnlineEventAttendanceMode{% else %}https://schema.org/OfflineEventAttendanceMode{% endif %}"
+    }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ]
+}
+</script>
+{% endif %}

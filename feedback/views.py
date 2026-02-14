@@ -43,6 +43,12 @@ def my_feedbacks(request):
     
     return render(request, 'feedback/my_feedbacks.html', {'feedbacks': feedbacks})
 
+@login_required
+def feedback_detail(request, pk):
+    """View for users to see their feedback details"""
+    feedback = get_object_or_404(Feedback, pk=pk, user=request.user)
+    return render(request, 'feedback/feedback_detail.html', {'feedback': feedback})
+
 @staff_member_required
 def manage_feedbacks(request):
     """Admin view to manage all feedbacks"""

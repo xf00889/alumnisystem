@@ -95,7 +95,7 @@
                         {{ event.description|safe }}
                     </div>
 
-                    {% if user.is_authenticated %}
+                    {% if user.is_authenticated and not user.is_staff %}
                     <div class="card border-0 shadow-sm mt-4">
                         <div class="card-header bg-gradient-primary text-white py-3">
                             <div class="d-flex align-items-center">
@@ -164,10 +164,6 @@
                         <div class="stat-item">
                             <h3 class="text-success">{{ rsvp_counts.attending }}</h3>
                             <p>Attending</p>
-                        </div>
-                        <div class="stat-item">
-                            <h3 class="text-warning">{{ rsvp_counts.maybe }}</h3>
-                            <p>Maybe</p>
                         </div>
                         <div class="stat-item">
                             <h3 class="text-danger">{{ rsvp_counts.not_attending }}</h3>
@@ -541,4 +537,79 @@
         }
     }
 </style>
+
+<script>
+// RSVP Form AJAX Submission for Event Detail Page
+document.addEventListener('DOMContentLoaded', function() {
+    const rsvpForm = document.querySelector('.rsvp-form');
+    
+    if (rsvpForm) {
+        rsvpForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const submitBtn = rsvpForm.querySelector('button[type="submit"]');
+            const originalBtnText = submitBtn.innerHTML;
+            
+            // Disable button and show loading state
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Submitting...';
+            
+            const formData = new FormData(rsvpForm);
+            
+            fetch(rsvpForm.action, {
+                method: 'POST',
+                body: formData,
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'X-CSRFToken': formData.get('csrfmiddlewaretoken')
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                if (data.success) {
+                    // Show success alert
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'RSVP Recorded!',
+                        text: data.message,
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2b3c6b',
+                        timer: 3000,
+                        timerProgressBar: true
+                    });
+                } else {
+                    // Show error alert
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'RSVP Failed',
+                        text: data.message || 'There was an error submitting your RSVP. Please try again.',
+                        confirmButtonText: 'OK',
+                        confirmButtonColor: '#2b3c6b'
+                    });
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                
+                // Re-enable button
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = originalBtnText;
+                
+                // Show error alert
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Connection Error',
+                    text: 'Unable to submit your RSVP. Please check your connection and try again.',
+                    confirmButtonText: 'OK',
+                    confirmButtonColor: '#2b3c6b'
+                });
+            });
+        });
+    }
+});
+</script>
 {% endblock %}

@@ -213,11 +213,15 @@
         align-items: center;
         justify-content: space-between;
         gap: 0.5rem;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     
     .dropdown-toggle i {
         font-size: 0.6rem;
         transition: transform var(--transition-normal);
+        flex-shrink: 0;
     }
     
     .dropdown-toggle.active i {
@@ -228,13 +232,15 @@
         position: absolute;
         top: 100%;
         left: 0;
-        right: 0;
+        min-width: 350px;
+        max-width: 500px;
+        width: max-content;
         background: var(--ui-surface);
         border: 1px solid var(--ui-border);
         border-radius: var(--radius-sm);
         box-shadow: var(--shadow-lg);
         z-index: 1000;
-        max-height: 300px;
+        max-height: 400px;
         overflow: hidden;
         display: none;
         margin-top: 0.25rem;
@@ -247,6 +253,10 @@
     .dropdown-search {
         padding: 0.75rem;
         border-bottom: 1px solid var(--ui-border);
+        background: var(--ui-surface);
+        position: sticky;
+        top: 0;
+        z-index: 1;
     }
     
     .dropdown-search-input {
@@ -264,17 +274,21 @@
     }
     
     .dropdown-items {
-        max-height: 200px;
+        max-height: 300px;
         overflow-y: auto;
+        overflow-x: hidden;
     }
     
     .dropdown-item {
-        padding: 0.5rem 0.75rem;
+        padding: 0.625rem 0.75rem;
         cursor: pointer;
-        font-size: 0.75rem;
+        font-size: 0.8125rem;
         color: var(--text-primary);
         border-bottom: 1px solid var(--ui-border);
         transition: background-color var(--transition-fast);
+        white-space: normal;
+        word-wrap: break-word;
+        line-height: 1.4;
     }
 
     .dropdown-item:hover {
@@ -289,6 +303,12 @@
     
     .dropdown-item:last-child {
         border-bottom: none;
+    }
+    
+    /* Ensure dropdown doesn't overflow on right side */
+    .filter-buttons .filter-dropdown:last-child .dropdown-menu {
+        left: auto;
+        right: 0;
     }
     
     .action-group {
@@ -884,6 +904,24 @@
             font-size: 0.75rem;
             white-space: nowrap;
         }
+        
+        /* Mobile dropdown adjustments */
+        .dropdown-menu {
+            position: fixed;
+            left: 1rem !important;
+            right: 1rem !important;
+            top: auto !important;
+            bottom: auto !important;
+            min-width: auto;
+            max-width: none;
+            width: auto;
+            max-height: 60vh;
+        }
+        
+        .dropdown-item {
+            padding: 0.75rem;
+            font-size: 0.875rem;
+        }
 
         /* Compact action buttons */
         .action-group {
@@ -1168,14 +1206,14 @@
                 </div>
             </div>
                     <div class="filter-dropdown">
-                        <button class="filter-button dropdown-toggle" data-filter="course" type="button">
-                            Course <i class="fas fa-chevron-down"></i>
+                        <button class="filter-button dropdown-toggle" data-filter="program" type="button">
+                            Program <i class="fas fa-chevron-down"></i>
                         </button>
-                        <div class="dropdown-menu" id="courseDropdown">
+                        <div class="dropdown-menu" id="programDropdown">
                             <div class="dropdown-search">
-                                <input type="text" placeholder="Search courses..." class="dropdown-search-input" data-search="course">
+                                <input type="text" placeholder="Search programs..." class="dropdown-search-input" data-search="program">
                     </div>
-                            <div class="dropdown-items" id="courseItems">
+                            <div class="dropdown-items" id="programItems">
                                 <!-- Will be populated by JavaScript -->
                 </div>
             </div>
@@ -1421,7 +1459,7 @@ class GroupsTable {
         this.dropdowns = document.querySelectorAll('.filter-dropdown');
         this.selectedFilters = {
             batch: null,
-            course: null
+            program: null
         };
         
         this.init();
@@ -1545,15 +1583,15 @@ class GroupsTable {
     }
     
     populateDropdowns() {
-        // Predefined lists of all possible courses and batches
+        // Predefined lists of all possible programs and batches
         const allBatches = this.getAllPossibleBatches();
-        const allCourses = this.getAllPossibleCourses();
+        const allPrograms = this.getAllPossiblePrograms();
         
         // Populate batch dropdown
         this.populateDropdown('batchItems', allBatches, 'batch');
         
-        // Populate course dropdown
-        this.populateDropdown('courseItems', allCourses, 'course');
+        // Populate program dropdown
+        this.populateDropdown('programItems', allPrograms, 'program');
     }
     
     getAllPossibleBatches() {
@@ -1568,7 +1606,7 @@ class GroupsTable {
         return batches.reverse(); // Most recent first
     }
     
-    getAllPossibleCourses() {
+    getAllPossiblePrograms() {
         return [
             // College of Agriculture
             'Bachelor of Science in Agriculture',
@@ -1724,7 +1762,8 @@ class GroupsTable {
         // Update dropdown button text
         const dropdown = itemElement.closest('.filter-dropdown');
         const toggle = dropdown.querySelector('.dropdown-toggle');
-        toggle.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)}: ${value} <i class="fas fa-chevron-down"></i>`;
+        const displayName = type === 'program' ? 'Program' : type.charAt(0).toUpperCase() + type.slice(1);
+        toggle.innerHTML = `${displayName}: ${value} <i class="fas fa-chevron-down"></i>`;
         
         // Close dropdown
         const menu = dropdown.querySelector('.dropdown-menu');
@@ -1738,14 +1777,15 @@ class GroupsTable {
     clearSelectedFilters() {
         this.selectedFilters = {
             batch: null,
-            course: null
+            program: null
         };
         
         // Reset dropdown buttons
         this.dropdowns.forEach(dropdown => {
             const toggle = dropdown.querySelector('.dropdown-toggle');
             const type = toggle.dataset.filter;
-            toggle.innerHTML = `${type.charAt(0).toUpperCase() + type.slice(1)} <i class="fas fa-chevron-down"></i>`;
+            const displayName = type === 'program' ? 'Program' : type.charAt(0).toUpperCase() + type.slice(1);
+            toggle.innerHTML = `${displayName} <i class="fas fa-chevron-down"></i>`;
         });
     }
     
@@ -1812,14 +1852,14 @@ class GroupsTable {
             const content = card.querySelector('.group-preview').textContent.toLowerCase();
             
             // Get group data attributes for filtering
-            const courseElement = card.querySelector('.group-meta .meta-item:nth-child(2) span');
+            const programElement = card.querySelector('.group-meta .meta-item:nth-child(2) span');
             const batchElement = card.querySelector('.group-meta .meta-item:nth-child(1) span');
             
-            const course = courseElement ? courseElement.textContent.toLowerCase().trim() : '';
+            const program = programElement ? programElement.textContent.toLowerCase().trim() : '';
             const batch = batchElement ? batchElement.textContent.toLowerCase().trim() : '';
             
             const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm) || 
-                                course.includes(searchTerm) || batch.includes(searchTerm);
+                                program.includes(searchTerm) || batch.includes(searchTerm);
             
             let matchesFilter = true;
             
@@ -1829,9 +1869,9 @@ class GroupsTable {
                 const batchYear = selectedBatch.replace('batch ', '');
                 matchesFilter = matchesFilter && (batch.includes(batchYear) || batch.includes(selectedBatch));
             }
-            if (this.selectedFilters.course) {
-                const selectedCourse = this.selectedFilters.course.toLowerCase();
-                matchesFilter = matchesFilter && course.includes(selectedCourse);
+            if (this.selectedFilters.program) {
+                const selectedProgram = this.selectedFilters.program.toLowerCase();
+                matchesFilter = matchesFilter && program.includes(selectedProgram);
             }
             
             // Legacy filter logic for non-dropdown filters
@@ -1840,8 +1880,8 @@ class GroupsTable {
                     case 'batch':
                         matchesFilter = batch.length > 0;
                         break;
-                    case 'course':
-                        matchesFilter = course.length > 0;
+                    case 'program':
+                        matchesFilter = program.length > 0;
                         break;
                 }
             }
@@ -1860,14 +1900,14 @@ class GroupsTable {
             const content = row.querySelector('.table-content').textContent.toLowerCase();
             
             // Get table data for filtering
-            const courseElement = row.querySelector('.table-meta span:nth-child(2)');
+            const programElement = row.querySelector('.table-meta span:nth-child(2)');
             const batchElement = row.querySelector('.table-meta span:nth-child(1)');
             
-            const course = courseElement ? courseElement.textContent.toLowerCase().trim() : '';
+            const program = programElement ? programElement.textContent.toLowerCase().trim() : '';
             const batch = batchElement ? batchElement.textContent.toLowerCase().trim() : '';
             
             const matchesSearch = title.includes(searchTerm) || content.includes(searchTerm) || 
-                                course.includes(searchTerm) || batch.includes(searchTerm);
+                                program.includes(searchTerm) || batch.includes(searchTerm);
             
             let matchesFilter = true;
             
@@ -1877,9 +1917,9 @@ class GroupsTable {
                 const batchYear = selectedBatch.replace('batch ', '');
                 matchesFilter = matchesFilter && (batch.includes(batchYear) || batch.includes(selectedBatch));
             }
-            if (this.selectedFilters.course) {
-                const selectedCourse = this.selectedFilters.course.toLowerCase();
-                matchesFilter = matchesFilter && course.includes(selectedCourse);
+            if (this.selectedFilters.program) {
+                const selectedProgram = this.selectedFilters.program.toLowerCase();
+                matchesFilter = matchesFilter && program.includes(selectedProgram);
             }
             
             // Legacy filter logic for non-dropdown filters
@@ -1888,8 +1928,8 @@ class GroupsTable {
                     case 'batch':
                         matchesFilter = batch.length > 0;
                         break;
-                    case 'course':
-                        matchesFilter = course.length > 0;
+                    case 'program':
+                        matchesFilter = program.length > 0;
                         break;
                 }
             }
@@ -1903,7 +1943,7 @@ class GroupsTable {
     }
     
     hasActiveDropdownFilters() {
-        return this.selectedFilters.batch || this.selectedFilters.course;
+        return this.selectedFilters.batch || this.selectedFilters.program;
     }
     
     updateBulkActions() {

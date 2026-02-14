@@ -82,6 +82,7 @@ def send_connection_request(request, user_id):
     # Check if user is trying to connect to themselves
     if receiver == request.user:
         return JsonResponse({
+            'status': 'error',
             'success': False,
             'message': 'You cannot send a connection request to yourself.'
         })
@@ -95,21 +96,25 @@ def send_connection_request(request, user_id):
     if existing_connection:
         if existing_connection.status == 'PENDING':
             return JsonResponse({
+                'status': 'error',
                 'success': False,
                 'message': 'Connection request already sent.'
             })
         elif existing_connection.status == 'ACCEPTED':
             return JsonResponse({
+                'status': 'error',
                 'success': False,
                 'message': 'You are already connected with this user.'
             })
         elif existing_connection.status == 'REJECTED':
             return JsonResponse({
+                'status': 'error',
                 'success': False,
                 'message': 'Connection request was previously rejected.'
             })
         elif existing_connection.status == 'BLOCKED':
             return JsonResponse({
+                'status': 'error',
                 'success': False,
                 'message': 'Unable to send connection request.'
             })
@@ -121,11 +126,13 @@ def send_connection_request(request, user_id):
             status='PENDING'
         )
         return JsonResponse({
+            'status': 'success',
             'success': True,
             'message': f'Connection request sent to {receiver.get_full_name() or receiver.username}.'
         })
     
     return JsonResponse({
+        'status': 'error',
         'success': False,
         'message': 'An error occurred. Please try again.'
     })
@@ -166,6 +173,7 @@ def accept_connection_request(request, connection_id):
     
     connection.accept()
     return JsonResponse({
+        'status': 'success',
         'success': True,
         'message': f'You are now connected with {connection.requester.get_full_name() or connection.requester.username}.',
         'user_id': connection.requester.id
@@ -185,6 +193,7 @@ def reject_connection_request(request, connection_id):
     
     connection.reject()
     return JsonResponse({
+        'status': 'success',
         'success': True,
         'message': 'Connection request rejected.',
         'user_id': connection.requester.id
@@ -372,17 +381,20 @@ def remove_connection(request, user_id):
         if connection:
             connection.delete()
             return JsonResponse({
+                'status': 'success',
                 'success': True,
                 'message': f'Connection with {other_user.get_full_name()} has been removed.'
             })
         else:
             return JsonResponse({
+                'status': 'error',
                 'success': False,
                 'message': 'No connection found to remove.'
             })
             
     except Exception as e:
         return JsonResponse({
+            'status': 'error',
             'success': False,
             'message': 'An error occurred while removing the connection.'
         })

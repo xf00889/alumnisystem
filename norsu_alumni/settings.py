@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'django.contrib.sites',
     'django.contrib.humanize',
+    'django.contrib.sitemaps',
     'corsheaders',
     'allauth',
     'allauth.account',
@@ -118,6 +119,8 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.recaptcha_context',
                 'core.context_processors.cms_contact_info',
+                'core.context_processors.seo_context',
+                'core.context_processors.footer_links',
             ],
         },
     },
@@ -146,7 +149,7 @@ else:
             'ENGINE': config('DB_ENGINE', default='django.db.backends.mysql'),
             'NAME': config('DB_NAME', default='alumni_norsu'),
             'USER': config('DB_USER', default='root'),
-            'PASSWORD': config('DB_PASSWORD', default=''),
+            'PASSWORD': config('DB_PASSWORD', default='root123'),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default='3306'),
             'OPTIONS': {
@@ -227,30 +230,40 @@ AUTHENTICATION_BACKENDS = [
 SOCIALACCOUNT_LOGIN_ON_GET = True
 
 # Social Account Providers Configuration
-# SOCIALACCOUNT_PROVIDERS = {
-#     'facebook': {
-#         'METHOD': 'oauth2',
-#         'SCOPE': ['email', 'public_profile'],
-#         'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
-#         'INIT_PARAMS': {'cookie': True},
-#         'FIELDS': [
-#             'id',
-#             'email',
-#             'name',
-#             'first_name',
-#             'last_name',
-#             'verified',
-#             'locale',
-#             'timezone',
-#             'link',
-#             'gender',
-#             'updated_time',
-#         ],
-#         'EXCHANGE_TOKEN': True,
-#         'VERIFIED_EMAIL': False,
-#         'VERSION': 'v13.0',
-#     }
-# }
+SOCIALACCOUNT_PROVIDERS = {
+    'google': {
+        'SCOPE': [
+            'profile',
+            'email',
+        ],
+        'AUTH_PARAMS': {
+            'access_type': 'online',
+        },
+        'VERIFIED_EMAIL': True,  # Trust Google's email verification
+    },
+    # 'facebook': {
+    #     'METHOD': 'oauth2',
+    #     'SCOPE': ['email', 'public_profile'],
+    #     'AUTH_PARAMS': {'auth_type': 'reauthenticate'},
+    #     'INIT_PARAMS': {'cookie': True},
+    #     'FIELDS': [
+    #         'id',
+    #         'email',
+    #         'name',
+    #         'first_name',
+    #         'last_name',
+    #         'verified',
+    #         'locale',
+    #         'timezone',
+    #         'link',
+    #         'gender',
+    #         'updated_time',
+    #     ],
+    #     'EXCHANGE_TOKEN': True,
+    #     'VERIFIED_EMAIL': False,
+    #     'VERSION': 'v13.0',
+    # }
+}
 
 SITE_ID = 1
 ACCOUNT_EMAIL_REQUIRED = True
@@ -260,7 +273,7 @@ ACCOUNT_EMAIL_VERIFICATION = 'none'  # We handle email verification manually in 
 ACCOUNT_LOGOUT_ON_GET = True
 LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'core:home'
-ACCOUNT_LOGOUT_REDIRECT_URL = 'account_login'
+ACCOUNT_LOGOUT_REDIRECT_URL = 'core:home'
 # ACCOUNT_SIGNUP_REDIRECT_URL = 'accounts:custom_signup_redirect'  # Disabled - handled manually in enhanced_signup view
 ACCOUNT_SIGNUP_PASSWORD_ENTER_TWICE = True
 ACCOUNT_UNIQUE_EMAIL = True
@@ -272,6 +285,18 @@ ACCOUNT_FORMS = {
 
 # Custom account adapter for login redirection
 ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
+SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
+
+# Social account settings
+SOCIALACCOUNT_AUTO_SIGNUP = True  # Automatically create account from social login
+SOCIALACCOUNT_EMAIL_VERIFICATION = 'none'  # Skip email verification for social accounts
+SOCIALACCOUNT_EMAIL_REQUIRED = True  # Require email from social provider
+SOCIALACCOUNT_QUERY_EMAIL = True  # Request email from social provider
+SOCIALACCOUNT_STORE_TOKENS = True  # Store OAuth tokens for future use
+
+# Google OAuth credentials
+GOOGLE_OAUTH_CLIENT_ID = config('GOOGLE_OAUTH_CLIENT_ID', default='')
+GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 
 # Custom allauth messages
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'account_login'
@@ -289,6 +314,13 @@ SESSION_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
 SESSION_COOKIE_HTTPONLY = True
 SESSION_COOKIE_AGE = 86400  # 24 hours
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
+
+# OAuth HTTPS enforcement for production
+# In production (when DEBUG=False), enforce HTTPS for OAuth redirects
+if not DEBUG:
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'https'
+else:
+    ACCOUNT_DEFAULT_HTTP_PROTOCOL = 'http'
 
 # CSRF Security
 CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production

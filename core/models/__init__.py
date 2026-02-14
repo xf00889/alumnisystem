@@ -31,6 +31,7 @@ from .brevo_config import BrevoConfig
 from .email_provider import EmailProvider
 from .recaptcha_config import ReCaptchaConfig
 from .user_management import UserAuditLog, UserStatusChange
+from .seo import PageSEO, OrganizationSchema
 
 __all__ = [
     'TimeStampedModel',
@@ -49,4 +50,6 @@ __all__ = [
     'ReCaptchaConfig',
     'UserAuditLog',
     'UserStatusChange',
+    'PageSEO',
+    'OrganizationSchema',
 ]
