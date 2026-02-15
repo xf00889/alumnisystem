@@ -92,6 +92,7 @@ MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'csp.middleware.CSPMiddleware',  # Add CSP middleware
+    'core.middleware.site_middleware.EnsureSiteMiddleware',  # Ensure site is always configured
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -118,6 +119,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'core.context_processors.recaptcha_context',
+                'core.context_processors.sso_context',
                 'core.context_processors.cms_contact_info',
                 'core.context_processors.seo_context',
                 'core.context_processors.footer_links',

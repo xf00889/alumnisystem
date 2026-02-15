@@ -2,6 +2,7 @@ from django.urls import path
 from . import admin_views
 from . import smtp_admin_views
 from . import recaptcha_admin_views, recaptcha_analytics_views
+from . import sso_admin_views
 from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
@@ -92,6 +93,15 @@ urlpatterns = [
     path('admin-dashboard/recaptcha/analytics/', recaptcha_analytics_views.ReCaptchaAnalyticsView.as_view(), name='recaptcha_analytics'),
     path('admin-dashboard/recaptcha/analytics/api/', recaptcha_analytics_views.recaptcha_analytics_api, name='recaptcha_analytics_api'),
     path('admin-dashboard/recaptcha/analytics/reset/', recaptcha_analytics_views.recaptcha_analytics_reset, name='recaptcha_analytics_reset'),
+    
+    # SSO Configuration URLs
+    path('admin-dashboard/sso/', sso_admin_views.sso_configuration_list, name='sso_configuration_list'),
+    path('admin-dashboard/sso/create/', sso_admin_views.sso_configuration_create, name='sso_configuration_create'),
+    path('admin-dashboard/sso/<int:config_id>/edit/', sso_admin_views.sso_configuration_edit, name='sso_configuration_edit'),
+    path('admin-dashboard/sso/<int:config_id>/test/', sso_admin_views.sso_configuration_test, name='sso_configuration_test'),
+    path('admin-dashboard/sso/<int:config_id>/delete/', sso_admin_views.sso_configuration_delete, name='sso_configuration_delete'),
+    path('admin-dashboard/sso/<int:config_id>/activate/', sso_admin_views.sso_configuration_activate, name='sso_configuration_activate'),
+    path('admin-dashboard/sso/<int:config_id>/toggle-enabled/', sso_admin_views.sso_configuration_toggle_enabled, name='sso_configuration_toggle_enabled'),
     
     # User Management URLs
     path('admin-dashboard/users/', user_management_views.UserListView.as_view(), name='user_list'),

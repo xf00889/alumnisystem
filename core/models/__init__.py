@@ -30,6 +30,7 @@ from .smtp_config import SMTPConfig
 from .brevo_config import BrevoConfig
 from .email_provider import EmailProvider
 from .recaptcha_config import ReCaptchaConfig
+from .sso_config import SSOConfig
 from .user_management import UserAuditLog, UserStatusChange
 from .seo import PageSEO, OrganizationSchema
 
@@ -48,6 +49,7 @@ __all__ = [
     'BrevoConfig',
     'EmailProvider',
     'ReCaptchaConfig',
+    'SSOConfig',
     'UserAuditLog',
     'UserStatusChange',
     'PageSEO',

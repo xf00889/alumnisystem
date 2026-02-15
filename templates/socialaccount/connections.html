@@ -1,0 +1,224 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Connected Accounts - NORSU Alumni{% endblock %}
+
+{% block extra_css %}
+<style>
+    .connections-container {
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+    }
+
+    .connections-card {
+        background: white;
+        border-radius: 12px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        padding: 2rem;
+    }
+
+    .connections-header {
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #e5e7eb;
+    }
+
+    .connections-header h1 {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .connections-header p {
+        color: #6b7280;
+        font-size: 0.875rem;
+    }
+
+    .provider-list {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .provider-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 1.5rem;
+        border: 2px solid #e5e7eb;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+    }
+
+    .provider-item:hover {
+        border-color: #667eea;
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.1);
+    }
+
+    .provider-info {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .provider-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+    }
+
+    .provider-icon.google {
+        background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+        color: #dc2626;
+    }
+
+    .provider-icon.facebook {
+        background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+        color: #1e40af;
+    }
+
+    .provider-details h3 {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: #1f2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .provider-details p {
+        font-size: 0.875rem;
+        color: #6b7280;
+        margin: 0;
+    }
+
+    .provider-status {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .status-badge {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-size: 0.875rem;
+        font-weight: 600;
+    }
+
+    .status-badge.connected {
+        background: #d1fae5;
+        color: #065f46;
+    }
+
+    .status-badge.disconnected {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .btn {
+        padding: 0.5rem 1rem;
+        border-radius: 6px;
+        font-weight: 600;
+        text-decoration: none;
+        transition: all 0.3s ease;
+        border: none;
+        cursor: pointer;
+        font-size: 0.875rem;
+    }
+
+    .btn-connect {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-disconnect {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    @media (max-width: 768px) {
+        .provider-item {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .provider-info {
+            flex-direction: column;
+        }
+
+        .provider-status {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .btn {
+            width: 100%;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="connections-container">
+    <div class="connections-card">
+        <div class="connections-header">
+            <h1>Connected Accounts</h1>
+            <p>Manage your social account connections for quick sign-in</p>
+        </div>
+
+        <div class="provider-list">
+            {% for account in socialaccount_list %}
+            <div class="provider-item">
+                <div class="provider-info">
+                    <div class="provider-icon {{ account.provider }}">
+                        {% if account.provider == 'google' %}
+                            <i class="fab fa-google"></i>
+                        {% elif account.provider == 'facebook' %}
+                            <i class="fab fa-facebook-f"></i>
+                        {% endif %}
+                    </div>
+                    <div class="provider-details">
+                        <h3>{{ account.get_provider_display }}</h3>
+                        <p>{{ account.extra_data.email|default:"Connected" }}</p>
+                    </div>
+                </div>
+                <div class="provider-status">
+                    <span class="status-badge connected">Connected</span>
+                    <form method="post" action="{% url 'socialaccount_connections' %}" style="display: inline;">
+                        {% csrf_token %}
+                        <input type="hidden" name="account" value="{{ account.id }}">
+                        <button type="submit" class="btn btn-disconnect">Disconnect</button>
+                    </form>
+                </div>
+            </div>
+            {% empty %}
+            <div class="provider-item">
+                <div class="provider-info">
+                    <div class="provider-icon google">
+                        <i class="fab fa-google"></i>
+                    </div>
+                    <div class="provider-details">
+                        <h3>Google</h3>
+                        <p>Not connected</p>
+                    </div>
+                </div>
+                <div class="provider-status">
+                    <span class="status-badge disconnected">Not Connected</span>
+                    <a href="{% url 'google_login' %}" class="btn btn-connect">Connect</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -98,10 +98,12 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         # Redirect to custom inactive page with email parameter
         return redirect(f'/accounts/inactive/?email={user.email}')
     
-    def add_message(self, request, level, message_tag, message, extra_tags='', *args, **kwargs):
+    def add_message(self, request, level, message_tag, message=None, extra_tags='', *args, **kwargs):
         """
         Override to suppress logout success message.
         We don't want to show "You have signed out" message when user visits login page later.
+        
+        Note: In some allauth versions, 'message' might be passed as a keyword argument.
         """
         # Suppress logout success messages
         if message_tag == 'account_logout':
@@ -109,11 +111,15 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         
         # Check if message is a string before checking for 'signed out'
         # (message can be a dict for i18n in some allauth versions)
-        if isinstance(message, str) and 'signed out' in message.lower():
+        if message and isinstance(message, str) and 'signed out' in message.lower():
             return
         
         # Call parent method for all other messages
-        return super().add_message(request, level, message_tag, message, extra_tags, *args, **kwargs)
+        if message is not None:
+            return super().add_message(request, level, message_tag, message, extra_tags, *args, **kwargs)
+        else:
+            # If message is None, call parent without it (let parent handle default)
+            return super().add_message(request, level, message_tag, extra_tags=extra_tags, *args, **kwargs)
 
 
 class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
@@ -130,6 +136,38 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         This skips the intermediate signup form.
         """
         return True
+    
+    def get_signup_redirect_url(self, request):
+        """
+        Redirect SSO signups to post-registration page to complete profile.
+        """
+        try:
+            return reverse('accounts:post_registration')
+        except Exception as e:
+            logger.error(f"Error in get_signup_redirect_url: {str(e)}")
+            return reverse('core:home')
+    
+    def get_login_redirect_url(self, request):
+        """
+        Returns the default URL to redirect to after social login.
+        Checks if user has completed post-registration, if not redirects there.
+        """
+        try:
+            if request.user.is_authenticated:
+                # Check if user has completed post-registration
+                try:
+                    profile = request.user.profile
+                    if not profile.has_completed_registration:
+                        return reverse('accounts:post_registration')
+                except Exception as profile_error:
+                    # Profile doesn't exist - redirect to post-registration
+                    logger.warning(f"Profile not found for user {request.user.email}: {str(profile_error)}")
+                    return reverse('accounts:post_registration')
+            
+            return reverse('core:home')
+        except Exception as e:
+            logger.error(f"Error in get_login_redirect_url: {str(e)}")
+            return reverse('core:home')
     
     def authentication_error(self, request, provider_id, error=None, exception=None, extra_context=None):
         """
@@ -234,6 +272,15 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         profile_created = False
         
         try:
+            # Track SSO usage
+            try:
+                from core.models import SSOConfig
+                provider_config = SSOConfig.get_provider_config_by_type(sociallogin.account.provider)
+                if provider_config:
+                    provider_config.increment_usage()
+            except Exception as e:
+                logger.warning(f"Failed to track SSO usage: {str(e)}")
+            
             # Mark email as verified for trusted social providers
             if sociallogin.account.provider in ['google', 'facebook']:
                 # Get or create email address record
@@ -253,6 +300,13 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             # Create Profile if it doesn't exist (for new users)
             from accounts.models import Profile
             profile, profile_created = Profile.objects.get_or_create(user=user)
+            
+            # For new SSO signups, ensure has_completed_registration is False
+            # so they are redirected to post-registration
+            if profile_created:
+                profile.has_completed_registration = False
+                profile.save()
+                logger.info(f"Created new profile for SSO user {user.email}, needs to complete registration")
             
             # Download and set Google avatar for new profiles or profiles without avatar
             if sociallogin.account.provider == 'google' and (profile_created or not profile.avatar):

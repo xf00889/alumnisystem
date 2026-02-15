@@ -5,6 +5,7 @@ from django.conf.urls.static import static
 from django.http import HttpResponseRedirect, Http404
 from django.contrib.sitemaps.views import sitemap
 from accounts import security_views
+from accounts import google_views
 from core.sitemaps import StaticPageSitemap, EventSitemap, JobSitemap
 from core import views
 import os
@@ -35,7 +36,10 @@ urlpatterns = [
     path('profile/api/search-connected-users/', profile_search_connected_users, name='profile_search_connected_users'),
     # Custom login view with rate limiting (must be before allauth.urls to override)
     path('accounts/login/', security_views.custom_login_view, name='account_login'),
-    # Allauth URLs (includes Google OAuth)
+    # Custom Google OAuth views to fix callback URL issue (must be before allauth.urls)
+    path('accounts/google/login/', google_views.oauth2_login, name='google_login'),
+    path('accounts/google/login/callback/', google_views.oauth2_callback, name='google_callback'),
+    # Allauth URLs (includes other OAuth providers)
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
     path('accounts/', include('accounts.urls')),

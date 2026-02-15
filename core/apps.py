@@ -16,6 +16,12 @@ class CoreConfig(AppConfig):
         """
         Called when the app is ready
         """
+        # Import signals to register them
+        try:
+            import core.signals
+        except Exception as e:
+            logger.warning(f"Could not import core signals: {str(e)}")
+        
         try:
             # Import here to avoid circular imports
             from django.db import connection

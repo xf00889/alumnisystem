@@ -2,6 +2,7 @@
 Context processors for the core app
 """
 from .recaptcha_utils import get_recaptcha_public_key, is_recaptcha_enabled
+from .sso_utils import get_enabled_sso_providers
 
 
 # Default SEO configuration for high-priority pages
@@ -52,6 +53,21 @@ def recaptcha_context(request):
         'recaptcha_public_key': get_recaptcha_public_key(),
         'recaptcha_enabled': is_recaptcha_enabled(),
     }
+
+
+def sso_context(request):
+    """
+    Add SSO provider information to template context
+    """
+    try:
+        return {
+            'enabled_sso_providers': get_enabled_sso_providers(),
+        }
+    except Exception as e:
+        # If database table doesn't exist yet or other error, return empty list
+        return {
+            'enabled_sso_providers': [],
+        }
 
 
 def cms_contact_info(request):

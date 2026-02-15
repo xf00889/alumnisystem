@@ -1,0 +1,142 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}{{ page_title }} - NORSU Alumni{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header">
+                    <h4 class="mb-0">{{ page_title }}</h4>
+                </div>
+                <div class="card-body">
+                    {% if messages %}
+                        {% for message in messages %}
+                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+                                {{ message }}
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    {% endif %}
+
+                    <form method="post">
+                        {% csrf_token %}
+                        
+                        <div class="mb-3">
+                            <label for="name" class="form-label">Configuration Name <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="name" name="name" 
+                                   value="{{ config.name|default:'' }}" required
+                                   placeholder="e.g., Google Production, Facebook Staging">
+                            <small class="form-text text-muted">A descriptive name to identify this configuration</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="provider" class="form-label">Provider <span class="text-danger">*</span></label>
+                            <select class="form-select" id="provider" name="provider" required {% if config %}disabled{% endif %}>
+                                <option value="">Select Provider</option>
+                                {% for value, label in provider_choices %}
+                                    <option value="{{ value }}" {% if config.provider == value %}selected{% endif %}>
+                                        {{ label }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                            {% if config %}
+                                <input type="hidden" name="provider" value="{{ config.provider }}">
+                                <small class="form-text text-muted">Provider cannot be changed after creation</small>
+                            {% endif %}
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="client_id" class="form-label">Client ID / App ID <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="client_id" name="client_id" 
+                                   value="{{ config.client_id|default:'' }}" required
+                                   placeholder="Enter OAuth Client ID">
+                            <small class="form-text text-muted">OAuth Client ID from provider console</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="secret_key" class="form-label">Client Secret / App Secret <span class="text-danger">*</span></label>
+                            <input type="password" class="form-control" id="secret_key" name="secret_key" 
+                                   value="{{ config.secret_key|default:'' }}" required
+                                   placeholder="Enter OAuth Client Secret">
+                            <small class="form-text text-muted">OAuth Client Secret from provider console (kept secure)</small>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="scopes" class="form-label">OAuth Scopes <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" id="scopes" name="scopes" 
+                                   value="{{ config.scopes|default:'profile,email' }}" required
+                                   placeholder="profile,email">
+                            <small class="form-text text-muted">Comma-separated list of OAuth scopes (e.g., profile,email)</small>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="verified_email" name="verified_email"
+                                   {% if config.verified_email or not config %}checked{% endif %}>
+                            <label class="form-check-label" for="verified_email">
+                                Trust Email Verification
+                            </label>
+                            <small class="form-text text-muted d-block">Trust that emails from this provider are already verified</small>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="enabled" name="enabled"
+                                   {% if config.enabled or not config %}checked{% endif %}>
+                            <label class="form-check-label" for="enabled">
+                                Enabled
+                            </label>
+                            <small class="form-text text-muted d-block">Show this provider on the login page</small>
+                        </div>
+
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
+                                   {% if config.is_active %}checked{% endif %}>
+                            <label class="form-check-label" for="is_active">
+                                Set as Active Configuration
+                            </label>
+                            <small class="form-text text-muted d-block">Only one configuration per provider can be active</small>
+                        </div>
+
+                        {% if config.test_result %}
+                            <div class="alert {% if config.is_verified %}alert-success{% else %}alert-warning{% endif %}">
+                                <strong>Last Test Result:</strong><br>
+                                {{ config.test_result }}
+                                {% if config.last_tested %}
+                                    <br><small>Tested: {{ config.last_tested|date:"Y-m-d H:i:s" }}</small>
+                                {% endif %}
+                            </div>
+                        {% endif %}
+
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'core:sso_configuration_list' %}" class="btn btn-secondary">
+                                <i class="fas fa-arrow-left"></i> Cancel
+                            </a>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-save"></i> Save Configuration
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Important Notes</h6>
+                </div>
+                <div class="card-body">
+                    <ul class="mb-0">
+                        <li>Make sure to configure the OAuth redirect URIs in your provider console</li>
+                        <li>Google redirect URI: <code>{{ request.scheme }}://{{ request.get_host }}/accounts/google/login/callback/</code></li>
+                        <li>Facebook redirect URI: <code>{{ request.scheme }}://{{ request.get_host }}/accounts/facebook/login/callback/</code></li>
+                        <li>Test the configuration after saving to verify it works</li>
+                        <li>Only one configuration per provider can be active at a time</li>
+                        <li>Disabled configurations won't appear on the login page</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
