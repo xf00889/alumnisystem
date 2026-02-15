@@ -318,6 +318,10 @@
     /* Avatar Upload Section */
     .avatar-upload-section {
         text-align: center;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
     }
 
     .current-avatar {
@@ -355,7 +359,9 @@
         margin-top: 1rem;
         display: flex;
         justify-content: center;
+        align-items: center;
         gap: 0.5rem;
+        flex-wrap: wrap;
     }
 
     #id_avatar {
@@ -546,17 +552,26 @@
         .current-avatar {
             width: 100px !important;
             height: 100px !important;
+            margin: 0 auto !important;
         }
 
         .avatar-controls {
             flex-direction: column;
             gap: 0.75rem;
+            width: 100%;
+            max-width: 300px;
+            margin: 1rem auto 0;
         }
 
         .avatar-controls .btn {
             width: 100%;
             max-width: 250px;
             font-size: 0.875rem !important;
+            margin: 0 !important;
+        }
+
+        .avatar-controls label.btn {
+            margin-right: 0 !important;
         }
 
         /* Form fields - stack on mobile */
@@ -727,6 +742,7 @@
         .current-avatar {
             width: 80px !important;
             height: 80px !important;
+            margin: 0 auto !important;
         }
 
         .no-avatar i {
@@ -815,6 +831,7 @@
         .current-avatar {
             width: 70px !important;
             height: 70px !important;
+            margin: 0 auto !important;
         }
 
         .form-control,
@@ -843,6 +860,7 @@
         .current-avatar {
             width: 80px;
             height: 80px;
+            margin: 0 auto;
         }
     }
 
@@ -1759,15 +1777,17 @@
                 });
             });
 
-            // Prevent zoom on double-tap for buttons
+            // Prevent zoom on double-tap for buttons only (not entire document)
             let lastTouchEnd = 0;
-            document.addEventListener('touchend', function(event) {
-                const now = Date.now();
-                if (now - lastTouchEnd <= 300) {
-                    event.preventDefault();
-                }
-                lastTouchEnd = now;
-            }, false);
+            document.querySelectorAll('.btn, .accordion-button, .add-form, .formset-item .delete-row').forEach(element => {
+                element.addEventListener('touchend', function(event) {
+                    const now = Date.now();
+                    if (now - lastTouchEnd <= 300) {
+                        event.preventDefault();
+                    }
+                    lastTouchEnd = now;
+                }, false);
+            });
 
             // Add haptic feedback for touch devices (if supported)
             if ('vibrate' in navigator) {

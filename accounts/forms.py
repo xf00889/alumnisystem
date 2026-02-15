@@ -1113,17 +1113,23 @@ class PasswordResetEmailForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         # Add reCAPTCHA field if enabled in database
-        if is_recaptcha_enabled():
-            self.fields['captcha'] = DatabaseReCaptchaField(
-                widget=DatabaseReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification'
-            )
+        try:
+            if is_recaptcha_enabled():
+                self.fields['captcha'] = DatabaseReCaptchaField(
+                    widget=DatabaseReCaptchaV3(
+                        attrs={
+                            'data-callback': 'onRecaptchaSuccess',
+                            'data-expired-callback': 'onRecaptchaExpired',
+                            'data-error-callback': 'onRecaptchaError',
+                        }
+                    ),
+                    label='Security Verification'
+                )
+        except Exception as e:
+            # If reCAPTCHA configuration fails, continue without it
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"reCAPTCHA configuration error in PasswordResetEmailForm: {str(e)}")
     
     def clean_email(self):
         email = self.cleaned_data.get('email')
@@ -1134,6 +1140,16 @@ class PasswordResetEmailForm(forms.Form):
 
 class PasswordResetOTPForm(forms.Form):
     """Form for entering OTP verification code"""
+    
+    email = forms.EmailField(
+        label="Email Address",
+        widget=forms.EmailInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your email address',
+            'autocomplete': 'email'
+        }),
+        help_text="Enter the email address you used to request password reset"
+    )
     
     verification_code = forms.CharField(
         label="Verification Code",
@@ -1153,17 +1169,29 @@ class PasswordResetOTPForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         # Add reCAPTCHA field if enabled in database
-        if is_recaptcha_enabled():
-            self.fields['captcha'] = DatabaseReCaptchaField(
-                widget=DatabaseReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification'
-            )
+        try:
+            if is_recaptcha_enabled():
+                self.fields['captcha'] = DatabaseReCaptchaField(
+                    widget=DatabaseReCaptchaV3(
+                        attrs={
+                            'data-callback': 'onRecaptchaSuccess',
+                            'data-expired-callback': 'onRecaptchaExpired',
+                            'data-error-callback': 'onRecaptchaError',
+                        }
+                    ),
+                    label='Security Verification'
+                )
+        except Exception as e:
+            # If reCAPTCHA configuration fails, continue without it
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"reCAPTCHA configuration error in PasswordResetOTPForm: {str(e)}")
+    
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower().strip()
+        return email
     
     def clean_verification_code(self):
         code = self.cleaned_data.get('verification_code')
@@ -1199,17 +1227,23 @@ class PasswordResetNewPasswordForm(forms.Form):
         super().__init__(*args, **kwargs)
         
         # Add reCAPTCHA field if enabled in database
-        if is_recaptcha_enabled():
-            self.fields['captcha'] = DatabaseReCaptchaField(
-                widget=DatabaseReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification'
-            )
+        try:
+            if is_recaptcha_enabled():
+                self.fields['captcha'] = DatabaseReCaptchaField(
+                    widget=DatabaseReCaptchaV3(
+                        attrs={
+                            'data-callback': 'onRecaptchaSuccess',
+                            'data-expired-callback': 'onRecaptchaExpired',
+                            'data-error-callback': 'onRecaptchaError',
+                        }
+                    ),
+                    label='Security Verification'
+                )
+        except Exception as e:
+            # If reCAPTCHA configuration fails, continue without it
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"reCAPTCHA configuration error in PasswordResetNewPasswordForm: {str(e)}")
     
     def clean_new_password1(self):
         password1 = self.cleaned_data.get('new_password1')

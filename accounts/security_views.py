@@ -473,19 +473,35 @@ def password_reset_email(request):
                 messages.error(request, 'Too many password reset attempts. Please try again later.')
                 return render(request, 'accounts/password_reset_email.html', {'form': form})
             
+            # Check if user exists first
             try:
                 user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                # User does not exist - show clear error message
+                logger.warning(f"Password reset attempted for non-existent email: {email} (IP: {request.META.get('REMOTE_ADDR')})")
+                SecurityAuditLogger.log_event(
+                    'password_reset_user_not_found',
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    details={'attempted_email': email}
+                )
+                # Still record attempt to prevent abuse
+                RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
                 
-                # Generate verification code
-                verification_code = SecurityCodeManager.generate_code()
-                SecurityCodeManager.store_code(email, verification_code, 'password_reset')
-                
-                # Send HTML email using Render-compatible system
-                html_content = render_password_reset_email(user, verification_code)
-                from core.email_utils import send_email_with_provider
-                from django.conf import settings
-                
-                plain_message = f"""
+                # Show clear error message that email is not registered
+                messages.error(request, 'This email address is not registered in our system. Please check your email or sign up for a new account.')
+                return render(request, 'accounts/password_reset_email.html', {'form': form})
+            
+            # User exists - proceed with password reset
+            # Generate verification code
+            verification_code = SecurityCodeManager.generate_code()
+            SecurityCodeManager.store_code(email, verification_code, 'password_reset')
+            
+            # Send HTML email using Render-compatible system
+            html_content = render_password_reset_email(user, verification_code)
+            from core.email_utils import send_email_with_provider
+            from django.conf import settings
+            
+            plain_message = f"""
 Hello!
 
 You have requested to reset your password for the NORSU Alumni Network. Please use the following code to reset your password:
@@ -498,59 +514,52 @@ If you didn't request this password reset, please ignore this email and your pas
 
 Best regards,
 NORSU Alumni Network Team
-                """
-                
-                try:
-                    success = send_email_with_provider(
-                        subject='NORSU Alumni - Password Reset Code',
-                        message=plain_message,
-                        recipient_list=[email],
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        html_message=html_content,
-                        fail_silently=False
-                    )
-                    
-                    if not success:
-                        logger.error(f"Failed to send password reset email to {email} (IP: {request.META.get('REMOTE_ADDR')})")
-                        SecurityAuditLogger.log_event(
-                            'password_reset_email_failed',
-                            user=user,
-                            ip_address=request.META.get('REMOTE_ADDR')
-                        )
-                        messages.error(request, 'Failed to send password reset code. Please try again later.')
-                        return render(request, 'accounts/password_reset_email.html', {'form': form})
-                except Exception as e:
-                    logger.error(f"Error sending password reset email to {email}: {str(e)} (IP: {request.META.get('REMOTE_ADDR')})")
-                    SecurityAuditLogger.log_event(
-                        'password_reset_email_exception',
-                        user=user,
-                        ip_address=request.META.get('REMOTE_ADDR'),
-                        details={'error': str(e)}
-                    )
-                    messages.error(request, 'Failed to send password reset code. Please check email configuration or try again later.')
-                    return render(request, 'accounts/password_reset_email.html', {'form': form})
-                
-                # Log password reset request
-                logger.info(f"Password reset code sent to {email} (IP: {request.META.get('REMOTE_ADDR')})")
-                SecurityAuditLogger.log_password_reset_request(email, request.META.get('REMOTE_ADDR'))
-                
-                # Record attempt (3 attempts per 15 minutes)
-                RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
-                
-                messages.success(request, 'Verification code sent to your email.')
-                return redirect('accounts:password_reset_otp')
-                
-            except User.DoesNotExist:
-                # Email enumeration prevention: Generic error message
-                logger.warning(f"Password reset attempted for non-existent email (IP: {request.META.get('REMOTE_ADDR')})")
-                SecurityAuditLogger.log_event(
-                    'password_reset_user_not_found',
-                    ip_address=request.META.get('REMOTE_ADDR'),
-                    details={'attempted_email': email}
+            """
+            
+            try:
+                success = send_email_with_provider(
+                    subject='NORSU Alumni - Password Reset Code',
+                    message=plain_message,
+                    recipient_list=[email],
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    html_message=html_content,
+                    fail_silently=False
                 )
-                # Still record attempt to prevent enumeration attacks
-                RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
-                messages.error(request, 'If an account exists with this email, you will receive a password reset code.')
+                
+                if not success:
+                    logger.error(f"Failed to send password reset email to {email} (IP: {request.META.get('REMOTE_ADDR')})")
+                    SecurityAuditLogger.log_event(
+                        'password_reset_email_failed',
+                        user=user,
+                        ip_address=request.META.get('REMOTE_ADDR')
+                    )
+                    messages.error(request, 'Failed to send password reset code. Please try again later.')
+                    return render(request, 'accounts/password_reset_email.html', {'form': form})
+            except Exception as e:
+                logger.error(f"Error sending password reset email to {email}: {str(e)} (IP: {request.META.get('REMOTE_ADDR')})")
+                SecurityAuditLogger.log_event(
+                    'password_reset_email_exception',
+                    user=user,
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    details={'error': str(e)}
+                )
+                messages.error(request, 'Failed to send password reset code. Please check email configuration or try again later.')
+                return render(request, 'accounts/password_reset_email.html', {'form': form})
+            
+            # In development mode, also log the verification code to console
+            if settings.DEBUG:
+                logger.info(f"DEVELOPMENT MODE: Password reset code for {email} is: {verification_code}")
+                print(f"DEVELOPMENT MODE: Password reset code for {email} is: {verification_code}")
+            
+            # Log password reset request
+            logger.info(f"Password reset code sent to {email} (IP: {request.META.get('REMOTE_ADDR')})")
+            SecurityAuditLogger.log_password_reset_request(email, request.META.get('REMOTE_ADDR'))
+            
+            # Record attempt (3 attempts per 15 minutes)
+            RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
+            
+            messages.success(request, 'Verification code sent to your email.')
+            return redirect('accounts:password_reset_otp')
     else:
         form = PasswordResetEmailForm()
     
@@ -669,19 +678,35 @@ def resend_password_reset_otp(request):
                     'error': 'Too many password reset attempts. Please try again later.'
                 })
             
+            # Check if user exists first
             try:
                 user = User.objects.get(email=email)
-                
-                # Generate new code
-                verification_code = SecurityCodeManager.generate_code()
-                SecurityCodeManager.store_code(email, verification_code, 'password_reset')
-                
-                # Send HTML email using Render-compatible system
-                html_content = render_password_reset_email(user, verification_code)
-                from core.email_utils import send_email_with_provider
-                from django.conf import settings
-                
-                plain_message = f"""
+            except User.DoesNotExist:
+                # User does not exist - show clear error message
+                logger.warning(f"Password reset resend attempted for non-existent email: {email} (IP: {request.META.get('REMOTE_ADDR')})")
+                SecurityAuditLogger.log_event(
+                    'password_reset_resend_user_not_found',
+                    ip_address=request.META.get('REMOTE_ADDR'),
+                    details={'attempted_email': email}
+                )
+                # Still record attempt to prevent abuse
+                RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
+                return JsonResponse({
+                    'success': False,
+                    'error': 'This email address is not registered in our system. Please check your email or sign up for a new account.'
+                })
+            
+            # User exists - proceed with resending code
+            # Generate new code
+            verification_code = SecurityCodeManager.generate_code()
+            SecurityCodeManager.store_code(email, verification_code, 'password_reset')
+            
+            # Send HTML email using Render-compatible system
+            html_content = render_password_reset_email(user, verification_code)
+            from core.email_utils import send_email_with_provider
+            from django.conf import settings
+            
+            plain_message = f"""
 Hello!
 
 You have requested a new password reset code for your NORSU Alumni Network account. Please use the following code to reset your password:
@@ -694,72 +719,62 @@ If you didn't request this password reset, please ignore this email and your pas
 
 Best regards,
 NORSU Alumni Network Team
-                """
+            """
+            
+            try:
+                success = send_email_with_provider(
+                    subject='NORSU Alumni - New Password Reset Code',
+                    message=plain_message,
+                    recipient_list=[email],
+                    from_email=settings.DEFAULT_FROM_EMAIL,
+                    html_message=html_content,
+                    fail_silently=False
+                )
                 
-                try:
-                    success = send_email_with_provider(
-                        subject='NORSU Alumni - New Password Reset Code',
-                        message=plain_message,
-                        recipient_list=[email],
-                        from_email=settings.DEFAULT_FROM_EMAIL,
-                        html_message=html_content,
-                        fail_silently=False
-                    )
-                    
-                    if not success:
-                        logger.error(f"Failed to resend password reset email to {email} (IP: {request.META.get('REMOTE_ADDR')})")
-                        SecurityAuditLogger.log_event(
-                            'password_reset_resend_email_failed',
-                            user=user,
-                            ip_address=request.META.get('REMOTE_ADDR')
-                        )
-                        return JsonResponse({
-                            'success': False,
-                            'error': 'Failed to send password reset code. Please try again later.'
-                        })
-                except Exception as e:
-                    logger.error(f"Error resending password reset email to {email}: {str(e)} (IP: {request.META.get('REMOTE_ADDR')})")
+                if not success:
+                    logger.error(f"Failed to resend password reset email to {email} (IP: {request.META.get('REMOTE_ADDR')})")
                     SecurityAuditLogger.log_event(
-                        'password_reset_resend_email_exception',
+                        'password_reset_resend_email_failed',
                         user=user,
-                        ip_address=request.META.get('REMOTE_ADDR'),
-                        details={'error': str(e)}
+                        ip_address=request.META.get('REMOTE_ADDR')
                     )
                     return JsonResponse({
                         'success': False,
-                        'error': 'Failed to send password reset code. Please check email configuration or try again later.'
+                        'error': 'Failed to send password reset code. Please try again later.'
                     })
-                
-                # Record attempt (3 attempts per 15 minutes)
-                RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
-                
-                # Log successful resend
-                logger.info(f"Password reset code resent to {email} (IP: {request.META.get('REMOTE_ADDR')})")
+            except Exception as e:
+                logger.error(f"Error resending password reset email to {email}: {str(e)} (IP: {request.META.get('REMOTE_ADDR')})")
                 SecurityAuditLogger.log_event(
-                    'password_reset_resend_success',
+                    'password_reset_resend_email_exception',
                     user=user,
-                    ip_address=request.META.get('REMOTE_ADDR')
-                )
-                
-                return JsonResponse({
-                    'success': True,
-                    'message': 'New verification code sent to your email.'
-                })
-                
-            except User.DoesNotExist:
-                # Email enumeration prevention: Generic error message
-                logger.warning(f"Password reset resend attempted for non-existent email (IP: {request.META.get('REMOTE_ADDR')})")
-                SecurityAuditLogger.log_event(
-                    'password_reset_resend_user_not_found',
                     ip_address=request.META.get('REMOTE_ADDR'),
-                    details={'attempted_email': email}
+                    details={'error': str(e)}
                 )
-                # Still record attempt to prevent enumeration attacks
-                RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
                 return JsonResponse({
                     'success': False,
-                    'error': 'Unable to send password reset code. Please try again later.'
+                    'error': 'Failed to send password reset code. Please check email configuration or try again later.'
                 })
+            
+            # In development mode, also log the verification code to console
+            if settings.DEBUG:
+                logger.info(f"DEVELOPMENT MODE: Password reset code resent for {email} is: {verification_code}")
+                print(f"DEVELOPMENT MODE: Password reset code resent for {email} is: {verification_code}")
+            
+            # Record attempt (3 attempts per 15 minutes)
+            RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
+            
+            # Log successful resend
+            logger.info(f"Password reset code resent to {email} (IP: {request.META.get('REMOTE_ADDR')})")
+            SecurityAuditLogger.log_event(
+                'password_reset_resend_success',
+                user=user,
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            return JsonResponse({
+                'success': True,
+                'message': 'New verification code sent to your email.'
+            })
     
     return JsonResponse({'success': False, 'error': 'Invalid request'})
 

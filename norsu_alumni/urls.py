@@ -39,6 +39,9 @@ urlpatterns = [
     # Custom Google OAuth views to fix callback URL issue (must be before allauth.urls)
     path('accounts/google/login/', google_views.oauth2_login, name='google_login'),
     path('accounts/google/login/callback/', google_views.oauth2_callback, name='google_callback'),
+    # Custom password reset views (must be before allauth.urls to override)
+    path('accounts/password/reset/', security_views.password_reset_email, name='account_reset_password'),
+    path('accounts/password/reset/key/<uidb36>-<key>/', security_views.password_reset_email, name='account_reset_password_from_key'),
     # Allauth URLs (includes other OAuth providers)
     path('accounts/', include('allauth.urls')),
     path('', include('core.urls')),
