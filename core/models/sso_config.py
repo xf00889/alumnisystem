@@ -15,7 +15,6 @@ class SSOConfig(models.Model):
     """
     PROVIDER_CHOICES = [
         ('google', 'Google OAuth'),
-        ('facebook', 'Facebook OAuth'),
     ]
     
     name = models.CharField(

@@ -70,9 +70,8 @@ class Command(BaseCommand):
         
         # Test callback URL generation
         self.stdout.write('')
-        self.stdout.write('Expected callback URLs:')
+        self.stdout.write('Expected callback URL:')
         self.stdout.write(f'  Google: http://{current_site.domain}/accounts/google/login/callback/')
-        self.stdout.write(f'  Facebook: http://{current_site.domain}/accounts/facebook/login/callback/')
         
         self.stdout.write('')
         self.stdout.write(self.style.SUCCESS('=' * 60))

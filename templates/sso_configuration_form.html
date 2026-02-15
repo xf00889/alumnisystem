@@ -3,13 +3,518 @@
 
 {% block title %}{{ page_title }} - NORSU Alumni{% endblock %}
 
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* NORSU Alumni System - SSO Configuration Form Design */
+    :root {
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --secondary-color: #4a5568;
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    
+    .row {
+        margin-left: -0.75rem;
+        margin-right: -0.75rem;
+    }
+    
+    .g-4 {
+        --bs-gutter-x: 1.5rem;
+        --bs-gutter-y: 1.5rem;
+    }
+    
+    .col-lg-8,
+    .col-lg-4 {
+        padding-left: 0.75rem;
+        padding-right: 0.75rem;
+    }
+    
+    /* Header Section */
+    .form-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .form-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Card Styling */
+    .card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .card-header {
+        background: var(--ui-surface);
+        border-bottom: 2px solid var(--primary-color);
+        padding: 1.5rem;
+        border-radius: var(--radius-md) var(--radius-md) 0 0;
+    }
+    
+    .card-header h4,
+    .card-header h6 {
+        color: var(--text-primary);
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+        margin: 0;
+        font-size: 1rem;
+    }
+    
+    .card-header i {
+        color: var(--primary-color);
+        margin-right: 0.5rem;
+    }
+    
+    /* Info Panel Styles */
+    .info-panel {
+        position: sticky;
+        top: 1.5rem;
+    }
+    
+    .info-section {
+        margin-bottom: 1.5rem;
+        padding-bottom: 1.5rem;
+        border-bottom: 1px solid var(--ui-border);
+    }
+    
+    .info-section:last-child {
+        margin-bottom: 0;
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    
+    .info-title {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.75rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .info-list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+    }
+    
+    .info-list li {
+        color: var(--text-secondary);
+        font-size: 0.8125rem;
+        margin-bottom: 0.75rem;
+        padding-left: 1.25rem;
+        position: relative;
+        line-height: 1.5;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .info-list li:before {
+        content: "•";
+        color: var(--primary-color);
+        font-weight: bold;
+        position: absolute;
+        left: 0;
+    }
+    
+    .info-list li:last-child {
+        margin-bottom: 0;
+    }
+    
+    .info-list code {
+        background: rgba(43, 60, 107, 0.1);
+        padding: 0.125rem 0.375rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        color: var(--primary-color);
+        font-family: 'Courier New', monospace;
+        word-break: break-all;
+        display: inline-block;
+        max-width: 100%;
+    }
+    
+    /* Status Section */
+    .status-section {
+        background: var(--ui-background);
+        padding: 1rem;
+        border-radius: var(--radius-sm);
+        border: 1px solid var(--ui-border);
+    }
+    
+    .status-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.75rem;
+        font-size: 0.8125rem;
+    }
+    
+    .status-item:last-child {
+        margin-bottom: 0;
+    }
+    
+    .status-label {
+        color: var(--text-secondary);
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .status-value {
+        color: var(--text-primary);
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .status-badge {
+        padding: 0.25rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 600;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .status-active {
+        background: rgba(40, 167, 69, 0.1);
+        color: var(--feedback-success);
+    }
+    
+    .status-inactive {
+        background: rgba(108, 117, 125, 0.1);
+        color: var(--text-secondary);
+    }
+    
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--ui-border);
+    }
+    
+    .card-body {
+        padding: 2rem;
+    }
+    
+    @media (max-width: 768px) {
+        .card-body {
+            padding: 1.5rem;
+        }
+    }
+    
+    /* Form Elements */
+    .form-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        display: block;
+    }
+    
+    .form-label .text-danger {
+        color: var(--feedback-error);
+        margin-left: 0.25rem;
+    }
+    
+    .form-control,
+    .form-select {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+    }
+    
+    .form-control:focus,
+    .form-select:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+        background: var(--ui-surface);
+    }
+    
+    .form-control::placeholder {
+        color: var(--text-muted);
+        opacity: 0.7;
+    }
+    
+    .form-text {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+        display: block;
+        line-height: 1.4;
+    }
+    
+    .mb-4 {
+        margin-bottom: 1.5rem;
+    }
+    
+    /* Checkbox Styling */
+    .form-check {
+        padding-left: 1.75rem;
+        margin-bottom: 1rem;
+        position: relative;
+    }
+    
+    .form-check-input {
+        width: 1.25rem;
+        height: 1.25rem;
+        margin-top: 0.125rem;
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        cursor: pointer;
+        position: absolute;
+        left: 0;
+        top: 0;
+    }
+    
+    .form-check-input:checked {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .form-check-input:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+        outline: none;
+    }
+    
+    .form-check-label {
+        font-weight: 500;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        display: block;
+    }
+    
+    /* Alert Styling */
+    .alert {
+        border-radius: var(--radius-sm);
+        padding: 1rem;
+        margin-bottom: 1.5rem;
+        border: none;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+    
+    .alert-success {
+        background-color: rgba(40, 167, 69, 0.1);
+        color: var(--feedback-success);
+        border-left: 3px solid var(--feedback-success);
+    }
+    
+    .alert-warning {
+        background-color: rgba(255, 193, 7, 0.1);
+        color: #856404;
+        border-left: 3px solid var(--feedback-warning);
+    }
+    
+    .alert-danger {
+        background-color: rgba(220, 53, 69, 0.1);
+        color: var(--feedback-error);
+        border-left: 3px solid var(--feedback-error);
+    }
+    
+    .alert-info {
+        background-color: rgba(23, 162, 184, 0.1);
+        color: var(--feedback-info);
+        border-left: 3px solid var(--feedback-info);
+    }
+    
+    /* Button Styling */
+    .btn {
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.875rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        justify-content: center;
+        white-space: nowrap;
+    }
+    
+    .btn-primary {
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .btn-primary:hover {
+        background: var(--secondary-color);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+    
+    .btn-secondary {
+        background: var(--text-secondary);
+        color: var(--text-light);
+    }
+    
+    .btn-secondary:hover {
+        background: var(--text-primary);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+        text-decoration: none;
+    }
+    
+    .btn-close {
+        background: transparent;
+        border: none;
+        font-size: 1.25rem;
+        opacity: 0.5;
+        cursor: pointer;
+    }
+    
+    .btn-close:hover {
+        opacity: 1;
+    }
+    
+    /* Responsive Design */
+    @media (max-width: 991px) {
+        .info-panel {
+            position: static;
+            margin-top: 1.5rem;
+        }
+        
+        .col-lg-8,
+        .col-lg-4 {
+            width: 100%;
+        }
+    }
+    
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .form-header {
+            padding: 1.5rem;
+        }
+        
+        .form-title {
+            font-size: 1.5rem;
+        }
+        
+        .form-subtitle {
+            font-size: 0.875rem;
+        }
+        
+        .card-body {
+            padding: 1.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+        
+        .btn {
+            width: 100%;
+            justify-content: center;
+        }
+        
+        .col-lg-10,
+        .col-xl-8 {
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+    }
+    
+    @media (min-width: 769px) and (max-width: 1024px) {
+        .container-fluid {
+            max-width: 900px;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <div class="row justify-content-center">
-        <div class="col-md-8">
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="form-header">
+        <h1 class="form-title">
+            <i class="fas fa-key"></i> {{ page_title }}
+        </h1>
+        <p class="form-subtitle">Configure Single Sign-On authentication for NORSU Alumni System</p>
+    </div>
+    
+    <div class="row g-4">
+        <!-- Left Column - Form -->
+        <div class="col-lg-8">
             <div class="card">
                 <div class="card-header">
-                    <h4 class="mb-0">{{ page_title }}</h4>
+                    <h4><i class="fas fa-cog"></i> Configuration Settings</h4>
                 </div>
                 <div class="card-body">
                     {% if messages %}
@@ -24,16 +529,20 @@
                     <form method="post">
                         {% csrf_token %}
                         
-                        <div class="mb-3">
-                            <label for="name" class="form-label">Configuration Name <span class="text-danger">*</span></label>
+                        <div class="mb-4">
+                            <label for="name" class="form-label">
+                                Configuration Name <span class="text-danger">*</span>
+                            </label>
                             <input type="text" class="form-control" id="name" name="name" 
                                    value="{{ config.name|default:'' }}" required
-                                   placeholder="e.g., Google Production, Facebook Staging">
-                            <small class="form-text text-muted">A descriptive name to identify this configuration</small>
+                                   placeholder="e.g., Google Production">
+                            <small class="form-text">A descriptive name to identify this configuration</small>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="provider" class="form-label">Provider <span class="text-danger">*</span></label>
+                        <div class="mb-4">
+                            <label for="provider" class="form-label">
+                                Provider <span class="text-danger">*</span>
+                            </label>
                             <select class="form-select" id="provider" name="provider" required {% if config %}disabled{% endif %}>
                                 <option value="">Select Provider</option>
                                 {% for value, label in provider_choices %}
@@ -44,63 +553,69 @@
                             </select>
                             {% if config %}
                                 <input type="hidden" name="provider" value="{{ config.provider }}">
-                                <small class="form-text text-muted">Provider cannot be changed after creation</small>
+                                <small class="form-text">Provider cannot be changed after creation</small>
                             {% endif %}
                         </div>
 
-                        <div class="mb-3">
-                            <label for="client_id" class="form-label">Client ID / App ID <span class="text-danger">*</span></label>
+                        <div class="mb-4">
+                            <label for="client_id" class="form-label">
+                                Client ID / App ID <span class="text-danger">*</span>
+                            </label>
                             <input type="text" class="form-control" id="client_id" name="client_id" 
                                    value="{{ config.client_id|default:'' }}" required
                                    placeholder="Enter OAuth Client ID">
-                            <small class="form-text text-muted">OAuth Client ID from provider console</small>
+                            <small class="form-text">OAuth Client ID from provider console</small>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="secret_key" class="form-label">Client Secret / App Secret <span class="text-danger">*</span></label>
+                        <div class="mb-4">
+                            <label for="secret_key" class="form-label">
+                                Client Secret / App Secret <span class="text-danger">*</span>
+                            </label>
                             <input type="password" class="form-control" id="secret_key" name="secret_key" 
                                    value="{{ config.secret_key|default:'' }}" required
                                    placeholder="Enter OAuth Client Secret">
-                            <small class="form-text text-muted">OAuth Client Secret from provider console (kept secure)</small>
+                            <small class="form-text">OAuth Client Secret from provider console (kept secure)</small>
                         </div>
 
-                        <div class="mb-3">
-                            <label for="scopes" class="form-label">OAuth Scopes <span class="text-danger">*</span></label>
+                        <div class="mb-4">
+                            <label for="scopes" class="form-label">
+                                OAuth Scopes <span class="text-danger">*</span>
+                            </label>
                             <input type="text" class="form-control" id="scopes" name="scopes" 
                                    value="{{ config.scopes|default:'profile,email' }}" required
                                    placeholder="profile,email">
-                            <small class="form-text text-muted">Comma-separated list of OAuth scopes (e.g., profile,email)</small>
+                            <small class="form-text">Comma-separated list of OAuth scopes (e.g., profile,email)</small>
                         </div>
 
-                        <div class="mb-3 form-check">
+                        <div class="mb-4 form-check">
                             <input type="checkbox" class="form-check-input" id="verified_email" name="verified_email"
                                    {% if config.verified_email or not config %}checked{% endif %}>
                             <label class="form-check-label" for="verified_email">
                                 Trust Email Verification
                             </label>
-                            <small class="form-text text-muted d-block">Trust that emails from this provider are already verified</small>
+                            <small class="form-text d-block">Trust that emails from this provider are already verified</small>
                         </div>
 
-                        <div class="mb-3 form-check">
+                        <div class="mb-4 form-check">
                             <input type="checkbox" class="form-check-input" id="enabled" name="enabled"
                                    {% if config.enabled or not config %}checked{% endif %}>
                             <label class="form-check-label" for="enabled">
                                 Enabled
                             </label>
-                            <small class="form-text text-muted d-block">Show this provider on the login page</small>
+                            <small class="form-text d-block">Show this provider on the login page</small>
                         </div>
 
-                        <div class="mb-3 form-check">
+                        <div class="mb-4 form-check">
                             <input type="checkbox" class="form-check-input" id="is_active" name="is_active"
                                    {% if config.is_active %}checked{% endif %}>
                             <label class="form-check-label" for="is_active">
                                 Set as Active Configuration
                             </label>
-                            <small class="form-text text-muted d-block">Only one configuration per provider can be active</small>
+                            <small class="form-text d-block">Only one configuration per provider can be active</small>
                         </div>
 
                         {% if config.test_result %}
-                            <div class="alert {% if config.is_verified %}alert-success{% else %}alert-warning{% endif %}">
+                            <div class="alert {% if config.is_verified %}alert-success{% else %}alert-warning{% endif %} mb-4">
                                 <strong>Last Test Result:</strong><br>
                                 {{ config.test_result }}
                                 {% if config.last_tested %}
@@ -109,7 +624,7 @@
                             </div>
                         {% endif %}
 
-                        <div class="d-flex justify-content-between">
+                        <div class="form-actions">
                             <a href="{% url 'core:sso_configuration_list' %}" class="btn btn-secondary">
                                 <i class="fas fa-arrow-left"></i> Cancel
                             </a>
@@ -120,20 +635,52 @@
                     </form>
                 </div>
             </div>
+        </div>
 
-            <div class="card mt-3">
+        <!-- Right Column - Info Panel -->
+        <div class="col-lg-4">
+            <div class="card info-panel">
                 <div class="card-header">
-                    <h6 class="mb-0"><i class="fas fa-info-circle"></i> Important Notes</h6>
+                    <h6><i class="fas fa-info-circle"></i> Configuration Guide</h6>
                 </div>
                 <div class="card-body">
-                    <ul class="mb-0">
-                        <li>Make sure to configure the OAuth redirect URIs in your provider console</li>
-                        <li>Google redirect URI: <code>{{ request.scheme }}://{{ request.get_host }}/accounts/google/login/callback/</code></li>
-                        <li>Facebook redirect URI: <code>{{ request.scheme }}://{{ request.get_host }}/accounts/facebook/login/callback/</code></li>
-                        <li>Test the configuration after saving to verify it works</li>
-                        <li>Only one configuration per provider can be active at a time</li>
-                        <li>Disabled configurations won't appear on the login page</li>
-                    </ul>
+                    <div class="info-section">
+                        <h6 class="info-title">Setup Instructions</h6>
+                        <ul class="info-list">
+                            <li>Configure OAuth redirect URIs in your provider console</li>
+                            <li>Google redirect URI: <code>{{ request.scheme }}://{{ request.get_host }}/accounts/google/login/callback/</code></li>
+                            <li>Test the configuration after saving</li>
+                        </ul>
+                    </div>
+
+                    <div class="info-section">
+                        <h6 class="info-title">Important Notes</h6>
+                        <ul class="info-list">
+                            <li>Only one configuration per provider can be active</li>
+                            <li>Disabled configurations won't appear on login page</li>
+                            <li>Keep your secret keys secure</li>
+                        </ul>
+                    </div>
+
+                    {% if config %}
+                    <div class="info-section status-section">
+                        <h6 class="info-title">Current Status</h6>
+                        <div class="status-item">
+                            <span class="status-label">Provider:</span>
+                            <span class="status-value">{{ config.get_provider_display }}</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Status:</span>
+                            <span class="status-badge {% if config.enabled %}status-active{% else %}status-inactive{% endif %}">
+                                {% if config.enabled %}Active{% else %}Inactive{% endif %}
+                            </span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">Created:</span>
+                            <span class="status-value">{{ config.created_at|date:"M d, Y" }}</span>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
         </div>
