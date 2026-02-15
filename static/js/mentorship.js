@@ -1,19 +1,50 @@
 // Mentor Search and Request Functionality
 
+let searchInitialized = false;
+let searchInProgress = false;
+
 function initMentorSearch() {
+    // Prevent multiple initializations
+    if (searchInitialized) {
+        return;
+    }
+    searchInitialized = true;
+    
     const searchForm = document.getElementById('mentorSearchForm');
+    if (!searchForm) {
+        console.error('Search form not found');
+        return;
+    }
+    
     const resultsContainer = document.getElementById('searchResults');
-    const requestModal = new bootstrap.Modal(document.getElementById('mentorshipRequestModal'));
+    if (!resultsContainer) {
+        console.error('Results container not found');
+        return;
+    }
+    
+    const requestModalElement = document.getElementById('mentorshipRequestModal');
+    if (!requestModalElement) {
+        console.warn('Mentorship request modal not found');
+    }
+    
+    const requestModal = requestModalElement ? new bootstrap.Modal(requestModalElement) : null;
     
     // Handle search form submission
     searchForm.addEventListener('submit', async (e) => {
         e.preventDefault();
+        
+        // Prevent multiple simultaneous searches
+        if (searchInProgress) {
+            console.log('Search already in progress, skipping...');
+            return;
+        }
+        
         await searchMentors();
     });
     
     // Handle mentorship request submission (guard against missing button)
     const submitRequestBtn = document.getElementById('submitRequest');
-    if (submitRequestBtn) {
+    if (submitRequestBtn && requestModal) {
         submitRequestBtn.addEventListener('click', async () => {
             await submitMentorshipRequest();
             requestModal.hide();
@@ -40,8 +71,23 @@ function initMentorSearch() {
 }
 
 async function searchMentors() {
+    // Prevent multiple simultaneous searches
+    if (searchInProgress) {
+        console.log('Search already in progress, aborting...');
+        return;
+    }
+    
+    searchInProgress = true;
+    
     const form = document.getElementById('mentorSearchForm');
     const resultsContainer = document.getElementById('searchResults');
+    
+    if (!form || !resultsContainer) {
+        console.error('Form or results container not found');
+        searchInProgress = false;
+        return;
+    }
+    
     const loadingAlert = createLoadingAlert();
     
     resultsContainer.innerHTML = '';
@@ -49,14 +95,24 @@ async function searchMentors() {
     
     try {
         // Get CSRF token
-        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+        if (!csrftoken) {
+            throw new Error('CSRF token not found');
+        }
         
-        const response = await fetch('/mentorship/api/mentors/?' + new URLSearchParams({
-            expertise: form.expertise.value || '',
-            availability: form.availability.value || '',
-            experienced: form.experienced.checked || false,
-            sort: form.sort.value || 'experience'
-        }), {
+        // Build query parameters
+        const params = new URLSearchParams({
+            expertise: form.expertise?.value || '',
+            availability: form.availability?.value || '',
+            experienced: form.experienced?.checked || false,
+            sort: form.sort?.value || 'experience'
+        });
+        
+        // Update URL without reloading the page
+        const newUrl = `${window.location.pathname}?${params.toString()}`;
+        window.history.replaceState({}, '', newUrl);
+        
+        const response = await fetch('/mentorship/api/mentors/?' + params, {
             headers: {
                 'Accept': 'application/json',
                 'X-CSRFToken': csrftoken
@@ -87,6 +143,8 @@ async function searchMentors() {
     } catch (error) {
         console.error('Search error:', error);
         displayError('Failed to search mentors. Please try again. Error: ' + error.message);
+    } finally {
+        searchInProgress = false;
     }
 }
 
