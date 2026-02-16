@@ -87,16 +87,26 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     
     def respond_user_inactive(self, request, user):
         """
-        Handle inactive user login attempt by storing email in session
-        and redirecting to custom inactive page with email parameter
+        Handle inactive user login attempt by redirecting to email verification page.
+        This ensures users who haven't verified their email complete the verification process.
         """
         from django.shortcuts import redirect
+        from django.contrib import messages
         
         # Store the user's email in session for resend verification
         request.session['inactive_account_email'] = user.email
         
-        # Redirect to custom inactive page with email parameter
-        return redirect(f'/accounts/inactive/?email={user.email}')
+        # Add informative message
+        messages.warning(
+            request,
+            'Your email address has not been verified yet. Please enter the verification code sent to your email, or request a new one.'
+        )
+        
+        # Log the inactive login attempt
+        logger.info(f"Inactive user login attempt: {user.email} - redirecting to email verification")
+        
+        # Redirect to email verification page with email parameter
+        return redirect(f'/accounts/verify-email/?email={user.email}')
     
     def add_message(self, request, level, message_tag, message=None, extra_tags='', *args, **kwargs):
         """
@@ -105,8 +115,8 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         
         Note: In some allauth versions, 'message' might be passed as a keyword argument.
         """
-        # Suppress ALL logout-related messages
-        if message_tag in ['account_logout', 'logged_out', 'signed_out']:
+        # Suppress ALL logout-related messages by tag
+        if message_tag in ['account_logout', 'logged_out', 'signed_out', 'account_logged_out']:
             return
         
         # Check if message is a string before checking for logout-related text
@@ -114,8 +124,17 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         if message and isinstance(message, str):
             message_lower = message.lower()
             # Suppress any message containing logout/signout related text
-            if any(keyword in message_lower for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout']):
+            if any(keyword in message_lower for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout', 'signed-out']):
                 return
+        
+        # Also check if message is a lazy translation object
+        if message:
+            try:
+                message_str = str(message).lower()
+                if any(keyword in message_str for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout', 'signed-out']):
+                    return
+            except:
+                pass
         
         # Call parent method for all other messages
         if message is not None:

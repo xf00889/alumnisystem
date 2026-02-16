@@ -331,11 +331,11 @@
                     {% csrf_token %}
                     <div class="form-group">
                         <label class="form-label">Email Address</label>
-                        <div class="form-control" style="background-color: #f8f9fa; color: #6c757d; cursor: not-allowed;">
+                        <div id="resendEmailDisplay" class="form-control" style="background-color: #f8f9fa; color: #495057; cursor: not-allowed; font-weight: 500;">
                             {% if user_email %}
                                 {{ user_email }}
                             {% else %}
-                                Email not available
+                                <span style="color: #6c757d;">Email will be retrieved from the form</span>
                             {% endif %}
                         </div>
                         <small class="text-muted">Verification code will be sent to this email address</small>
@@ -361,8 +361,21 @@ document.addEventListener('DOMContentLoaded', function() {
     const confirmResend = document.getElementById('confirmResend');
     const resendForm = document.getElementById('resendForm');
     
-    // Auto-focus email input
-    emailInput.focus();
+    // Pre-fill email if available from context
+    {% if user_email %}
+    if (emailInput && !emailInput.value) {
+        emailInput.value = '{{ user_email }}';
+    }
+    {% endif %}
+    
+    // Auto-focus appropriate input
+    if (emailInput && emailInput.value.trim()) {
+        // Email is already filled, focus on OTP input
+        otpInput.focus();
+    } else {
+        // Email is empty, focus on email input
+        emailInput.focus();
+    }
     
     // Format OTP input (numbers only)
     otpInput.addEventListener('input', function(e) {
@@ -436,17 +449,33 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle resend button click
     resendBtn.addEventListener('click', function() {
+        // Get email from multiple sources
+        const userEmail = {% if user_email %}'{{ user_email }}'{% else %}null{% endif %};
+        const emailFromInput = emailInput.value.trim();
+        const email = userEmail || emailFromInput;
+        
+        // Update the resend modal with the current email
+        const resendEmailDisplay = document.getElementById('resendEmailDisplay');
+        if (email) {
+            resendEmailDisplay.textContent = email;
+            resendEmailDisplay.style.color = '#495057';
+        } else {
+            resendEmailDisplay.innerHTML = '<span style="color: #dc3545;">Please enter your email address in the form first</span>';
+        }
+        
         Swal.fire({
             title: 'Resend Verification Code?',
-            text: 'A new verification code will be sent to your email address.',
-            icon: 'question',
-            showCancelButton: true,
+            html: email ? 
+                `A new verification code will be sent to:<br><strong>${email}</strong>` :
+                'Please enter your email address in the form first.',
+            icon: email ? 'question' : 'warning',
+            showCancelButton: email ? true : false,
             confirmButtonColor: '#2b3c6b',
             cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Yes, Send Code',
+            confirmButtonText: email ? 'Yes, Send Code' : 'OK',
             cancelButtonText: 'Cancel'
         }).then((result) => {
-            if (result.isConfirmed) {
+            if (result.isConfirmed && email) {
                 resendModal.show();
             }
         });
@@ -454,6 +483,38 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Handle confirm resend
     confirmResend.addEventListener('click', function() {
+        // Get email from multiple sources with priority
+        // 1. Template context (most reliable - passed from signup)
+        // 2. Email input field (user entered)
+        const userEmail = {% if user_email %}'{{ user_email }}'{% else %}null{% endif %};
+        const emailFromInput = emailInput.value.trim();
+        const email = userEmail || emailFromInput;
+        
+        // Validate email before proceeding
+        if (!email) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Email Required',
+                text: 'Please enter your email address in the form first.',
+                confirmButtonColor: '#2b3c6b',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
+        // Validate email format
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            Swal.fire({
+                icon: 'warning',
+                title: 'Invalid Email',
+                text: 'Please enter a valid email address.',
+                confirmButtonColor: '#2b3c6b',
+                confirmButtonText: 'OK'
+            });
+            return;
+        }
+        
         // Show loading state
         confirmResend.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
         confirmResend.disabled = true;
@@ -470,26 +531,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 Swal.showLoading();
             }
         });
-        
-        // Send resend request with email from form or context
-        // Use user_email from template context if available, otherwise use email input field
-        const userEmail = {% if user_email %}'{{ user_email }}'{% else %}null{% endif %};
-        const emailFromInput = emailInput.value.trim();
-        const email = userEmail || emailFromInput;
-        
-        if (!email) {
-            Swal.close();
-            Swal.fire({
-                icon: 'warning',
-                title: 'Email Required',
-                text: 'Please enter your email address first.',
-                confirmButtonColor: '#2b3c6b',
-                confirmButtonText: 'OK'
-            });
-            confirmResend.innerHTML = '<i class="fas fa-paper-plane"></i> Send Code';
-            confirmResend.disabled = false;
-            return;
-        }
         
         fetch('{% url "accounts:resend_verification_code" %}', {
             method: 'POST',

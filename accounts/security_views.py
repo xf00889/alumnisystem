@@ -263,6 +263,18 @@ NORSU Alumni Network Team
 
 def verify_email(request):
     """Email verification view with comprehensive security logging"""
+    email = ''  # Initialize email variable
+    form = None  # Initialize form variable
+    
+    # Check if user was redirected from inactive login attempt
+    from_inactive_login = request.session.pop('inactive_account_email', None)
+    if from_inactive_login and not request.method == 'POST':
+        # User tried to login but account is not verified
+        messages.info(
+            request,
+            'Please verify your email address to activate your account and login.'
+        )
+    
     if request.method == 'POST':
         form = EmailVerificationForm(request.POST)
         if form.is_valid():
@@ -345,9 +357,15 @@ def verify_email(request):
                     details={'email': email, 'reason': message}
                 )
                 messages.error(request, message)
+        else:
+            # Form is invalid, try to get email from POST data for context
+            email = request.POST.get('email', '')
     else:
         # Get email from URL parameter if available
         email = request.GET.get('email', '')
+    
+    # If form wasn't created in POST (or was invalid), create it with email pre-filled
+    if form is None or not form.is_valid():
         initial_data = {'email': email} if email else {}
         form = EmailVerificationForm(initial=initial_data)
     

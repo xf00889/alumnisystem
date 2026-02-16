@@ -7,7 +7,7 @@
         <div class="container">
             <div class="row {% if not is_landing %}g-4{% endif %}">
                 <!-- Brand Section -->
-                <div class="col-lg-3 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                     <div class="footer-brand">
                         <div class="brand-logo">
                             <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="footer-logo">
@@ -19,66 +19,30 @@
                     </div>
                 </div>
 
-                <!-- Quick Links -->
-                {% if footer_quick_links %}
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h6 class="footer-title">Quick Links</h6>
-                        <ul class="footer-links">
-                            {% for link in footer_quick_links %}
-                            <li>
-                                <a href="{{ link.get_url }}" {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
-                                    <i class="{{ link.icon }}"></i>{{ link.title }}
-                                </a>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-
-                <!-- Information -->
-                {% if footer_information_links %}
-                <div class="col-lg-2 col-md-6 mb-4">
-                    <div class="footer-section">
-                        <h6 class="footer-title">Information</h6>
-                        <ul class="footer-links">
-                            {% for link in footer_information_links %}
-                            <li>
-                                <a href="{{ link.get_url }}" {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
-                                    <i class="{{ link.icon }}"></i>{{ link.title }}
-                                </a>
-                            </li>
-                            {% endfor %}
-                        </ul>
-                    </div>
-                </div>
-                {% endif %}
-
                 <!-- Contact Info -->
-                <div class="col-lg-3 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                     <div class="footer-section">
                         <h6 class="footer-title">Contact Info</h6>
                         <div class="contact-info">
                             {% get_site_config as site_config %}
                             <p class="contact-item">
-                                <i class="fas fa-envelope me-2"></i>
-                                <a href="mailto:{{ site_config.contact_email }}">{{ site_config.contact_email }}</a>
+                                <i class="fas fa-envelope"></i>
+                                <a href="mailto:{{ site_config.contact_email|default:'alumni@norsu.edu.ph' }}">{{ site_config.contact_email|default:'alumni@norsu.edu.ph' }}</a>
                             </p>
                             <p class="contact-item">
-                                <i class="fas fa-phone me-2"></i>
-                                <a href="tel:{{ site_config.contact_phone }}">{{ site_config.contact_phone }}</a>
+                                <i class="fas fa-phone"></i>
+                                <a href="tel:{{ site_config.contact_phone|default:'+63 35 422 6002' }}">{{ site_config.contact_phone|default:'+63 35 422 6002' }}</a>
                             </p>
                             <p class="contact-item">
-                                <i class="fas fa-map-marker-alt me-2"></i>
-                                {{ site_config.contact_address|linebreaksbr }}
+                                <i class="fas fa-map-marker-alt"></i>
+                                <span>{% if site_config.contact_address %}{{ site_config.contact_address|linebreaksbr }}{% else %}Negros Oriental State University<br>Kagawasan, Ave. Rizal<br>Dumaguete City, 6200<br>Negros Oriental, Philippines{% endif %}</span>
                             </p>
                         </div>
                     </div>
                 </div>
 
                 <!-- Follow Us -->
-                <div class="col-lg-2 col-md-6 mb-4">
+                <div class="col-lg-4 col-md-6 mb-4">
                     <div class="footer-section">
                         <h6 class="footer-title">Follow Us</h6>
                         <div class="{% if is_landing %}social-links{% else %}social-icons{% endif %}">
@@ -117,16 +81,12 @@
     
     <!-- Footer Bottom -->
     <div class="footer-bottom">
-        <p class="copyright">&copy; {% now "Y" %} NORSU Alumni Network. All rights reserved.{% if is_landing %} | Developed with ❤️ for NORSU Community{% endif %}</p>
-        {% if footer_legal_links %}
-        <div class="footer-bottom-links">
-            {% for link in footer_legal_links %}
-            <a href="{{ link.get_url }}" {% if link.open_in_new_tab %}target="_blank" rel="noopener noreferrer"{% endif %}>
-                {{ link.title }}
-            </a>
-            {% endfor %}
+        <div class="container">
+            <p class="copyright">
+                &copy; {% now "Y" %} NORSU Alumni Network. All rights reserved.
+                {% if is_landing %}<br>Developed with <i class="fas fa-heart" style="color: #e74c3c;"></i> for NORSU Community{% endif %}
+            </p>
         </div>
-        {% endif %}
     </div>
 </footer>
 
