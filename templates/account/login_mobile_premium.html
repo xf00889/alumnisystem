@@ -1,0 +1,641 @@
+{% load i18n %}
+{% load account %}
+{% load socialaccount %}
+{% load static %}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    <title>{% trans "Sign In" %} - NORSU Alumni Network</title>
+    
+    <!-- Google Fonts - Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+    
+    <style>
+        /* Modern Premium Design System */
+        :root {
+            /* Colors */
+            --primary: #2b3c6b;
+            --primary-dark: #1a2544;
+            --primary-light: #3d4f7f;
+            --surface: #ffffff;
+            --background: #f8f9fb;
+            --text-primary: #0f172a;
+            --text-secondary: #64748b;
+            --text-tertiary: #94a3b8;
+            --border: #e2e8f0;
+            --border-light: #f1f5f9;
+            --success: #10b981;
+            --error: #ef4444;
+            --focus: rgba(43, 60, 107, 0.12);
+            
+            /* Spacing (8px system) */
+            --space-1: 0.5rem;   /* 8px */
+            --space-2: 1rem;     /* 16px */
+            --space-3: 1.5rem;   /* 24px */
+            --space-4: 2rem;     /* 32px */
+            --space-5: 2.5rem;   /* 40px */
+            --space-6: 3rem;     /* 48px */
+            
+            /* Border Radius */
+            --radius-sm: 0.5rem;   /* 8px */
+            --radius-md: 1rem;     /* 16px */
+            --radius-lg: 1.25rem;  /* 20px */
+            --radius-xl: 1.5rem;   /* 24px */
+            --radius-full: 9999px;
+            
+            /* Shadows */
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+            --shadow-card: 0 0 0 1px rgba(0, 0, 0, 0.05), 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            
+            /* Typography */
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family);
+            background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-2);
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        .auth-container {
+            width: 100%;
+            max-width: 420px;
+            animation: fadeInUp 0.6s ease-out;
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* Header Section */
+        .auth-header {
+            text-align: center;
+            margin-bottom: var(--space-4);
+        }
+
+        .logo-container {
+            position: relative;
+            display: inline-block;
+            margin-bottom: var(--space-3);
+        }
+
+        .logo-glow {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 120px;
+            height: 120px;
+            background: radial-gradient(circle, rgba(43, 60, 107, 0.4) 0%, transparent 70%);
+            filter: blur(20px);
+            animation: pulse 3s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: translate(-50%, -50%) scale(1); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.1); }
+        }
+
+        .logo {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            border-radius: var(--radius-lg);
+            object-fit: contain;
+            background: var(--surface);
+            padding: var(--space-1);
+            box-shadow: var(--shadow-lg);
+        }
+
+        .auth-title {
+            color: var(--surface);
+            font-size: 1.125rem;
+            font-weight: 600;
+            margin-bottom: var(--space-1);
+            letter-spacing: -0.01em;
+        }
+
+        .auth-subtitle {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 0.875rem;
+            font-weight: 400;
+            line-height: 1.5;
+        }
+
+        /* Card */
+        .auth-card {
+            background: var(--surface);
+            border-radius: var(--radius-xl);
+            padding: var(--space-4);
+            box-shadow: var(--shadow-card);
+            backdrop-filter: blur(10px);
+        }
+
+        /* Tabs */
+        .auth-tabs {
+            display: flex;
+            gap: var(--space-1);
+            margin-bottom: var(--space-4);
+            background: var(--background);
+            padding: 0.25rem;
+            border-radius: var(--radius-md);
+        }
+
+        .auth-tab {
+            flex: 1;
+            padding: var(--space-1) var(--space-2);
+            border: none;
+            background: transparent;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .auth-tab.active {
+            background: var(--surface);
+            color: var(--text-primary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .auth-tab:hover:not(.active) {
+            color: var(--text-primary);
+        }
+
+        /* Form Container */
+        .form-container {
+            display: none;
+        }
+
+        .form-container.active {
+            display: block;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        /* Form Groups */
+        .form-group {
+            position: relative;
+            margin-bottom: var(--space-3);
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 0.875rem 1rem;
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 400;
+            color: var(--text-primary);
+            background: var(--surface);
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        .form-input::placeholder {
+            color: var(--text-tertiary);
+        }
+
+        .form-input:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 4px var(--focus);
+        }
+
+        .form-input:focus + .form-label,
+        .form-input:not(:placeholder-shown) + .form-label {
+            transform: translateY(-1.75rem) scale(0.85);
+            color: var(--primary);
+            background: var(--surface);
+            padding: 0 0.5rem;
+        }
+
+        .form-label {
+            position: absolute;
+            left: 1rem;
+            top: 0.875rem;
+            color: var(--text-secondary);
+            font-size: 0.9375rem;
+            font-weight: 400;
+            pointer-events: none;
+            transition: all 0.2s ease;
+            transform-origin: left center;
+        }
+
+        /* Password Field */
+        .password-field {
+            position: relative;
+        }
+
+        .password-toggle {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-tertiary);
+            cursor: pointer;
+            padding: 0.5rem;
+            transition: color 0.2s ease;
+        }
+
+        .password-toggle:hover {
+            color: var(--text-secondary);
+        }
+
+        /* Checkbox */
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: var(--space-1);
+            margin-bottom: var(--space-3);
+        }
+
+        .checkbox-input {
+            width: 1.125rem;
+            height: 1.125rem;
+            border: 1.5px solid var(--border);
+            border-radius: 0.25rem;
+            cursor: pointer;
+            accent-color: var(--primary);
+        }
+
+        .checkbox-label {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            cursor: pointer;
+            user-select: none;
+        }
+
+        /* Buttons */
+        .btn-primary {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: var(--surface);
+            border: none;
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            box-shadow: 0 4px 12px rgba(43, 60, 107, 0.2);
+            margin-bottom: var(--space-3);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(43, 60, 107, 0.3);
+        }
+
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-google {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--space-1);
+        }
+
+        .btn-google:hover {
+            background: var(--background);
+            border-color: var(--text-tertiary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin: var(--space-3) 0;
+        }
+
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border-light);
+        }
+
+        .divider-text {
+            color: var(--text-tertiary);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        /* Links */
+        .forgot-password {
+            display: block;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            text-decoration: none;
+            margin-top: var(--space-2);
+            transition: color 0.2s ease;
+        }
+
+        .forgot-password:hover {
+            color: var(--primary);
+        }
+
+        /* Responsive */
+        @media (max-width: 480px) {
+            body {
+                padding: var(--space-1);
+            }
+
+            .auth-card {
+                padding: var(--space-3);
+            }
+
+            .logo {
+                width: 64px;
+                height: 64px;
+            }
+
+            .auth-title {
+                font-size: 1rem;
+            }
+
+            .auth-subtitle {
+                font-size: 0.8125rem;
+            }
+
+            .form-input,
+            .btn-primary,
+            .btn-google {
+                font-size: 0.875rem;
+            }
+        }
+
+        /* Loading State */
+        .btn-primary:disabled,
+        .btn-google:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        /* Error Messages */
+        .error-message {
+            color: var(--error);
+            font-size: 0.8125rem;
+            margin-top: 0.5rem;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        .form-input.error {
+            border-color: var(--error);
+        }
+
+        .form-input.error:focus {
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
+        }
+    </style>
+</head>
+<body>
+    <div class="auth-container">
+        <!-- Header -->
+        <div class="auth-header">
+            <div class="logo-container">
+                <div class="logo-glow"></div>
+                <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="logo">
+            </div>
+            <h1 class="auth-title">NORSU Alumni Network</h1>
+            <p class="auth-subtitle">Connect with fellow alumni and stay updated</p>
+        </div>
+
+        <!-- Card -->
+        <div class="auth-card">
+            <!-- Tabs -->
+            <div class="auth-tabs">
+                <button class="auth-tab active" onclick="switchTab('login')" id="loginTab">
+                    Login
+                </button>
+                <button class="auth-tab" onclick="switchTab('signup')" id="signupTab">
+                    Sign Up
+                </button>
+            </div>
+
+            <!-- Login Form -->
+            <div class="form-container active" id="loginForm">
+                <form method="POST" action="{% url 'account_login' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <input type="email" class="form-input" name="login" placeholder=" " required id="loginEmail">
+                        <label class="form-label">Email Address</label>
+                    </div>
+
+                    <div class="form-group password-field">
+                        <input type="password" class="form-input" name="password" placeholder=" " required id="loginPassword">
+                        <label class="form-label">Password</label>
+                        <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <div class="checkbox-group">
+                        <input type="checkbox" class="checkbox-input" name="remember" id="rememberMe">
+                        <label class="checkbox-label" for="rememberMe">Remember me</label>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Sign In
+                    </button>
+
+                    <div class="divider">
+                        <div class="divider-line"></div>
+                        <span class="divider-text">or</span>
+                        <div class="divider-line"></div>
+                    </div>
+
+                    {% get_providers as socialaccount_providers %}
+                    {% if socialaccount_providers %}
+                        {% for provider in socialaccount_providers %}
+                            {% if provider.id == 'google' %}
+                                <a href="{% provider_login_url provider.id %}" class="btn-google">
+                                    <svg width="18" height="18" viewBox="0 0 18 18">
+                                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                                        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.593.102-1.17.282-1.709V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.335z"/>
+                                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                                    </svg>
+                                    Continue with Google
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+
+                    <a href="{% url 'account_reset_password' %}" class="forgot-password">
+                        Forgot your password?
+                    </a>
+                </form>
+            </div>
+
+            <!-- Signup Form -->
+            <div class="form-container" id="signupForm">
+                <form method="POST" action="{% url 'account_signup' %}">
+                    {% csrf_token %}
+                    
+                    <div class="form-group">
+                        <input type="email" class="form-input" name="email" placeholder=" " required id="signupEmail">
+                        <label class="form-label">Email Address</label>
+                    </div>
+
+                    <div class="form-group password-field">
+                        <input type="password" class="form-input" name="password1" placeholder=" " required id="signupPassword1">
+                        <label class="form-label">Password</label>
+                        <button type="button" class="password-toggle" onclick="togglePassword('signupPassword1', this)">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <div class="form-group password-field">
+                        <input type="password" class="form-input" name="password2" placeholder=" " required id="signupPassword2">
+                        <label class="form-label">Confirm Password</label>
+                        <button type="button" class="password-toggle" onclick="togglePassword('signupPassword2', this)">
+                            <i class="far fa-eye"></i>
+                        </button>
+                    </div>
+
+                    <button type="submit" class="btn-primary">
+                        Create Account
+                    </button>
+
+                    <div class="divider">
+                        <div class="divider-line"></div>
+                        <span class="divider-text">or</span>
+                        <div class="divider-line"></div>
+                    </div>
+
+                    {% if socialaccount_providers %}
+                        {% for provider in socialaccount_providers %}
+                            {% if provider.id == 'google' %}
+                                <a href="{% provider_login_url provider.id %}" class="btn-google">
+                                    <svg width="18" height="18" viewBox="0 0 18 18">
+                                        <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z"/>
+                                        <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332C2.438 15.983 5.482 18 9 18z"/>
+                                        <path fill="#FBBC05" d="M3.964 10.707c-.18-.54-.282-1.117-.282-1.707 0-.593.102-1.17.282-1.709V4.958H.957C.347 6.173 0 7.548 0 9c0 1.452.348 2.827.957 4.042l3.007-2.335z"/>
+                                        <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0 5.482 0 2.438 2.017.957 4.958L3.964 7.29C4.672 5.163 6.656 3.58 9 3.58z"/>
+                                    </svg>
+                                    Sign up with Google
+                                </a>
+                            {% endif %}
+                        {% endfor %}
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Tab Switching
+        function switchTab(tab) {
+            // Update tabs
+            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+            document.getElementById(tab + 'Tab').classList.add('active');
+            
+            // Update forms
+            document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
+            document.getElementById(tab + 'Form').classList.add('active');
+        }
+
+        // Password Toggle
+        function togglePassword(inputId, button) {
+            const input = document.getElementById(inputId);
+            const icon = button.querySelector('i');
+            
+            if (input.type === 'password') {
+                input.type = 'text';
+                icon.classList.remove('fa-eye');
+                icon.classList.add('fa-eye-slash');
+            } else {
+                input.type = 'password';
+                icon.classList.remove('fa-eye-slash');
+                icon.classList.add('fa-eye');
+            }
+        }
+
+        // Form Validation
+        document.querySelectorAll('form').forEach(form => {
+            form.addEventListener('submit', function(e) {
+                const inputs = form.querySelectorAll('.form-input');
+                let isValid = true;
+
+                inputs.forEach(input => {
+                    if (!input.value.trim()) {
+                        input.classList.add('error');
+                        isValid = false;
+                    } else {
+                        input.classList.remove('error');
+                    }
+                });
+
+                if (!isValid) {
+                    e.preventDefault();
+                }
+            });
+        });
+
+        // Remove error on input
+        document.querySelectorAll('.form-input').forEach(input => {
+            input.addEventListener('input', function() {
+                this.classList.remove('error');
+            });
+        });
+    </script>
+</body>
+</html>
