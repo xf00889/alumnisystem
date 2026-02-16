@@ -26,6 +26,22 @@ python manage.py migrate --noinput
 echo "📝 Populating CMS data..."
 python manage.py seed_cms_data
 
+# Populate footer links
+echo "🔗 Populating footer links..."
+python manage.py populate_footer_links
+
+# Populate SEO configuration
+echo "🔍 Populating SEO configuration..."
+python manage.py seed_seo_data
+
+# Populate announcement categories
+echo "📢 Populating announcement categories..."
+python manage.py populate_categories
+
+# Populate donation campaign types
+echo "💰 Populating donation campaign types..."
+python manage.py populate_campaign_types
+
 # Run system checks
 echo "🔍 Running system checks..."
 python manage.py check --deploy

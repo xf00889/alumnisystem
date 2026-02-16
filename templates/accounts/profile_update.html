@@ -1906,6 +1906,16 @@
         const progressBar = document.querySelector('.progress-bar');
         const uploadProgress = document.querySelector('.upload-progress');
 
+        // Fetch with timeout helper function
+        function fetchWithTimeout(url, options = {}, timeout = 30000) {
+            return Promise.race([
+                fetch(url, options),
+                new Promise((_, reject) =>
+                    setTimeout(() => reject(new Error('Request timeout. Please check your connection and try again.')), timeout)
+                )
+            ]);
+        }
+
         // Handle file inputs
         fileInputs.forEach(input => {
             input.addEventListener('change', function(e) {
@@ -2126,19 +2136,23 @@
                 // Create FormData
                 const formData = new FormData(form);
 
+                // Get CSRF token
+                const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
                 // Handle file uploads with progress
                 if (formData.has('file')) {
                     uploadProgress.classList.add('active');
                 }
 
-                // Submit form
-                const response = await fetch(form.action, {
+                // Submit form with timeout (30 seconds for mobile connections)
+                const response = await fetchWithTimeout(form.action, {
                     method: 'POST',
                     body: formData,
                     headers: {
-                        'X-Requested-With': 'XMLHttpRequest'
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'X-CSRFToken': csrftoken
                     }
-                });
+                }, 30000);
 
                 let data;
                 const contentType = response.headers.get('content-type');
@@ -2179,13 +2193,32 @@
 
             } catch (error) {
                 console.error('Error:', error);
+                
+                // Determine error message based on error type
+                let errorMessage = 'An error occurred while updating your profile. Please try again.';
+                let errorTitle = 'Update Failed!';
+                
+                if (error.message === 'Failed to fetch') {
+                    errorTitle = 'Connection Error';
+                    errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
+                } else if (error.message.includes('timeout')) {
+                    errorTitle = 'Request Timeout';
+                    errorMessage = 'The request took too long. This might be due to a slow connection or large file uploads. Please try again.';
+                } else if (error.message.includes('Server returned an invalid response')) {
+                    errorTitle = 'Server Error';
+                    errorMessage = 'The server encountered an error. Please try again later or contact support if the problem persists.';
+                } else if (error.message) {
+                    errorMessage = error.message;
+                }
+                
                 // Show error alert
                 Swal.fire({
                     icon: 'error',
-                    title: 'Update Failed!',
-                    text: error.message || 'An error occurred while updating your profile. Please try again.',
+                    title: errorTitle,
+                    text: errorMessage,
                     confirmButtonText: 'OK',
-                    confirmButtonColor: '#e53e3e'
+                    confirmButtonColor: '#e53e3e',
+                    footer: '<small>If this problem persists, try using a different network or contact support.</small>'
                 });
             } finally {
                 loadingOverlay.classList.remove('active');

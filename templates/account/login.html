@@ -17,6 +17,11 @@
     <!-- SweetAlert2 -->
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     
+    {% if recaptcha_enabled %}
+    <!-- Google reCAPTCHA -->
+    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
+    {% endif %}
+    
     <style>
         /* Modern Premium Design System */
         :root {
@@ -596,6 +601,25 @@
         .password-strength-text.strong {
             color: var(--success);
         }
+
+        /* reCAPTCHA Styling */
+        .g-recaptcha {
+            margin: 0 auto;
+            display: flex;
+            justify-content: center;
+            transform: scale(0.95);
+            transform-origin: center;
+        }
+
+        @media (max-width: 480px) {
+            .g-recaptcha {
+                transform: scale(0.85);
+            }
+        }
+
+        .form-group:has(.g-recaptcha) {
+            margin-bottom: var(--space-3);
+        }
     </style>
 </head>
 <body>
@@ -643,7 +667,14 @@
                         <label class="checkbox-label" for="rememberMe">Remember me</label>
                     </div>
 
-                    <button type="submit" class="btn-primary">
+                    {% if recaptcha_enabled %}
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="onLoginRecaptchaSuccess"></div>
+                        <input type="hidden" name="captcha" id="loginCaptchaToken">
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="btn-primary" id="loginSubmitBtn">
                         Sign In
                     </button>
 
@@ -746,6 +777,13 @@
                         </button>
                     </div>
 
+                    {% if recaptcha_enabled %}
+                    <div class="form-group">
+                        <div class="g-recaptcha" data-sitekey="{{ recaptcha_site_key }}" data-callback="onSignupRecaptchaSuccess"></div>
+                        <input type="hidden" name="captcha" id="signupCaptchaToken">
+                    </div>
+                    {% endif %}
+
                     <button type="submit" class="btn-primary" id="signupSubmitBtn">
                         Create Account
                     </button>
@@ -781,6 +819,32 @@
     </div>
 
     <script>
+        {% if recaptcha_enabled %}
+        // reCAPTCHA callback functions
+        function onLoginRecaptchaSuccess(token) {
+            document.getElementById('loginCaptchaToken').value = token;
+        }
+
+        function onSignupRecaptchaSuccess(token) {
+            document.getElementById('signupCaptchaToken').value = token;
+        }
+
+        function onRecaptchaExpired() {
+            document.getElementById('loginCaptchaToken').value = '';
+            document.getElementById('signupCaptchaToken').value = '';
+            grecaptcha.reset();
+        }
+
+        function onRecaptchaError() {
+            Swal.fire({
+                icon: 'error',
+                title: 'reCAPTCHA Error',
+                text: 'There was an error loading reCAPTCHA. Please refresh the page and try again.',
+                confirmButtonColor: '#2b3c6b'
+            });
+        }
+        {% endif %}
+
         // Tab Switching
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
@@ -961,6 +1025,21 @@
             const signupForm = document.getElementById('signupForm');
             if (signupForm) {
                 signupForm.addEventListener('submit', function(e) {
+                    {% if recaptcha_enabled %}
+                    // Check reCAPTCHA
+                    const captchaToken = document.getElementById('signupCaptchaToken').value;
+                    if (!captchaToken) {
+                        e.preventDefault();
+                        Swal.fire({
+                            icon: 'warning',
+                            title: 'Security Verification Required',
+                            text: 'Please complete the reCAPTCHA verification.',
+                            confirmButtonColor: '#2b3c6b'
+                        });
+                        return;
+                    }
+                    {% endif %}
+
                     const password1 = signupPassword1.value;
                     const password2 = signupPassword2.value;
                     
@@ -1040,6 +1119,23 @@
                 if (form.id === 'signupForm') return;
                 
                 form.addEventListener('submit', function(e) {
+                    {% if recaptcha_enabled %}
+                    // Check reCAPTCHA for login form
+                    if (form.closest('#loginForm')) {
+                        const captchaToken = document.getElementById('loginCaptchaToken').value;
+                        if (!captchaToken) {
+                            e.preventDefault();
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Security Verification Required',
+                                text: 'Please complete the reCAPTCHA verification.',
+                                confirmButtonColor: '#2b3c6b'
+                            });
+                            return;
+                        }
+                    }
+                    {% endif %}
+
                     const submitBtn = form.querySelector('button[type="submit"]');
                     if (submitBtn) {
                         submitBtn.disabled = true;

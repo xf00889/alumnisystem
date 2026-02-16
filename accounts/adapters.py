@@ -25,7 +25,8 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         Checks if user has completed post-registration, if not redirects to post-registration.
         Otherwise redirects to home.
         """
-        if request.user.is_authenticated and request.user.is_superuser:
+        # Superusers and staff should always go to admin dashboard, regardless of profile completion
+        if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
             return reverse('core:admin_dashboard')
         
         # Check if user has completed post-registration
@@ -176,6 +177,10 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         """
         try:
             if request.user.is_authenticated:
+                # Superusers and staff should always go to admin dashboard
+                if request.user.is_superuser or request.user.is_staff:
+                    return reverse('core:admin_dashboard')
+                
                 # Check if user has completed post-registration
                 try:
                     profile = request.user.profile
