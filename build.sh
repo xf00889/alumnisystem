@@ -42,6 +42,10 @@ python manage.py populate_categories
 echo "💰 Populating donation campaign types..."
 python manage.py populate_campaign_types
 
+# Clear reCAPTCHA cache to ensure fresh configuration
+echo "🧹 Clearing reCAPTCHA cache..."
+python manage.py clear_recaptcha_cache
+
 # Run system checks
 echo "🔍 Running system checks..."
 python manage.py check --deploy

@@ -9,16 +9,24 @@ def get_recaptcha_config():
     """
     Get the active reCAPTCHA configuration from database.
     Uses caching to avoid database queries on every request.
+    Returns None if no active configuration exists.
     """
     cache_key = 'recaptcha_active_config'
     config = cache.get(cache_key)
     
+    # If cache miss or cached value is explicitly False, query database
     if config is None:
-        config = ReCaptchaConfig.get_active_config()
-        # Cache for 5 minutes
-        cache.set(cache_key, config, 300)
+        try:
+            config = ReCaptchaConfig.get_active_config()
+        except Exception:
+            # If there's an error (e.g., table doesn't exist), return None
+            config = False  # Cache False to avoid repeated queries
+        
+        # Cache for 5 minutes (cache False as well to avoid repeated queries)
+        cache.set(cache_key, config if config else False, 300)
     
-    return config
+    # Return None if config is False (no active config)
+    return config if config else None
 
 
 def get_recaptcha_public_key():
