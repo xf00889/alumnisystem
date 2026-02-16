@@ -23,28 +23,6 @@
         --spacing-unit: 1rem;
     }
 
-    /* Enable smooth touch scrolling */
-    html {
-        scroll-behavior: smooth;
-        -webkit-overflow-scrolling: touch;
-        overflow-y: auto;
-        height: 100%;
-    }
-
-    body {
-        -webkit-overflow-scrolling: touch;
-        overflow-y: auto;
-        touch-action: pan-y;
-        height: auto;
-        min-height: 100%;
-    }
-
-    /* Ensure content can scroll */
-    .edit-content {
-        touch-action: pan-y;
-        -webkit-overflow-scrolling: touch;
-    }
-
     /* Profile Edit Header */
     .profile-edit {
         background: var(--primary-color);
@@ -1044,6 +1022,14 @@
         scroll-behavior: smooth;
     }
 
+    /* Prevent double-tap zoom on buttons using CSS only */
+    .btn,
+    .accordion-button,
+    .add-form,
+    button {
+        touch-action: manipulation;
+    }
+
     /* Focus states for accessibility */
     .accordion-button:focus,
     .form-control:focus,
@@ -1061,26 +1047,6 @@
         -webkit-user-select: none;
         -moz-user-select: none;
         -ms-user-select: none;
-    }
-
-    /* Ensure form elements allow scrolling */
-    .form-control,
-    .form-select,
-    textarea,
-    input {
-        touch-action: manipulation;
-    }
-
-    /* Allow scrolling on accordion bodies */
-    .accordion-body {
-        touch-action: pan-y;
-        -webkit-overflow-scrolling: touch;
-    }
-
-    /* Allow scrolling on cards */
-    .edit-card {
-        touch-action: pan-y;
-        -webkit-overflow-scrolling: touch;
     }
 
     /* Mobile animations */
@@ -1819,31 +1785,12 @@
                 });
             });
 
-            // Prevent zoom on double-tap for buttons only - use more specific approach
-            let lastTouchEnd = 0;
-            let lastTouchTarget = null;
-            
-            document.querySelectorAll('.btn, .accordion-button, .add-form, .formset-item .delete-row').forEach(element => {
-                element.addEventListener('touchend', function(event) {
-                    const now = Date.now();
-                    const target = event.target;
-                    
-                    // Only prevent default if it's a double-tap on the same element
-                    if (now - lastTouchEnd <= 300 && target === lastTouchTarget) {
-                        event.preventDefault();
-                    }
-                    
-                    lastTouchEnd = now;
-                    lastTouchTarget = target;
-                }, { passive: false });
-            });
-
             // Add haptic feedback for touch devices (if supported)
             if ('vibrate' in navigator) {
                 document.querySelectorAll('.btn, .accordion-button, .add-form').forEach(element => {
                     element.addEventListener('touchstart', function() {
                         navigator.vibrate(10); // Short vibration
-                    }, { passive: true });
+                    });
                 });
             }
 
