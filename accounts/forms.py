@@ -31,12 +31,13 @@ class CustomLoginForm(LoginForm):
             self.fields['captcha'] = DatabaseReCaptchaField(
                 widget=DatabaseReCaptchaV3(
                     attrs={
-                        'data-callback': 'onRecaptchaSuccess',
+                        'data-callback': 'onLoginRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
                         'data-error-callback': 'onRecaptchaError',
                     }
                 ),
-                label='Security Verification'
+                label='Security Verification',
+                required=False  # Make it optional to allow fallback
             )
 
 class CustomSignupForm(SignupForm):
@@ -78,12 +79,13 @@ class CustomSignupForm(SignupForm):
             self.fields['captcha'] = DatabaseReCaptchaField(
                 widget=DatabaseReCaptchaV3(
                     attrs={
-                        'data-callback': 'onRecaptchaSuccess',
+                        'data-callback': 'onSignupRecaptchaSuccess',
                         'data-expired-callback': 'onRecaptchaExpired',
                         'data-error-callback': 'onRecaptchaError',
                     }
                 ),
-                label='Security Verification'
+                label='Security Verification',
+                required=False  # Make it optional to allow fallback
             )
         self.fields['password2'].required = True
 

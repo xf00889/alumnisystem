@@ -1026,17 +1026,20 @@
             if (signupForm) {
                 signupForm.addEventListener('submit', function(e) {
                     {% if recaptcha_enabled %}
-                    // Check reCAPTCHA
-                    const captchaToken = document.getElementById('signupCaptchaToken').value;
-                    if (!captchaToken) {
-                        e.preventDefault();
-                        Swal.fire({
-                            icon: 'warning',
-                            title: 'Security Verification Required',
-                            text: 'Please complete the reCAPTCHA verification.',
-                            confirmButtonColor: '#2b3c6b'
-                        });
-                        return;
+                    // Check reCAPTCHA only if it's enabled and the widget exists
+                    const captchaWidget = document.querySelector('.g-recaptcha');
+                    if (captchaWidget) {
+                        const captchaToken = document.getElementById('signupCaptchaToken').value;
+                        if (!captchaToken) {
+                            e.preventDefault();
+                            Swal.fire({
+                                icon: 'warning',
+                                title: 'Security Verification Required',
+                                text: 'Please complete the reCAPTCHA verification.',
+                                confirmButtonColor: '#2b3c6b'
+                            });
+                            return;
+                        }
                     }
                     {% endif %}
 
@@ -1120,18 +1123,21 @@
                 
                 form.addEventListener('submit', function(e) {
                     {% if recaptcha_enabled %}
-                    // Check reCAPTCHA for login form
+                    // Check reCAPTCHA for login form only if it's enabled and the widget exists
                     if (form.closest('#loginForm')) {
-                        const captchaToken = document.getElementById('loginCaptchaToken').value;
-                        if (!captchaToken) {
-                            e.preventDefault();
-                            Swal.fire({
-                                icon: 'warning',
-                                title: 'Security Verification Required',
-                                text: 'Please complete the reCAPTCHA verification.',
-                                confirmButtonColor: '#2b3c6b'
-                            });
-                            return;
+                        const captchaWidget = document.querySelector('#loginForm .g-recaptcha');
+                        if (captchaWidget) {
+                            const captchaToken = document.getElementById('loginCaptchaToken').value;
+                            if (!captchaToken) {
+                                e.preventDefault();
+                                Swal.fire({
+                                    icon: 'warning',
+                                    title: 'Security Verification Required',
+                                    text: 'Please complete the reCAPTCHA verification.',
+                                    confirmButtonColor: '#2b3c6b'
+                                });
+                                return;
+                            }
                         }
                     }
                     {% endif %}
