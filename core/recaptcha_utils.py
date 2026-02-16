@@ -70,17 +70,14 @@ def get_recaptcha_version():
 def is_recaptcha_enabled():
     """
     Check if reCAPTCHA is enabled (has active configuration with valid keys and enabled=True).
-    Falls back to Django settings if no database configuration found.
+    Only checks database configuration - does NOT fall back to Django settings.
     """
     config = get_recaptcha_config()
     if config and config.enabled and config.site_key and config.secret_key:
         return True
     
-    # Fallback to Django settings
-    from django.conf import settings
-    public_key = getattr(settings, 'RECAPTCHA_PUBLIC_KEY', '')
-    private_key = getattr(settings, 'RECAPTCHA_PRIVATE_KEY', '')
-    return bool(public_key and private_key)
+    # Do not fall back to Django settings - require explicit database configuration
+    return False
 
 
 def clear_recaptcha_cache():
