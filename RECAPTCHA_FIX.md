@@ -8,6 +8,28 @@ The `is_recaptcha_enabled()` function was previously falling back to Django sett
 
 ## Immediate Fix Options (Choose One)
 
+### Option 0: Emergency Environment Variable (FASTEST - Immediate Fix)
+Add this environment variable to completely bypass reCAPTCHA:
+
+**For Render:**
+1. Go to your web service dashboard
+2. Click "Environment" tab
+3. Add new environment variable:
+   - Key: `DISABLE_RECAPTCHA`
+   - Value: `True`
+4. Click "Save Changes"
+5. Application will auto-restart
+
+**For other hosting platforms:**
+Add to your `.env` file or environment variables:
+```
+DISABLE_RECAPTCHA=True
+```
+
+Then restart your application.
+
+**Important:** This is an emergency override. Remove it after the cache issue is resolved.
+
 ### Option 1: Clear Cache via Management Command (RECOMMENDED)
 ```bash
 python manage.py clear_recaptcha_cache
@@ -83,6 +105,12 @@ If you see `True`, the cache hasn't been cleared yet. Try Option 1 or 2 again.
 - **Created**: `core/management/commands/clear_recaptcha_cache.py`
 - **Purpose**: Clears all reCAPTCHA-related cache keys
 - **Usage**: `python manage.py clear_recaptcha_cache`
+
+### 6. Emergency Override Environment Variable
+- **Added**: `DISABLE_RECAPTCHA` setting in `norsu_alumni/settings.py`
+- **Purpose**: Completely bypass reCAPTCHA checks (emergency use only)
+- **Usage**: Set `DISABLE_RECAPTCHA=True` in environment variables
+- **When to use**: When cache clearing doesn't work or immediate fix is needed
 
 ## Cache Behavior
 

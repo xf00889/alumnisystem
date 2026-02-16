@@ -2,6 +2,7 @@
 reCAPTCHA Utility Functions
 """
 from django.core.cache import cache
+from django.conf import settings
 from .models.recaptcha_config import ReCaptchaConfig
 
 
@@ -10,7 +11,13 @@ def get_recaptcha_config():
     Get the active reCAPTCHA configuration from database.
     Uses caching to avoid database queries on every request.
     Returns None if no active configuration exists.
+    
+    Can be disabled via environment variable: DISABLE_RECAPTCHA=True
     """
+    # Check if reCAPTCHA is disabled via environment variable (emergency override)
+    if getattr(settings, 'DISABLE_RECAPTCHA', False):
+        return None
+    
     cache_key = 'recaptcha_active_config'
     config = cache.get(cache_key)
     
@@ -79,7 +86,14 @@ def is_recaptcha_enabled():
     """
     Check if reCAPTCHA is enabled (has active configuration with valid keys and enabled=True).
     Only checks database configuration - does NOT fall back to Django settings.
+    
+    Can be disabled via environment variable: DISABLE_RECAPTCHA=True
     """
+    # Check if reCAPTCHA is disabled via environment variable (emergency override)
+    from django.conf import settings
+    if getattr(settings, 'DISABLE_RECAPTCHA', False):
+        return False
+    
     config = get_recaptcha_config()
     if config and config.enabled and config.site_key and config.secret_key:
         return True

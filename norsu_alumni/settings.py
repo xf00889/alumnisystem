@@ -710,6 +710,10 @@ DEFAULT_HTTP_PROTOCOL = 'http'
 RECAPTCHA_PUBLIC_KEY = '6Le7kesrAAAAAAyjoHeSENUJf9MpmKUdrT7JjbOg'  # Default test key
 RECAPTCHA_PRIVATE_KEY = '6Le7kesrAAAAAKldE5dZ2n4_Hwe1n7wmnginjNmD'  # Default test key
 
+# Emergency override to completely disable reCAPTCHA (useful for troubleshooting)
+# Set to True in environment variables to bypass all reCAPTCHA checks
+DISABLE_RECAPTCHA = config('DISABLE_RECAPTCHA', default=False, cast=bool)
+
 # Silence the test key error since we use database configuration
 SILENCED_SYSTEM_CHECKS = ['django_recaptcha.recaptcha_test_key_error']
 
