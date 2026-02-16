@@ -153,8 +153,8 @@ class Command(BaseCommand):
         try:
             with transaction.atomic():
                 # Seed PageSEO entries
-                self.stdout.write(self.style.HTTP_INFO('📄 Seeding Page SEO entries...'))
-                self.stdout.write('─' * 60)
+                self.stdout.write(self.style.HTTP_INFO('[*] Seeding Page SEO entries...'))
+                self.stdout.write('-' * 60)
                 
                 for seo_data in PAGE_SEO_DATA:
                     page_path = seo_data['page_path']
@@ -166,18 +166,18 @@ class Command(BaseCommand):
                     if created:
                         created_count += 1
                         self.stdout.write(
-                            self.style.SUCCESS(f'  ✓ Created: {page_path}')
+                            self.style.SUCCESS(f'  [+] Created: {page_path}')
                         )
                     else:
                         updated_count += 1
                         self.stdout.write(
-                            self.style.WARNING(f'  ↻ Updated: {page_path}')
+                            self.style.WARNING(f'  [~] Updated: {page_path}')
                         )
                 
                 # Seed OrganizationSchema
                 self.stdout.write('')
-                self.stdout.write(self.style.HTTP_INFO('🏢 Seeding Organization Schema...'))
-                self.stdout.write('─' * 60)
+                self.stdout.write(self.style.HTTP_INFO('[*] Seeding Organization Schema...'))
+                self.stdout.write('-' * 60)
                 
                 org_schema, created = OrganizationSchema.objects.update_or_create(
                     name=ORGANIZATION_SCHEMA_DATA['name'],
@@ -187,32 +187,32 @@ class Command(BaseCommand):
                 if created:
                     created_count += 1
                     self.stdout.write(
-                        self.style.SUCCESS(f'  ✓ Created: {org_schema.name}')
+                        self.style.SUCCESS(f'  [+] Created: {org_schema.name}')
                     )
                 else:
                     updated_count += 1
                     self.stdout.write(
-                        self.style.WARNING(f'  ↻ Updated: {org_schema.name}')
+                        self.style.WARNING(f'  [~] Updated: {org_schema.name}')
                     )
                 
                 # Summary
                 self.stdout.write('')
-                self.stdout.write('═' * 60)
-                self.stdout.write(self.style.HTTP_INFO('📊 SEEDING SUMMARY'))
-                self.stdout.write('═' * 60)
+                self.stdout.write('=' * 60)
+                self.stdout.write(self.style.HTTP_INFO('[*] SEEDING SUMMARY'))
+                self.stdout.write('=' * 60)
                 self.stdout.write(
-                    self.style.SUCCESS(f'  ✓ Created:  {created_count} record(s)')
+                    self.style.SUCCESS(f'  [+] Created:  {created_count} record(s)')
                 )
                 self.stdout.write(
-                    self.style.WARNING(f'  ↻ Updated:  {updated_count} record(s)')
+                    self.style.WARNING(f'  [~] Updated:  {updated_count} record(s)')
                 )
                 self.stdout.write(
-                    f'  📦 Total:    {created_count + updated_count} record(s)'
+                    f'  [*] Total:    {created_count + updated_count} record(s)'
                 )
-                self.stdout.write('═' * 60)
+                self.stdout.write('=' * 60)
                 self.stdout.write('')
                 self.stdout.write(
-                    self.style.SUCCESS('✅ SEO data seeding completed successfully!')
+                    self.style.SUCCESS('[OK] SEO data seeding completed successfully!')
                 )
                 
         except Exception as e:

@@ -49,9 +49,13 @@ def recaptcha_context(request):
     """
     Add reCAPTCHA configuration to template context
     """
+    public_key = get_recaptcha_public_key()
+    enabled = is_recaptcha_enabled()
+    
     return {
-        'recaptcha_public_key': get_recaptcha_public_key(),
-        'recaptcha_enabled': is_recaptcha_enabled(),
+        'recaptcha_public_key': public_key,
+        'recaptcha_site_key': public_key,  # Alias for template compatibility
+        'recaptcha_enabled': enabled,
     }
 
 

@@ -470,8 +470,8 @@ Sunday: Closed''',
 
         try:
             # Seed singleton models first
-            self.stdout.write(self.style.HTTP_INFO('\n📋 Seeding Singleton Models...'))
-            self.stdout.write('─' * 60)
+            self.stdout.write(self.style.HTTP_INFO('\n[*] Seeding Singleton Models...'))
+            self.stdout.write('-' * 60)
             
             # 1. Seed SiteConfig
             try:
@@ -502,8 +502,8 @@ Sunday: Closed''',
                 overall_results['errors'].append(f'AboutPageConfig: {str(e)}')
             
             # Seed multiple record models
-            self.stdout.write(self.style.HTTP_INFO('\n📦 Seeding Multiple Record Models...'))
-            self.stdout.write('─' * 60)
+            self.stdout.write(self.style.HTTP_INFO('\n[*] Seeding Multiple Record Models...'))
+            self.stdout.write('-' * 60)
             
             # 3. Seed Features
             try:
@@ -627,7 +627,7 @@ Sunday: Closed''',
         except Exception as e:
             self.stdout.write(
                 self.style.ERROR(
-                    f'\n✗ Critical error during seeding: {str(e)}'
+                    f'\n[X] Critical error during seeding: {str(e)}'
                 )
             )
             raise
@@ -644,68 +644,68 @@ Sunday: Closed''',
             execution_time: Total time taken for seeding operation (in seconds)
         """
         self.stdout.write('\n')
-        self.stdout.write('═' * 60)
-        self.stdout.write(self.style.HTTP_INFO('📊 SEEDING SUMMARY REPORT'))
-        self.stdout.write('═' * 60)
+        self.stdout.write('=' * 60)
+        self.stdout.write(self.style.HTTP_INFO('[*] SEEDING SUMMARY REPORT'))
+        self.stdout.write('=' * 60)
         
         # Display mode
         self.stdout.write(f'\nMode: {self.style.WARNING("UPDATE MODE (Overwrite existing)")}')
         
         # Display statistics
-        self.stdout.write('\n📈 Statistics:')
-        self.stdout.write('─' * 60)
+        self.stdout.write('\n[*] Statistics:')
+        self.stdout.write('-' * 60)
         
         if results['total_created'] > 0:
             self.stdout.write(
                 self.style.SUCCESS(
-                    f'  ✓ Created:  {results["total_created"]} record(s)'
+                    f'  [+] Created:  {results["total_created"]} record(s)'
                 )
             )
         
         if results['total_updated'] > 0:
             self.stdout.write(
                 self.style.WARNING(
-                    f'  ✓ Updated:  {results["total_updated"]} record(s)'
+                    f'  [~] Updated:  {results["total_updated"]} record(s)'
                 )
             )
         
         if results['total_skipped'] > 0:
             self.stdout.write(
                 self.style.WARNING(
-                    f'  ⊘ Skipped:  {results["total_skipped"]} record(s)'
+                    f'  [-] Skipped:  {results["total_skipped"]} record(s)'
                 )
             )
         
         # Display errors if any
         if results['errors']:
-            self.stdout.write('\n⚠️  Errors:')
-            self.stdout.write('─' * 60)
+            self.stdout.write('\n[!] Errors:')
+            self.stdout.write('-' * 60)
             for error in results['errors']:
-                self.stdout.write(self.style.ERROR(f'  ✗ {error}'))
+                self.stdout.write(self.style.ERROR(f'  [X] {error}'))
         
         # Display execution time
-        self.stdout.write('\n⏱️  Performance:')
-        self.stdout.write('─' * 60)
+        self.stdout.write('\n[*] Performance:')
+        self.stdout.write('-' * 60)
         self.stdout.write(f'  Execution time: {execution_time:.2f} seconds')
         
         # Display final status
         self.stdout.write('\n')
-        self.stdout.write('═' * 60)
+        self.stdout.write('=' * 60)
         
         if results['errors']:
             self.stdout.write(
                 self.style.WARNING(
-                    '⚠️  Seeding completed with errors. Please review the error messages above.'
+                    '[!] Seeding completed with errors. Please review the error messages above.'
                 )
             )
         else:
             self.stdout.write(
                 self.style.SUCCESS(
-                    '✅ CMS data seeding completed successfully!'
+                    '[OK] CMS data seeding completed successfully!'
                 )
             )
         
-        self.stdout.write('═' * 60)
+        self.stdout.write('=' * 60)
         self.stdout.write('')
 
     # ============================================================
@@ -750,7 +750,7 @@ Sunday: Closed''',
                 )
                 self.stdout.write(
                     self.style.WARNING(
-                        f'  ✓ Updated {model_name}'
+                        f'  [~] Updated {model_name}'
                     )
                 )
                 return instance, False
@@ -759,13 +759,13 @@ Sunday: Closed''',
                 instance = model_class.objects.create(**data)
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'  ✓ Created {model_name}'
+                        f'  [+] Created {model_name}'
                     )
                 )
                 return instance, True
                 
         except Exception as e:
-            error_msg = f'  ✗ Error seeding {model_name}: {str(e)}'
+            error_msg = f'  [X] Error seeding {model_name}: {str(e)}'
             self.stdout.write(self.style.ERROR(error_msg))
             raise
 
@@ -817,26 +817,26 @@ Sunday: Closed''',
             if stats['created'] > 0:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        f'  ✓ Created {stats["created"]} {model_name} record(s)'
+                        f'  [+] Created {stats["created"]} {model_name} record(s)'
                     )
                 )
             if stats['updated'] > 0:
                 self.stdout.write(
                     self.style.WARNING(
-                        f'  ✓ Updated {stats["updated"]} {model_name} record(s)'
+                        f'  [~] Updated {stats["updated"]} {model_name} record(s)'
                     )
                 )
             if stats['skipped'] > 0:
                 self.stdout.write(
                     self.style.WARNING(
-                        f'  ⊘ Skipped {stats["skipped"]} {model_name} record(s) (already exist)'
+                        f'  [-] Skipped {stats["skipped"]} {model_name} record(s) (already exist)'
                     )
                 )
             
             return stats
             
         except Exception as e:
-            error_msg = f'  ✗ Error seeding {model_name}: {str(e)}'
+            error_msg = f'  [X] Error seeding {model_name}: {str(e)}'
             self.stdout.write(self.style.ERROR(error_msg))
             raise
 
@@ -866,7 +866,7 @@ Sunday: Closed''',
             # Log detailed error information
             self.stdout.write(
                 self.style.ERROR(
-                    f'\n✗ Transaction failed and rolled back: {str(e)}'
+                    f'\n[X] Transaction failed and rolled back: {str(e)}'
                 )
             )
             # Re-raise to allow caller to handle

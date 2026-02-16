@@ -5,6 +5,12 @@
 - ❌ Hosting still shows "Security Verification Required" error
 - 🔍 Root cause: Cached configuration on hosting server
 
+## ⚠️ Important: New Migration
+There's a new migration file that needs to be deployed:
+- `core/migrations/0017_alter_ssoconfig_provider.py`
+
+This will be automatically applied during deployment via the build script.
+
 ## 🎯 DO THIS NOW (Takes 2 minutes)
 
 ### Step 1: Add Environment Variable in Render
