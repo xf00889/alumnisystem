@@ -459,6 +459,35 @@
             color: var(--primary);
         }
 
+        .back-home {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            color: var(--text-secondary);
+            font-size: 0.875rem;
+            font-weight: 500;
+            text-decoration: none;
+            margin-top: var(--space-3);
+            padding-top: var(--space-3);
+            border-top: 1px solid var(--border-light);
+            transition: all 0.2s ease;
+        }
+
+        .back-home:hover {
+            color: var(--primary);
+            gap: 0.625rem;
+        }
+
+        .back-home i {
+            font-size: 0.75rem;
+            transition: transform 0.2s ease;
+        }
+
+        .back-home:hover i {
+            transform: translateX(-2px);
+        }
+
         /* Responsive */
         @media (max-width: 480px) {
             body {
@@ -870,6 +899,12 @@
                             </span>
                             <span>One number</span>
                         </div>
+                        <div class="requirement-item" id="req-special">
+                            <span class="requirement-icon">
+                                <i class="fas fa-check"></i>
+                            </span>
+                            <span>One special character (!@#$%^&*)</span>
+                        </div>
                     </div>
 
                     <div class="form-group password-field">
@@ -910,6 +945,12 @@
                     {% endif %}
                 </form>
             </div>
+
+            <!-- Back to Home Link -->
+            <a href="{% url 'core:home' %}" class="back-home">
+                <i class="fas fa-arrow-left"></i>
+                <span>Back to Home</span>
+            </a>
         </div>
     </div>
 
@@ -924,6 +965,15 @@
             document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
             document.getElementById(tab + 'Form').classList.add('active');
         }
+
+        // Check URL parameter for tab on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const tab = urlParams.get('tab');
+            if (tab === 'signup') {
+                switchTab('signup');
+            }
+        });
 
         // Password Toggle
         function togglePassword(inputId, button) {
@@ -950,7 +1000,8 @@
                 length: password.length >= 8,
                 uppercase: /[A-Z]/.test(password),
                 lowercase: /[a-z]/.test(password),
-                number: /[0-9]/.test(password)
+                number: /[0-9]/.test(password),
+                special: /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)
             };
 
             // Update UI

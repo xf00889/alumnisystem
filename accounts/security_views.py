@@ -104,6 +104,66 @@ def custom_login_view(request):
     return response
 
 
+
+@ratelimit(key='ip', rate='10/m', method='POST', block=True)
+def custom_signup_view(request):
+    """
+    Custom signup view that handles both GET and POST requests.
+    GET: Redirects to login page with signup tab active
+    POST: Processes signup using allauth's SignupForm and redirects appropriately
+    """
+    from allauth.account.forms import SignupForm
+    from allauth.account.utils import perform_login
+    from allauth.account import app_settings
+    
+    if request.method == 'POST':
+        # Check if request was rate limited
+        if getattr(request, 'limited', False):
+            logger.warning(f"Rate limit exceeded for signup from IP: {request.META.get('REMOTE_ADDR')}")
+            messages.error(request, "Too many signup attempts. Please wait a moment and try again.")
+            return redirect('account_login')
+        
+        form = SignupForm(request.POST)
+        
+        if form.is_valid():
+            try:
+                # Save the user using allauth's form
+                user = form.save(request)
+                
+                # Log account creation
+                SecurityAuditLogger.log_account_creation(user.email, request.META.get('REMOTE_ADDR'))
+                
+                # Don't auto-login, redirect to email verification instead
+                messages.success(request, 'Account created successfully! Please check your email for verification.')
+                
+                # Redirect to email verification page (not post-registration)
+                return redirect('accounts:verify_email')
+                
+            except Exception as e:
+                logger.error(f"Signup error: {str(e)}", exc_info=True)
+                messages.error(request, f'An error occurred during signup. Please try again.')
+                return redirect('account_login')
+        else:
+            # Form has validation errors - show them and redirect back to login with signup tab
+            for field, errors in form.errors.items():
+                for error in errors:
+                    if field == '__all__':
+                        messages.error(request, error)
+                    else:
+                        field_label = form.fields[field].label if field in form.fields else field
+                        messages.error(request, f"{field_label}: {error}")
+            
+            # Redirect back to login page with signup tab active
+            from django.http import HttpResponseRedirect
+            from django.urls import reverse
+            return HttpResponseRedirect(reverse('account_login') + '?tab=signup')
+    else:
+        # GET request - redirect to login page with signup tab active
+        from django.http import HttpResponseRedirect
+        from django.urls import reverse
+        return HttpResponseRedirect(reverse('account_login') + '?tab=signup')
+
+
 @ratelimit(key='ip', rate='5/m', method='POST', block=True)
 def enhanced_signup(request):
     """Enhanced signup view with email verification and rate limiting - handles POST from tabbed login page"""

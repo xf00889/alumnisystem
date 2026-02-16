@@ -36,6 +36,8 @@ urlpatterns = [
     path('profile/api/search-connected-users/', profile_search_connected_users, name='profile_search_connected_users'),
     # Custom login view with rate limiting (must be before allauth.urls to override)
     path('accounts/login/', security_views.custom_login_view, name='account_login'),
+    # Custom signup view to redirect to login page with signup tab (must be before allauth.urls to override)
+    path('accounts/signup/', security_views.custom_signup_view, name='account_signup'),
     # Custom Google OAuth views to fix callback URL issue (must be before allauth.urls)
     path('accounts/google/login/', google_views.oauth2_login, name='google_login'),
     path('accounts/google/login/callback/', google_views.oauth2_callback, name='google_callback'),

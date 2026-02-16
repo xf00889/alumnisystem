@@ -105,14 +105,17 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         
         Note: In some allauth versions, 'message' might be passed as a keyword argument.
         """
-        # Suppress logout success messages
-        if message_tag == 'account_logout':
+        # Suppress ALL logout-related messages
+        if message_tag in ['account_logout', 'logged_out', 'signed_out']:
             return
         
-        # Check if message is a string before checking for 'signed out'
+        # Check if message is a string before checking for logout-related text
         # (message can be a dict for i18n in some allauth versions)
-        if message and isinstance(message, str) and 'signed out' in message.lower():
-            return
+        if message and isinstance(message, str):
+            message_lower = message.lower()
+            # Suppress any message containing logout/signout related text
+            if any(keyword in message_lower for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout']):
+                return
         
         # Call parent method for all other messages
         if message is not None:

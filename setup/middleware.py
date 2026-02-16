@@ -25,6 +25,11 @@ class SetupRequiredMiddleware:
             '/static/',
             '/media/',
             '/favicon.ico',
+            '/accounts/login/',
+            '/accounts/signup/',
+            '/accounts/password/',
+            '/accounts/verify-email/',
+            '/accounts/resend-verification-code/',
         ]
         
         # API endpoints that should be excluded
