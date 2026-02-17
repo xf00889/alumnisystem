@@ -857,7 +857,8 @@ $(document).ready(function() {
     
     // Form submission
     $('#survey-form').on('submit', function(e) {
-        e.preventDefault();
+        // Don't prevent default - let Django handle the form submission normally
+        // The AJAX approach was causing issues with redirect_url being undefined
         
         const formData = new FormData(this);
         const questions = [];
@@ -897,20 +898,8 @@ $(document).ready(function() {
         
         formData.append('questions', JSON.stringify(questions));
         
-        // Submit form
-        $.ajax({
-            url: $(this).attr('action'),
-            method: 'POST',
-            data: formData,
-            processData: false,
-            contentType: false,
-            success: function(response) {
-                window.location.href = response.redirect_url;
-            },
-            error: function(xhr) {
-                alert('Error saving survey. Please check all required fields.');
-            }
-        });
+        // Let the form submit normally - Django will handle the redirect
+        // Remove the AJAX submission that was causing the undefined redirect_url issue
     });
 });
 </script>
