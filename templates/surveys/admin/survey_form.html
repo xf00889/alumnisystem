@@ -637,11 +637,7 @@
                         </div>
                         
                         {% if form.instance.id %}
-                        <div class="d-grid gap-2">
-                            <a href="{% url 'surveys:question_create' form.instance.id %}" class="btn btn-outline-primary">
-                                <i class="fas fa-plus me-1"></i>Add Questions
-                            </a>
-                        </div>
+                        <!-- Removed Add Questions button - questions are added inline in the form -->
                         {% endif %}
                     </div>
                 </div>
@@ -736,9 +732,89 @@
 {% endblock %}
 
 {% block page_specific_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.14.0/Sortable.min.js"></script>
 <script>
+// Show Django messages as SweetAlert2
+{% if messages %}
+    {% for message in messages %}
+        Swal.fire({
+            title: '{% if message.tags == "success" %}Success!{% elif message.tags == "error" %}Error!{% elif message.tags == "warning" %}Warning!{% else %}Info{% endif %}',
+            text: '{{ message|escapejs }}',
+            icon: '{% if message.tags == "success" %}success{% elif message.tags == "error" %}error{% elif message.tags == "warning" %}warning{% else %}info{% endif %}',
+            timer: 3000,
+            showConfirmButton: true
+        });
+    {% endfor %}
+{% endif %}
+// Function to load an existing question into the form
+function loadExistingQuestion(questionData) {
+    const template = document.getElementById('question-template');
+    const clone = document.importNode(template.content, true);
+    const id = questionData.id || Date.now();
+    
+    // Replace template ID
+    const cardHtml = clone.querySelector('.question-card').innerHTML.replace(/{id}/g, id);
+    clone.querySelector('.question-card').innerHTML = cardHtml;
+    clone.querySelector('.question-card').setAttribute('data-question-id', id);
+    
+    // Add to container
+    document.getElementById('questions-container').appendChild(clone);
+    
+    // Get the newly added card
+    const $card = $(`[data-question-id="${id}"]`);
+    
+    // Populate question data
+    $card.find('.question-text').val(questionData.question_text);
+    $card.find('.question-type').val(questionData.question_type);
+    $card.find('.question-required').prop('checked', questionData.is_required);
+    $card.find('.question-help').val(questionData.help_text);
+    
+    // Trigger question type change to show appropriate options
+    $card.find('.question-type').trigger('change');
+    
+    // Set scale type if applicable
+    if (questionData.scale_type) {
+        $card.find('.scale-type').val(questionData.scale_type);
+    }
+    
+    // Load options if applicable
+    if (questionData.options && questionData.options.length > 0) {
+        const $optionsList = $card.find('.option-list');
+        $optionsList.empty(); // Clear default option
+        
+        questionData.options.forEach(function(option, index) {
+            const $newOption = $(`
+                <li class="option-item">
+                    <i class="fas fa-grip-vertical option-drag"></i>
+                    <input type="text" class="form-control" placeholder="Option ${index + 1}" value="${option.option_text}">
+                    <button type="button" class="btn btn-link text-danger delete-option">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </li>
+            `);
+            $optionsList.append($newOption);
+        });
+        
+        // Initialize sortable for options
+        new Sortable($optionsList[0], {
+            animation: 150,
+            handle: '.option-drag'
+        });
+    }
+    
+    // Update question numbers
+    updateQuestionNumbers();
+}
+
+// Function to update question numbers
+function updateQuestionNumbers() {
+    $('.question-number').each(function(index) {
+        $(this).text(`Q${index + 1}.`);
+    });
+}
+
 $(document).ready(function() {
     // Initialize datetime pickers
     flatpickr("#id_start_date", {
@@ -754,6 +830,16 @@ $(document).ready(function() {
         minDate: "today",
         time_24hr: true
     });
+    
+    // Load existing questions if editing
+    {% if existing_questions %}
+    const existingQuestions = {{ existing_questions|safe }};
+    if (existingQuestions && existingQuestions.length > 0) {
+        existingQuestions.forEach(function(questionData) {
+            loadExistingQuestion(questionData);
+        });
+    }
+    {% endif %}
     
     // Survey type toggle
     $('input[name="survey_type"]').change(function() {
@@ -848,33 +934,30 @@ $(document).ready(function() {
         $(this).closest('.option-item').remove();
     });
     
-    // Update question numbers
-    function updateQuestionNumbers() {
-        $('.question-number').each(function(index) {
-            $(this).text(`Q${index + 1}.`);
-        });
-    }
-    
     // Form submission
     $('#survey-form').on('submit', function(e) {
-        // Don't prevent default - let Django handle the form submission normally
-        // The AJAX approach was causing issues with redirect_url being undefined
+        e.preventDefault(); // Prevent default form submission
         
-        const formData = new FormData(this);
+        const form = this;
         const questions = [];
-        
-        // Add survey type
-        formData.append('is_external', $('input[name="survey_type"]:checked').val() === 'external');
         
         // Gather questions data
         $('.question-card').each(function(index) {
             const $card = $(this);
+            const questionText = $card.find('.question-text').val();
+            const questionType = $card.find('.question-type').val();
+            
+            // Skip empty questions
+            if (!questionText || !questionType) {
+                return;
+            }
+            
             const question = {
                 display_order: index,
-                question_text: $card.find('.question-text').val(),
-                question_type: $card.find('.question-type').val(),
+                question_text: questionText,
+                question_type: questionType,
                 is_required: $card.find('.question-required').is(':checked'),
-                help_text: $card.find('.question-help').val(),
+                help_text: $card.find('.question-help').val() || '',
                 options: []
             };
             
@@ -886,21 +969,39 @@ $(document).ready(function() {
             // Add options if applicable
             if (['multiple_choice', 'checkbox'].includes(question.question_type)) {
                 $card.find('.option-item input[type="text"]').each(function(optionIndex) {
-                    question.options.push({
-                        option_text: $(this).val(),
-                        display_order: optionIndex
-                    });
+                    const optionText = $(this).val();
+                    if (optionText) {
+                        question.options.push({
+                            option_text: optionText,
+                            display_order: optionIndex
+                        });
+                    }
                 });
             }
             
             questions.push(question);
         });
         
-        formData.append('questions', JSON.stringify(questions));
+        // Create hidden input for questions data
+        let questionsInput = $('#questions-data');
+        if (questionsInput.length === 0) {
+            questionsInput = $('<input type="hidden" id="questions-data" name="questions">');
+            $(form).append(questionsInput);
+        }
+        questionsInput.val(JSON.stringify(questions));
         
-        // Let the form submit normally - Django will handle the redirect
-        // Remove the AJAX submission that was causing the undefined redirect_url issue
+        // Create hidden input for survey type
+        let isExternalInput = $('#is-external-data');
+        if (isExternalInput.length === 0) {
+            isExternalInput = $('<input type="hidden" id="is-external-data" name="is_external">');
+            $(form).append(isExternalInput);
+        }
+        isExternalInput.val($('input[name="survey_type"]:checked').val() === 'external' ? 'true' : 'false');
+        
+        // Now submit the form normally
+        form.submit();
     });
 });
+
 </script>
 {% endblock %}

@@ -5,6 +5,7 @@ from django.views.generic import (
 )
 from django.urls import reverse_lazy, reverse
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.contrib import messages
@@ -33,6 +34,21 @@ from .forms import (
 
 # Logger instance for surveys app
 logger = logging.getLogger(__name__)
+
+
+class StaffRequiredMixin(LoginRequiredMixin):
+    """
+    Mixin that requires user to be staff or superuser.
+    Unlike staff_member_required decorator, this doesn't redirect to Django admin.
+    """
+    def dispatch(self, request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return self.handle_no_permission()
+        if not (request.user.is_staff or request.user.is_superuser):
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('surveys:survey_list_public')
+        return super().dispatch(request, *args, **kwargs)
+
 
 # Staff/Admin Views for Survey Management
 @method_decorator(staff_member_required, name='dispatch')
@@ -168,12 +184,19 @@ class SurveyListView(ListView):
         
         return context
 
-@method_decorator(staff_member_required, name='dispatch')
-class SurveyCreateView(LoginRequiredMixin, CreateView):
+class SurveyCreateView(StaffRequiredMixin, CreateView):
     model = Survey
     form_class = SurveyForm
     template_name = 'surveys/admin/survey_form.html'
-    success_url = reverse_lazy('surveys:survey_list')
+    
+    def get_success_url(self):
+        """Return the URL to redirect to after successful form submission"""
+        return reverse('surveys:survey_list')
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user has permission to create surveys"""
+        # Call parent dispatch which handles staff check
+        return super().dispatch(request, *args, **kwargs)
 
     def form_valid(self, form):
         # Log survey creation start
@@ -255,11 +278,11 @@ class SurveyCreateView(LoginRequiredMixin, CreateView):
                 }
             )
             
-            # Return JSON response for AJAX submission
-            return JsonResponse({
-                'status': 'success',
-                'redirect_url': self.get_success_url()
-            })
+            # Add success message
+            messages.success(self.request, f'Survey "{self.object.title}" has been created successfully!')
+            
+            # Return redirect response (not JSON since we removed AJAX)
+            return response
             
         except Exception as e:
             logger.error(
@@ -271,20 +294,53 @@ class SurveyCreateView(LoginRequiredMixin, CreateView):
                     'exc_info': True
                 }
             )
+            messages.error(self.request, f'Error creating survey: {str(e)}')
             raise
 
-    def form_invalid(self, form):
-        return JsonResponse({
-            'status': 'error',
-            'errors': form.errors
-        }, status=400)
-
-@method_decorator(staff_member_required, name='dispatch')
-class SurveyUpdateView(UpdateView):
+class SurveyUpdateView(StaffRequiredMixin, UpdateView):
     model = Survey
     form_class = SurveyForm
     template_name = 'surveys/admin/survey_form.html'
-    success_url = reverse_lazy('surveys:survey_list')
+    
+    def get_success_url(self):
+        """Return the URL to redirect to after successful form submission"""
+        return reverse('surveys:survey_list')
+    
+    def get_context_data(self, **kwargs):
+        """Add existing questions to context for editing"""
+        context = super().get_context_data(**kwargs)
+        if self.object:
+            # Get questions with their options
+            questions = self.object.questions.all().order_by('display_order').prefetch_related('options')
+            questions_data = []
+            for question in questions:
+                question_dict = {
+                    'id': question.id,
+                    'question_text': question.question_text,
+                    'question_type': question.question_type,
+                    'is_required': question.is_required,
+                    'help_text': question.help_text or '',
+                    'scale_type': question.scale_type or '',
+                    'display_order': question.display_order,
+                    'options': []
+                }
+                # Add options if they exist
+                for option in question.options.all().order_by('display_order'):
+                    question_dict['options'].append({
+                        'id': option.id,
+                        'option_text': option.option_text,
+                        'display_order': option.display_order
+                    })
+                questions_data.append(question_dict)
+            context['existing_questions'] = json.dumps(questions_data)
+        else:
+            context['existing_questions'] = '[]'
+        return context
+    
+    def dispatch(self, request, *args, **kwargs):
+        """Check if user has permission to update surveys"""
+        # Call parent dispatch which handles staff check
+        return super().dispatch(request, *args, **kwargs)
     
     def form_valid(self, form):
         # Log survey update start
@@ -302,8 +358,61 @@ class SurveyUpdateView(UpdateView):
             old_title = self.object.title
             old_status = self.object.status
             
+            # Get survey type
+            is_external = self.request.POST.get('is_external') == 'true'
+            form.instance.is_external = is_external
+            
             # Save the form
             response = super().form_valid(form)
+            
+            questions_count = 0
+            if not is_external:
+                # Process questions data
+                try:
+                    questions_data = json.loads(self.request.POST.get('questions', '[]'))
+                    questions_count = len(questions_data)
+                    
+                    # Delete existing questions if new ones are provided
+                    if questions_count > 0:
+                        self.object.questions.all().delete()
+                        
+                        for question_data in questions_data:
+                            # Create question
+                            question = SurveyQuestion.objects.create(
+                                survey=self.object,
+                                question_text=question_data['question_text'],
+                                question_type=question_data['question_type'],
+                                is_required=question_data['is_required'],
+                                help_text=question_data.get('help_text', ''),
+                                display_order=question_data['display_order']
+                            )
+                            
+                            # Add scale type if applicable
+                            if question_data.get('scale_type'):
+                                question.scale_type = question_data['scale_type']
+                                question.save()
+                            
+                            # Create options if applicable
+                            if 'options' in question_data:
+                                for option_data in question_data['options']:
+                                    QuestionOption.objects.create(
+                                        question=question,
+                                        option_text=option_data['option_text'],
+                                        display_order=option_data['display_order']
+                                    )
+                
+                except json.JSONDecodeError as e:
+                    # Log the error but don't prevent survey update
+                    logger.error(
+                        f"Error processing questions data for survey update: {str(e)}",
+                        extra={
+                            'user_id': self.request.user.id,
+                            'survey_id': self.object.id,
+                            'survey_title': self.object.title,
+                            'error_type': 'JSONDecodeError',
+                            'exc_info': True
+                        }
+                    )
             
             # Log changes
             changes = []
@@ -311,6 +420,8 @@ class SurveyUpdateView(UpdateView):
                 changes.append(f"title: '{old_title}' -> '{self.object.title}'")
             if old_status != self.object.status:
                 changes.append(f"status: '{old_status}' -> '{self.object.status}'")
+            if questions_count > 0:
+                changes.append(f"questions updated: {questions_count} questions")
             
             # Log survey update success
             logger.info(
@@ -319,9 +430,13 @@ class SurveyUpdateView(UpdateView):
                     'survey_id': self.object.id,
                     'survey_title': self.object.title,
                     'user_id': self.request.user.id,
-                    'changes': changes if changes else 'No changes detected'
+                    'changes': changes if changes else 'No changes detected',
+                    'questions_count': questions_count
                 }
             )
+            
+            # Add success message
+            messages.success(self.request, f'Survey "{self.object.title}" has been updated successfully!')
             
             return response
             
@@ -335,13 +450,22 @@ class SurveyUpdateView(UpdateView):
                     'exc_info': True
                 }
             )
+            messages.error(self.request, f'Error updating survey: {str(e)}')
             raise
 
 @method_decorator(staff_member_required, name='dispatch')
 class SurveyDeleteView(DeleteView):
     model = Survey
-    template_name = 'surveys/admin/survey_confirm_delete.html'
     success_url = reverse_lazy('surveys:survey_list')
+    
+    def get(self, request, *args, **kwargs):
+        """Redirect GET requests back to list - deletion should only happen via POST with AJAX"""
+        messages.warning(request, 'Please use the delete button to remove surveys.')
+        return HttpResponseRedirect(self.success_url)
+    
+    def post(self, request, *args, **kwargs):
+        """Handle POST request for deletion"""
+        return self.delete(request, *args, **kwargs)
     
     def delete(self, request, *args, **kwargs):
         survey = self.get_object()
@@ -368,7 +492,7 @@ class SurveyDeleteView(DeleteView):
             questions_count = survey.questions.count()
             
             # Perform deletion
-            response = super().delete(request, *args, **kwargs)
+            survey.delete()
             
             # Log successful deletion
             logger.warning(
@@ -383,19 +507,37 @@ class SurveyDeleteView(DeleteView):
                 }
             )
             
-            return response
+            # Return JSON for AJAX requests
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'Survey "{survey_title}" has been deleted successfully.'
+                })
+            
+            messages.success(request, f'Survey "{survey_title}" has been deleted successfully.')
+            return HttpResponseRedirect(self.success_url)
             
         except Exception as e:
             logger.error(
                 f"Error deleting survey: {str(e)}",
                 extra={
-                    'user_id': request.user.id,
                     'survey_id': survey.id,
+                    'survey_title': survey.title,
+                    'user_id': request.user.id,
                     'error_type': type(e).__name__,
                     'exc_info': True
                 }
             )
-            raise
+            
+            # Return JSON error for AJAX requests
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Error deleting survey: {str(e)}'
+                }, status=500)
+            
+            messages.error(request, f'Error deleting survey: {str(e)}')
+            return HttpResponseRedirect(self.success_url)
 
 @method_decorator(staff_member_required, name='dispatch')
 class SurveyDetailView(DetailView):
@@ -467,10 +609,15 @@ class SurveyResponsesView(DetailView):
                 
                 answer_value = None
                 # Handle different types of questions
-                if question.question_type == 'text':
-                    # Text answer
+                if question.question_type in ['text', 'email', 'number', 'phone', 'url', 'date', 'time']:
+                    # Text-based answers (stored in text_answer field)
                     if answer_objects and answer_objects[0].text_answer:
                         answer_value = answer_objects[0].text_answer
+                    
+                elif question.question_type == 'file':
+                    # File upload
+                    if answer_objects and answer_objects[0].file_answer:
+                        answer_value = answer_objects[0].file_answer.url
                     
                 elif question.question_type == 'multiple_choice':
                     # Single selection
@@ -704,14 +851,16 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
         survey = self.get_object()
         alumni = get_object_or_404(Alumni, user=request.user)
         
-        # Log survey submission start
+        # Log survey submission start with POST data
         logger.info(
             f"Survey submission started by user: {request.user.username}",
             extra={
                 'user_id': request.user.id,
                 'alumni_id': alumni.id,
                 'survey_id': survey.id,
-                'survey_title': survey.title
+                'survey_title': survey.title,
+                'post_data': dict(request.POST),
+                'files_data': list(request.FILES.keys())
             }
         )
         
@@ -742,17 +891,49 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
             # Process answers for each question
             for question in survey.questions.all():
                 answer_data = {}
+                field_name = f'question_{question.id}'
+                field_value = request.POST.get(field_name)
                 
-                if question.question_type == 'text' or question.question_type == 'date':
-                    text_answer = request.POST.get(f'question_{question.id}')
-                    if text_answer:
+                logger.info(
+                    f"Processing question: {question.question_text}",
+                    extra={
+                        'question_id': question.id,
+                        'question_type': question.question_type,
+                        'field_name': field_name,
+                        'field_value': field_value,
+                        'field_value_type': type(field_value).__name__,
+                        'is_required': question.is_required,
+                        'post_keys': list(request.POST.keys())
+                    }
+                )
+                
+                if question.question_type in ['text', 'email', 'number', 'phone', 'url', 'date', 'time']:
+                    # All text-based answers
+                    text_answer = request.POST.get(f'question_{question.id}', '').strip()
+                    if text_answer:  # Only save if there's actual content
                         answer_data['text_answer'] = text_answer
+                        logger.info(f"Saving text answer for Q{question.id}: {text_answer}")
+                    else:
+                        logger.info(f"No text answer for Q{question.id} (value was empty or whitespace)")
+                        
+                elif question.question_type == 'file':
+                    # File upload - Note: ResponseAnswer model doesn't have file_answer field
+                    # Files would need to be stored differently
+                    file_answer = request.FILES.get(f'question_{question.id}')
+                    if file_answer:
+                        # For now, store filename in text_answer
+                        answer_data['text_answer'] = file_answer.name
+                        logger.debug(f"File uploaded for Q{question.id}: {file_answer.name}")
                         
                 elif question.question_type == 'multiple_choice':
                     option_id = request.POST.get(f'question_{question.id}')
                     if option_id:
-                        option = get_object_or_404(QuestionOption, id=option_id)
-                        answer_data['selected_option'] = option
+                        try:
+                            option = QuestionOption.objects.get(id=option_id)
+                            answer_data['selected_option'] = option
+                            logger.debug(f"Selected option for Q{question.id}: {option.option_text}")
+                        except QuestionOption.DoesNotExist:
+                            logger.error(f"Option {option_id} not found for Q{question.id}")
                         
                 elif question.question_type == 'checkbox':
                     # Handle multiple selections
@@ -760,6 +941,8 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
                     for option in question.options.all():
                         if request.POST.get(f'question_{question.id}_{option.id}'):
                             selected_options.append(option)
+                    
+                    logger.debug(f"Checkbox selections for Q{question.id}: {len(selected_options)} options")
                     
                     # For checkbox, create multiple answers
                     for option in selected_options:
@@ -771,19 +954,26 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
                         answer_count += 1
                     continue  # Skip the default creation below
                         
-                elif question.question_type == 'rating':
+                elif question.question_type in ['rating', 'likert']:
+                    # Rating and Likert scale
                     rating = request.POST.get(f'question_{question.id}')
                     if rating:
                         answer_data['rating_value'] = int(rating)
+                        logger.debug(f"Rating for Q{question.id}: {rating}")
                 
                 # Create the answer with collected data
-                if answer_data or question.is_required:
-                    ResponseAnswer.objects.create(
+                if answer_data:
+                    answer = ResponseAnswer.objects.create(
                         response=response,
                         question=question,
                         **answer_data
                     )
                     answer_count += 1
+                    logger.info(f"Created answer {answer.id} for Q{question.id} with data: {answer_data}")
+                else:
+                    logger.info(f"No answer data for Q{question.id}, skipping answer creation")
+                # Note: We don't create empty answers for unanswered questions
+                # The absence of an answer indicates the question wasn't answered
             
             # Log successful submission
             logger.info(

@@ -707,111 +707,218 @@
         </div>
     </div>
 </div>
+{% endblock %}
 
 {% block page_specific_js %}
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+    // Get CSRF token
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    const csrftoken = getCookie('csrftoken');
+
+    // Handle delete confirmation with SweetAlert2
     document.addEventListener('DOMContentLoaded', function() {
+        // Delete survey confirmation
+        document.querySelectorAll('a[href*="delete"]').forEach(function(deleteBtn) {
+            deleteBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const deleteUrl = this.href;
+                const surveyRow = this.closest('tr');
+                
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "You won't be able to revert this! All responses will be permanently deleted.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#e53e3e',
+                    cancelButtonColor: '#718096',
+                    confirmButtonText: 'Yes, delete it!',
+                    cancelButtonText: 'Cancel'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Show loading
+                        Swal.fire({
+                            title: 'Deleting...',
+                            text: 'Please wait',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+                        
+                        // Send DELETE request
+                        fetch(deleteUrl, {
+                            method: 'POST',
+                            headers: {
+                                'X-CSRFToken': csrftoken,
+                                'X-Requested-With': 'XMLHttpRequest'
+                            }
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.json();
+                        })
+                        .then(data => {
+                            if (data.success) {
+                                Swal.fire({
+                                    title: 'Deleted!',
+                                    text: data.message,
+                                    icon: 'success',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                }).then(() => {
+                                    // Reload page to update everything
+                                    window.location.reload();
+                                });
+                            } else {
+                                Swal.fire({
+                                    title: 'Error!',
+                                    text: data.message || 'Failed to delete survey',
+                                    icon: 'error'
+                                });
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Delete error:', error);
+                            Swal.fire({
+                                title: 'Error!',
+                                text: 'An error occurred while deleting the survey',
+                                icon: 'error'
+                            });
+                        });
+                    }
+                });
+            });
+        });
+        
+        // Destroy existing charts before creating new ones
+        if (window.collegeChart && typeof window.collegeChart.destroy === 'function') {
+            window.collegeChart.destroy();
+        }
+        if (window.batchChart && typeof window.batchChart.destroy === 'function') {
+            window.batchChart.destroy();
+        }
+        
         // College Chart
-        const collegeCtx = document.getElementById('collegeChart').getContext('2d');
-        new Chart(collegeCtx, {
-            type: 'doughnut',
-            data: {
-                labels: [
-                    {% for item in college_data %}
-                        '{{ item.college_name }}',
-                    {% endfor %}
-                ],
-                datasets: [{
-                    data: [
+        const collegeCtx = document.getElementById('collegeChart');
+        if (collegeCtx) {
+            window.collegeChart = new Chart(collegeCtx.getContext('2d'), {
+                type: 'doughnut',
+                data: {
+                    labels: [
                         {% for item in college_data %}
-                            {{ item.count }},
+                            '{{ item.college_name }}',
                         {% endfor %}
                     ],
-                    backgroundColor: [
-                        '#2b3c6b', '#48bb78', '#4299e1', '#ed8936', '#e53e3e', 
-                        '#4a5568', '#718096', '#a0aec0', '#e2e8f0', '#f7fafc'
-                    ],
-                    borderWidth: 2,
-                    borderColor: '#ffffff'
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                cutout: '65%',
-                plugins: {
-                    legend: {
-                        position: 'right',
-                        labels: {
-                            boxWidth: 12,
-                            padding: 15,
-                            font: {
-                                size: 11
+                    datasets: [{
+                        data: [
+                            {% for item in college_data %}
+                                {{ item.count }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: [
+                            '#2b3c6b', '#48bb78', '#4299e1', '#ed8936', '#e53e3e', 
+                            '#4a5568', '#718096', '#a0aec0', '#e2e8f0', '#f7fafc'
+                        ],
+                        borderWidth: 2,
+                        borderColor: '#ffffff'
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    cutout: '65%',
+                    plugins: {
+                        legend: {
+                            position: 'right',
+                            labels: {
+                                boxWidth: 12,
+                                padding: 15,
+                                font: {
+                                    size: 11
+                                }
                             }
                         }
                     }
                 }
-            }
-        });
+            });
+        }
 
         // Batch Chart
-        const batchCtx = document.getElementById('batchChart').getContext('2d');
-        new Chart(batchCtx, {
-            type: 'bar',
-            data: {
-                labels: [
-                    {% for item in batch_data %}
-                        '{{ item.alumni__graduation_year }}',
-                    {% endfor %}
-                ],
-                datasets: [{
-                    label: 'Alumni Responses',
-                    data: [
+        const batchCtx = document.getElementById('batchChart');
+        if (batchCtx) {
+            window.batchChart = new Chart(batchCtx.getContext('2d'), {
+                type: 'bar',
+                data: {
+                    labels: [
                         {% for item in batch_data %}
-                            {{ item.count }},
+                            '{{ item.alumni__graduation_year }}',
                         {% endfor %}
                     ],
-                    backgroundColor: '#2b3c6b',
-                    borderColor: '#2b3c6b',
-                    borderWidth: 1,
-                    borderRadius: 5
-                }]
-            },
-            options: {
-                maintainAspectRatio: false,
-                scales: {
-                    y: {
-                        beginAtZero: true,
-                        ticks: {
-                            precision: 0,
-                            font: {
-                                size: 11
+                    datasets: [{
+                        label: 'Alumni Responses',
+                        data: [
+                            {% for item in batch_data %}
+                                {{ item.count }},
+                            {% endfor %}
+                        ],
+                        backgroundColor: '#2b3c6b',
+                        borderColor: '#2b3c6b',
+                        borderWidth: 1,
+                        borderRadius: 5
+                    }]
+                },
+                options: {
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            ticks: {
+                                precision: 0,
+                                font: {
+                                    size: 11
+                                }
+                            },
+                            grid: {
+                                display: true,
+                                drawBorder: false
                             }
                         },
-                        grid: {
-                            display: true,
-                            drawBorder: false
+                        x: {
+                            grid: {
+                                display: false
+                            },
+                            ticks: {
+                                font: {
+                                    size: 11
+                                }
+                            }
                         }
                     },
-                    x: {
-                        grid: {
+                    plugins: {
+                        legend: {
                             display: false
-                        },
-                        ticks: {
-                            font: {
-                                size: 11
-                            }
                         }
                     }
-                },
-                plugins: {
-                    legend: {
-                        display: false
-                    }
                 }
-            }
-        });
+            });
+        }
     });
 </script>
-{% endblock %}
 {% endblock %} 

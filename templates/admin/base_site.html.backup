@@ -1,0 +1,979 @@
+{% extends "admin/base.html" %}
+{% load static %}
+
+{% block title %}{{ title }} | {{ site_title|default:_('NORSU Alumni Admin') }}{% endblock %}
+
+{% block branding %}
+<h1 id="site-name">
+    <a href="{% url 'admin:index' %}">
+        NORSU Alumni Administration
+    </a>
+</h1>
+{% endblock %}
+
+{% block nav-global %}{% endblock %}
+
+{% block extrastyle %}
+{{ block.super }}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+<link rel="stylesheet" href="{% static 'css/admin/admin_sidebar.css' %}">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --secondary-color: #4a5568;
+    }
+    
+    #header {
+        background: var(--primary-color);
+        color: #fff;
+    }
+    
+    #branding h1 {
+        color: #fff;
+    }
+    
+    .module h2, .module caption, .inline-group h2 {
+        background: var(--primary-color);
+    }
+    
+    div.breadcrumbs {
+        background: var(--secondary-color);
+    }
+    
+    /* Mobile touch improvements */
+    @media (max-width: 768px) {
+        #header {
+            padding: 15px 10px;
+        }
+        
+        #header #branding h1 {
+            font-size: 1.25rem;
+        }
+        
+        #user-tools {
+            font-size: 0.8rem;
+            padding: 8px 0;
+        }
+        
+        div.breadcrumbs {
+            padding: 8px 15px;
+            font-size: 0.9rem;
+        }
+        
+        .breadcrumbs a {
+            display: inline-block;
+            padding: 5px 0;
+        }
+        
+        /* Django admin form controls */
+        .button, input[type=submit], input[type=button], .submit-row input, a.button {
+            min-height: 40px;
+            padding: 10px 15px;
+        }
+        
+        select {
+            min-height: 40px;
+        }
+        
+        .form-row {
+            padding: 12px 0;
+        }
+    }
+    
+    @media (max-width: 576px) {
+        #header {
+            padding: 10px;
+        }
+        
+        #header #branding h1 {
+            font-size: 1.1rem;
+        }
+    }
+    
+    /* Submenu styles */
+    .has-submenu {
+        position: relative;
+    }
+    
+    .has-submenu > a {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .submenu-toggle {
+        transition: transform 0.3s ease;
+        font-size: 12px;
+    }
+    
+    .has-submenu.active .submenu-toggle {
+        transform: rotate(90deg);
+    }
+    
+    .submenu {
+        display: none;
+        padding-left: 20px;
+        background: rgba(0, 0, 0, 0.05);
+        margin-top: 5px;
+        border-radius: 4px;
+    }
+    
+    .submenu.active {
+        display: block;
+    }
+    
+    .submenu li {
+        margin: 0;
+    }
+    
+    .submenu a {
+        padding: 8px 15px;
+        font-size: 13px;
+        color: #666;
+        border-left: 3px solid transparent;
+    }
+    
+    .submenu a:hover {
+        background: rgba(0, 0, 0, 0.1);
+        border-left-color: #007cba;
+        color: #007cba;
+    }
+    
+    .submenu a i {
+        margin-right: 8px;
+        width: 12px;
+        text-align: center;
+    }
+</style>
+{% endblock %}
+
+{% block sidebar %}
+{{ block.super }}
+<div class="module">
+    <h2>Quick Links</h2>
+    <div class="custom-links">
+        <a href="{% url 'feedback:manage_feedbacks' %}">
+            <i class="fas fa-comment-dots"></i> Manage Feedbacks
+        </a>
+    </div>
+</div>
+
+<!-- Sidebar overlay -->
+<div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+<div class="custom-sidebar" id="custom-sidebar">
+    <!-- Close button inside sidebar -->
+    <button class="close-sidebar" id="close-sidebar" aria-label="Close sidebar">
+        <i class="fas fa-times"></i>
+    </button>
+    
+    <!-- User information area -->
+    <div class="sidebar-header">
+        <div class="user-avatar">
+            <i class="fas fa-user"></i>
+        </div>
+        <div class="user-info">
+            <div class="user-name">{% if user.is_authenticated %}{{ user.get_full_name|default:user.username }}{% else %}Administrator{% endif %}</div>
+            <div class="user-role">{% if user.is_superuser %}Superuser{% else %}Staff{% endif %}</div>
+        </div>
+    </div>
+    
+    <!-- Search function with icon -->
+    <div class="sidebar-search">
+        <i class="fas fa-search"></i>
+        <input type="text" id="sidebar-search-input" placeholder="Search menu items..." aria-label="Search menu items">
+    </div>
+    
+    <!-- Recent Items Section -->
+    <div class="sidebar-section-title">Recent Items</div>
+    <div class="recent-items" id="recent-items">
+        <!-- Recent items will be populated by JavaScript -->
+    </div>
+    
+    <!-- Essential Quick Access -->
+    <div class="sidebar-section-title">Quick Access</div>
+    <div class="sidebar-nav-grid">
+        <a href="{% url 'admin:index' %}" class="{% if request.path == '/admin/' %}active{% endif %}" data-item-name="Dashboard" data-item-type="admin">
+            <i class="fas fa-tachometer-alt"></i>
+            <span>Dashboard</span>
+        </a>
+        <a href="{% url 'alumni_directory:alumni_list' %}" data-item-name="Alumni List" data-item-type="directory">
+            <i class="fas fa-user-graduate"></i>
+            <span>Alumni</span>
+        </a>
+        <a href="{% url 'admin:events_event_changelist' %}" data-item-name="Events" data-item-type="events">
+            <i class="fas fa-calendar-alt"></i>
+            <span>Events</span>
+        </a>
+        <a href="{% url 'admin:announcements_announcement_changelist' %}" data-item-name="Announcements" data-item-type="announcements">
+            <i class="fas fa-bullhorn"></i>
+            <span>Announcements</span>
+        </a>
+    </div>
+    
+    <!-- REORGANIZED NAVIGATION STRUCTURE -->
+    
+    <!-- Main Navigation Categories -->
+    <div class="sidebar-section-title">Main Sections</div>
+    
+    <!-- Alumni Management Category (NEW ORGANIZATION) -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="alumni-management" data-category="alumni-management">
+            <span><i class="fas fa-user-graduate"></i> Alumni Management</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="alumni-management">
+            <ul>
+                <li>
+                    <a href="{% url 'alumni_directory:alumni_list' %}" data-item-name="Alumni Directory" data-item-type="directory">
+                        <i class="fas fa-address-book"></i> Alumni Directory
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'alumni_groups:group_list' %}" data-item-name="Alumni Groups" data-item-type="groups">
+                        <i class="fas fa-users"></i> Alumni Groups
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'location_tracking:map' %}" data-item-name="Location Map" data-item-type="location">
+                        <i class="fas fa-map-marker-alt"></i> Location Tracking
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'surveys:report_list' %}" data-item-name="Survey Reports" data-item-type="survey-reports">
+                        <i class="fas fa-clipboard-list"></i> Survey Reports
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- User & Account Management -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="users-accounts" data-category="user-management">
+            <span><i class="fas fa-users-cog"></i> User Management</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="users-accounts">
+            <ul>
+                <li>
+                    <a href="{% url 'admin:auth_user_changelist' %}" data-item-name="User Management" data-item-type="users">
+                        <i class="fas fa-user-cog"></i> User Accounts
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:auth_group_changelist' %}" data-item-name="Permissions" data-item-type="permissions">
+                        <i class="fas fa-lock"></i> Permissions
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'alumni_groups:group_list' %}" data-item-name="Group Management" data-item-type="groups">
+                        <i class="fas fa-id-card"></i> Group Management
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="User Metrics" data-item-type="user-metrics">
+                        <i class="fas fa-chart-pie"></i> User Metrics
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Communications Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="communications" data-category="communications">
+            <span><i class="fas fa-comment-alt"></i> Communications</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="communications">
+            <ul>
+                <li>
+                    <a href="{% url 'admin:announcements_announcement_changelist' %}" data-item-name="Announcements" data-item-type="announcements">
+                        <i class="fas fa-bullhorn"></i> Announcements
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:events_event_changelist' %}" data-item-name="Events" data-item-type="events">
+                        <i class="fas fa-calendar-alt"></i> Events
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'feedback:manage_feedbacks' %}" data-item-name="Feedback" data-item-type="feedback">
+                        <i class="fas fa-comment-dots"></i> Feedback
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Email Campaigns" data-item-type="email">
+                        <i class="fas fa-envelope"></i> Email Campaigns
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Notifications" data-item-type="notifications">
+                        <i class="fas fa-bell"></i> Notifications
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Career & Jobs Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="career-jobs" data-category="career-jobs">
+            <span><i class="fas fa-briefcase"></i> Career Services</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="career-jobs">
+            <ul>
+                <li>
+                    <a href="{% url 'jobs:manage_jobs' %}" data-item-name="Job Board" data-item-type="jobs">
+                        <i class="fas fa-list"></i> Job Listings
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:jobs_jobapplication_changelist' %}" data-item-name="Applications" data-item-type="jobs-applications">
+                        <i class="fas fa-file-alt"></i> Job Applications
+                        <span class="sidebar-badge warning">{% if pending_job_applications %}{{ pending_job_applications }}{% endif %}</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'jobs:job_scraper' %}" data-item-name="Job Scraper" data-item-type="jobs-scraper">
+                        <i class="fas fa-search"></i> Job Scraper
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Employers" data-item-type="jobs-employers">
+                        <i class="fas fa-building"></i> Employers
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Career Events" data-item-type="career-events">
+                        <i class="fas fa-handshake"></i> Career Events
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Mentorship Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="mentorship" data-category="mentorship">
+            <span><i class="fas fa-chalkboard-teacher"></i> Mentorship</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="mentorship">
+            <ul>
+                <li>
+                    <a href="{% url 'accounts:admin_mentor_list' %}" data-item-name="All Mentors" data-item-type="mentors">
+                        <i class="fas fa-users"></i> All Mentors
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'accounts:review_mentor_applications' %}" data-item-name="Applications" data-item-type="mentors-applications">
+                        <i class="fas fa-user-check"></i> Applications
+                        <span class="sidebar-badge danger">{% if pending_mentor_applications %}{{ pending_mentor_applications }}{% endif %}</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Mentor Matches" data-item-type="mentors-matches">
+                        <i class="fas fa-handshake"></i> Mentor Matches
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Mentor Reviews" data-item-type="mentors-reviews">
+                        <i class="fas fa-star"></i> Mentor Reviews
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Support & Giving Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="donations" data-category="donations">
+            <span><i class="fas fa-hand-holding-heart"></i> Support & Giving</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="donations">
+            <ul>
+                <li>
+                    <a href="{% url 'admin:donations_campaign_changelist' %}" data-item-name="All Campaigns" data-item-type="campaigns">
+                        <i class="fas fa-project-diagram"></i> All Campaigns
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:donations_donation_changelist' %}" data-item-name="Donations" data-item-type="donations">
+                        <i class="fas fa-gift"></i> Donations
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Sponsors" data-item-type="sponsors">
+                        <i class="fas fa-handshake"></i> Sponsors
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Donation Reports" data-item-type="donation-reports">
+                        <i class="fas fa-chart-bar"></i> Donation Reports
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Analytics & Reporting Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="analytics" data-category="analytics">
+            <span><i class="fas fa-chart-line"></i> Analytics & Reports</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="analytics">
+            <ul>
+
+                <li>
+                    <a href="#" data-item-name="Engagement Metrics" data-item-type="engagement-metrics">
+                        <i class="fas fa-chart-pie"></i> Engagement Metrics
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Alumni Reports" data-item-type="alumni-reports">
+                        <i class="fas fa-file-alt"></i> Alumni Reports
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Export Data" data-item-type="export">
+                        <i class="fas fa-file-export"></i> Export Data
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Configuration Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="configuration" data-category="configuration">
+            <span><i class="fas fa-cog"></i> Configuration</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="configuration">
+            <ul>
+                <li>
+                    <a href="{% url 'core:smtp_configuration_list' %}" data-item-name="SMTP Configuration" data-item-type="smtp-config">
+                        <i class="fas fa-envelope"></i> SMTP Configuration
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'core:recaptcha_configuration_list' %}" data-item-name="reCAPTCHA Configuration" data-item-type="recaptcha-config">
+                        <i class="fas fa-shield-alt"></i> reCAPTCHA Configuration
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Email Templates" data-item-type="email-templates">
+                        <i class="fas fa-file-alt"></i> Email Templates
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="System Settings" data-item-type="system-settings">
+                        <i class="fas fa-sliders-h"></i> System Settings
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="API Configuration" data-item-type="api-config">
+                        <i class="fas fa-plug"></i> API Configuration
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- System Administration Category -->
+    <div class="sidebar-category sidebar-category-group">
+        <div class="sidebar-category-header" data-target="admin" data-category="admin">
+            <span><i class="fas fa-cogs"></i> System</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="admin">
+            <ul>
+                <li class="has-submenu">
+                    <a href="{% url 'cms:dashboard' %}" data-item-name="CMS" data-item-type="cms">
+                        <i class="fas fa-edit"></i> CMS
+                        <i class="fas fa-chevron-right submenu-toggle"></i>
+                    </a>
+                    <ul class="submenu">
+                        <li><a href="{% url 'cms:dashboard' %}"><i class="fas fa-tachometer-alt"></i> Dashboard</a></li>
+                        <li><a href="{% url 'admin:cms_siteconfig_changelist' %}"><i class="fas fa-cog"></i> Site Config</a></li>
+                        <li><a href="{% url 'admin:cms_pagesection_changelist' %}"><i class="fas fa-layer-group"></i> Page Sections</a></li>
+                        <li><a href="{% url 'admin:cms_staffmember_changelist' %}"><i class="fas fa-users"></i> Staff Members</a></li>
+                        <li><a href="{% url 'admin:cms_timelineitem_changelist' %}"><i class="fas fa-history"></i> Timeline</a></li>
+                        <li><a href="{% url 'admin:cms_contactinfo_changelist' %}"><i class="fas fa-address-book"></i> Contact Info</a></li>
+                        <li><a href="{% url 'admin:cms_faq_changelist' %}"><i class="fas fa-question-circle"></i> FAQs</a></li>
+                        <li><a href="{% url 'admin:cms_feature_changelist' %}"><i class="fas fa-star"></i> Features</a></li>
+                        <li><a href="{% url 'admin:cms_testimonial_changelist' %}"><i class="fas fa-quote-left"></i> Testimonials</a></li>
+                    </ul>
+                </li>
+                <li>
+                    <a href="{% url 'admin:sites_site_changelist' %}" data-item-name="Site Settings" data-item-type="site-settings">
+                        <i class="fas fa-globe"></i> Site Settings
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:auth_group_changelist' %}" data-item-name="Permissions" data-item-type="permissions">
+                        <i class="fas fa-key"></i> Permissions
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'log_viewer:logs' %}" data-item-name="Logs" data-item-type="logs">
+                        <i class="fas fa-file-alt"></i> Logs
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Admin Logs" data-item-type="admin-logs">
+                        <i class="fas fa-history"></i> Admin Logs
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Database" data-item-type="database">
+                        <i class="fas fa-database"></i> Database
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="System Status" data-item-type="system-status">
+                        <i class="fas fa-heartbeat"></i> System Status
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Account Category -->
+    <div class="sidebar-category">
+        <div class="sidebar-category-header" data-target="account" data-category="account">
+            <span><i class="fas fa-user-circle"></i> Your Account</span>
+            <i class="fas fa-chevron-down toggle-icon"></i>
+        </div>
+        <div class="sidebar-category-content" id="account">
+            <ul>
+                <li>
+                    <a href="#" data-item-name="Edit Profile" data-item-type="profile-edit">
+                        <i class="fas fa-user-edit"></i> Edit Profile
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Change Password" data-item-type="password">
+                        <i class="fas fa-lock"></i> Change Password
+                    </a>
+                </li>
+                <li>
+                    <a href="#" data-item-name="Preferences" data-item-type="preferences">
+                        <i class="fas fa-cog"></i> Preferences
+                    </a>
+                </li>
+                <li>
+                    <a href="{% url 'admin:logout' %}" data-item-name="Logout" data-item-type="logout">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+    
+    <!-- Sidebar footer with system info -->
+    <div class="sidebar-footer">
+        NORSU Alumni System v1.2.3 | © 2024
+    </div>
+</div>
+
+<!-- Mobile sidebar toggle button -->
+<button class="toggle-sidebar d-md-none" id="toggle-sidebar" aria-label="Toggle sidebar">
+    <i class="fas fa-bars"></i>
+</button>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const toggleButton = document.getElementById('toggle-sidebar');
+        const closeButton = document.getElementById('close-sidebar');
+        const sidebar = document.getElementById('custom-sidebar');
+        const overlay = document.getElementById('sidebar-overlay');
+        const categoryHeaders = document.querySelectorAll('.sidebar-category-header');
+        const searchInput = document.getElementById('sidebar-search-input');
+        const recentItemsContainer = document.getElementById('recent-items');
+        
+        // Maximum number of recent items to track
+        const MAX_RECENT_ITEMS = 5;
+        
+        // Function to open sidebar
+        function openSidebar() {
+            sidebar.classList.add('active');
+            overlay.classList.add('active');
+            document.body.style.overflow = 'hidden'; // Prevent scrolling when sidebar is open
+        }
+        
+        // Function to close sidebar
+        function closeSidebar() {
+            sidebar.classList.remove('active');
+            overlay.classList.remove('active');
+            document.body.style.overflow = ''; // Enable scrolling again
+        }
+        
+        // Load saved category states from localStorage with fallback
+        function loadSavedCategoryStates() {
+            try {
+                const savedStates = JSON.parse(localStorage.getItem('sidebarCategoryStates') || '{}');
+                
+                // First, try to load by category name
+                Object.entries(savedStates).forEach(([category, isOpen]) => {
+                    const header = document.querySelector(`.sidebar-category-header[data-category="${category}"]`);
+                    if (header) {
+                        const targetId = header.getAttribute('data-target');
+                        const content = document.getElementById(targetId);
+                        
+                        if (isOpen) {
+                            header.classList.add('active');
+                            if (content) content.classList.add('active');
+                        }
+                    }
+                });
+                
+                // Fallback: If we're on a specific page, make sure relevant category is open
+                const currentPath = window.location.pathname;
+                const allLinks = sidebar.querySelectorAll('a');
+                
+                allLinks.forEach(link => {
+                    const href = link.getAttribute('href');
+                    if (href && currentPath.includes(href) && href !== '/' && href !== '#') {
+                        // Found active link, ensure its category is open
+                        const categoryContent = link.closest('.sidebar-category-content');
+                        if (categoryContent && !categoryContent.classList.contains('active')) {
+                            categoryContent.classList.add('active');
+                            
+                            const header = document.querySelector(`.sidebar-category-header[data-target="${categoryContent.id}"]`);
+                            if (header) {
+                                header.classList.add('active');
+                                
+                                // Also save this state
+                                const categoryName = header.getAttribute('data-category');
+                                if (categoryName) {
+                                    saveCategoryState(categoryName, true);
+                                }
+                            }
+                        }
+                    }
+                });
+            } catch (error) {
+                console.error('Error loading sidebar states:', error);
+                // Recover from localStorage error by clearing it
+                localStorage.removeItem('sidebarCategoryStates');
+            }
+        }
+        
+        // Save category states to localStorage with error handling
+        function saveCategoryState(category, isOpen) {
+            try {
+                const savedStates = JSON.parse(localStorage.getItem('sidebarCategoryStates') || '{}');
+                savedStates[category] = isOpen;
+                localStorage.setItem('sidebarCategoryStates', JSON.stringify(savedStates));
+            } catch (error) {
+                console.error('Error saving sidebar state:', error);
+            }
+        }
+        
+        // Track recent items in localStorage with error handling
+        function trackRecentItem(name, type, url) {
+            if (!name || !type || !url) return;
+            
+            try {
+                let recentItems = JSON.parse(localStorage.getItem('recentSidebarItems') || '[]');
+                
+                // Remove if already exists (to avoid duplicates)
+                recentItems = recentItems.filter(item => !(item.type === type && item.name === name));
+                
+                // Add to beginning of array
+                recentItems.unshift({
+                    name: name,
+                    type: type,
+                    url: url,
+                    timestamp: new Date().toISOString()
+                });
+                
+                // Limit to max items
+                if (recentItems.length > MAX_RECENT_ITEMS) {
+                    recentItems = recentItems.slice(0, MAX_RECENT_ITEMS);
+                }
+                
+                localStorage.setItem('recentSidebarItems', JSON.stringify(recentItems));
+                renderRecentItems();
+            } catch (error) {
+                console.error('Error tracking recent item:', error);
+            }
+        }
+        
+        // Initialize sidebar functionality
+        function initSidebar() {
+            // Initialize categories
+            initCategories();
+            
+            // Initialize recent items
+            initRecentItems();
+            
+            // Set up event listeners
+            if (toggleButton) {
+                toggleButton.addEventListener('click', openSidebar);
+            }
+            
+            if (closeButton) {
+                closeButton.addEventListener('click', closeSidebar);
+            }
+            
+            if (overlay) {
+                overlay.addEventListener('click', closeSidebar);
+            }
+            
+            // Set up category toggle events
+            categoryHeaders.forEach(header => {
+                header.addEventListener('click', function() {
+                    const targetId = this.getAttribute('data-target');
+                    const categoryName = this.getAttribute('data-category');
+                    const content = document.getElementById(targetId);
+                    
+                    if (content) {
+                        // Toggle the content visibility
+                        const isExpanding = !content.classList.contains('active');
+                        content.classList.toggle('active');
+                        this.classList.toggle('active');
+                        
+                        // Save the state to localStorage if we have a category name
+                        if (categoryName) {
+                            saveCategoryState(categoryName, isExpanding);
+                        }
+                    }
+                });
+                
+                // Add keyboard support for accessibility
+                header.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.click();
+                    }
+                });
+                
+                // Make headers focusable
+                header.setAttribute('tabindex', '0');
+            });
+            
+            // Setup submenu functionality
+            const submenuToggles = document.querySelectorAll('.submenu-toggle');
+            submenuToggles.forEach(toggle => {
+                toggle.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    
+                    const parentLi = this.closest('.has-submenu');
+                    const submenu = parentLi.querySelector('.submenu');
+                    
+                    if (submenu) {
+                        const isExpanding = !submenu.classList.contains('active');
+                        submenu.classList.toggle('active');
+                        parentLi.classList.toggle('active');
+                    }
+                });
+            });
+            
+            // Setup search functionality
+            if (searchInput) {
+                searchInput.addEventListener('input', handleSearch);
+            }
+            
+            // Close sidebar with escape key
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'Escape' && sidebar.classList.contains('active')) {
+                    closeSidebar();
+                }
+            });
+            
+            // Update on window resize
+            window.addEventListener('resize', function() {
+                if (window.innerWidth > 768) {
+                    // Reset styles for desktop
+                    sidebar.classList.remove('active');
+                    overlay.classList.remove('active');
+                    document.body.style.overflow = '';
+                }
+            });
+            
+            // Setup swipe gestures
+            setupSwipeGestures();
+        }
+        
+        // Handle search input
+        function handleSearch() {
+            const searchTerm = this.value.toLowerCase();
+            const menuItems = sidebar.querySelectorAll('a');
+            
+            menuItems.forEach(item => {
+                const text = item.textContent.toLowerCase();
+                const parent = item.closest('.sidebar-category-content');
+                const header = parent ? document.querySelector(`.sidebar-category-header[data-target="${parent.id}"]`) : null;
+                
+                if (text.includes(searchTerm)) {
+                    item.style.display = 'flex';
+                    if (parent && searchTerm.length > 0) {
+                        parent.classList.add('active');
+                        if (header) header.classList.add('active');
+                    }
+                    
+                    // Also show parent submenu if this is a submenu item
+                    const submenu = item.closest('.submenu');
+                    if (submenu && searchTerm.length > 0) {
+                        submenu.classList.add('active');
+                        const parentLi = submenu.closest('.has-submenu');
+                        if (parentLi) parentLi.classList.add('active');
+                    }
+                } else {
+                    item.style.display = searchTerm.length > 0 ? 'none' : 'flex';
+                }
+            });
+            
+            // If search is cleared, restore previous states
+            if (searchTerm.length === 0) {
+                document.querySelectorAll('.sidebar-category-content').forEach(content => {
+                    content.classList.remove('active');
+                });
+                document.querySelectorAll('.sidebar-category-header').forEach(header => {
+                    header.classList.remove('active');
+                });
+                document.querySelectorAll('.submenu').forEach(submenu => {
+                    submenu.classList.remove('active');
+                });
+                document.querySelectorAll('.has-submenu').forEach(item => {
+                    item.classList.remove('active');
+                });
+                loadSavedCategoryStates(); // Restore saved category states
+            }
+        }
+        
+        // Setup swipe gestures for mobile
+        function setupSwipeGestures() {
+            // Track touch positions
+            let touchStartX = 0;
+            let touchEndX = 0;
+            let swipeThreshold = 80; // Minimum distance required for a swipe
+
+            // Add touch event listeners to document for detecting swipes
+            document.addEventListener('touchstart', function(e) {
+                touchStartX = e.changedTouches[0].screenX;
+            }, { passive: true });
+
+            document.addEventListener('touchend', function(e) {
+                touchEndX = e.changedTouches[0].screenX;
+                handleSwipe();
+            }, { passive: true });
+        }
+        
+        // Handle swipe gesture
+        function handleSwipe() {
+            const swipeDistance = touchEndX - touchStartX;
+            
+            // Right swipe (to open sidebar)
+            if (swipeDistance > swipeThreshold && !sidebar.classList.contains('active')) {
+                openSidebar();
+            }
+            
+            // Left swipe (to close sidebar)
+            if (swipeDistance < -swipeThreshold && sidebar.classList.contains('active')) {
+                closeSidebar();
+            }
+        }
+        
+        // Initialize categories
+        function initCategories() {
+            // First load any saved states
+            loadSavedCategoryStates();
+            
+            // Get current URL path to highlight active items
+            const currentPath = window.location.pathname;
+            
+            // Find all links and highlight active ones
+            const allLinks = sidebar.querySelectorAll('a');
+            allLinks.forEach(link => {
+                const href = link.getAttribute('href');
+                if (href && currentPath.includes(href) && href !== '/' && href !== '#') {
+                    link.classList.add('active');
+                    
+                    // Track this as a recent item if it has data attributes
+                    const itemName = link.getAttribute('data-item-name');
+                    const itemType = link.getAttribute('data-item-type');
+                    if (itemName && itemType) {
+                        trackRecentItem(itemName, itemType, href);
+                    }
+                    
+                    // Expand parent category if not already expanded
+                    const category = link.closest('.sidebar-category-content');
+                    if (category && !category.classList.contains('active')) {
+                        const header = document.querySelector(`.sidebar-category-header[data-target="${category.id}"]`);
+                        if (header) {
+                            header.classList.add('active');
+                            category.classList.add('active');
+                            
+                            // Also save this state
+                            const categoryName = header.getAttribute('data-category');
+                            if (categoryName) {
+                                saveCategoryState(categoryName, true);
+                            }
+                        }
+                    }
+                }
+            });
+        }
+        
+        // Render recent items in sidebar
+        function renderRecentItems() {
+            if (!recentItemsContainer) return;
+            
+            try {
+                const recentItems = JSON.parse(localStorage.getItem('recentSidebarItems') || '[]');
+                
+                if (recentItems.length === 0) {
+                    recentItemsContainer.innerHTML = '<p class="no-recent-items">No recent items</p>';
+                    return;
+                }
+                
+                let html = '';
+                
+                recentItems.forEach(item => {
+                    html += `
+                        <a href="${item.url}" class="recent-item" title="${item.name}">
+                            <i class="fas fa-clock recent-item-icon"></i>
+                            <span class="recent-item-name">${item.name}</span>
+                            <span class="recent-item-type">${item.type}</span>
+                        </a>
+                    `;
+                });
+                
+                recentItemsContainer.innerHTML = html;
+            } catch (error) {
+                console.error('Error rendering recent items:', error);
+                recentItemsContainer.innerHTML = '<p class="no-recent-items">Unable to load recent items</p>';
+            }
+        }
+        
+        // Initialize recent items
+        function initRecentItems() {
+            renderRecentItems();
+            
+            // Add click handler to all sidebar links with data attributes to track them
+            const allLinks = sidebar.querySelectorAll('a[data-item-name][data-item-type]');
+            allLinks.forEach(link => {
+                link.addEventListener('click', function() {
+                    const itemName = this.getAttribute('data-item-name');
+                    const itemType = this.getAttribute('data-item-type');
+                    const href = this.getAttribute('href');
+                    trackRecentItem(itemName, itemType, href);
+                });
+            });
+        }
+        
+        // Initialize everything
+        initSidebar();
+    });
+</script>
+{% endblock %}

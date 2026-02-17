@@ -344,6 +344,47 @@
         text-align: center;
     }
 
+    /* Form Validation Styles */
+    .invalid-feedback {
+        display: none;
+        color: var(--feedback-error);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .was-validated .form-control:invalid ~ .invalid-feedback,
+    .form-control.is-invalid ~ .invalid-feedback {
+        display: block;
+    }
+
+    .form-control.is-invalid {
+        border-color: var(--feedback-error);
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 12 12' width='12' height='12' fill='none' stroke='%23e53e3e'%3e%3ccircle cx='6' cy='6' r='4.5'/%3e%3cpath stroke-linejoin='round' d='M5.8 3.6h.4L6 6.5z'/%3e%3ccircle cx='6' cy='8.2' r='.6' fill='%23e53e3e' stroke='none'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .form-control.is-invalid:focus {
+        border-color: var(--feedback-error);
+        box-shadow: 0 0 0 0.2rem rgba(229, 62, 62, 0.25);
+    }
+
+    .form-control.is-valid {
+        border-color: var(--feedback-success);
+        padding-right: calc(1.5em + 0.75rem);
+        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 8 8'%3e%3cpath fill='%2348bb78' d='M2.3 6.73L.6 4.53c-.4-1.04.46-1.4 1.1-.8l1.1 1.4 3.4-3.8c.6-.63 1.6-.27 1.2.7l-4 4.6c-.43.5-.8.4-1.1.1z'/%3e%3c/svg%3e");
+        background-repeat: no-repeat;
+        background-position: right calc(0.375em + 0.1875rem) center;
+        background-size: calc(0.75em + 0.375rem) calc(0.75em + 0.375rem);
+    }
+
+    .form-control.is-valid:focus {
+        border-color: var(--feedback-success);
+        box-shadow: 0 0 0 0.2rem rgba(72, 187, 120, 0.25);
+    }
+
     /* Responsive Design (Matching Authenticated Homepage) */
     @media (max-width: 768px) {
         .survey-interface {
@@ -691,16 +732,36 @@
                                 <input type="file" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
                                 
                             {% elif question.question_type == 'email' %}
-                                <input type="email" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                <input type="email" class="form-control" name="question_{{ question.id }}" 
+                                       placeholder="example@email.com"
+                                       pattern="[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$"
+                                       title="Please enter a valid email address"
+                                       {% if question.is_required %}required{% endif %}>
+                                <div class="invalid-feedback">Please enter a valid email address.</div>
                                 
                             {% elif question.question_type == 'number' %}
-                                <input type="number" class="form-control" name="question_{{ question.id }}" {% if question.is_required %}required{% endif %}>
+                                <input type="number" class="form-control" name="question_{{ question.id }}" 
+                                       step="any"
+                                       placeholder="Enter a number"
+                                       title="Please enter a valid number"
+                                       {% if question.is_required %}required{% endif %}>
+                                <div class="invalid-feedback">Please enter a valid number.</div>
                                 
                             {% elif question.question_type == 'phone' %}
-                                <input type="tel" class="form-control" name="question_{{ question.id }}" placeholder="e.g. +63 912 345 6789" {% if question.is_required %}required{% endif %}>
+                                <input type="tel" class="form-control" name="question_{{ question.id }}" 
+                                       placeholder="e.g. +63 912 345 6789"
+                                       pattern="[\+]?[0-9\s\-\(\)]+"
+                                       title="Please enter a valid phone number"
+                                       {% if question.is_required %}required{% endif %}>
+                                <div class="invalid-feedback">Please enter a valid phone number (numbers, spaces, +, -, and parentheses only).</div>
                                 
                             {% elif question.question_type == 'url' %}
-                                <input type="url" class="form-control" name="question_{{ question.id }}" placeholder="https://example.com" {% if question.is_required %}required{% endif %}>
+                                <input type="url" class="form-control" name="question_{{ question.id }}" 
+                                       placeholder="https://example.com"
+                                       pattern="https?://.+"
+                                       title="Please enter a valid URL starting with http:// or https://"
+                                       {% if question.is_required %}required{% endif %}>
+                                <div class="invalid-feedback">Please enter a valid URL starting with http:// or https://</div>
                             {% endif %}
                         </div>
                     </div>
@@ -731,4 +792,120 @@
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block page_specific_js %}
+<script>
+// Form validation
+(function() {
+    'use strict';
+    
+    // Fetch the form
+    var form = document.querySelector('form');
+    
+    if (form) {
+        // Add Bootstrap validation classes
+        form.classList.add('needs-validation');
+        
+        // Custom validation for specific field types
+        form.addEventListener('submit', function(event) {
+            var isValid = true;
+            
+            // Validate number fields
+            var numberInputs = form.querySelectorAll('input[type="number"]');
+            numberInputs.forEach(function(input) {
+                if (input.value && isNaN(input.value)) {
+                    input.setCustomValidity('Please enter a valid number');
+                    isValid = false;
+                } else {
+                    input.setCustomValidity('');
+                }
+            });
+            
+            // Validate email fields
+            var emailInputs = form.querySelectorAll('input[type="email"]');
+            emailInputs.forEach(function(input) {
+                if (input.value) {
+                    var emailPattern = /^[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+                    if (!emailPattern.test(input.value)) {
+                        input.setCustomValidity('Please enter a valid email address');
+                        isValid = false;
+                    } else {
+                        input.setCustomValidity('');
+                    }
+                }
+            });
+            
+            // Validate phone fields
+            var phoneInputs = form.querySelectorAll('input[type="tel"]');
+            phoneInputs.forEach(function(input) {
+                if (input.value) {
+                    var phonePattern = /^[\+]?[0-9\s\-\(\)]+$/;
+                    if (!phonePattern.test(input.value)) {
+                        input.setCustomValidity('Please enter a valid phone number');
+                        isValid = false;
+                    } else {
+                        input.setCustomValidity('');
+                    }
+                }
+            });
+            
+            // Validate URL fields
+            var urlInputs = form.querySelectorAll('input[type="url"]');
+            urlInputs.forEach(function(input) {
+                if (input.value) {
+                    var urlPattern = /^https?:\/\/.+/i;
+                    if (!urlPattern.test(input.value)) {
+                        input.setCustomValidity('Please enter a valid URL starting with http:// or https://');
+                        isValid = false;
+                    } else {
+                        input.setCustomValidity('');
+                    }
+                }
+            });
+            
+            // Check HTML5 validation
+            if (!form.checkValidity() || !isValid) {
+                event.preventDefault();
+                event.stopPropagation();
+                
+                // Scroll to first invalid field
+                var firstInvalid = form.querySelector(':invalid');
+                if (firstInvalid) {
+                    firstInvalid.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    firstInvalid.focus();
+                }
+            }
+            
+            form.classList.add('was-validated');
+        }, false);
+        
+        // Real-time validation feedback
+        var inputs = form.querySelectorAll('input, textarea, select');
+        inputs.forEach(function(input) {
+            input.addEventListener('blur', function() {
+                if (this.checkValidity()) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+            
+            input.addEventListener('input', function() {
+                if (form.classList.contains('was-validated')) {
+                    if (this.checkValidity()) {
+                        this.classList.remove('is-invalid');
+                        this.classList.add('is-valid');
+                    } else {
+                        this.classList.remove('is-valid');
+                        this.classList.add('is-invalid');
+                    }
+                }
+            });
+        });
+    }
+})();
+</script>
 {% endblock %}

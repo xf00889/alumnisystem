@@ -349,6 +349,6 @@ class FooterLinkAdmin(admin.ModelAdmin):
 
 
 # Customize admin site header and title
-admin.site.site_header = "NORSU Alumni CMS"
-admin.site.site_title = "CMS Admin"
-admin.site.index_title = "Content Management System"
+admin.site.site_header = "NORSU Alumni Administration"
+admin.site.site_title = "NORSU Alumni Admin"
+admin.site.index_title = "Site Administration"

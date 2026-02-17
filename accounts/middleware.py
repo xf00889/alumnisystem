@@ -1,26 +1,54 @@
 """
-Custom middleware for accounts app
+Middleware for accounts app.
 """
-from django.conf import settings
-from django.contrib.sites.models import Site
-import logging
-
-logger = logging.getLogger(__name__)
+from django.contrib import messages
+from django.utils.deprecation import MiddlewareMixin
 
 
-class EnsureSiteMiddleware:
+class SuppressAuthMessagesMiddleware(MiddlewareMixin):
     """
-    Middleware to ensure Site framework is properly configured for OAuth callbacks
+    Middleware to suppress unwanted authentication messages.
+    Removes login/logout success messages that clutter the UI.
     """
-    def __init__(self, get_response):
-        self.get_response = get_response
-
-    def __call__(self, request):
-        # Ensure SITE_ID is set in settings
-        if not hasattr(settings, 'SITE_ID'):
-            settings.SITE_ID = 1
-            logger.warning("SITE_ID not set in settings, defaulting to 1")
+    
+    def process_response(self, request, response):
+        """
+        Process response and filter out unwanted messages.
+        """
+        if hasattr(request, '_messages'):
+            storage = messages.get_messages(request)
+            filtered_messages = []
+            
+            for message in storage:
+                message_text = str(message).lower()
+                
+                # Skip login/logout success messages
+                if any(keyword in message_text for keyword in [
+                    'signed out',
+                    'logged out', 
+                    'sign out',
+                    'log out',
+                    'logout',
+                    'signed in',
+                    'logged in',
+                    'successfully signed in',
+                    'successfully logged in'
+                ]):
+                    continue
+                
+                # Keep all other messages
+                filtered_messages.append(message)
+            
+            # Clear all messages
+            storage.used = True
+            
+            # Re-add only the filtered messages
+            for msg in filtered_messages:
+                messages.add_message(
+                    request,
+                    msg.level,
+                    msg.message,
+                    extra_tags=msg.extra_tags
+                )
         
-        # Process the request
-        response = self.get_response(request)
         return response

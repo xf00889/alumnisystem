@@ -235,10 +235,10 @@ def direct_messages(request, user_id=None):
         # Get or create conversation
         conversation = DirectConversation.get_or_create_conversation(request.user, other_user)
         
-        # Get messages
+        # Get messages (ordered newest first for column-reverse display)
         messages_list = DirectMessage.objects.filter(
             conversation=conversation
-        ).select_related('sender').order_by('created_at')
+        ).select_related('sender').order_by('-created_at')
         
         # Mark messages as read (messages not sent by current user)
         DirectMessage.objects.filter(

@@ -128,13 +128,13 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     
     def add_message(self, request, level, message_tag, message=None, extra_tags='', *args, **kwargs):
         """
-        Override to suppress logout success message.
-        We don't want to show "You have signed out" message when user visits login page later.
+        Override to suppress logout and login success messages.
+        We don't want to show "You have signed out" or "Successfully signed in" messages.
         
         Note: In some allauth versions, 'message' might be passed as a keyword argument.
         """
-        # Suppress ALL logout-related messages by tag
-        if message_tag in ['account_logout', 'logged_out', 'signed_out', 'account_logged_out']:
+        # Suppress ALL logout-related and login success messages by tag
+        if message_tag in ['account_logout', 'logged_out', 'signed_out', 'account_logged_out', 'account_logout_success', 'account_login', 'logged_in', 'signed_in']:
             return
         
         # Check if message is a string before checking for logout-related text
@@ -142,14 +142,14 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         if message and isinstance(message, str):
             message_lower = message.lower()
             # Suppress any message containing logout/signout related text
-            if any(keyword in message_lower for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout', 'signed-out']):
+            if any(keyword in message_lower for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout', 'signed-out', 'successfully signed in']):
                 return
         
         # Also check if message is a lazy translation object
         if message:
             try:
                 message_str = str(message).lower()
-                if any(keyword in message_str for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout', 'signed-out']):
+                if any(keyword in message_str for keyword in ['signed out', 'logged out', 'sign out', 'log out', 'logout', 'signed-out', 'successfully signed in']):
                     return
             except:
                 pass

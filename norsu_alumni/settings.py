@@ -101,6 +101,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
+    'accounts.middleware.SuppressAuthMessagesMiddleware',  # Filter out login/logout messages
     'setup.middleware.SetupRequiredMiddleware',  # Redirect to setup if incomplete
 ]
 
@@ -250,6 +251,7 @@ ACCOUNT_USERNAME_REQUIRED = False
 ACCOUNT_AUTHENTICATION_METHOD = 'username_email'
 ACCOUNT_EMAIL_VERIFICATION = 'none'  # We handle email verification manually in our custom signup flow
 ACCOUNT_LOGOUT_ON_GET = True
+ACCOUNT_LOGOUT_ON_PASSWORD_CHANGE = False  # Don't logout on password change
 LOGIN_URL = 'account_login'
 LOGIN_REDIRECT_URL = 'core:home'
 ACCOUNT_LOGOUT_REDIRECT_URL = 'core:home'
