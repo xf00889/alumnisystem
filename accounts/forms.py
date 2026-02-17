@@ -25,20 +25,7 @@ class CustomLoginForm(LoginForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        
-        # Only add reCAPTCHA if it's properly configured in database
-        if is_recaptcha_enabled():
-            self.fields['captcha'] = DatabaseReCaptchaField(
-                widget=DatabaseReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onLoginRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification',
-                required=False  # Make it optional to allow fallback
-            )
+        # Don't add captcha field - it's handled in the template and adapter
 
 class CustomSignupForm(SignupForm):
     first_name = forms.CharField(
@@ -73,20 +60,7 @@ class CustomSignupForm(SignupForm):
         super().__init__(*args, **kwargs)
         # Make password fields required for validation
         self.fields['password1'].required = True
-        
-        # Add reCAPTCHA field if enabled in database
-        if is_recaptcha_enabled():
-            self.fields['captcha'] = DatabaseReCaptchaField(
-                widget=DatabaseReCaptchaV3(
-                    attrs={
-                        'data-callback': 'onSignupRecaptchaSuccess',
-                        'data-expired-callback': 'onRecaptchaExpired',
-                        'data-error-callback': 'onRecaptchaError',
-                    }
-                ),
-                label='Security Verification',
-                required=False  # Make it optional to allow fallback
-            )
+        # Don't add captcha field - it's handled in the template
         self.fields['password2'].required = True
 
     def clean_password1(self):

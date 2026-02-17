@@ -44,22 +44,26 @@ class DatabaseReCaptchaField(ReCaptchaField):
             # If no configuration, skip validation
             return
         
-        # If no value provided and field is required, raise validation error
-        if not value and self.required:
-            raise ValidationError('Please complete the reCAPTCHA verification.')
+        # If no value provided, skip validation (field is optional)
+        if not value:
+            return
         
         # If value is provided, verify it using database configuration
-        if value:
-            try:
-                result = config.verify_token(value)
-                if not result.get('success', False):
-                    error_codes = result.get('error_codes', [])
-                    if error_codes:
-                        raise ValidationError(f'reCAPTCHA verification failed: {", ".join(error_codes)}')
-                    else:
-                        raise ValidationError('reCAPTCHA verification failed. Please try again.')
-            except Exception as e:
-                raise ValidationError('Error verifying reCAPTCHA. Please try again.')
+        try:
+            result = config.verify_token(value)
+            if not result.get('success', False):
+                error_codes = result.get('error_codes', [])
+                if error_codes:
+                    raise ValidationError(f'reCAPTCHA verification failed: {", ".join(error_codes)}')
+                else:
+                    raise ValidationError('reCAPTCHA verification failed. Please try again.')
+        except Exception as e:
+            # Log the error but don't block login
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f'reCAPTCHA verification error: {e}')
+            # Allow login to proceed if verification fails
+            return
     
     def clean(self, value):
         """

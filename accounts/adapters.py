@@ -50,9 +50,26 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     def pre_authenticate(self, request, **credentials):
         """
         Override to ensure users who just reset their password can authenticate.
+        Also validates reCAPTCHA if enabled.
         This method is called before authentication, allowing us to refresh
         the user from the database to get the latest is_active status.
         """
+        # Validate reCAPTCHA if enabled
+        from core.recaptcha_utils import is_recaptcha_enabled, get_recaptcha_config
+        if is_recaptcha_enabled():
+            recaptcha_token = request.POST.get('g-recaptcha-response')
+            if recaptcha_token:
+                config = get_recaptcha_config()
+                if config:
+                    try:
+                        result = config.verify_token(recaptcha_token)
+                        if not result.get('success', False):
+                            logger.warning(f"reCAPTCHA validation failed for login attempt")
+                            # Don't block login, just log it
+                    except Exception as e:
+                        logger.error(f"reCAPTCHA verification error: {e}")
+                        # Don't block login if verification fails
+        
         email = credentials.get('email')
         
         if email:
