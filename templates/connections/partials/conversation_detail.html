@@ -237,6 +237,9 @@
 .messages-container {
     background: var(--ui-background);
     padding: 1.5rem;
+    display: flex;
+    flex-direction: column-reverse;
+    overflow-y: auto;
 }
 
 .message-wrapper {
@@ -412,13 +415,182 @@
     color: var(--text-muted);
     font-weight: 500;
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 767.98px) {
+    .chat-container {
+        height: 100vh !important;
+        border-radius: 0 !important;
+        border: none !important;
+    }
+
+    .messages-container {
+        padding: 1rem !important;
+        padding-top: 140px !important; /* Space at top for scrolling up */
+        padding-bottom: 1rem !important;
+        min-height: calc(100vh - 200px) !important; /* Ensure container fills space */
+    }
+
+    .message-form {
+        position: fixed !important;
+        bottom: 60px !important; /* Above bottom navigation bar */
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1020 !important;
+        border-radius: 0 !important;
+        box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.1) !important;
+        padding: 1rem !important;
+        background: var(--ui-surface) !important;
+    }
+
+    .message-bubble-container {
+        max-width: 85% !important;
+    }
+
+    .message-avatar {
+        width: 28px !important;
+        height: 28px !important;
+        font-size: 11px !important;
+    }
+
+    .message-bubble {
+        padding: 10px 14px !important;
+        font-size: 0.875rem !important;
+    }
+
+    .message-timestamp {
+        font-size: 10px !important;
+    }
+
+    .chat-header {
+        padding: 0.875rem !important;
+    }
+
+    .chat-title {
+        font-size: 1rem !important;
+    }
+
+    .chat-subtitle {
+        font-size: 0.8125rem !important;
+    }
+
+    .form-control {
+        font-size: 0.875rem !important;
+        padding: 0.625rem 0.875rem !important;
+    }
+
+    .btn-primary {
+        padding: 0.625rem 1.25rem !important;
+    }
+}
+
+/* Small Mobile - 575px and below */
+@media (max-width: 575.98px) {
+    .messages-container {
+        padding: 0.875rem !important;
+        padding-top: 120px !important;
+        padding-bottom: 0.875rem !important;
+    }
+
+    .message-form {
+        padding: 0.875rem !important;
+    }
+
+    .message-bubble {
+        padding: 8px 12px !important;
+        font-size: 0.8125rem !important;
+    }
+
+    .chat-header {
+        padding: 0.75rem !important;
+    }
+
+    .chat-title {
+        font-size: 0.9375rem !important;
+    }
+
+    .chat-subtitle {
+        font-size: 0.75rem !important;
+    }
+
+    .form-control {
+        font-size: 0.8125rem !important;
+        padding: 0.5rem 0.75rem !important;
+    }
+
+    .btn-primary {
+        padding: 0.5rem 1rem !important;
+    }
+
+    .btn-outline-secondary {
+        padding: 0.5rem 0.75rem !important;
+    }
+}
+
+/* Extra Small Mobile - 375px and below */
+@media (max-width: 375px) {
+    .messages-container {
+        padding: 0.75rem !important;
+        padding-top: 100px !important;
+        padding-bottom: 0.75rem !important;
+    }
+
+    .message-form {
+        padding: 0.75rem !important;
+    }
+
+    .message-bubble {
+        padding: 7px 10px !important;
+        font-size: 0.75rem !important;
+    }
+
+    .message-bubble-container {
+        max-width: 90% !important;
+    }
+
+    .message-avatar {
+        width: 24px !important;
+        height: 24px !important;
+        font-size: 10px !important;
+    }
+
+    .chat-header {
+        padding: 0.625rem !important;
+    }
+
+    .chat-title {
+        font-size: 0.875rem !important;
+    }
+
+    .chat-subtitle {
+        font-size: 0.6875rem !important;
+    }
+
+    .form-control {
+        font-size: 0.75rem !important;
+        padding: 0.5rem !important;
+    }
+
+    .btn-primary {
+        padding: 0.5rem 0.875rem !important;
+    }
+
+    .btn-outline-secondary {
+        padding: 0.5rem !important;
+    }
+
+    .input-group .btn {
+        font-size: 0.75rem !important;
+    }
+}
 </style>
 
 <script>
 function scrollToBottom() {
     const container = document.getElementById('messagesContainer');
     if (container) {
-        container.scrollTop = container.scrollHeight;
+        // For flex-direction: column-reverse, scrollTop should be 0 to show latest messages
+        container.scrollTop = 0;
     }
 }
 
@@ -455,8 +627,8 @@ function sendMessage(event, userId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            // Add the new message to the container
-            messagesContainer.insertAdjacentHTML('beforeend', data.message_html);
+            // Add the new message at the beginning (top) since container is reversed
+            messagesContainer.insertAdjacentHTML('afterbegin', data.message_html);
             
             // Initialize avatars for the new message
             initializeMessageAvatars();
@@ -464,7 +636,7 @@ function sendMessage(event, userId) {
             // Clear the form
             form.reset();
             
-            // Scroll to bottom
+            // Scroll to bottom (which is scrollTop = 0 for reversed container)
             scrollToBottom();
         } else {
             console.error('Error sending message:', data.errors || data.message);

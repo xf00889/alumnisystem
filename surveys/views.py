@@ -465,15 +465,12 @@ class SurveyResponsesView(DetailView):
             for question in survey.questions.all():
                 answer_objects = [a for a in response.answers.all() if a.question_id == question.id]
                 
-                # Skip if no answer exists for this question
-                if not answer_objects:
-                    continue
-                
                 answer_value = None
                 # Handle different types of questions
                 if question.question_type == 'text':
                     # Text answer
-                    answer_value = answer_objects[0].text_answer if answer_objects else None
+                    if answer_objects and answer_objects[0].text_answer:
+                        answer_value = answer_objects[0].text_answer
                     
                 elif question.question_type == 'multiple_choice':
                     # Single selection
@@ -488,8 +485,10 @@ class SurveyResponsesView(DetailView):
                         
                 elif question.question_type in ['rating', 'likert']:
                     # Rating value
-                    answer_value = answer_objects[0].rating_value if answer_objects else None
+                    if answer_objects and answer_objects[0].rating_value is not None:
+                        answer_value = answer_objects[0].rating_value
                 
+                # Always add the question to the response, even if no answer
                 response_data['answers'].append({
                     'question': question.question_text,
                     'question_type': question.question_type,
