@@ -153,13 +153,8 @@ def campaign_detail(request, slug):
             # Store donor email in session for unauthenticated users
             if not request.user.is_authenticated and donation.donor_email:
                 request.session['donor_email'] = donation.donor_email
-                request.session.save()  # Ensure session is saved
-                print(f"Stored donor_email in session: '{donation.donor_email}'")
-                print(f"Session keys after storage: {list(request.session.keys())}")
+                request.session.save()
             
-            # Don't send email when donation is first created - email will be sent after payment proof submission
-            # This ensures users receive email only after they've actually made the payment
-
             messages.success(
                 request,
                 _('Donation created! Please follow the payment instructions to complete your donation.')
@@ -185,18 +180,18 @@ def campaign_detail(request, slug):
 @login_required
 def donation_history(request):
     """View to display user's donation history"""
+    # Only show completed donations
     donations = Donation.objects.filter(
-        donor=request.user
+        donor=request.user,
+        status='completed'
     ).select_related('campaign').order_by('-donation_date')
 
-    # Calculate statistics
-    total_donated = donations.filter(status='completed').aggregate(
+    # Calculate statistics (only completed donations)
+    total_donated = donations.aggregate(
         total=Sum('amount')
     )['total'] or 0
 
-    campaigns_supported = donations.filter(
-        status='completed'
-    ).values('campaign').distinct().count()
+    campaigns_supported = donations.values('campaign').distinct().count()
 
     context = {
         'donations': donations,
@@ -235,30 +230,24 @@ def campaign_donors(request, slug):
     """View to display all donors for a campaign"""
     campaign = get_object_or_404(Campaign, slug=slug)
 
-    # Get all donations (both anonymous and non-anonymous)
+    # Get only non-anonymous donations to display in the list
     donations = Donation.objects.filter(
         campaign=campaign,
-        status='completed'
+        status='completed',
+        is_anonymous=False
     ).select_related('donor').order_by('-amount')
 
-    # Count anonymous and non-anonymous donations separately
+    # Count anonymous donations
     anonymous_count = Donation.objects.filter(
         campaign=campaign,
         status='completed',
         is_anonymous=True
-    ).count()
-    
-    non_anonymous_count = Donation.objects.filter(
-        campaign=campaign,
-        status='completed',
-        is_anonymous=False
     ).count()
 
     context = {
         'campaign': campaign,
         'donations': donations,
         'anonymous_count': anonymous_count,
-        'non_anonymous_count': non_anonymous_count,
     }
 
     return render(request, 'donations/campaign_donors.html', context)

@@ -678,14 +678,14 @@ function scheduleMeeting() {
         form.reset();
 
         // Show success message
-        showToast('success', 'Meeting scheduled successfully!');
+        ToastUtils.showSuccess('Meeting scheduled successfully!');
 
         // Add meeting to conversation
         addMeetingToConversation(data);
     })
     .catch(error => {
         console.error('Error scheduling meeting:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -795,7 +795,7 @@ function editMeeting(meetingId) {
     })
     .catch(error => {
         console.error('Error fetching meeting details:', error);
-        showToast('error', 'Failed to load meeting details');
+        ToastUtils.showError('Failed to load meeting details');
     });
 }
 
@@ -903,7 +903,7 @@ function updateMeeting() {
         modal.hide();
 
         // Show success message
-        showToast('success', 'Meeting updated successfully!');
+        ToastUtils.showSuccess('Meeting updated successfully!');
 
         // Refresh the conversation to show updated meeting
         // Check if updated meeting is still in the future before reloading
@@ -929,7 +929,7 @@ function updateMeeting() {
     })
     .catch(error => {
         console.error('Error updating meeting:', error);
-        showToast('error', 'Failed to update meeting. Please try again.');
+        ToastUtils.showError('Failed to update meeting. Please try again.');
     });
 }
 
@@ -956,7 +956,7 @@ function deleteMeeting() {
         modal.hide();
 
         // Show success message
-        showToast('success', 'Meeting cancelled successfully!');
+        ToastUtils.showSuccess('Meeting cancelled successfully!');
 
         // Remove the meeting card from display
         const meetingCard = document.querySelector(`[data-meeting-id="${meetingId}"]`);
@@ -973,12 +973,11 @@ function deleteMeeting() {
     })
     .catch(error => {
         console.error('Error cancelling meeting:', error);
-        showToast('error', 'Failed to cancel meeting. Please try again.');
+        ToastUtils.showError('Failed to cancel meeting. Please try again.');
     });
 }
 
-function showToast(type, message) {
-    // Simple toast notification
+    // Toast notifications now use ToastUtils API
     const toast = document.createElement('div');
     toast.className = `alert alert-${type === 'success' ? 'success' : 'danger'} position-fixed`;
     toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';

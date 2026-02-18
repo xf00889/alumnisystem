@@ -941,9 +941,9 @@ def alumni_management(request):
         if college:
             queryset = queryset.filter(college__in=college)
             
-        # Export if requested
+        # Export if requested (Excel and PDF only)
         export_format = request.GET.get('format')
-        if export_format in ['csv', 'excel', 'pdf']:
+        if export_format in ['excel', 'pdf']:
             # Apply selective export filters
             export_queryset, filename, has_selective_filters = apply_selective_export_filters(request)
 
@@ -958,33 +958,7 @@ def alumni_management(request):
             field_labels = ['ID', 'Full Name', 'College', 'Year', 'Course', 
                            'Present Occupation', 'Name of Company', 'Employment Address']
 
-            if export_format == 'csv':
-                response = HttpResponse(content_type='text/csv')
-                response['Content-Disposition'] = f'attachment; filename="{filename}.csv"'
-
-                writer = csv.writer(response)
-                writer.writerow(field_labels)
-
-                for alumni in export_queryset:
-                    # Get current experience for occupation and company
-                    current_exp = None
-                    if hasattr(alumni.user, 'profile'):
-                        current_exp = alumni.user.profile.experience.filter(is_current=True).first()
-
-                    writer.writerow([
-                        alumni.id,
-                        alumni.full_name,
-                        alumni.college_display if alumni.college else 'Not specified',
-                        alumni.graduation_year,
-                        alumni.course,
-                        current_exp.position if current_exp else alumni.job_title,
-                        current_exp.company if current_exp else alumni.current_company,
-                        current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
-                    ])
-
-                return response
-            
-            elif export_format == 'excel':
+            if export_format == 'excel':
                 from core.export_utils import ExportMixin, LogoHeaderService
                 from openpyxl import Workbook
                 from openpyxl.styles import Font, PatternFill, Alignment

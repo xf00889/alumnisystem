@@ -2,42 +2,7 @@
 
 // Note: csrftoken is already declared globally in base.html
 
-// Show toast notifications
-function showToast(message, type = 'success') {
-    const toastContainer = document.getElementById('toast-container') || createToastContainer();
-    const toast = document.createElement('div');
-    toast.className = `toast align-items-center text-white bg-${type} border-0`;
-    toast.setAttribute('role', 'alert');
-    toast.setAttribute('aria-live', 'assertive');
-    toast.setAttribute('aria-atomic', 'true');
-    
-    toast.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    
-    toastContainer.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
-    
-    // Remove toast element after it's hidden
-    toast.addEventListener('hidden.bs.toast', () => {
-        toast.remove();
-    });
-}
-
-function createToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toast-container';
-    container.className = 'toast-container position-fixed top-0 end-0 p-3';
-    container.style.zIndex = '1055';
-    document.body.appendChild(container);
-    return container;
-}
+// Toast notifications now handled by ToastUtils (toast-notifications.js)
 
 // Send connection request
 function sendConnectionRequest(userId) {
@@ -51,15 +16,15 @@ function sendConnectionRequest(userId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            ToastUtils.showSuccess(data.message);
             updateConnectionButton(userId, 'pending_sent');
         } else {
-            showToast(data.message, 'danger');
+            ToastUtils.showError(data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred. Please try again.', 'danger');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 
@@ -75,17 +40,17 @@ function acceptConnectionRequest(connectionId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            ToastUtils.showSuccess(data.message);
             updateConnectionButton(data.user_id, 'connected');
             // Update pending requests count
             updatePendingRequestsCount();
         } else {
-            showToast(data.message, 'danger');
+            ToastUtils.showError(data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred. Please try again.', 'danger');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 
@@ -101,17 +66,17 @@ function rejectConnectionRequest(connectionId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            ToastUtils.showSuccess(data.message);
             updateConnectionButton(data.user_id, 'none');
             // Update pending requests count
             updatePendingRequestsCount();
         } else {
-            showToast(data.message, 'danger');
+            ToastUtils.showError(data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred. Please try again.', 'danger');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 
@@ -131,15 +96,15 @@ function removeConnection(userId) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            ToastUtils.showSuccess(data.message);
             updateConnectionButton(userId, 'none');
         } else {
-            showToast(data.message, 'danger');
+            ToastUtils.showError(data.message);
         }
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred. Please try again.', 'danger');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 

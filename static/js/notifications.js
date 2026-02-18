@@ -130,14 +130,14 @@ class NotificationManager {
                 this.notificationCount = 0;
                 this.notifications.forEach(n => n.is_read = true);
                 this.updateUI();
-                this.showToast('All notifications marked as read', 'success');
+                ToastUtils.showSuccess('All notifications marked as read');
             } else {
                 console.error('Failed to mark all notifications as read:', data.error);
-                this.showToast('Failed to mark notifications as read', 'danger');
+                ToastUtils.showError('Failed to mark notifications as read');
             }
         } catch (error) {
             console.error('Error marking all notifications as read:', error);
-            this.showToast('Error marking notifications as read', 'danger');
+            ToastUtils.showError('Error marking notifications as read');
         }
     }
     
@@ -305,49 +305,6 @@ class NotificationManager {
         } else {
             return date.toLocaleDateString();
         }
-    }
-
-    showToast(message, type = 'success') {
-        // Use existing toast functionality if available
-        if (typeof showToast === 'function') {
-            showToast(message, type);
-        } else {
-            // Fallback toast implementation
-            const toastContainer = document.getElementById('toast-container') || this.createToastContainer();
-            const toast = document.createElement('div');
-            toast.className = `toast align-items-center text-white bg-${type} border-0`;
-            toast.setAttribute('role', 'alert');
-            toast.setAttribute('aria-live', 'assertive');
-            toast.setAttribute('aria-atomic', 'true');
-
-            toast.innerHTML = `
-                <div class="d-flex">
-                    <div class="toast-body">${message}</div>
-                    <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-                </div>
-            `;
-
-            toastContainer.appendChild(toast);
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
-
-            // Remove toast after it's hidden
-            toast.addEventListener('hidden.bs.toast', () => {
-                toast.remove();
-            });
-        }
-    }
-
-    createToastContainer() {
-        let container = document.getElementById('toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'toast-container position-fixed top-0 end-0 p-3';
-            container.style.zIndex = '1055';
-            document.body.appendChild(container);
-        }
-        return container;
     }
 
     destroy() {

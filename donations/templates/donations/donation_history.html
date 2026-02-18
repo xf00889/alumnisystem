@@ -1,92 +1,636 @@
-{% extends "donations/base.html" %}
+{% extends "base.html" %}
 {% load static %}
+{% load humanize %}
 {% load i18n %}
 
-{% block title %}{% trans "My Donation History" %} | {{ block.super }}{% endblock %}
-{% block page_title %}{% trans "My Donation History" %}{% endblock %}
+{% block title %}{% trans "My Donation History" %} - NORSU Alumni{% endblock %}
 
-{% block donations_content %}
-<div class="mb-3">
-    <p class="text-muted">{% trans "View and track all your contributions." %}</p>
-</div>
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* NORSU Alumni System - Card Design */
+    :root {
+        /* NORSU Brand Colors */
+        --primary-color: #2b3c6b;
+        --primary-dark: #1a2544;
+        --primary-light: #3c4f8a;
+        --secondary-color: #4a5568;
+        --accent-color: #c8a882;
+        
+        /* UI Colors - Consistent with system */
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        --ui-selected: #e3f2fd;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors - NORSU Theme */
+        --feedback-success: #28a745;
+        --feedback-warning: #ffc107;
+        --feedback-error: #dc3545;
+        --feedback-info: #17a2b8;
+        
+        /* Spacing Scale */
+        --space-1: 0.25rem;
+        --space-2: 0.5rem;
+        --space-3: 0.75rem;
+        --space-4: 1rem;
+        --space-5: 1.25rem;
+        --space-6: 1.5rem;
+        --space-8: 2rem;
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --radius-xl: 0.75rem;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        
+        /* Transitions */
+        --transition-fast: 150ms ease;
+        --transition-normal: 250ms ease;
+        --transition-slow: 350ms ease;
+    }
+    
+    body {
+        background-color: var(--ui-background);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .container-fluid {
+        padding: 1.5rem;
+        width: 100%;
+        max-width: 100%;
+    }
+    
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    /* Statistics Section */
+    .stats-section {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .stat-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        border-left: 3px solid var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+    }
+    
+    .stat-card:hover {
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
+    
+    .stat-card.bg-gradient-primary {
+        background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+        color: var(--text-light);
+        border-left-color: var(--primary-dark);
+    }
+    
+    .stat-card.bg-gradient-success {
+        background: linear-gradient(135deg, var(--feedback-success) 0%, #1e7e34 100%);
+        color: var(--text-light);
+        border-left-color: #1e7e34;
+    }
+    
+    .stat-card.bg-gradient-info {
+        background: linear-gradient(135deg, var(--feedback-info) 0%, #117a8b 100%);
+        color: var(--text-light);
+        border-left-color: #117a8b;
+    }
+    
+    .stat-number {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: inherit;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+        line-height: 1;
+        display: block;
+    }
+    
+    .stat-label {
+        color: inherit;
+        font-weight: 500;
+        text-transform: uppercase;
+        font-size: 0.75rem;
+        letter-spacing: 0.05em;
+        font-family: 'Poppins', sans-serif;
+        display: block;
+        opacity: 0.9;
+    }
+    
+    /* Donation History Table */
+    .history-section {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        overflow: hidden;
+    }
+    
+    .history-header {
+        background: var(--ui-hover);
+        padding: 1.5rem;
+        border-bottom: 1px solid var(--ui-border);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .history-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    
+    .table-responsive {
+        overflow-x: auto;
+    }
+    
+    .donation-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .donation-table thead {
+        background: var(--ui-hover);
+    }
+    
+    .donation-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        border-bottom: 2px solid var(--ui-border);
+    }
+    
+    .donation-table td {
+        padding: 1rem;
+        border-bottom: 1px solid var(--ui-border);
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+    }
+    
+    .donation-table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+    
+    .donation-table tbody tr:hover {
+        background: var(--ui-hover);
+    }
+    
+    .campaign-link {
+        color: var(--primary-color);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+    
+    .campaign-link:hover {
+        color: var(--primary-dark);
+        text-decoration: underline;
+    }
+    
+    .status-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .status-badge.status-completed {
+        background: var(--feedback-success);
+        color: var(--text-light);
+    }
+    
+    .status-badge.status-pending {
+        background: var(--feedback-warning);
+        color: var(--text-primary);
+    }
+    
+    .status-badge.status-failed {
+        background: var(--feedback-error);
+        color: var(--text-light);
+    }
+    
+    .btn-action {
+        padding: 0.5rem 1rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 0.75rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: var(--text-light);
+    }
+    
+    .btn-action.btn-primary {
+        background: var(--primary-color);
+    }
+    
+    .btn-action.btn-primary:hover {
+        background: var(--secondary-color);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: var(--text-light);
+    }
+    
+    .btn-action.btn-secondary {
+        background: var(--text-secondary);
+    }
+    
+    .btn-action.btn-secondary:hover {
+        background: var(--text-primary);
+        transform: translateY(-1px);
+        text-decoration: none;
+        color: var(--text-light);
+    }
+    
+    /* Empty State */
+    .empty-state {
+        background: var(--ui-surface);
+        padding: 4rem 2rem;
+        border-radius: var(--radius-md);
+        text-align: center;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .empty-state i {
+        font-size: 4rem;
+        color: var(--text-muted);
+        margin-bottom: 1rem;
+    }
+    
+    .empty-state h3 {
+        font-size: 1.5rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .empty-state p {
+        color: var(--text-secondary);
+        font-size: 1rem;
+        margin-bottom: 2rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .btn-browse {
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: var(--radius-sm);
+        font-size: 1rem;
+        font-weight: 500;
+        font-family: 'Poppins', sans-serif;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        background: var(--primary-color);
+        color: var(--text-light);
+    }
+    
+    .btn-browse:hover {
+        background: var(--secondary-color);
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+        text-decoration: none;
+        color: var(--text-light);
+    }
+    
+    /* Mobile Responsive Styles */
+    @media (max-width: 767.98px) {
+        .container-fluid {
+            padding: 0.75rem !important;
+        }
+        
+        .directory-header {
+            padding: 1rem !important;
+            border-radius: 0 !important;
+        }
+        
+        .directory-title {
+            font-size: 1rem !important;
+        }
+        
+        .directory-subtitle {
+            font-size: 0.75rem !important;
+        }
+        
+        .stats-section {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 0.75rem !important;
+        }
+        
+        .stat-card {
+            padding: 1rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.5rem !important;
+        }
+        
+        .stat-label {
+            font-size: 0.65rem !important;
+        }
+        
+        .history-header {
+            padding: 1rem !important;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+        
+        .history-title {
+            font-size: 0.9375rem !important;
+        }
+        
+        /* Stack table on mobile */
+        .table-responsive {
+            border: 0;
+        }
+        
+        .donation-table thead {
+            display: none;
+        }
+        
+        .donation-table tbody tr {
+            display: block;
+            margin-bottom: 1rem;
+            border: 1px solid var(--ui-border);
+            border-radius: var(--radius-md);
+            background: white;
+            box-shadow: var(--shadow-sm);
+        }
+        
+        .donation-table tbody td {
+            display: block;
+            text-align: right;
+            padding: 0.75rem !important;
+            border: none;
+            border-bottom: 1px solid #f0f0f0;
+            font-size: 0.75rem !important;
+        }
+        
+        .donation-table tbody td:last-child {
+            border-bottom: none;
+        }
+        
+        .donation-table tbody td::before {
+            content: attr(data-label);
+            float: left;
+            font-weight: bold;
+            color: var(--text-secondary);
+            font-size: 0.75rem;
+        }
+        
+        .btn-action {
+            width: 100%;
+            justify-content: center;
+            font-size: 0.75rem !important;
+            padding: 0.5rem !important;
+        }
+        
+        .empty-state {
+            padding: 2rem 1rem !important;
+        }
+        
+        .empty-state i {
+            font-size: 3rem !important;
+        }
+        
+        .empty-state h3 {
+            font-size: 1.125rem !important;
+        }
+        
+        .empty-state p {
+            font-size: 0.875rem !important;
+        }
+        
+        .btn-browse {
+            font-size: 0.875rem !important;
+            padding: 0.625rem 1.5rem !important;
+        }
+    }
+    
+    @media (max-width: 575.98px) {
+        .directory-title {
+            font-size: 0.875rem !important;
+        }
+        
+        .directory-subtitle {
+            font-size: 0.7rem !important;
+        }
+        
+        .stat-number {
+            font-size: 1.25rem !important;
+        }
+        
+        .stat-label {
+            font-size: 0.6rem !important;
+        }
+        
+        .history-title {
+            font-size: 0.875rem !important;
+        }
+        
+        .donation-table tbody td {
+            font-size: 0.7rem !important;
+            padding: 0.625rem !important;
+        }
+        
+        .donation-table tbody td::before {
+            font-size: 0.7rem;
+        }
+        
+        .status-badge {
+            font-size: 0.65rem !important;
+            padding: 0.3rem 0.6rem !important;
+        }
+    }
+</style>
+{% endblock %}
 
-<div class="row mb-4">
-    <div class="col-md-4">
-        <div class="card bg-primary text-white mb-4">
-            <div class="card-body">
-                <h5 class="card-title">{% trans "Total Donated" %}</h5>
-                <h2 class="display-6">{{ total_donated }}</h2>
-            </div>
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title">{% trans "My Donation History" %}</h1>
+        <p class="directory-subtitle">{% trans "View and track all your contributions to NORSU campaigns" %}</p>
+    </div>
+
+    <!-- Statistics Section -->
+    <div class="stats-section">
+        <div class="stat-card bg-gradient-primary text-white">
+            <span class="stat-number">₱{{ total_donated|floatformat:2|intcomma }}</span>
+            <span class="stat-label">{% trans "Total Donated" %}</span>
+        </div>
+        <div class="stat-card bg-gradient-success text-white">
+            <span class="stat-number">{{ campaigns_supported }}</span>
+            <span class="stat-label">{% trans "Campaigns Supported" %}</span>
+        </div>
+        <div class="stat-card bg-gradient-info text-white">
+            <span class="stat-number">{{ donations|length }}</span>
+            <span class="stat-label">{% trans "Total Donations" %}</span>
         </div>
     </div>
-    <div class="col-md-4">
-        <div class="card bg-success text-white mb-4">
-            <div class="card-body">
-                <h5 class="card-title">{% trans "Campaigns Supported" %}</h5>
-                <h2 class="display-6">{{ campaigns_supported }}</h2>
-            </div>
-        </div>
-    </div>
-    <div class="col-md-4">
-        <div class="card bg-info text-white mb-4">
-            <div class="card-body">
-                <h5 class="card-title">{% trans "Total Donations" %}</h5>
-                <h2 class="display-6">{{ donations|length }}</h2>
-            </div>
-        </div>
-    </div>
-</div>
 
-{% if donations %}
-<div class="card">
-    <div class="card-header bg-light">
-        <h5 class="mb-0">{% trans "Donation History" %}</h5>
+    <!-- Donation History Table -->
+    {% if donations %}
+    <div class="history-section">
+        <div class="history-header">
+            <h2 class="history-title">
+                <i class="fas fa-history"></i>
+                {% trans "Donation History" %}
+            </h2>
+            <span class="status-badge status-completed">{{ donations|length }} {% trans "Records" %}</span>
+        </div>
+        <div class="table-responsive">
+            <table class="donation-table">
+                <thead>
+                    <tr>
+                        <th>{% trans "Campaign" %}</th>
+                        <th>{% trans "Amount" %}</th>
+                        <th>{% trans "Date" %}</th>
+                        <th>{% trans "Status" %}</th>
+                        <th>{% trans "Actions" %}</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for donation in donations %}
+                    <tr>
+                        <td data-label="{% trans 'Campaign' %}">
+                            <a href="{{ donation.campaign.get_absolute_url }}" class="campaign-link">
+                                {{ donation.campaign.name }}
+                            </a>
+                        </td>
+                        <td data-label="{% trans 'Amount' %}">
+                            <strong>₱{{ donation.amount|floatformat:2|intcomma }}</strong>
+                        </td>
+                        <td data-label="{% trans 'Date' %}">
+                            {{ donation.donation_date|date:"M d, Y" }}
+                        </td>
+                        <td data-label="{% trans 'Status' %}">
+                            {% if donation.status == 'completed' %}
+                                <span class="status-badge status-completed">
+                                    <i class="fas fa-check-circle"></i>
+                                    {{ donation.get_status_display }}
+                                </span>
+                            {% elif donation.status == 'pending' %}
+                                <span class="status-badge status-pending">
+                                    <i class="fas fa-clock"></i>
+                                    {{ donation.get_status_display }}
+                                </span>
+                            {% elif donation.status == 'failed' %}
+                                <span class="status-badge status-failed">
+                                    <i class="fas fa-times-circle"></i>
+                                    {{ donation.get_status_display }}
+                                </span>
+                            {% else %}
+                                <span class="status-badge">
+                                    {{ donation.get_status_display }}
+                                </span>
+                            {% endif %}
+                        </td>
+                        <td data-label="{% trans 'Actions' %}">
+                            {% if donation.status == 'pending' %}
+                                <a href="{% url 'donations:payment_instructions' pk=donation.pk %}" 
+                                   class="btn-action btn-primary">
+                                    <i class="fas fa-upload"></i>
+                                    {% trans "Upload Proof" %}
+                                </a>
+                            {% else %}
+                                <a href="{% url 'donations:donation_confirmation' donation.pk %}" 
+                                   class="btn-action btn-secondary">
+                                    <i class="fas fa-receipt"></i>
+                                    {% trans "Receipt" %}
+                                </a>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead>
-                <tr>
-                    <th>{% trans "Campaign" %}</th>
-                    <th>{% trans "Amount" %}</th>
-                    <th>{% trans "Date" %}</th>
-                    <th>{% trans "Status" %}</th>
-                    <th>{% trans "Actions" %}</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for donation in donations %}
-                <tr>
-                    <td>
-                        <a href="{{ donation.campaign.get_absolute_url }}">
-                            {{ donation.campaign.name }}
-                        </a>
-                    </td>
-                    <td>{{ donation.amount }}</td>
-                    <td>{{ donation.donation_date|date:"M d, Y" }}</td>
-                    <td>
-                        <span class="badge bg-{{ donation.status|yesno:'success,warning' }}">
-                            {{ donation.get_status_display }}
-                        </span>
-                    </td>
-                    <td>
-                        <a href="{% url 'donations:donation_confirmation' donation.pk %}" class="btn btn-sm btn-outline-primary">
-                            <i class="fas fa-receipt"></i> {% trans "Receipt" %}
-                        </a>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% else %}
+    <!-- Empty State -->
+    <div class="empty-state">
+        <i class="fas fa-hand-holding-heart"></i>
+        <h3>{% trans "No Donations Yet" %}</h3>
+        <p>{% trans "You haven't made any donations yet. Start supporting campaigns today!" %}</p>
+        <a href="{% url 'donations:campaign_list' %}" class="btn-browse">
+            <i class="fas fa-search"></i>
+            {% trans "Browse Campaigns" %}
+        </a>
     </div>
+    {% endif %}
 </div>
-{% else %}
-<div class="alert alert-info">
-    <i class="fas fa-info-circle me-2"></i> {% trans "You haven't made any donations yet." %}
-</div>
-<div class="text-center mt-4">
-    <a href="{% url 'donations:campaign_list' %}" class="btn btn-primary">
-        {% trans "Browse Campaigns" %}
-    </a>
-</div>
-{% endif %}
-{% endblock %} 
+{% endblock %}

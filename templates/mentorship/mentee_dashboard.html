@@ -1613,7 +1613,7 @@ function viewMeetings(mentorshipId) {
         })
         .catch(error => {
             console.error('Error fetching meetings:', error);
-            showToast('error', `Failed to load meetings: ${error.message}`);
+            ToastUtils.showError(`Failed to load meetings: ${error.message}`);
         });
 }
 
@@ -1622,14 +1622,14 @@ function showProgressDetails(mentorshipId) {
     const timelineText = document.querySelector(`#mentorship-${mentorshipId} .timeline-text`);
     
     if (!timelineText || !timelineText.textContent.trim()) {
-        showToast('error', 'No timeline data available');
+        ToastUtils.showError('No timeline data available');
         return;
     }
     
     const milestones = parseTimelineText(timelineText.textContent);
     
     if (!milestones || milestones.length === 0) {
-        showToast('error', 'No milestones found in timeline');
+        ToastUtils.showError('No milestones found in timeline');
         return;
     }
     
@@ -2007,7 +2007,7 @@ function initializeMilestoneButtons() {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -2018,7 +2018,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -2117,7 +2117,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Ensure mentoringDaysInfo is visible by default
@@ -2773,7 +2773,7 @@ function setExpectedEndDateFromTemplate(templateId) {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -2784,7 +2784,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -2888,7 +2888,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Add initialization for the template apply button
@@ -2911,7 +2911,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (templateSelector && templateSelector.value) {
                 applyMilestoneTemplate(templateSelector.value);
             } else {
-                showToast('warning', 'Please select a template first');
+                ToastUtils.showWarning('Please select a template first');
             }
         });
     }
@@ -3021,7 +3021,7 @@ const originalApplyMilestoneTemplate = applyMilestoneTemplate;
 applyMilestoneTemplate = function(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -3032,7 +3032,7 @@ applyMilestoneTemplate = function(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -3121,7 +3121,7 @@ applyMilestoneTemplate = function(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 };
 
 // Function to submit the timeline - update to use the new structure
@@ -3143,7 +3143,7 @@ submitTimeline = function() {
                 
                 // Verify required fields
                 if (!expectedEndDateInput || !expectedEndDateInput.value) {
-                    showToast('error', 'Please set an expected end date');
+                    ToastUtils.showError('Please set an expected end date');
                     return;
                 }
                 
@@ -3170,12 +3170,12 @@ submitTimeline = function() {
                 });
                 
                 if (hasEmptyFields) {
-                    showToast('error', 'Please fill in all required milestone fields');
+                    ToastUtils.showError('Please fill in all required milestone fields');
                     return;
                 }
                 
                 if (milestones.length === 0) {
-                    showToast('error', 'Please add at least one milestone');
+                    ToastUtils.showError('Please add at least one milestone');
                     return;
                 }
                 
@@ -3225,14 +3225,14 @@ submitTimeline = function() {
                 })
                 .then(data => {
                     if (data.success) {
-                        showToast('success', 'Timeline saved successfully');
+                        ToastUtils.showSuccess('Timeline saved successfully');
                         // Close the modal
                         const closeBtn = document.querySelector('#timelineModal .btn-close');
                         if (closeBtn) closeBtn.click();
                         // Refresh the page
                         setTimeout(() => window.location.reload(), 1000);
                     } else {
-                        showToast('error', data.error || 'Failed to save timeline');
+                        ToastUtils.showError(data.error || 'Failed to save timeline');
                         if (saveButton) {
                             saveButton.disabled = false;
                             saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -3241,7 +3241,7 @@ submitTimeline = function() {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('error', `An error occurred while saving: ${error.message || 'Unknown error'}`);
+                    ToastUtils.showError(`An error occurred while saving: ${error.message || 'Unknown error'}`);
                     if (saveButton) {
                         saveButton.disabled = false;
                         saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -3260,7 +3260,7 @@ submitTimeline = function() {
     }
     
     // If original function doesn't exist, show an error
-    showToast('error', 'Timeline submission function not found');
+    ToastUtils.showError('Timeline submission function not found');
 };
 </script>
 
@@ -3278,15 +3278,7 @@ function getStatusText(status) {
     }
 }
 
-// Function to show toast notifications
-function showToast(type, message) {
-    const toastElement = document.getElementById('toast');
-    const toastBody = document.getElementById('toastBody');
-    
-    // Set toast content based on type
-    if (type === 'success') {
-        toastBody.innerHTML = `<i class="fas fa-check-circle me-2 text-success"></i>${message}`;
-    } else if (type === 'error') {
+// Toast notifications now use ToastUtils API else if (type === 'error') {
         toastBody.innerHTML = `<i class="fas fa-exclamation-circle me-2 text-danger"></i>${message}`;
     } else if (type === 'warning') {
         toastBody.innerHTML = `<i class="fas fa-exclamation-triangle me-2 text-warning"></i>${message}`;
@@ -3295,8 +3287,7 @@ function showToast(type, message) {
     }
     
     // Show the toast
-    const toast = new bootstrap.Toast(toastElement);
-    toast.show();
+    // Replaced with ToastUtils API
 }
 
 function sendMessage(mentorshipId) {
@@ -3358,7 +3349,7 @@ function submitMessage() {
         var modal = bootstrap.Modal.getInstance(messageModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Message sent successfully');
+        ToastUtils.showSuccess('Message sent successfully');
         // Redirect to messaging page with the conversation
         setTimeout(() => {
             window.location.href = `/mentorship/messages/create/${mentorshipId}/`;
@@ -3366,7 +3357,7 @@ function submitMessage() {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to send message. Please try again.');
+        ToastUtils.showError('Failed to send message. Please try again.');
     });
 }
 
@@ -3407,13 +3398,13 @@ function submitMeeting(event) {
         
         if (missingFields.length > 0) {
             const errorMessage = `Please fill out the following required fields: ${missingFields.join(', ')}`;
-            showToast('error', errorMessage);
+            ToastUtils.showError(errorMessage);
             return;
         }
         
         // Validate that the meeting link is valid
         if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-            showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+            ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
             return;
         }
         
@@ -3461,16 +3452,16 @@ function submitMeeting(event) {
             var modal = bootstrap.Modal.getInstance(meetingModal);
             if (modal) modal.hide();
             
-            showToast('success', 'Meeting scheduled successfully with the link provided');
+            ToastUtils.showSuccess('Meeting scheduled successfully with the link provided');
             setTimeout(() => location.reload(), 1500);
         })
         .catch(error => {
             console.error('Error:', error);
-            showToast('error', error.message || 'Failed to schedule meeting. Please try again.');
+            ToastUtils.showError(error.message || 'Failed to schedule meeting. Please try again.');
         });
     } catch (error) {
         console.error('Exception in submitMeeting:', error);
-        showToast('error', 'An unexpected error occurred. Please try again.');
+        ToastUtils.showError('An unexpected error occurred. Please try again.');
     }
 }
 
@@ -3523,7 +3514,7 @@ function validateMilestoneDate(dateInput) {
     const expectedEndDateInput = document.getElementById('expectedEndDate');
     
     if (!expectedEndDateInput || !expectedEndDateInput.value) {
-        showToast('warning', 'Please set an expected end date first');
+        ToastUtils.showWarning('Please set an expected end date first');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -3539,13 +3530,13 @@ function validateMilestoneDate(dateInput) {
     today.setDate(today.getDate() - 1); // Allow today by setting comparison to yesterday
     
     if (milestoneDate <= today) { // Using <= to compare with yesterday
-        showToast('warning', 'Milestone date cannot be in the past');
+        ToastUtils.showWarning('Milestone date cannot be in the past');
         dateInput.classList.add('is-invalid');
         return false;
     }
     
     if (milestoneDate > endDate) {
-        showToast('warning', 'Milestone date cannot be after the expected end date');
+        ToastUtils.showWarning('Milestone date cannot be after the expected end date');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -3579,7 +3570,7 @@ function submitTimeline() {
     const timelineAlert = document.getElementById('timeline-alert');
     if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
         // There are validation errors, don't submit
-        showToast('error', 'Please fix the timeline date errors before saving.');
+        ToastUtils.showError('Please fix the timeline date errors before saving.');
         return;
     }
     
@@ -3590,7 +3581,7 @@ function submitTimeline() {
     
     // Validate required fields
     if (!expectedEndDate) {
-        showToast('error', 'Please select an expected end date');
+        ToastUtils.showError('Please select an expected end date');
         return;
     }
     
@@ -3603,7 +3594,7 @@ function submitTimeline() {
         const addMilestoneBtn = document.getElementById('add-milestone-btn');
         if (addMilestoneBtn) {
             addMilestoneBtn.click();
-            showToast('error', 'Please add at least one milestone with both period and description');
+            ToastUtils.showError('Please add at least one milestone with both period and description');
             return;
         }
     }
@@ -3643,7 +3634,7 @@ function submitTimeline() {
     });
     
     if (!hasValidMilestones) {
-        showToast('error', 'Please add at least one milestone with both period and description');
+        ToastUtils.showError('Please add at least one milestone with both period and description');
         return;
     }
     
@@ -3682,12 +3673,12 @@ function submitTimeline() {
         var modal = bootstrap.Modal.getInstance(timelineModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Mentorship timeline updated successfully');
+        ToastUtils.showSuccess('Mentorship timeline updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        ToastUtils.showError(error.message || 'Failed to update timeline. Please try again.');
         
         // Reset button state
         submitButton.disabled = false;

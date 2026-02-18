@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils.text import slugify
 from announcements.models import Category
+from django.db import transaction
 
 
 class Command(BaseCommand):
@@ -19,24 +20,58 @@ class Command(BaseCommand):
         ]
 
         created_count = 0
-        for category_data in categories:
-            category, created = Category.objects.get_or_create(
-                name=category_data['name'],
-                defaults={
-                    'description': category_data['description'],
-                    'slug': slugify(category_data['name'])
-                }
-            )
-            if created:
-                created_count += 1
-                self.stdout.write(
-                    self.style.SUCCESS(f'Created category: {category.name}')
-                )
-            else:
-                self.stdout.write(
-                    self.style.WARNING(f'Category already exists: {category.name}')
-                )
+        updated_count = 0
+        
+        try:
+            with transaction.atomic():
+                for category_data in categories:
+                    category, created = Category.objects.get_or_create(
+                        name=category_data['name'],
+                        defaults={
+                            'description': category_data['description'],
+                            'slug': slugify(category_data['name'])
+                        }
+                    )
+                    
+                    if created:
+                        created_count += 1
+                        self.stdout.write(
+                            self.style.SUCCESS(f'✅ Created category: {category.name}')
+                        )
+                    else:
+                        # Update existing category if needed
+                        if category.description != category_data['description']:
+                            category.description = category_data['description']
+                            category.save()
+                            updated_count += 1
+                            self.stdout.write(
+                                self.style.WARNING(f'🔄 Updated category: {category.name}')
+                            )
+                        else:
+                            self.stdout.write(
+                                self.style.WARNING(f'ℹ️  Category already exists: {category.name}')
+                            )
 
-        self.stdout.write(
-            self.style.SUCCESS(f'Successfully created {created_count} new categories')
-        )
+                # Verify categories were created
+                total_categories = Category.objects.count()
+                self.stdout.write(
+                    self.style.SUCCESS(f'\n📊 Summary:')
+                )
+                self.stdout.write(f'   • Created: {created_count} new categories')
+                self.stdout.write(f'   • Updated: {updated_count} categories')
+                self.stdout.write(f'   • Total in database: {total_categories} categories')
+                
+                if total_categories == 0:
+                    self.stdout.write(
+                        self.style.ERROR('⚠️  WARNING: No categories in database!')
+                    )
+                else:
+                    self.stdout.write(
+                        self.style.SUCCESS(f'✅ Successfully populated announcement categories')
+                    )
+                    
+        except Exception as e:
+            self.stdout.write(
+                self.style.ERROR(f'❌ Error populating categories: {str(e)}')
+            )
+            raise

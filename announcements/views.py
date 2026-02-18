@@ -202,8 +202,10 @@ class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
         content = escape(normalize_newlines(form.instance.content))
         form.instance.content = content.replace('\n', '<br>')
         
-        # No need to modify category handling as the form will properly set
-        # the category based on the selected predefined option
+        # Get the category from cleaned_data (it's already a Category instance from clean_category)
+        category = form.cleaned_data.get('category')
+        if category:
+            form.instance.category = category
         
         response = super().form_valid(form)
         # Send email notification
@@ -384,6 +386,11 @@ class PublicAnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, Succ
         # Normalize newlines and escape content, then convert newlines to <br>
         content = escape(normalize_newlines(form.instance.content))
         form.instance.content = content.replace('\n', '<br>')
+        
+        # Get the category from cleaned_data (it's already a Category instance from clean_category)
+        category = form.cleaned_data.get('category')
+        if category:
+            form.instance.category = category
         
         # Force target audience to "ALL" for public announcements
         form.instance.target_audience = 'ALL'

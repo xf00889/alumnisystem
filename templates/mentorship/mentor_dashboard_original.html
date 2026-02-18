@@ -1205,7 +1205,7 @@ function validateMilestoneDate(dateInput) {
     const expectedEndDateInput = document.getElementById('expectedEndDate');
     
     if (!expectedEndDateInput || !expectedEndDateInput.value) {
-        showToast('warning', 'Please set an expected end date first');
+        ToastUtils.showWarning('Please set an expected end date first');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -1221,13 +1221,13 @@ function validateMilestoneDate(dateInput) {
     today.setDate(today.getDate() - 1); // Allow today by setting comparison to yesterday
     
     if (milestoneDate <= today) { // Using <= to compare with yesterday
-        showToast('warning', 'Milestone date cannot be in the past');
+        ToastUtils.showWarning('Milestone date cannot be in the past');
         dateInput.classList.add('is-invalid');
         return false;
     }
     
     if (milestoneDate > endDate) {
-        showToast('warning', 'Milestone date cannot be after the expected end date');
+        ToastUtils.showWarning('Milestone date cannot be after the expected end date');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -1284,7 +1284,7 @@ function toggleAvailability() {
     
     if (!mentorId) {
         console.error('No mentor ID found in data attribute');
-        showToast('error', 'Failed to update availability: No mentor ID found');
+        ToastUtils.showError('Failed to update availability: No mentor ID found');
         return;
     }
 
@@ -1301,7 +1301,7 @@ function toggleAvailability() {
         },
         success: function(response) {
             console.log('Toggle success:', response);
-            showToast('success', `Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
+            ToastUtils.showSuccess(`Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
         },
         error: function(xhr, status, error) {
             console.error('Error toggling availability:', xhr.responseText || error);
@@ -1318,7 +1318,7 @@ function toggleAvailability() {
                 errorMessage = xhr.statusText ? `Error: ${xhr.statusText}` : errorMessage;
             }
             
-            showToast('error', errorMessage);
+            ToastUtils.showError(errorMessage);
             // Revert the toggle to its previous state
             toggle.checked = !isAvailable;
         }
@@ -1338,11 +1338,11 @@ function updateStatus(requestId, status) {
             'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
         success: function(response) {
-            showToast('Success', response.message, 'success');
+            ToastUtils.showSuccess(response.message);
             setTimeout(() => window.location.reload(), 1500);
         },
         error: function(xhr, status, error) {
-            showToast('Error', 'Failed to update request status', 'error');
+            ToastUtils.showError('Failed to update request status');
         }
         });
 }
@@ -1390,7 +1390,7 @@ function updateProgress(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch current progress. Using default values.');
+        ToastUtils.showError('Failed to fetch current progress. Using default values.');
         modal.show(); // Show modal anyway
     });
 }
@@ -1445,12 +1445,12 @@ function submitProgress() {
         var modal = bootstrap.Modal.getInstance(progressModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Progress updated successfully');
+        ToastUtils.showSuccess('Progress updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update progress. Please try again.');
+        ToastUtils.showError('Failed to update progress. Please try again.');
     });
 }
 
@@ -1464,13 +1464,13 @@ function submitMeeting() {
     
     // Validate that required fields are filled
     if (!meetingTitle || !meetingDate || !meetingLink) {
-        showToast('error', 'Please fill out all required fields, including the meeting link.');
+        ToastUtils.showError('Please fill out all required fields, including the meeting link.');
         return;
     }
     
     // Validate that the meeting link is valid
     if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-        showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+        ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
         return;
     }
     
@@ -1500,12 +1500,12 @@ function submitMeeting() {
         var modal = bootstrap.Modal.getInstance(meetingModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Meeting scheduled successfully with the link provided');
+        ToastUtils.showSuccess('Meeting scheduled successfully with the link provided');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -1540,54 +1540,16 @@ function submitMessage() {
         var modal = bootstrap.Modal.getInstance(messageModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Message sent successfully');
+        ToastUtils.showSuccess('Message sent successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to send message. Please try again.');
+        ToastUtils.showError('Failed to send message. Please try again.');
     });
 }
 
-// Show toast notification
-    function showToast(type, message) {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type} show`;
-        toast.innerHTML = `
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        `;
-        
-        // Add toast container if it doesn't exist
-        let container = document.querySelector('.toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            container.style.zIndex = '9999'; // Increased from 1050 to ensure it's always on top
-            document.body.appendChild(container);
-        }
-        
-        container.appendChild(toast);
-        
-        // Initialize Bootstrap toast
-        const bsToast = new bootstrap.Toast(toast, {
-            autohide: true,
-            delay: 3000
-        });
-        bsToast.show();
-        
-        // Remove toast after it's hidden
-        toast.addEventListener('hidden.bs.toast', () => {
-            toast.remove();
-        });
-    }
+// Toast notifications now use ToastUtils API
 
 // CSRF Token helper
 function getCookie(name) {
@@ -1746,7 +1708,7 @@ function setTimeline(mentorshipId) {
     var timelineModal = document.getElementById('timelineModal');
     if (!timelineModal) {
         console.error('Timeline modal element not found');
-        showToast('error', 'Timeline modal not found. Please refresh the page and try again.');
+        ToastUtils.showError('Timeline modal not found. Please refresh the page and try again.');
         return;
     }
     
@@ -1755,7 +1717,7 @@ function setTimeline(mentorshipId) {
     const mentorshipIdInput = document.getElementById('mentorshipIdForTimeline');
     if (!mentorshipIdInput) {
         console.error('Mentorship ID input element not found');
-        showToast('error', 'Form elements not found. Please refresh the page and try again.');
+        ToastUtils.showError('Form elements not found. Please refresh the page and try again.');
         return;
     }
     mentorshipIdInput.value = mentorshipId;
@@ -1815,7 +1777,7 @@ function setTimeline(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -1829,7 +1791,7 @@ function submitTimeline() {
     const timelineAlert = document.getElementById('timeline-alert');
     if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
         // There are validation errors, don't submit
-        showToast('error', 'Please fix the timeline date errors before saving.');
+        ToastUtils.showError('Please fix the timeline date errors before saving.');
         return;
     }
     
@@ -1840,7 +1802,7 @@ function submitTimeline() {
     
     // Validate required fields
     if (!expectedEndDate) {
-        showToast('error', 'Please select an expected end date');
+        ToastUtils.showError('Please select an expected end date');
         return;
     }
     
@@ -1853,7 +1815,7 @@ function submitTimeline() {
         const addMilestoneBtn = document.getElementById('add-milestone-btn');
         if (addMilestoneBtn) {
             addMilestoneBtn.click();
-            showToast('error', 'Please add at least one milestone with both period and description');
+            ToastUtils.showError('Please add at least one milestone with both period and description');
             return;
         }
     }
@@ -1893,7 +1855,7 @@ function submitTimeline() {
     });
     
     if (!hasValidMilestones) {
-        showToast('error', 'Please add at least one milestone with both period and description');
+        ToastUtils.showError('Please add at least one milestone with both period and description');
         return;
     }
     
@@ -1932,12 +1894,12 @@ function submitTimeline() {
         var modal = bootstrap.Modal.getInstance(timelineModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Mentorship timeline updated successfully');
+        ToastUtils.showSuccess('Mentorship timeline updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        ToastUtils.showError(error.message || 'Failed to update timeline. Please try again.');
         
         // Reset button state
         submitButton.disabled = false;
@@ -2361,7 +2323,7 @@ function showTimelineStatusModal(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -2505,12 +2467,12 @@ function saveTimelineStatus() {
         var modal = bootstrap.Modal.getInstance(statusModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Timeline status updated successfully');
+        ToastUtils.showSuccess('Timeline status updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update timeline status. Please try again.');
+        ToastUtils.showError('Failed to update timeline status. Please try again.');
     });
 }
 
@@ -2636,7 +2598,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
         return response.json();
     })
     .then(data => {
-        showToast('success', 'Milestone status updated');
+        ToastUtils.showSuccess('Milestone status updated');
         
         // Update the UI without reloading
         const card = selectElement.closest('.timeline-milestone-card');
@@ -2661,7 +2623,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update milestone status');
+        ToastUtils.showError('Failed to update milestone status');
         
         // Reset the select to its previous value
         selectElement.value = selectElement.getAttribute('data-previous-value');
@@ -2794,7 +2756,7 @@ function showProgressDetails(mentorshipId) {
         // Validate mentorshipId
         if (!mentorshipId || mentorshipId === '') {
             console.error('Invalid mentorship ID');
-            showToast('error', 'Error loading progress details: Invalid mentorship ID');
+            ToastUtils.showError('Error loading progress details: Invalid mentorship ID');
             return;
         }
         
@@ -2802,7 +2764,7 @@ function showProgressDetails(mentorshipId) {
         var progressDetailsModal = document.getElementById('progressDetailsModal');
         if (!progressDetailsModal) {
             console.error('Progress details modal element not found');
-            showToast('error', 'Error loading progress details: Modal not found');
+            ToastUtils.showError('Error loading progress details: Modal not found');
             return;
         }
         
@@ -2890,13 +2852,13 @@ function showProgressDetails(mentorshipId) {
                 modal.show();
             } catch (innerError) {
                 console.error('Error processing mentorship data:', innerError);
-                showToast('error', 'Error processing mentorship data');
+                ToastUtils.showError('Error processing mentorship data');
             }
         })
         .catch(error => {
             console.error('Error fetching mentorship data:', error);
             // Show a more informative error message to the user
-            showToast('error', `Failed to fetch progress details: ${error.message || 'Please try again.'}`);
+            ToastUtils.showError(`Failed to fetch progress details: ${error.message || 'Please try again.'}`);
             // Optionally close the modal if it's showing a loading state
             if (modal && typeof modal.hide === 'function') {
                 modal.hide();
@@ -2904,7 +2866,7 @@ function showProgressDetails(mentorshipId) {
         });
     } catch (error) {
         console.error('Error in showProgressDetails:', error);
-        showToast('error', 'An unexpected error occurred');
+        ToastUtils.showError('An unexpected error occurred');
     }
 }
 
@@ -3004,7 +2966,7 @@ function parseMilestonesForDetails(timelineText, mentorshipId) {
         renderMilestoneTable(milestones, mentorshipId);
     } catch (error) {
         console.error('Error parsing milestones:', error);
-        showToast('error', 'Error parsing milestone data');
+        ToastUtils.showError('Error parsing milestone data');
     }
 }
 
@@ -3252,7 +3214,7 @@ function updateQuickMilestoneStatus(selectElement) {
         // Validate required data
         if (!period || !mentorshipId || !status) {
             console.error('Missing required data for milestone update:', { period, mentorshipId, status });
-            showToast('error', 'Missing required data for milestone update');
+            ToastUtils.showError('Missing required data for milestone update');
             return;
         }
         
@@ -3302,7 +3264,7 @@ function updateQuickMilestoneStatus(selectElement) {
         })
         .then(data => {
             console.log('Timeline update successful:', data);
-            showToast('success', 'Milestone status updated');
+            ToastUtils.showSuccess('Milestone status updated');
             
             // Update the UI to reflect the changes
             try {
@@ -3381,7 +3343,7 @@ function updateQuickMilestoneStatus(selectElement) {
         })
         .catch(error => {
             console.error('Error in milestone update process:', error);
-            showToast('error', error.message || 'Failed to update milestone status');
+            ToastUtils.showError(error.message || 'Failed to update milestone status');
             
             // Restore the original HTML
             if (parentElement) {
@@ -3398,7 +3360,7 @@ function updateQuickMilestoneStatus(selectElement) {
         });
     } catch (error) {
         console.error('Unexpected error in updateQuickMilestoneStatus:', error);
-        showToast('error', 'An unexpected error occurred');
+        ToastUtils.showError('An unexpected error occurred');
         
         // Try to restore the original state
         try {
@@ -3673,7 +3635,7 @@ function getSkillColor(index) {
 function setupErrorHandling() {
     $(document).ajaxError(function(event, jqXHR, settings, error) {
         console.error('AJAX Error:', error);
-        showToast('Error', 'An error occurred. Please try again.', 'error');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 
@@ -3774,7 +3736,7 @@ function updateMentorshipStatus(mentorshipId, newStatus) {
             contentType: 'application/json',
         success: function(response) {
                 modal.hide();
-                showToast('success', response.message);
+                ToastUtils.showSuccess(response.message);
                 
                 // Update UI based on the new status
                 const mentorshipItem = document.querySelector(`.mentorship-item[data-mentorship-id="${mentorshipId}"]`);
@@ -3845,7 +3807,7 @@ function updateMentorshipStatus(mentorshipId, newStatus) {
             },
             error: function(xhr) {
                 console.error('Error updating mentorship status:', xhr);
-                showToast('error', xhr.responseJSON?.error || 'Failed to update mentorship status');
+                ToastUtils.showError(xhr.responseJSON?.error || 'Failed to update mentorship status');
             }
         });
     });
@@ -4084,7 +4046,7 @@ function initializeMilestoneButtons() {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -4095,7 +4057,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -4194,7 +4156,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Ensure mentoringDaysInfo is visible by default
@@ -4885,7 +4847,7 @@ function setExpectedEndDateFromTemplate(templateId) {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -4896,7 +4858,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -5000,7 +4962,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Add initialization for the template apply button
@@ -5023,7 +4985,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (templateSelector && templateSelector.value) {
                 applyMilestoneTemplate(templateSelector.value);
             } else {
-                showToast('warning', 'Please select a template first');
+                ToastUtils.showWarning('Please select a template first');
             }
         });
     }
@@ -5133,7 +5095,7 @@ const originalApplyMilestoneTemplate = applyMilestoneTemplate;
 applyMilestoneTemplate = function(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -5144,7 +5106,7 @@ applyMilestoneTemplate = function(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -5233,7 +5195,7 @@ applyMilestoneTemplate = function(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 };
 
 // Function to submit the timeline - update to use the new structure
@@ -5255,7 +5217,7 @@ submitTimeline = function() {
                 
                 // Verify required fields
                 if (!expectedEndDateInput || !expectedEndDateInput.value) {
-                    showToast('error', 'Please set an expected end date');
+                    ToastUtils.showError('Please set an expected end date');
                     return;
                 }
                 
@@ -5282,12 +5244,12 @@ submitTimeline = function() {
                 });
                 
                 if (hasEmptyFields) {
-                    showToast('error', 'Please fill in all required milestone fields');
+                    ToastUtils.showError('Please fill in all required milestone fields');
                     return;
                 }
                 
                 if (milestones.length === 0) {
-                    showToast('error', 'Please add at least one milestone');
+                    ToastUtils.showError('Please add at least one milestone');
                     return;
                 }
                 
@@ -5337,14 +5299,14 @@ submitTimeline = function() {
                 })
                 .then(data => {
                     if (data.success) {
-                        showToast('success', 'Timeline saved successfully');
+                        ToastUtils.showSuccess('Timeline saved successfully');
                         // Close the modal
                         const closeBtn = document.querySelector('#timelineModal .btn-close');
                         if (closeBtn) closeBtn.click();
                         // Refresh the page
                         setTimeout(() => window.location.reload(), 1000);
                     } else {
-                        showToast('error', data.error || 'Failed to save timeline');
+                        ToastUtils.showError(data.error || 'Failed to save timeline');
                         if (saveButton) {
                             saveButton.disabled = false;
                             saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -5353,7 +5315,7 @@ submitTimeline = function() {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('error', `An error occurred while saving: ${error.message || 'Unknown error'}`);
+                    ToastUtils.showError(`An error occurred while saving: ${error.message || 'Unknown error'}`);
                     if (saveButton) {
                         saveButton.disabled = false;
                         saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -5372,7 +5334,7 @@ submitTimeline = function() {
     }
     
     // If original function doesn't exist, show an error
-    showToast('error', 'Timeline submission function not found');
+    ToastUtils.showError('Timeline submission function not found');
 };
 
 function updateMeetingLink() {
@@ -5381,13 +5343,13 @@ function updateMeetingLink() {
     
     // Validate meeting link
     if (!meetingLink) {
-        showToast('error', 'Please enter a meeting link');
+        ToastUtils.showError('Please enter a meeting link');
         return;
     }
     
     // Validate that the meeting link is valid
     if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-        showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+        ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
         return;
     }
     
@@ -5412,12 +5374,12 @@ function updateMeetingLink() {
         var modal = bootstrap.Modal.getInstance(editMeetingModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Meeting link updated successfully');
+        ToastUtils.showSuccess('Meeting link updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update meeting link. Please try again.');
+        ToastUtils.showError('Failed to update meeting link. Please try again.');
     });
 }
 </script>
@@ -5434,7 +5396,7 @@ function submitScheduleMeeting(event) {
     
     // Validate required fields
     if (!mentorshipId || !meetingTitle || !meetingDate || !meetingAgenda) {
-        showToast('error', 'Please fill out all required fields.');
+        ToastUtils.showError('Please fill out all required fields.');
         return;
     }
     
@@ -5470,14 +5432,14 @@ function submitScheduleMeeting(event) {
         if (modal) modal.hide();
         
         // Show success message
-        showToast('success', 'Meeting scheduled successfully!');
+        ToastUtils.showSuccess('Meeting scheduled successfully!');
         
         // Reload the page after a short delay
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -5622,7 +5584,7 @@ function setTimeline(mentorshipId) {
     var timelineModal = document.getElementById('timelineModal');
     if (!timelineModal) {
         console.error('Timeline modal element not found');
-        showToast('error', 'Timeline modal not found. Please refresh the page and try again.');
+        ToastUtils.showError('Timeline modal not found. Please refresh the page and try again.');
         return;
     }
     
@@ -5631,7 +5593,7 @@ function setTimeline(mentorshipId) {
     const mentorshipIdInput = document.getElementById('mentorshipIdForTimeline');
     if (!mentorshipIdInput) {
         console.error('Mentorship ID input element not found');
-        showToast('error', 'Form elements not found. Please refresh the page and try again.');
+        ToastUtils.showError('Form elements not found. Please refresh the page and try again.');
         return;
     }
     mentorshipIdInput.value = mentorshipId;
@@ -5691,7 +5653,7 @@ function setTimeline(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -5705,7 +5667,7 @@ function submitTimeline() {
     const timelineAlert = document.getElementById('timeline-alert');
     if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
         // There are validation errors, don't submit
-        showToast('error', 'Please fix the timeline date errors before saving.');
+        ToastUtils.showError('Please fix the timeline date errors before saving.');
         return;
     }
     
@@ -5716,7 +5678,7 @@ function submitTimeline() {
     
     // Validate required fields
     if (!expectedEndDate) {
-        showToast('error', 'Please select an expected end date');
+        ToastUtils.showError('Please select an expected end date');
         return;
     }
     
@@ -5729,7 +5691,7 @@ function submitTimeline() {
         const addMilestoneBtn = document.getElementById('add-milestone-btn');
         if (addMilestoneBtn) {
             addMilestoneBtn.click();
-            showToast('error', 'Please add at least one milestone with both period and description');
+            ToastUtils.showError('Please add at least one milestone with both period and description');
             return;
         }
     }
@@ -5769,7 +5731,7 @@ function submitTimeline() {
     });
     
     if (!hasValidMilestones) {
-        showToast('error', 'Please add at least one milestone with both period and description');
+        ToastUtils.showError('Please add at least one milestone with both period and description');
         return;
     }
     
@@ -5808,12 +5770,12 @@ function submitTimeline() {
         var modal = bootstrap.Modal.getInstance(timelineModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Mentorship timeline updated successfully');
+        ToastUtils.showSuccess('Mentorship timeline updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        ToastUtils.showError(error.message || 'Failed to update timeline. Please try again.');
         
         // Reset button state
         submitButton.disabled = false;
@@ -6223,7 +6185,7 @@ function showTimelineStatusModal(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -6367,12 +6329,12 @@ function saveTimelineStatus() {
         var modal = bootstrap.Modal.getInstance(statusModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Timeline status updated successfully');
+        ToastUtils.showSuccess('Timeline status updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update timeline status. Please try again.');
+        ToastUtils.showError('Failed to update timeline status. Please try again.');
     });
 }
 
@@ -6498,7 +6460,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
         return response.json();
     })
     .then(data => {
-        showToast('success', 'Milestone status updated');
+        ToastUtils.showSuccess('Milestone status updated');
         
         // Update the UI without reloading
         const card = selectElement.closest('.timeline-milestone-card');
@@ -6523,7 +6485,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update milestone status');
+        ToastUtils.showError('Failed to update milestone status');
         
         // Reset the select to its previous value
         selectElement.value = selectElement.getAttribute('data-previous-value');
@@ -6656,7 +6618,7 @@ function showProgressDetails(mentorshipId) {
         // Validate mentorshipId
         if (!mentorshipId || mentorshipId === '') {
             console.error('Invalid mentorship ID');
-            showToast('error', 'Error loading progress details: Invalid mentorship ID');
+            ToastUtils.showError('Error loading progress details: Invalid mentorship ID');
             return;
         }
         
@@ -6664,7 +6626,7 @@ function showProgressDetails(mentorshipId) {
         var progressDetailsModal = document.getElementById('progressDetailsModal');
         if (!progressDetailsModal) {
             console.error('Progress details modal element not found');
-            showToast('error', 'Error loading progress details: Modal not found');
+            ToastUtils.showError('Error loading progress details: Modal not found');
             return;
         }
         
@@ -6721,11 +6683,11 @@ function showProgressDetails(mentorshipId) {
         })
         .catch(error => {
             console.error('Error:', error);
-            showToast('error', 'Failed to load progress details. Please try again.');
+            ToastUtils.showError('Failed to load progress details. Please try again.');
         });
     } catch (error) {
         console.error('Error:', error);
-        showToast('error', 'An unexpected error occurred. Please try again.');
+        ToastUtils.showError('An unexpected error occurred. Please try again.');
     }
 }
 
@@ -6741,7 +6703,7 @@ function submitScheduleMeeting(event) {
     
     // Validate required fields
     if (!mentorshipId || !meetingTitle || !meetingDate || !meetingAgenda) {
-        showToast('error', 'Please fill out all required fields.');
+        ToastUtils.showError('Please fill out all required fields.');
         return;
     }
     
@@ -6777,14 +6739,14 @@ function submitScheduleMeeting(event) {
         if (modal) modal.hide();
         
         // Show success message
-        showToast('success', 'Meeting scheduled successfully!');
+        ToastUtils.showSuccess('Meeting scheduled successfully!');
         
         // Reload the page after a short delay
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -7995,7 +7957,7 @@ function validateMilestoneDate(dateInput) {
     const expectedEndDateInput = document.getElementById('expectedEndDate');
     
     if (!expectedEndDateInput || !expectedEndDateInput.value) {
-        showToast('warning', 'Please set an expected end date first');
+        ToastUtils.showWarning('Please set an expected end date first');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -8011,13 +7973,13 @@ function validateMilestoneDate(dateInput) {
     today.setDate(today.getDate() - 1); // Allow today by setting comparison to yesterday
     
     if (milestoneDate <= today) { // Using <= to compare with yesterday
-        showToast('warning', 'Milestone date cannot be in the past');
+        ToastUtils.showWarning('Milestone date cannot be in the past');
         dateInput.classList.add('is-invalid');
         return false;
     }
     
     if (milestoneDate > endDate) {
-        showToast('warning', 'Milestone date cannot be after the expected end date');
+        ToastUtils.showWarning('Milestone date cannot be after the expected end date');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -8074,7 +8036,7 @@ function toggleAvailability() {
     
     if (!mentorId) {
         console.error('No mentor ID found in data attribute');
-        showToast('error', 'Failed to update availability: No mentor ID found');
+        ToastUtils.showError('Failed to update availability: No mentor ID found');
         return;
     }
 
@@ -8091,7 +8053,7 @@ function toggleAvailability() {
         },
         success: function(response) {
             console.log('Toggle success:', response);
-            showToast('success', `Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
+            ToastUtils.showSuccess(`Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
         },
         error: function(xhr, status, error) {
             console.error('Error toggling availability:', xhr.responseText || error);
@@ -8108,7 +8070,7 @@ function toggleAvailability() {
                 errorMessage = xhr.statusText ? `Error: ${xhr.statusText}` : errorMessage;
             }
             
-            showToast('error', errorMessage);
+            ToastUtils.showError(errorMessage);
             // Revert the toggle to its previous state
             toggle.checked = !isAvailable;
         }
@@ -8128,11 +8090,11 @@ function updateStatus(requestId, status) {
             'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
         success: function(response) {
-            showToast('Success', response.message, 'success');
+            ToastUtils.showSuccess(response.message);
             setTimeout(() => window.location.reload(), 1500);
         },
         error: function(xhr, status, error) {
-            showToast('Error', 'Failed to update request status', 'error');
+            ToastUtils.showError('Failed to update request status');
         }
         });
 }
@@ -8180,7 +8142,7 @@ function updateProgress(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch current progress. Using default values.');
+        ToastUtils.showError('Failed to fetch current progress. Using default values.');
         modal.show(); // Show modal anyway
     });
 }
@@ -8235,12 +8197,12 @@ function submitProgress() {
         var modal = bootstrap.Modal.getInstance(progressModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Progress updated successfully');
+        ToastUtils.showSuccess('Progress updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update progress. Please try again.');
+        ToastUtils.showError('Failed to update progress. Please try again.');
     });
 }
 
@@ -8254,13 +8216,13 @@ function submitMeeting() {
     
     // Validate that required fields are filled
     if (!meetingTitle || !meetingDate || !meetingLink) {
-        showToast('error', 'Please fill out all required fields, including the meeting link.');
+        ToastUtils.showError('Please fill out all required fields, including the meeting link.');
         return;
     }
     
     // Validate that the meeting link is valid
     if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-        showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+        ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
         return;
     }
     
@@ -8290,12 +8252,12 @@ function submitMeeting() {
         var modal = bootstrap.Modal.getInstance(meetingModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Meeting scheduled successfully with the link provided');
+        ToastUtils.showSuccess('Meeting scheduled successfully with the link provided');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -8330,54 +8292,16 @@ function submitMessage() {
         var modal = bootstrap.Modal.getInstance(messageModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Message sent successfully');
+        ToastUtils.showSuccess('Message sent successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to send message. Please try again.');
+        ToastUtils.showError('Failed to send message. Please try again.');
     });
 }
 
-// Show toast notification
-    function showToast(type, message) {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type} show`;
-        toast.innerHTML = `
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        `;
-        
-        // Add toast container if it doesn't exist
-        let container = document.querySelector('.toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            container.style.zIndex = '9999'; // Increased from 1050 to ensure it's always on top
-            document.body.appendChild(container);
-        }
-        
-        container.appendChild(toast);
-        
-        // Initialize Bootstrap toast
-        const bsToast = new bootstrap.Toast(toast, {
-            autohide: true,
-            delay: 3000
-        });
-        bsToast.show();
-        
-        // Remove toast after it's hidden
-        toast.addEventListener('hidden.bs.toast', () => {
-            toast.remove();
-        });
-    }
+// Toast notifications now use ToastUtils API
 
 // CSRF Token helper
 function getCookie(name) {
@@ -8536,7 +8460,7 @@ function setTimeline(mentorshipId) {
     var timelineModal = document.getElementById('timelineModal');
     if (!timelineModal) {
         console.error('Timeline modal element not found');
-        showToast('error', 'Timeline modal not found. Please refresh the page and try again.');
+        ToastUtils.showError('Timeline modal not found. Please refresh the page and try again.');
         return;
     }
     
@@ -8545,7 +8469,7 @@ function setTimeline(mentorshipId) {
     const mentorshipIdInput = document.getElementById('mentorshipIdForTimeline');
     if (!mentorshipIdInput) {
         console.error('Mentorship ID input element not found');
-        showToast('error', 'Form elements not found. Please refresh the page and try again.');
+        ToastUtils.showError('Form elements not found. Please refresh the page and try again.');
         return;
     }
     mentorshipIdInput.value = mentorshipId;
@@ -8605,7 +8529,7 @@ function setTimeline(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -8619,7 +8543,7 @@ function submitTimeline() {
     const timelineAlert = document.getElementById('timeline-alert');
     if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
         // There are validation errors, don't submit
-        showToast('error', 'Please fix the timeline date errors before saving.');
+        ToastUtils.showError('Please fix the timeline date errors before saving.');
         return;
     }
     
@@ -8630,7 +8554,7 @@ function submitTimeline() {
     
     // Validate required fields
     if (!expectedEndDate) {
-        showToast('error', 'Please select an expected end date');
+        ToastUtils.showError('Please select an expected end date');
         return;
     }
     
@@ -8643,7 +8567,7 @@ function submitTimeline() {
         const addMilestoneBtn = document.getElementById('add-milestone-btn');
         if (addMilestoneBtn) {
             addMilestoneBtn.click();
-            showToast('error', 'Please add at least one milestone with both period and description');
+            ToastUtils.showError('Please add at least one milestone with both period and description');
             return;
         }
     }
@@ -8683,7 +8607,7 @@ function submitTimeline() {
     });
     
     if (!hasValidMilestones) {
-        showToast('error', 'Please add at least one milestone with both period and description');
+        ToastUtils.showError('Please add at least one milestone with both period and description');
         return;
     }
     
@@ -8722,12 +8646,12 @@ function submitTimeline() {
         var modal = bootstrap.Modal.getInstance(timelineModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Mentorship timeline updated successfully');
+        ToastUtils.showSuccess('Mentorship timeline updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        ToastUtils.showError(error.message || 'Failed to update timeline. Please try again.');
         
         // Reset button state
         submitButton.disabled = false;
@@ -9151,7 +9075,7 @@ function showTimelineStatusModal(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -9295,12 +9219,12 @@ function saveTimelineStatus() {
         var modal = bootstrap.Modal.getInstance(statusModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Timeline status updated successfully');
+        ToastUtils.showSuccess('Timeline status updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update timeline status. Please try again.');
+        ToastUtils.showError('Failed to update timeline status. Please try again.');
     });
 }
 
@@ -9426,7 +9350,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
         return response.json();
     })
     .then(data => {
-        showToast('success', 'Milestone status updated');
+        ToastUtils.showSuccess('Milestone status updated');
         
         // Update the UI without reloading
         const card = selectElement.closest('.timeline-milestone-card');
@@ -9451,7 +9375,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update milestone status');
+        ToastUtils.showError('Failed to update milestone status');
         
         // Reset the select to its previous value
         selectElement.value = selectElement.getAttribute('data-previous-value');
@@ -9584,7 +9508,7 @@ function showProgressDetails(mentorshipId) {
         // Validate mentorshipId
         if (!mentorshipId || mentorshipId === '') {
             console.error('Invalid mentorship ID');
-            showToast('error', 'Error loading progress details: Invalid mentorship ID');
+            ToastUtils.showError('Error loading progress details: Invalid mentorship ID');
             return;
         }
         
@@ -9592,7 +9516,7 @@ function showProgressDetails(mentorshipId) {
         var progressDetailsModal = document.getElementById('progressDetailsModal');
         if (!progressDetailsModal) {
             console.error('Progress details modal element not found');
-            showToast('error', 'Error loading progress details: Modal not found');
+            ToastUtils.showError('Error loading progress details: Modal not found');
             return;
         }
         
@@ -9680,13 +9604,13 @@ function showProgressDetails(mentorshipId) {
                 modal.show();
             } catch (innerError) {
                 console.error('Error processing mentorship data:', innerError);
-                showToast('error', 'Error processing mentorship data');
+                ToastUtils.showError('Error processing mentorship data');
             }
         })
         .catch(error => {
             console.error('Error fetching mentorship data:', error);
             // Show a more informative error message to the user
-            showToast('error', `Failed to fetch progress details: ${error.message || 'Please try again.'}`);
+            ToastUtils.showError(`Failed to fetch progress details: ${error.message || 'Please try again.'}`);
             // Optionally close the modal if it's showing a loading state
             if (modal && typeof modal.hide === 'function') {
                 modal.hide();
@@ -9694,7 +9618,7 @@ function showProgressDetails(mentorshipId) {
         });
     } catch (error) {
         console.error('Error in showProgressDetails:', error);
-        showToast('error', 'An unexpected error occurred');
+        ToastUtils.showError('An unexpected error occurred');
     }
 }
 
@@ -9794,7 +9718,7 @@ function parseMilestonesForDetails(timelineText, mentorshipId) {
         renderMilestoneTable(milestones, mentorshipId);
     } catch (error) {
         console.error('Error parsing milestones:', error);
-        showToast('error', 'Error parsing milestone data');
+        ToastUtils.showError('Error parsing milestone data');
     }
 }
 
@@ -10042,7 +9966,7 @@ function updateQuickMilestoneStatus(selectElement) {
         // Validate required data
         if (!period || !mentorshipId || !status) {
             console.error('Missing required data for milestone update:', { period, mentorshipId, status });
-            showToast('error', 'Missing required data for milestone update');
+            ToastUtils.showError('Missing required data for milestone update');
             return;
         }
         
@@ -10092,7 +10016,7 @@ function updateQuickMilestoneStatus(selectElement) {
         })
         .then(data => {
             console.log('Timeline update successful:', data);
-            showToast('success', 'Milestone status updated');
+            ToastUtils.showSuccess('Milestone status updated');
             
             // Update the UI to reflect the changes
             try {
@@ -10171,7 +10095,7 @@ function updateQuickMilestoneStatus(selectElement) {
         })
         .catch(error => {
             console.error('Error in milestone update process:', error);
-            showToast('error', error.message || 'Failed to update milestone status');
+            ToastUtils.showError(error.message || 'Failed to update milestone status');
             
             // Restore the original HTML
             if (parentElement) {
@@ -10188,7 +10112,7 @@ function updateQuickMilestoneStatus(selectElement) {
         });
     } catch (error) {
         console.error('Unexpected error in updateQuickMilestoneStatus:', error);
-        showToast('error', 'An unexpected error occurred');
+        ToastUtils.showError('An unexpected error occurred');
         
         // Try to restore the original state
         try {
@@ -10463,7 +10387,7 @@ function getSkillColor(index) {
 function setupErrorHandling() {
     $(document).ajaxError(function(event, jqXHR, settings, error) {
         console.error('AJAX Error:', error);
-        showToast('Error', 'An error occurred. Please try again.', 'error');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 
@@ -10564,7 +10488,7 @@ function updateMentorshipStatus(mentorshipId, newStatus) {
             contentType: 'application/json',
         success: function(response) {
                 modal.hide();
-                showToast('success', response.message);
+                ToastUtils.showSuccess(response.message);
                 
                 // Update UI based on the new status
                 const mentorshipItem = document.querySelector(`.mentorship-item[data-mentorship-id="${mentorshipId}"]`);
@@ -10635,7 +10559,7 @@ function updateMentorshipStatus(mentorshipId, newStatus) {
             },
             error: function(xhr) {
                 console.error('Error updating mentorship status:', xhr);
-                showToast('error', xhr.responseJSON?.error || 'Failed to update mentorship status');
+                ToastUtils.showError(xhr.responseJSON?.error || 'Failed to update mentorship status');
             }
         });
     });
@@ -10874,7 +10798,7 @@ function initializeMilestoneButtons() {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -10885,7 +10809,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -10984,7 +10908,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Ensure mentoringDaysInfo is visible by default
@@ -11675,7 +11599,7 @@ function setExpectedEndDateFromTemplate(templateId) {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -11686,7 +11610,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -11790,7 +11714,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Add initialization for the template apply button
@@ -11813,7 +11737,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (templateSelector && templateSelector.value) {
                 applyMilestoneTemplate(templateSelector.value);
             } else {
-                showToast('warning', 'Please select a template first');
+                ToastUtils.showWarning('Please select a template first');
             }
         });
     }
@@ -11923,7 +11847,7 @@ const originalApplyMilestoneTemplate = applyMilestoneTemplate;
 applyMilestoneTemplate = function(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -11934,7 +11858,7 @@ applyMilestoneTemplate = function(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -12023,7 +11947,7 @@ applyMilestoneTemplate = function(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 };
 
 // Function to submit the timeline - update to use the new structure
@@ -12045,7 +11969,7 @@ submitTimeline = function() {
                 
                 // Verify required fields
                 if (!expectedEndDateInput || !expectedEndDateInput.value) {
-                    showToast('error', 'Please set an expected end date');
+                    ToastUtils.showError('Please set an expected end date');
                     return;
                 }
                 
@@ -12072,12 +11996,12 @@ submitTimeline = function() {
                 });
                 
                 if (hasEmptyFields) {
-                    showToast('error', 'Please fill in all required milestone fields');
+                    ToastUtils.showError('Please fill in all required milestone fields');
                     return;
                 }
                 
                 if (milestones.length === 0) {
-                    showToast('error', 'Please add at least one milestone');
+                    ToastUtils.showError('Please add at least one milestone');
                     return;
                 }
                 
@@ -12127,14 +12051,14 @@ submitTimeline = function() {
                 })
                 .then(data => {
                     if (data.success) {
-                        showToast('success', 'Timeline saved successfully');
+                        ToastUtils.showSuccess('Timeline saved successfully');
                         // Close the modal
                         const closeBtn = document.querySelector('#timelineModal .btn-close');
                         if (closeBtn) closeBtn.click();
                         // Refresh the page
                         setTimeout(() => window.location.reload(), 1000);
                     } else {
-                        showToast('error', data.error || 'Failed to save timeline');
+                        ToastUtils.showError(data.error || 'Failed to save timeline');
                         if (saveButton) {
                             saveButton.disabled = false;
                             saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -12143,7 +12067,7 @@ submitTimeline = function() {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('error', `An error occurred while saving: ${error.message || 'Unknown error'}`);
+                    ToastUtils.showError(`An error occurred while saving: ${error.message || 'Unknown error'}`);
                     if (saveButton) {
                         saveButton.disabled = false;
                         saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -12162,7 +12086,7 @@ submitTimeline = function() {
     }
     
     // If original function doesn't exist, show an error
-    showToast('error', 'Timeline submission function not found');
+    ToastUtils.showError('Timeline submission function not found');
 };
 
 function updateMeetingLink() {
@@ -12171,13 +12095,13 @@ function updateMeetingLink() {
     
     // Validate meeting link
     if (!meetingLink) {
-        showToast('error', 'Please enter a meeting link');
+        ToastUtils.showError('Please enter a meeting link');
         return;
     }
     
     // Validate that the meeting link is valid
     if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-        showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+        ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
         return;
     }
     
@@ -12202,12 +12126,12 @@ function updateMeetingLink() {
         var modal = bootstrap.Modal.getInstance(editMeetingModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Meeting link updated successfully');
+        ToastUtils.showSuccess('Meeting link updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update meeting link. Please try again.');
+        ToastUtils.showError('Failed to update meeting link. Please try again.');
     });
 }
 </script>
@@ -12224,7 +12148,7 @@ function submitScheduleMeeting(event) {
     
     // Validate required fields
     if (!mentorshipId || !meetingTitle || !meetingDate || !meetingAgenda) {
-        showToast('error', 'Please fill out all required fields.');
+        ToastUtils.showError('Please fill out all required fields.');
         return;
     }
     
@@ -12260,14 +12184,14 @@ function submitScheduleMeeting(event) {
         if (modal) modal.hide();
         
         // Show success message
-        showToast('success', 'Meeting scheduled successfully!');
+        ToastUtils.showSuccess('Meeting scheduled successfully!');
         
         // Reload the page after a short delay
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -12412,7 +12336,7 @@ function setTimeline(mentorshipId) {
     var timelineModal = document.getElementById('timelineModal');
     if (!timelineModal) {
         console.error('Timeline modal element not found');
-        showToast('error', 'Timeline modal not found. Please refresh the page and try again.');
+        ToastUtils.showError('Timeline modal not found. Please refresh the page and try again.');
         return;
     }
     
@@ -12421,7 +12345,7 @@ function setTimeline(mentorshipId) {
     const mentorshipIdInput = document.getElementById('mentorshipIdForTimeline');
     if (!mentorshipIdInput) {
         console.error('Mentorship ID input element not found');
-        showToast('error', 'Form elements not found. Please refresh the page and try again.');
+        ToastUtils.showError('Form elements not found. Please refresh the page and try again.');
         return;
     }
     mentorshipIdInput.value = mentorshipId;
@@ -12481,7 +12405,7 @@ function setTimeline(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -12495,7 +12419,7 @@ function submitTimeline() {
     const timelineAlert = document.getElementById('timeline-alert');
     if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
         // There are validation errors, don't submit
-        showToast('error', 'Please fix the timeline date errors before saving.');
+        ToastUtils.showError('Please fix the timeline date errors before saving.');
         return;
     }
     
@@ -12506,7 +12430,7 @@ function submitTimeline() {
     
     // Validate required fields
     if (!expectedEndDate) {
-        showToast('error', 'Please select an expected end date');
+        ToastUtils.showError('Please select an expected end date');
         return;
     }
     
@@ -12519,7 +12443,7 @@ function submitTimeline() {
         const addMilestoneBtn = document.getElementById('add-milestone-btn');
         if (addMilestoneBtn) {
             addMilestoneBtn.click();
-            showToast('error', 'Please add at least one milestone with both period and description');
+            ToastUtils.showError('Please add at least one milestone with both period and description');
             return;
         }
     }
@@ -12559,7 +12483,7 @@ function submitTimeline() {
     });
     
     if (!hasValidMilestones) {
-        showToast('error', 'Please add at least one milestone with both period and description');
+        ToastUtils.showError('Please add at least one milestone with both period and description');
         return;
     }
     
@@ -12598,12 +12522,12 @@ function submitTimeline() {
         var modal = bootstrap.Modal.getInstance(timelineModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Mentorship timeline updated successfully');
+        ToastUtils.showSuccess('Mentorship timeline updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        ToastUtils.showError(error.message || 'Failed to update timeline. Please try again.');
         
         // Reset button state
         submitButton.disabled = false;
@@ -13013,7 +12937,7 @@ function showTimelineStatusModal(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -13157,12 +13081,12 @@ function saveTimelineStatus() {
         var modal = bootstrap.Modal.getInstance(statusModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Timeline status updated successfully');
+        ToastUtils.showSuccess('Timeline status updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update timeline status. Please try again.');
+        ToastUtils.showError('Failed to update timeline status. Please try again.');
     });
 }
 
@@ -13288,7 +13212,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
         return response.json();
     })
     .then(data => {
-        showToast('success', 'Milestone status updated');
+        ToastUtils.showSuccess('Milestone status updated');
         
         // Update the UI without reloading
         const card = selectElement.closest('.timeline-milestone-card');
@@ -13313,7 +13237,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update milestone status');
+        ToastUtils.showError('Failed to update milestone status');
         
         // Reset the select to its previous value
         selectElement.value = selectElement.getAttribute('data-previous-value');
@@ -13446,7 +13370,7 @@ function showProgressDetails(mentorshipId) {
         // Validate mentorshipId
         if (!mentorshipId || mentorshipId === '') {
             console.error('Invalid mentorship ID');
-            showToast('error', 'Error loading progress details: Invalid mentorship ID');
+            ToastUtils.showError('Error loading progress details: Invalid mentorship ID');
             return;
         }
         
@@ -13454,7 +13378,7 @@ function showProgressDetails(mentorshipId) {
         var progressDetailsModal = document.getElementById('progressDetailsModal');
         if (!progressDetailsModal) {
             console.error('Progress details modal element not found');
-            showToast('error', 'Error loading progress details: Modal not found');
+            ToastUtils.showError('Error loading progress details: Modal not found');
             return;
         }
         
@@ -14693,7 +14617,7 @@ function validateMilestoneDate(dateInput) {
     const expectedEndDateInput = document.getElementById('expectedEndDate');
     
     if (!expectedEndDateInput || !expectedEndDateInput.value) {
-        showToast('warning', 'Please set an expected end date first');
+        ToastUtils.showWarning('Please set an expected end date first');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -14709,13 +14633,13 @@ function validateMilestoneDate(dateInput) {
     today.setDate(today.getDate() - 1); // Allow today by setting comparison to yesterday
     
     if (milestoneDate <= today) { // Using <= to compare with yesterday
-        showToast('warning', 'Milestone date cannot be in the past');
+        ToastUtils.showWarning('Milestone date cannot be in the past');
         dateInput.classList.add('is-invalid');
         return false;
     }
     
     if (milestoneDate > endDate) {
-        showToast('warning', 'Milestone date cannot be after the expected end date');
+        ToastUtils.showWarning('Milestone date cannot be after the expected end date');
         dateInput.classList.add('is-invalid');
         return false;
     }
@@ -14772,7 +14696,7 @@ function toggleAvailability() {
     
     if (!mentorId) {
         console.error('No mentor ID found in data attribute');
-        showToast('error', 'Failed to update availability: No mentor ID found');
+        ToastUtils.showError('Failed to update availability: No mentor ID found');
         return;
     }
 
@@ -14789,7 +14713,7 @@ function toggleAvailability() {
         },
         success: function(response) {
             console.log('Toggle success:', response);
-            showToast('success', `Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
+            ToastUtils.showSuccess(`Availability ${response.accepting_mentees ? 'enabled' : 'disabled'} successfully`);
         },
         error: function(xhr, status, error) {
             console.error('Error toggling availability:', xhr.responseText || error);
@@ -14806,7 +14730,7 @@ function toggleAvailability() {
                 errorMessage = xhr.statusText ? `Error: ${xhr.statusText}` : errorMessage;
             }
             
-            showToast('error', errorMessage);
+            ToastUtils.showError(errorMessage);
             // Revert the toggle to its previous state
             toggle.checked = !isAvailable;
         }
@@ -14826,11 +14750,11 @@ function updateStatus(requestId, status) {
             'csrfmiddlewaretoken': document.querySelector('[name=csrfmiddlewaretoken]').value
         },
         success: function(response) {
-            showToast('Success', response.message, 'success');
+            ToastUtils.showSuccess(response.message);
             setTimeout(() => window.location.reload(), 1500);
         },
         error: function(xhr, status, error) {
-            showToast('Error', 'Failed to update request status', 'error');
+            ToastUtils.showError('Failed to update request status');
         }
         });
 }
@@ -14878,7 +14802,7 @@ function updateProgress(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch current progress. Using default values.');
+        ToastUtils.showError('Failed to fetch current progress. Using default values.');
         modal.show(); // Show modal anyway
     });
 }
@@ -14933,12 +14857,12 @@ function submitProgress() {
         var modal = bootstrap.Modal.getInstance(progressModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Progress updated successfully');
+        ToastUtils.showSuccess('Progress updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update progress. Please try again.');
+        ToastUtils.showError('Failed to update progress. Please try again.');
     });
 }
 
@@ -14952,13 +14876,13 @@ function submitMeeting() {
     
     // Validate that required fields are filled
     if (!meetingTitle || !meetingDate || !meetingLink) {
-        showToast('error', 'Please fill out all required fields, including the meeting link.');
+        ToastUtils.showError('Please fill out all required fields, including the meeting link.');
         return;
     }
     
     // Validate that the meeting link is valid
     if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-        showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+        ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
         return;
     }
     
@@ -14988,12 +14912,12 @@ function submitMeeting() {
         var modal = bootstrap.Modal.getInstance(meetingModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Meeting scheduled successfully with the link provided');
+        ToastUtils.showSuccess('Meeting scheduled successfully with the link provided');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to schedule meeting. Please try again.');
+        ToastUtils.showError('Failed to schedule meeting. Please try again.');
     });
 }
 
@@ -15028,54 +14952,16 @@ function submitMessage() {
         var modal = bootstrap.Modal.getInstance(messageModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Message sent successfully');
+        ToastUtils.showSuccess('Message sent successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to send message. Please try again.');
+        ToastUtils.showError('Failed to send message. Please try again.');
     });
 }
 
-// Show toast notification
-    function showToast(type, message) {
-        const toast = document.createElement('div');
-        toast.className = `toast toast-${type} show`;
-        toast.innerHTML = `
-            <div class="toast-header">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-                <strong class="me-auto">${type === 'success' ? 'Success' : 'Error'}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
-            </div>
-            <div class="toast-body">
-                ${message}
-            </div>
-        `;
-        
-        // Add toast container if it doesn't exist
-        let container = document.querySelector('.toast-container');
-        if (!container) {
-            container = document.createElement('div');
-            container.id = 'toast-container';
-            container.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-            container.style.zIndex = '9999'; // Increased from 1050 to ensure it's always on top
-            document.body.appendChild(container);
-        }
-        
-        container.appendChild(toast);
-        
-        // Initialize Bootstrap toast
-        const bsToast = new bootstrap.Toast(toast, {
-            autohide: true,
-            delay: 3000
-        });
-        bsToast.show();
-        
-        // Remove toast after it's hidden
-        toast.addEventListener('hidden.bs.toast', () => {
-            toast.remove();
-        });
-    }
+// Toast notifications now use ToastUtils API
 
 // CSRF Token helper
 function getCookie(name) {
@@ -15234,7 +15120,7 @@ function setTimeline(mentorshipId) {
     var timelineModal = document.getElementById('timelineModal');
     if (!timelineModal) {
         console.error('Timeline modal element not found');
-        showToast('error', 'Timeline modal not found. Please refresh the page and try again.');
+        ToastUtils.showError('Timeline modal not found. Please refresh the page and try again.');
         return;
     }
     
@@ -15243,7 +15129,7 @@ function setTimeline(mentorshipId) {
     const mentorshipIdInput = document.getElementById('mentorshipIdForTimeline');
     if (!mentorshipIdInput) {
         console.error('Mentorship ID input element not found');
-        showToast('error', 'Form elements not found. Please refresh the page and try again.');
+        ToastUtils.showError('Form elements not found. Please refresh the page and try again.');
         return;
     }
     mentorshipIdInput.value = mentorshipId;
@@ -15303,7 +15189,7 @@ function setTimeline(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -15317,7 +15203,7 @@ function submitTimeline() {
     const timelineAlert = document.getElementById('timeline-alert');
     if (timelineAlert && !timelineAlert.classList.contains('d-none')) {
         // There are validation errors, don't submit
-        showToast('error', 'Please fix the timeline date errors before saving.');
+        ToastUtils.showError('Please fix the timeline date errors before saving.');
         return;
     }
     
@@ -15328,7 +15214,7 @@ function submitTimeline() {
     
     // Validate required fields
     if (!expectedEndDate) {
-        showToast('error', 'Please select an expected end date');
+        ToastUtils.showError('Please select an expected end date');
         return;
     }
     
@@ -15341,7 +15227,7 @@ function submitTimeline() {
         const addMilestoneBtn = document.getElementById('add-milestone-btn');
         if (addMilestoneBtn) {
             addMilestoneBtn.click();
-            showToast('error', 'Please add at least one milestone with both period and description');
+            ToastUtils.showError('Please add at least one milestone with both period and description');
             return;
         }
     }
@@ -15381,7 +15267,7 @@ function submitTimeline() {
     });
     
     if (!hasValidMilestones) {
-        showToast('error', 'Please add at least one milestone with both period and description');
+        ToastUtils.showError('Please add at least one milestone with both period and description');
         return;
     }
     
@@ -15420,12 +15306,12 @@ function submitTimeline() {
         var modal = bootstrap.Modal.getInstance(timelineModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Mentorship timeline updated successfully');
+        ToastUtils.showSuccess('Mentorship timeline updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', error.message || 'Failed to update timeline. Please try again.');
+        ToastUtils.showError(error.message || 'Failed to update timeline. Please try again.');
         
         // Reset button state
         submitButton.disabled = false;
@@ -15849,7 +15735,7 @@ function showTimelineStatusModal(mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to fetch timeline data. Please try again.');
+        ToastUtils.showError('Failed to fetch timeline data. Please try again.');
         modal.show(); // Show modal anyway
     });
 }
@@ -15993,12 +15879,12 @@ function saveTimelineStatus() {
         var modal = bootstrap.Modal.getInstance(statusModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Timeline status updated successfully');
+        ToastUtils.showSuccess('Timeline status updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update timeline status. Please try again.');
+        ToastUtils.showError('Failed to update timeline status. Please try again.');
     });
 }
 
@@ -16124,7 +16010,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
         return response.json();
     })
     .then(data => {
-        showToast('success', 'Milestone status updated');
+        ToastUtils.showSuccess('Milestone status updated');
         
         // Update the UI without reloading
         const card = selectElement.closest('.timeline-milestone-card');
@@ -16149,7 +16035,7 @@ function updateMilestoneStatus(selectElement, mentorshipId) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update milestone status');
+        ToastUtils.showError('Failed to update milestone status');
         
         // Reset the select to its previous value
         selectElement.value = selectElement.getAttribute('data-previous-value');
@@ -16282,7 +16168,7 @@ function showProgressDetails(mentorshipId) {
         // Validate mentorshipId
         if (!mentorshipId || mentorshipId === '') {
             console.error('Invalid mentorship ID');
-            showToast('error', 'Error loading progress details: Invalid mentorship ID');
+            ToastUtils.showError('Error loading progress details: Invalid mentorship ID');
             return;
         }
         
@@ -16290,7 +16176,7 @@ function showProgressDetails(mentorshipId) {
         var progressDetailsModal = document.getElementById('progressDetailsModal');
         if (!progressDetailsModal) {
             console.error('Progress details modal element not found');
-            showToast('error', 'Error loading progress details: Modal not found');
+            ToastUtils.showError('Error loading progress details: Modal not found');
             return;
         }
         
@@ -16378,13 +16264,13 @@ function showProgressDetails(mentorshipId) {
                 modal.show();
             } catch (innerError) {
                 console.error('Error processing mentorship data:', innerError);
-                showToast('error', 'Error processing mentorship data');
+                ToastUtils.showError('Error processing mentorship data');
             }
         })
         .catch(error => {
             console.error('Error fetching mentorship data:', error);
             // Show a more informative error message to the user
-            showToast('error', `Failed to fetch progress details: ${error.message || 'Please try again.'}`);
+            ToastUtils.showError(`Failed to fetch progress details: ${error.message || 'Please try again.'}`);
             // Optionally close the modal if it's showing a loading state
             if (modal && typeof modal.hide === 'function') {
                 modal.hide();
@@ -16392,7 +16278,7 @@ function showProgressDetails(mentorshipId) {
         });
     } catch (error) {
         console.error('Error in showProgressDetails:', error);
-        showToast('error', 'An unexpected error occurred');
+        ToastUtils.showError('An unexpected error occurred');
     }
 }
 
@@ -16492,7 +16378,7 @@ function parseMilestonesForDetails(timelineText, mentorshipId) {
         renderMilestoneTable(milestones, mentorshipId);
     } catch (error) {
         console.error('Error parsing milestones:', error);
-        showToast('error', 'Error parsing milestone data');
+        ToastUtils.showError('Error parsing milestone data');
     }
 }
 
@@ -16740,7 +16626,7 @@ function updateQuickMilestoneStatus(selectElement) {
         // Validate required data
         if (!period || !mentorshipId || !status) {
             console.error('Missing required data for milestone update:', { period, mentorshipId, status });
-            showToast('error', 'Missing required data for milestone update');
+            ToastUtils.showError('Missing required data for milestone update');
             return;
         }
         
@@ -16790,7 +16676,7 @@ function updateQuickMilestoneStatus(selectElement) {
         })
         .then(data => {
             console.log('Timeline update successful:', data);
-            showToast('success', 'Milestone status updated');
+            ToastUtils.showSuccess('Milestone status updated');
             
             // Update the UI to reflect the changes
             try {
@@ -16869,7 +16755,7 @@ function updateQuickMilestoneStatus(selectElement) {
         })
         .catch(error => {
             console.error('Error in milestone update process:', error);
-            showToast('error', error.message || 'Failed to update milestone status');
+            ToastUtils.showError(error.message || 'Failed to update milestone status');
             
             // Restore the original HTML
             if (parentElement) {
@@ -16886,7 +16772,7 @@ function updateQuickMilestoneStatus(selectElement) {
         });
     } catch (error) {
         console.error('Unexpected error in updateQuickMilestoneStatus:', error);
-        showToast('error', 'An unexpected error occurred');
+        ToastUtils.showError('An unexpected error occurred');
         
         // Try to restore the original state
         try {
@@ -17161,7 +17047,7 @@ function getSkillColor(index) {
 function setupErrorHandling() {
     $(document).ajaxError(function(event, jqXHR, settings, error) {
         console.error('AJAX Error:', error);
-        showToast('Error', 'An error occurred. Please try again.', 'error');
+        ToastUtils.showError('An error occurred. Please try again.');
     });
 }
 
@@ -17262,7 +17148,7 @@ function updateMentorshipStatus(mentorshipId, newStatus) {
             contentType: 'application/json',
         success: function(response) {
                 modal.hide();
-                showToast('success', response.message);
+                ToastUtils.showSuccess(response.message);
                 
                 // Update UI based on the new status
                 const mentorshipItem = document.querySelector(`.mentorship-item[data-mentorship-id="${mentorshipId}"]`);
@@ -17333,7 +17219,7 @@ function updateMentorshipStatus(mentorshipId, newStatus) {
             },
             error: function(xhr) {
                 console.error('Error updating mentorship status:', xhr);
-                showToast('error', xhr.responseJSON?.error || 'Failed to update mentorship status');
+                ToastUtils.showError(xhr.responseJSON?.error || 'Failed to update mentorship status');
             }
         });
     });
@@ -17572,7 +17458,7 @@ function initializeMilestoneButtons() {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -17583,7 +17469,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -17682,7 +17568,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Ensure mentoringDaysInfo is visible by default
@@ -18373,7 +18259,7 @@ function setExpectedEndDateFromTemplate(templateId) {
 function applyMilestoneTemplate(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -18384,7 +18270,7 @@ function applyMilestoneTemplate(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -18488,7 +18374,7 @@ function applyMilestoneTemplate(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 }
 
 // Add initialization for the template apply button
@@ -18511,7 +18397,7 @@ document.addEventListener('DOMContentLoaded', function() {
             if (templateSelector && templateSelector.value) {
                 applyMilestoneTemplate(templateSelector.value);
             } else {
-                showToast('warning', 'Please select a template first');
+                ToastUtils.showWarning('Please select a template first');
             }
         });
     }
@@ -18621,7 +18507,7 @@ const originalApplyMilestoneTemplate = applyMilestoneTemplate;
 applyMilestoneTemplate = function(templateId) {
     const template = milestoneTemplates[templateId];
     if (!template) {
-        showToast('error', 'Template not found');
+        ToastUtils.showError('Template not found');
         return;
     }
     
@@ -18632,7 +18518,7 @@ applyMilestoneTemplate = function(templateId) {
         setExpectedEndDateFromTemplate(templateId);
         
         if (!expectedEndDateInput.value) {
-            showToast('warning', 'Could not set expected end date');
+            ToastUtils.showWarning('Could not set expected end date');
             return;
         }
     }
@@ -18721,7 +18607,7 @@ applyMilestoneTemplate = function(templateId) {
     // Validate all milestone dates
     validateAllMilestoneDates();
     
-    showToast('success', `Applied ${template.length} milestones from template`);
+    ToastUtils.showSuccess(`Applied ${template.length} milestones from template`);
 };
 
 // Function to submit the timeline - update to use the new structure
@@ -18743,7 +18629,7 @@ submitTimeline = function() {
                 
                 // Verify required fields
                 if (!expectedEndDateInput || !expectedEndDateInput.value) {
-                    showToast('error', 'Please set an expected end date');
+                    ToastUtils.showError('Please set an expected end date');
                     return;
                 }
                 
@@ -18770,12 +18656,12 @@ submitTimeline = function() {
                 });
                 
                 if (hasEmptyFields) {
-                    showToast('error', 'Please fill in all required milestone fields');
+                    ToastUtils.showError('Please fill in all required milestone fields');
                     return;
                 }
                 
                 if (milestones.length === 0) {
-                    showToast('error', 'Please add at least one milestone');
+                    ToastUtils.showError('Please add at least one milestone');
                     return;
                 }
                 
@@ -18825,14 +18711,14 @@ submitTimeline = function() {
                 })
                 .then(data => {
                     if (data.success) {
-                        showToast('success', 'Timeline saved successfully');
+                        ToastUtils.showSuccess('Timeline saved successfully');
                         // Close the modal
                         const closeBtn = document.querySelector('#timelineModal .btn-close');
                         if (closeBtn) closeBtn.click();
                         // Refresh the page
                         setTimeout(() => window.location.reload(), 1000);
                     } else {
-                        showToast('error', data.error || 'Failed to save timeline');
+                        ToastUtils.showError(data.error || 'Failed to save timeline');
                         if (saveButton) {
                             saveButton.disabled = false;
                             saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -18841,7 +18727,7 @@ submitTimeline = function() {
                 })
                 .catch(error => {
                     console.error('Error:', error);
-                    showToast('error', `An error occurred while saving: ${error.message || 'Unknown error'}`);
+                    ToastUtils.showError(`An error occurred while saving: ${error.message || 'Unknown error'}`);
                     if (saveButton) {
                         saveButton.disabled = false;
                         saveButton.innerHTML = '<i class="fas fa-save me-2"></i>Save Timeline';
@@ -18860,7 +18746,7 @@ submitTimeline = function() {
     }
     
     // If original function doesn't exist, show an error
-    showToast('error', 'Timeline submission function not found');
+    ToastUtils.showError('Timeline submission function not found');
 };
 
 function updateMeetingLink() {
@@ -18869,13 +18755,13 @@ function updateMeetingLink() {
     
     // Validate meeting link
     if (!meetingLink) {
-        showToast('error', 'Please enter a meeting link');
+        ToastUtils.showError('Please enter a meeting link');
         return;
     }
     
     // Validate that the meeting link is valid
     if (!meetingLink.startsWith('http://') && !meetingLink.startsWith('https://')) {
-        showToast('error', 'Please enter a valid meeting link starting with http:// or https://');
+        ToastUtils.showError('Please enter a valid meeting link starting with http:// or https://');
         return;
     }
     
@@ -18900,12 +18786,12 @@ function updateMeetingLink() {
         var modal = bootstrap.Modal.getInstance(editMeetingModal);
         if (modal) modal.hide();
         
-        showToast('success', 'Meeting link updated successfully');
+        ToastUtils.showSuccess('Meeting link updated successfully');
         setTimeout(() => location.reload(), 1500);
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('error', 'Failed to update meeting link. Please try again.');
+        ToastUtils.showError('Failed to update meeting link. Please try again.');
     });
 }
 </script>

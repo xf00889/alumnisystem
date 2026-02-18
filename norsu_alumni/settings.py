@@ -101,7 +101,7 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
-    'accounts.middleware.SuppressAuthMessagesMiddleware',  # Filter out login/logout messages
+    # 'accounts.middleware.SuppressAuthMessagesMiddleware',  # TEMPORARILY DISABLED - causing message persistence
     'setup.middleware.SetupRequiredMiddleware',  # Redirect to setup if incomplete
 ]
 

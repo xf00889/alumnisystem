@@ -1230,7 +1230,7 @@
                     if (apiUrl.includes('/profile/api/')) {
                         console.error('ERROR: Browser is using cached JavaScript with wrong URL!');
                         console.error('Please clear your browser cache and refresh the page.');
-                        showToast('Browser cache issue detected. Please clear cache and refresh.', 'warning');
+                        ToastUtils.showWarning('Browser cache issue detected. Please clear cache and refresh.');
                         return;
                     }
 
@@ -4367,7 +4367,7 @@
                     .then(data => {
                         if (data.success) {
                             // Show success message
-                            showToast(data.message || 'Group photo removed successfully!', 'success');
+                            ToastUtils.showSuccess(data.message || 'Group photo removed successfully!');
 
                             // Update UI to show fallback avatars
                             updateGroupAvatarsToFallback(conversationId);
@@ -4377,7 +4377,7 @@
                                 refreshGroupConversationDetail(conversationId);
                             }, 500);
                         } else {
-                            showToast('Error: ' + (data.message || 'Failed to remove group photo'), 'danger');
+                            ToastUtils.showSuccess('Error: ' + (data.message || 'Failed to remove group photo'), 'danger');
                         }
                     })
                     .catch(error => {
@@ -5582,7 +5582,7 @@
                                     console.log('Photo upload successful:', data);
 
                                     // Show success message with better UX
-                                    showToast(data.message || 'Group photo updated successfully!', 'success');
+                                    ToastUtils.showSuccess(data.message || 'Group photo updated successfully!');
 
                                     // Hide modal
                                     bootstrap.Modal.getInstance(modal).hide();
@@ -6359,22 +6359,7 @@ function initSearchAndSort() {
     }
 }
 
-// Helper function to show toast notifications
-function showToast(message, type = 'info') {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.getElementById('toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toast-container';
-        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-        toastContainer.style.zIndex = '9999';
-        document.body.appendChild(toastContainer);
-    }
-
-    // Create toast element
-    const toastId = 'toast-' + Date.now();
-    const toastHtml = `
-        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
+// Toast notifications now use ToastUtils API" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
             <div class="d-flex">
                 <div class="toast-body">
                     ${message}
@@ -6388,8 +6373,7 @@ function showToast(message, type = 'info') {
 
     // Show toast
     const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement, { delay: 5000 });
-    toast.show();
+    // Replaced with ToastUtils API
 
     // Remove toast element after it's hidden
     toastElement.addEventListener('hidden.bs.toast', function() {

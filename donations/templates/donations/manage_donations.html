@@ -436,15 +436,15 @@
                         }
 
                         // Show success message
-                        showToast('success', data.message);
+                        ToastUtils.showSuccess(data.message);
                     }
                 } else {
-                    showToast('error', data.message);
+                    ToastUtils.showError(data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('error', 'An error occurred while updating the donation status.');
+                ToastUtils.showError('An error occurred while updating the donation status.');
             });
         }
 
@@ -471,7 +471,7 @@
                     }
 
                     // Show success message
-                    showToast('success', data.message);
+                    ToastUtils.showSuccess(data.message);
 
                     // Reload page if no more donations are displayed
                     const remainingRows = document.querySelectorAll('tbody tr');
@@ -479,12 +479,12 @@
                         window.location.reload();
                     }
                 } else {
-                    showToast('error', data.message);
+                    ToastUtils.showError(data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('error', 'An error occurred while deleting the donation.');
+                ToastUtils.showError('An error occurred while deleting the donation.');
             });
         }
 
@@ -531,7 +531,7 @@
                         })
                         .then(data => {
                             if (data.status === 'success') {
-                                showToast('success', data.message);
+                                ToastUtils.showSuccess(data.message);
                                 editModal.hide();
 
                                 // Reload the page to show updated data
@@ -547,13 +547,13 @@
                                     }
                                     errorContainer.classList.remove('d-none');
                                 } else {
-                                    showToast('error', data.message);
+                                    ToastUtils.showError(data.message);
                                 }
                             }
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            showToast('error', 'An error occurred while saving the donation details.');
+                            ToastUtils.showError('An error occurred while saving the donation details.');
                         });
                     });
                 }
@@ -585,31 +585,18 @@
             })
             .then(data => {
                 if (data.status === 'success') {
-                    showToast('success', data.message);
+                    ToastUtils.showSuccess(data.message);
                 } else {
-                    showToast('error', data.message);
+                    ToastUtils.showError(data.message);
                 }
             })
             .catch(error => {
                 console.error('Error:', error);
-                showToast('error', 'An error occurred while sending the receipt.');
+                ToastUtils.showError('An error occurred while sending the receipt.');
             });
         }
 
-        // Toast notification function
-        function showToast(type, message) {
-            // Check if we have a toast container; if not, create one
-            let toastContainer = document.querySelector('.toast-container');
-            if (!toastContainer) {
-                toastContainer = document.createElement('div');
-                toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-                document.body.appendChild(toastContainer);
-            }
-
-            // Create toast element
-            const toastId = 'toast-' + Date.now();
-            const toastEl = document.createElement('div');
-            toastEl.className = `toast ${type === 'error' ? 'bg-danger text-white' : 'bg-success text-white'}`;
+        // Toast notifications now use ToastUtils API`;
             toastEl.id = toastId;
             toastEl.setAttribute('role', 'alert');
             toastEl.setAttribute('aria-live', 'assertive');
@@ -632,13 +619,10 @@
             toastContainer.appendChild(toastEl);
 
             // Initialize and show toast
-            const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
-            toast.show();
+            // Replaced with ToastUtils API
 
             // Remove toast element after it's hidden
-            toastEl.addEventListener('hidden.bs.toast', function() {
-                toastEl.remove();
-            });
+            
         }
     });
 </script>

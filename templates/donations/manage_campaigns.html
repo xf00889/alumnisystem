@@ -800,11 +800,11 @@
               else if (status === 'completed') badge.classList.add('bg-info');
               else if (status === 'paused') badge.classList.add('bg-warning');
               else badge.classList.add('bg-danger');
-              showToast('success', data.message);
+              ToastUtils.showSuccess(data.message);
             }
-          } else { showToast('error', data.message); }
+          } else { ToastUtils.showError(data.message); }
         })
-        .catch(error => { console.error('Error:', error); showToast('error', 'An error occurred while updating the campaign status.'); });
+        .catch(error => { console.error('Error:', error); ToastUtils.showError('An error occurred while updating the campaign status.'); });
     }
 
     function deleteCampaign(campaignId) {
@@ -814,16 +814,15 @@
           if (data.status === 'success') {
             const campaignCard = document.querySelector(`.campaign-card:has([data-campaign-id="${campaignId}"])`).closest('.col-md-6, .col-lg-4');
             if (campaignCard) { campaignCard.remove(); }
-            showToast('success', data.message);
+            ToastUtils.showSuccess(data.message);
             const remainingCards = document.querySelectorAll('.campaign-card');
             if (remainingCards.length === 0) { window.location.reload(); }
-          } else { showToast('error', data.message); }
+          } else { ToastUtils.showError(data.message); }
         })
-        .catch(error => { console.error('Error:', error); showToast('error', 'An error occurred while deleting the campaign.'); });
+        .catch(error => { console.error('Error:', error); ToastUtils.showError('An error occurred while deleting the campaign.'); });
     }
 
-    function showToast(type, message) {
-      let toastContainer = document.querySelector('.toast-container');
+    // Toast notifications now use ToastUtils API
       if (!toastContainer) {
         toastContainer = document.createElement('div');
         toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
@@ -843,9 +842,8 @@
         </div>
         <div class="toast-body">${message}</div>`;
       toastContainer.appendChild(toastEl);
-      const toast = new bootstrap.Toast(toastEl, { delay: 5000 });
-      toast.show();
-      toastEl.addEventListener('hidden.bs.toast', function() { toastEl.remove(); });
+      // Replaced with ToastUtils API
+      
     }
   });
 </script>

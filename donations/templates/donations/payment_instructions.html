@@ -7,6 +7,325 @@
 
 {% block page_header %}{% endblock %}
 
+{% block extra_css %}
+{{ block.super }}
+<style>
+    /* Mobile Responsive Styles for Payment Instructions */
+    @media (max-width: 768px) {
+        .welcome-header h4 {
+            font-size: 1rem !important;
+        }
+        
+        .welcome-header p {
+            font-size: 0.75rem !important;
+        }
+        
+        .card-title {
+            font-size: 0.9375rem !important;
+        }
+        
+        .card-body h5 {
+            font-size: 0.9375rem !important;
+        }
+        
+        .card-body h6 {
+            font-size: 0.8125rem !important;
+        }
+        
+        .progress-step {
+            width: 35px !important;
+            height: 35px !important;
+        }
+        
+        .progress-step .step-number {
+            font-size: 0.875rem !important;
+        }
+        
+        .progress-line {
+            height: 2px !important;
+        }
+        
+        .d-md-none small {
+            font-size: 0.75rem !important;
+        }
+        
+        .alert {
+            font-size: 0.75rem !important;
+            padding: 0.75rem !important;
+        }
+        
+        .alert-heading {
+            font-size: 0.875rem !important;
+        }
+        
+        .alert strong {
+            font-size: 0.75rem !important;
+        }
+        
+        .qr-code-image {
+            max-width: 180px !important;
+        }
+        
+        .qr-code-wrapper {
+            padding: 0.75rem !important;
+        }
+        
+        .btn-primary,
+        .btn-success {
+            font-size: 0.8125rem !important;
+            padding: 0.625rem 1rem !important;
+        }
+        
+        .btn-lg {
+            font-size: 0.875rem !important;
+            padding: 0.75rem 1.25rem !important;
+            min-height: 44px !important;
+        }
+        
+        .btn .small {
+            font-size: 0.7rem !important;
+        }
+        
+        .list-group-item h6 {
+            font-size: 0.8125rem !important;
+        }
+        
+        .list-group-item p {
+            font-size: 0.7rem !important;
+        }
+        
+        .badge.rounded-circle {
+            width: 35px !important;
+            height: 35px !important;
+            font-size: 0.875rem !important;
+        }
+        
+        .fs-4 {
+            font-size: 1.125rem !important;
+        }
+        
+        .fs-5 {
+            font-size: 1rem !important;
+        }
+        
+        /* Modal fixes for mobile */
+        .modal-dialog {
+            margin: 0.5rem !important;
+        }
+        
+        .modal-content {
+            border-radius: 0.5rem !important;
+        }
+        
+        .modal-header {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        .modal-title {
+            font-size: 0.9375rem !important;
+        }
+        
+        .modal-body {
+            padding: 1rem !important;
+        }
+        
+        .modal-body p {
+            font-size: 0.8125rem !important;
+        }
+        
+        .modal-footer {
+            padding: 0.75rem 1rem !important;
+        }
+        
+        .modal-footer .btn {
+            font-size: 0.8125rem !important;
+            padding: 0.5rem 1rem !important;
+        }
+        
+        /* Custom lightbox for QR code */
+        .qr-lightbox {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.9);
+            z-index: 9999;
+            overflow: auto;
+            -webkit-overflow-scrolling: touch;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+        
+        .qr-lightbox.active {
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            opacity: 1;
+        }
+        
+        .qr-lightbox-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90%;
+            margin: auto;
+            padding: 20px;
+            background: white;
+            border-radius: 12px;
+        }
+        
+        .qr-lightbox-image {
+            width: 100%;
+            height: auto;
+            max-width: 500px;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+        }
+        
+        .qr-lightbox-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 2rem;
+            font-weight: bold;
+            cursor: pointer;
+            background: rgba(0, 0, 0, 0.5);
+            border: none;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            line-height: 1;
+        }
+        
+        .qr-lightbox-close:hover,
+        .qr-lightbox-close:active {
+            background: rgba(0, 0, 0, 0.8);
+        }
+        
+        .qr-lightbox-text {
+            color: white;
+            text-align: center;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+        
+        /* Mobile view - no dimmed background */
+        @media (max-width: 768px) {
+            .qr-lightbox {
+                background-color: white;
+            }
+            
+            .qr-lightbox-content {
+                max-width: 100%;
+                max-height: 100%;
+                padding: 60px 20px 20px;
+                background: white;
+            }
+            
+            .qr-lightbox-close {
+                width: 50px;
+                height: 50px;
+                font-size: 2.5rem;
+                top: 10px;
+                right: 10px;
+                color: #333;
+                background: #f0f0f0;
+            }
+            
+            .qr-lightbox-close:hover,
+            .qr-lightbox-close:active {
+                background: #e0e0e0;
+            }
+            
+            .qr-lightbox-text {
+                color: #333;
+            }
+            
+            .qr-lightbox-image {
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            }
+        }
+    }
+    
+    @media (max-width: 576px) {
+        .welcome-header h4 {
+            font-size: 0.9375rem !important;
+        }
+        
+        .welcome-header p {
+            font-size: 0.7rem !important;
+        }
+        
+        .card-title {
+            font-size: 0.875rem !important;
+        }
+        
+        .card-body h5 {
+            font-size: 0.875rem !important;
+        }
+        
+        .card-body h6 {
+            font-size: 0.75rem !important;
+        }
+        
+        .progress-step {
+            width: 32px !important;
+            height: 32px !important;
+        }
+        
+        .progress-step .step-number {
+            font-size: 0.8125rem !important;
+        }
+        
+        .alert {
+            font-size: 0.7rem !important;
+            padding: 0.625rem !important;
+        }
+        
+        .alert-heading {
+            font-size: 0.8125rem !important;
+        }
+        
+        .qr-code-image {
+            max-width: 160px !important;
+        }
+        
+        .btn-lg {
+            font-size: 0.8125rem !important;
+            padding: 0.625rem 1rem !important;
+        }
+        
+        .list-group-item h6 {
+            font-size: 0.75rem !important;
+        }
+        
+        .list-group-item p {
+            font-size: 0.65rem !important;
+        }
+        
+        .badge.rounded-circle {
+            width: 32px !important;
+            height: 32px !important;
+            font-size: 0.8125rem !important;
+        }
+        
+        .fs-4 {
+            font-size: 1rem !important;
+        }
+        
+        .fs-5 {
+            font-size: 0.9375rem !important;
+        }
+    }
+</style>
+{% endblock %}
+
 {% block donations_content %}
 <div class="col-12">
   <!-- Welcome Header -->
@@ -251,6 +570,13 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+    // Clean up any stuck lightboxes on page load
+    const stuckLightboxes = document.querySelectorAll('.qr-lightbox');
+    stuckLightboxes.forEach(lb => lb.remove());
+    document.body.style.overflow = '';
+    document.body.style.position = '';
+    document.body.style.width = '';
+    
     // Add hover effect to QR code
     const qrContainer = document.querySelector('.qr-code-container');
     const qrOverlay = document.querySelector('.qr-code-overlay');
@@ -265,7 +591,9 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Click to enlarge QR code
-        qrContainer.addEventListener('click', enlargeQR);
+        qrContainer.addEventListener('click', function(e) {
+            enlargeQR(e);
+        });
     }
 
     // Auto-refresh page every 30 seconds to check for updates
@@ -303,38 +631,81 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-function enlargeQR() {
+function enlargeQR(event) {
+    // Prevent event bubbling
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    
     const qrImage = document.querySelector('.qr-code-image');
     if (!qrImage) return;
 
-    // Create modal
-    const modal = document.createElement('div');
-    modal.className = 'modal fade';
-    modal.innerHTML = `
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title">{% trans "GCash QR Code" %}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <div class="modal-body text-center">
-                    <img src="${qrImage.src}" alt="GCash QR Code" class="img-fluid" style="max-width: 100%;">
-                    <div class="mt-3">
-                        <p class="text-muted">{% trans "Scan this QR code with your GCash app" %}</p>
-                    </div>
-                </div>
+    // Remove any existing lightbox
+    const existingLightbox = document.getElementById('qrLightbox');
+    if (existingLightbox) {
+        existingLightbox.remove();
+    }
+
+    // Create custom lightbox
+    const lightbox = document.createElement('div');
+    lightbox.id = 'qrLightbox';
+    lightbox.className = 'qr-lightbox';
+    lightbox.innerHTML = `
+        <button class="qr-lightbox-close" onclick="closeLightbox()" aria-label="Close">
+            &times;
+        </button>
+        <div class="qr-lightbox-content">
+            <img src="${qrImage.src}" alt="GCash QR Code" class="qr-lightbox-image">
+            <div class="qr-lightbox-text">
+                {% trans "Scan this QR code with your GCash app" %}
             </div>
         </div>
     `;
 
-    document.body.appendChild(modal);
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
-
-    // Remove modal after hiding
-    modal.addEventListener('hidden.bs.modal', function() {
-        document.body.removeChild(modal);
+    document.body.appendChild(lightbox);
+    
+    // Prevent body scroll
+    document.body.style.overflow = 'hidden';
+    
+    // Show lightbox with animation
+    setTimeout(() => {
+        lightbox.classList.add('active');
+    }, 10);
+    
+    // Close on background click
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === lightbox) {
+            closeLightbox();
+        }
     });
+    
+    // Close on escape key
+    document.addEventListener('keydown', handleEscapeKey);
+}
+
+function closeLightbox() {
+    const lightbox = document.getElementById('qrLightbox');
+    if (lightbox) {
+        lightbox.classList.remove('active');
+        // Immediate cleanup without animation
+        lightbox.remove();
+        document.body.style.overflow = '';
+        document.body.style.position = '';
+        document.body.style.width = '';
+    }
+    
+    // Force remove any lingering lightboxes
+    const allLightboxes = document.querySelectorAll('.qr-lightbox');
+    allLightboxes.forEach(lb => lb.remove());
+    
+    document.removeEventListener('keydown', handleEscapeKey);
+}
+
+function handleEscapeKey(e) {
+    if (e.key === 'Escape') {
+        closeLightbox();
+    }
 }
 
 function refreshInstructions() {
@@ -351,7 +722,7 @@ function refreshInstructions() {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function() {
-        showToast('{% trans "Copied to clipboard!" %}', 'success');
+        ToastUtils.showSuccess('{% trans "Copied to clipboard!" %}');
     }).catch(function(err) {
         console.error('Could not copy text: ', err);
         // Fallback for older browsers
@@ -361,16 +732,15 @@ function copyToClipboard(text) {
         textArea.select();
         try {
             document.execCommand('copy');
-            showToast('{% trans "Copied to clipboard!" %}', 'success');
+            ToastUtils.showSuccess('{% trans "Copied to clipboard!" %}');
         } catch (err) {
-            showToast('{% trans "Could not copy to clipboard. Please copy manually." %}', 'error');
+            ToastUtils.showError('{% trans "Could not copy to clipboard. Please copy manually." %}');
         }
         document.body.removeChild(textArea);
     });
 }
 
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
+    // Toast notifications now use ToastUtils API
     const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
     toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
     toast.style.zIndex = '9999';
@@ -383,8 +753,7 @@ function showToast(message, type = 'success') {
         </div>
     `;
     document.body.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+    
 
     // Remove toast after it's hidden
     toast.addEventListener('hidden.bs.toast', function() {

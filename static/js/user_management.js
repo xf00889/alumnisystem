@@ -1,48 +1,9 @@
 /**
  * User Management JavaScript
  * Handles AJAX interactions for user management features
+ * 
+ * Uses ToastUtils for all notifications (standardized notification system)
  */
-
-// Toast notification function
-function showToast(message, type = 'info') {
-    // Create toast container if it doesn't exist
-    let toastContainer = document.getElementById('toastContainer');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.id = 'toastContainer';
-        toastContainer.className = 'toast-container position-fixed top-0 end-0 p-3';
-        toastContainer.style.zIndex = '9999';
-        document.body.appendChild(toastContainer);
-    }
-
-    // Create toast element
-    const toastId = 'toast-' + Date.now();
-    const toastHTML = `
-        <div id="${toastId}" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    `;
-
-    toastContainer.insertAdjacentHTML('beforeend', toastHTML);
-    
-    const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement, {
-        autohide: true,
-        delay: 5000
-    });
-    
-    toast.show();
-
-    // Remove toast element after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        toastElement.remove();
-    });
-}
 
 // Get CSRF token from cookie
 function getCookie(name) {
@@ -103,13 +64,13 @@ function toggleUserStatus(userId, action) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            ToastUtils.showSuccess(data.message);
             // Reload page after a short delay
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         } else {
-            showToast(data.message || 'An error occurred', 'danger');
+            ToastUtils.showError(data.message || 'An error occurred');
             if (button) {
                 button.disabled = false;
                 button.innerHTML = action === 'disable' 
@@ -120,7 +81,7 @@ function toggleUserStatus(userId, action) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred while updating user status', 'danger');
+        ToastUtils.showError('An error occurred while updating user status');
         if (button) {
             button.disabled = false;
             button.innerHTML = action === 'disable' 
@@ -155,13 +116,13 @@ function manageUserRole(userId, role, action, reason = '') {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            showToast(data.message, 'success');
+            ToastUtils.showSuccess(data.message);
             // Reload page after a short delay
             setTimeout(() => {
                 window.location.reload();
             }, 1000);
         } else {
-            showToast(data.message || 'An error occurred', 'danger');
+            ToastUtils.showError(data.message || 'An error occurred');
             if (applyBtn) {
                 applyBtn.disabled = false;
                 applyBtn.innerHTML = 'Apply Changes';
@@ -170,7 +131,7 @@ function manageUserRole(userId, role, action, reason = '') {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred while managing user roles', 'danger');
+        ToastUtils.showError('An error occurred while managing user roles');
         if (applyBtn) {
             applyBtn.disabled = false;
             applyBtn.innerHTML = 'Apply Changes';
@@ -181,7 +142,7 @@ function manageUserRole(userId, role, action, reason = '') {
 // Bulk actions
 function performBulkAction(action, userIds) {
     if (userIds.length === 0) {
-        showToast('Please select at least one user', 'warning');
+        ToastUtils.showWarning('Please select at least one user');
         return;
     }
 
@@ -232,14 +193,18 @@ function performBulkAction(action, userIds) {
                 message += `. ${failCount} user(s) failed.`;
             }
             
-            showToast(message, failCount > 0 ? 'warning' : 'success');
+            if (failCount > 0) {
+                ToastUtils.showWarning(message);
+            } else {
+                ToastUtils.showSuccess(message);
+            }
             
             // Reload page after a short delay
             setTimeout(() => {
                 window.location.reload();
             }, 1500);
         } else {
-            showToast(data.message || 'An error occurred', 'danger');
+            ToastUtils.showError(data.message || 'An error occurred');
             // Restore bulk actions bar
             if (bulkActionsBar) {
                 window.location.reload();
@@ -248,7 +213,7 @@ function performBulkAction(action, userIds) {
     })
     .catch(error => {
         console.error('Error:', error);
-        showToast('An error occurred while performing bulk action', 'danger');
+        ToastUtils.showError('An error occurred while performing bulk action');
         // Restore bulk actions bar
         if (bulkActionsBar) {
             window.location.reload();

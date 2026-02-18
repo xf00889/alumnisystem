@@ -187,12 +187,12 @@ function initializeSavedJobs() {
                             savedJobs.splice(index, 1);
                         }
                         updateSaveButtonState(this, false);
-                        showToast('Job removed from saved jobs');
+                        ToastUtils.showInfo('Job removed from saved jobs');
                     } else {
                         // Add to saved jobs
                         savedJobs.push(jobId);
                         updateSaveButtonState(this, true);
-                        showToast('Job saved successfully');
+                        ToastUtils.showSuccess('Job saved successfully');
                     }
                     
                     // Update localStorage
@@ -232,49 +232,6 @@ function updateSaveButtonState(button, isSaved) {
 function getSavedJobs() {
     const savedJobsString = localStorage.getItem('savedJobs');
     return savedJobsString ? JSON.parse(savedJobsString) : [];
-}
-
-/**
- * Show toast notification
- */
-function showToast(message) {
-    // Check if toast container exists, if not create it
-    let toastContainer = document.querySelector('.toast-container');
-    if (!toastContainer) {
-        toastContainer = document.createElement('div');
-        toastContainer.className = 'toast-container position-fixed bottom-0 end-0 p-3';
-        document.body.appendChild(toastContainer);
-    }
-    
-    // Create toast element
-    const toastEl = document.createElement('div');
-    toastEl.className = 'toast align-items-center text-white bg-primary border-0';
-    toastEl.setAttribute('role', 'alert');
-    toastEl.setAttribute('aria-live', 'assertive');
-    toastEl.setAttribute('aria-atomic', 'true');
-    
-    toastEl.innerHTML = `
-        <div class="d-flex">
-            <div class="toast-body">
-                ${message}
-            </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-        </div>
-    `;
-    
-    toastContainer.appendChild(toastEl);
-    
-    // Initialize and show toast
-    const toast = new bootstrap.Toast(toastEl, {
-        autohide: true,
-        delay: 3000
-    });
-    toast.show();
-    
-    // Remove toast after it's hidden
-    toastEl.addEventListener('hidden.bs.toast', function() {
-        toastEl.remove();
-    });
 }
 
 /**

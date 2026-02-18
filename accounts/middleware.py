@@ -11,13 +11,16 @@ class SuppressAuthMessagesMiddleware(MiddlewareMixin):
     Removes login/logout success messages that clutter the UI.
     """
     
-    def process_response(self, request, response):
+    def process_request(self, request):
         """
-        Process response and filter out unwanted messages.
+        Process request and filter out unwanted messages BEFORE template rendering.
+        This ensures messages are properly consumed and not re-added.
         """
         if hasattr(request, '_messages'):
             storage = messages.get_messages(request)
-            filtered_messages = []
+            
+            # Collect messages we want to keep
+            messages_to_keep = []
             
             for message in storage:
                 message_text = str(message).lower()
@@ -37,18 +40,26 @@ class SuppressAuthMessagesMiddleware(MiddlewareMixin):
                     continue
                 
                 # Keep all other messages
-                filtered_messages.append(message)
+                messages_to_keep.append({
+                    'level': message.level,
+                    'message': message.message,
+                    'extra_tags': message.extra_tags
+                })
             
-            # Clear all messages
-            storage.used = True
-            
+            # Messages are now consumed (storage was iterated)
             # Re-add only the filtered messages
-            for msg in filtered_messages:
+            for msg in messages_to_keep:
                 messages.add_message(
                     request,
-                    msg.level,
-                    msg.message,
-                    extra_tags=msg.extra_tags
+                    msg['level'],
+                    msg['message'],
+                    extra_tags=msg['extra_tags']
                 )
         
+        return None
+    
+    def process_response(self, request, response):
+        """
+        No longer needed - filtering happens in process_request.
+        """
         return response

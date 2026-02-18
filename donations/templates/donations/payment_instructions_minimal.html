@@ -330,7 +330,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 function copyToClipboard(text) {
     navigator.clipboard.writeText(text).then(function() {
-        showToast('Copied to clipboard!', 'success');
+        ToastUtils.showSuccess('Copied to clipboard!');
     }).catch(function(err) {
         console.error('Could not copy text: ', err);
         // Fallback for older browsers
@@ -340,16 +340,15 @@ function copyToClipboard(text) {
         textArea.select();
         try {
             document.execCommand('copy');
-            showToast('Copied to clipboard!', 'success');
+            ToastUtils.showSuccess('Copied to clipboard!');
         } catch (err) {
-            showToast('Could not copy to clipboard. Please copy manually.', 'error');
+            ToastUtils.showError('Could not copy to clipboard. Please copy manually.');
         }
         document.body.removeChild(textArea);
     });
 }
 
-function showToast(message, type = 'success') {
-    const toast = document.createElement('div');
+    // Toast notifications now use ToastUtils API
     const bgClass = type === 'success' ? 'bg-success' : 'bg-danger';
     toast.className = `toast align-items-center text-white ${bgClass} border-0 position-fixed top-0 end-0 m-3`;
     toast.style.zIndex = '9999';
@@ -362,8 +361,7 @@ function showToast(message, type = 'success') {
         </div>
     `;
     document.body.appendChild(toast);
-    const bsToast = new bootstrap.Toast(toast);
-    bsToast.show();
+    
 
     // Remove toast after it's hidden
     toast.addEventListener('hidden.bs.toast', function() {

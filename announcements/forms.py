@@ -7,9 +7,31 @@ from core.recaptcha_utils import is_recaptcha_enabled
 class AnnouncementForm(forms.ModelForm):
     """Form for creating announcements with CAPTCHA protection"""
     
+    # Hardcoded category choices as fallback
+    CATEGORY_CHOICES = [
+        ('', 'Select a category'),
+        ('campus-news', 'Campus News'),
+        ('events', 'Events'),
+        ('career-opportunities', 'Career Opportunities'),
+        ('alumni-spotlight', 'Alumni Spotlight'),
+        ('fundraising', 'Fundraising'),
+        ('volunteer-opportunities', 'Volunteer Opportunities'),
+        ('academic-updates', 'Academic Updates'),
+        ('community-service', 'Community Service'),
+    ]
+    
+    # Override category field with ChoiceField
+    category = forms.ChoiceField(
+        choices=CATEGORY_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        required=True
+    )
+    
     class Meta:
         model = Announcement
-        fields = ['title', 'content', 'category', 'priority_level', 'target_audience']
+        fields = ['title', 'content', 'priority_level', 'target_audience']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -19,9 +41,6 @@ class AnnouncementForm(forms.ModelForm):
                 'class': 'form-control',
                 'rows': 5,
                 'placeholder': 'Enter announcement content'
-            }),
-            'category': forms.Select(attrs={
-                'class': 'form-select'
             }),
             'priority_level': forms.Select(attrs={
                 'class': 'form-select'
@@ -33,6 +52,18 @@ class AnnouncementForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Try to load categories from database, fallback to hardcoded choices
+        try:
+            categories = Category.objects.all().order_by('name')
+            if categories.exists():
+                # Use database categories if available
+                category_choices = [('', 'Select a category')]
+                category_choices.extend([(cat.slug, cat.name) for cat in categories])
+                self.fields['category'].choices = category_choices
+        except Exception as e:
+            # If database query fails, use hardcoded choices (already set)
+            pass
         
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
@@ -46,6 +77,27 @@ class AnnouncementForm(forms.ModelForm):
                 ),
                 label='Security Verification'
             )
+    
+    def clean_category(self):
+        """Clean and validate category field, return Category instance"""
+        category_slug = self.cleaned_data.get('category')
+        
+        if not category_slug:
+            raise forms.ValidationError('Please select a category.')
+        
+        # Get or create category based on slug
+        try:
+            category = Category.objects.get(slug=category_slug)
+        except Category.DoesNotExist:
+            # Create category if it doesn't exist
+            category_name = dict(self.CATEGORY_CHOICES).get(category_slug, category_slug.replace('-', ' ').title())
+            category = Category.objects.create(
+                name=category_name,
+                slug=category_slug,
+                description=f'Auto-created category: {category_name}'
+            )
+        
+        return category
 
 class AnnouncementUpdateForm(forms.ModelForm):
     """Form for editing announcements with is_active field"""
@@ -96,9 +148,31 @@ class AnnouncementUpdateForm(forms.ModelForm):
 class PublicAnnouncementForm(forms.ModelForm):
     """Form for creating public announcements with CAPTCHA protection"""
     
+    # Hardcoded category choices as fallback
+    CATEGORY_CHOICES = [
+        ('', 'Select a category'),
+        ('campus-news', 'Campus News'),
+        ('events', 'Events'),
+        ('career-opportunities', 'Career Opportunities'),
+        ('alumni-spotlight', 'Alumni Spotlight'),
+        ('fundraising', 'Fundraising'),
+        ('volunteer-opportunities', 'Volunteer Opportunities'),
+        ('academic-updates', 'Academic Updates'),
+        ('community-service', 'Community Service'),
+    ]
+    
+    # Override category field with ChoiceField
+    category = forms.ChoiceField(
+        choices=CATEGORY_CHOICES,
+        widget=forms.Select(attrs={
+            'class': 'form-select'
+        }),
+        required=True
+    )
+    
     class Meta:
         model = Announcement
-        fields = ['title', 'content', 'category', 'priority_level']
+        fields = ['title', 'content', 'priority_level']
         widgets = {
             'title': forms.TextInput(attrs={
                 'class': 'form-control',
@@ -109,9 +183,6 @@ class PublicAnnouncementForm(forms.ModelForm):
                 'rows': 5,
                 'placeholder': 'Enter announcement content'
             }),
-            'category': forms.Select(attrs={
-                'class': 'form-select'
-            }),
             'priority_level': forms.Select(attrs={
                 'class': 'form-select'
             })
@@ -119,6 +190,18 @@ class PublicAnnouncementForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
+        
+        # Try to load categories from database, fallback to hardcoded choices
+        try:
+            categories = Category.objects.all().order_by('name')
+            if categories.exists():
+                # Use database categories if available
+                category_choices = [('', 'Select a category')]
+                category_choices.extend([(cat.slug, cat.name) for cat in categories])
+                self.fields['category'].choices = category_choices
+        except Exception as e:
+            # If database query fails, use hardcoded choices (already set)
+            pass
         
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
@@ -132,3 +215,24 @@ class PublicAnnouncementForm(forms.ModelForm):
                 ),
                 label='Security Verification'
             )
+    
+    def clean_category(self):
+        """Clean and validate category field, return Category instance"""
+        category_slug = self.cleaned_data.get('category')
+        
+        if not category_slug:
+            raise forms.ValidationError('Please select a category.')
+        
+        # Get or create category based on slug
+        try:
+            category = Category.objects.get(slug=category_slug)
+        except Category.DoesNotExist:
+            # Create category if it doesn't exist
+            category_name = dict(self.CATEGORY_CHOICES).get(category_slug, category_slug.replace('-', ' ').title())
+            category = Category.objects.create(
+                name=category_name,
+                slug=category_slug,
+                description=f'Auto-created category: {category_name}'
+            )
+        
+        return category
