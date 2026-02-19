@@ -1757,6 +1757,159 @@ class ReportDetailView(DetailView):
         return data
 
 
+@login_required
+@staff_member_required
+def survey_export_responses(request, pk):
+    """Export survey responses to Excel format with NORSU header"""
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment
+    from openpyxl.utils import get_column_letter
+    from django.utils.text import slugify
+    from core.export_utils import LogoHeaderService
+    
+    survey = get_object_or_404(Survey, pk=pk)
+    
+    # Create workbook
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Survey Responses"
+    
+    # Add NORSU header with logo
+    logo_path = LogoHeaderService.get_logo_path()
+    start_row = LogoHeaderService.add_excel_header(
+        ws, 
+        logo_path, 
+        title=f"{survey.title} - Responses"
+    )
+    
+    # Get all questions for the survey
+    questions = survey.questions.all().order_by('display_order')
+    
+    # Define header style
+    header_fill = PatternFill(start_color='2b3c6b', end_color='2b3c6b', fill_type='solid')
+    header_font = Font(bold=True, color='FFFFFF', size=11)
+    header_alignment = Alignment(horizontal='center', vertical='center', wrap_text=True)
+    
+    # Write header row
+    headers = ['Response ID', 'Alumni Name', 'Email', 'Submitted At']
+    for question in questions:
+        headers.append(f"Q{question.display_order + 1}: {question.question_text}")
+    
+    for col_num, header in enumerate(headers, 1):
+        cell = ws.cell(row=start_row, column=col_num)
+        cell.value = header
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = header_alignment
+    
+    # Get all responses with related data
+    responses = survey.responses.select_related('alumni__user').prefetch_related(
+        'answers', 'answers__question', 'answers__selected_option'
+    ).order_by('-submitted_at')
+    
+    # Define data style
+    data_alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
+    
+    # Write data rows
+    current_row = start_row + 1
+    for response in responses:
+        # Basic response info
+        ws.cell(row=current_row, column=1, value=response.id)
+        ws.cell(row=current_row, column=2, value=f"{response.alumni.user.first_name} {response.alumni.user.last_name}")
+        ws.cell(row=current_row, column=3, value=response.alumni.user.email)
+        ws.cell(row=current_row, column=4, value=response.submitted_at.strftime('%Y-%m-%d %H:%M:%S'))
+        
+        # Add answers for each question
+        col_num = 5
+        for question in questions:
+            answer_objects = [a for a in response.answers.all() if a.question_id == question.id]
+            
+            answer_value = ''
+            if question.question_type in ['text', 'email', 'url', 'date', 'time']:
+                if answer_objects and answer_objects[0].text_answer:
+                    answer_value = answer_objects[0].text_answer
+            elif question.question_type == 'number':
+                # Store as number to avoid scientific notation
+                if answer_objects and answer_objects[0].text_answer:
+                    try:
+                        answer_value = float(answer_objects[0].text_answer)
+                    except (ValueError, TypeError):
+                        answer_value = answer_objects[0].text_answer
+            elif question.question_type == 'phone':
+                # Store phone numbers as text with apostrophe prefix to prevent formatting
+                if answer_objects and answer_objects[0].text_answer:
+                    answer_value = answer_objects[0].text_answer
+                    # Format as text to preserve leading zeros and prevent scientific notation
+                    cell = ws.cell(row=current_row, column=col_num)
+                    cell.value = answer_value
+                    cell.number_format = '@'  # Text format
+                    cell.alignment = data_alignment
+                    col_num += 1
+                    continue
+            elif question.question_type == 'multiple_choice':
+                if answer_objects and answer_objects[0].selected_option:
+                    answer_value = answer_objects[0].selected_option.option_text
+            elif question.question_type == 'checkbox':
+                if answer_objects:
+                    options = [a.selected_option.option_text for a in answer_objects if a.selected_option]
+                    answer_value = "; ".join(options) if options else ''
+            elif question.question_type in ['rating', 'likert']:
+                if answer_objects and answer_objects[0].rating_value is not None:
+                    answer_value = answer_objects[0].rating_value
+            elif question.question_type == 'file':
+                # File uploads are stored in text_answer field as file path/URL
+                if answer_objects and answer_objects[0].text_answer:
+                    answer_value = answer_objects[0].text_answer
+            
+            cell = ws.cell(row=current_row, column=col_num, value=answer_value)
+            cell.alignment = data_alignment
+            col_num += 1
+        
+        current_row += 1
+    
+    # Auto-adjust column widths
+    for col_num in range(1, len(headers) + 1):
+        column_letter = get_column_letter(col_num)
+        max_length = 0
+        
+        # Check header length
+        if col_num <= len(headers):
+            max_length = len(str(headers[col_num - 1]))
+        
+        # Check data length (sample first 100 rows for performance)
+        for row_num in range(start_row + 1, min(start_row + 101, current_row)):
+            cell_value = ws.cell(row=row_num, column=col_num).value
+            if cell_value:
+                max_length = max(max_length, len(str(cell_value)))
+        
+        # Set column width (max 50 characters)
+        adjusted_width = min(max_length + 2, 50)
+        ws.column_dimensions[column_letter].width = adjusted_width
+    
+    # Create the HttpResponse object with Excel content
+    http_response = HttpResponse(
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    http_response['Content-Disposition'] = f'attachment; filename="{slugify(survey.title)}_responses.xlsx"'
+    
+    # Save workbook to response
+    wb.save(http_response)
+    
+    # Log export action
+    logger.info(
+        f"Survey responses exported: Survey ID={survey.id}, Title={survey.title}, Response Count={responses.count()}",
+        extra={
+            'survey_id': survey.id,
+            'survey_title': survey.title,
+            'response_count': responses.count(),
+            'user_id': request.user.id,
+            'export_format': 'excel'
+        }
+    )
+    
+    return http_response
+
+
 @staff_member_required
 def report_export_pdf(request, pk):
     """

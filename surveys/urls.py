@@ -12,6 +12,7 @@ urlpatterns = [
     path('admin/surveys/<int:pk>/update/', views.SurveyUpdateView.as_view(), name='survey_update'),
     path('admin/surveys/<int:pk>/delete/', views.SurveyDeleteView.as_view(), name='survey_delete'),
     path('admin/surveys/<int:pk>/responses/', views.SurveyResponsesView.as_view(), name='survey_responses'),
+    path('admin/surveys/<int:pk>/export/', views.survey_export_responses, name='survey_export_responses'),
     path('admin/surveys/<int:survey_id>/questions/add/', views.SurveyQuestionCreateView.as_view(), name='question_create'),
     path('admin/surveys/questions/<int:pk>/update/', views.SurveyQuestionUpdateView.as_view(), name='question_update'),
     path('admin/surveys/analytics/', RedirectView.as_view(pattern_name='surveys:survey_list', permanent=False), name='survey_analytics'),
