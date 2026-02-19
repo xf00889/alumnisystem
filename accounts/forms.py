@@ -1230,6 +1230,12 @@ class PasswordResetNewPasswordForm(forms.Form):
             
             # Check password history if user exists
             if self.user:
+                # Check if new password matches current password
+                from django.contrib.auth.hashers import check_password
+                if check_password(password1, self.user.password):
+                    raise forms.ValidationError("Your new password cannot be the same as your old password.")
+                
+                # Check password history
                 if not PasswordValidator.check_password_history(self.user, password1):
                     raise forms.ValidationError("You cannot reuse a recently used password.")
         

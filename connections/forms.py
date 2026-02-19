@@ -30,7 +30,7 @@ class DirectMessageForm(forms.ModelForm):
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.fields['content'].required = True
+        self.fields['content'].required = False  # Make content optional
         self.fields['attachment'].required = False
         
         # Add reCAPTCHA field if enabled in database
@@ -45,6 +45,17 @@ class DirectMessageForm(forms.ModelForm):
                 ),
                 label='Security Verification'
             )
+    
+    def clean(self):
+        cleaned_data = super().clean()
+        content = cleaned_data.get('content')
+        attachment = cleaned_data.get('attachment')
+        
+        # Ensure at least one of content or attachment is provided
+        if not content and not attachment:
+            raise forms.ValidationError("Please provide either a message or an attachment.")
+        
+        return cleaned_data
     
     def clean_content(self):
         content = self.cleaned_data.get('content')

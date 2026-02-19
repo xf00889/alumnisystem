@@ -39,6 +39,18 @@ class SuppressAuthMessagesMiddleware(MiddlewareMixin):
                 ]):
                     continue
                 
+                # Skip OAuth cancellation and error messages
+                if any(keyword in message_text for keyword in [
+                    'google sign-in was cancelled',
+                    'sign-in was cancelled',
+                    'an error occurred during google sign-in',
+                    'error occurred during google',
+                    'cancelled',
+                    'access_denied',
+                    'try again or use email/password login'
+                ]):
+                    continue
+                
                 # Keep all other messages
                 messages_to_keep.append({
                     'level': message.level,

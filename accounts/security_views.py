@@ -636,6 +636,9 @@ NORSU Alumni Network Team
             # Record attempt (3 attempts per 15 minutes)
             RateLimiter.record_attempt(email, 'password_reset_attempt', max_attempts=3, window_minutes=15)
             
+            # Store email in session for OTP page
+            request.session['password_reset_email_input'] = email
+            
             messages.success(request, 'Verification code sent to your email.')
             return redirect('accounts:password_reset_otp')
     else:
@@ -647,6 +650,9 @@ NORSU Alumni Network Team
 
 def password_reset_otp(request):
     """Password reset OTP verification with security logging"""
+    # Get email from session if available
+    email_from_session = request.session.get('password_reset_email_input', '')
+    
     if request.method == 'POST':
         form = PasswordResetOTPForm(request.POST)
         if form.is_valid():
@@ -676,6 +682,10 @@ def password_reset_otp(request):
                 request.session['password_reset_email'] = email
                 request.session.set_expiry(900)  # 15 minutes for password reset session
                 
+                # Clear the input email from session
+                if 'password_reset_email_input' in request.session:
+                    del request.session['password_reset_email_input']
+                
                 messages.success(request, 'Email verified successfully. Please set your new password.')
                 return redirect('accounts:password_reset_new_password')
             else:
@@ -688,10 +698,17 @@ def password_reset_otp(request):
                 )
                 messages.error(request, message)
     else:
-        form = PasswordResetOTPForm()
+        # Prepopulate form with email from session
+        initial_data = {}
+        if email_from_session:
+            initial_data['email'] = email_from_session
+        form = PasswordResetOTPForm(initial=initial_data)
     
     # Use existing password reset OTP template
-    return render(request, 'accounts/password_reset_otp.html', {'form': form})
+    return render(request, 'accounts/password_reset_otp.html', {
+        'form': form,
+        'email_from_session': email_from_session
+    })
 
 
 def password_reset_new_password(request):
@@ -701,31 +718,33 @@ def password_reset_new_password(request):
         messages.error(request, 'Session expired. Please start the password reset process again.')
         return redirect('accounts:password_reset_email')
     
+    # Get user object for form validation
+    try:
+        user = User.objects.get(email=email)
+    except User.DoesNotExist:
+        messages.error(request, 'User not found.')
+        return redirect('accounts:password_reset_email')
+    
     if request.method == 'POST':
-        form = PasswordResetNewPasswordForm(request.POST)
+        form = PasswordResetNewPasswordForm(request.POST, user=user)
         if form.is_valid():
-            try:
-                user = User.objects.get(email=email)
-                user.set_password(form.cleaned_data['new_password1'])
-                user.save()
-                
-                # Clear session
-                del request.session['password_reset_email']
-                
-                # Log password reset success
-                SecurityAuditLogger.log_event(
-                    'password_reset_success',
-                    user=user,
-                    ip_address=request.META.get('REMOTE_ADDR')
-                )
-                
-                messages.success(request, 'Password reset successfully! You can now sign in with your new password.')
-                return redirect('account_login')
-                
-            except User.DoesNotExist:
-                messages.error(request, 'User not found.')
+            user.set_password(form.cleaned_data['new_password1'])
+            user.save()
+            
+            # Clear session
+            del request.session['password_reset_email']
+            
+            # Log password reset success
+            SecurityAuditLogger.log_event(
+                'password_reset_success',
+                user=user,
+                ip_address=request.META.get('REMOTE_ADDR')
+            )
+            
+            messages.success(request, 'Password reset successfully! You can now sign in with your new password.')
+            return redirect('account_login')
     else:
-        form = PasswordResetNewPasswordForm()
+        form = PasswordResetNewPasswordForm(user=user)
     
     # Use existing password reset new password template
     return render(request, 'accounts/password_reset_new_password.html', {'form': form})

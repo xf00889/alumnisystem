@@ -107,7 +107,10 @@ class FixedOAuth2CallbackView(OAuth2CallbackView):
             
         except Exception as e:
             logger.error(f"Error in OAuth callback: {str(e)}", exc_info=True)
-            messages.error(request, "An error occurred during sign-in. Please try again.")
+            # Check if it's a cancellation error
+            error_str = str(e).lower()
+            if 'access_denied' not in error_str and 'cancelled' not in error_str:
+                messages.error(request, "An error occurred during sign-in. Please try again.")
             return redirect('account_login')
 
 

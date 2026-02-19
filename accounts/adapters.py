@@ -238,11 +238,11 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
         
         # Determine user-friendly message based on error type
         if error == 'access_denied' or (exception and 'access_denied' in str(exception).lower()):
-            # User cancelled the OAuth flow
-            messages.info(
-                request,
-                "Google sign-in was cancelled. You can try again or use email/password login."
-            )
+            # User cancelled the OAuth flow - redirect to cancellation page without any messages
+            logger.info(f"User cancelled {provider_id} OAuth flow")
+            # Redirect directly to the cancellation page
+            from django.urls import reverse
+            return redirect(reverse('socialaccount_login_cancelled'))
         elif error == 'invalid_client' or (exception and 'invalid_client' in str(exception).lower()):
             # OAuth credentials misconfigured
             messages.error(
@@ -275,7 +275,7 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                 "An error occurred during Google sign-in. Please try again or use email/password login."
             )
         
-        # Redirect to login page
+        # Redirect to login page for all other errors
         return redirect('account_login')
     
     def populate_user(self, request, sociallogin, data):

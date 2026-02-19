@@ -33,17 +33,6 @@
                 <h5 class="chat-title mb-1">{{ other_user.get_full_name }}</h5>
                 <p class="chat-subtitle mb-0">{{ other_user.profile.position|default:"Alumni" }}</p>
             </div>
-            <div class="dropdown">
-                <button class="btn btn-outline-secondary btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown">
-                    <i class="fas fa-ellipsis-v"></i>
-                </button>
-                <ul class="dropdown-menu">
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>View Profile</a></li>
-                    <li><a class="dropdown-item" href="#"><i class="fas fa-archive me-2"></i>Archive Chat</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-danger" href="#"><i class="fas fa-ban me-2"></i>Block User</a></li>
-                </ul>
-            </div>
         </div>
     </div>
 
@@ -152,14 +141,26 @@
     <div class="message-form">
         <form id="messageForm" onsubmit="sendMessage(event, {{ other_user.id }})">
             {% csrf_token %}
+            
+            <!-- Attachment Preview -->
+            <div id="attachmentPreview" class="attachment-preview-container" style="display: none;">
+                <div class="attachment-preview-card">
+                    <button type="button" class="attachment-remove-btn" onclick="removeAttachment()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <div id="attachmentPreviewContent"></div>
+                    <div id="attachmentFileName" class="attachment-file-name"></div>
+                </div>
+            </div>
+            
             <div class="row g-2">
                 <div class="col">
                     <div class="input-group">
                         <input type="text" 
                                class="form-control" 
+                               id="messageInput"
                                name="content" 
                                placeholder="Type your message..." 
-                               required 
                                autocomplete="off">
                         <input type="file" 
                                class="d-none" 
@@ -416,6 +417,81 @@
     font-weight: 500;
 }
 
+/* Attachment Preview Styles */
+.attachment-preview-container {
+    padding: 0.75rem;
+    background: var(--ui-background);
+    border-top: 1px solid var(--ui-border);
+    margin-bottom: 0;
+}
+
+.attachment-preview-card {
+    position: relative;
+    background: var(--ui-surface);
+    border: 1px solid var(--ui-border);
+    border-radius: var(--radius-md);
+    padding: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.attachment-remove-btn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: var(--feedback-error);
+    color: var(--text-light);
+    border: none;
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 0.75rem;
+    z-index: 10;
+}
+
+.attachment-remove-btn:hover {
+    background: #c82333;
+    transform: scale(1.1);
+}
+
+#attachmentPreviewContent {
+    flex-shrink: 0;
+}
+
+#attachmentPreviewContent img {
+    max-width: 80px;
+    max-height: 80px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
+}
+
+#attachmentPreviewContent .file-icon {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ui-background);
+    border-radius: var(--radius-sm);
+    font-size: 2rem;
+    color: var(--primary-color);
+}
+
+.attachment-file-name {
+    flex: 1;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+    font-weight: 500;
+    word-break: break-word;
+    padding-right: 2rem;
+}
+
 /* Mobile Responsive Styles */
 @media (max-width: 767.98px) {
     .chat-container {
@@ -603,10 +679,54 @@ document.addEventListener('DOMContentLoaded', function() {
 document.getElementById('attachmentInput').addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
-        // You can add file preview logic here
-        console.log('File selected:', file.name);
+        const previewContainer = document.getElementById('attachmentPreview');
+        const previewContent = document.getElementById('attachmentPreviewContent');
+        const fileName = document.getElementById('attachmentFileName');
+        
+        // Show preview container
+        previewContainer.style.display = 'block';
+        
+        // Set file name
+        fileName.textContent = file.name;
+        
+        // Check if it's an image
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                previewContent.innerHTML = `<img src="${e.target.result}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        } else {
+            // Show file icon for non-images
+            const icon = getFileIcon(file.type);
+            previewContent.innerHTML = `<div class="file-icon"><i class="${icon}"></i></div>`;
+        }
     }
 });
+
+// Function to get appropriate icon based on file type
+function getFileIcon(fileType) {
+    if (fileType.includes('pdf')) return 'fas fa-file-pdf';
+    if (fileType.includes('word') || fileType.includes('document')) return 'fas fa-file-word';
+    if (fileType.includes('excel') || fileType.includes('spreadsheet')) return 'fas fa-file-excel';
+    return 'fas fa-file';
+}
+
+// Function to remove attachment
+function removeAttachment() {
+    const attachmentInput = document.getElementById('attachmentInput');
+    const previewContainer = document.getElementById('attachmentPreview');
+    
+    // Clear the file input
+    attachmentInput.value = '';
+    
+    // Hide preview
+    previewContainer.style.display = 'none';
+    
+    // Clear preview content
+    document.getElementById('attachmentPreviewContent').innerHTML = '';
+    document.getElementById('attachmentFileName').textContent = '';
+}
 
 // Handle message sending
 function sendMessage(event, userId) {
@@ -615,6 +735,13 @@ function sendMessage(event, userId) {
     const form = event.target;
     const formData = new FormData(form);
     const messagesContainer = document.getElementById('messagesContainer');
+    const messageInput = document.getElementById('messageInput');
+    const attachmentInput = document.getElementById('attachmentInput');
+    
+    // Check if there's either a message or an attachment
+    if (!messageInput.value.trim() && !attachmentInput.files.length) {
+        return; // Don't send if both are empty
+    }
     
     fetch(`/connections/send-message/${userId}/`, {
         method: 'POST',
@@ -635,6 +762,9 @@ function sendMessage(event, userId) {
             
             // Clear the form
             form.reset();
+            
+            // Remove attachment preview
+            removeAttachment();
             
             // Scroll to bottom (which is scrollTop = 0 for reversed container)
             scrollToBottom();

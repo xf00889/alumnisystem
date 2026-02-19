@@ -14,8 +14,8 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <!-- SweetAlert2 -->
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <!-- Notyf Toast Notifications -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
     
     {% if recaptcha_enabled %}
     <!-- Google reCAPTCHA v3 -->
@@ -1078,41 +1078,17 @@
 
             {% if messages %}
                 {% for message in messages %}
-                    {# Filter out logout and login success messages #}
+                    {# Filter out logout, login success, and OAuth error messages #}
                     {% with message_text=message|lower %}
-                        {% if 'signed out' not in message_text and 'logged out' not in message_text and 'sign out' not in message_text and 'log out' not in message_text and 'logout' not in message_text and 'signed in' not in message_text and 'logged in' not in message_text %}
+                        {% if 'signed out' not in message_text and 'logged out' not in message_text and 'sign out' not in message_text and 'log out' not in message_text and 'logout' not in message_text and 'signed in' not in message_text and 'logged in' not in message_text and 'google sign-in' not in message_text and 'cancelled' not in message_text and 'access_denied' not in message_text %}
                             {% if message.tags == 'error' %}
-                                Swal.fire({
-                                    icon: 'error',
-                                    title: 'Error',
-                                    text: '{{ message|escapejs }}',
-                                    confirmButtonText: 'OK',
-                                    confirmButtonColor: '#ef4444'
-                                });
+                                ToastUtils.showError('{{ message|escapejs }}');
                             {% elif message.tags == 'warning' %}
-                                Swal.fire({
-                                    icon: 'warning',
-                                    title: 'Warning',
-                                    text: '{{ message|escapejs }}',
-                                    confirmButtonText: 'OK',
-                                    confirmButtonColor: '#f59e0b'
-                                });
+                                ToastUtils.showWarning('{{ message|escapejs }}');
                             {% elif message.tags == 'success' %}
-                                Swal.fire({
-                                    icon: 'success',
-                                    title: 'Success',
-                                    text: '{{ message|escapejs }}',
-                                    confirmButtonText: 'OK',
-                                    confirmButtonColor: '#10b981'
-                                });
+                                ToastUtils.showSuccess('{{ message|escapejs }}');
                             {% else %}
-                                Swal.fire({
-                                    icon: 'info',
-                                    title: 'Notice',
-                                    text: '{{ message|escapejs }}',
-                                    confirmButtonText: 'OK',
-                                    confirmButtonColor: '#3b82f6'
-                                });
+                                ToastUtils.showInfo('{{ message|escapejs }}');
                             {% endif %}
                         {% endif %}
                     {% endwith %}
@@ -1176,5 +1152,9 @@
             }
         });
     </script>
+
+    <!-- Notyf Toast Notifications -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <script src="{% static 'js/utils/toast-notifications.js' %}"></script>
 </body>
 </html>

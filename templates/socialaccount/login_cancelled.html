@@ -1,5 +1,4 @@
 {% load i18n %}
-{% load crispy_forms_tags %}
 {% load static %}
 
 <!DOCTYPE html>
@@ -7,22 +6,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-    <title>{% trans "Reset Password" %} - NORSU Alumni Network</title>
+    <title>{% trans "Login Cancelled" %} - NORSU Alumni Network</title>
     
     <!-- Google Fonts - Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Font Awesome -->
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-    <!-- Notyf Toast Notifications -->
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
-    
-    {% if form.captcha %}
-    <!-- Google reCAPTCHA (if enabled) -->
-    <script src="https://www.google.com/recaptcha/api.js" async defer></script>
-    {% endif %}
     
     <style>
-        /* Modern Premium Design System - Matching Login Cancellation Page */
+        /* Modern Premium Design System */
         :root {
             /* Colors */
             --primary: #2b3c6b;
@@ -35,6 +27,8 @@
             --text-tertiary: #94a3b8;
             --border: #e2e8f0;
             --border-light: #f1f5f9;
+            --info: #3b82f6;
+            --info-light: #dbeafe;
             
             /* Spacing (8px system) */
             --space-1: 0.5rem;
@@ -164,53 +158,40 @@
             backdrop-filter: blur(10px);
         }
 
-        /* Form Groups */
-        .form-group {
-            position: relative;
-            margin-bottom: var(--space-3);
+        /* Info Box */
+        .info-box {
+            background: var(--info-light);
+            border: 1.5px solid var(--info);
+            border-radius: var(--radius-md);
+            padding: var(--space-3);
+            margin-bottom: var(--space-4);
+            display: flex;
+            align-items: flex-start;
+            gap: var(--space-2);
         }
 
-        .form-label {
-            display: block;
-            font-size: 0.875rem;
-            font-weight: 500;
+        .info-icon {
+            color: var(--info);
+            font-size: 1.5rem;
+            flex-shrink: 0;
+            margin-top: 0.125rem;
+        }
+
+        .info-content {
+            flex: 1;
+        }
+
+        .info-title {
             color: var(--text-primary);
+            font-size: 1rem;
+            font-weight: 600;
             margin-bottom: var(--space-1);
         }
 
-        .form-input {
-            width: 100%;
-            padding: 0.875rem 1rem;
-            border: 1.5px solid var(--border);
-            border-radius: var(--radius-md);
-            font-size: 0.9375rem;
-            font-weight: 400;
-            color: var(--text-primary);
-            background: var(--surface);
-            transition: all 0.2s ease;
-            outline: none;
-        }
-
-        .form-input::placeholder {
-            color: var(--text-tertiary);
-        }
-
-        .form-input:focus {
-            border-color: var(--primary);
-            box-shadow: 0 0 0 4px rgba(43, 60, 107, 0.12);
-        }
-
-        .form-text {
-            display: block;
-            margin-top: var(--space-1);
-            font-size: 0.8125rem;
+        .info-text {
             color: var(--text-secondary);
-        }
-
-        .text-danger {
-            color: #ef4444;
-            font-size: 0.8125rem;
-            margin-top: var(--space-1);
+            font-size: 0.875rem;
+            line-height: 1.6;
         }
 
         /* Buttons */
@@ -227,10 +208,9 @@
             transition: all 0.2s ease;
             box-shadow: 0 4px 12px rgba(43, 60, 107, 0.2);
             margin-bottom: var(--space-2);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: var(--space-1);
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
         }
 
         .btn-primary:hover {
@@ -242,31 +222,51 @@
             transform: translateY(0);
         }
 
-        .btn-primary:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
+        .btn-secondary {
+            width: 100%;
+            padding: 0.875rem 1.5rem;
+            background: var(--surface);
+            color: var(--text-primary);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-md);
+            font-size: 0.9375rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .btn-secondary:hover {
+            background: var(--background);
+            border-color: var(--text-tertiary);
+            box-shadow: var(--shadow-sm);
+        }
+
+        /* Divider */
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: var(--space-2);
+            margin: var(--space-3) 0;
+        }
+
+        .divider-line {
+            flex: 1;
+            height: 1px;
+            background: var(--border-light);
+        }
+
+        .divider-text {
+            color: var(--text-tertiary);
+            font-size: 0.8125rem;
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
         }
 
         /* Links */
-        .auth-links {
-            text-align: center;
-            margin-top: var(--space-3);
-            font-size: 0.875rem;
-            color: var(--text-secondary);
-        }
-
-        .auth-links a {
-            color: var(--primary);
-            text-decoration: none;
-            font-weight: 500;
-            transition: color 0.2s ease;
-        }
-
-        .auth-links a:hover {
-            color: var(--primary-dark);
-        }
-
         .back-home {
             display: block;
             text-align: center;
@@ -304,8 +304,16 @@
                 font-size: 0.8125rem;
             }
 
-            .form-input,
-            .btn-primary {
+            .info-title {
+                font-size: 0.9375rem;
+            }
+
+            .info-text {
+                font-size: 0.8125rem;
+            }
+
+            .btn-primary,
+            .btn-secondary {
                 font-size: 0.875rem;
             }
         }
@@ -320,118 +328,42 @@
                 <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo" class="logo">
             </div>
             <h1 class="auth-title">NORSU Alumni Network</h1>
-            <p class="auth-subtitle">Reset your password</p>
+            <p class="auth-subtitle">Connect with fellow alumni and stay updated</p>
         </div>
 
         <!-- Card -->
         <div class="auth-card">
-            <form method="POST" action="{% url 'accounts:password_reset_email' %}" id="passwordResetForm">
-                {% csrf_token %}
-                
-                <div class="form-group">
-                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }} *</label>
-                    <input type="email" 
-                           class="form-input" 
-                           id="{{ form.email.id_for_label }}" 
-                           name="{{ form.email.name }}" 
-                           placeholder="Enter your email address"
-                           value="{{ form.email.value|default:'' }}"
-                           required>
-                    {% if form.email.help_text %}
-                        <small class="form-text">{{ form.email.help_text }}</small>
-                    {% endif %}
-                    {% if form.email.errors %}
-                        <div class="text-danger">
-                            {% for error in form.email.errors %}{{ error }}{% endfor %}
-                        </div>
-                    {% endif %}
+            <!-- Info Box -->
+            <div class="info-box">
+                <i class="fas fa-info-circle info-icon"></i>
+                <div class="info-content">
+                    <h2 class="info-title">Login Cancelled</h2>
+                    <p class="info-text">
+                        You decided to cancel logging in using your Google account. 
+                        If this was a mistake, you can try again below.
+                    </p>
                 </div>
-                
-                {% if form.captcha %}
-                <div class="form-group">
-                    {{ form.captcha }}
-                    {% if form.captcha.errors %}
-                        <div class="text-danger">
-                            {% for error in form.captcha.errors %}{{ error }}{% endfor %}
-                        </div>
-                    {% endif %}
-                </div>
-                {% endif %}
-                
-                <button type="submit" class="btn-primary" id="submitBtn">
-                    <i class="fas fa-paper-plane"></i> Send Verification Code
-                </button>
-            </form>
-
-            <div class="auth-links">
-                Remember your password? <a href="{% url 'account_login' %}">Sign in</a>
             </div>
+
+            <!-- Action Buttons -->
+            <a href="{% url 'account_login' %}" class="btn-primary">
+                <i class="fas fa-sign-in-alt"></i> Try Again
+            </a>
+
+            <div class="divider">
+                <div class="divider-line"></div>
+                <span class="divider-text">or</span>
+                <div class="divider-line"></div>
+            </div>
+
+            <a href="{% url 'core:home' %}" class="btn-secondary">
+                <i class="fas fa-home"></i> Go to Homepage
+            </a>
         </div>
 
         <a href="{% url 'core:home' %}" class="back-home">
             <i class="fas fa-arrow-left"></i> Back to Home
         </a>
     </div>
-
-    <!-- Notyf Toast Notifications -->
-    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
-    <script src="{% static 'js/utils/toast-notifications.js' %}"></script>
-
-    <script>
-        // reCAPTCHA callback functions
-        window.onRecaptchaSuccess = function(token) {
-            console.log('reCAPTCHA success:', token);
-        };
-        
-        window.onRecaptchaExpired = function() {
-            console.log('reCAPTCHA expired');
-        };
-        
-        window.onRecaptchaError = function(error) {
-            if (error && error !== 'undefined' && error !== undefined) {
-                console.warn('reCAPTCHA encountered an error:', error);
-            }
-        };
-
-        document.addEventListener('DOMContentLoaded', function() {
-            const form = document.getElementById('passwordResetForm');
-            const submitBtn = document.getElementById('submitBtn');
-            
-            form.addEventListener('submit', function(e) {
-                const email = document.getElementById('{{ form.email.id_for_label }}').value;
-                
-                if (!email) {
-                    e.preventDefault();
-                    ToastUtils.showError('Please enter your email address.');
-                    return;
-                }
-                
-                sessionStorage.setItem('password_reset_email_submitting', 'true');
-            });
-            
-            const isSubmitting = sessionStorage.getItem('password_reset_email_submitting');
-            if (isSubmitting === 'true') {
-                sessionStorage.removeItem('password_reset_email_submitting');
-                
-                {% if messages %}
-                    {% for message in messages %}
-                        {% if message.tags == 'error' %}
-                            ToastUtils.showError('{{ message|escapejs }}');
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-            } else {
-                {% if messages %}
-                    {% for message in messages %}
-                        {% if message.tags == 'success' and 'verification code' in message|lower %}
-                            ToastUtils.showSuccess('Verification code sent to your email. Please check your inbox.');
-                        {% elif message.tags == 'error' %}
-                            ToastUtils.showError('{{ message|escapejs }}');
-                        {% endif %}
-                    {% endfor %}
-                {% endif %}
-            }
-        });
-    </script>
 </body>
 </html>
