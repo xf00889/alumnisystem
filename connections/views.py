@@ -8,11 +8,14 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
+from django.core.exceptions import ValidationError
 import json
 import os
 from .models import Connection, DirectConversation, DirectMessage
 from .forms import DirectMessageForm, GroupPhotoUploadForm
 from alumni_directory.models import Alumni
+from core.file_validators import validate_message_attachment, sanitize_filename
+from core.rate_limiters import rate_limit_messages
 
 @login_required
 def test_search(request):
@@ -325,6 +328,7 @@ def direct_messages(request, user_id=None):
 
 @login_required
 @require_http_methods(["POST"])
+@rate_limit_messages(max_messages=20, time_window=60)
 def send_message(request, user_id):
     """Handle sending messages via HTMX"""
     other_user = get_object_or_404(User, id=user_id)
@@ -344,6 +348,19 @@ def send_message(request, user_id):
         message = form.save(commit=False)
         message.conversation = conversation
         message.sender = request.user
+        
+        # Validate attachment if present
+        if message.attachment:
+            try:
+                validate_message_attachment(message.attachment)
+                # Sanitize filename
+                message.attachment.name = sanitize_filename(message.attachment.name)
+            except ValidationError as e:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'attachment': str(e)}
+                })
+        
         message.save()
         
         # Return the new message HTML for HTMX
@@ -522,6 +539,7 @@ def group_chat_detail(request, conversation_id):
 
 @login_required
 @require_http_methods(["POST"])
+@rate_limit_messages(max_messages=20, time_window=60)
 def send_group_message(request, conversation_id):
     """Send a message to a group chat"""
     conversation = get_object_or_404(DirectConversation, id=conversation_id)
@@ -539,6 +557,19 @@ def send_group_message(request, conversation_id):
         message = form.save(commit=False)
         message.conversation = conversation
         message.sender = request.user
+        
+        # Validate attachment if present
+        if message.attachment:
+            try:
+                validate_message_attachment(message.attachment)
+                # Sanitize filename
+                message.attachment.name = sanitize_filename(message.attachment.name)
+            except ValidationError as e:
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'attachment': str(e)}
+                })
+        
         message.save()
 
         # Return the new message HTML for HTMX

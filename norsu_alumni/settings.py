@@ -22,10 +22,18 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
+# Generate a strong secret key for production: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'
 SECRET_KEY = config('SECRET_KEY', default='django-insecure-5$o7#0#k6l3z$u9s&2xd#n@f&=x#8q$j#z7$x#0#k6l3z$u9s')
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = config('DEBUG', default=True, cast=bool)
+
+# Validate SECRET_KEY in production
+if not DEBUG and (len(SECRET_KEY) < 50 or SECRET_KEY.startswith('django-insecure-')):
+    raise ValueError(
+        "You must set a strong SECRET_KEY in production! "
+        "Generate one with: python -c 'from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())'"
+    )
 
 # Get the base ALLOWED_HOSTS from config
 ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.168.134.71,10.0.1.18', cast=Csv())
@@ -626,25 +634,48 @@ CACHE_MIDDLEWARE_ALIAS = 'default'
 CACHE_MIDDLEWARE_SECONDS = 300
 CACHE_MIDDLEWARE_KEY_PREFIX = ''
 
-# Cookie Settings
-SESSION_COOKIE_SECURE = False
-CSRF_COOKIE_SECURE = False
-SESSION_COOKIE_HTTPONLY = False
-CSRF_COOKIE_HTTPONLY = False
+# Cookie Settings - Secure in production, relaxed in development
+if not DEBUG:
+    # Production: Secure cookies
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = True
+else:
+    # Development: Allow non-HTTPS
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SESSION_COOKIE_HTTPONLY = True  # Still good practice in dev
+    CSRF_COOKIE_HTTPONLY = True
+
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'
 
-# Security Settings
-USE_X_FORWARDED_HOST = False
-USE_X_FORWARDED_PORT = False
-SECURE_PROXY_SSL_HEADER = None
-SECURE_SSL_REDIRECT = False
-SECURE_HSTS_SECONDS = 0
-SECURE_HSTS_INCLUDE_SUBDOMAINS = False
-SECURE_HSTS_PRELOAD = False
-SECURE_BROWSER_XSS_FILTER = False
-SECURE_CONTENT_TYPE_NOSNIFF = False
-X_FRAME_OPTIONS = 'SAMEORIGIN'
+# Security Settings - Strict in production, relaxed in development
+if not DEBUG:
+    # Production: Full security
+    USE_X_FORWARDED_HOST = True
+    USE_X_FORWARDED_PORT = True
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+    SECURE_SSL_REDIRECT = True
+    SECURE_HSTS_SECONDS = 31536000  # 1 year
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+    SECURE_HSTS_PRELOAD = True
+    SECURE_BROWSER_XSS_FILTER = True
+    SECURE_CONTENT_TYPE_NOSNIFF = True
+    X_FRAME_OPTIONS = 'DENY'
+else:
+    # Development: Relaxed for local testing
+    USE_X_FORWARDED_HOST = False
+    USE_X_FORWARDED_PORT = False
+    SECURE_PROXY_SSL_HEADER = None
+    SECURE_SSL_REDIRECT = False
+    SECURE_HSTS_SECONDS = 0
+    SECURE_HSTS_INCLUDE_SUBDOMAINS = False
+    SECURE_HSTS_PRELOAD = False
+    SECURE_BROWSER_XSS_FILTER = False
+    SECURE_CONTENT_TYPE_NOSNIFF = False
+    X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Session Security Settings
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True

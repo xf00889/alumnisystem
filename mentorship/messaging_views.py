@@ -6,9 +6,13 @@ from django.views.decorators.http import require_POST
 from django.utils import timezone
 from django.urls import reverse
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from accounts.models import MentorshipRequest
+from .models import MentorshipMeeting, MentorshipMessage, MentorshipProgress, TimelineMilestone
 from .messaging_models import Conversation, Message
 from .messaging_forms import MessageForm
+from core.file_validators import validate_message_attachment, sanitize_filename
+from core.rate_limiters import rate_limit_messages
 
 User = get_user_model()
 
@@ -185,6 +189,7 @@ def messaging_page(request):
 
 @login_required
 @require_POST
+@rate_limit_messages(max_messages=20, time_window=60)
 def send_message(request, conversation_id):
     """
     Handle sending a new message via HTMX POST
@@ -205,6 +210,24 @@ def send_message(request, conversation_id):
         message = form.save(commit=False)
         message.conversation = conversation
         message.sender = request.user
+        
+        # Validate attachment if present
+        if message.attachment:
+            try:
+                validate_message_attachment(message.attachment)
+                # Sanitize filename
+                message.attachment.name = sanitize_filename(message.attachment.name)
+            except ValidationError as e:
+                if request.htmx:
+                    return JsonResponse({
+                        'success': False,
+                        'errors': {'attachment': str(e)}
+                    }, status=400)
+                return JsonResponse({
+                    'success': False,
+                    'errors': {'attachment': str(e)}
+                }, status=400)
+        
         message.save()
         
         # Update conversation timestamp
