@@ -1,11 +1,38 @@
 // Connection management JavaScript
 
-// Note: csrftoken is already declared globally in base.html
+// Get CSRF token helper function
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let i = 0; i < cookies.length; i++) {
+            const cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+// Get CSRF token from DOM or cookie
+function getCSRFToken() {
+    // First try to get from DOM (works even with HttpOnly cookies)
+    const tokenInput = document.querySelector('[name=csrfmiddlewaretoken]');
+    if (tokenInput && tokenInput.value) {
+        return tokenInput.value;
+    }
+    
+    // Fallback to cookie (only works if CSRF_COOKIE_HTTPONLY = False)
+    return getCookie('csrftoken');
+}
 
 // Toast notifications now handled by ToastUtils (toast-notifications.js)
 
 // Send connection request
 function sendConnectionRequest(userId) {
+    const csrftoken = getCSRFToken();
     fetch(`/connections/send-request/${userId}/`, {
         method: 'POST',
         headers: {
@@ -30,6 +57,7 @@ function sendConnectionRequest(userId) {
 
 // Accept connection request
 function acceptConnectionRequest(connectionId) {
+    const csrftoken = getCSRFToken();
     fetch(`/connections/accept/${connectionId}/`, {
         method: 'POST',
         headers: {
@@ -56,6 +84,7 @@ function acceptConnectionRequest(connectionId) {
 
 // Reject connection request
 function rejectConnectionRequest(connectionId) {
+    const csrftoken = getCSRFToken();
     fetch(`/connections/reject/${connectionId}/`, {
         method: 'POST',
         headers: {
@@ -86,6 +115,7 @@ function removeConnection(userId) {
         return;
     }
     
+    const csrftoken = getCSRFToken();
     fetch(`/connections/remove/${userId}/`, {
         method: 'POST',
         headers: {
@@ -97,7 +127,10 @@ function removeConnection(userId) {
     .then(data => {
         if (data.success) {
             ToastUtils.showSuccess(data.message);
-            updateConnectionButton(userId, 'none');
+            // Refresh the page after a short delay to show the toast
+            setTimeout(() => {
+                location.reload();
+            }, 1500);
         } else {
             ToastUtils.showError(data.message);
         }
@@ -151,6 +184,7 @@ function updateConnectionButton(userId, status) {
 
 // Update pending requests count in navigation
 function updatePendingRequestsCount() {
+    const csrftoken = getCSRFToken();
     fetch('/connections/pending-count/', {
         method: 'GET',
         headers: {
