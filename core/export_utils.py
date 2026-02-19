@@ -1014,7 +1014,7 @@ class ModelExporter:
         """Get export configuration for MentorshipRequest model"""
         return {
             'field_names': [
-                'id', 'mentor__user__username', 'mentee__user__username',
+                'id', 'mentor__user__username', 'mentee__username',
                 'status', 'created_at', 'updated_at'
             ],
             'field_labels': [
@@ -1043,7 +1043,7 @@ class ModelExporter:
         """Get export configuration for Donation model"""
         return {
             'field_names': [
-                'id', 'donor__user__username', 'campaign__title', 'amount',
+                'id', 'donor__username', 'campaign__name', 'amount',
                 'status', 'donation_date', 'created_at'
             ],
             'field_labels': [
@@ -1072,12 +1072,12 @@ class ModelExporter:
         """Get export configuration for Announcement model"""
         return {
             'field_names': [
-                'id', 'title', 'content', 'category__name', 'author__username',
-                'is_published', 'created_at', 'updated_at'
+                'id', 'title', 'content', 'category__name', 'priority_level',
+                'is_active', 'date_posted', 'last_modified'
             ],
             'field_labels': [
-                'ID', 'Title', 'Content', 'Category', 'Author',
-                'Published', 'Created At', 'Updated At'
+                'ID', 'Title', 'Content', 'Category', 'Priority',
+                'Active', 'Date Posted', 'Last Modified'
             ],
             'sheet_name': 'Announcements'
         }

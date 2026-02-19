@@ -388,7 +388,7 @@ def export_mentorships(request, format_type='csv'):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
-    queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee__user').all()
+    queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee').all()
     export_config = ModelExporter.get_mentorship_export_config()
     
     return export_queryset(queryset, format_type, 'mentorships', export_config)
@@ -412,7 +412,7 @@ def export_donations(request, format_type='csv'):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
-    queryset = Donation.objects.select_related('donor__user', 'campaign').all()
+    queryset = Donation.objects.select_related('donor', 'campaign').all()
     export_config = ModelExporter.get_donation_export_config()
     
     return export_queryset(queryset, format_type, 'donations', export_config)
@@ -436,7 +436,7 @@ def export_announcements(request, format_type='csv'):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
-    queryset = Announcement.objects.select_related('category', 'author').all()
+    queryset = Announcement.objects.select_related('category').all()
     export_config = ModelExporter.get_announcement_export_config()
     
     return export_queryset(queryset, format_type, 'announcements', export_config)
@@ -569,16 +569,16 @@ def bulk_export_process(request):
                                 queryset = JobPosting.objects.all()
                                 export_config = ModelExporter.get_job_export_config()
                             elif model_name == 'mentorships':
-                                queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee__user').all()
+                                queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee').all()
                                 export_config = ModelExporter.get_mentorship_export_config()
                             elif model_name == 'events':
                                 queryset = Event.objects.all()
                                 export_config = ModelExporter.get_event_export_config()
                             elif model_name == 'donations':
-                                queryset = Donation.objects.select_related('donor__user', 'campaign').all()
+                                queryset = Donation.objects.select_related('donor', 'campaign').all()
                                 export_config = ModelExporter.get_donation_export_config()
                             elif model_name == 'announcements':
-                                queryset = Announcement.objects.select_related('category', 'author').all()
+                                queryset = Announcement.objects.select_related('category').all()
                                 export_config = ModelExporter.get_announcement_export_config()
                             elif model_name == 'feedback':
                                 queryset = Feedback.objects.select_related('user').all()
