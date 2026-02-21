@@ -1,0 +1,160 @@
+/**
+ * reCAPTCHA Mobile Positioning Fix
+ * 
+ * Fixes reCAPTCHA badge positioning on mobile devices to prevent:
+ * - Overlap with bottom navigation
+ * - Covering form elements
+ * - Poor user experience on small screens
+ */
+
+/* Default reCAPTCHA badge positioning adjustments */
+.grecaptcha-badge {
+    z-index: 999 !important; /* Below modals (1050) but above most content */
+    transition: all 0.3s ease !important;
+}
+
+/* Mobile devices - adjust for bottom navigation */
+@media (max-width: 767.98px) {
+    .grecaptcha-badge {
+        /* Move badge up to avoid bottom navigation (56px height + 8px margin) */
+        bottom: 64px !important;
+        /* Slightly smaller on mobile */
+        transform: scale(0.9) !important;
+        transform-origin: bottom right !important;
+    }
+    
+    /* When keyboard is open or form is focused, move badge even higher */
+    body.keyboard-open .grecaptcha-badge,
+    body.form-focused .grecaptcha-badge {
+        bottom: 80px !important;
+        opacity: 0.8 !important;
+    }
+    
+    /* On very small screens (iPhone SE, etc.) */
+    @media (max-height: 667px) {
+        .grecaptcha-badge {
+            bottom: 72px !important;
+            transform: scale(0.85) !important;
+        }
+    }
+    
+    /* On extra small screens */
+    @media (max-height: 568px) {
+        .grecaptcha-badge {
+            bottom: 80px !important;
+            transform: scale(0.8) !important;
+        }
+    }
+}
+
+/* Tablet portrait - slight adjustment */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .grecaptcha-badge {
+        bottom: 16px !important;
+        transform: scale(0.95) !important;
+    }
+}
+
+/* Desktop - default positioning */
+@media (min-width: 992px) {
+    .grecaptcha-badge {
+        bottom: 14px !important;
+        right: 14px !important;
+    }
+}
+
+/* 
+ * Alternative: Hide reCAPTCHA badge on mobile (v3 only)
+ * Uncomment if you prefer to hide the badge completely on mobile
+ * Note: This only works with reCAPTCHA v3 (invisible)
+ */
+/*
+@media (max-width: 767.98px) {
+    .grecaptcha-badge {
+        visibility: hidden !important;
+    }
+}
+*/
+
+/* 
+ * For pages with bottom navigation
+ * Add this class to body when bottom nav is present
+ */
+body.has-bottom-nav .grecaptcha-badge {
+    bottom: 64px !important;
+}
+
+@media (max-width: 767.98px) {
+    body.has-bottom-nav .grecaptcha-badge {
+        bottom: 72px !important;
+    }
+}
+
+/* 
+ * Landscape mode on mobile
+ * Badge should be smaller and positioned carefully
+ */
+@media (max-width: 767.98px) and (orientation: landscape) {
+    .grecaptcha-badge {
+        bottom: 8px !important;
+        right: 8px !important;
+        transform: scale(0.75) !important;
+    }
+    
+    body.has-bottom-nav .grecaptcha-badge {
+        bottom: 60px !important;
+    }
+}
+
+/* 
+ * Accessibility: Ensure badge doesn't cover important interactive elements
+ * Add padding to bottom of forms on mobile to prevent overlap
+ */
+@media (max-width: 767.98px) {
+    form {
+        padding-bottom: 80px !important;
+    }
+    
+    /* Login/signup forms specifically */
+    .auth-card form,
+    .login-form,
+    .signup-form {
+        padding-bottom: 100px !important;
+    }
+}
+
+/* 
+ * For standalone login pages (no bottom nav)
+ * Less aggressive positioning needed
+ */
+body.standalone-auth .grecaptcha-badge {
+    bottom: 14px !important;
+}
+
+@media (max-width: 767.98px) {
+    body.standalone-auth .grecaptcha-badge {
+        bottom: 20px !important;
+        transform: scale(0.9) !important;
+    }
+}
+
+/* 
+ * Smooth transitions when scrolling
+ */
+.grecaptcha-badge {
+    transition: bottom 0.3s ease, transform 0.3s ease, opacity 0.3s ease !important;
+}
+
+/* 
+ * When user scrolls down, make badge more transparent
+ * (Optional - uncomment if desired)
+ */
+/*
+body.scrolled-down .grecaptcha-badge {
+    opacity: 0.6 !important;
+}
+
+body.scrolled-down .grecaptcha-badge:hover {
+    opacity: 1 !important;
+}
+*/
