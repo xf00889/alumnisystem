@@ -53,12 +53,15 @@ def sso_context(request):
     """
     try:
         from core.sso_utils import get_enabled_sso_providers
+        enabled_providers = get_enabled_sso_providers()
         return {
-            'sso_providers': get_enabled_sso_providers(),
+            'sso_providers': enabled_providers,
+            'enabled_sso_providers': enabled_providers,  # Alias for template compatibility
         }
     except Exception:
         return {
             'sso_providers': [],
+            'enabled_sso_providers': [],
         }
 
 
