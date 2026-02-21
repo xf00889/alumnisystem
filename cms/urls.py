@@ -10,11 +10,11 @@ urlpatterns = [
     # Site Configuration
     path('site-config/', views.SiteConfigUpdateView.as_view(), name='site_config_edit'),
     
-    # Page Sections
-    path('page-sections/', views.PageSectionListView.as_view(), name='page_section_list'),
-    path('page-sections/create/', views.PageSectionCreateView.as_view(), name='page_section_create'),
-    path('page-sections/<int:pk>/edit/', views.PageSectionUpdateView.as_view(), name='page_section_edit'),
-    path('page-sections/<int:pk>/delete/', views.PageSectionDeleteView.as_view(), name='page_section_delete'),
+    # Hero Section
+    path('hero-section/', views.HeroSectionUpdateView.as_view(), name='hero_section_edit'),
+    
+    # VMGO Section
+    path('vmgo-section/', views.VMGOSectionUpdateView.as_view(), name='vmgo-section-edit'),
     
     # Staff Members
     path('staff-members/', views.StaffMemberListView.as_view(), name='staff_member_list'),
@@ -51,9 +51,6 @@ urlpatterns = [
     path('testimonials/create/', views.TestimonialCreateView.as_view(), name='testimonial_create'),
     path('testimonials/<int:pk>/edit/', views.TestimonialUpdateView.as_view(), name='testimonial_edit'),
     path('testimonials/<int:pk>/delete/', views.TestimonialDeleteView.as_view(), name='testimonial_delete'),
-    
-    # About Page Configuration
-    path('about-config/', views.AboutPageConfigUpdateView.as_view(), name='about_config_edit'),
     
     # Alumni Statistics
     path('alumni-statistics/', views.AlumniStatisticListView.as_view(), name='alumni_statistic_list'),

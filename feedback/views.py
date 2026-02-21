@@ -1,12 +1,12 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from django.contrib.admin.views.decorators import staff_member_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q
 from .models import Feedback
 from .forms import FeedbackForm, FeedbackAdminForm
 from core.models import UserEngagement
+from core.decorators import staff_or_coordinator_required
 
 @login_required
 def submit_feedback(request):
@@ -49,7 +49,7 @@ def feedback_detail(request, pk):
     feedback = get_object_or_404(Feedback, pk=pk, user=request.user)
     return render(request, 'feedback/feedback_detail.html', {'feedback': feedback})
 
-@staff_member_required
+@staff_or_coordinator_required
 def manage_feedbacks(request):
     """Admin view to manage all feedbacks"""
     # Get filter parameters
@@ -95,7 +95,7 @@ def manage_feedbacks(request):
     
     return render(request, 'feedback/manage_feedbacks.html', context)
 
-@staff_member_required
+@staff_or_coordinator_required
 def update_feedback(request, pk):
     """Admin view to update feedback status and add notes"""
     feedback = get_object_or_404(Feedback, pk=pk)

@@ -13,12 +13,17 @@
         <p>Browse and support active and upcoming fundraising campaigns.</p>
       </div>
       <div class="d-flex gap-2">
-        {% if user.is_staff %}
+        {% if user.is_staff or user.is_superuser %}
         <a href="{% url 'donations:campaign_create' %}" class="btn btn-outline-light btn-sm">
           <i class="fas fa-plus me-2"></i>Create Campaign
         </a>
-        {% endif %}
-        {% if user.is_superuser %}
+        <a href="{% url 'donations:verification_dashboard' %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-check-circle me-2"></i>View Verification
+        </a>
+        {% elif user.profile.is_alumni_coordinator %}
+        <a href="{% url 'donations:campaign_create' %}" class="btn btn-outline-light btn-sm">
+          <i class="fas fa-plus me-2"></i>Create Campaign
+        </a>
         <a href="{% url 'donations:verification_dashboard' %}" class="btn btn-outline-light btn-sm">
           <i class="fas fa-check-circle me-2"></i>View Verification
         </a>

@@ -131,6 +131,7 @@ TEMPLATES = [
                 'core.context_processors.cms_contact_info',
                 'core.context_processors.seo_context',
                 'core.context_processors.footer_links',
+                'core.context_processors.user_role_context',
             ],
         },
     },
@@ -313,8 +314,9 @@ else:
 
 # CSRF Security
 CSRF_COOKIE_SECURE = not DEBUG  # Use secure cookies in production
-CSRF_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token for AJAX requests
 CSRF_COOKIE_SAMESITE = 'Strict'
+CSRF_FAILURE_VIEW = 'core.view_handlers.error_handlers.csrf_failure'
 
 # Additional Security Headers
 SECURE_BROWSER_XSS_FILTER = True
@@ -640,13 +642,13 @@ if not DEBUG:
     SESSION_COOKIE_SECURE = True
     CSRF_COOKIE_SECURE = True
     SESSION_COOKIE_HTTPONLY = True
-    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token for AJAX requests
 else:
     # Development: Allow non-HTTPS
     SESSION_COOKIE_SECURE = False
     CSRF_COOKIE_SECURE = False
     SESSION_COOKIE_HTTPONLY = True  # Still good practice in dev
-    CSRF_COOKIE_HTTPONLY = True
+    CSRF_COOKIE_HTTPONLY = False  # Allow JavaScript to read CSRF token for AJAX requests
 
 SESSION_COOKIE_SAMESITE = 'Lax'
 CSRF_COOKIE_SAMESITE = 'Lax'

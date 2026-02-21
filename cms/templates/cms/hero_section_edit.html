@@ -1,0 +1,500 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Hero Section - {{ block.super }}{% endblock %}
+
+{% block extra_css %}
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+    /* System Color Scheme */
+    :root {
+        /* Secondary Colors */
+        --secondary-color: #4a5568;
+        
+        /* UI Colors */
+        --ui-background: #f7fafc;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #edf2f7;
+        
+        /* Text Colors */
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        
+        /* Feedback Colors */
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        
+        /* Shadows */
+        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
+        
+        /* Border Radius */
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+    }
+    
+    body {
+         background-color: var(--ui-background);
+         font-size: 0.875rem;
+         font-family: 'Poppins', sans-serif;
+     }
+     
+     .container-fluid {
+         padding: 1.5rem;
+         width: 100%;
+         max-width: 100%;
+     }
+
+    /* Header Section */
+    .directory-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: 2rem;
+        border-radius: var(--radius-md);
+        margin-bottom: 1.5rem;
+        box-shadow: var(--shadow-sm);
+        text-align: center;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-title {
+        font-size: 2rem;
+        font-weight: 600;
+        margin-bottom: 0.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+    
+    .directory-subtitle {
+        opacity: 0.9;
+        font-size: 1rem;
+        margin: 0;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Form Card */
+    .form-card {
+        background: var(--ui-surface);
+        border-radius: var(--radius-md);
+        padding: 2rem;
+        box-shadow: var(--shadow-sm);
+        border: 1px solid var(--ui-border);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Section Headers */
+    .section-header {
+        background: var(--ui-hover);
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-sm);
+        margin: 2rem 0 1.5rem 0;
+        border-left: 4px solid var(--primary-color);
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .section-header h4 {
+        margin: 0;
+        color: var(--text-primary);
+        font-weight: 600;
+        font-size: 1.1rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .section-header p {
+        margin: 0.5rem 0 0 0;
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-group label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .form-control {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-text {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Button Styles */
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        border: none;
+        cursor: pointer;
+    }
+
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    .btn-secondary {
+        background-color: var(--secondary-color);
+        border-color: var(--secondary-color);
+        padding: 0.75rem 1.5rem;
+        font-weight: 600;
+        border-radius: var(--radius-sm);
+        font-family: 'Poppins', sans-serif;
+        transition: all 0.3s ease;
+        color: var(--text-light);
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .btn-secondary:hover {
+        background-color: #2d3748;
+        border-color: #2d3748;
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-md);
+        color: var(--text-light);
+    }
+
+    /* Form Actions */
+    .form-actions {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+        padding-top: 1.5rem;
+        border-top: 1px solid var(--ui-border);
+    }
+
+    /* Error Messages */
+    .text-danger {
+        color: var(--feedback-error);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    /* Breadcrumb */
+    .breadcrumb {
+        background: transparent;
+        padding: 0;
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .breadcrumb-item a {
+        color: var(--primary-color);
+        text-decoration: none;
+    }
+
+    .breadcrumb-item.active {
+        color: var(--text-secondary);
+    }
+
+    /* Info Box */
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .info-box h5 {
+        color: #1976d2;
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .info-box p {
+        color: #0d47a1;
+        margin: 0;
+        font-size: 0.875rem;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        .container-fluid {
+            padding: 1rem;
+        }
+        
+        .directory-header {
+            padding: 1.5rem;
+        }
+        
+        .directory-title {
+            font-size: 1.5rem;
+        }
+        
+        .form-actions {
+            flex-direction: column;
+        }
+        
+        .form-actions .btn {
+            width: 100%;
+            justify-content: center;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <!-- Header Section -->
+    <div class="directory-header">
+        <h1 class="directory-title"><i class="fas fa-rocket"></i> Hero Section</h1>
+        <p class="directory-subtitle">{{ page_description }}</p>
+    </div>
+
+    <!-- Breadcrumb -->
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
+            <li class="breadcrumb-item active" aria-current="page">Hero Section</li>
+        </ol>
+    </nav>
+
+    <!-- Info Box -->
+    <div class="info-box">
+        <h5><i class="fas fa-info-circle"></i> Hero Section Guidelines</h5>
+        <p>The hero section is the first thing visitors see. Keep headlines concise (6-10 words), subheadlines clear (15-25 words), and CTAs action-oriented (2-4 words). Use specific numbers for social proof to build trust.</p>
+    </div>
+
+    <!-- Form Card -->
+    <div class="form-card">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- Headline & Subheadline Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-heading" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Headline & Subheadline</h4>
+                <p>Main messaging that communicates your value proposition</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.hero_headline.id_for_label }}">Hero Headline</label>
+                {{ form.hero_headline }}
+                {% if form.hero_headline.help_text %}
+                    <small class="form-text">{{ form.hero_headline.help_text }}</small>
+                {% endif %}
+                {% if form.hero_headline.errors %}
+                    <div class="text-danger">{{ form.hero_headline.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.hero_subheadline.id_for_label }}">Hero Subheadline</label>
+                {{ form.hero_subheadline }}
+                {% if form.hero_subheadline.help_text %}
+                    <small class="form-text">{{ form.hero_subheadline.help_text }}</small>
+                {% endif %}
+                {% if form.hero_subheadline.errors %}
+                    <div class="text-danger">{{ form.hero_subheadline.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Background Image Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-image" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Background Image</h4>
+                <p>Upload a custom background image for the hero section</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.hero_background_image.id_for_label }}">Hero Background Image</label>
+                {% if object.hero_background_image %}
+                    <div style="margin-bottom: 1rem; padding: 1rem; background: var(--ui-hover); border-radius: var(--radius-sm); border: 1px solid var(--ui-border);">
+                        <img src="{{ object.hero_background_image.url }}" alt="Current hero background" style="max-width: 100%; max-height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--ui-border); display: block; margin-bottom: 0.5rem;">
+                        <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">
+                            <i class="fas fa-check-circle" style="color: var(--feedback-success);"></i> Current image: <strong>{{ object.hero_background_image.name }}</strong>
+                        </p>
+                        <div style="margin-top: 0.75rem;">
+                            <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+                                <input type="checkbox" name="hero_background_image-clear" id="hero_background_image-clear" style="cursor: pointer;">
+                                <span style="color: var(--feedback-error);">Clear current image</span>
+                            </label>
+                        </div>
+                    </div>
+                {% endif %}
+                {{ form.hero_background_image }}
+                {% if form.hero_background_image.help_text %}
+                    <small class="form-text">{{ form.hero_background_image.help_text }}</small>
+                {% endif %}
+                {% if form.hero_background_image.errors %}
+                    <div class="text-danger">{{ form.hero_background_image.errors.0 }}</div>
+                {% endif %}
+                <small class="form-text" style="display: block; margin-top: 0.5rem;">
+                    <i class="fas fa-info-circle"></i> <strong>Tip:</strong> Use WebP format for best performance. Optimize images at <a href="https://tinypng.com" target="_blank" rel="noopener">TinyPNG</a> or <a href="https://squoosh.app" target="_blank" rel="noopener">Squoosh</a>.
+                </small>
+            </div>
+            
+            <!-- Call-to-Action Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-mouse-pointer" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Call-to-Action Buttons</h4>
+                <p>Button text and microcopy to encourage user action</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.hero_primary_cta_text.id_for_label }}">Primary CTA Text</label>
+                        {{ form.hero_primary_cta_text }}
+                        {% if form.hero_primary_cta_text.help_text %}
+                            <small class="form-text">{{ form.hero_primary_cta_text.help_text }}</small>
+                        {% endif %}
+                        {% if form.hero_primary_cta_text.errors %}
+                            <div class="text-danger">{{ form.hero_primary_cta_text.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label for="{{ form.hero_secondary_cta_text.id_for_label }}">Secondary CTA Text</label>
+                        {{ form.hero_secondary_cta_text }}
+                        {% if form.hero_secondary_cta_text.help_text %}
+                            <small class="form-text">{{ form.hero_secondary_cta_text.help_text }}</small>
+                        {% endif %}
+                        {% if form.hero_secondary_cta_text.errors %}
+                            <div class="text-danger">{{ form.hero_secondary_cta_text.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.hero_microcopy.id_for_label }}">Microcopy</label>
+                {{ form.hero_microcopy }}
+                {% if form.hero_microcopy.help_text %}
+                    <small class="form-text">{{ form.hero_microcopy.help_text }}</small>
+                {% endif %}
+                {% if form.hero_microcopy.errors %}
+                    <div class="text-danger">{{ form.hero_microcopy.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Social Proof Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-chart-line" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Social Proof Metrics</h4>
+                <p>Trust signals to build credibility with visitors</p>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="{{ form.hero_alumni_count.id_for_label }}">Alumni Count</label>
+                        {{ form.hero_alumni_count }}
+                        {% if form.hero_alumni_count.help_text %}
+                            <small class="form-text">{{ form.hero_alumni_count.help_text }}</small>
+                        {% endif %}
+                        {% if form.hero_alumni_count.errors %}
+                            <div class="text-danger">{{ form.hero_alumni_count.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="{{ form.hero_opportunities_count.id_for_label }}">Opportunities Count</label>
+                        {{ form.hero_opportunities_count }}
+                        {% if form.hero_opportunities_count.help_text %}
+                            <small class="form-text">{{ form.hero_opportunities_count.help_text }}</small>
+                        {% endif %}
+                        {% if form.hero_opportunities_count.errors %}
+                            <div class="text-danger">{{ form.hero_opportunities_count.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-group">
+                        <label for="{{ form.hero_countries_count.id_for_label }}">Countries Count</label>
+                        {{ form.hero_countries_count }}
+                        {% if form.hero_countries_count.help_text %}
+                            <small class="form-text">{{ form.hero_countries_count.help_text }}</small>
+                        {% endif %}
+                        {% if form.hero_countries_count.errors %}
+                            <div class="text-danger">{{ form.hero_countries_count.errors.0 }}</div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            
+            <!-- A/B Testing Section -->
+            <div class="section-header">
+                <h4><i class="fas fa-flask" style="color: var(--primary-color); margin-right: 0.5rem;"></i> A/B Testing</h4>
+                <p>Track different hero section variations for optimization</p>
+            </div>
+            
+            <div class="form-group">
+                <label for="{{ form.hero_variant.id_for_label }}">Hero Variant</label>
+                {{ form.hero_variant }}
+                {% if form.hero_variant.help_text %}
+                    <small class="form-text">{{ form.hero_variant.help_text }}</small>
+                {% endif %}
+                {% if form.hero_variant.errors %}
+                    <div class="text-danger">{{ form.hero_variant.errors.0 }}</div>
+                {% endif %}
+            </div>
+            
+            <!-- Form Actions -->
+            <div class="form-actions">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save"></i> Save Hero Section
+                </button>
+                <a href="{% url 'cms:dashboard' %}" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Back to Dashboard
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

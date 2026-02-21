@@ -214,8 +214,8 @@
      {% block extra_css %}{% endblock extra_css %}
 </head>
 <body data-user-authenticated="{% if user.is_authenticated %}true{% else %}false{% endif %}" data-user-is-staff="{% if user.is_staff %}true{% else %}false{% endif %}">
-    {% if user.is_superuser %}
-    <!-- Sidebar for superuser -->
+    {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}
+    <!-- Sidebar for superuser, staff, and alumni coordinator -->
     <div class="sidebar" id="sidebar">
         <div class="sidebar-header">
             <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo">
@@ -396,7 +396,8 @@
                 </div>
             </li>
             
-            <!-- SYSTEM GROUP -->
+            <!-- SYSTEM GROUP - Only for Staff and Superuser -->
+            {% if user.is_superuser or user.is_staff %}
             <li class="nav-item">
                 <div class="sidebar-category" data-bs-toggle="collapse" data-bs-target="#system">
                     System
@@ -411,10 +412,15 @@
                         <i class="fas fa-book"></i>
                         <span>Documentation</span>
                     </a>
+                    {% if user.is_superuser or user.is_staff %}
                     <a class="nav-link" href="{% url 'cms:dashboard' %}">
                         <i class="fas fa-edit"></i>
                         <span>CMS</span>
                     </a>
+                    {% endif %}
+                    
+                    {% if user.is_superuser %}
+                    {# System Configuration - Only for Superusers #}
                     <a class="nav-link" href="{% url 'admin:index' %}">
                         <i class="fas fa-cogs"></i>
                         <span>Admin Panel</span>
@@ -443,8 +449,10 @@
                         <i class="fas fa-search-plus"></i>
                         <span>SEO Management</span>
                     </a>
+                    {% endif %}
                 </div>
             </li>
+            {% endif %}
             
             <!-- ACCOUNT GROUP -->
             <li class="nav-item">
@@ -469,8 +477,8 @@
     <button class="sidebar-toggle d-md-none">
         <i class="fas fa-bars"></i>
     </button>
-    {% elif not request.resolver_match.url_name == 'account_reset_password' %}
-    <!-- Professional LinkedIn-Inspired Navbar for NORSU Alumni System -->
+   {% elif not user.is_superuser and not user.is_staff and not request.resolver_match.url_name == 'account_reset_password' %}
+
     <nav class="navbar navbar-expand-lg fixed-top">
         <div class="container-fluid px-3 px-lg-4">
             <!-- Brand -->
@@ -785,7 +793,7 @@
     {% endif %}
 
     <!-- Main Content -->
-    <main class="content-wrapper {% if user.is_superuser %}with-sidebar{% endif %}" {% if not user.is_superuser and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: 76px;"{% endif %}>
+    <main class="content-wrapper {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: 76px;"{% endif %}>
         {% if messages %}
             <!-- Django messages container - hidden and processed by ToastUtils -->
             <div class="messages" style="display: none;">
@@ -817,7 +825,7 @@
     </main>
 
     <!-- Footer -->
-    {% if not user.is_superuser and not request.resolver_match.url_name == 'account_reset_password' %}
+    {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}
     {% include 'components/footer.html' with is_landing=False %}
     {% endif %}
 

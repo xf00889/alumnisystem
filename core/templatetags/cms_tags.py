@@ -38,3 +38,52 @@ def get_site_config():
             instagram_url='',
             youtube_url='',
         )
+
+
+@register.filter(name='format_acronym')
+def format_acronym(text):
+    """
+    Format acronym text with large blue letters followed by descriptions.
+    
+    Expected format:
+    A
+    Achieve global recognition by program excellence
+    
+    S
+    Strengthen research through impactful innovation
+    
+    Returns HTML with styled acronym letters and descriptions.
+    """
+    if not text:
+        return ''
+    
+    # Split by newlines to get each line
+    lines = text.strip().split('\n')
+    
+    html_parts = []
+    i = 0
+    
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        # Check if this is a single letter (acronym letter)
+        if line and len(line) == 1 and line.isalpha():
+            letter = line.upper()
+            description = ''
+            
+            # Get the description (next non-empty line)
+            i += 1
+            if i < len(lines):
+                description = lines[i].strip()
+            
+            # Create HTML for this acronym entry
+            html_parts.append(
+                f'<div class="acronym-entry">'
+                f'<span class="acronym-letter">{letter}</span>'
+                f'<span class="acronym-description">{description}</span>'
+                f'</div>'
+            )
+        
+        i += 1
+    
+    return mark_safe(''.join(html_parts))

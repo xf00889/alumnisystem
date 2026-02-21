@@ -14,7 +14,6 @@ from django.db import transaction
 from cms.models import (
     SiteConfig,
     AboutPageConfig,
-    PageSection,
     Feature,
     Testimonial,
     StaffMember,
@@ -408,51 +407,6 @@ Sunday: Closed''',
 
         # ------------------------------------------------------------
         # 10. PAGE SECTIONS DATA
-        # Homepage sections (hero, features, stats, testimonials, cta)
-        # ------------------------------------------------------------
-        PAGE_SECTIONS_DATA = [
-            {
-                'section_type': 'hero',
-                'title': 'Connecting Norsunians Worldwide',
-                'subtitle': 'Join thousands of NORSU alumni building meaningful connections, advancing careers, and giving back to our community.',
-                'content': '',
-                'order': 1,
-                'is_active': True,
-            },
-            {
-                'section_type': 'features',
-                'title': 'What We Offer',
-                'subtitle': 'Discover the benefits of being part of the NORSU Alumni Network',
-                'content': '',
-                'order': 2,
-                'is_active': True,
-            },
-            {
-                'section_type': 'stats',
-                'title': 'Our Growing Community',
-                'subtitle': 'See the impact of our alumni network',
-                'content': '',
-                'order': 3,
-                'is_active': True,
-            },
-            {
-                'section_type': 'testimonials',
-                'title': 'Success Stories',
-                'subtitle': 'Hear from fellow Norsunians about their experiences',
-                'content': '',
-                'order': 4,
-                'is_active': True,
-            },
-            {
-                'section_type': 'cta',
-                'title': 'Ready to Reconnect?',
-                'subtitle': 'Join the NORSU Alumni Network today and be part of something bigger',
-                'content': 'Whether you graduated last year or decades ago, there\'s a place for you in our community. Connect with classmates, advance your career, and make a difference.',
-                'order': 5,
-                'is_active': True,
-            },
-        ]
-
         # ============================================================
         # MAIN EXECUTION FLOW
         # ============================================================
@@ -602,20 +556,6 @@ Sunday: Closed''',
                 overall_results['total_skipped'] += stats['skipped']
             except Exception as e:
                 overall_results['errors'].append(f'AlumniStatistic: {str(e)}')
-            
-            # 10. Seed PageSections
-            try:
-                stats = self.seed_with_transaction(
-                    self.seed_multiple_records,
-                    PageSection,
-                    PAGE_SECTIONS_DATA,
-                    ['section_type', 'title']
-                )
-                overall_results['total_created'] += stats['created']
-                overall_results['total_updated'] += stats['updated']
-                overall_results['total_skipped'] += stats['skipped']
-            except Exception as e:
-                overall_results['errors'].append(f'PageSection: {str(e)}')
             
             # Calculate execution time
             end_time = time.time()

@@ -21,6 +21,18 @@ import logging
 logger = logging.getLogger(__name__)
 
 
+def can_manage_donations(user):
+    """Check if user can manage donations (staff, superuser, or alumni coordinator)"""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    try:
+        return user.profile.is_alumni_coordinator
+    except:
+        return False
+
+
 def campaign_list(request):
     """View to display list of campaigns with filtering"""
     # Filter campaigns based on user authentication and visibility
@@ -257,8 +269,8 @@ def campaign_donors(request, slug):
 @login_required
 def update_donation_status(request, pk):
     """AJAX view to update donation status"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied')}, status=403)
 
     donation = get_object_or_404(Donation, pk=pk)
@@ -279,8 +291,8 @@ def update_donation_status(request, pk):
 @login_required
 def manage_donations(request):
     """View to manage all donations with advanced filtering and bulk actions"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -367,8 +379,8 @@ def manage_donations(request):
 @login_required
 def manage_campaigns(request):
     """View to manage all campaigns with filtering and bulk actions"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -452,8 +464,8 @@ def manage_campaigns(request):
 @login_required
 def delete_donation(request, pk):
     """Delete a donation"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({
             'status': 'error',
             'message': _('You do not have permission to delete donations.')
@@ -476,8 +488,8 @@ def delete_donation(request, pk):
 @login_required
 def donation_edit_form(request, pk):
     """Return HTML form for editing a donation"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({
             'status': 'error',
             'message': _('You do not have permission to edit donations.')
@@ -594,8 +606,8 @@ def donation_edit_form(request, pk):
 @login_required
 def edit_donation(request, pk):
     """Edit a donation"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({
             'status': 'error',
             'message': _('You do not have permission to edit donations.')
@@ -645,8 +657,8 @@ def edit_donation(request, pk):
 @login_required
 def send_donation_receipt(request, pk):
     """Send receipt email for a donation"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({
             'status': 'error',
             'message': _('You do not have permission to send receipts.')
@@ -694,8 +706,8 @@ def send_donation_receipt(request, pk):
 @login_required
 def update_campaign_status(request, pk):
     """Update campaign status"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({
             'status': 'error',
             'message': _('You do not have permission to update campaign status.')
@@ -729,8 +741,8 @@ def update_campaign_status(request, pk):
 @login_required
 def delete_campaign(request, pk):
     """Delete a campaign"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({
             'status': 'error',
             'message': _('You do not have permission to delete campaigns.')
@@ -806,8 +818,8 @@ def delete_campaign(request, pk):
 @login_required
 def campaign_create(request):
     """View to create a new campaign"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to create campaigns.'))
         return redirect('donations:campaign_list')
 
@@ -854,8 +866,8 @@ def campaign_create(request):
 @login_required
 def campaign_edit(request, pk):
     """View to edit a campaign"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to edit campaigns.'))
         return redirect('donations:campaign_list')
 
@@ -916,10 +928,15 @@ def campaign_edit(request, pk):
 
     return render(request, 'donations/campaign_form.html', context)
 
-@staff_member_required
+@login_required
 @transaction.atomic
 def manage_gcash(request):
     """Staff-only UI to manage GCash configuration (single record)."""
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
+        messages.error(request, _('You do not have permission to access this page.'))
+        return redirect('donations:campaign_list')
+    
     config = GCashConfig.get_active_config() or GCashConfig.objects.order_by('-updated_at').first()
 
     if request.method == 'POST':
@@ -1387,8 +1404,8 @@ def upload_payment_proof(request, pk):
 @login_required
 def verification_dashboard(request):
     """Enhanced admin dashboard for verifying donations"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -1508,8 +1525,8 @@ def verification_dashboard(request):
 @require_POST
 def verify_donation(request, pk):
     """AJAX view to verify a donation"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied.')})
 
     donation = get_object_or_404(Donation, pk=pk)
@@ -1580,8 +1597,8 @@ def verify_donation(request, pk):
 @require_POST
 def bulk_verify_donations(request):
     """Bulk verification of donations"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({'status': 'error', 'message': 'Permission denied'})
 
     try:
@@ -1656,8 +1673,8 @@ def bulk_verify_donations(request):
 @login_required
 def export_donations(request):
     """Export donations data to CSV"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -1768,8 +1785,8 @@ def export_donations(request):
 @login_required
 def analytics_dashboard(request):
     """Advanced analytics dashboard for donations"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -2041,8 +2058,8 @@ def analytics_dashboard(request):
 @login_required
 def fraud_monitoring_dashboard(request):
     """Fraud monitoring dashboard for admins"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -2101,8 +2118,8 @@ def fraud_monitoring_dashboard(request):
 @require_POST
 def resolve_fraud_alert(request, alert_id):
     """Resolve a fraud alert"""
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not can_manage_donations(request.user):
         return JsonResponse({'status': 'error', 'message': 'Permission denied'})
 
     from .models import FraudAlert
@@ -2128,7 +2145,7 @@ def resolve_fraud_alert(request, alert_id):
 @login_required
 def manage_gcash(request):
     """List all GCash configurations (staff only)"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:campaign_list')
 
@@ -2161,7 +2178,7 @@ def manage_gcash(request):
 @login_required
 def gcash_config_detail(request, pk):
     """View/edit specific GCash configuration (staff only)"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:manage_gcash')
 
@@ -2191,7 +2208,7 @@ def gcash_config_detail(request, pk):
 @login_required
 def gcash_config_create(request):
     """Create new GCash configuration (staff only)"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not can_manage_donations(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('donations:manage_gcash')
 
@@ -2215,7 +2232,7 @@ def gcash_config_create(request):
 @require_POST
 def toggle_gcash_config(request, pk):
     """Toggle GCash configuration active status (staff only)"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not can_manage_donations(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied')}, status=403)
 
     config = get_object_or_404(GCashConfig, pk=pk)

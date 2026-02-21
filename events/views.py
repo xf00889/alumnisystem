@@ -231,7 +231,9 @@ class EventCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     template_name = 'events/event_form.html'
     
     def test_func(self):
-        return self.request.user.is_staff
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
     
     def get_success_url(self):
         return reverse_lazy('events:event_list')
@@ -277,7 +279,9 @@ class EventUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     template_name = 'events/event_form.html'
     
     def test_func(self):
-        return self.request.user.is_staff
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
     
     def get_success_url(self):
         return reverse_lazy('events:event_detail', kwargs={'pk': self.object.pk})
@@ -300,8 +304,9 @@ class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     template_name = 'events/event_confirm_delete.html'
 
     def test_func(self):
-        """Check if user is staff or superuser"""
-        return self.request.user.is_staff or self.request.user.is_superuser
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
     
     def get(self, request, *args, **kwargs):
         """Block GET requests - deletion should only happen via POST with AJAX"""
@@ -311,7 +316,8 @@ class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     def post(self, request, *args, **kwargs):
         """Override post to handle both AJAX and regular requests"""
         # Check permissions first
-        if not (request.user.is_staff or request.user.is_superuser):
+        is_coordinator = hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator
+        if not (request.user.is_staff or request.user.is_superuser or is_coordinator):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'status': 'error',
@@ -481,7 +487,9 @@ class PublicEventCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMess
     success_url = reverse_lazy('events:public_event_list')
     
     def test_func(self):
-        return self.request.user.is_staff
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
 
     def handle_no_permission(self):
         messages.error(self.request, "You don't have permission to perform this action.")

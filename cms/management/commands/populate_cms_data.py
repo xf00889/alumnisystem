@@ -1,7 +1,7 @@
 from django.core.management.base import BaseCommand
 from django.utils import timezone
 from cms.models import (
-    SiteConfig, PageSection, Feature, Testimonial, 
+    SiteConfig, Feature, Testimonial, 
     StaffMember, TimelineItem, ContactInfo, FAQ,
     AboutPageConfig, AlumniStatistic
 )
@@ -35,48 +35,6 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS('✓ Created SiteConfig'))
         else:
             self.stdout.write(self.style.WARNING('SiteConfig already exists'))
-
-        # Create Page Sections
-        page_sections_data = [
-            {
-                'section_type': 'hero',
-                'title': 'Connect. Grow. Succeed.',
-                'subtitle': 'Join 5,000+ NORSU alumni advancing their careers through meaningful professional connections and exclusive opportunities.',
-                'content': '',
-                'order': 1,
-            },
-            {
-                'section_type': 'features',
-                'title': 'Your Professional Success Platform',
-                'subtitle': 'Four key benefits that accelerate your career growth and expand your professional network.',
-                'content': '',
-                'order': 2,
-            },
-            {
-                'section_type': 'testimonials',
-                'title': 'Alumni Achievements',
-                'subtitle': 'Real career transformations through our professional network.',
-                'content': '',
-                'order': 3,
-            },
-            {
-                'section_type': 'cta',
-                'title': 'Start Your Success Story',
-                'subtitle': 'Join the most powerful professional network of NORSU graduates. Access career-changing opportunities, industry insights, and lifelong connections.',
-                'content': 'Join the most powerful professional network of NORSU graduates. Access career-changing opportunities, industry insights, and lifelong connections.',
-                'order': 4,
-            },
-        ]
-
-        for section_data in page_sections_data:
-            section, created = PageSection.objects.get_or_create(
-                section_type=section_data['section_type'],
-                defaults=section_data
-            )
-            if created:
-                self.stdout.write(self.style.SUCCESS(f'✓ Created {section_data["section_type"]} section'))
-            else:
-                self.stdout.write(self.style.WARNING(f'{section_data["section_type"]} section already exists'))
 
         # Create Features
         features_data = [

@@ -1,9 +1,11 @@
 {% extends "cms/base_cms.html" %}
 {% load static %}
+{% load crispy_forms_tags %}
 
-{% block title %}Delete Page Section - {{ block.super }}{% endblock %}
+{% block title %}VMGO Section - {{ block.super }}{% endblock %}
 
 {% block extra_css %}
+{{ block.super }}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
     /* System Color Scheme */
@@ -53,7 +55,7 @@
 
     /* Header Section */
     .directory-header {
-        background: var(--feedback-error);
+        background: var(--primary-color);
         color: var(--text-light);
         padding: 2rem;
         border-radius: var(--radius-md);
@@ -88,78 +90,79 @@
         font-family: 'Poppins', sans-serif;
     }
 
-    /* Warning Section */
-    .warning-section {
-        background: #fef2f2;
-        border: 1px solid #fecaca;
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .warning-icon {
-        color: var(--feedback-error);
-        font-size: 1.5rem;
-        margin-right: 0.75rem;
-    }
-
-    .warning-title {
-        color: var(--feedback-error);
-        font-weight: 600;
-        font-size: 1.125rem;
-        margin-bottom: 0.5rem;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .warning-text {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        line-height: 1.5;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    /* Section Info */
-    .section-info {
+    /* Section Headers */
+    .section-header {
         background: var(--ui-hover);
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 2rem;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-sm);
+        margin: 2rem 0 1.5rem 0;
+        border-left: 4px solid var(--primary-color);
         font-family: 'Poppins', sans-serif;
     }
 
-    .section-info h4 {
+    .section-header h4 {
+        margin: 0;
         color: var(--text-primary);
         font-weight: 600;
-        margin-bottom: 1rem;
+        font-size: 1.1rem;
         font-family: 'Poppins', sans-serif;
     }
 
-    .info-item {
-        display: flex;
-        align-items: center;
-        margin-bottom: 0.75rem;
-        font-size: 0.875rem;
+    .section-header p {
+        margin: 0.5rem 0 0 0;
         color: var(--text-secondary);
+        font-size: 0.875rem;
         font-family: 'Poppins', sans-serif;
     }
 
-    .info-item i {
-        width: 20px;
-        margin-right: 0.75rem;
-        color: var(--primary-color);
+    /* Form Styles */
+    .form-group {
+        margin-bottom: 1.5rem;
     }
 
-    .info-label {
+    .form-group label {
         font-weight: 600;
         color: var(--text-primary);
-        margin-right: 0.5rem;
+        margin-bottom: 0.5rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
+        font-size: 0.875rem;
+    }
+
+    .form-control {
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        padding: 0.75rem;
+        font-size: 0.875rem;
+        font-family: 'Poppins', sans-serif;
+        background: var(--ui-surface);
+        color: var(--text-primary);
+        transition: all 0.3s ease;
+        width: 100%;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 2px rgba(43, 60, 107, 0.1);
+    }
+
+    .form-control::placeholder {
+        color: var(--text-muted);
+    }
+
+    .form-text {
+        color: var(--text-secondary);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        display: block;
+        font-family: 'Poppins', sans-serif;
     }
 
     /* Button Styles */
-    .btn-danger {
-        background-color: var(--feedback-error);
-        border-color: var(--feedback-error);
+    .btn-primary {
+        background-color: var(--primary-color);
+        border-color: var(--primary-color);
         padding: 0.75rem 1.5rem;
         font-weight: 600;
         border-radius: var(--radius-sm);
@@ -174,9 +177,9 @@
         cursor: pointer;
     }
 
-    .btn-danger:hover {
-        background-color: #c53030;
-        border-color: #c53030;
+    .btn-primary:hover {
+        background-color: var(--primary-hover);
+        border-color: var(--primary-hover);
         transform: translateY(-1px);
         box-shadow: var(--shadow-md);
         color: var(--text-light);
@@ -214,6 +217,14 @@
         border-top: 1px solid var(--ui-border);
     }
 
+    /* Error Messages */
+    .text-danger {
+        color: var(--feedback-error);
+        font-size: 0.75rem;
+        margin-top: 0.25rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
     /* Breadcrumb */
     .breadcrumb {
         background: transparent;
@@ -229,6 +240,29 @@
 
     .breadcrumb-item.active {
         color: var(--text-secondary);
+    }
+
+    /* Info Box */
+    .info-box {
+        background: #e3f2fd;
+        border-left: 4px solid #2196f3;
+        padding: 1rem 1.5rem;
+        border-radius: var(--radius-sm);
+        margin-bottom: 1.5rem;
+        font-family: 'Poppins', sans-serif;
+    }
+
+    .info-box h5 {
+        color: #1976d2;
+        margin: 0 0 0.5rem 0;
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    .info-box p {
+        color: #0d47a1;
+        margin: 0;
+        font-size: 0.875rem;
     }
 
     /* Responsive Design */
@@ -261,8 +295,8 @@
 <div class="container-fluid">
     <!-- Header Section -->
     <div class="directory-header">
-        <h1 class="directory-title">Delete Page Section</h1>
-        <p class="directory-subtitle">Are you sure you want to delete this page section?</p>
+        <h1 class="directory-title"><i class="fas fa-graduation-cap"></i> VMGO Section</h1>
+        <p class="directory-subtitle">Manage NORSU's Vision, Mission, Goals, Objectives, and Core Values</p>
     </div>
 
     <!-- Breadcrumb -->
@@ -270,84 +304,19 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item"><a href="{% url 'core:admin_dashboard' %}">Admin</a></li>
             <li class="breadcrumb-item"><a href="{% url 'cms:dashboard' %}">CMS Dashboard</a></li>
-            <li class="breadcrumb-item"><a href="{% url 'cms:page_section_list' %}">Page Sections</a></li>
-            <li class="breadcrumb-item active" aria-current="page">Delete Page Section</li>
+            <li class="breadcrumb-item active" aria-current="page">VMGO Section</li>
         </ol>
     </nav>
 
+    <!-- Info Box -->
+    <div class="info-box">
+        <h5><i class="fas fa-info-circle"></i> VMGO Section Guidelines</h5>
+        <p>This section displays NORSU's institutional vision, mission, goals, and core values. Keep content clear and concise. Use bullet points for goals and values to improve readability. Changes will be immediately visible on the homepage.</p>
+    </div>
+
     <!-- Form Card -->
     <div class="form-card">
-        <!-- Warning Section -->
-        <div class="warning-section">
-            <div style="display: flex; align-items: flex-start;">
-                <i class="fas fa-exclamation-triangle warning-icon"></i>
-                <div>
-                    <div class="warning-title">Warning: This action cannot be undone</div>
-                    <div class="warning-text">
-                        Deleting this page section will permanently remove it from your website. 
-                        This action cannot be reversed. Please make sure you want to proceed.
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Section Information -->
-        <div class="section-info">
-            <h4><i class="fas fa-info-circle" style="color: var(--primary-color); margin-right: 0.5rem;"></i> Section Information</h4>
-            
-            <div class="info-item">
-                <i class="fas fa-tag"></i>
-                <span class="info-label">Title:</span>
-                <span>{{ object.title }}</span>
-            </div>
-            
-            <div class="info-item">
-                <i class="fas fa-layer-group"></i>
-                <span class="info-label">Type:</span>
-                <span>{{ object.get_section_type_display }}</span>
-            </div>
-            
-            {% if object.subtitle %}
-            <div class="info-item">
-                <i class="fas fa-quote-left"></i>
-                <span class="info-label">Subtitle:</span>
-                <span>{{ object.subtitle|truncatechars:100 }}</span>
-            </div>
-            {% endif %}
-            
-            <div class="info-item">
-                <i class="fas fa-sort-numeric-up"></i>
-                <span class="info-label">Order:</span>
-                <span>{{ object.order }}</span>
-            </div>
-            
-            <div class="info-item">
-                <i class="fas fa-toggle-{% if object.is_active %}on{% else %}off{% endif %}"></i>
-                <span class="info-label">Status:</span>
-                <span>{% if object.is_active %}Active{% else %}Inactive{% endif %}</span>
-            </div>
-            
-            <div class="info-item">
-                <i class="fas fa-clock"></i>
-                <span class="info-label">Created:</span>
-                <span>{{ object.created|date:"M d, Y H:i" }}</span>
-            </div>
-        </div>
-
-        <!-- Confirmation Form -->
-        <form method="post">
-            {% csrf_token %}
-            
-            <!-- Form Actions -->
-            <div class="form-actions">
-                <button type="submit" class="btn btn-danger">
-                    <i class="fas fa-trash"></i> Yes, Delete Section
-                </button>
-                <a href="{% url 'cms:page_section_list' %}" class="btn btn-secondary">
-                    <i class="fas fa-arrow-left"></i> Cancel
-                </a>
-            </div>
-        </form>
+        {% crispy form %}
     </div>
 </div>
 {% endblock %}

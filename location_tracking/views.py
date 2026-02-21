@@ -12,7 +12,12 @@ from datetime import timedelta
 User = get_user_model()
 
 def is_admin(user):
-    return user.is_authenticated and user.is_staff
+    """Check if user has admin privileges (staff, superuser, or alumni coordinator)"""
+    if not user.is_authenticated:
+        return False
+    
+    is_coordinator = hasattr(user, 'profile') and user.profile.is_alumni_coordinator
+    return user.is_superuser or user.is_staff or is_coordinator
 
 @user_passes_test(is_admin)
 def map_view(request):

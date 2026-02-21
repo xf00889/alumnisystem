@@ -15,7 +15,6 @@ from io import StringIO
 from cms.models import (
     SiteConfig,
     AboutPageConfig,
-    PageSection,
     Feature,
     Testimonial,
     StaffMember,
@@ -43,7 +42,6 @@ class SeedCMSDataCommandTestCase(TestCase):
         # Clear all CMS data before each test
         SiteConfig.objects.all().delete()
         AboutPageConfig.objects.all().delete()
-        PageSection.objects.all().delete()
         Feature.objects.all().delete()
         Testimonial.objects.all().delete()
         StaffMember.objects.all().delete()
@@ -74,7 +72,6 @@ class SeedCMSDataCommandTestCase(TestCase):
         self.assertGreater(ContactInfo.objects.count(), 0, "ContactInfo should have at least 1 instance")
         self.assertGreater(FAQ.objects.count(), 0, "FAQ should have at least 1 instance")
         self.assertGreater(AlumniStatistic.objects.count(), 0, "AlumniStatistic should have at least 1 instance")
-        self.assertGreater(PageSection.objects.count(), 0, "PageSection should have at least 1 instance")
     
     def test_command_output_contains_statistics(self):
         """
@@ -123,8 +120,7 @@ class SeedCMSDataCommandTestCase(TestCase):
             TimelineItem.objects.count() +
             ContactInfo.objects.count() +
             FAQ.objects.count() +
-            AlumniStatistic.objects.count() +
-            PageSection.objects.count()
+            AlumniStatistic.objects.count()
         )
         self.assertGreater(total_records, 0, "Command should create at least some records")
 
@@ -158,7 +154,6 @@ class SeedCMSDataIdempotencyTestCase(TestCase):
             'ContactInfo': ContactInfo.objects.count(),
             'FAQ': FAQ.objects.count(),
             'AlumniStatistic': AlumniStatistic.objects.count(),
-            'PageSection': PageSection.objects.count(),
         }
         
         # Run the command second time
@@ -176,7 +171,6 @@ class SeedCMSDataIdempotencyTestCase(TestCase):
             'ContactInfo': ContactInfo.objects.count(),
             'FAQ': FAQ.objects.count(),
             'AlumniStatistic': AlumniStatistic.objects.count(),
-            'PageSection': PageSection.objects.count(),
         }
         
         # Verify counts remain the same (no duplicates created)

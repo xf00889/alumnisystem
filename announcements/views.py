@@ -189,7 +189,9 @@ class AnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
     success_url = reverse_lazy('announcements:announcement-list')
     
     def test_func(self):
-        return self.request.user.is_staff
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
     
     def handle_no_permission(self):
         messages.error(self.request, "You don't have permission to perform this action.")
@@ -228,8 +230,9 @@ class AnnouncementUpdateView(LoginRequiredMixin, UserPassesTestMixin, SuccessMes
     success_url = reverse_lazy('announcements:announcement-list')
     
     def test_func(self):
-        obj = self.get_object()
-        return self.request.user.is_staff
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
 
     def form_valid(self, form):
         # Sanitize user input
@@ -253,8 +256,9 @@ class AnnouncementDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView
     success_url = reverse_lazy('announcements:announcement-list')
     
     def test_func(self):
-        """Check if user is staff or superuser"""
-        return self.request.user.is_staff or self.request.user.is_superuser
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
     
     def get(self, request, *args, **kwargs):
         """Block GET requests - deletion should only happen via POST with AJAX"""
@@ -264,7 +268,8 @@ class AnnouncementDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView
     def post(self, request, *args, **kwargs):
         """Override post to handle both AJAX and regular requests"""
         # Check permissions first
-        if not (request.user.is_staff or request.user.is_superuser):
+        is_coordinator = hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator
+        if not (request.user.is_staff or request.user.is_superuser or is_coordinator):
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                 return JsonResponse({
                     'status': 'error',
@@ -374,7 +379,9 @@ class PublicAnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, Succ
     success_url = reverse_lazy('announcements:public-announcement-list')
     
     def test_func(self):
-        return self.request.user.is_staff
+        """Check if user is staff, superuser, or alumni coordinator"""
+        is_coordinator = hasattr(self.request.user, 'profile') and self.request.user.profile.is_alumni_coordinator
+        return self.request.user.is_staff or self.request.user.is_superuser or is_coordinator
     
     def handle_no_permission(self):
         messages.error(self.request, "You don't have permission to perform this action.")

@@ -27,12 +27,18 @@ from alumni_directory.models import Alumni
 from .export_utils import export_queryset, ModelExporter
 from .export_utils import ExportMixin
 
+# Import permission helper
+from .decorators import is_admin_user
+
 @login_required
 def admin_dashboard(request):
     """Main admin dashboard with comprehensive analytics"""
     from django.db import connection
     start_time = time.time()
     initial_query_count = len(connection.queries)
+    
+    # Check if user is alumni coordinator
+    is_alumni_coordinator = hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator
     
     # Log admin dashboard access
     logger.info(
@@ -41,13 +47,14 @@ def admin_dashboard(request):
             'user_id': request.user.id,
             'is_staff': request.user.is_staff,
             'is_superuser': request.user.is_superuser,
+            'is_alumni_coordinator': is_alumni_coordinator,
             'ip_address': request.META.get('REMOTE_ADDR'),
             'action': 'admin_dashboard_access'
         }
     )
     
-    # Check if user is staff or admin
-    if not request.user.is_staff and not request.user.is_superuser:
+    # Check if user is staff, admin, or alumni coordinator
+    if not is_admin_user(request.user):
         logger.warning(
             f"Unauthorized admin dashboard access attempt: User={request.user.username}",
             extra={
@@ -223,7 +230,7 @@ def admin_dashboard(request):
 def dashboard_analytics_api(request):
     """API endpoint for dashboard analytics data"""
     # Check permissions
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
     # Get date range from request
@@ -310,7 +317,7 @@ def dashboard_analytics_api(request):
 def alumni_by_college_api(request):
     """API endpoint for alumni count by college data"""
     # Check permissions
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         return JsonResponse({'error': 'Permission denied'}, status=403)
 
     try:
@@ -360,7 +367,7 @@ def alumni_by_college_api(request):
 @login_required
 def export_alumni(request, format_type='csv'):
     """Export alumni data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -372,7 +379,7 @@ def export_alumni(request, format_type='csv'):
 @login_required
 def export_jobs(request, format_type='csv'):
     """Export jobs data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -384,7 +391,7 @@ def export_jobs(request, format_type='csv'):
 @login_required
 def export_mentorships(request, format_type='csv'):
     """Export mentorships data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -396,7 +403,7 @@ def export_mentorships(request, format_type='csv'):
 @login_required
 def export_events(request, format_type='csv'):
     """Export events data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -408,7 +415,7 @@ def export_events(request, format_type='csv'):
 @login_required
 def export_donations(request, format_type='csv'):
     """Export donations data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -420,7 +427,7 @@ def export_donations(request, format_type='csv'):
 @login_required
 def export_users(request, format_type='csv'):
     """Export users data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -432,7 +439,7 @@ def export_users(request, format_type='csv'):
 @login_required
 def export_announcements(request, format_type='csv'):
     """Export announcements data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -444,7 +451,7 @@ def export_announcements(request, format_type='csv'):
 @login_required
 def export_feedback(request, format_type='csv'):
     """Export feedback data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -456,7 +463,7 @@ def export_feedback(request, format_type='csv'):
 @login_required
 def export_surveys(request, format_type='csv'):
     """Export surveys data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -479,7 +486,7 @@ def export_surveys(request, format_type='csv'):
 @login_required
 def export_all_data(request, format_type='csv'):
     """Export all data in specified format"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -491,7 +498,7 @@ def export_all_data(request, format_type='csv'):
 @login_required
 def bulk_export_interface(request):
     """Bulk export interface for selecting multiple models to export"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
@@ -513,7 +520,7 @@ def bulk_export_interface(request):
 @login_required
 def bulk_export_process(request):
     """Process bulk export request"""
-    if not request.user.is_staff and not request.user.is_superuser:
+    if not is_admin_user(request.user):
         return JsonResponse({'error': 'Permission denied'}, status=403)
     
     if request.method == 'POST':

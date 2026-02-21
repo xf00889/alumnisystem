@@ -11,6 +11,7 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/vmgo_section.css' %}">
 <style>
     /* System Color Scheme */
     :root {
@@ -767,20 +768,6 @@
         <div class="about-hero-content">
             <h1>{{ page_title }}</h1>
             <p>{{ page_subtitle }}</p>
-            <div class="about-stats">
-                <div class="about-stat">
-                    <div class="about-stat-number">{{ alumni_count|default:"5,000+" }}</div>
-                    <div class="about-stat-label">Alumni</div>
-                </div>
-                <div class="about-stat">
-                    <div class="about-stat-number">{{ group_count|default:"25+" }}</div>
-                    <div class="about-stat-label">Groups</div>
-            </div>
-                <div class="about-stat">
-                    <div class="about-stat-number">{{ event_count|default:"100+" }}</div>
-                    <div class="about-stat-label">Events</div>
-                </div>
-            </div>
         </div>
     </div>
 </section>
@@ -790,30 +777,18 @@
     <div class="container">
     <!-- University Overview -->
         <div class="university-overview">
-            <h2>About {{ about_config.university_name|default:"Negros Oriental State University" }}</h2>
+            <h2>{{ vmgo_section.about_title|default:"About NORSU" }}</h2>
             <p>
-                                {{ about_config.university_description|default:"Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services." }}
-                            </p>
-                            <p>
-                                {{ about_config.university_extended_description|default:"Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness." }}
-                            </p>
-                            <div class="university-stats">
-                <div class="university-stat">
-                    <div class="university-stat-number">{{ about_config.establishment_year|default:"2004" }}</div>
-                    <div class="university-stat-label">Established</div>
-                                </div>
-                <div class="university-stat">
-                    <div class="university-stat-number">20+</div>
-                    <div class="university-stat-label">Years of Excellence</div>
-                            </div>
-                <div class="university-stat">
-                    <div class="university-stat-number">50+</div>
-                    <div class="university-stat-label">Programs</div>
-            </div>
+                {{ vmgo_section.about_content|default:"Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services." }}
+            </p>
         </div>
     </div>
 
-    <!-- Mission and Vision -->
+    <!-- VMGO Section -->
+    {% if vmgo_section and vmgo_section.is_active %}
+        {% include 'components/vmgo_section.html' %}
+    {% else %}
+        <!-- Fallback Mission and Vision if VMGO not available -->
         <div class="row mb-4">
             <div class="col-lg-6 mb-3">
                 <div class="content-card">
@@ -845,77 +820,9 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <!-- Timeline -->
-        <div class="row mb-4">
-        <div class="col-12">
-                <div class="section-header">
-                    <div class="section-badge">Our Journey</div>
-                    <h2 class="section-title">University Timeline</h2>
-                    <p class="section-subtitle">Key milestones in our university's history and growth</p>
-                </div>
-                
-            <div class="timeline">
-                {% if timeline_items %}
-                    {% for item in timeline_items %}
-                    <div class="timeline-item">
-                        <div class="timeline-marker">
-                            <i class="{{ item.icon }}"></i>
-                        </div>
-                        <div class="timeline-content">
-                            <h4>{{ item.year }}</h4>
-                            <h5>{{ item.title }}</h5>
-                            <p>{{ item.description }}</p>
-                        </div>
-                    </div>
-                    {% endfor %}
-                {% else %}
-                    <!-- Fallback timeline if no CMS data -->
-                    <div class="timeline-item">
-                        <div class="timeline-marker">
-                            <i class="fas fa-university"></i>
-                        </div>
-                        <div class="timeline-content">
-                            <h4>2004</h4>
-                            <h5>University Establishment</h5>
-                            <p>NORSU was established through the merger of several educational institutions in Negros Oriental.</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-marker">
-                            <i class="fas fa-users"></i>
-                        </div>
-                        <div class="timeline-content">
-                            <h4>2010</h4>
-                            <h5>Alumni Association Formation</h5>
-                            <p>The official NORSU Alumni Association was formed to strengthen connections among graduates.</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-marker">
-                            <i class="fas fa-laptop"></i>
-                        </div>
-                        <div class="timeline-content">
-                            <h4>2020</h4>
-                            <h5>Digital Transformation</h5>
-                            <p>Launch of the digital alumni network platform to enhance connectivity and engagement.</p>
-                        </div>
-                    </div>
-                    <div class="timeline-item">
-                        <div class="timeline-marker">
-                            <i class="fas fa-rocket"></i>
-                        </div>
-                        <div class="timeline-content">
-                            <h4>2024</h4>
-                            <h5>Platform Enhancement</h5>
-                            <p>Major upgrade of the alumni system with new features for career services and mentorship programs.</p>
-                        </div>
-                    </div>
-                {% endif %}
-            </div>
         </div>
-    </div>
+    {% endif %}
+
     </div>
 </section>
 

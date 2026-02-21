@@ -95,9 +95,59 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     form = ProfileAdminForm
-    list_display = ('user', 'phone_number', 'birth_date', 'country', 'is_hr')
+    list_display = ('user', 'phone_number', 'birth_date', 'country', 'is_hr', 'is_alumni_coordinator')
     search_fields = ('user__email', 'user__first_name', 'user__last_name', 'phone_number')
-    list_filter = ('is_hr', 'is_public', 'created_at')
+    list_filter = ('is_hr', 'is_alumni_coordinator', 'is_public', 'created_at')
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user',)
+        }),
+        ('Personal Information', {
+            'fields': ('avatar', 'bio', 'birth_date', 'gender')
+        }),
+        ('Professional Information', {
+            'fields': ('current_position', 'current_employer', 'industry', 'employment_status', 'salary_range')
+        }),
+        ('Contact Information (Legacy)', {
+            'fields': ('phone_number', 'address', 'city', 'state', 'country', 'postal_code'),
+            'classes': ('collapse',)
+        }),
+        ('Social Media (Legacy)', {
+            'fields': ('linkedin_profile', 'facebook_profile', 'twitter_profile'),
+            'classes': ('collapse',)
+        }),
+        ('Permissions & Roles', {
+            'fields': ('is_hr', 'is_alumni_coordinator', 'is_public'),
+            'description': 'is_alumni_coordinator: Grants admin access but blocks system configuration'
+        }),
+        ('Metadata', {
+            'fields': ('has_completed_registration', 'created_at', 'updated_at'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    readonly_fields = ('created_at', 'updated_at')
+    
+    actions = ['make_alumni_coordinator', 'remove_alumni_coordinator']
+    
+    def make_alumni_coordinator(self, request, queryset):
+        """Bulk action to assign Alumni Coordinator role"""
+        updated = queryset.update(is_alumni_coordinator=True)
+        self.message_user(
+            request,
+            f'{updated} user(s) successfully assigned as Alumni Coordinator(s).'
+        )
+    make_alumni_coordinator.short_description = "Assign Alumni Coordinator role"
+    
+    def remove_alumni_coordinator(self, request, queryset):
+        """Bulk action to remove Alumni Coordinator role"""
+        updated = queryset.update(is_alumni_coordinator=False)
+        self.message_user(
+            request,
+            f'{updated} user(s) successfully removed from Alumni Coordinator role.'
+        )
+    remove_alumni_coordinator.short_description = "Remove Alumni Coordinator role"
     inlines = [EducationInline, ExperienceInline, SkillInline, DocumentInline]
     readonly_fields = ('created_at', 'updated_at')
     

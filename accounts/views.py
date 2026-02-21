@@ -48,6 +48,18 @@ from .serializers import (
 )
 from django.contrib.auth.decorators import user_passes_test
 from .decorators import paginate
+
+
+def can_manage_mentors(user):
+    """Check if user can manage mentors (staff, superuser, or alumni coordinator)"""
+    if not user.is_authenticated:
+        return False
+    if user.is_superuser or user.is_staff:
+        return True
+    try:
+        return user.profile.is_alumni_coordinator
+    except:
+        return False
 from django.contrib.contenttypes.models import ContentType
 from log_viewer.models import AuditLog
 from core.models.notifications import Notification
@@ -1344,7 +1356,7 @@ def mentor_application_status(request):
         messages.error(request, 'No mentor application found.')
         return redirect('accounts:apply_mentor')
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 @paginate(per_page=10)
 def review_mentor_applications(request):
     """Admin view for reviewing mentor applications"""
@@ -1353,7 +1365,7 @@ def review_mentor_applications(request):
         'applications': applications
     })
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 def review_mentor_application(request, application_id):
     """Admin view for reviewing a specific mentor application"""
     try:
@@ -1452,7 +1464,7 @@ def review_mentor_application(request, application_id):
         'applications': [application]
     })
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 def mentor_application_detail_modal(request, application_id):
     """
     Return mentor application detail content for modal display.
@@ -1477,7 +1489,7 @@ def mentor_application_detail_modal(request, application_id):
             'error': f'Error loading application details: {str(e)}'
         })
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 def mentor_reactivation_request_detail_modal(request, request_id):
     """
     Return mentor reactivation request detail content for modal display.
@@ -1516,8 +1528,9 @@ def admin_mentor_list(request):
     """
     Custom view to display a list of mentors for administrators
     """
-    # Check if the user is a superuser
-    if not request.user.is_superuser:
+    # Check if the user is a superuser, staff, or alumni coordinator
+    if not (request.user.is_superuser or request.user.is_staff or 
+            (hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator)):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('core:home')
         
@@ -1561,7 +1574,7 @@ def admin_mentor_list(request):
     }
     return render(request, 'accounts/admin_mentor_list.html', context)
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 @require_POST
 def remove_mentor(request, mentor_id):
     """
@@ -2032,7 +2045,7 @@ def verify_reactivation_code(request):
             'error': f'An error occurred: {str(e)}'
         }, status=500)
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 @paginate(per_page=10)
 def review_mentor_reactivation_requests(request):
     """
@@ -2055,7 +2068,7 @@ def review_mentor_reactivation_requests(request):
     
     return render(request, 'accounts/review_mentor_reactivation_requests.html', context)
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 @require_POST
 def approve_mentor_reactivation(request, request_id):
     """
@@ -2235,7 +2248,7 @@ def approve_mentor_reactivation(request, request_id):
         messages.error(request, error_message)
         return redirect('accounts:review_mentor_reactivation_requests')
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 @require_POST
 def reject_mentor_reactivation(request, request_id):
     """
@@ -2375,7 +2388,7 @@ def reject_mentor_reactivation(request, request_id):
         messages.error(request, error_message)
         return redirect('accounts:review_mentor_reactivation_requests')
 
-@user_passes_test(lambda u: u.is_staff)
+@user_passes_test(can_manage_mentors)
 @require_POST
 def reactivate_mentor_direct(request, mentor_id):
     """

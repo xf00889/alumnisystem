@@ -15,6 +15,7 @@ from django.db.models import Count, Avg, Q, Sum
 from django.db.models.functions import TruncDate
 from django.db import transaction
 from django.utils import timezone
+from functools import wraps
 import json
 import logging
 
@@ -36,22 +37,53 @@ from .forms import (
 logger = logging.getLogger(__name__)
 
 
+def staff_or_coordinator_required(view_func):
+    """
+    Decorator that requires user to be staff, superuser, or alumni coordinator.
+    """
+    @wraps(view_func)
+    def wrapper(request, *args, **kwargs):
+        if not request.user.is_authenticated:
+            return redirect('account_login')
+        
+        is_authorized = (
+            request.user.is_staff or 
+            request.user.is_superuser or
+            (hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator)
+        )
+        
+        if not is_authorized:
+            messages.error(request, 'You do not have permission to access this page.')
+            return redirect('surveys:survey_list_public')
+        
+        return view_func(request, *args, **kwargs)
+    return wrapper
+
+
 class StaffRequiredMixin(LoginRequiredMixin):
     """
-    Mixin that requires user to be staff or superuser.
+    Mixin that requires user to be staff, superuser, or alumni coordinator.
     Unlike staff_member_required decorator, this doesn't redirect to Django admin.
     """
     def dispatch(self, request, *args, **kwargs):
         if not request.user.is_authenticated:
             return self.handle_no_permission()
-        if not (request.user.is_staff or request.user.is_superuser):
+        
+        # Check if user is staff, superuser, or alumni coordinator
+        is_authorized = (
+            request.user.is_staff or 
+            request.user.is_superuser or
+            (hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator)
+        )
+        
+        if not is_authorized:
             messages.error(request, 'You do not have permission to access this page.')
             return redirect('surveys:survey_list_public')
         return super().dispatch(request, *args, **kwargs)
 
 
 # Staff/Admin Views for Survey Management
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class SurveyListView(ListView):
     model = Survey
     template_name = 'surveys/admin/survey_list.html'
@@ -453,7 +485,7 @@ class SurveyUpdateView(StaffRequiredMixin, UpdateView):
             messages.error(self.request, f'Error updating survey: {str(e)}')
             raise
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class SurveyDeleteView(DeleteView):
     model = Survey
     success_url = reverse_lazy('surveys:survey_list')
@@ -539,7 +571,7 @@ class SurveyDeleteView(DeleteView):
             messages.error(request, f'Error deleting survey: {str(e)}')
             return HttpResponseRedirect(self.success_url)
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class SurveyDetailView(DetailView):
     model = Survey
     template_name = 'surveys/admin/survey_detail.html'
@@ -565,7 +597,7 @@ class SurveyDetailView(DetailView):
         
         return context
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class SurveyResponsesView(DetailView):
     model = Survey
     template_name = 'surveys/admin/survey_responses.html'
@@ -688,7 +720,7 @@ class SurveyResponsesView(DetailView):
         
         return context
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class SurveyQuestionCreateView(CreateView):
     model = SurveyQuestion
     form_class = SurveyQuestionForm
@@ -754,7 +786,7 @@ class SurveyQuestionCreateView(CreateView):
             )
             raise
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class SurveyQuestionUpdateView(UpdateView):
     model = SurveyQuestion
     form_class = SurveyQuestionForm
@@ -1042,13 +1074,13 @@ class SurveyListPublicView(LoginRequiredMixin, ListView):
         return context
 
 # Report generation views
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class ReportListView(ListView):
     model = Report
     template_name = 'surveys/admin/report_list.html'
     context_object_name = 'reports'
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class ReportCreateView(CreateView):
     model = Report
     form_class = ReportForm
@@ -1151,7 +1183,7 @@ class ReportCreateView(CreateView):
         
         return super().form_valid(form)
 
-@method_decorator(staff_member_required, name='dispatch')
+@method_decorator(staff_or_coordinator_required, name='dispatch')
 class ReportDetailView(DetailView):
     model = Report
     template_name = 'surveys/admin/report_detail.html'
@@ -1758,7 +1790,7 @@ class ReportDetailView(DetailView):
 
 
 @login_required
-@staff_member_required
+@staff_or_coordinator_required
 def survey_export_responses(request, pk):
     """Export survey responses to Excel format with NORSU header"""
     from openpyxl import Workbook
@@ -1910,7 +1942,7 @@ def survey_export_responses(request, pk):
     return http_response
 
 
-@staff_member_required
+@staff_or_coordinator_required
 def report_export_pdf(request, pk):
     """
     Export report as PDF

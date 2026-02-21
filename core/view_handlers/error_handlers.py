@@ -60,6 +60,46 @@ def handler500(request):
                 status=500
             )
 
+def csrf_failure(request, reason=""):
+    """
+    Custom CSRF failure handler that returns JSON for AJAX requests.
+    
+    This handler is called by Django's CSRF middleware when CSRF validation fails.
+    It detects AJAX requests and returns JSON responses instead of HTML error pages.
+    """
+    # Check if this is an AJAX request
+    is_ajax = (
+        request.headers.get('X-Requested-With') == 'XMLHttpRequest' or
+        request.META.get('CONTENT_TYPE', '').startswith('application/json')
+    )
+    
+    if is_ajax:
+        # Return JSON response for AJAX requests
+        return JsonResponse({
+            'success': False,
+            'message': 'CSRF verification failed. Please refresh the page and try again.'
+        }, status=403)
+    else:
+        # Return HTML response for non-AJAX requests (default behavior)
+        from django.middleware.csrf import REASON_NO_CSRF_COOKIE, REASON_NO_REFERER
+        from django.shortcuts import render
+        
+        context = {
+            'reason': reason,
+            'no_referer': reason == REASON_NO_REFERER,
+            'no_cookie': reason == REASON_NO_CSRF_COOKIE,
+        }
+        
+        try:
+            return render(request, '403_csrf.html', context, status=403)
+        except:
+            # Fallback if template doesn't exist
+            return HttpResponse(
+                "<h1>403 Forbidden</h1>"
+                "<p>CSRF verification failed. Please refresh the page and try again.</p>",
+                status=403
+            )
+
 def health_check_view(request):
     """Simple health check endpoint"""
     try:

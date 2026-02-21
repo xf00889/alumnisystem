@@ -104,7 +104,12 @@ def apply_selective_export_filters(request, base_queryset=None):
     return export_queryset, filename, has_selective_filters
 
 def is_admin(user):
-    return user.is_authenticated and user.is_staff
+    """Check if user has admin privileges (staff, superuser, or alumni coordinator)"""
+    if not user.is_authenticated:
+        return False
+    
+    is_coordinator = hasattr(user, 'profile') and user.profile.is_alumni_coordinator
+    return user.is_superuser or user.is_staff or is_coordinator
 
 @login_required
 @paginate(per_page=12)  # Show 12 alumni per page

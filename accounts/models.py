@@ -112,6 +112,10 @@ class Profile(models.Model):
         default=False,
         help_text="Designates whether this user has HR permissions for job management"
     )
+    is_alumni_coordinator = models.BooleanField(
+        default=False,
+        help_text="Designates whether this user is an Alumni Coordinator with admin access but no system configuration permissions"
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     has_completed_registration = models.BooleanField(default=False)

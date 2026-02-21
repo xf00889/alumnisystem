@@ -365,6 +365,7 @@ class RoleAssignmentService:
         'admin': ('is_staff', True),
         'superuser': ('is_superuser', True),
         'mentor': ('mentor_profile', 'create_or_activate'),
+        'alumni_coordinator': ('profile.is_alumni_coordinator', True),
     }
     
     @staticmethod
@@ -411,6 +412,10 @@ class RoleAssignmentService:
                 user.is_superuser = True
                 user.is_staff = True  # Superusers should also be staff
                 user.save(update_fields=['is_superuser', 'is_staff'])
+                
+            elif role_name == 'alumni_coordinator':
+                user.profile.is_alumni_coordinator = True
+                user.profile.save(update_fields=['is_alumni_coordinator'])
                 
             elif role_name == 'mentor':
                 # Create or activate mentor profile
@@ -553,6 +558,10 @@ NORSU Alumni System
                 user.is_superuser = False
                 user.save(update_fields=['is_superuser'])
                 
+            elif role_name == 'alumni_coordinator':
+                user.profile.is_alumni_coordinator = False
+                user.profile.save(update_fields=['is_alumni_coordinator'])
+                
             elif role_name == 'mentor':
                 # Deactivate mentor profile
                 try:
@@ -666,6 +675,13 @@ NORSU Alumni System
         try:
             if user.profile.is_hr:
                 roles.append('hr')
+        except Profile.DoesNotExist:
+            pass
+        
+        # Check Alumni Coordinator
+        try:
+            if user.profile.is_alumni_coordinator:
+                roles.append('alumni_coordinator')
         except Profile.DoesNotExist:
             pass
         

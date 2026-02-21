@@ -15,9 +15,15 @@
             </div>
             <div class="col-md-4 text-end">
                 <div class="d-flex gap-2 justify-content-end">
-                    {% if user.is_staff %}
+                    {% if user.is_staff or user.is_superuser %}
                     <a href="{% url 'events:event_update' event.pk %}" class="btn btn-outline-light">
                         <i class="fas fa-edit me-2"></i>Edit Event
+                    </a>
+                    {% elif user.profile.is_alumni_coordinator %}
+                    <a href="{% url 'events:event_update' event.pk %}" class="btn btn-outline-light">
+                        <i class="fas fa-edit me-2"></i>Edit Event
+                    </a>
+                    {% endif %}
                     </a>
                     {% endif %}
                 </div>
@@ -95,7 +101,7 @@
                         {{ event.description|safe }}
                     </div>
 
-                    {% if user.is_authenticated and not user.is_staff %}
+                    {% if user.is_authenticated and not user.is_staff and not user.is_superuser and not user.profile.is_alumni_coordinator %}
                     <div class="card border-0 shadow-sm mt-4">
                         <div class="card-header bg-gradient-primary text-white py-3">
                             <div class="d-flex align-items-center">
@@ -133,9 +139,13 @@
                     </div>
                     {% endif %}
 
-                    {% if user.is_staff %}
+                    {% if user.is_staff or user.is_superuser %}
                     <div class="action-buttons">
                         <a href="{% url 'events:event_update' event.pk %}" class="btn btn-outline-primary">
+                    {% elif user.profile.is_alumni_coordinator %}
+                    <div class="action-buttons">
+                        <a href="{% url 'events:event_update' event.pk %}" class="btn btn-outline-primary">
+                    {% endif %}
                             <i class="fas fa-edit me-2"></i>Edit Event
                         </a>
                         <a href="{% url 'events:event_delete' event.pk %}" class="btn btn-outline-danger">

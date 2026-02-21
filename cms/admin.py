@@ -3,9 +3,10 @@ from django.utils.html import format_html
 from django.urls import reverse
 from django.utils.safestring import mark_safe
 from .models import (
-    SiteConfig, PageSection, StaffMember, 
+    SiteConfig, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic, FooterLink
+    AlumniStatistic, FooterLink,
+    NORSUCampus, NORSUOfficial, NORSUVMGOHistory
 )
 
 
@@ -33,6 +34,21 @@ class SiteConfigAdmin(admin.ModelAdmin):
             'fields': ('signup_button_text', 'login_button_text'),
             'classes': ('collapse',)
         }),
+        ('Hero Section', {
+            'fields': (
+                'hero_headline',
+                'hero_subheadline',
+                'hero_background_image',
+                'hero_primary_cta_text',
+                'hero_secondary_cta_text',
+                'hero_microcopy',
+                'hero_alumni_count',
+                'hero_opportunities_count',
+                'hero_countries_count',
+                'hero_variant',
+            ),
+            'description': 'Configure the hero section messaging, CTAs, and social proof elements'
+        }),
     )
     
     def has_add_permission(self, request):
@@ -51,36 +67,6 @@ class SiteConfigAdmin(admin.ModelAdmin):
                 self, request, str(obj.pk), extra_context
             )
         return super().changelist_view(request, extra_context)
-
-
-@admin.register(PageSection)
-class PageSectionAdmin(admin.ModelAdmin):
-    """
-    Admin interface for Page Sections
-    """
-    list_display = ['title', 'section_type', 'order', 'is_active', 'created']
-    list_filter = ['section_type', 'is_active', 'created']
-    search_fields = ['title', 'subtitle', 'content']
-    list_editable = ['order', 'is_active']
-    ordering = ['section_type', 'order']
-    
-    fieldsets = (
-        ('Basic Information', {
-            'fields': ('section_type', 'title', 'subtitle', 'content')
-        }),
-        ('Media', {
-            'fields': ('image',),
-            'classes': ('collapse',)
-        }),
-        ('Settings', {
-            'fields': ('order', 'is_active')
-        }),
-    )
-    
-    def get_queryset(self, request):
-        return super().get_queryset(request).order_by('section_type', 'order')
-
-
 
 
 @admin.register(StaffMember)
@@ -249,48 +235,6 @@ class TestimonialAdmin(admin.ModelAdmin):
     image_preview.short_description = "Photo"
 
 
-@admin.register(AboutPageConfig)
-class AboutPageConfigAdmin(admin.ModelAdmin):
-    """
-    Admin interface for About Page Configuration (Singleton)
-    """
-    list_display = ['university_short_name', 'university_name', 'establishment_year', 'created']
-    list_filter = ['created', 'modified']
-    search_fields = ['university_name', 'university_short_name', 'mission', 'vision']
-    
-    fieldsets = (
-        ('University Information', {
-            'fields': ('university_name', 'university_short_name', 'establishment_year')
-        }),
-        ('University Description', {
-            'fields': ('university_description', 'university_extended_description')
-        }),
-        ('Mission & Vision', {
-            'fields': ('mission', 'vision')
-        }),
-        ('Page Configuration', {
-            'fields': ('about_page_title', 'about_page_subtitle')
-        }),
-    )
-    
-    def has_add_permission(self, request):
-        """Prevent adding multiple AboutPageConfig instances"""
-        return not AboutPageConfig.objects.exists()
-    
-    def has_delete_permission(self, request, obj=None):
-        """Prevent deleting the AboutPageConfig instance"""
-        return False
-    
-    def changelist_view(self, request, extra_context=None):
-        """Redirect to the single instance if it exists"""
-        if AboutPageConfig.objects.exists():
-            obj = AboutPageConfig.objects.first()
-            return admin.ModelAdmin.change_view(
-                self, request, str(obj.pk), extra_context
-            )
-        return super().changelist_view(request, extra_context)
-
-
 @admin.register(AlumniStatistic)
 class AlumniStatisticAdmin(admin.ModelAdmin):
     """
@@ -346,6 +290,156 @@ class FooterLinkAdmin(admin.ModelAdmin):
         return super().get_queryset(request).order_by('section', 'order')
 
 
+@admin.register(NORSUCampus)
+class NORSUCampusAdmin(admin.ModelAdmin):
+    """
+    Admin interface for NORSU Campuses
+    """
+    list_display = ['name', 'location', 'order', 'is_active', 'image_preview', 'created']
+    list_filter = ['is_active', 'created']
+    search_fields = ['name', 'location', 'description']
+    list_editable = ['order', 'is_active']
+    ordering = ['order', 'name']
+    
+    fieldsets = (
+        ('Campus Information', {
+            'fields': ('name', 'location', 'description')
+        }),
+        ('Media', {
+            'fields': ('image',)
+        }),
+        ('Settings', {
+            'fields': ('order', 'is_active')
+        }),
+    )
+    
+    def image_preview(self, obj):
+        """Display image preview in list view"""
+        if obj.image:
+            return format_html(
+                '<img src="{}" width="80" height="50" style="object-fit: cover; border-radius: 4px;" />',
+                obj.image.url
+            )
+        return "No Image"
+    image_preview.short_description = "Preview"
+
+
+@admin.register(NORSUOfficial)
+class NORSUOfficialAdmin(admin.ModelAdmin):
+    """
+    Admin interface for NORSU Officials
+    """
+    list_display = ['name', 'position', 'position_level_display', 'department', 'order', 'is_active', 'image_preview']
+    list_filter = ['position_level', 'is_active', 'created']
+    search_fields = ['name', 'position', 'department', 'bio']
+    list_editable = ['order', 'is_active']
+    ordering = ['position_level', 'order', 'name']
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('name', 'position', 'position_level', 'department', 'bio')
+        }),
+        ('Contact & Media', {
+            'fields': ('email', 'phone', 'image')
+        }),
+        ('Settings', {
+            'fields': ('order', 'is_active')
+        }),
+    )
+    
+    def position_level_display(self, obj):
+        """Display position level with color coding"""
+        colors = {
+            1: '#dc3545',  # Red for President
+            2: '#fd7e14',  # Orange for VP
+            3: '#ffc107',  # Yellow for Dean
+            4: '#28a745',  # Green for Associate Dean
+            5: '#17a2b8',  # Cyan for Director
+            6: '#6c757d',  # Gray for Department Head
+            7: '#6c757d',  # Gray for Other
+        }
+        color = colors.get(obj.position_level, '#6c757d')
+        return format_html(
+            '<span style="color: {}; font-weight: bold;">{}</span>',
+            color,
+            obj.get_position_level_display()
+        )
+    position_level_display.short_description = "Level"
+    
+    def image_preview(self, obj):
+        """Display image preview in list view"""
+        if obj.image:
+            return format_html(
+                '<img src="{}" width="50" height="50" style="border-radius: 50%; object-fit: cover;" />',
+                obj.image.url
+            )
+        return "No Image"
+    image_preview.short_description = "Photo"
+
+
+@admin.register(NORSUVMGOHistory)
+class NORSUVMGOHistoryAdmin(admin.ModelAdmin):
+    """
+    Admin interface for NORSU VMGO & History (Singleton)
+    """
+    list_display = ['__str__', 'is_active', 'establishment_year', 'university_status_year', 'created']
+    list_filter = ['is_active', 'show_on_homepage', 'show_history_on_homepage', 'created', 'modified']
+    search_fields = ['section_title', 'about_content', 'vision', 'mission', 'goals', 'core_values', 'history_brief', 'history_full']
+    
+    fieldsets = (
+        ('Section Configuration', {
+            'fields': ('section_title', 'is_active'),
+            'description': 'Configure the main section title and visibility'
+        }),
+        ('About NORSU', {
+            'fields': ('about_title', 'about_content'),
+            'description': 'Introduction text about NORSU'
+        }),
+        ('Vision & Mission', {
+            'fields': (
+                ('vision_title', 'mission_title'),
+                'vision',
+                'mission'
+            ),
+            'description': 'NORSU Vision and Mission statements'
+        }),
+        ('Goals & Values', {
+            'fields': (
+                'goals_title',
+                'goals',
+                'values_title',
+                'core_values',
+                'quality_policy'
+            ),
+            'description': 'Strategic goals, core values, and quality policy'
+        }),
+        ('History', {
+            'fields': ('establishment_year', 'university_status_year', 'history_brief', 'history_full'),
+            'description': 'Historical information about NORSU'
+        }),
+        ('Legacy Display Settings', {
+            'fields': ('show_on_homepage', 'show_history_on_homepage'),
+            'classes': ('collapse',),
+            'description': 'Legacy settings (use is_active instead)'
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        """Prevent adding multiple NORSUVMGOHistory instances"""
+        return not NORSUVMGOHistory.objects.exists()
+    
+    def has_delete_permission(self, request, obj=None):
+        """Prevent deleting the NORSUVMGOHistory instance"""
+        return False
+    
+    def changelist_view(self, request, extra_context=None):
+        """Redirect to the single instance if it exists"""
+        if NORSUVMGOHistory.objects.exists():
+            obj = NORSUVMGOHistory.objects.first()
+            return admin.ModelAdmin.change_view(
+                self, request, str(obj.pk), extra_context
+            )
+        return super().changelist_view(request, extra_context)
 
 
 # Customize admin site header and title

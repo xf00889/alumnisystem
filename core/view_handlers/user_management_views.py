@@ -462,7 +462,7 @@ class UserRoleManagementView(LoginRequiredMixin, SuperuserRequiredMixin, View):
                 }, status=400)
             
             # Validate role
-            valid_roles = ['hr', 'admin', 'superuser', 'mentor']
+            valid_roles = ['hr', 'admin', 'superuser', 'mentor', 'alumni_coordinator']
             if role not in valid_roles:
                 return JsonResponse({
                     'success': False,

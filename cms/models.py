@@ -79,6 +79,62 @@ class SiteConfig(TimeStampedModel):
         default="Member Login",
         help_text=_("Text for the login button")
     )
+    
+    # Hero Section Fields
+    hero_headline = models.CharField(
+        max_length=200,
+        default="Advance Your Career With 5,000+ NORSU Professionals",
+        help_text=_("Main headline for the hero section (6-10 words recommended)")
+    )
+    hero_subheadline = models.TextField(
+        default="Access exclusive job opportunities, industry mentorship, and a network of alumni leaders across 30+ countries.",
+        help_text=_("Subheadline for the hero section (15-25 words recommended)")
+    )
+    hero_background_image = models.ImageField(
+        upload_to='cms/hero/',
+        null=True,
+        blank=True,
+        help_text=_("Background image for the hero section (recommended: 1920x600px, < 500KB)")
+    )
+    hero_primary_cta_text = models.CharField(
+        max_length=100,
+        default="Start Your Career Growth",
+        help_text=_("Primary CTA button text (2-4 words)")
+    )
+    hero_secondary_cta_text = models.CharField(
+        max_length=100,
+        default="Sign In",
+        help_text=_("Secondary CTA button text (2-3 words)")
+    )
+    hero_microcopy = models.CharField(
+        max_length=200,
+        default="Takes 2 minutes • No credit card required",
+        help_text=_("Microcopy text below CTA buttons to reduce friction")
+    )
+    
+    # Hero Social Proof Fields
+    hero_alumni_count = models.CharField(
+        max_length=50,
+        default="5,000+",
+        help_text=_("Number of alumni (e.g., '5,000+')")
+    )
+    hero_opportunities_count = models.CharField(
+        max_length=50,
+        default="500+",
+        help_text=_("Number of career opportunities (e.g., '500+')")
+    )
+    hero_countries_count = models.CharField(
+        max_length=50,
+        default="30+",
+        help_text=_("Number of countries represented (e.g., '30+')")
+    )
+    
+    # Hero Variant Tracking (for A/B testing)
+    hero_variant = models.CharField(
+        max_length=50,
+        default="variation-1",
+        help_text=_("Current hero section variant for A/B testing (e.g., 'variation-1', 'variation-2')")
+    )
 
     class Meta:
         verbose_name = _('Site Configuration')
@@ -100,6 +156,15 @@ class SiteConfig(TimeStampedModel):
                 'contact_address': 'Negros Oriental State University\nKagawasan, Ave. Rizal\nDumaguete City, 6200\nNegros Oriental, Philippines',
                 'signup_button_text': 'Join the Network',
                 'login_button_text': 'Member Login',
+                'hero_headline': 'Advance Your Career With 5,000+ NORSU Professionals',
+                'hero_subheadline': 'Access exclusive job opportunities, industry mentorship, and a network of alumni leaders across 30+ countries.',
+                'hero_primary_cta_text': 'Start Your Career Growth',
+                'hero_secondary_cta_text': 'Sign In',
+                'hero_microcopy': 'Takes 2 minutes • No credit card required',
+                'hero_alumni_count': '5,000+',
+                'hero_opportunities_count': '500+',
+                'hero_countries_count': '30+',
+                'hero_variant': 'variation-1',
             }
         )
         return obj
@@ -435,82 +500,6 @@ class Testimonial(TimeStampedModel):
         return f"{self.name} - {self.position}"
 
 
-class AboutPageConfig(TimeStampedModel):
-    """
-    Model for managing About page configuration
-    """
-    # University Information
-    university_name = models.CharField(
-        max_length=200,
-        default="Negros Oriental State University",
-        help_text=_("Full name of the university")
-    )
-    university_short_name = models.CharField(
-        max_length=50,
-        default="NORSU",
-        help_text=_("Short name or acronym")
-    )
-    university_description = models.TextField(
-        default="Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.",
-        help_text=_("Main description of the university")
-    )
-    university_extended_description = models.TextField(
-        default="Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness.",
-        help_text=_("Extended description of the university")
-    )
-    establishment_year = models.CharField(
-        max_length=10,
-        default="2004",
-        help_text=_("Year the university was established")
-    )
-    
-    # Mission and Vision
-    mission = models.TextField(
-        default="To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society.",
-        help_text=_("University mission statement")
-    )
-    vision = models.TextField(
-        default="A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.",
-        help_text=_("University vision statement")
-    )
-    
-    # Page Titles
-    about_page_title = models.CharField(
-        max_length=200,
-        default="About NORSU Alumni Network",
-        help_text=_("Title for the About page")
-    )
-    about_page_subtitle = models.TextField(
-        default="Learn more about our university, mission, and the people behind our alumni community",
-        help_text=_("Subtitle for the About page")
-    )
-    
-    class Meta:
-        verbose_name = _('About Page Configuration')
-        verbose_name_plural = _('About Page Configuration')
-
-    def __str__(self):
-        return f"About Page Config - {self.university_short_name}"
-
-    @classmethod
-    def get_about_config(cls):
-        """Get or create the singleton about page configuration"""
-        obj, created = cls.objects.get_or_create(
-            defaults={
-                'university_name': 'Negros Oriental State University',
-                'university_short_name': 'NORSU',
-                'university_description': 'Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.',
-                'university_extended_description': 'Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness.',
-                'establishment_year': '2004',
-                'mission': 'To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society.',
-                'vision': 'A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.',
-                'about_page_title': 'About NORSU Alumni Network',
-                'about_page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
-            }
-        )
-        return obj
-
-
 class AlumniStatistic(TimeStampedModel):
     """
     Model for managing alumni network statistics
@@ -663,3 +652,268 @@ def sync_site_tagline_with_hero(sender, instance, **kwargs):
         import logging
         logger = logging.getLogger(__name__)
         logger.warning(f"Failed to sync hero section title: {e}")
+
+
+
+class NORSUCampus(TimeStampedModel):
+    """
+    Model for managing NORSU campuses displayed on homepage slider
+    """
+    name = models.CharField(
+        max_length=200,
+        help_text=_("Campus name (e.g., 'Main Campus', 'Bais Campus')")
+    )
+    location = models.CharField(
+        max_length=200,
+        help_text=_("Campus location/address")
+    )
+    description = models.TextField(
+        blank=True,
+        help_text=_("Brief description of the campus")
+    )
+    image = models.ImageField(
+        upload_to='cms/campuses/',
+        help_text=_("Campus photo for slider")
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Display order in slider (lower numbers appear first)")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Whether this campus should be displayed in slider")
+    )
+
+    class Meta:
+        verbose_name = _('NORSU Campus')
+        verbose_name_plural = _('NORSU Campuses')
+        ordering = ['order', 'name']
+
+    def __str__(self):
+        return f"{self.name} - {self.location}"
+
+
+class NORSUOfficial(TimeStampedModel):
+    """
+    Model for managing NORSU officials from President to lowest rank
+    """
+    POSITION_LEVEL_CHOICES = [
+        (1, _('University President')),
+        (2, _('Vice President')),
+        (3, _('Dean')),
+        (4, _('Associate Dean')),
+        (5, _('Director')),
+        (6, _('Department Head')),
+        (7, _('Other Official')),
+    ]
+
+    name = models.CharField(
+        max_length=200,
+        help_text=_("Full name with title (e.g., 'Dr. John Doe')")
+    )
+    position = models.CharField(
+        max_length=200,
+        help_text=_("Official position/title")
+    )
+    position_level = models.IntegerField(
+        choices=POSITION_LEVEL_CHOICES,
+        default=7,
+        help_text=_("Position level for hierarchical ordering")
+    )
+    department = models.CharField(
+        max_length=200,
+        blank=True,
+        help_text=_("Department, college, or office")
+    )
+    bio = models.TextField(
+        blank=True,
+        help_text=_("Brief biography or description")
+    )
+    image = models.ImageField(
+        upload_to='cms/officials/',
+        null=True,
+        blank=True,
+        help_text=_("Official photo")
+    )
+    email = models.EmailField(
+        blank=True,
+        help_text=_("Contact email address")
+    )
+    phone = models.CharField(
+        max_length=50,
+        blank=True,
+        help_text=_("Contact phone number")
+    )
+    order = models.PositiveIntegerField(
+        default=0,
+        help_text=_("Display order within position level (lower numbers appear first)")
+    )
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Whether this official should be displayed")
+    )
+
+    class Meta:
+        verbose_name = _('NORSU Official')
+        verbose_name_plural = _('NORSU Officials')
+        ordering = ['position_level', 'order', 'name']
+        indexes = [
+            models.Index(fields=['position_level', 'is_active', 'order']),
+        ]
+
+    def __str__(self):
+        return f"{self.name} - {self.position}"
+
+
+class NORSUVMGOHistory(TimeStampedModel):
+    """
+    Singleton model for managing NORSU Vision, Mission, Goals, Objectives, and History
+    """
+    # Section Configuration
+    section_title = models.CharField(
+        max_length=200,
+        default="NORSU Vision, Mission, Goals & Core Values",
+        help_text=_("Main section title")
+    )
+    
+    is_active = models.BooleanField(
+        default=True,
+        help_text=_("Show/hide this section on homepage")
+    )
+    
+    # About NORSU
+    about_title = models.CharField(
+        max_length=100,
+        default="About NORSU",
+        help_text=_("Title for About section")
+    )
+    
+    about_content = models.TextField(
+        default="Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.",
+        help_text=_("Introduction text about NORSU (200-300 words recommended)")
+    )
+    
+    # Vision
+    vision_title = models.CharField(
+        max_length=100,
+        default="NORSU Vision",
+        help_text=_("Title for Vision section")
+    )
+    
+    vision = models.TextField(
+        default="A globally recognized state university.",
+        help_text=_("NORSU Vision statement (50-100 words recommended)")
+    )
+    
+    # Mission
+    mission_title = models.CharField(
+        max_length=100,
+        default="NORSU Mission",
+        help_text=_("Title for Mission section")
+    )
+    
+    mission = models.TextField(
+        default="Negros Oriental State University delivers global excellence through advanced instruction, impactful research, and sustainable extension, with strategic partnerships and modern infrastructure shaping effective leaders to serve the Philippine society and the world.",
+        help_text=_("NORSU Mission statement (100-150 words recommended)")
+    )
+    
+    # Goals
+    goals_title = models.CharField(
+        max_length=100,
+        default="Goals",
+        help_text=_("Title for Goals section")
+    )
+    
+    goals = models.TextField(
+        default="ASPIRE:\n• Achieve global recognition by program excellence\n• Strengthen research through impactful innovation\n• Promote enhanced community extension services\n• Integrate partnerships and international relations\n• Revitalize infrastructure with operational systems\n• Enrich student life and leadership opportunities",
+        help_text=_("NORSU Strategic Goals (supports bullet points)")
+    )
+    
+    # Core Values
+    values_title = models.CharField(
+        max_length=100,
+        default="Core Values",
+        help_text=_("Title for Core Values section")
+    )
+    
+    core_values = models.TextField(
+        default="SHINE:\n• Spirituality\n• Honesty\n• Innovation\n• Nurturance\n• Excellence",
+        help_text=_("NORSU Core Values (supports bullet points)")
+    )
+    
+    quality_policy = models.TextField(
+        default="Negros Oriental State University commits to delivering quality instruction, research, extension and production. We ensure compliance with all statutory and regulatory requirements and continuously work to improve our management system to meet our quality objectives.",
+        help_text=_("NORSU Quality Policy")
+    )
+    
+    # History
+    history_brief = models.TextField(
+        default="Negros Oriental State University was established in 1907, when Governor Hermenegildo Villanueva proposed the establishment of industrial arts education in Negros Oriental Provincial School (NOPS), the precursor of the Negros Oriental High School (NOHS).",
+        help_text=_("Brief history summary")
+    )
+    history_full = models.TextField(
+        default="The beginnings of Negros Oriental State University date back to 1907, from a single woodworking class at what was then the Negros Oriental Provincial School. On December 3, 1927, by virtue of Act No. 3377 of the Philippine Legislature, the woodworking class became the Negros Oriental Trade School (NOTS). By virtue of Republic Act No. 1579 signed into law on June 16, 1956, NOTS became the East Visayan School of Arts and Trades (EVSAT). Through Batas Pambansa No. 401 signed by President Ferdinand E. Marcos on June 10, 1983, the Central Visayas Polytechnic College (CVPC) came into being. Finally, through Republic Act No. 9299 signed by President Gloria Macapagal Arroyo on June 25, 2004, CVPC was converted into Negros Oriental State University (NORSU).",
+        help_text=_("Full detailed history")
+    )
+    establishment_year = models.CharField(
+        max_length=10,
+        default="1907",
+        help_text=_("Year NORSU was originally established")
+    )
+    university_status_year = models.CharField(
+        max_length=10,
+        default="2004",
+        help_text=_("Year it became a university")
+    )
+    
+    # Display settings (kept for backward compatibility)
+    show_on_homepage = models.BooleanField(
+        default=True,
+        help_text=_("Display VMGO section on homepage (deprecated, use is_active)")
+    )
+    show_history_on_homepage = models.BooleanField(
+        default=True,
+        help_text=_("Display history section on homepage")
+    )
+
+    class Meta:
+        verbose_name = _('NORSU VMGO & History')
+        verbose_name_plural = _('NORSU VMGO & History')
+
+    def __str__(self):
+        return f"NORSU VMGO Section - {self.section_title}"
+
+    @classmethod
+    def get_vmgo_section(cls):
+        """Get or create singleton instance"""
+        obj, created = cls.objects.get_or_create(
+            pk=1,
+            defaults={
+                'section_title': 'NORSU Vision, Mission, Goals & Core Values',
+                'is_active': True,
+                'about_title': 'About NORSU',
+                'about_content': 'Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.',
+                'vision_title': 'NORSU Vision',
+                'vision': 'A globally recognized state university.',
+                'mission_title': 'NORSU Mission',
+                'mission': 'Negros Oriental State University delivers global excellence through advanced instruction, impactful research, and sustainable extension, with strategic partnerships and modern infrastructure shaping effective leaders to serve the Philippine society and the world.',
+                'goals_title': 'Goals',
+                'goals': 'ASPIRE:\n• Achieve global recognition by program excellence\n• Strengthen research through impactful innovation\n• Promote enhanced community extension services\n• Integrate partnerships and international relations\n• Revitalize infrastructure with operational systems\n• Enrich student life and leadership opportunities',
+                'values_title': 'Core Values',
+                'core_values': 'SHINE:\n• Spirituality\n• Honesty\n• Innovation\n• Nurturance\n• Excellence',
+                'quality_policy': 'Negros Oriental State University commits to delivering quality instruction, research, extension and production. We ensure compliance with all statutory and regulatory requirements and continuously work to improve our management system to meet our quality objectives.',
+                'history_brief': 'Negros Oriental State University was established in 1907, when Governor Hermenegildo Villanueva proposed the establishment of industrial arts education in Negros Oriental Provincial School (NOPS), the precursor of the Negros Oriental High School (NOHS).',
+                'history_full': 'The beginnings of Negros Oriental State University date back to 1907, from a single woodworking class at what was then the Negros Oriental Provincial School. On December 3, 1927, by virtue of Act No. 3377 of the Philippine Legislature, the woodworking class became the Negros Oriental Trade School (NOTS). By virtue of Republic Act No. 1579 signed into law on June 16, 1956, NOTS became the East Visayan School of Arts and Trades (EVSAT). Through Batas Pambansa No. 401 signed by President Ferdinand E. Marcos on June 10, 1983, the Central Visayas Polytechnic College (CVPC) came into being. Finally, through Republic Act No. 9299 signed by President Gloria Macapagal Arroyo on June 25, 2004, CVPC was converted into Negros Oriental State University (NORSU).',
+                'establishment_year': '1907',
+                'university_status_year': '2004',
+                'show_on_homepage': True,
+                'show_history_on_homepage': True,
+            }
+        )
+        return obj
+    
+    # Alias for backward compatibility
+    @classmethod
+    def get_vmgo_history(cls):
+        """Alias for get_vmgo_section() for backward compatibility"""
+        return cls.get_vmgo_section()

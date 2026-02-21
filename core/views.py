@@ -158,31 +158,13 @@ def home(request):
 
     # Get CMS data
     try:
-        from cms.models import SiteConfig, PageSection, Feature, Testimonial, FAQ, ContactInfo
+        from cms.models import (
+            SiteConfig, Feature, Testimonial, FAQ, ContactInfo,
+            StaffMember, AlumniStatistic, NORSUCampus, NORSUOfficial, NORSUVMGOHistory
+        )
         
         # Get site configuration
         site_config = SiteConfig.get_site_config()
-        
-        # Get page sections
-        hero_section = PageSection.objects.filter(
-            section_type='hero', 
-            is_active=True
-        ).first()
-        
-        feature_section = PageSection.objects.filter(
-            section_type='features', 
-            is_active=True
-        ).first()
-        
-        testimonial_section = PageSection.objects.filter(
-            section_type='testimonials', 
-            is_active=True
-        ).first()
-        
-        cta_section = PageSection.objects.filter(
-            section_type='cta', 
-            is_active=True
-        ).first()
         
         # Get features
         features = Feature.objects.filter(is_active=True).order_by('order')[:4]
@@ -191,10 +173,9 @@ def home(request):
         testimonials = Testimonial.objects.filter(is_active=True).order_by('order')[:3]
         
         # Get FAQs for Home page
-        faqs = FAQ.objects.filter(is_active=True).order_by('order')[:4]
+        faqs = FAQ.objects.filter(is_active=True).order_by('order')[:6]
         
-        # Get staff members for homepage
-        from cms.models import StaffMember, AlumniStatistic
+        # Get staff members for homepage (Alumni Staff)
         staff_members = StaffMember.objects.filter(is_active=True).order_by('order')[:4]
         
         # Get alumni statistics for homepage
@@ -203,19 +184,31 @@ def home(request):
         # Get contact information for footer
         cms_contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
         
+        # Get NORSU campuses for slider
+        norsu_campuses = NORSUCampus.objects.filter(is_active=True).order_by('order')
+        
+        # Get NORSU officials (from President to lowest)
+        norsu_officials = NORSUOfficial.objects.filter(is_active=True).order_by('position_level', 'order')
+        
+        # Get NORSU VMGO and History
+        norsu_vmgo_history = NORSUVMGOHistory.get_vmgo_history()
+        
+        # Get VMGO section for homepage
+        vmgo_section = NORSUVMGOHistory.get_vmgo_section()
+        
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data: {e}")
         site_config = None
-        hero_section = None
-        feature_section = None
-        testimonial_section = None
-        cta_section = None
         features = []
         testimonials = []
         faqs = []
         staff_members = []
         alumni_statistics = []
         cms_contact_info = []
+        norsu_campuses = []
+        norsu_officials = []
+        norsu_vmgo_history = None
+        vmgo_section = None
 
     # Format counts for display
     alumni_count_display = f"{alumni_count:,}" if alumni_count else "5,000+"
@@ -226,6 +219,18 @@ def home(request):
     breadcrumbs = [
         {'name': 'Home', 'url': '/'}
     ]
+
+    # Prepare hero section data from CMS
+    hero_data = {
+        'hero_headline': site_config.hero_headline if site_config else 'Advance Your Career With 5,000+ NORSU Professionals',
+        'hero_subheadline': site_config.hero_subheadline if site_config else 'Access exclusive job opportunities, industry mentorship, and a network of alumni leaders across 30+ countries.',
+        'cta_primary_text': site_config.hero_primary_cta_text if site_config else 'Start Your Career Growth',
+        'cta_secondary_text': site_config.hero_secondary_cta_text if site_config else 'Sign In',
+        'hero_microcopy': site_config.hero_microcopy if site_config else 'Takes 2 minutes • No credit card required',
+        'alumni_count': site_config.hero_alumni_count if site_config else '5,000+',
+        'opportunities_count': site_config.hero_opportunities_count if site_config else '500+',
+        'countries_count': site_config.hero_countries_count if site_config else '30+',
+    }
 
     context = {
         'announcements': announcements,
@@ -240,17 +245,19 @@ def home(request):
         'job_count_display': job_count_display,
         # CMS data
         'site_config': site_config,
-        'hero_section': hero_section,
-        'feature_section': feature_section,
-        'testimonial_section': testimonial_section,
-        'cta_section': cta_section,
         'features': features,
         'testimonials': testimonials,
         'faqs': faqs,
         'staff_members': staff_members,
         'alumni_statistics': alumni_statistics,
         'cms_contact_info': cms_contact_info,
+        'norsu_campuses': norsu_campuses,
+        'norsu_officials': norsu_officials,
+        'norsu_vmgo_history': norsu_vmgo_history,
+        'vmgo_section': vmgo_section,
         'breadcrumbs': breadcrumbs,
+        # Hero section data
+        **hero_data,
     }
 
     response = render(request, 'home.html', context)
@@ -950,19 +957,15 @@ def about_us(request):
 
     # Get CMS data for About page
     try:
-        from cms.models import TimelineItem, AboutPageConfig
+        from cms.models import NORSUVMGOHistory
         
-        # Get about page configuration
-        about_config = AboutPageConfig.get_about_config()
-        
-        # Get timeline items from CMS
-        timeline_items = TimelineItem.objects.filter(is_active=True).order_by('order')
+        # Get VMGO section data
+        vmgo_section = NORSUVMGOHistory.get_vmgo_section()
         
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data for About page: {e}")
         # Fallback to hardcoded data if CMS fails
-        about_config = None
-        timeline_items = []
+        vmgo_section = None
 
     # Get OrganizationSchema for structured data
     organization_schema = None
@@ -982,14 +985,13 @@ def about_us(request):
     ]
 
     context = {
-        'page_title': about_config.about_page_title if about_config else 'About NORSU Alumni Network',
-        'page_subtitle': about_config.about_page_subtitle if about_config else 'Learn more about our university, mission, and the people behind our alumni community',
-        'about_config': about_config,
+        'page_title': 'About NORSU Alumni Network',
+        'page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
+        'vmgo_section': vmgo_section,
         'alumni_count': alumni_count,
         'group_count': group_count,
         'event_count': event_count,
         'job_count': job_count,
-        'timeline_items': timeline_items,
         'organization_schema': organization_schema,
         'breadcrumbs': breadcrumbs,
     }

@@ -435,6 +435,9 @@
                         {% if user_obj.profile.is_hr %}
                             <span class="badge badge-info">HR</span>
                         {% endif %}
+                        {% if user_obj.profile.is_alumni_coordinator %}
+                            <span class="badge badge-success">Alumni Coordinator</span>
+                        {% endif %}
                         {% if user_obj.mentor_profile %}
                             <span class="badge badge-warning">Mentor</span>
                         {% endif %}
@@ -443,9 +446,12 @@
             </div>
 
             <div class="action-buttons">
+                {% if can_manage_roles %}
                 <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#roleManagementModal">
                     <i class="fas fa-user-tag me-1"></i> Manage Roles
                 </button>
+                {% endif %}
+                {% if can_toggle_status %}
                 {% if user_obj.is_active %}
                     <button class="btn btn-danger toggle-status-btn" 
                             data-user-id="{{ user_obj.id }}" 
@@ -458,6 +464,7 @@
                             data-action="enable">
                         <i class="fas fa-check-circle me-1"></i> Enable User
                     </button>
+                {% endif %}
                 {% endif %}
             </div>
         </div>
@@ -633,6 +640,7 @@
 </div>
 
 <!-- Role Management Modal -->
+{% if can_manage_roles %}
 <div class="modal fade" id="roleManagementModal" tabindex="-1" aria-labelledby="roleManagementModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -655,10 +663,13 @@
                         {% if user_obj.profile.is_hr %}
                             <span class="badge badge-info me-2">HR</span>
                         {% endif %}
+                        {% if user_obj.profile.is_alumni_coordinator %}
+                            <span class="badge badge-success me-2">Alumni Coordinator</span>
+                        {% endif %}
                         {% if user_obj.mentor_profile %}
                             <span class="badge badge-warning me-2">Mentor</span>
                         {% endif %}
-                        {% if not user_obj.is_superuser and not user_obj.is_staff and not user_obj.profile.is_hr and not user_obj.mentor_profile %}
+                        {% if not user_obj.is_superuser and not user_obj.is_staff and not user_obj.profile.is_hr and not user_obj.profile.is_alumni_coordinator and not user_obj.mentor_profile %}
                             <span class="badge badge-secondary">Alumni</span>
                         {% endif %}
                     </div>
@@ -671,6 +682,7 @@
                         <option value="superuser">Superuser</option>
                         <option value="admin">Admin</option>
                         <option value="hr">HR</option>
+                        <option value="alumni_coordinator">Alumni Coordinator</option>
                         <option value="mentor">Mentor</option>
                     </select>
                 </div>
@@ -696,6 +708,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 {% endblock %}
 
 {% block page_specific_js %}

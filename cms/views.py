@@ -1,18 +1,19 @@
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils.decorators import method_decorator
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
 from django.contrib import messages
 from django.urls import reverse_lazy
 from .models import (
-    SiteConfig, PageSection, StaffMember, 
+    SiteConfig, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic
+    AlumniStatistic, NORSUVMGOHistory
 )
 from .forms import (
-    SiteConfigForm, PageSectionForm, StaffMemberForm,
+    SiteConfigForm, HeroSectionForm, StaffMemberForm,
     TimelineItemForm, ContactInfoForm, FAQForm, FeatureForm, TestimonialForm,
-    AboutPageConfigForm, AlumniStatisticForm
+    AlumniStatisticForm, VMGOSectionForm
 )
 
 
@@ -29,20 +30,17 @@ class CMSDashboardView(TemplateView):
         # Get counts for dashboard statistics
         context.update({
             'site_config_count': SiteConfig.objects.count(),
-            'page_sections_count': PageSection.objects.filter(is_active=True).count(),
             'staff_members_count': StaffMember.objects.filter(is_active=True).count(),
             'timeline_items_count': TimelineItem.objects.filter(is_active=True).count(),
             'contact_info_count': ContactInfo.objects.filter(is_active=True).count(),
             'faqs_count': FAQ.objects.filter(is_active=True).count(),
             'features_count': Feature.objects.filter(is_active=True).count(),
             'testimonials_count': Testimonial.objects.filter(is_active=True).count(),
-            'about_config_count': AboutPageConfig.objects.count(),
             'alumni_statistics_count': AlumniStatistic.objects.filter(is_active=True).count(),
         })
         
         # Get recent content for quick access
         context.update({
-            'recent_page_sections': PageSection.objects.filter(is_active=True).order_by('-modified')[:5],
             'recent_faqs': FAQ.objects.filter(is_active=True).order_by('-modified')[:5],
         })
         
@@ -65,60 +63,64 @@ class SiteConfigUpdateView(UpdateView):
         return super().form_valid(form)
 
 
-# Page Section Views
+# Hero Section Views
 @method_decorator(login_required, name='dispatch')
-class PageSectionListView(ListView):
-    model = PageSection
-    template_name = 'cms/page_section_list.html'
-    context_object_name = 'sections'
-    paginate_by = 10
-
-
-@method_decorator(login_required, name='dispatch')
-class PageSectionCreateView(CreateView):
-    model = PageSection
-    form_class = PageSectionForm
-    template_name = 'cms/page_section_edit.html'
-    success_url = reverse_lazy('cms:page_section_list')
+class HeroSectionUpdateView(UpdateView):
+    """
+    View for editing hero section content
+    """
+    model = SiteConfig
+    form_class = HeroSectionForm
+    template_name = 'cms/hero_section_edit.html'
+    success_url = reverse_lazy('cms:dashboard')
+    
+    def get_object(self):
+        return SiteConfig.get_site_config()
+    
+    def form_valid(self, form):
+        # Handle image clearing
+        if self.request.POST.get('hero_background_image-clear'):
+            form.instance.hero_background_image.delete(save=False)
+            form.instance.hero_background_image = None
+        
+        messages.success(self.request, 'Hero section updated successfully!')
+        return super().form_valid(form)
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get existing sections ordered by order field
-        context['existing_sections'] = PageSection.objects.filter(is_active=True).order_by('order')
+        context['page_title'] = 'Edit Hero Section'
+        context['page_description'] = 'Update the hero section messaging, CTAs, and social proof elements'
         return context
-    
+
+
+# VMGO Section Views
+@method_decorator(login_required, name='dispatch')
+class VMGOSectionUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
+    """
+    View for editing VMGO section content
+    """
+    model = NORSUVMGOHistory
+    form_class = VMGOSectionForm
+    template_name = 'cms/vmgo_section_edit.html'
+    success_url = reverse_lazy('cms:dashboard')
+
+    def test_func(self):
+        """Only superusers can edit VMGO section"""
+        return self.request.user.is_superuser
+
+    def get_object(self, queryset=None):
+        """Get the singleton VMGO section instance"""
+        return NORSUVMGOHistory.get_vmgo_section()
+
     def form_valid(self, form):
-        messages.success(self.request, 'Page section created successfully!')
+        messages.success(self.request, 'VMGO section updated successfully!')
         return super().form_valid(form)
 
-
-@method_decorator(login_required, name='dispatch')
-class PageSectionUpdateView(UpdateView):
-    model = PageSection
-    form_class = PageSectionForm
-    template_name = 'cms/page_section_edit.html'
-    success_url = reverse_lazy('cms:page_section_list')
-    
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        # Get existing sections ordered by order field (excluding current section if editing)
-        context['existing_sections'] = PageSection.objects.filter(is_active=True).exclude(pk=self.object.pk).order_by('order')
+        context['page_title'] = 'Edit VMGO Section'
+        context['page_description'] = 'Manage NORSU\'s Vision, Mission, Goals, Objectives, and Core Values content'
         return context
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'Page section updated successfully!')
-        return super().form_valid(form)
-
-
-@method_decorator(login_required, name='dispatch')
-class PageSectionDeleteView(DeleteView):
-    model = PageSection
-    template_name = 'cms/page_section_confirm_delete.html'
-    success_url = reverse_lazy('cms:page_section_list')
-    
-    def delete(self, request, *args, **kwargs):
-        messages.success(self.request, 'Page section deleted successfully!')
-        return super().delete(request, *args, **kwargs)
 
 
 
@@ -384,22 +386,6 @@ class TestimonialDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, 'Testimonial deleted successfully!')
         return super().delete(request, *args, **kwargs)
-
-
-# About Page Configuration Views
-@method_decorator(login_required, name='dispatch')
-class AboutPageConfigUpdateView(UpdateView):
-    model = AboutPageConfig
-    form_class = AboutPageConfigForm
-    template_name = 'cms/about_config_edit.html'
-    success_url = reverse_lazy('cms:dashboard')
-    
-    def get_object(self):
-        return AboutPageConfig.get_about_config()
-    
-    def form_valid(self, form):
-        messages.success(self.request, 'About page configuration updated successfully!')
-        return super().form_valid(form)
 
 
 # Alumni Statistics Views

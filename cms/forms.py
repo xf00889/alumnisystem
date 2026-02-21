@@ -1,9 +1,11 @@
 from django import forms
 from django.forms import ModelForm, inlineformset_factory
+from crispy_forms.helper import FormHelper
+from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
 from .models import (
-    SiteConfig, PageSection, StaffMember, 
+    SiteConfig, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AboutPageConfig, AlumniStatistic
+    AlumniStatistic, NORSUVMGOHistory
 )
 
 
@@ -72,62 +74,86 @@ class SiteConfigForm(ModelForm):
         }
 
 
-class PageSectionForm(ModelForm):
-    """Form for editing page sections"""
+class HeroSectionForm(ModelForm):
+    """Form for editing hero section content"""
     
     class Meta:
-        model = PageSection
-        fields = ['title', 'section_type', 'subtitle', 'content', 'image', 'order', 'is_active']
+        model = SiteConfig
+        fields = [
+            'hero_headline',
+            'hero_subheadline',
+            'hero_background_image',
+            'hero_primary_cta_text',
+            'hero_secondary_cta_text',
+            'hero_microcopy',
+            'hero_alumni_count',
+            'hero_opportunities_count',
+            'hero_countries_count',
+            'hero_variant',
+        ]
         widgets = {
-            'section_type': forms.Select(attrs={
+            'hero_headline': forms.TextInput(attrs={
                 'class': 'form-control',
-                'id': 'section-type-select'
+                'placeholder': 'Enter main headline (6-10 words recommended)',
+                'maxlength': 200,
             }),
-            'title': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter section title'
-            }),
-            'subtitle': forms.Textarea(attrs={
+            'hero_subheadline': forms.Textarea(attrs={
                 'class': 'form-control',
                 'rows': 3,
-                'placeholder': 'Enter section subtitle'
+                'placeholder': 'Enter subheadline (15-25 words recommended)',
             }),
-            'content': forms.Textarea(attrs={
+            'hero_background_image': forms.FileInput(attrs={
                 'class': 'form-control',
-                'rows': 5,
-                'placeholder': 'Enter section content'
+                'accept': 'image/*',
             }),
-            'order': forms.NumberInput(attrs={
+            'hero_primary_cta_text': forms.TextInput(attrs={
                 'class': 'form-control',
-                'min': 0
+                'placeholder': 'Enter primary CTA button text (2-4 words)',
+                'maxlength': 100,
             }),
-            'is_active': forms.CheckboxInput(attrs={
-                'class': 'form-check-input'
+            'hero_secondary_cta_text': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter secondary CTA button text (2-3 words)',
+                'maxlength': 100,
+            }),
+            'hero_microcopy': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Enter microcopy text to reduce friction',
+                'maxlength': 200,
+            }),
+            'hero_alumni_count': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 5,000+',
+                'maxlength': 50,
+            }),
+            'hero_opportunities_count': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 500+',
+                'maxlength': 50,
+            }),
+            'hero_countries_count': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., 30+',
+                'maxlength': 50,
+            }),
+            'hero_variant': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., variation-1',
+                'maxlength': 50,
             }),
         }
-    
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        # Add help text for section types
-        self.fields['section_type'].help_text = self.get_section_type_help_text()
-        # Add help text for order
-        self.fields['order'].help_text = self.get_order_help_text()
-    
-    def get_section_type_help_text(self):
-        return """
-        <div class="section-type-help-icon">
-            <i class="fas fa-question-circle" onclick="openSectionTypesModal()" title="Click for section types guide"></i>
-        </div>
-        """
-    
-    def get_order_help_text(self):
-        return """
-        <div class="order-help-icon">
-            <i class="fas fa-sort-numeric-up" onclick="openOrderGuideModal()" title="Click to see current section order"></i>
-        </div>
-        """
-
-
+        help_texts = {
+            'hero_headline': 'Main headline for the hero section. Keep it concise and benefit-focused (6-10 words).',
+            'hero_subheadline': 'Supporting text that expands on the headline (15-25 words).',
+            'hero_background_image': 'Upload a background image for the hero section. Recommended size: 1920x600px, optimized to < 500KB for best performance.',
+            'hero_primary_cta_text': 'Primary call-to-action button text (2-4 words).',
+            'hero_secondary_cta_text': 'Secondary call-to-action button text (2-3 words).',
+            'hero_microcopy': 'Small text below CTAs to reduce friction (e.g., "Takes 2 minutes • No credit card required").',
+            'hero_alumni_count': 'Number of verified alumni to display (e.g., "5,000+").',
+            'hero_opportunities_count': 'Number of career opportunities to display (e.g., "500+").',
+            'hero_countries_count': 'Number of countries represented (e.g., "30+").',
+            'hero_variant': 'Current hero section variant for A/B testing (e.g., "variation-1").',
+        }
 
 
 class StaffMemberForm(ModelForm):
@@ -332,61 +358,6 @@ class TestimonialForm(ModelForm):
         }
 
 
-class AboutPageConfigForm(ModelForm):
-    """Form for editing About page configuration"""
-    
-    class Meta:
-        model = AboutPageConfig
-        fields = [
-            'university_name', 'university_short_name', 'university_description',
-            'university_extended_description', 'establishment_year', 'mission',
-            'vision', 'about_page_title', 'about_page_subtitle'
-        ]
-        widgets = {
-            'university_name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter full university name'
-            }),
-            'university_short_name': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter university acronym'
-            }),
-            'university_description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'placeholder': 'Enter main university description'
-            }),
-            'university_extended_description': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'placeholder': 'Enter extended university description'
-            }),
-            'establishment_year': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter establishment year (e.g., 2004)'
-            }),
-            'mission': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'placeholder': 'Enter university mission statement'
-            }),
-            'vision': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 4,
-                'placeholder': 'Enter university vision statement'
-            }),
-            'about_page_title': forms.TextInput(attrs={
-                'class': 'form-control',
-                'placeholder': 'Enter About page title'
-            }),
-            'about_page_subtitle': forms.Textarea(attrs={
-                'class': 'form-control',
-                'rows': 3,
-                'placeholder': 'Enter About page subtitle'
-            }),
-        }
-
-
 class AlumniStatisticForm(ModelForm):
     """Form for editing alumni statistics"""
     
@@ -424,3 +395,141 @@ class AlumniStatisticForm(ModelForm):
         }
 
 
+
+
+class VMGOSectionForm(ModelForm):
+    """Form for editing VMGO section content"""
+    
+    class Meta:
+        model = NORSUVMGOHistory
+        fields = [
+            'section_title',
+            'is_active',
+            'about_title',
+            'about_content',
+            'vision_title',
+            'vision',
+            'mission_title',
+            'mission',
+            'goals_title',
+            'goals',
+            'values_title',
+            'core_values',
+            'quality_policy',
+        ]
+        
+        widgets = {
+            'section_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., NORSU Vision, Mission, Goals & Core Values'
+            }),
+            'about_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., About NORSU'
+            }),
+            'about_content': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Brief introduction about NORSU...'
+            }),
+            'vision_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., NORSU Vision'
+            }),
+            'vision': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 3,
+                'placeholder': 'Vision statement...'
+            }),
+            'mission_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., NORSU Mission'
+            }),
+            'mission': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Mission statement...'
+            }),
+            'goals_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Strategic Goals'
+            }),
+            'goals': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 10,
+                'placeholder': 'Format: ASPIRE\n\nA\nAchieve global recognition by program excellence\n\nS\nStrengthen research through impactful innovation\n\n...'
+            }),
+            'values_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Core Values'
+            }),
+            'core_values': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 10,
+                'placeholder': 'Format: SHINE\n\nS\nSpirituality\n\nH\nHonesty\n\n...'
+            }),
+            'quality_policy': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'NORSU Quality Policy statement...'
+            }),
+        }
+        
+        help_texts = {
+            'section_title': 'Main title for the VMGO section.',
+            'is_active': 'Show or hide this section on the homepage.',
+            'about_title': 'Title for the About NORSU section.',
+            'about_content': 'Brief introduction about NORSU (200-300 words recommended).',
+            'vision_title': 'Title for the Vision section.',
+            'vision': 'Vision statement (50-100 words recommended).',
+            'mission_title': 'Title for the Mission section.',
+            'mission': 'Mission statement (100-150 words recommended).',
+            'goals_title': 'Title for the Goals section (e.g., "Strategic Goals").',
+            'goals': 'Format each letter on a new line followed by its description. Example:\n\nA\nAchieve global recognition by program excellence\n\nS\nStrengthen research through impactful innovation',
+            'values_title': 'Title for the Core Values section.',
+            'core_values': 'Format each letter on a new line followed by its description. Example:\n\nS\nSpirituality\n\nH\nHonesty',
+            'quality_policy': 'NORSU Quality Policy statement (100-200 words recommended).',
+        }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_method = 'post'
+        self.helper.layout = Layout(
+            Fieldset(
+                'Section Configuration',
+                'section_title',
+                'is_active',
+            ),
+            Fieldset(
+                'About NORSU',
+                'about_title',
+                'about_content',
+            ),
+            Fieldset(
+                'Vision & Mission',
+                Row(
+                    Column('vision_title', css_class='col-md-6'),
+                    Column('mission_title', css_class='col-md-6'),
+                ),
+                Row(
+                    Column('vision', css_class='col-md-6'),
+                    Column('mission', css_class='col-md-6'),
+                ),
+            ),
+            Fieldset(
+                'Goals',
+                'goals_title',
+                'goals',
+            ),
+            Fieldset(
+                'Core Values',
+                'values_title',
+                'core_values',
+            ),
+            Fieldset(
+                'Quality Policy',
+                'quality_policy',
+            ),
+            Submit('submit', 'Save Changes', css_class='btn btn-primary')
+        )

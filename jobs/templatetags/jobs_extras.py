@@ -11,17 +11,17 @@ def filename(value):
 
 @register.filter
 def is_hr_or_admin(user):
-    """Check if user is HR or admin"""
+    """Check if user is HR, admin, or alumni coordinator"""
     if not user.is_authenticated:
         return False
     
-    # Superusers always have access
-    if user.is_superuser:
+    # Superusers and staff always have access
+    if user.is_superuser or user.is_staff:
         return True
     
-    # Check HR status
+    # Check HR status or alumni coordinator status
     try:
-        return user.profile.is_hr
+        return user.profile.is_hr or user.profile.is_alumni_coordinator
     except:
         return False
 

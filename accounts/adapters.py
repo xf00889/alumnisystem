@@ -29,6 +29,10 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         if request.user.is_authenticated and (request.user.is_superuser or request.user.is_staff):
             return reverse('core:admin_dashboard')
         
+        # Alumni coordinators should also go to admin dashboard
+        if request.user.is_authenticated and hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator:
+            return reverse('core:admin_dashboard')
+        
         # Check if user has completed post-registration
         try:
             profile = request.user.profile
@@ -196,6 +200,10 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
             if request.user.is_authenticated:
                 # Superusers and staff should always go to admin dashboard
                 if request.user.is_superuser or request.user.is_staff:
+                    return reverse('core:admin_dashboard')
+                
+                # Alumni coordinators should also go to admin dashboard
+                if hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator:
                     return reverse('core:admin_dashboard')
                 
                 # Check if user has completed post-registration
