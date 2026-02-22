@@ -232,30 +232,27 @@ class PageSEODeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
     Delete a PageSEO entry.
     
     Features:
-    - Confirmation page
-    - Success/error messages
-    - Redirects to list view on success
+    - AJAX delete with JSON response
+    - Success/error messages via Notiflix toast
+    - No redirect to confirmation page
     
     Requirements: 13.1
     """
     
     model = PageSEO
-    template_name = 'admin/seo/page_seo_delete.html'
     success_url = reverse_lazy('core:seo_page_list')
     
-    def delete(self, request, *args, **kwargs):
+    def post(self, request, *args, **kwargs):
         """
-        Handle delete request.
+        Handle POST request for deletion (AJAX).
         """
-        page_path = self.get_object().page_path
+        from django.http import JsonResponse
+        
+        page_seo = self.get_object()
+        page_path = page_seo.page_path
         
         try:
-            response = super().delete(request, *args, **kwargs)
-            
-            messages.success(
-                request,
-                f'SEO configuration deleted successfully for {page_path}.'
-            )
+            page_seo.delete()
             
             logger.info(
                 f"PageSEO deleted for {page_path} by {request.user.email}",
@@ -266,19 +263,43 @@ class PageSEODeleteView(LoginRequiredMixin, SuperuserRequiredMixin, DeleteView):
                 }
             )
             
-            return response
+            # Return JSON response for AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': True,
+                    'message': f'SEO configuration deleted successfully for {page_path}.'
+                })
+            
+            # Fallback for non-AJAX requests
+            messages.success(
+                request,
+                f'SEO configuration deleted successfully for {page_path}.'
+            )
+            return redirect(self.success_url)
+            
         except Exception as e:
+            logger.error(
+                f"Failed to delete PageSEO for {page_path}: {str(e)}",
+                extra={
+                    'page_path': page_path,
+                    'error': str(e),
+                    'action': 'page_seo_delete_failed'
+                }
+            )
+            
+            # Return JSON response for AJAX
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({
+                    'success': False,
+                    'message': f'Failed to delete SEO configuration: {str(e)}'
+                }, status=400)
+            
+            # Fallback for non-AJAX requests
             messages.error(
                 request,
                 f'Failed to delete SEO configuration: {str(e)}'
             )
             return redirect(self.success_url)
-    
-    def get_context_data(self, **kwargs):
-        """Add additional context for template"""
-        context = super().get_context_data(**kwargs)
-        context['page_title'] = f'Delete SEO Configuration - {self.object.page_path}'
-        return context
 
 
 class OrganizationSchemaEditView(LoginRequiredMixin, StaffRequiredMixin, UpdateView):

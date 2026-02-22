@@ -384,7 +384,7 @@ class NORSUVMGOHistoryAdmin(admin.ModelAdmin):
     """
     list_display = ['__str__', 'is_active', 'establishment_year', 'university_status_year', 'created']
     list_filter = ['is_active', 'show_on_homepage', 'show_history_on_homepage', 'created', 'modified']
-    search_fields = ['section_title', 'about_content', 'vision', 'mission', 'goals', 'core_values', 'history_brief', 'history_full']
+    search_fields = ['section_title', 'about_content', 'vision', 'mission', 'goals', 'core_values', 'history_brief', 'history_full', 'quality_objective_1', 'quality_objective_2', 'quality_objective_3', 'quality_objective_4']
     
     fieldsets = (
         ('Section Configuration', {
@@ -409,9 +409,15 @@ class NORSUVMGOHistoryAdmin(admin.ModelAdmin):
                 'goals',
                 'values_title',
                 'core_values',
-                'quality_policy'
+                'quality_policy',
+                'quality_objectives_title',
+                'quality_objective_1',
+                'quality_objective_2',
+                'quality_objective_3',
+                'quality_objective_4',
+                'quality_objectives_footer'
             ),
-            'description': 'Strategic goals, core values, and quality policy'
+            'description': 'Strategic goals, core values, quality policy, and quality objectives'
         }),
         ('History', {
             'fields': ('establishment_year', 'university_status_year', 'history_brief', 'history_full'),

@@ -50,11 +50,9 @@ class LogoHeaderService:
         
         try:
             # Try to find logo using Django's static files finder (development)
-            # Try both possible filenames
+            # Try alumni logo
             try:
-                logo_path = finders.find('images/norsu-logo.png')
-                if logo_path is None:
-                    logo_path = finders.find('images/logo_norsu.png')
+                logo_path = finders.find('images/alumni_logo.png')
             except Exception as finder_error:
                 logger.warning(
                     f"Error using static files finder: {str(finder_error)}",
@@ -67,11 +65,9 @@ class LogoHeaderService:
             # If not found and STATIC_ROOT is configured, try production path
             if logo_path is None and hasattr(settings, 'STATIC_ROOT') and settings.STATIC_ROOT:
                 try:
-                    logo_path = os.path.join(settings.STATIC_ROOT, 'images/norsu-logo.png')
+                    logo_path = os.path.join(settings.STATIC_ROOT, 'images/alumni_logo.png')
                     if not os.path.exists(logo_path):
-                        logo_path = os.path.join(settings.STATIC_ROOT, 'images/logo_norsu.png')
-                        if not os.path.exists(logo_path):
-                            logo_path = None
+                        logo_path = None
                 except Exception as path_error:
                     logger.error(
                         f"Error constructing logo path from STATIC_ROOT: {str(path_error)}",
@@ -87,7 +83,7 @@ class LogoHeaderService:
                 logger.warning(
                     "Logo file not found for export. Using text-only header.",
                     extra={
-                        'expected_paths': ['static/images/norsu-logo.png', 'static/images/logo_norsu.png'],
+                        'expected_paths': ['static/images/alumni_logo.png'],
                         'static_root': getattr(settings, 'STATIC_ROOT', None),
                         'debug': settings.DEBUG,
                         'fallback': 'text-only header'
@@ -206,7 +202,7 @@ class LogoHeaderService:
                 f"Unexpected error accessing logo file: {str(e)}",
                 extra={
                     'error_type': type(e).__name__,
-                    'expected_paths': ['static/images/norsu-logo.png', 'static/images/logo_norsu.png'],
+                    'expected_paths': ['static/images/alumni_logo.png'],
                     'fallback': 'text-only header'
                 }
             )

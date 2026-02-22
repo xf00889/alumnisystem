@@ -5,6 +5,7 @@
 {% block title %}SEO Management - NORSU Alumni{% endblock %}
 
 {% block extra_css %}
+<meta name="csrf-token" content="{{ csrf_token }}">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
     /* NORSU Alumni System - Consistent Design */
@@ -466,9 +467,13 @@
                                 <i class="fas fa-edit"></i>
                             </a>
                             {% if is_superuser %}
-                            <a href="{% url 'core:seo_page_delete' page_seo.pk %}" class="btn btn-sm btn-danger btn-action" title="Delete">
+                            <button type="button" class="btn btn-sm btn-danger btn-action delete-seo-btn" 
+                                    data-seo-id="{{ page_seo.pk }}" 
+                                    data-page-path="{{ page_seo.page_path }}"
+                                    data-delete-url="{% url 'core:seo_page_delete' page_seo.pk %}"
+                                    title="Delete">
                                 <i class="fas fa-trash"></i>
-                            </a>
+                            </button>
                             {% endif %}
                             {% endif %}
                         </td>
@@ -517,4 +522,258 @@
         {% endif %}
     </div>
 </div>
+{% endblock %}
+
+{% block page_specific_js %}
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Notyf Toast Notifications -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+<script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+<!-- Toast Utilities -->
+<script src="{% static 'js/utils/toast-notifications.js' %}"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if required libraries are loaded
+    if (typeof Swal === 'undefined' || typeof ToastUtils === 'undefined') {
+        console.error('Required libraries not loaded');
+        return;
+    }
+    
+    // Handle delete button clicks
+    const deleteButtons = document.querySelectorAll('.delete-seo-btn');
+    
+    deleteButtons.forEach((button) => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            const seoId = this.dataset.seoId;
+            const pagePath = this.dataset.pagePath;
+            const deleteUrl = this.dataset.deleteUrl;
+            
+            // Show SweetAlert confirmation
+            Swal.fire({
+                title: 'Delete SEO Configuration?',
+                html: `
+                    <div style="text-align: left; padding: 1rem;">
+                        <p style="margin-bottom: 1rem;">Are you sure you want to delete the SEO configuration for:</p>
+                        <div style="background: #f8f9fa; padding: 0.75rem; border-radius: 0.375rem; border-left: 3px solid #dc3545;">
+                            <strong style="color: #2b3c6b;">${pagePath}</strong>
+                        </div>
+                        <p style="margin-top: 1rem; color: #dc3545; font-size: 0.875rem;">
+                            <i class="fas fa-exclamation-triangle"></i> This action cannot be undone. The page will fall back to default SEO values.
+                        </p>
+                    </div>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#dc3545',
+                cancelButtonColor: '#6c757d',
+                confirmButtonText: '<i class="fas fa-trash"></i> Yes, Delete',
+                cancelButtonText: '<i class="fas fa-times"></i> Cancel',
+                reverseButtons: true,
+                customClass: {
+                    popup: 'swal-custom-popup',
+                    title: 'swal-custom-title',
+                    htmlContainer: 'swal-custom-html',
+                    confirmButton: 'swal-custom-confirm',
+                    cancelButton: 'swal-custom-cancel'
+                },
+                buttonsStyling: true,
+                allowOutsideClick: false,
+                allowEscapeKey: true,
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown animate__faster'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp animate__faster'
+                }
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Show loading state
+                    Swal.fire({
+                        title: 'Deleting...',
+                        html: 'Please wait while we delete the SEO configuration.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+                    
+                    // Get CSRF token
+                    const csrfToken = getCookie('csrftoken') || 
+                                     document.querySelector('meta[name="csrf-token"]')?.content ||
+                                     document.querySelector('[name=csrfmiddlewaretoken]')?.value;
+                    
+                    if (!csrfToken) {
+                        Swal.close();
+                        ToastUtils.showError('Security token not found. Please refresh the page and try again.');
+                        return;
+                    }
+                    
+                    // Send AJAX delete request
+                    fetch(deleteUrl, {
+                        method: 'POST',
+                        headers: {
+                            'X-CSRFToken': csrfToken,
+                            'X-Requested-With': 'XMLHttpRequest',
+                            'Content-Type': 'application/json'
+                        },
+                        credentials: 'same-origin'
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        // Close loading dialog
+                        Swal.close();
+                        
+                        if (data.success) {
+                            // Show success notification
+                            ToastUtils.showSuccess(data.message || 'SEO configuration deleted successfully!');
+                            
+                            // Remove the row from table with animation
+                            const row = button.closest('tr');
+                            row.style.transition = 'all 0.3s ease';
+                            row.style.opacity = '0';
+                            row.style.transform = 'translateX(-20px)';
+                            
+                            setTimeout(() => {
+                                row.remove();
+                                
+                                // Update stats
+                                updateStats();
+                                
+                                // Check if table is empty
+                                const tbody = document.querySelector('.table tbody');
+                                if (tbody.querySelectorAll('tr').length === 0) {
+                                    tbody.innerHTML = `
+                                        <tr>
+                                            <td colspan="5">
+                                                <div class="empty-state">
+                                                    <i class="fas fa-inbox d-block"></i>
+                                                    <p class="mb-2">No SEO configurations found.</p>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    `;
+                                }
+                            }, 300);
+                        } else {
+                            // Show error notification
+                            ToastUtils.showError(data.message || 'Failed to delete SEO configuration.');
+                        }
+                    })
+                    .catch(error => {
+                        // Close loading dialog
+                        Swal.close();
+                        
+                        // Show error notification
+                        ToastUtils.showError('An error occurred while deleting the SEO configuration.');
+                    });
+                }
+            });
+        });
+    });
+    
+    // Helper function to get CSRF token from cookie
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+    
+    // Helper function to update stats after deletion
+    function updateStats() {
+        const totalElement = document.querySelector('.stat-card:nth-child(1) .stat-value');
+        const activeElement = document.querySelector('.stat-card:nth-child(2) .stat-value');
+        
+        if (totalElement) {
+            const currentTotal = parseInt(totalElement.textContent);
+            totalElement.textContent = currentTotal - 1;
+        }
+        
+        // Note: We can't determine if deleted item was active without additional data
+        // In production, you might want to pass this info via data attribute
+    }
+});
+</script>
+
+<style>
+/* SweetAlert Custom Styles */
+.swal-custom-popup {
+    font-family: 'Poppins', sans-serif !important;
+    border-radius: 0.5rem !important;
+}
+
+.swal-custom-title {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 1.5rem !important;
+    font-weight: 600 !important;
+    color: #2b3c6b !important;
+}
+
+.swal-custom-html {
+    font-family: 'Poppins', sans-serif !important;
+    font-size: 0.875rem !important;
+}
+
+.swal-custom-confirm,
+.swal-custom-cancel {
+    font-family: 'Poppins', sans-serif !important;
+    font-weight: 500 !important;
+    padding: 0.625rem 1.5rem !important;
+    border-radius: 0.375rem !important;
+    font-size: 0.875rem !important;
+}
+
+/* Animate.css for SweetAlert animations */
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translate3d(0, -100%, 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0, 0, 0);
+    }
+}
+
+@keyframes fadeOutUp {
+    from {
+        opacity: 1;
+    }
+    to {
+        opacity: 0;
+        transform: translate3d(0, -100%, 0);
+    }
+}
+
+.animate__animated {
+    animation-duration: 0.3s;
+    animation-fill-mode: both;
+}
+
+.animate__faster {
+    animation-duration: 0.3s;
+}
+
+.animate__fadeInDown {
+    animation-name: fadeInDown;
+}
+
+.animate__fadeOutUp {
+    animation-name: fadeOutUp;
+}
+</style>
 {% endblock %}

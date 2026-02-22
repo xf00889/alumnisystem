@@ -1,7 +1,7 @@
 {% extends 'base_landingpage.html' %}
 {% load static %}
 
-{% block title %}Welcome to NORSU Alumni{% endblock title %}
+{% block title %}{{ seo.title|default:"Welcome to NORSU Alumni" }}{% endblock title %}
 
 {% block page_header %}
 {% if user.is_authenticated and not user.is_superuser %}
@@ -205,6 +205,7 @@
         transition: all 0.3s ease;
         opacity: 1 !important;
         visibility: visible !important;
+        overflow: visible !important;
     }
 
     /* Professional Icon Colors */
@@ -228,12 +229,17 @@
     .feature-icon i {
         font-size: 2rem !important;
         color: #ffffff !important;
-        font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", "FontAwesome" !important;
+        font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "FontAwesome" !important;
         font-weight: 900 !important;
         line-height: 1;
-        display: block;
+        display: inline-block !important;
         position: relative;
         z-index: 2;
+    }
+    
+    /* Ensure Font Awesome icons render properly */
+    .feature-icon i::before {
+        display: inline-block;
     }
 
     /* CSS-only fallback detection */
@@ -1964,7 +1970,7 @@
 <!-- Add JavaScript for animations and icon fallback -->
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Enhanced Font Awesome detection
+        // Enhanced Font Awesome detection with debugging
         function checkFontAwesome() {
             // Method 1: Check if Font Awesome CSS is loaded
             const testElement = document.createElement('i');
@@ -1986,13 +1992,19 @@
                 (fontFamily && fontFamily.includes('Font Awesome'))
             );
 
+            console.log('Font Awesome Detection:', {
+                loaded: isFontAwesomeLoaded,
+                content: content,
+                fontFamily: fontFamily
+            });
+
             return isFontAwesomeLoaded;
         }
 
         // Apply fallback only if Font Awesome fails to load
         function applyIconFallback() {
             if (!checkFontAwesome()) {
-                console.log('Font Awesome not detected, using emoji fallbacks');
+                console.warn('Font Awesome not detected, using emoji fallbacks');
                 const featureIcons = document.querySelectorAll('.feature-icon');
                 featureIcons.forEach(icon => {
                     icon.classList.add('fa-fallback');
@@ -2004,10 +2016,21 @@
                 featureIcons.forEach(icon => {
                     icon.classList.remove('fa-fallback');
                 });
+                
+                // Debug: Log icon elements
+                featureIcons.forEach((icon, index) => {
+                    const iconElement = icon.querySelector('i');
+                    if (iconElement) {
+                        console.log(`Icon ${index}:`, {
+                            classes: iconElement.className,
+                            computed: window.getComputedStyle(iconElement, ':before').getPropertyValue('content')
+                        });
+                    }
+                });
             }
         }
 
-        // Check immediately and after a delay
+        // Check immediately and after delays
         applyIconFallback();
         setTimeout(applyIconFallback, 500);
         setTimeout(applyIconFallback, 1500);

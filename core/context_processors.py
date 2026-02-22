@@ -95,21 +95,26 @@ def seo_context(request):
         # Get organization schema for default values
         org_schema = OrganizationSchema.objects.filter(is_active=True).first()
         
-        # Build SEO object with defaults
+        # Default values
+        default_title = 'NORSU Alumni Network'
+        default_description = 'Connect with NORSU alumni, access exclusive opportunities, and stay engaged with the university community.'
+        default_keywords = 'NORSU, alumni, network, university, graduates'
+        
+        # Build SEO object with proper fallbacks
         seo_data = {
-            'title': page_seo.meta_title if page_seo else (org_schema.name if org_schema else 'NORSU Alumni Network'),
-            'description': page_seo.meta_description if page_seo else (org_schema.description if org_schema else 'Connect with NORSU alumni, access exclusive opportunities, and stay engaged with the university community.'),
-            'keywords': page_seo.meta_keywords if page_seo else 'NORSU, alumni, network, university, graduates',
-            'canonical_url': request.build_absolute_uri(path),
+            'title': page_seo.meta_title if page_seo else default_title,
+            'description': page_seo.meta_description if page_seo else default_description,
+            'keywords': page_seo.meta_keywords if page_seo else default_keywords,
+            'canonical_url': page_seo.canonical_url if (page_seo and page_seo.canonical_url) else request.build_absolute_uri(path),
             'og_image': page_seo.og_image.url if (page_seo and page_seo.og_image) else (org_schema.logo if org_schema else ''),
             'twitter_image': page_seo.twitter_image.url if (page_seo and page_seo.twitter_image) else '',
-            'og_type': page_seo.og_type if page_seo else 'website',
-            'site_name': org_schema.name if org_schema else 'NORSU Alumni Network',
+            'og_type': 'website',  # Default to website
+            'site_name': org_schema.name if org_schema else default_title,
         }
         
         return {
             'page_seo': page_seo,
-            'seo': seo_data,  # Add this for the template
+            'seo': seo_data,
         }
     except Exception as e:
         # Return default SEO data if there's an error

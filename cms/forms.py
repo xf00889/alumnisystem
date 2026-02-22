@@ -416,6 +416,12 @@ class VMGOSectionForm(ModelForm):
             'values_title',
             'core_values',
             'quality_policy',
+            'quality_objectives_title',
+            'quality_objective_1',
+            'quality_objective_2',
+            'quality_objective_3',
+            'quality_objective_4',
+            'quality_objectives_footer',
         ]
         
         widgets = {
@@ -473,6 +479,35 @@ class VMGOSectionForm(ModelForm):
                 'rows': 5,
                 'placeholder': 'NORSU Quality Policy statement...'
             }),
+            'quality_objectives_title': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'e.g., Quality Objectives'
+            }),
+            'quality_objective_1': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'First quality objective (O)...'
+            }),
+            'quality_objective_2': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Second quality objective (D)...'
+            }),
+            'quality_objective_3': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Third quality objective (A)...'
+            }),
+            'quality_objective_4': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Fourth quality objective (A)...'
+            }),
+            'quality_objectives_footer': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 2,
+                'placeholder': 'Footer text for quality objectives section...'
+            }),
         }
         
         help_texts = {
@@ -489,6 +524,12 @@ class VMGOSectionForm(ModelForm):
             'values_title': 'Title for the Core Values section.',
             'core_values': 'Format each letter on a new line followed by its description. Example:\n\nS\nSpirituality\n\nH\nHonesty',
             'quality_policy': 'NORSU Quality Policy statement (100-200 words recommended).',
+            'quality_objectives_title': 'Title for the Quality Objectives section.',
+            'quality_objective_1': 'First quality objective (O) - Organize.',
+            'quality_objective_2': 'Second quality objective (D) - Develop.',
+            'quality_objective_3': 'Third quality objective (A) - Achieve.',
+            'quality_objective_4': 'Fourth quality objective (A) - Assure.',
+            'quality_objectives_footer': 'Footer text for quality objectives section (e.g., compliance statement).',
         }
     
     def __init__(self, *args, **kwargs):
@@ -530,6 +571,15 @@ class VMGOSectionForm(ModelForm):
             Fieldset(
                 'Quality Policy',
                 'quality_policy',
+            ),
+            Fieldset(
+                'Quality Objectives (ODAA)',
+                'quality_objectives_title',
+                'quality_objective_1',
+                'quality_objective_2',
+                'quality_objective_3',
+                'quality_objective_4',
+                'quality_objectives_footer',
             ),
             Submit('submit', 'Save Changes', css_class='btn btn-primary')
         )

@@ -846,6 +846,38 @@ class NORSUVMGOHistory(TimeStampedModel):
         help_text=_("NORSU Quality Policy")
     )
     
+    # Quality Objectives
+    quality_objectives_title = models.CharField(
+        max_length=100,
+        default="Quality Objectives",
+        help_text=_("Title for Quality Objectives section")
+    )
+    
+    quality_objective_1 = models.TextField(
+        default="Organize Alumni Research and Development to support the quality program based",
+        help_text=_("First quality objective (O)")
+    )
+    
+    quality_objective_2 = models.TextField(
+        default="Develop support and good will of the Alumni to institutional and program activities;",
+        help_text=_("Second quality objective (D)")
+    )
+    
+    quality_objective_3 = models.TextField(
+        default="Achieve professional network and partnership between Alumni communities; and",
+        help_text=_("Third quality objective (A)")
+    )
+    
+    quality_objective_4 = models.TextField(
+        default="Assure quality services for the Alumni; the Alumni community and the University.",
+        help_text=_("Fourth quality objective (A)")
+    )
+    
+    quality_objectives_footer = models.TextField(
+        default="In compliance with the applicable regulatory requirements and continual improvement of its management System",
+        help_text=_("Footer text for quality objectives section")
+    )
+    
     # History
     history_brief = models.TextField(
         default="Negros Oriental State University was established in 1907, when Governor Hermenegildo Villanueva proposed the establishment of industrial arts education in Negros Oriental Provincial School (NOPS), the precursor of the Negros Oriental High School (NOHS).",
@@ -902,6 +934,12 @@ class NORSUVMGOHistory(TimeStampedModel):
                 'values_title': 'Core Values',
                 'core_values': 'SHINE:\n• Spirituality\n• Honesty\n• Innovation\n• Nurturance\n• Excellence',
                 'quality_policy': 'Negros Oriental State University commits to delivering quality instruction, research, extension and production. We ensure compliance with all statutory and regulatory requirements and continuously work to improve our management system to meet our quality objectives.',
+                'quality_objectives_title': 'Quality Objectives',
+                'quality_objective_1': 'Organize Alumni Research and Development to support the quality program based',
+                'quality_objective_2': 'Develop support and good will of the Alumni to institutional and program activities;',
+                'quality_objective_3': 'Achieve professional network and partnership between Alumni communities; and',
+                'quality_objective_4': 'Assure quality services for the Alumni; the Alumni community and the University.',
+                'quality_objectives_footer': 'In compliance with the applicable regulatory requirements and continual improvement of its management System',
                 'history_brief': 'Negros Oriental State University was established in 1907, when Governor Hermenegildo Villanueva proposed the establishment of industrial arts education in Negros Oriental Provincial School (NOPS), the precursor of the Negros Oriental High School (NOHS).',
                 'history_full': 'The beginnings of Negros Oriental State University date back to 1907, from a single woodworking class at what was then the Negros Oriental Provincial School. On December 3, 1927, by virtue of Act No. 3377 of the Philippine Legislature, the woodworking class became the Negros Oriental Trade School (NOTS). By virtue of Republic Act No. 1579 signed into law on June 16, 1956, NOTS became the East Visayan School of Arts and Trades (EVSAT). Through Batas Pambansa No. 401 signed by President Ferdinand E. Marcos on June 10, 1983, the Central Visayas Polytechnic College (CVPC) came into being. Finally, through Republic Act No. 9299 signed by President Gloria Macapagal Arroyo on June 25, 2004, CVPC was converted into Negros Oriental State University (NORSU).',
                 'establishment_year': '1907',
