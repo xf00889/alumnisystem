@@ -26,6 +26,8 @@
 {% endblock %}
 
 {% block extra_css %}
+<!-- Swiper CSS -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
 <link rel="stylesheet" href="{% static 'css/hero_section.css' %}">
 <link rel="stylesheet" href="{% static 'css/vmgo_section.css' %}">
 <link rel="stylesheet" href="{% static 'css/officials_slider.css' %}">
@@ -1894,9 +1896,9 @@
 </section>
 {% endif %}
 
-<!-- Staff Section -->
+<!-- Staff Section - Modern Swiper Slider -->
 {% if staff_members %}
-<section class="staff-section">
+<section class="officials-slider-section">
     <div class="container">
         <div class="section-heading">
             <div class="section-badge">Meet Our Team</div>
@@ -1904,53 +1906,47 @@
             <p class="section-subtitle">Connect with the dedicated officials managing NORSU's alumni relations, fostering lifelong connections and supporting your continued success.</p>
         </div>
 
-        <div class="officials-slider-container">
-            <!-- Navigation Buttons -->
-            <button class="slider-nav slider-nav-prev" aria-label="Previous officials">
-                <i class="fas fa-chevron-left"></i>
-            </button>
-            <button class="slider-nav slider-nav-next" aria-label="Next officials">
-                <i class="fas fa-chevron-right"></i>
-            </button>
-
-            <!-- Slider Track -->
-            <div class="officials-slider" role="region" aria-label="Alumni Affairs Officials">
-                <div class="officials-track" role="list">
-                    {% for staff in staff_members %}
-                    <div class="official-slide" role="listitem">
-                        <div class="staff-card">
-                            <div class="staff-avatar">
-                                {% if staff.image %}
-                                    <img src="{{ staff.image.url }}" alt="{{ staff.name }}" class="img-fluid">
-                                {% else %}
-                                    <div class="staff-avatar-placeholder">
-                                        <i class="fas fa-user" aria-hidden="true"></i>
-                                    </div>
-                                {% endif %}
-                            </div>
-                            <h5 class="staff-name">{{ staff.name }}</h5>
-                            <p class="staff-position">{{ staff.position }}</p>
-                            {% if staff.department %}
-                                <p class="staff-department">{{ staff.department }}</p>
-                            {% endif %}
-                            {% if staff.bio %}
-                                <p class="staff-bio">{{ staff.bio|truncatechars:80 }}</p>
-                            {% endif %}
-                            {% if staff.email %}
-                                <div class="staff-contact">
-                                    <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
-                                        <i class="fas fa-envelope me-1" aria-hidden="true"></i>Contact
-                                    </a>
+        <!-- Swiper Slider -->
+        <div class="swiper officials-swiper">
+            <div class="swiper-wrapper">
+                {% for staff in staff_members %}
+                <div class="swiper-slide">
+                    <div class="staff-card">
+                        <div class="staff-avatar">
+                            {% if staff.image %}
+                                <img src="{{ staff.image.url }}" alt="{{ staff.name }}" loading="lazy">
+                            {% else %}
+                                <div class="staff-avatar-placeholder">
+                                    <i class="fas fa-user" aria-hidden="true"></i>
                                 </div>
                             {% endif %}
                         </div>
+                        <h5 class="staff-name">{{ staff.name }}</h5>
+                        <p class="staff-position">{{ staff.position }}</p>
+                        {% if staff.department %}
+                            <p class="staff-department">{{ staff.department }}</p>
+                        {% endif %}
+                        {% if staff.bio %}
+                            <p class="staff-bio">{{ staff.bio|truncatechars:80 }}</p>
+                        {% endif %}
+                        {% if staff.email %}
+                            <div class="staff-contact">
+                                <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
+                                    <i class="fas fa-envelope me-1" aria-hidden="true"></i>Contact
+                                </a>
+                            </div>
+                        {% endif %}
                     </div>
-                    {% endfor %}
                 </div>
+                {% endfor %}
             </div>
-
-            <!-- Slider Dots -->
-            <div class="slider-dots" role="navigation" aria-label="Slider pagination"></div>
+            
+            <!-- Navigation Arrows -->
+            <div class="swiper-button-prev"></div>
+            <div class="swiper-button-next"></div>
+            
+            <!-- Pagination Dots -->
+            <div class="swiper-pagination"></div>
         </div>
     </div>
 </section>
@@ -2103,6 +2099,8 @@
 {% endblock content %}
 
 {% block extra_js %}
+<!-- Swiper JS -->
+<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
 <!-- Officials Slider Script -->
 <script src="{% static 'js/officials_slider.js' %}"></script>
 {% endblock extra_js %}
