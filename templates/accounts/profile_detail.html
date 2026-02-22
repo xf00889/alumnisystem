@@ -158,6 +158,47 @@
         z-index: 1;
         padding-bottom: 4rem;
     }
+    
+    /* Ensure modals appear above all profile content */
+    .modal {
+        z-index: 10060 !important;
+    }
+    
+    .modal-backdrop {
+        z-index: 10055 !important;
+    }
+    
+    /* Mobile modal positioning fix */
+    @media (max-width: 768px) {
+        .modal {
+            padding: 0 !important;
+        }
+        
+        .modal-dialog {
+            margin: 0.5rem;
+            max-width: calc(100% - 1rem);
+        }
+        
+        .modal-content {
+            border-radius: 0.5rem;
+        }
+        
+        .modal-body {
+            max-height: calc(100vh - 200px);
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+        }
+        
+        /* Ensure modal is visible on mobile */
+        .modal.show {
+            display: block !important;
+            overflow-y: auto;
+        }
+        
+        .modal.show .modal-dialog {
+            transform: none !important;
+        }
+    }
 
     /* Profile Card Enhancements */
     .profile-card {
@@ -2336,8 +2377,80 @@
 document.addEventListener('DOMContentLoaded', function() {
     console.log('Profile detail page loaded');
     
+    // Debug: Log all modals found on the page
+    const allModals = document.querySelectorAll('.modal');
+    console.log('Total modals found:', allModals.length);
+    allModals.forEach(modal => {
+        console.log('Modal ID:', modal.id);
+    });
+    
+    // Fix for mobile modal display issues
+    // Ensure modals are properly initialized and displayed on mobile devices
+    const modals = document.querySelectorAll('.modal');
+    modals.forEach(modal => {
+        modal.addEventListener('show.bs.modal', function(e) {
+            console.log('Modal showing:', modal.id);
+            // Ensure body overflow is hidden when modal opens
+            document.body.style.overflow = 'hidden';
+            document.body.style.paddingRight = '0';
+            
+            // Force modal to be visible and above backdrop with higher z-index
+            setTimeout(() => {
+                modal.style.display = 'block';
+                modal.style.zIndex = '10060';
+                const backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) {
+                    backdrop.style.zIndex = '10055';
+                    console.log('Backdrop z-index set to 10055');
+                }
+                console.log('Modal display and z-index set to 10060');
+            }, 10);
+        });
+        
+        modal.addEventListener('shown.bs.modal', function(e) {
+            console.log('Modal shown:', modal.id);
+            // Ensure modal dialog is visible
+            const modalDialog = modal.querySelector('.modal-dialog');
+            if (modalDialog) {
+                modalDialog.style.transform = 'none';
+                modalDialog.style.marginTop = '1rem';
+                console.log('Modal dialog transform reset');
+            }
+        });
+        
+        modal.addEventListener('hide.bs.modal', function(e) {
+            console.log('Modal hiding:', modal.id);
+        });
+        
+        modal.addEventListener('hidden.bs.modal', function(e) {
+            console.log('Modal hidden:', modal.id);
+            // Restore body overflow
+            document.body.style.overflow = '';
+            document.body.style.paddingRight = '';
+        });
+    });
+    
+    // Debug: Test modal trigger buttons
+    const modalTriggers = document.querySelectorAll('[data-bs-toggle="modal"]');
+    console.log('Total modal trigger buttons found:', modalTriggers.length);
+    modalTriggers.forEach(trigger => {
+        const targetModal = trigger.getAttribute('data-bs-target');
+        console.log('Trigger button for modal:', targetModal);
+        
+        trigger.addEventListener('click', function(e) {
+            console.log('Modal trigger clicked:', targetModal);
+            const modalElement = document.querySelector(targetModal);
+            if (modalElement) {
+                console.log('Modal element found:', modalElement.id);
+            } else {
+                console.error('Modal element NOT found for:', targetModal);
+            }
+        });
+    });
+    
     // Django messages are handled by the global processDjangoMessages() function
     console.log('Profile detail page loaded - messages will be processed globally');
+
 
     // Handle edit form submissions specifically
     document.addEventListener('submit', function(e) {
