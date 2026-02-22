@@ -176,7 +176,7 @@ def home(request):
         faqs = FAQ.objects.filter(is_active=True).order_by('order')[:6]
         
         # Get staff members for homepage (Alumni Staff)
-        staff_members = StaffMember.objects.filter(is_active=True).order_by('order')[:4]
+        staff_members = StaffMember.objects.filter(is_active=True).order_by('order')
         
         # Get alumni statistics for homepage
         alumni_statistics = AlumniStatistic.objects.filter(is_active=True).order_by('order')

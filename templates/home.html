@@ -28,6 +28,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/hero_section.css' %}">
 <link rel="stylesheet" href="{% static 'css/vmgo_section.css' %}">
+<link rel="stylesheet" href="{% static 'css/officials_slider.css' %}">
 <style>
     /* Minimalist Professional Design - NORSU Alumni System */
     :root {
@@ -1903,37 +1904,53 @@
             <p class="section-subtitle">Connect with the dedicated officials managing NORSU's alumni relations, fostering lifelong connections and supporting your continued success.</p>
         </div>
 
-        <div class="row g-4">
-            {% for staff in staff_members %}
-            <div class="col-lg-3 col-md-6">
-                <div class="staff-card">
-                    <div class="staff-avatar">
-                        {% if staff.image %}
-                            <img src="{{ staff.image.url }}" alt="{{ staff.name }}" class="img-fluid">
-                        {% else %}
-                            <div class="staff-avatar-placeholder">
-                                <i class="fas fa-user"></i>
+        <div class="officials-slider-container">
+            <!-- Navigation Buttons -->
+            <button class="slider-nav slider-nav-prev" aria-label="Previous officials">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            <button class="slider-nav slider-nav-next" aria-label="Next officials">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+
+            <!-- Slider Track -->
+            <div class="officials-slider" role="region" aria-label="Alumni Affairs Officials">
+                <div class="officials-track" role="list">
+                    {% for staff in staff_members %}
+                    <div class="official-slide" role="listitem">
+                        <div class="staff-card">
+                            <div class="staff-avatar">
+                                {% if staff.image %}
+                                    <img src="{{ staff.image.url }}" alt="{{ staff.name }}" class="img-fluid">
+                                {% else %}
+                                    <div class="staff-avatar-placeholder">
+                                        <i class="fas fa-user" aria-hidden="true"></i>
+                                    </div>
+                                {% endif %}
                             </div>
-                        {% endif %}
-                    </div>
-                    <h5 class="staff-name">{{ staff.name }}</h5>
-                    <p class="staff-position">{{ staff.position }}</p>
-                    {% if staff.department %}
-                        <p class="staff-department">{{ staff.department }}</p>
-                    {% endif %}
-                    {% if staff.bio %}
-                        <p class="staff-bio">{{ staff.bio|truncatechars:80 }}</p>
-                    {% endif %}
-                    {% if staff.email %}
-                        <div class="staff-contact">
-                            <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
-                                <i class="fas fa-envelope me-1"></i>Contact
-                            </a>
+                            <h5 class="staff-name">{{ staff.name }}</h5>
+                            <p class="staff-position">{{ staff.position }}</p>
+                            {% if staff.department %}
+                                <p class="staff-department">{{ staff.department }}</p>
+                            {% endif %}
+                            {% if staff.bio %}
+                                <p class="staff-bio">{{ staff.bio|truncatechars:80 }}</p>
+                            {% endif %}
+                            {% if staff.email %}
+                                <div class="staff-contact">
+                                    <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
+                                        <i class="fas fa-envelope me-1" aria-hidden="true"></i>Contact
+                                    </a>
+                                </div>
+                            {% endif %}
                         </div>
-                    {% endif %}
+                    </div>
+                    {% endfor %}
                 </div>
             </div>
-            {% endfor %}
+
+            <!-- Slider Dots -->
+            <div class="slider-dots" role="navigation" aria-label="Slider pagination"></div>
         </div>
     </div>
 </section>
@@ -2084,6 +2101,11 @@
 </script>
 {% endif %}
 {% endblock content %}
+
+{% block extra_js %}
+<!-- Officials Slider Script -->
+<script src="{% static 'js/officials_slider.js' %}"></script>
+{% endblock extra_js %}
 
 
 
