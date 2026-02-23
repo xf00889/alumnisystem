@@ -344,6 +344,15 @@
         transform: translateY(-2px);
         box-shadow: var(--shadow-md);
     }
+    
+    /* Address item styling */
+    .address-item {
+        line-height: 1.6;
+    }
+    
+    .address-item:not(:last-child) {
+        border-bottom: 1px solid var(--ui-border);
+    }
 
     .cta-section::before {
         content: '';
@@ -861,15 +870,14 @@
                     </div>
                     <div class="contact-card-body">
                         <p class="text-muted mb-3">Send us an email and we'll respond within 24 hours</p>
-                        {% if contact_info %}
-                            {% for info in contact_info %}
-                                {% if info.contact_type == 'email' %}
-                                    <a href="mailto:{{ info.value }}" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
-                                        <i class="fas fa-envelope me-2"></i>{{ info.value }}
-                                    </a>
-                                {% endif %}
+                        {% if emails %}
+                            {% for email in emails %}
+                                <a href="mailto:{{ email.value }}" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
+                                    <i class="fas fa-envelope me-2"></i>{{ email.value }}
+                                </a>
                             {% endfor %}
                         {% else %}
+                            <!-- Default email if none in CMS -->
                             <a href="mailto:alumni@norsu.edu.ph" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-envelope me-2"></i>alumni@norsu.edu.ph
                             </a>
@@ -888,15 +896,14 @@
                     </div>
                     <div class="contact-card-body">
                         <p class="text-muted mb-3">Give us a call during business hours</p>
-                        {% if contact_info %}
-                            {% for info in contact_info %}
-                                {% if info.contact_type == 'phone' %}
-                                    <a href="tel:{{ info.value }}" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
-                                        <i class="fas fa-phone me-2"></i>{{ info.value }}
-                                    </a>
-                                {% endif %}
+                        {% if phones %}
+                            {% for phone in phones %}
+                                <a href="tel:{{ phone.value }}" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
+                                    <i class="fas fa-phone me-2"></i>{{ phone.value }}
+                                </a>
                             {% endfor %}
                         {% else %}
+                            <!-- Default phone if none in CMS -->
                             <a href="tel:+63123456789" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-phone me-2"></i>+63 123 456 789
                             </a>
@@ -917,13 +924,14 @@
                     </div>
                     <div class="contact-card-body">
                         <p class="text-muted mb-3">Come visit our office</p>
-                        {% if contact_info %}
-                            {% for info in contact_info %}
-                                {% if info.contact_type == 'address' %}
-                                    <p class="mb-2">{{ info.value|linebreaks }}</p>
-                                {% endif %}
+                        {% if addresses %}
+                            {% for address in addresses %}
+                                <div class="address-item mb-3 pb-3 {% if not forloop.last %}border-bottom{% endif %}">
+                                    {{ address.value|linebreaks }}
+                                </div>
                             {% endfor %}
                         {% else %}
+                            <!-- Default address if none in CMS -->
                             <p class="mb-2">Negros Oriental State University<br>Kagawasan Ave, Dumaguete, 6200 Negros Oriental</p>
                         {% endif %}
                     </div>

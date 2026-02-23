@@ -1041,8 +1041,13 @@ def contact_us(request):
     try:
         from cms.models import ContactInfo, FAQ
         
-        # Get contact information from CMS
-        contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
+        # Get contact information from CMS, filtered by type
+        all_contact_info = ContactInfo.objects.filter(is_active=True).order_by('contact_type', 'order')
+        
+        # Filter by contact type for easier template access
+        emails = all_contact_info.filter(contact_type='email')
+        phones = all_contact_info.filter(contact_type='phone')
+        addresses = all_contact_info.filter(contact_type='address')
         
         # Get FAQs from CMS
         faqs = FAQ.objects.filter(is_active=True).order_by('order')
@@ -1054,7 +1059,10 @@ def contact_us(request):
     except (ImportError, Exception) as e:
         logger.error(f"Error fetching CMS data for Contact page: {e}")
         contact_config = None
-        contact_info = []
+        all_contact_info = []
+        emails = []
+        phones = []
+        addresses = []
         faqs = []
         social_media_links = []
     
@@ -1098,7 +1106,10 @@ def contact_us(request):
         'page_subtitle': 'Get in touch with the NORSU Alumni Network team',
         'form': form,
         'contact_config': contact_config,
-        'contact_info': contact_info,
+        'contact_info': all_contact_info,
+        'emails': emails,
+        'phones': phones,
+        'addresses': addresses,
         'faqs': faqs,
         'social_media_links': social_media_links,
         'local_business_schema': local_business_schema,
