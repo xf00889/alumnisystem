@@ -1310,12 +1310,22 @@
         <div class="search-form">
             <div class="search-group">
                 <label for="searchInput" class="form-label">Search Events</label>
-                <div class="search-container">
-                    <i class="fas fa-search search-icon"></i>
-                    <input type="text" 
-                           id="searchInput" 
-                           class="search-input" 
-                           placeholder="Search by title or description...">
+                <div class="search-container" style="display: flex; gap: 0.5rem;">
+                    <div style="position: relative; flex: 1;">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" 
+                               id="searchInput" 
+                               class="search-input" 
+                               value="{{ request.GET.search|default:'' }}"
+                               placeholder="Search by title or description...">
+                    </div>
+                    <button type="button" 
+                            id="searchButton" 
+                            class="btn btn-primary"
+                            style="white-space: nowrap; padding: 0.75rem 1.5rem;"
+                            title="Search all events">
+                        <i class="fas fa-search"></i> Search
+                    </button>
                 </div>
             </div>
             <div class="filter-group">
@@ -1598,6 +1608,7 @@ class EventsTable {
     constructor() {
         this.selectedRows = new Set();
         this.searchInput = document.getElementById('searchInput');
+        this.searchButton = document.getElementById('searchButton');
         this.currentView = localStorage.getItem('eventsView') || 'card';
         this.initViewToggle();
         this.selectedCount = document.getElementById('selectedCount');
@@ -1663,10 +1674,47 @@ class EventsTable {
     
     setupSearch() {
         if (this.searchInput) {
+            // Set initial value from URL parameter
+            const urlParams = new URLSearchParams(window.location.search);
+            const searchParam = urlParams.get('search');
+            if (searchParam) {
+                this.searchInput.value = searchParam;
+            }
+            
+            // Handle Enter key to trigger server search
+            this.searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    this.performServerSearch();
+                }
+            });
+            
+            // Client-side filtering for immediate feedback
             this.searchInput.addEventListener('input', this.debounce((e) => {
                 this.filterCards();
             }, 300));
         }
+        
+        // Search button click handler
+        if (this.searchButton) {
+            this.searchButton.addEventListener('click', () => {
+                this.performServerSearch();
+            });
+        }
+    }
+    
+    performServerSearch() {
+        const searchValue = this.searchInput.value.trim();
+        const url = new URL(window.location.href);
+        
+        if (searchValue) {
+            url.searchParams.set('search', searchValue);
+        } else {
+            url.searchParams.delete('search');
+        }
+        
+        // Reload page with new search parameter
+        window.location.href = url.toString();
     }
     
     setupFilters() {

@@ -437,10 +437,13 @@
                                 </td>
                                 <td>{{ feedback.created_at|date:"M d, Y H:i" }}</td>
                                 <td>
-                                    <a href="{% url 'feedback:update_feedback' feedback.pk %}" 
-                                       class="btn btn-sm btn-primary">
-                                        <i class="fas fa-edit me-1"></i>Update
-                                    </a>
+                                    <button type="button" 
+                                            class="btn btn-sm btn-primary view-feedback-btn"
+                                            data-feedback-id="{{ feedback.pk }}"
+                                            data-bs-toggle="modal"
+                                            data-bs-target="#feedbackDetailModal">
+                                        <i class="fas fa-eye me-1"></i>View
+                                    </button>
                                 </td>
                             </tr>
                             <tr class="feedback-details d-none">
@@ -512,6 +515,24 @@
         </div>
     {% endif %}
 </div>
+
+<!-- Feedback Detail Modal -->
+<div class="modal fade feedback-modal" id="feedbackDetailModal" tabindex="-1" aria-labelledby="feedbackDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content">
+            <div id="feedbackModalContent">
+                <!-- Content will be loaded here via AJAX -->
+                <div class="modal-body text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-3 text-muted">Loading feedback details...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block page_specific_js %}
@@ -522,8 +543,10 @@
         feedbackRows.forEach(row => {
             row.addEventListener('click', function(e) {
                 if (e.target.tagName.toLowerCase() === 'a' || 
-                    e.target.parentElement.tagName.toLowerCase() === 'a') {
-                    return; // Don't toggle if clicking a link
+                    e.target.parentElement.tagName.toLowerCase() === 'a' ||
+                    e.target.tagName.toLowerCase() === 'button' ||
+                    e.target.parentElement.tagName.toLowerCase() === 'button') {
+                    return; // Don't toggle if clicking a link or button
                 }
                 
                 const detailsRow = this.nextElementSibling;
@@ -533,6 +556,95 @@
                 this.classList.toggle('table-active');
             });
         });
+
+        // Load feedback details in modal
+        const viewButtons = document.querySelectorAll('.view-feedback-btn');
+        viewButtons.forEach(button => {
+            button.addEventListener('click', function() {
+                const feedbackId = this.dataset.feedbackId;
+                const modalContent = document.getElementById('feedbackModalContent');
+                
+                // Show loading state
+                modalContent.innerHTML = `
+                    <div class="modal-body text-center py-5">
+                        <div class="spinner-border text-primary" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                        <p class="mt-3 text-muted">Loading feedback details...</p>
+                    </div>
+                `;
+                
+                // Fetch feedback details
+                fetch(`/feedback/modal/${feedbackId}/`)
+                    .then(response => response.text())
+                    .then(html => {
+                        modalContent.innerHTML = html;
+                        setupFormSubmission(feedbackId);
+                    })
+                    .catch(error => {
+                        console.error('Error loading feedback details:', error);
+                        modalContent.innerHTML = `
+                            <div class="modal-body text-center py-5">
+                                <i class="fas fa-exclamation-triangle text-danger fa-3x mb-3"></i>
+                                <p class="text-danger">Error loading feedback details. Please try again.</p>
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                            </div>
+                        `;
+                    });
+            });
+        });
+
+        function setupFormSubmission(feedbackId) {
+            const form = document.getElementById('feedbackStatusForm');
+            if (!form) return;
+
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const updateBtn = document.getElementById('updateStatusBtn');
+                const originalBtnText = updateBtn.innerHTML;
+                
+                // Show loading state
+                updateBtn.disabled = true;
+                updateBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Updating...';
+                
+                const formData = new FormData(form);
+                
+                fetch(`/feedback/modal/${feedbackId}/`, {
+                    method: 'POST',
+                    body: formData,
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => response.text())
+                .then(html => {
+                    // Update modal content
+                    document.getElementById('feedbackModalContent').innerHTML = html;
+                    
+                    // Show success message
+                    if (typeof showToast === 'function') {
+                        showToast('Feedback updated successfully', 'success');
+                    }
+                    
+                    // Reload the page after a short delay to show updated data in table
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                })
+                .catch(error => {
+                    console.error('Error updating feedback:', error);
+                    updateBtn.disabled = false;
+                    updateBtn.innerHTML = originalBtnText;
+                    
+                    if (typeof showToast === 'function') {
+                        showToast('Error updating feedback. Please try again.', 'error');
+                    } else {
+                        alert('Error updating feedback. Please try again.');
+                    }
+                });
+            });
+        }
     });
 </script>
 {% endblock %}

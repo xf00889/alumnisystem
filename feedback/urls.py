@@ -9,4 +9,5 @@ urlpatterns = [
     path('detail/<int:pk>/', views.feedback_detail, name='feedback_detail'),
     path('manage/', views.manage_feedbacks, name='manage_feedbacks'),
     path('update/<int:pk>/', views.update_feedback, name='update_feedback'),
+    path('modal/<int:pk>/', views.feedback_detail_modal, name='feedback_detail_modal'),
 ] 

@@ -1,5 +1,6 @@
 {% extends 'base_landingpage.html' %}
 {% load static %}
+{% load cms_tags %}
 
 {% block title %}{{ seo.title|default:page_title|default:"Contact Us - NORSU Alumni" }}{% endblock title %}
 
@@ -320,6 +321,28 @@
         text-align: center;
         position: relative;
         overflow: hidden;
+    }
+    
+    /* Social Links Styling */
+    .social-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+    
+    .social-links .btn {
+        min-width: 150px;
+    }
+    
+    .contact-card-body .btn-outline-primary {
+        border-width: 2px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    .contact-card-body .btn-outline-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
     }
 
     .cta-section::before {
@@ -821,182 +844,149 @@
     <div class="container">
         <div class="section-header">
             <div class="section-badge">Get in Touch</div>
-            <h2 class="section-title">We're Here to Help</h2>
-            <p class="section-subtitle">Have questions or need assistance? We're just a message away.</p>
-</div>
-
-    <!-- Contact Form and Info -->
-        <div class="row mb-4">
-        <!-- Contact Form -->
-            <div class="col-12 mb-3">
-                <div class="contact-card">
-                    <div class="contact-card-header">
-                        <h3 class="contact-card-title">
-                            <i class="fas fa-envelope"></i>Send us a Message
-                    </h3>
-                    </div>
-                    <div class="contact-card-body">
-                    {% if messages %}
-                        {% for message in messages %}
-                            <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
-                                {{ message }}
-                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                            </div>
-                        {% endfor %}
-                    {% endif %}
-                    
-                    <form method="post" action="{% url 'core:contact_us_submit' %}" id="contactForm">
-                        {% csrf_token %}
-                        <div class="row">
-                                <div class="col-md-6 mb-2">
-                                <label for="{{ form.name.id_for_label }}" class="form-label">{{ form.name.label }} *</label>
-                                {{ form.name }}
-                                {% if form.name.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {% for error in form.name.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                                <div class="col-md-6 mb-2">
-                                <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }} *</label>
-                                {{ form.email }}
-                                {% if form.email.errors %}
-                                    <div class="text-danger small mt-1">
-                                        {% for error in form.email.errors %}{{ error }}{% endfor %}
-                                    </div>
-                                {% endif %}
-                            </div>
-                        </div>
-                            <div class="mb-2">
-                            <label for="{{ form.subject.id_for_label }}" class="form-label">{{ form.subject.label }} *</label>
-                            {{ form.subject }}
-                            {% if form.subject.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.subject.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                            <div class="mb-2">
-                            <label for="{{ form.message.id_for_label }}" class="form-label">{{ form.message.label }} *</label>
-                            {{ form.message }}
-                            {% if form.message.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.message.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <!-- reCAPTCHA Section -->
-                            <div class="mb-3">
-                            <label class="form-label">{{ form.captcha.label }}</label>
-                            {{ form.captcha }}
-                            {% if form.captcha.errors %}
-                                <div class="text-danger small mt-1">
-                                    {% for error in form.captcha.errors %}{{ error }}{% endfor %}
-                                </div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-paper-plane me-2"></i>Send Message
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
+            <h2 class="section-title">Contact Information</h2>
+            <p class="section-subtitle">Reach out to us through any of these channels</p>
         </div>
-    </div>
-    
-    <!-- FAQ Section -->
-        <div class="row mb-4">
-        <div class="col-12">
+
+        <!-- Contact Information Cards -->
+        <!-- First Row: Email and Phone (2 cards) -->
+        <div class="row g-4 mb-4">
+            <!-- Email Card -->
+            <div class="col-md-6">
                 <div class="contact-card">
                     <div class="contact-card-header">
                         <h3 class="contact-card-title">
-                            <i class="fas fa-question-circle"></i>Frequently Asked Questions
-                    </h3>
+                            <i class="fas fa-envelope"></i>Email Us
+                        </h3>
                     </div>
                     <div class="contact-card-body">
-                    <div class="accordion" id="faqAccordion">
-                        {% if faqs %}
-                            {% for faq in faqs %}
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="faq{{ forloop.counter }}">
-                                    <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}">
-                                        {{ faq.question }}
-                                    </button>
-                                </h2>
-                                <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        {{ faq.answer|linebreaks }}
-                                    </div>
-                                </div>
-                            </div>
+                        <p class="text-muted mb-3">Send us an email and we'll respond within 24 hours</p>
+                        {% if contact_info %}
+                            {% for info in contact_info %}
+                                {% if info.contact_type == 'email' %}
+                                    <a href="mailto:{{ info.value }}" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
+                                        <i class="fas fa-envelope me-2"></i>{{ info.value }}
+                                    </a>
+                                {% endif %}
                             {% endfor %}
                         {% else %}
-                            <!-- Fallback FAQs if no CMS data -->
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="faq1">
-                                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapse1">
-                                        How do I register for the alumni network?
-                                    </button>
-                                </h2>
-                                <div id="collapse1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        Click on the "Sign Up" button in the navigation menu and fill out the registration form with your details. 
-                                        You'll need to provide your graduation year, program, and other relevant information for verification.
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="faq2">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse2">
-                                        How can I update my profile information?
-                                    </button>
-                                </h2>
-                                <div id="collapse2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        After logging in, go to your profile page where you can edit your personal information, 
-                                        contact details, professional background, and other profile settings.
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="faq3">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse3">
-                                        How do I find and connect with other alumni?
-                                    </button>
-                                </h2>
-                                <div id="collapse3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        Use the Alumni Directory to search for classmates and colleagues. You can filter by graduation year, 
-                                        program, location, or industry. Send connection requests to build your professional network.
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            <div class="accordion-item">
-                                <h2 class="accordion-header" id="faq4">
-                                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapse4">
-                                        Can I post job opportunities on the platform?
-                                    </button>
-                                </h2>
-                                <div id="collapse4" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                                    <div class="accordion-body">
-                                        Yes! Registered alumni can post job opportunities through the Job Board. 
-                                        This helps fellow alumni find career opportunities and strengthens our professional network.
-                                    </div>
-                                </div>
-                            </div>
+                            <a href="mailto:alumni@norsu.edu.ph" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-envelope me-2"></i>alumni@norsu.edu.ph
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phone Card -->
+            <div class="col-md-6">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-phone"></i>Call Us
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
+                        <p class="text-muted mb-3">Give us a call during business hours</p>
+                        {% if contact_info %}
+                            {% for info in contact_info %}
+                                {% if info.contact_type == 'phone' %}
+                                    <a href="tel:{{ info.value }}" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
+                                        <i class="fas fa-phone me-2"></i>{{ info.value }}
+                                    </a>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <a href="tel:+63123456789" class="btn btn-outline-primary w-100 mb-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fas fa-phone me-2"></i>+63 123 456 789
+                            </a>
                         {% endif %}
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+
+        <!-- Second Row: Visit Us (1 card) -->
+        <div class="row g-4 mb-4">
+            <div class="col-12">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-map-marker-alt"></i>Visit Us
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
+                        <p class="text-muted mb-3">Come visit our office</p>
+                        {% if contact_info %}
+                            {% for info in contact_info %}
+                                {% if info.contact_type == 'address' %}
+                                    <p class="mb-2">{{ info.value|linebreaks }}</p>
+                                {% endif %}
+                            {% endfor %}
+                        {% else %}
+                            <p class="mb-2">Negros Oriental State University<br>Kagawasan Ave, Dumaguete, 6200 Negros Oriental</p>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Third Row: Social Media (1 card) -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="contact-card">
+                    <div class="contact-card-header">
+                        <h3 class="contact-card-title">
+                            <i class="fas fa-share-alt"></i>Connect With Us
+                        </h3>
+                    </div>
+                    <div class="contact-card-body">
+                        <p class="text-muted mb-3">Follow us on social media for updates and news</p>
+                        <div class="social-links">
+                            {% get_site_config as site_config %}
+                            {% if site_config.facebook_url %}
+                            <a href="{{ site_config.facebook_url }}" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-facebook-f me-2"></i>Facebook
+                            </a>
+                            {% endif %}
+                            {% if site_config.twitter_url %}
+                            <a href="{{ site_config.twitter_url }}" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-twitter me-2"></i>Twitter
+                            </a>
+                            {% endif %}
+                            {% if site_config.linkedin_url %}
+                            <a href="{{ site_config.linkedin_url }}" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-linkedin-in me-2"></i>LinkedIn
+                            </a>
+                            {% endif %}
+                            {% if site_config.instagram_url %}
+                            <a href="{{ site_config.instagram_url }}" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-instagram me-2"></i>Instagram
+                            </a>
+                            {% endif %}
+                            {% if site_config.youtube_url %}
+                            <a href="{{ site_config.youtube_url }}" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-youtube me-2"></i>YouTube
+                            </a>
+                            {% endif %}
+                            
+                            {% if not site_config.facebook_url and not site_config.twitter_url and not site_config.linkedin_url and not site_config.instagram_url and not site_config.youtube_url %}
+                            <!-- Default social media links if none configured -->
+                            <a href="https://facebook.com/norsu" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-facebook-f me-2"></i>Facebook
+                            </a>
+                            <a href="https://twitter.com/norsu" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-twitter me-2"></i>Twitter
+                            </a>
+                            <a href="https://linkedin.com/school/norsu" class="btn btn-outline-primary btn-lg m-2" target="_blank" rel="noopener noreferrer">
+                                <i class="fab fa-linkedin-in me-2"></i>LinkedIn
+                            </a>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </section>
 

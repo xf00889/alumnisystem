@@ -922,6 +922,114 @@
         opacity: 0.8;
     }
 
+    /* Feedback Form Styles */
+    .feedback-section {
+        background-color: var(--ui-background);
+    }
+    
+    .feedback-form-container {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: 2rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .feedback-form .form-label {
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+    }
+    
+    .feedback-form .form-control,
+    .feedback-form .form-select {
+        border: 2px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: 0.75rem 1rem;
+        font-size: 0.9rem;
+        transition: all 0.3s ease;
+    }
+    
+    .feedback-form .form-control:focus,
+    .feedback-form .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
+    }
+    
+    .feedback-form .btn-primary {
+        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+        border: none;
+        padding: 0.75rem 2rem;
+        font-weight: 600;
+        border-radius: 50px;
+        transition: all 0.3s ease;
+    }
+    
+    .feedback-form .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.3);
+    }
+    
+    .feedback-form .form-text {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
+    }
+    
+    /* reCAPTCHA styling */
+    .feedback-form .g-recaptcha {
+        margin: 1rem 0;
+    }
+    
+    .feedback-form .g-recaptcha > div {
+        margin: 0 auto;
+    }
+
+    /* FAQ Section Styles */
+    .faq-section {
+        background: linear-gradient(135deg, var(--ui-surface) 0%, var(--ui-background) 100%);
+    }
+    
+    .faq-container {
+        background: var(--ui-surface);
+        border-radius: var(--radius-lg);
+        box-shadow: var(--shadow-md);
+        padding: 2rem;
+        border: 1px solid var(--ui-border);
+    }
+    
+    .faq-section .accordion-button {
+        font-weight: 500;
+        color: var(--text-primary);
+        border-radius: var(--radius-md) !important;
+        border: 1px solid var(--ui-border);
+        margin-bottom: 0.5rem;
+        font-size: 0.9375rem;
+        padding: 1rem 1.25rem;
+    }
+    
+    .faq-section .accordion-button:not(.collapsed) {
+        background: linear-gradient(135deg, rgba(43, 60, 107, 0.1), rgba(43, 60, 107, 0.05));
+        color: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+    
+    .faq-section .accordion-button:focus {
+        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.15);
+    }
+    
+    .faq-section .accordion-item {
+        border: none;
+        margin-bottom: 0.5rem;
+    }
+    
+    .faq-section .accordion-body {
+        padding: 1.25rem 1.5rem;
+        color: var(--text-secondary);
+        line-height: 1.7;
+        font-size: 0.9rem;
+    }
+
     /* Animations */
     @keyframes fadeInUp {
         to {
@@ -1945,6 +2053,125 @@
             
             <!-- Pagination Dots -->
             <div class="swiper-pagination"></div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- Feedback & Suggestions Section -->
+{% if feedback_form %}
+<section class="feedback-section" style="padding: 4rem 0; background-color: var(--ui-background);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-8">
+                <div class="section-header text-center mb-4">
+                    <div class="section-badge">Share Your Thoughts</div>
+                    <h2 class="section-title">Feedback & Suggestions</h2>
+                    <p class="section-subtitle">Help us improve our platform by sharing your feedback and suggestions</p>
+                </div>
+                
+                <div class="feedback-form-container">
+                    <form method="post" enctype="multipart/form-data" class="feedback-form">
+                        {% csrf_token %}
+                        <input type="hidden" name="feedback_submit" value="1">
+                        
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ feedback_form.category.id_for_label }}" class="form-label">Category</label>
+                                {{ feedback_form.category }}
+                                {% if feedback_form.category.errors %}
+                                    <div class="text-danger small">{{ feedback_form.category.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label for="{{ feedback_form.priority.id_for_label }}" class="form-label">Priority</label>
+                                {{ feedback_form.priority }}
+                                {% if feedback_form.priority.errors %}
+                                    <div class="text-danger small">{{ feedback_form.priority.errors.0 }}</div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ feedback_form.subject.id_for_label }}" class="form-label">Subject</label>
+                            {{ feedback_form.subject }}
+                            {% if feedback_form.subject.errors %}
+                                <div class="text-danger small">{{ feedback_form.subject.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ feedback_form.message.id_for_label }}" class="form-label">Message</label>
+                            {{ feedback_form.message }}
+                            {% if feedback_form.message.errors %}
+                                <div class="text-danger small">{{ feedback_form.message.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="{{ feedback_form.attachment.id_for_label }}" class="form-label">Attachment (Optional)</label>
+                            {{ feedback_form.attachment }}
+                            {% if feedback_form.attachment.errors %}
+                                <div class="text-danger small">{{ feedback_form.attachment.errors.0 }}</div>
+                            {% endif %}
+                            <div class="form-text">Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG (max 5MB)</div>
+                        </div>
+                        
+                        {% if feedback_form.captcha %}
+                        <div class="mb-3">
+                            <label class="form-label">Security Verification</label>
+                            {{ feedback_form.captcha }}
+                            {% if feedback_form.captcha.errors %}
+                                <div class="text-danger small">{{ feedback_form.captcha.errors.0 }}</div>
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-center">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="fas fa-paper-plane me-2"></i>
+                                Submit Feedback
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- FAQ Section -->
+{% if faqs %}
+<section class="faq-section" style="padding: 4rem 0; background-color: var(--ui-surface);">
+    <div class="container">
+        <div class="row justify-content-center">
+            <div class="col-lg-10">
+                <div class="section-header text-center mb-4">
+                    <div class="section-badge">Have Questions?</div>
+                    <h2 class="section-title">Frequently Asked Questions</h2>
+                    <p class="section-subtitle">Find answers to common questions about the NORSU Alumni Network</p>
+                </div>
+                
+                <div class="faq-container">
+                    <div class="accordion" id="faqAccordion">
+                        {% for faq in faqs %}
+                        <div class="accordion-item">
+                            <h2 class="accordion-header" id="faq{{ forloop.counter }}">
+                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ forloop.counter }}">
+                                    {{ faq.question }}
+                                </button>
+                            </h2>
+                            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="faq{{ forloop.counter }}" data-bs-parent="#faqAccordion">
+                                <div class="accordion-body">
+                                    {{ faq.answer|linebreaks }}
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>

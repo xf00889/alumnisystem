@@ -35,31 +35,31 @@ def apply_selective_export_filters(request, base_queryset=None):
         export_queryset = base_queryset
 
     # Apply selective export filters
-    export_colleges = request.GET.getlist('export_colleges')
+    export_colleges = [c for c in request.GET.getlist('export_colleges') if c]
     if export_colleges:
         export_queryset = export_queryset.filter(college__in=export_colleges)
 
-    export_courses = request.GET.getlist('export_courses')
+    export_courses = [c for c in request.GET.getlist('export_courses') if c]
     if export_courses:
         export_queryset = export_queryset.filter(course__in=export_courses)
 
-    export_years = request.GET.getlist('export_years')
+    export_years = [y for y in request.GET.getlist('export_years') if y]
     if export_years:
         export_queryset = export_queryset.filter(graduation_year__in=export_years)
 
     # Year range filters
-    year_from = request.GET.get('export_year_from')
-    year_to = request.GET.get('export_year_to')
+    year_from = request.GET.get('export_year_from', '').strip()
+    year_to = request.GET.get('export_year_to', '').strip()
     if year_from:
         export_queryset = export_queryset.filter(graduation_year__gte=year_from)
     if year_to:
         export_queryset = export_queryset.filter(graduation_year__lte=year_to)
 
-    export_employment_status = request.GET.getlist('export_employment_status')
+    export_employment_status = [e for e in request.GET.getlist('export_employment_status') if e]
     if export_employment_status:
         export_queryset = export_queryset.filter(employment_status__in=export_employment_status)
 
-    export_verification_status = request.GET.getlist('export_verification_status')
+    export_verification_status = [v for v in request.GET.getlist('export_verification_status') if v]
     if export_verification_status:
         # Convert string values to boolean
         verification_filters = []
@@ -176,32 +176,32 @@ def alumni_list(request):
             )
         
         # Graduation Year filter
-        grad_year = request.GET.getlist('graduation_year')
+        grad_year = [y for y in request.GET.getlist('graduation_year') if y]
         if grad_year:
             queryset = queryset.filter(graduation_year__in=grad_year)
         
         # Course filter
-        course = request.GET.getlist('course')
+        course = [c for c in request.GET.getlist('course') if c]
         if course:
             queryset = queryset.filter(course__in=course)
         
         # College filter
-        college = request.GET.getlist('college')
+        college = [c for c in request.GET.getlist('college') if c]
         if college:
             queryset = queryset.filter(college__in=college)
         
         # Campus filter
-        campus = request.GET.getlist('campus')
+        campus = [c for c in request.GET.getlist('campus') if c]
         if campus:
             queryset = queryset.filter(campus__in=campus)
         
         # Location filter
-        province = request.GET.getlist('province')
+        province = [p for p in request.GET.getlist('province') if p]
         if province:
             queryset = queryset.filter(province__in=province)
         
         # Employment Status filter
-        employment_status = request.GET.getlist('employment_status')
+        employment_status = [e for e in request.GET.getlist('employment_status') if e]
         if employment_status:
             queryset = queryset.filter(employment_status__in=employment_status)
         
@@ -286,11 +286,11 @@ def alumni_list(request):
         elapsed_time = time.time() - start_time if 'start_time' in locals() else 0
         logger.error(
             f"Error in alumni list view: {str(e)}, Time={elapsed_time:.3f}s",
+            exc_info=True,
             extra={
                 'user_id': request.user.id if request.user.is_authenticated else None,
                 'error_type': type(e).__name__,
-                'elapsed_time': elapsed_time,
-                'exc_info': True
+                'elapsed_time': elapsed_time
             }
         )
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -610,12 +610,12 @@ The Alumni Team"""
         except Exception as e:
             logger.error(
                 f"Exception sending profile completion reminder: {str(e)}",
+                exc_info=True,
                 extra={
                     'alumni_id': pk,
                     'alumni_email': alumni.email,
                     'error_type': type(e).__name__,
                     'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
-                    'exc_info': True,
                     'action': 'reminder_send_exception'
                 }
             )
@@ -659,17 +659,17 @@ def tabular_alumni_list(request):
             )
         
         # Graduation Year filter
-        grad_year = request.GET.getlist('graduation_year')
+        grad_year = [y for y in request.GET.getlist('graduation_year') if y]
         if grad_year:
             queryset = queryset.filter(graduation_year__in=grad_year)
         
         # Course filter
-        course = request.GET.getlist('course')
+        course = [c for c in request.GET.getlist('course') if c]
         if course:
             queryset = queryset.filter(course__in=course)
 
         # College filter
-        college = request.GET.getlist('college')
+        college = [c for c in request.GET.getlist('college') if c]
         if college:
             queryset = queryset.filter(college__in=college)
             
@@ -895,12 +895,12 @@ def alumni_management(request):
                 except Exception as e:
                     logger.error(
                         f"Error importing CSV: {str(e)}",
+                        exc_info=True,
                         extra={
                             'file_name': file_name if 'file_name' in locals() else None,
                             'file_size': file_size if 'file_size' in locals() else None,
                             'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
                             'error_type': type(e).__name__,
-                            'exc_info': True,
                             'action': 'csv_import_failed'
                         }
                     )
@@ -932,17 +932,17 @@ def alumni_management(request):
             )
         
         # Graduation Year filter
-        grad_year = request.GET.getlist('graduation_year')
+        grad_year = [y for y in request.GET.getlist('graduation_year') if y]
         if grad_year:
             queryset = queryset.filter(graduation_year__in=grad_year)
         
         # Course filter
-        course = request.GET.getlist('course')
+        course = [c for c in request.GET.getlist('course') if c]
         if course:
             queryset = queryset.filter(course__in=course)
 
         # College filter
-        college = request.GET.getlist('college')
+        college = [c for c in request.GET.getlist('college') if c]
         if college:
             queryset = queryset.filter(college__in=college)
             

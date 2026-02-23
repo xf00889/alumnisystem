@@ -803,12 +803,11 @@ def delete_campaign(request, pk):
     except Exception as e:
         logger.error(
             f"Error deleting campaign: {str(e)}",
+            exc_info=True,
             extra={
                 'campaign_id': campaign_id,
                 'user_id': request.user.id,
-                'error_type': type(e).__name__,
-                'exc_info': True
-            }
+                'error_type': type(e).__name__}
         )
         return JsonResponse({
             'status': 'error',
@@ -847,11 +846,10 @@ def campaign_create(request):
             except Exception as e:
                 logger.error(
                     f"Error creating campaign: {str(e)}",
-                    extra={
+            exc_info=True,
+            extra={
                         'user_id': request.user.id,
-                        'error_type': type(e).__name__,
-                        'exc_info': True
-                    }
+                        'error_type': type(e).__name__}
                 )
                 raise
     else:
@@ -910,12 +908,11 @@ def campaign_edit(request, pk):
             except Exception as e:
                 logger.error(
                     f"Error updating campaign: {str(e)}",
-                    extra={
+            exc_info=True,
+            extra={
                         'campaign_id': campaign.id,
                         'user_id': request.user.id,
-                        'error_type': type(e).__name__,
-                        'exc_info': True
-                    }
+                        'error_type': type(e).__name__}
                 )
                 raise
     else:
@@ -1104,12 +1101,11 @@ def payment_instructions(request, pk):
             except Exception as e:
                 logger.error(
                     f"Exception sending donation confirmation email after payment proof submission: {str(e)}",
-                    extra={
+            exc_info=True,
+            extra={
                         'donation_id': donation.pk,
                         'donor_email': donor_email,
-                        'error_type': type(e).__name__,
-                        'exc_info': True
-                    }
+                        'error_type': type(e).__name__}
                 )
         
         if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
@@ -1325,26 +1321,24 @@ def upload_payment_proof(request, pk):
                     except Exception as e:
                         logger.error(
                             f"Exception sending donation confirmation email after payment proof upload: {str(e)}",
-                            extra={
+            exc_info=True,
+            extra={
                                 'donation_id': donation.pk,
                                 'donor_email': donor_email,
-                                'error_type': type(e).__name__,
-                                'exc_info': True
-                            }
+                                'error_type': type(e).__name__}
                         )
                         
             except Exception as e:
                 logger.error(
                     f"Error uploading payment proof: {str(e)}",
-                    extra={
+            exc_info=True,
+            extra={
                         'donation_id': donation.id,
                         'file_name': file_name if 'file_name' in locals() else None,
                         'file_size': file_size if 'file_size' in locals() else None,
                         'user_id': request.user.id if request.user.is_authenticated else None,
                         'error_type': type(e).__name__,
-                        'form_errors': form.errors if 'form' in locals() else None,
-                        'exc_info': True
-                    }
+                        'form_errors': form.errors if 'form' in locals() else None}
                 )
                 raise
 
@@ -1563,12 +1557,11 @@ def verify_donation(request, pk):
         except Exception as e:
             logger.error(
                 f"Error verifying donation: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'donation_id': donation.id,
                     'user_id': request.user.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             return JsonResponse({
                 'status': 'error',
@@ -1660,12 +1653,11 @@ def bulk_verify_donations(request):
     except Exception as e:
         logger.error(
             f"Error in bulk donation verification: {str(e)}",
+            exc_info=True,
             extra={
                 'action': request.POST.get('action'),
                 'user_id': request.user.id,
-                'error_type': type(e).__name__,
-                'exc_info': True
-            }
+                'error_type': type(e).__name__}
         )
         return JsonResponse({'status': 'error', 'message': str(e)})
 

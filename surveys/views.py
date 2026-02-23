@@ -289,12 +289,12 @@ class SurveyCreateView(StaffRequiredMixin, CreateView):
                     # Log the error but don't prevent survey creation
                     logger.error(
                         f"Error processing questions data for survey creation: {str(e)}",
+                        exc_info=True,
                         extra={
                             'user_id': self.request.user.id,
                             'survey_id': self.object.id,
                             'survey_title': self.object.title,
-                            'error_type': 'JSONDecodeError',
-                            'exc_info': True
+                            'error_type': 'JSONDecodeError'
                         }
                     )
             
@@ -319,12 +319,11 @@ class SurveyCreateView(StaffRequiredMixin, CreateView):
         except Exception as e:
             logger.error(
                 f"Unexpected error in survey creation: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'user_id': self.request.user.id,
                     'survey_title': form.cleaned_data.get('title', ''),
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             messages.error(self.request, f'Error creating survey: {str(e)}')
             raise
@@ -437,13 +436,12 @@ class SurveyUpdateView(StaffRequiredMixin, UpdateView):
                     # Log the error but don't prevent survey update
                     logger.error(
                         f"Error processing questions data for survey update: {str(e)}",
-                        extra={
+            exc_info=True,
+            extra={
                             'user_id': self.request.user.id,
                             'survey_id': self.object.id,
                             'survey_title': self.object.title,
-                            'error_type': 'JSONDecodeError',
-                            'exc_info': True
-                        }
+                            'error_type': 'JSONDecodeError'}
                     )
             
             # Log changes
@@ -475,12 +473,11 @@ class SurveyUpdateView(StaffRequiredMixin, UpdateView):
         except Exception as e:
             logger.error(
                 f"Error updating survey: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'user_id': self.request.user.id,
                     'survey_id': self.object.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             messages.error(self.request, f'Error updating survey: {str(e)}')
             raise
@@ -552,13 +549,12 @@ class SurveyDeleteView(DeleteView):
         except Exception as e:
             logger.error(
                 f"Error deleting survey: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'survey_id': survey.id,
                     'survey_title': survey.title,
                     'user_id': request.user.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             
             # Return JSON error for AJAX requests
@@ -777,12 +773,11 @@ class SurveyQuestionCreateView(CreateView):
         except Exception as e:
             logger.error(
                 f"Error creating survey question: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'survey_id': survey.id,
                     'question_type': form.instance.question_type,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             raise
 
@@ -851,11 +846,10 @@ class SurveyQuestionUpdateView(UpdateView):
         except Exception as e:
             logger.error(
                 f"Error updating survey question: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'question_id': self.object.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             raise
 
@@ -1027,13 +1021,12 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
         except Exception as e:
             logger.error(
                 f"Error submitting survey: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'user_id': request.user.id,
                     'alumni_id': alumni.id,
                     'survey_id': survey.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             messages.error(request, "An error occurred while submitting your survey. Please try again.")
             return redirect('surveys:survey_list_public')
@@ -1221,14 +1214,13 @@ class ReportDetailView(DetailView):
             
             logger.error(
                 f"Error generating report data: {error_message}",
-                extra={
+            exc_info=True,
+            extra={
                     'report_id': report.id,
                     'report_title': report.title,
                     'report_type': report.report_type,
                     'error_type': type(e).__name__,
-                    'traceback': error_traceback,
-                    'exc_info': True
-                }
+                    'traceback': error_traceback}
             )
             
             context['report_data'] = None
@@ -1268,12 +1260,11 @@ class ReportDetailView(DetailView):
         except Exception as e:
             logger.error(
                 f"Error initializing report data: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'report_id': report.id,
                     'report_type': report.report_type,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             raise Exception(f"Error initializing report data: {str(e)}")
         
@@ -2427,15 +2418,14 @@ def report_export_pdf(request, pk):
         elapsed_time = time.time() - start_time
         logger.error(
             f"Error exporting PDF: {str(e)}",
+            exc_info=True,
             extra={
                 'report_id': report.id,
                 'report_title': report.title,
                 'report_type': report.report_type,
                 'user_id': request.user.id,
                 'error_type': type(e).__name__,
-                'export_time': elapsed_time,
-                'exc_info': True
-            }
+                'export_time': elapsed_time}
         )
         raise
 
@@ -2472,12 +2462,11 @@ class EmploymentRecordCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             logger.error(
                 f"Error creating employment record: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'alumni_id': alumni.id,
                     'user_id': self.request.user.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             raise
 
@@ -2531,12 +2520,11 @@ class AchievementCreateView(LoginRequiredMixin, CreateView):
         except Exception as e:
             logger.error(
                 f"Error creating achievement: {str(e)}",
-                extra={
+            exc_info=True,
+            extra={
                     'alumni_id': alumni.id,
                     'user_id': self.request.user.id,
-                    'error_type': type(e).__name__,
-                    'exc_info': True
-                }
+                    'error_type': type(e).__name__}
             )
             raise
 

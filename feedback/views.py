@@ -113,3 +113,27 @@ def update_feedback(request, pk):
         'form': form,
         'feedback': feedback
     })
+
+@staff_or_coordinator_required
+def feedback_detail_modal(request, pk):
+    """Modal view to display and update feedback details"""
+    feedback = get_object_or_404(Feedback, pk=pk)
+    
+    if request.method == 'POST':
+        # Update feedback status, priority, and admin notes
+        feedback.status = request.POST.get('status', feedback.status)
+        feedback.priority = request.POST.get('priority', feedback.priority)
+        feedback.admin_notes = request.POST.get('admin_notes', feedback.admin_notes)
+        feedback.save()
+        
+        messages.success(request, 'Feedback updated successfully.')
+        
+        # Return updated modal content
+        return render(request, 'feedback/partials/feedback_detail_modal.html', {
+            'feedback': feedback,
+            'updated': True
+        })
+    
+    return render(request, 'feedback/partials/feedback_detail_modal.html', {
+        'feedback': feedback
+    })

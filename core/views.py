@@ -215,6 +215,34 @@ def home(request):
     group_count_display = f"{group_count:,}" if group_count else "25+"
     job_count_display = f"{job_count:,}" if job_count else "100+"
 
+    # Initialize feedback form
+    feedback_form = None
+    if request.method == 'POST' and 'feedback_submit' in request.POST:
+        try:
+            from feedback.forms import FeedbackForm
+            feedback_form = FeedbackForm(request.POST, request.FILES)
+            if feedback_form.is_valid():
+                feedback = feedback_form.save(commit=False)
+                feedback.submitted_by = request.user if request.user.is_authenticated else None
+                feedback.save()
+                from django.contrib import messages
+                messages.success(request, 'Thank you for your feedback! We will review it and get back to you soon.')
+                return redirect('core:home')
+            else:
+                from django.contrib import messages
+                messages.error(request, 'Please correct the errors below.')
+        except Exception as e:
+            logger.error(f"Error processing feedback: {e}")
+            from django.contrib import messages
+            messages.error(request, 'There was an error submitting your feedback. Please try again.')
+    else:
+        try:
+            from feedback.forms import FeedbackForm
+            feedback_form = FeedbackForm()
+        except Exception as e:
+            logger.error(f"Error initializing feedback form: {e}")
+            feedback_form = None
+
     # Add breadcrumbs for SEO (just home page)
     breadcrumbs = [
         {'name': 'Home', 'url': '/'}
@@ -256,6 +284,7 @@ def home(request):
         'norsu_vmgo_history': norsu_vmgo_history,
         'vmgo_section': vmgo_section,
         'breadcrumbs': breadcrumbs,
+        'feedback_form': feedback_form,
         # Hero section data
         **hero_data,
     }
