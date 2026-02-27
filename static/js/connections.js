@@ -249,16 +249,16 @@ document.addEventListener('DOMContentLoaded', function() {
         if (e.target.closest('.accept-connection-btn')) {
             e.preventDefault();
             const button = e.target.closest('.accept-connection-btn');
-            const userId = button.getAttribute('data-user-id');
-            acceptConnectionRequest(userId);
+            const connectionId = button.getAttribute('data-connection-id');
+            acceptConnectionRequest(connectionId);
         }
         
         // Reject connection button click (from alumni directory/detail)
         if (e.target.closest('.reject-connection-btn')) {
             e.preventDefault();
             const button = e.target.closest('.reject-connection-btn');
-            const userId = button.getAttribute('data-user-id');
-            rejectConnectionRequest(userId);
+            const connectionId = button.getAttribute('data-connection-id');
+            rejectConnectionRequest(connectionId);
         }
         
         // Remove connection button click
