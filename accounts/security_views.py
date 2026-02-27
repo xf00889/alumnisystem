@@ -37,7 +37,7 @@ User = get_user_model()
 def custom_login_view(request):
     """Custom login view with reCAPTCHA context, rate limiting, and account lockout protection"""
     from .security import AccountLockout
-    from allauth.account.views import LoginView
+    from allauth.account.views import LoginView as AllauthLoginView
     from django.contrib.auth import authenticate
     
     # Check if request was rate limited by IP
@@ -78,46 +78,6 @@ def custom_login_view(request):
                 
                 # Redirect back to login page
                 return redirect('account_login')
-            
-            # Try to authenticate to check if credentials are valid
-            # This is done before allauth processes the form to provide better error messages
-            user = authenticate(request, username=username, password=password)
-            
-            if user is None and username and password:
-                # Authentication failed - check if it's because of wrong password or non-existent user
-                try:
-                    from django.contrib.auth import get_user_model
-                    User = get_user_model()
-                    existing_user = User.objects.get(email=username) if '@' in username else User.objects.get(username=username)
-                    
-                    # User exists but password is wrong
-                    remaining_attempts = AccountLockout.get_remaining_attempts(username)
-                    if remaining_attempts <= 2:
-                        messages.error(
-                            request,
-                            f'Invalid email or password. You have {remaining_attempts} attempt(s) remaining before your account is locked.'
-                        )
-                    else:
-                        messages.error(
-                            request,
-                            'Invalid email or password. Please check your credentials and try again.'
-                        )
-                except User.DoesNotExist:
-                    # User doesn't exist
-                    messages.error(
-                        request,
-                        'Invalid email or password. Please check your credentials and try again.'
-                    )
-            
-            # Check remaining attempts and show warning if low (for existing accounts)
-            if user is None:
-                remaining_attempts = AccountLockout.get_remaining_attempts(username)
-                if 0 < remaining_attempts <= 2 and not messages.get_messages(request):
-                    messages.warning(
-                        request,
-                        f"Warning: You have {remaining_attempts} login attempt{'s' if remaining_attempts != 1 else ''} "
-                        f"remaining before your account is temporarily locked."
-                    )
     
     # Get reCAPTCHA context
     context = {
@@ -134,8 +94,44 @@ def custom_login_view(request):
         logger.error(f"Error getting SSO providers: {e}")
         context['enabled_sso_providers'] = []
     
-    # Use Allauth's LoginView but with custom context
-    view = LoginView.as_view(extra_context=context)
+    # Create a custom LoginView class that adds form errors as messages
+    class CustomLoginViewWithMessages(AllauthLoginView):
+        def form_invalid(self, form):
+            """Override to add form errors as Django messages"""
+            # Get the response from parent
+            response = super().form_invalid(form)
+            
+            # Add form errors as messages
+            if form.errors:
+                # Get non-field errors (authentication errors)
+                for error in form.non_field_errors():
+                    messages.error(self.request, error)
+                
+                # Check remaining attempts and add warning if needed
+                username = self.request.POST.get('login', '')
+                if username:
+                    try:
+                        User = get_user_model()
+                        user = User.objects.get(email=username)
+                        
+                        # User exists, check remaining attempts
+                        remaining_attempts = AccountLockout.get_remaining_attempts(username)
+                        
+                        if remaining_attempts <= 2 and remaining_attempts > 0:
+                            messages.warning(
+                                self.request,
+                                f'Warning: You have {remaining_attempts} attempt(s) remaining before your account is locked.'
+                            )
+                            logger.warning(f"Login failed for {username}, {remaining_attempts} attempts remaining")
+                    except User.DoesNotExist:
+                        pass
+                    except Exception as e:
+                        logger.error(f"Error checking remaining attempts: {e}")
+            
+            return response
+    
+    # Use our custom LoginView with extra context
+    view = CustomLoginViewWithMessages.as_view(extra_context=context)
     response = view(request)
     
     return response

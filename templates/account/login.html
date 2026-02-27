@@ -32,6 +32,10 @@
     <!-- reCAPTCHA Mobile Fix -->
     <link rel="stylesheet" href="{% static 'css/recaptcha-mobile-fix.css' %}">
     
+    <!-- Load Notyf and ToastUtils BEFORE inline scripts that use them -->
+    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+    <script src="{% static 'js/utils/toast-notifications.js' %}"></script>
+    
     <style>
         /* Modern Premium Design System */
         :root {
@@ -1128,23 +1132,33 @@
                 });
             }
 
+            // Display Django messages as toast notifications
             {% if messages %}
-                {% for message in messages %}
-                    {# Filter out logout, login success, and OAuth error messages #}
-                    {% with message_text=message|lower %}
-                        {% if 'signed out' not in message_text and 'logged out' not in message_text and 'sign out' not in message_text and 'log out' not in message_text and 'logout' not in message_text and 'signed in' not in message_text and 'logged in' not in message_text and 'google sign-in' not in message_text and 'cancelled' not in message_text and 'access_denied' not in message_text %}
-                            {% if message.tags == 'error' %}
-                                ToastUtils.showError('{{ message|escapejs }}');
-                            {% elif message.tags == 'warning' %}
-                                ToastUtils.showWarning('{{ message|escapejs }}');
-                            {% elif message.tags == 'success' %}
-                                ToastUtils.showSuccess('{{ message|escapejs }}');
-                            {% else %}
-                                ToastUtils.showInfo('{{ message|escapejs }}');
+                // Ensure ToastUtils is loaded before showing messages
+                if (typeof ToastUtils !== 'undefined') {
+                    {% for message in messages %}
+                        {# Filter out logout, login success, and OAuth error messages #}
+                        {% with message_text=message|lower %}
+                            {% if 'signed out' not in message_text and 'logged out' not in message_text and 'sign out' not in message_text and 'log out' not in message_text and 'logout' not in message_text and 'signed in' not in message_text and 'logged in' not in message_text and 'google sign-in' not in message_text and 'cancelled' not in message_text and 'access_denied' not in message_text and 'successfully signed in' not in message_text %}
+                                {% if message.tags == 'error' %}
+                                    ToastUtils.showError('{{ message|escapejs }}');
+                                {% elif message.tags == 'warning' %}
+                                    ToastUtils.showWarning('{{ message|escapejs }}');
+                                {% elif message.tags == 'success' %}
+                                    ToastUtils.showSuccess('{{ message|escapejs }}');
+                                {% else %}
+                                    ToastUtils.showInfo('{{ message|escapejs }}');
+                                {% endif %}
                             {% endif %}
-                        {% endif %}
-                    {% endwith %}
-                {% endfor %}
+                        {% endwith %}
+                    {% endfor %}
+                } else {
+                    console.error('ToastUtils not loaded - cannot display messages');
+                    // Fallback: show messages in console
+                    {% for message in messages %}
+                        console.log('Django message ({{ message.tags }}): {{ message|escapejs }}');
+                    {% endfor %}
+                }
             {% endif %}
 
             {% if recaptcha_enabled %}
@@ -1249,10 +1263,6 @@
             }
         });
     </script>
-
-    <!-- Notyf Toast Notifications -->
-    <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
-    <script src="{% static 'js/utils/toast-notifications.js' %}"></script>
     
     <!-- reCAPTCHA Mobile Helper -->
     <script src="{% static 'js/recaptcha-mobile-helper.js' %}"></script>

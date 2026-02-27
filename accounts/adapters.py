@@ -88,42 +88,6 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         # Call parent method for default behavior
         return super().pre_authenticate(request, **credentials)
     
-    def authentication_failed(self, request, **kwargs):
-        """
-        Handle failed authentication attempts.
-        This method is called by allauth when authentication fails.
-        """
-        from django.contrib import messages
-        from accounts.security import AccountLockout
-        
-        # Get the username/email from the request
-        username = request.POST.get('login', '')
-        
-        # Check if account is locked
-        is_locked, remaining_minutes, failed_attempts = AccountLockout.is_account_locked(username)
-        
-        if is_locked:
-            messages.error(
-                request,
-                f'Your account has been temporarily locked due to multiple failed login attempts. '
-                f'Please try again in {remaining_minutes} minutes or reset your password.'
-            )
-        else:
-            remaining_attempts = AccountLockout.get_remaining_attempts(username)
-            if remaining_attempts <= 2:
-                messages.error(
-                    request,
-                    f'Invalid email or password. You have {remaining_attempts} attempt(s) remaining before your account is locked.'
-                )
-            else:
-                messages.error(
-                    request,
-                    'Invalid email or password. Please check your credentials and try again.'
-                )
-        
-        # Call parent method
-        return super().authentication_failed(request, **kwargs) if hasattr(super(), 'authentication_failed') else None
-    
     def is_open_for_signup(self, request):
         """
         Check if signup is open - always return True to allow signups.
