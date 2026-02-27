@@ -128,19 +128,15 @@ def custom_login_view(request):
     # Get enabled SSO providers
     try:
         from core.models import SSOConfig
-        enabled_providers = SSOConfig.get_enabled_providers()
-        context['enabled_sso_providers'] = [p.provider_type for p in enabled_providers]
+        enabled_providers = SSOConfig.objects.filter(is_active=True, enabled=True)
+        context['enabled_sso_providers'] = [p.provider for p in enabled_providers]
     except Exception as e:
         logger.error(f"Error getting SSO providers: {e}")
         context['enabled_sso_providers'] = []
     
     # Use Allauth's LoginView but with custom context
-    view = LoginView.as_view()
+    view = LoginView.as_view(extra_context=context)
     response = view(request)
-    
-    # If it's a render response, add our context
-    if hasattr(response, 'context_data'):
-        response.context_data.update(context)
     
     return response
 
