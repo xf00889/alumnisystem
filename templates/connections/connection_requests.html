@@ -836,6 +836,13 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const connectionId = this.dataset.connectionId;
             const card = this.closest('.card');
+            const acceptBtn = this;
+            const rejectBtn = card.querySelector('.reject-btn');
+            
+            // Disable both buttons immediately to prevent double-clicks
+            acceptBtn.disabled = true;
+            rejectBtn.disabled = true;
+            acceptBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
             
             fetch(`{% url 'connections:accept_request' 0 %}`.replace('0', connectionId), {
                 method: 'POST',
@@ -857,7 +864,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 }));
             })
             .then(({ok, status, data}) => {
-                if (ok && (data.status === 'success' || data.success)) {
+                console.log('Accept response:', {ok, status, data}); // Debug log
+                
+                if (ok && status === 200 && (data.status === 'success' || data.success === true)) {
+                    // Success - connection accepted
                     card.style.transition = 'opacity 0.3s';
                     card.style.opacity = '0.5';
                     setTimeout(() => {
@@ -871,6 +881,14 @@ document.addEventListener('DOMContentLoaded', function() {
                         }
                     }, 300);
                 } else {
+                    // Error or failure
+                    console.log('Accept failed:', {ok, status, data}); // Debug log
+                    
+                    // Re-enable buttons on error
+                    acceptBtn.disabled = false;
+                    rejectBtn.disabled = false;
+                    acceptBtn.innerHTML = '<i class="fas fa-check"></i> Accept';
+                    
                     // Handle specific error cases
                     let errorMessage = data.message || 'Error accepting connection request.';
                     let shouldRemoveCard = false;
@@ -900,6 +918,10 @@ document.addEventListener('DOMContentLoaded', function() {
             })
             .catch(error => {
                 console.error('Error accepting connection request:', error);
+                // Re-enable buttons on network error
+                acceptBtn.disabled = false;
+                rejectBtn.disabled = false;
+                acceptBtn.innerHTML = '<i class="fas fa-check"></i> Accept';
                 showAlert('Network error. Please check your connection and try again.', 'danger');
             });
         });
@@ -910,8 +932,15 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const connectionId = this.dataset.connectionId;
             const card = this.closest('.card');
+            const rejectBtn = this;
+            const acceptBtn = card.querySelector('.accept-btn');
             
             if (confirm('Are you sure you want to reject this connection request?')) {
+                // Disable both buttons immediately to prevent double-clicks
+                rejectBtn.disabled = true;
+                acceptBtn.disabled = true;
+                rejectBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processing...';
+                
                 fetch(`{% url 'connections:reject_request' 0 %}`.replace('0', connectionId), {
                     method: 'POST',
                     headers: {
@@ -932,7 +961,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     }));
                 })
                 .then(({ok, status, data}) => {
-                    if (ok && (data.status === 'success' || data.success)) {
+                    console.log('Reject response:', {ok, status, data}); // Debug log
+                    
+                    if (ok && status === 200 && (data.status === 'success' || data.success === true)) {
+                        // Success - connection rejected
                         card.style.transition = 'opacity 0.3s';
                         card.style.opacity = '0.5';
                         setTimeout(() => {
@@ -945,6 +977,14 @@ document.addEventListener('DOMContentLoaded', function() {
                             }
                         }, 300);
                     } else {
+                        // Error or failure
+                        console.log('Reject failed:', {ok, status, data}); // Debug log
+                        
+                        // Re-enable buttons on error
+                        rejectBtn.disabled = false;
+                        acceptBtn.disabled = false;
+                        rejectBtn.innerHTML = '<i class="fas fa-times"></i> Reject';
+                        
                         // Handle specific error cases
                         let errorMessage = data.message || 'Error rejecting connection request.';
                         let shouldRemoveCard = false;
@@ -974,6 +1014,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 })
                 .catch(error => {
                     console.error('Error rejecting connection request:', error);
+                    // Re-enable buttons on network error
+                    rejectBtn.disabled = false;
+                    acceptBtn.disabled = false;
+                    rejectBtn.innerHTML = '<i class="fas fa-times"></i> Reject';
                     showAlert('Network error. Please check your connection and try again.', 'danger');
                 });
             }
