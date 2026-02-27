@@ -844,9 +844,14 @@ document.addEventListener('DOMContentLoaded', function() {
                     'X-Requested-With': 'XMLHttpRequest'
                 }
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            })
             .then(data => {
-                if (data.status === 'success') {
+                if (data.status === 'success' || data.success) {
                     card.style.transition = 'opacity 0.3s';
                     card.style.opacity = '0.5';
                     setTimeout(() => {
@@ -854,10 +859,12 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Show success message
                         showAlert('Connection accepted successfully!', 'success');
                     }, 300);
+                } else {
+                    showAlert(data.message || 'Error accepting connection request.', 'danger');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
+                console.error('Error accepting connection request.', error);
                 showAlert('Error accepting connection request.', 'danger');
             });
         });
@@ -877,19 +884,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         'X-Requested-With': 'XMLHttpRequest'
                     }
                 })
-                .then(response => response.json())
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                })
                 .then(data => {
-                    if (data.status === 'success') {
+                    if (data.status === 'success' || data.success) {
                         card.style.transition = 'opacity 0.3s';
                         card.style.opacity = '0.5';
                         setTimeout(() => {
                             card.remove();
                             showAlert('Connection request rejected.', 'info');
                         }, 300);
+                    } else {
+                        showAlert(data.message || 'Error rejecting connection request.', 'danger');
                     }
                 })
                 .catch(error => {
-                    console.error('Error:', error);
+                    console.error('Error rejecting connection request.', error);
                     showAlert('Error rejecting connection request.', 'danger');
                 });
             }

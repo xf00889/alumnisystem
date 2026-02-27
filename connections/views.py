@@ -167,40 +167,54 @@ def connection_requests(request):
 @require_http_methods(["POST"])
 def accept_connection_request(request, connection_id):
     """Accept a connection request"""
-    connection = get_object_or_404(
-        Connection,
-        id=connection_id,
-        receiver=request.user,
-        status='PENDING'
-    )
-    
-    connection.accept()
-    return JsonResponse({
-        'status': 'success',
-        'success': True,
-        'message': f'You are now connected with {connection.requester.get_full_name() or connection.requester.username}.',
-        'user_id': connection.requester.id
-    })
+    try:
+        connection = get_object_or_404(
+            Connection,
+            id=connection_id,
+            receiver=request.user,
+            status='PENDING'
+        )
+        
+        connection.accept()
+        return JsonResponse({
+            'status': 'success',
+            'success': True,
+            'message': f'You are now connected with {connection.requester.get_full_name() or connection.requester.username}.',
+            'user_id': connection.requester.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': str(e)
+        }, status=400)
 
 
 @login_required
 @require_http_methods(["POST"])
 def reject_connection_request(request, connection_id):
     """Reject a connection request"""
-    connection = get_object_or_404(
-        Connection,
-        id=connection_id,
-        receiver=request.user,
-        status='PENDING'
-    )
-    
-    connection.reject()
-    return JsonResponse({
-        'status': 'success',
-        'success': True,
-        'message': 'Connection request rejected.',
-        'user_id': connection.requester.id
-    })
+    try:
+        connection = get_object_or_404(
+            Connection,
+            id=connection_id,
+            receiver=request.user,
+            status='PENDING'
+        )
+        
+        connection.reject()
+        return JsonResponse({
+            'status': 'success',
+            'success': True,
+            'message': 'Connection request rejected.',
+            'user_id': connection.requester.id
+        })
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': str(e)
+        }, status=400)
 
 
 @login_required
