@@ -867,20 +867,35 @@ document.addEventListener('DOMContentLoaded', function() {
                         // Reload page if no more requests
                         const remainingCards = document.querySelectorAll('.request-card').length;
                         if (remainingCards <= 1) {
-                            setTimeout(() => location.reload(), 1000);
+                            setTimeout(() => location.reload(), 1500);
                         }
                     }, 300);
                 } else {
                     // Handle specific error cases
                     let errorMessage = data.message || 'Error accepting connection request.';
+                    let shouldRemoveCard = false;
+                    
                     if (status === 404) {
                         errorMessage = 'Connection request not found or already processed.';
-                        // Remove the card since it's no longer valid
+                        shouldRemoveCard = true;
+                    }
+                    
+                    // Show error message
+                    showAlert(errorMessage, 'warning');
+                    
+                    // Remove card if it's invalid (404)
+                    if (shouldRemoveCard) {
                         card.style.transition = 'opacity 0.3s';
                         card.style.opacity = '0.5';
-                        setTimeout(() => card.remove(), 300);
+                        setTimeout(() => {
+                            card.remove();
+                            // Check if we need to reload (no more cards)
+                            const remainingCards = document.querySelectorAll('.request-card').length;
+                            if (remainingCards === 0) {
+                                setTimeout(() => location.reload(), 1500);
+                            }
+                        }, 300);
                     }
-                    showAlert(errorMessage, 'warning');
                 }
             })
             .catch(error => {
@@ -926,20 +941,35 @@ document.addEventListener('DOMContentLoaded', function() {
                             // Reload page if no more requests
                             const remainingCards = document.querySelectorAll('.request-card').length;
                             if (remainingCards <= 1) {
-                                setTimeout(() => location.reload(), 1000);
+                                setTimeout(() => location.reload(), 1500);
                             }
                         }, 300);
                     } else {
                         // Handle specific error cases
                         let errorMessage = data.message || 'Error rejecting connection request.';
+                        let shouldRemoveCard = false;
+                        
                         if (status === 404) {
                             errorMessage = 'Connection request not found or already processed.';
-                            // Remove the card since it's no longer valid
+                            shouldRemoveCard = true;
+                        }
+                        
+                        // Show error message
+                        showAlert(errorMessage, 'warning');
+                        
+                        // Remove card if it's invalid (404)
+                        if (shouldRemoveCard) {
                             card.style.transition = 'opacity 0.3s';
                             card.style.opacity = '0.5';
-                            setTimeout(() => card.remove(), 300);
+                            setTimeout(() => {
+                                card.remove();
+                                // Check if we need to reload (no more cards)
+                                const remainingCards = document.querySelectorAll('.request-card').length;
+                                if (remainingCards === 0) {
+                                    setTimeout(() => location.reload(), 1500);
+                                }
+                            }, 300);
                         }
-                        showAlert(errorMessage, 'warning');
                     }
                 })
                 .catch(error => {
