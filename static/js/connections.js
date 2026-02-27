@@ -229,22 +229,6 @@ document.addEventListener('DOMContentLoaded', function() {
             sendConnectionRequest(userId);
         }
         
-        // Accept connection button click (from connection requests page)
-        if (e.target.closest('.accept-btn')) {
-            e.preventDefault();
-            const button = e.target.closest('.accept-btn');
-            const connectionId = button.getAttribute('data-connection-id');
-            acceptConnectionRequest(connectionId);
-        }
-        
-        // Reject connection button click (from connection requests page)
-        if (e.target.closest('.reject-btn')) {
-            e.preventDefault();
-            const button = e.target.closest('.reject-btn');
-            const connectionId = button.getAttribute('data-connection-id');
-            rejectConnectionRequest(connectionId);
-        }
-        
         // Accept connection button click (from alumni directory/detail)
         if (e.target.closest('.accept-connection-btn')) {
             e.preventDefault();
