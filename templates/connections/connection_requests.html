@@ -845,13 +845,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             })
             .then(response => {
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                return response.json();
+                // Parse JSON regardless of status
+                return response.json().then(data => ({
+                    ok: response.ok,
+                    status: response.status,
+                    data: data
+                }));
             })
-            .then(data => {
-                if (data.status === 'success' || data.success) {
+            .then(({ok, status, data}) => {
+                if (ok && (data.status === 'success' || data.success)) {
                     card.style.transition = 'opacity 0.3s';
                     card.style.opacity = '0.5';
                     setTimeout(() => {
@@ -885,13 +887,15 @@ document.addEventListener('DOMContentLoaded', function() {
                     }
                 })
                 .then(response => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
+                    // Parse JSON regardless of status
+                    return response.json().then(data => ({
+                        ok: response.ok,
+                        status: response.status,
+                        data: data
+                    }));
                 })
-                .then(data => {
-                    if (data.status === 'success' || data.success) {
+                .then(({ok, status, data}) => {
+                    if (ok && (data.status === 'success' || data.success)) {
                         card.style.transition = 'opacity 0.3s';
                         card.style.opacity = '0.5';
                         setTimeout(() => {

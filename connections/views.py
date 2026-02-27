@@ -168,8 +168,7 @@ def connection_requests(request):
 def accept_connection_request(request, connection_id):
     """Accept a connection request"""
     try:
-        connection = get_object_or_404(
-            Connection,
+        connection = Connection.objects.get(
             id=connection_id,
             receiver=request.user,
             status='PENDING'
@@ -182,11 +181,17 @@ def accept_connection_request(request, connection_id):
             'message': f'You are now connected with {connection.requester.get_full_name() or connection.requester.username}.',
             'user_id': connection.requester.id
         })
+    except Connection.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': 'Connection request not found or already processed.'
+        }, status=404)
     except Exception as e:
         return JsonResponse({
             'status': 'error',
             'success': False,
-            'message': str(e)
+            'message': 'An error occurred while accepting the connection request.'
         }, status=400)
 
 
@@ -195,8 +200,7 @@ def accept_connection_request(request, connection_id):
 def reject_connection_request(request, connection_id):
     """Reject a connection request"""
     try:
-        connection = get_object_or_404(
-            Connection,
+        connection = Connection.objects.get(
             id=connection_id,
             receiver=request.user,
             status='PENDING'
@@ -209,11 +213,17 @@ def reject_connection_request(request, connection_id):
             'message': 'Connection request rejected.',
             'user_id': connection.requester.id
         })
+    except Connection.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': 'Connection request not found or already processed.'
+        }, status=404)
     except Exception as e:
         return JsonResponse({
             'status': 'error',
             'success': False,
-            'message': str(e)
+            'message': 'An error occurred while rejecting the connection request.'
         }, status=400)
 
 
