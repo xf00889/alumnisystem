@@ -614,35 +614,71 @@
 
         /* Alert Styling */
         .alert {
-            padding: 0.75rem;
-            border-radius: 0.5rem;
-            margin-bottom: 0.5rem;
+            padding: 0.875rem 1rem;
+            border-radius: var(--radius-md);
+            margin-bottom: var(--space-3);
             font-size: 0.875rem;
-            border: 1px solid;
+            border: 1.5px solid;
+            display: flex;
+            align-items: flex-start;
+            gap: 0.75rem;
+            animation: slideDown 0.3s ease;
+        }
+        
+        .alert i {
+            flex-shrink: 0;
+            margin-top: 0.125rem;
         }
         
         .alert-error {
-            background: #fee;
-            border-color: #fcc;
-            color: #c00;
+            background: #fef2f2;
+            border-color: #fecaca;
+            color: #991b1b;
+        }
+        
+        .alert-error i {
+            color: #dc2626;
         }
         
         .alert-success {
-            background: #efe;
-            border-color: #cfc;
-            color: #0a0;
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+            color: #166534;
+        }
+        
+        .alert-success i {
+            color: #16a34a;
         }
         
         .alert-warning {
-            background: #ffe;
-            border-color: #fec;
-            color: #c80;
+            background: #fffbeb;
+            border-color: #fde68a;
+            color: #92400e;
+        }
+        
+        .alert-warning i {
+            color: #f59e0b;
         }
         
         .alert-info {
-            background: #eef;
-            border-color: #ccf;
-            color: #00c;
+            background: #eff6ff;
+            border-color: #bfdbfe;
+            color: #1e40af;
+        }
+        
+        .alert-info i {
+            color: #3b82f6;
+        }
+        
+        /* Input error state */
+        .form-input.error {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+        
+        .form-input.error:focus {
+            border-color: #dc2626;
+            box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
         }
     </style>
 </head>
@@ -674,6 +710,12 @@
             <div class="form-container active" id="loginForm">
                 <form method="POST" action="{% url 'account_login' %}" id="loginFormElement">
                     {% csrf_token %}
+                    
+                    <!-- Error message container -->
+                    <div id="loginErrorMessage" class="alert alert-error" style="display: none;">
+                        <i class="fas fa-exclamation-circle"></i>
+                        <span id="loginErrorText"></span>
+                    </div>
                     
                     <div class="form-group">
                         <input type="email" class="form-input" name="login" placeholder="Email Address" required id="loginEmail">
@@ -1130,8 +1172,17 @@
             const loginFormElement = document.getElementById('loginFormElement');
             if (loginFormElement) {
                 loginFormElement.addEventListener('submit', function(e) {
-                    {% if recaptcha_enabled %}
                     e.preventDefault();
+                    
+                    // Hide any previous error messages
+                    const errorMessage = document.getElementById('loginErrorMessage');
+                    if (errorMessage) {
+                        errorMessage.style.display = 'none';
+                    }
+                    
+                    // Clear input error states
+                    document.getElementById('loginEmail').style.borderColor = '';
+                    document.getElementById('loginPassword').style.borderColor = '';
                     
                     const submitBtn = document.getElementById('loginSubmitBtn');
                     if (submitBtn) {
@@ -1139,6 +1190,7 @@
                         submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Please wait...';
                     }
                     
+                    {% if recaptcha_enabled %}
                     // Execute reCAPTCHA v3 for login
                     grecaptcha.ready(function() {
                         grecaptcha.execute('{{ recaptcha_site_key }}', {action: 'login'}).then(function(token) {
@@ -1157,8 +1209,43 @@
                             loginFormElement.submit();
                         });
                     });
+                    {% else %}
+                    // No reCAPTCHA, submit directly
+                    loginFormElement.submit();
                     {% endif %}
                 });
+            }
+            
+            // Check for login errors in URL parameters (from server-side validation)
+            const urlParams = new URLSearchParams(window.location.search);
+            const loginError = urlParams.get('error');
+            if (loginError) {
+                const errorMessage = document.getElementById('loginErrorMessage');
+                const errorText = document.getElementById('loginErrorText');
+                
+                if (errorMessage && errorText) {
+                    let errorMsg = '';
+                    switch(loginError) {
+                        case 'invalid_credentials':
+                            errorMsg = 'Invalid email or password. Please check your credentials and try again.';
+                            document.getElementById('loginPassword').style.borderColor = '#ef4444';
+                            break;
+                        case 'account_locked':
+                            errorMsg = 'Your account has been temporarily locked due to multiple failed login attempts. Please try again later or reset your password.';
+                            break;
+                        case 'inactive_account':
+                            errorMsg = 'Your account is not active. Please verify your email address.';
+                            break;
+                        default:
+                            errorMsg = 'An error occurred during login. Please try again.';
+                    }
+                    
+                    errorText.textContent = errorMsg;
+                    errorMessage.style.display = 'block';
+                    
+                    // Scroll to error message
+                    errorMessage.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
             }
         });
     </script>

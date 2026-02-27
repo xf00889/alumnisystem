@@ -37,6 +37,8 @@ User = get_user_model()
 def custom_login_view(request):
     """Custom login view with reCAPTCHA context, rate limiting, and account lockout protection"""
     from .security import AccountLockout
+    from allauth.account.views import LoginView
+    from django.contrib.auth import authenticate
     
     # Check if request was rate limited by IP
     if getattr(request, 'limited', False):
@@ -47,6 +49,7 @@ def custom_login_view(request):
     # Check for account lockout on POST (login attempt)
     if request.method == 'POST':
         username = request.POST.get('login', '')  # allauth uses 'login' field
+        password = request.POST.get('password', '')
         
         if username:
             # Check if account is locked
@@ -76,22 +79,60 @@ def custom_login_view(request):
                 # Redirect back to login page
                 return redirect('account_login')
             
-            # Check remaining attempts and show warning if low
-            remaining_attempts = AccountLockout.get_remaining_attempts(username)
-            if 0 < remaining_attempts <= 2:
-                messages.warning(
-                    request,
-                    f"Warning: You have {remaining_attempts} login attempt{'s' if remaining_attempts != 1 else ''} "
-                    f"remaining before your account is temporarily locked."
-                )
-    
-    from allauth.account.views import LoginView
+            # Try to authenticate to check if credentials are valid
+            # This is done before allauth processes the form to provide better error messages
+            user = authenticate(request, username=username, password=password)
+            
+            if user is None and username and password:
+                # Authentication failed - check if it's because of wrong password or non-existent user
+                try:
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    existing_user = User.objects.get(email=username) if '@' in username else User.objects.get(username=username)
+                    
+                    # User exists but password is wrong
+                    remaining_attempts = AccountLockout.get_remaining_attempts(username)
+                    if remaining_attempts <= 2:
+                        messages.error(
+                            request,
+                            f'Invalid email or password. You have {remaining_attempts} attempt(s) remaining before your account is locked.'
+                        )
+                    else:
+                        messages.error(
+                            request,
+                            'Invalid email or password. Please check your credentials and try again.'
+                        )
+                except User.DoesNotExist:
+                    # User doesn't exist
+                    messages.error(
+                        request,
+                        'Invalid email or password. Please check your credentials and try again.'
+                    )
+            
+            # Check remaining attempts and show warning if low (for existing accounts)
+            if user is None:
+                remaining_attempts = AccountLockout.get_remaining_attempts(username)
+                if 0 < remaining_attempts <= 2 and not messages.get_messages(request):
+                    messages.warning(
+                        request,
+                        f"Warning: You have {remaining_attempts} login attempt{'s' if remaining_attempts != 1 else ''} "
+                        f"remaining before your account is temporarily locked."
+                    )
     
     # Get reCAPTCHA context
     context = {
         'recaptcha_enabled': is_recaptcha_enabled(),
-        'recaptcha_public_key': get_recaptcha_public_key(),
+        'recaptcha_site_key': get_recaptcha_public_key(),
     }
+    
+    # Get enabled SSO providers
+    try:
+        from core.models import SSOConfig
+        enabled_providers = SSOConfig.get_enabled_providers()
+        context['enabled_sso_providers'] = [p.provider_type for p in enabled_providers]
+    except Exception as e:
+        logger.error(f"Error getting SSO providers: {e}")
+        context['enabled_sso_providers'] = []
     
     # Use Allauth's LoginView but with custom context
     view = LoginView.as_view()

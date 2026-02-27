@@ -850,6 +850,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     ok: response.ok,
                     status: response.status,
                     data: data
+                })).catch(() => ({
+                    ok: false,
+                    status: response.status,
+                    data: { message: 'Invalid response from server' }
                 }));
             })
             .then(({ok, status, data}) => {
@@ -860,14 +864,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         card.remove();
                         // Show success message
                         showAlert('Connection accepted successfully!', 'success');
+                        // Reload page if no more requests
+                        const remainingCards = document.querySelectorAll('.request-card').length;
+                        if (remainingCards <= 1) {
+                            setTimeout(() => location.reload(), 1000);
+                        }
                     }, 300);
                 } else {
-                    showAlert(data.message || 'Error accepting connection request.', 'danger');
+                    // Handle specific error cases
+                    let errorMessage = data.message || 'Error accepting connection request.';
+                    if (status === 404) {
+                        errorMessage = 'Connection request not found or already processed.';
+                        // Remove the card since it's no longer valid
+                        card.style.transition = 'opacity 0.3s';
+                        card.style.opacity = '0.5';
+                        setTimeout(() => card.remove(), 300);
+                    }
+                    showAlert(errorMessage, 'warning');
                 }
             })
             .catch(error => {
-                console.error('Error accepting connection request.', error);
-                showAlert('Error accepting connection request.', 'danger');
+                console.error('Error accepting connection request:', error);
+                showAlert('Network error. Please check your connection and try again.', 'danger');
             });
         });
     });
@@ -892,6 +910,10 @@ document.addEventListener('DOMContentLoaded', function() {
                         ok: response.ok,
                         status: response.status,
                         data: data
+                    })).catch(() => ({
+                        ok: false,
+                        status: response.status,
+                        data: { message: 'Invalid response from server' }
                     }));
                 })
                 .then(({ok, status, data}) => {
@@ -901,14 +923,28 @@ document.addEventListener('DOMContentLoaded', function() {
                         setTimeout(() => {
                             card.remove();
                             showAlert('Connection request rejected.', 'info');
+                            // Reload page if no more requests
+                            const remainingCards = document.querySelectorAll('.request-card').length;
+                            if (remainingCards <= 1) {
+                                setTimeout(() => location.reload(), 1000);
+                            }
                         }, 300);
                     } else {
-                        showAlert(data.message || 'Error rejecting connection request.', 'danger');
+                        // Handle specific error cases
+                        let errorMessage = data.message || 'Error rejecting connection request.';
+                        if (status === 404) {
+                            errorMessage = 'Connection request not found or already processed.';
+                            // Remove the card since it's no longer valid
+                            card.style.transition = 'opacity 0.3s';
+                            card.style.opacity = '0.5';
+                            setTimeout(() => card.remove(), 300);
+                        }
+                        showAlert(errorMessage, 'warning');
                     }
                 })
                 .catch(error => {
-                    console.error('Error rejecting connection request.', error);
-                    showAlert('Error rejecting connection request.', 'danger');
+                    console.error('Error rejecting connection request:', error);
+                    showAlert('Network error. Please check your connection and try again.', 'danger');
                 });
             }
         });
