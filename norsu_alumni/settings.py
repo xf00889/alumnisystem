@@ -41,9 +41,19 @@ ALLOWED_HOSTS_BASE = config('ALLOWED_HOSTS', default='localhost,127.0.0.1,192.16
 # Add local IPs and test server
 ALLOWED_HOSTS = list(ALLOWED_HOSTS_BASE) + ['192.168.1.6', 'testserver']
 
-# Add Render domain if not already included
-if 'alumnisystem-6c7s.onrender.com' not in ALLOWED_HOSTS:
-    ALLOWED_HOSTS.append('alumnisystem-6c7s.onrender.com')
+# Add production domains
+PRODUCTION_DOMAINS = [
+    '72.62.127.24',  # VPS IP
+    'norsualumni.com',
+    'www.norsualumni.com',
+    'alumninorsu.com',
+    'www.alumninorsu.com',
+    'alumnisystem-6c7s.onrender.com',  # Render domain (if still needed)
+]
+
+for domain in PRODUCTION_DOMAINS:
+    if domain not in ALLOWED_HOSTS:
+        ALLOWED_HOSTS.append(domain)
 
 # Session configuration - use cache-based sessions during setup
 # This avoids database dependency issues during initial setup
@@ -405,7 +415,16 @@ CSRF_TRUSTED_ORIGINS = [
     'http://127.0.0.1:8080',
     'http://localhost:8080',
     'http://192.168.11.214:8005',
-    'http://192.168.1.6:8005',  # Added for external access
+    'http://192.168.1.6:8005',
+    'http://72.62.127.24',
+    'http://norsualumni.com',
+    'http://www.norsualumni.com',
+    'http://alumninorsu.com',
+    'http://www.alumninorsu.com',
+    'https://norsualumni.com',
+    'https://www.norsualumni.com',
+    'https://alumninorsu.com',
+    'https://www.alumninorsu.com',
 ]
 
 # CSRF trusted origins configured above
