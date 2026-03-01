@@ -40,17 +40,39 @@ class SuperuserSetupView(FormView):
     
     def form_valid(self, form):
         try:
-            # Create the superuser
-            user = User.objects.create_superuser(
-                username=form.cleaned_data['username'],
-                email=form.cleaned_data['email'],
-                password=form.cleaned_data['password1'],
-                first_name=form.cleaned_data.get('first_name', ''),
-                last_name=form.cleaned_data.get('last_name', '')
-            )
+            # Check if user already exists
+            username = form.cleaned_data['username']
+            email = form.cleaned_data['email']
             
-            logger.info(f'Superuser created successfully: {user.username}')
-            messages.success(self.request, f'Admin account "{user.username}" created successfully!')
+            if User.objects.filter(username=username).exists():
+                logger.warning(f'Username already exists: {username}')
+                messages.warning(self.request, f'Username "{username}" already exists. Using existing account.')
+                user = User.objects.get(username=username)
+                # Update to superuser if not already
+                if not user.is_superuser:
+                    user.is_superuser = True
+                    user.is_staff = True
+                    user.save()
+            elif User.objects.filter(email=email).exists():
+                logger.warning(f'Email already exists: {email}')
+                messages.warning(self.request, f'Email "{email}" already exists. Using existing account.')
+                user = User.objects.get(email=email)
+                # Update to superuser if not already
+                if not user.is_superuser:
+                    user.is_superuser = True
+                    user.is_staff = True
+                    user.save()
+            else:
+                # Create the superuser
+                user = User.objects.create_superuser(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['password1'],
+                    first_name=form.cleaned_data.get('first_name', ''),
+                    last_name=form.cleaned_data.get('last_name', '')
+                )
+                logger.info(f'Superuser created successfully: {user.username}')
+                messages.success(self.request, f'Admin account "{user.username}" created successfully!')
             
             # Store superuser info in session for completion page
             self.request.session['created_superuser'] = {
@@ -59,8 +81,33 @@ class SuperuserSetupView(FormView):
                 'created_at': timezone.now().isoformat()
             }
             
+            # Mark setup as complete immediately
+            setup_state, created = SetupState.objects.get_or_create(
+                id=1,
+                defaults={
+                    'is_complete': True,
+                    'completed_at': timezone.now(),
+                    'setup_data': {
+                        'superuser_created': True,
+                        'superuser_username': user.username,
+                        'superuser_email': user.email
+                    }
+                }
+            )
+            if not created:
+                setup_state.is_complete = True
+                setup_state.completed_at = timezone.now()
+                setup_state.setup_data = {
+                    'superuser_created': True,
+                    'superuser_username': user.username,
+                    'superuser_email': user.email
+                }
+                setup_state.save()
+            
+            logger.info('Setup marked as complete in form_valid')
+            
         except Exception as e:
-            logger.error(f'Failed to create superuser: {e}')
+            logger.error(f'Failed to create superuser: {e}', exc_info=True)
             messages.error(self.request, f'Failed to create admin account: {str(e)}')
             return self.form_invalid(form)
         
@@ -78,7 +125,7 @@ class SetupCompleteView(TemplateView):
         superuser_info = self.request.session.get('created_superuser', {})
         context['superuser_info'] = superuser_info
         
-        # Mark setup as complete
+        # Mark setup as complete (redundant but ensures it's set)
         try:
             setup_state, created = SetupState.objects.get_or_create(
                 id=1,
@@ -91,7 +138,7 @@ class SetupCompleteView(TemplateView):
                     }
                 }
             )
-            if not created:
+            if not created and not setup_state.is_complete:
                 setup_state.is_complete = True
                 setup_state.completed_at = timezone.now()
                 setup_state.setup_data = {
@@ -100,10 +147,10 @@ class SetupCompleteView(TemplateView):
                 }
                 setup_state.save()
             
-            logger.info('Setup marked as complete')
+            logger.info(f'Setup marked as complete (state id={setup_state.id}, complete={setup_state.is_complete})')
             
         except Exception as e:
-            logger.error(f'Failed to mark setup as complete: {e}')
+            logger.error(f'Failed to mark setup as complete: {e}', exc_info=True)
         
         # Clear session data
         if 'created_superuser' in self.request.session:
