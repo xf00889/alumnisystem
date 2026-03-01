@@ -615,20 +615,15 @@ else:
 REDIS_URL = config('REDIS_URL', default=None)
 
 if REDIS_URL:
-    # Production: Use Redis with django-redis backend
+    # Production: Use Redis with Django's built-in backend
     CACHES = {
         'default': {
-            'BACKEND': 'django_redis.cache.RedisCache',
+            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
             'LOCATION': REDIS_URL,
             'OPTIONS': {
-                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
-                'PARSER_CLASS': 'redis.connection.HiredisParser',
-                'CONNECTION_POOL_KWARGS': {
-                    'max_connections': 50,
-                    'retry_on_timeout': True,
-                },
-                'SOCKET_CONNECT_TIMEOUT': 5,
-                'SOCKET_TIMEOUT': 5,
+                'db': 0,
+                'parser_class': 'redis.connection.PythonParser',
+                'pool_class': 'redis.ConnectionPool',
             },
             'KEY_PREFIX': 'norsu_alumni',
             'TIMEOUT': 300,  # 5 minutes default
