@@ -1,26 +1,68 @@
--- --------------------------------------------------------
--- Host:                         127.0.0.1
--- Server version:               8.4.3 - MySQL Community Server - GPL
--- Server OS:                    Win64
--- HeidiSQL Version:             12.8.0.6908
--- --------------------------------------------------------
+-- MySQL dump 10.13  Distrib 8.4.3, for Win64 (x86_64)
+--
+-- Host: localhost    Database: alumni_norsu
+-- ------------------------------------------------------
+-- Server version	8.4.3
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET NAMES utf8 */;
+/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
+/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
 /*!50503 SET NAMES utf8mb4 */;
 /*!40103 SET @OLD_TIME_ZONE=@@TIME_ZONE */;
 /*!40103 SET TIME_ZONE='+00:00' */;
+/*!40014 SET @OLD_UNIQUE_CHECKS=@@UNIQUE_CHECKS, UNIQUE_CHECKS=0 */;
 /*!40014 SET @OLD_FOREIGN_KEY_CHECKS=@@FOREIGN_KEY_CHECKS, FOREIGN_KEY_CHECKS=0 */;
 /*!40101 SET @OLD_SQL_MODE=@@SQL_MODE, SQL_MODE='NO_AUTO_VALUE_ON_ZERO' */;
 /*!40111 SET @OLD_SQL_NOTES=@@SQL_NOTES, SQL_NOTES=0 */;
 
+--
+-- Table structure for table `account_emailaddress`
+--
 
--- Dumping database structure for alumni_norsu
-CREATE DATABASE IF NOT EXISTS `alumni_norsu` /*!40100 DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci */ /*!80016 DEFAULT ENCRYPTION='N' */;
-USE `alumni_norsu`;
+DROP TABLE IF EXISTS `account_emailaddress`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `account_emailaddress` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `email` varchar(254) NOT NULL,
+  `verified` tinyint(1) NOT NULL,
+  `primary` tinyint(1) NOT NULL,
+  `user_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `account_emailaddress_user_id_email_987c8728_uniq` (`user_id`,`email`),
+  KEY `account_emailaddress_upper` ((upper(`email`))),
+  CONSTRAINT `account_emailaddress_user_id_2c513194_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Dumping structure for table alumni_norsu.accounts_document
-CREATE TABLE IF NOT EXISTS `accounts_document` (
+--
+-- Table structure for table `account_emailconfirmation`
+--
+
+DROP TABLE IF EXISTS `account_emailconfirmation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `account_emailconfirmation` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `created` datetime(6) NOT NULL,
+  `sent` datetime(6) DEFAULT NULL,
+  `key` varchar(64) NOT NULL,
+  `email_address_id` int NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `key` (`key`),
+  KEY `account_emailconfirm_email_address_id_5b7f8c58_fk_account_e` (`email_address_id`),
+  CONSTRAINT `account_emailconfirm_email_address_id_5b7f8c58_fk_account_e` FOREIGN KEY (`email_address_id`) REFERENCES `account_emailaddress` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `accounts_document`
+--
+
+DROP TABLE IF EXISTS `accounts_document`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_document` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `file` varchar(100) NOT NULL,
@@ -33,11 +75,16 @@ CREATE TABLE IF NOT EXISTS `accounts_document` (
   KEY `accounts_document_profile_id_fee23ff2_fk_accounts_profile_id` (`profile_id`),
   CONSTRAINT `accounts_document_profile_id_fee23ff2_fk_accounts_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `accounts_profile` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_education`
+--
 
--- Dumping structure for table alumni_norsu.accounts_education
-CREATE TABLE IF NOT EXISTS `accounts_education` (
+DROP TABLE IF EXISTS `accounts_education`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_education` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `program` varchar(10) DEFAULT NULL,
   `major` varchar(100) NOT NULL,
@@ -52,11 +99,16 @@ CREATE TABLE IF NOT EXISTS `accounts_education` (
   KEY `accounts_education_profile_id_ab3fd502_fk_accounts_profile_id` (`profile_id`),
   CONSTRAINT `accounts_education_profile_id_ab3fd502_fk_accounts_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `accounts_profile` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_emailverification`
+--
 
--- Dumping structure for table alumni_norsu.accounts_emailverification
-CREATE TABLE IF NOT EXISTS `accounts_emailverification` (
+DROP TABLE IF EXISTS `accounts_emailverification`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_emailverification` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `otp` varchar(6) NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -67,11 +119,16 @@ CREATE TABLE IF NOT EXISTS `accounts_emailverification` (
   KEY `accounts_emailverification_user_id_4f5b1661_fk_auth_user_id` (`user_id`),
   CONSTRAINT `accounts_emailverification_user_id_4f5b1661_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_experience`
+--
 
--- Dumping structure for table alumni_norsu.accounts_experience
-CREATE TABLE IF NOT EXISTS `accounts_experience` (
+DROP TABLE IF EXISTS `accounts_experience`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_experience` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `company` varchar(100) NOT NULL,
   `position` varchar(100) NOT NULL,
@@ -91,11 +148,16 @@ CREATE TABLE IF NOT EXISTS `accounts_experience` (
   KEY `accounts_experience_profile_id_91de50a1_fk_accounts_profile_id` (`profile_id`),
   CONSTRAINT `accounts_experience_profile_id_91de50a1_fk_accounts_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `accounts_profile` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_mentor`
+--
 
--- Dumping structure for table alumni_norsu.accounts_mentor
-CREATE TABLE IF NOT EXISTS `accounts_mentor` (
+DROP TABLE IF EXISTS `accounts_mentor`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_mentor` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `expertise_areas` longtext NOT NULL,
   `availability_status` varchar(20) NOT NULL,
@@ -123,11 +185,16 @@ CREATE TABLE IF NOT EXISTS `accounts_mentor` (
   CONSTRAINT `accounts_mentor_user_id_200b98d0_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `accounts_mentor_verified_by_id_7addc4e0_fk_auth_user_id` FOREIGN KEY (`verified_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_mentorapplication`
+--
 
--- Dumping structure for table alumni_norsu.accounts_mentorapplication
-CREATE TABLE IF NOT EXISTS `accounts_mentorapplication` (
+DROP TABLE IF EXISTS `accounts_mentorapplication`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_mentorapplication` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `expertise_areas` longtext NOT NULL,
   `years_of_experience` int NOT NULL,
@@ -146,11 +213,16 @@ CREATE TABLE IF NOT EXISTS `accounts_mentorapplication` (
   CONSTRAINT `accounts_mentorappli_reviewed_by_id_f94e838f_fk_auth_user` FOREIGN KEY (`reviewed_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `accounts_mentorapplication_user_id_5eb470ed_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_mentorreactivationrequest`
+--
 
--- Dumping structure for table alumni_norsu.accounts_mentorreactivationrequest
-CREATE TABLE IF NOT EXISTS `accounts_mentorreactivationrequest` (
+DROP TABLE IF EXISTS `accounts_mentorreactivationrequest`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_mentorreactivationrequest` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `email` varchar(254) NOT NULL,
   `verification_code` varchar(6) NOT NULL,
@@ -172,11 +244,16 @@ CREATE TABLE IF NOT EXISTS `accounts_mentorreactivationrequest` (
   CONSTRAINT `accounts_mentorreact_requested_by_id_365af7dc_fk_auth_user` FOREIGN KEY (`requested_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `accounts_mentorreact_reviewed_by_id_49f30421_fk_auth_user` FOREIGN KEY (`reviewed_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_mentorshiprequest`
+--
 
--- Dumping structure for table alumni_norsu.accounts_mentorshiprequest
-CREATE TABLE IF NOT EXISTS `accounts_mentorshiprequest` (
+DROP TABLE IF EXISTS `accounts_mentorshiprequest`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_mentorshiprequest` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `skills_seeking` longtext NOT NULL,
   `goals` longtext NOT NULL,
@@ -199,11 +276,16 @@ CREATE TABLE IF NOT EXISTS `accounts_mentorshiprequest` (
   CONSTRAINT `accounts_mentorshipr_mentor_id_0d065274_fk_accounts_` FOREIGN KEY (`mentor_id`) REFERENCES `accounts_mentor` (`id`),
   CONSTRAINT `accounts_mentorshiprequest_mentee_id_c6695197_fk_auth_user_id` FOREIGN KEY (`mentee_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_profile`
+--
 
--- Dumping structure for table alumni_norsu.accounts_profile
-CREATE TABLE IF NOT EXISTS `accounts_profile` (
+DROP TABLE IF EXISTS `accounts_profile`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_profile` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `avatar` varchar(100) DEFAULT NULL,
   `bio` longtext NOT NULL,
@@ -234,11 +316,16 @@ CREATE TABLE IF NOT EXISTS `accounts_profile` (
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `accounts_profile_user_id_49a85d32_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_skill`
+--
 
--- Dumping structure for table alumni_norsu.accounts_skill
-CREATE TABLE IF NOT EXISTS `accounts_skill` (
+DROP TABLE IF EXISTS `accounts_skill`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_skill` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `skill_type` varchar(10) NOT NULL,
@@ -255,11 +342,16 @@ CREATE TABLE IF NOT EXISTS `accounts_skill` (
   KEY `accounts_sk_profici_917885_idx` (`proficiency_level`),
   CONSTRAINT `accounts_skill_profile_id_55a19265_fk_accounts_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `accounts_profile` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `accounts_skillmatch`
+--
 
--- Dumping structure for table alumni_norsu.accounts_skillmatch
-CREATE TABLE IF NOT EXISTS `accounts_skillmatch` (
+DROP TABLE IF EXISTS `accounts_skillmatch`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `accounts_skillmatch` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `match_score` double NOT NULL,
   `matched_skills` longtext NOT NULL,
@@ -278,41 +370,16 @@ CREATE TABLE IF NOT EXISTS `accounts_skillmatch` (
   CONSTRAINT `accounts_skillmatch_job_id_94a731a5_fk_jobs_jobposting_id` FOREIGN KEY (`job_id`) REFERENCES `jobs_jobposting` (`id`),
   CONSTRAINT `accounts_skillmatch_profile_id_76d7bd5b_fk_accounts_profile_id` FOREIGN KEY (`profile_id`) REFERENCES `accounts_profile` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_directory_achievement`
+--
 
--- Dumping structure for table alumni_norsu.account_emailaddress
-CREATE TABLE IF NOT EXISTS `account_emailaddress` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `email` varchar(254) NOT NULL,
-  `verified` tinyint(1) NOT NULL,
-  `primary` tinyint(1) NOT NULL,
-  `user_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `account_emailaddress_user_id_email_987c8728_uniq` (`user_id`,`email`),
-  KEY `account_emailaddress_upper` ((upper(`email`))),
-  CONSTRAINT `account_emailaddress_user_id_2c513194_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
-) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Data exporting was unselected.
-
--- Dumping structure for table alumni_norsu.account_emailconfirmation
-CREATE TABLE IF NOT EXISTS `account_emailconfirmation` (
-  `id` int NOT NULL AUTO_INCREMENT,
-  `created` datetime(6) NOT NULL,
-  `sent` datetime(6) DEFAULT NULL,
-  `key` varchar(64) NOT NULL,
-  `email_address_id` int NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `key` (`key`),
-  KEY `account_emailconfirm_email_address_id_5b7f8c58_fk_account_e` (`email_address_id`),
-  CONSTRAINT `account_emailconfirm_email_address_id_5b7f8c58_fk_account_e` FOREIGN KEY (`email_address_id`) REFERENCES `account_emailaddress` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Data exporting was unselected.
-
--- Dumping structure for table alumni_norsu.alumni_directory_achievement
-CREATE TABLE IF NOT EXISTS `alumni_directory_achievement` (
+DROP TABLE IF EXISTS `alumni_directory_achievement`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_directory_achievement` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `achievement_type` varchar(20) NOT NULL,
@@ -328,11 +395,16 @@ CREATE TABLE IF NOT EXISTS `alumni_directory_achievement` (
   KEY `alumni_directory_ach_alumni_id_81a657d8_fk_alumni_di` (`alumni_id`),
   CONSTRAINT `alumni_directory_ach_alumni_id_81a657d8_fk_alumni_di` FOREIGN KEY (`alumni_id`) REFERENCES `alumni_directory_alumni` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_directory_alumni`
+--
 
--- Dumping structure for table alumni_norsu.alumni_directory_alumni
-CREATE TABLE IF NOT EXISTS `alumni_directory_alumni` (
+DROP TABLE IF EXISTS `alumni_directory_alumni`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_directory_alumni` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `college` varchar(10) NOT NULL,
   `campus` varchar(10) NOT NULL,
@@ -372,11 +444,16 @@ CREATE TABLE IF NOT EXISTS `alumni_directory_alumni` (
   KEY `alumni_dire_mentors_d7abb9_idx` (`mentorship_status`),
   CONSTRAINT `alumni_directory_alumni_user_id_ad41c6f0_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_directory_alumnidocument`
+--
 
--- Dumping structure for table alumni_norsu.alumni_directory_alumnidocument
-CREATE TABLE IF NOT EXISTS `alumni_directory_alumnidocument` (
+DROP TABLE IF EXISTS `alumni_directory_alumnidocument`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_directory_alumnidocument` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `document_type` varchar(20) NOT NULL,
@@ -389,11 +466,16 @@ CREATE TABLE IF NOT EXISTS `alumni_directory_alumnidocument` (
   KEY `alumni_directory_alu_alumni_id_1aaf2faa_fk_alumni_di` (`alumni_id`),
   CONSTRAINT `alumni_directory_alu_alumni_id_1aaf2faa_fk_alumni_di` FOREIGN KEY (`alumni_id`) REFERENCES `alumni_directory_alumni` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_alumnigroup`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_alumnigroup
-CREATE TABLE IF NOT EXISTS `alumni_groups_alumnigroup` (
+DROP TABLE IF EXISTS `alumni_groups_alumnigroup`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_alumnigroup` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `slug` varchar(255) NOT NULL,
@@ -422,11 +504,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_alumnigroup` (
   KEY `alumni_groups_alumnigroup_created_by_id_dff59be4_fk_auth_user_id` (`created_by_id`),
   CONSTRAINT `alumni_groups_alumnigroup_created_by_id_dff59be4_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_comment`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_comment
-CREATE TABLE IF NOT EXISTS `alumni_groups_comment` (
+DROP TABLE IF EXISTS `alumni_groups_comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_comment` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -439,11 +526,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_comment` (
   CONSTRAINT `alumni_groups_comment_author_id_35f057f3_fk_auth_user_id` FOREIGN KEY (`author_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `alumni_groups_comment_post_id_94271a96_fk_alumni_groups_post_id` FOREIGN KEY (`post_id`) REFERENCES `alumni_groups_post` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupactivity`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupactivity
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupactivity` (
+DROP TABLE IF EXISTS `alumni_groups_groupactivity`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupactivity` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `activity_type` varchar(10) NOT NULL,
   `description` longtext NOT NULL,
@@ -456,11 +548,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupactivity` (
   CONSTRAINT `alumni_groups_groupa_group_id_e80dafca_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
   CONSTRAINT `alumni_groups_groupactivity_user_id_c53f23f7_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupanalytics`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupanalytics
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupanalytics` (
+DROP TABLE IF EXISTS `alumni_groups_groupanalytics`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupanalytics` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `total_members` int unsigned NOT NULL,
   `active_members` int unsigned NOT NULL,
@@ -479,11 +576,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupanalytics` (
   CONSTRAINT `alumni_groups_groupanalytics_chk_4` CHECK ((`total_events` >= 0)),
   CONSTRAINT `alumni_groups_groupanalytics_chk_5` CHECK ((`total_comments` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupdiscussion`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupdiscussion
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupdiscussion` (
+DROP TABLE IF EXISTS `alumni_groups_groupdiscussion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupdiscussion` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `content` longtext NOT NULL,
@@ -501,11 +603,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupdiscussion` (
   CONSTRAINT `alumni_groups_groupd_group_id_6335aee9_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
   CONSTRAINT `alumni_groups_groupdiscussion_chk_1` CHECK ((`views_count` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupdiscussioncomment`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupdiscussioncomment
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupdiscussioncomment` (
+DROP TABLE IF EXISTS `alumni_groups_groupdiscussioncomment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupdiscussioncomment` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -521,11 +628,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupdiscussioncomment` (
   CONSTRAINT `alumni_groups_groupd_discussion_id_66ee8eb1_fk_alumni_gr` FOREIGN KEY (`discussion_id`) REFERENCES `alumni_groups_groupdiscussion` (`id`),
   CONSTRAINT `alumni_groups_groupd_parent_id_f6e1810c_fk_alumni_gr` FOREIGN KEY (`parent_id`) REFERENCES `alumni_groups_groupdiscussioncomment` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupevent`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupevent
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupevent` (
+DROP TABLE IF EXISTS `alumni_groups_groupevent`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupevent` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `description` longtext NOT NULL,
@@ -548,11 +660,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupevent` (
   CONSTRAINT `alumni_groups_groupe_group_id_7926354e_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
   CONSTRAINT `alumni_groups_groupevent_created_by_id_1fe6d883_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupfile`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupfile
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupfile` (
+DROP TABLE IF EXISTS `alumni_groups_groupfile`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupfile` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(255) NOT NULL,
   `file` varchar(100) NOT NULL,
@@ -568,11 +685,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupfile` (
   CONSTRAINT `alumni_groups_groupfile_uploaded_by_id_7c7faf6b_fk_auth_user_id` FOREIGN KEY (`uploaded_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `alumni_groups_groupfile_chk_1` CHECK ((`download_count` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupmembership`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupmembership
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupmembership` (
+DROP TABLE IF EXISTS `alumni_groups_groupmembership`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupmembership` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `role` varchar(10) NOT NULL,
   `status` varchar(10) NOT NULL,
@@ -588,11 +710,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupmembership` (
   CONSTRAINT `alumni_groups_groupm_group_id_52376ed0_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
   CONSTRAINT `alumni_groups_groupmembership_user_id_10488d04_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_groupmessage`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_groupmessage
-CREATE TABLE IF NOT EXISTS `alumni_groups_groupmessage` (
+DROP TABLE IF EXISTS `alumni_groups_groupmessage`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_groupmessage` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -604,11 +731,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_groupmessage` (
   CONSTRAINT `alumni_groups_groupm_group_id_eeb52cc6_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
   CONSTRAINT `alumni_groups_groupmessage_user_id_f9988406_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_post`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_post
-CREATE TABLE IF NOT EXISTS `alumni_groups_post` (
+DROP TABLE IF EXISTS `alumni_groups_post`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_post` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -626,11 +758,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_post` (
   CONSTRAINT `alumni_groups_post_author_id_c4e4c2c1_fk_auth_user_id` FOREIGN KEY (`author_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `alumni_groups_post_group_id_f3277e3c_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_postlike`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_postlike
-CREATE TABLE IF NOT EXISTS `alumni_groups_postlike` (
+DROP TABLE IF EXISTS `alumni_groups_postlike`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_postlike` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
   `post_id` bigint NOT NULL,
@@ -641,11 +778,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_postlike` (
   CONSTRAINT `alumni_groups_postlike_post_id_e31c4126_fk_alumni_groups_post_id` FOREIGN KEY (`post_id`) REFERENCES `alumni_groups_post` (`id`),
   CONSTRAINT `alumni_groups_postlike_user_id_cc1e40ff_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_securityquestion`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_securityquestion
-CREATE TABLE IF NOT EXISTS `alumni_groups_securityquestion` (
+DROP TABLE IF EXISTS `alumni_groups_securityquestion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_securityquestion` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `question` varchar(255) NOT NULL,
   `is_required` tinyint(1) NOT NULL,
@@ -656,11 +798,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_securityquestion` (
   KEY `alumni_groups_securi_group_id_cc6766b9_fk_alumni_gr` (`group_id`),
   CONSTRAINT `alumni_groups_securi_group_id_cc6766b9_fk_alumni_gr` FOREIGN KEY (`group_id`) REFERENCES `alumni_groups_alumnigroup` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `alumni_groups_securityquestionanswer`
+--
 
--- Dumping structure for table alumni_norsu.alumni_groups_securityquestionanswer
-CREATE TABLE IF NOT EXISTS `alumni_groups_securityquestionanswer` (
+DROP TABLE IF EXISTS `alumni_groups_securityquestionanswer`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `alumni_groups_securityquestionanswer` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `answer` longtext NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -677,11 +824,16 @@ CREATE TABLE IF NOT EXISTS `alumni_groups_securityquestionanswer` (
   CONSTRAINT `alumni_groups_securi_question_id_9dfd4e9c_fk_alumni_gr` FOREIGN KEY (`question_id`) REFERENCES `alumni_groups_securityquestion` (`id`),
   CONSTRAINT `alumni_groups_securi_reviewed_by_id_4e859cdb_fk_auth_user` FOREIGN KEY (`reviewed_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `announcements_announcement`
+--
 
--- Dumping structure for table alumni_norsu.announcements_announcement
-CREATE TABLE IF NOT EXISTS `announcements_announcement` (
+DROP TABLE IF EXISTS `announcements_announcement`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `announcements_announcement` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `content` longtext NOT NULL,
@@ -698,11 +850,16 @@ CREATE TABLE IF NOT EXISTS `announcements_announcement` (
   CONSTRAINT `announcements_announ_category_id_81df114b_fk_announcem` FOREIGN KEY (`category_id`) REFERENCES `announcements_category` (`id`),
   CONSTRAINT `announcements_announcement_chk_1` CHECK ((`views_count` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `announcements_category`
+--
 
--- Dumping structure for table alumni_norsu.announcements_category
-CREATE TABLE IF NOT EXISTS `announcements_category` (
+DROP TABLE IF EXISTS `announcements_category`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `announcements_category` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `description` longtext NOT NULL,
@@ -710,21 +867,31 @@ CREATE TABLE IF NOT EXISTS `announcements_category` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `auth_group`
+--
 
--- Dumping structure for table alumni_norsu.auth_group
-CREATE TABLE IF NOT EXISTS `auth_group` (
+DROP TABLE IF EXISTS `auth_group`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auth_group` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(150) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `name` (`name`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `auth_group_permissions`
+--
 
--- Dumping structure for table alumni_norsu.auth_group_permissions
-CREATE TABLE IF NOT EXISTS `auth_group_permissions` (
+DROP TABLE IF EXISTS `auth_group_permissions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auth_group_permissions` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `group_id` int NOT NULL,
   `permission_id` int NOT NULL,
@@ -734,11 +901,16 @@ CREATE TABLE IF NOT EXISTS `auth_group_permissions` (
   CONSTRAINT `auth_group_permissio_permission_id_84c5c92e_fk_auth_perm` FOREIGN KEY (`permission_id`) REFERENCES `auth_permission` (`id`),
   CONSTRAINT `auth_group_permissions_group_id_b120cbf9_fk_auth_group_id` FOREIGN KEY (`group_id`) REFERENCES `auth_group` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `auth_permission`
+--
 
--- Dumping structure for table alumni_norsu.auth_permission
-CREATE TABLE IF NOT EXISTS `auth_permission` (
+DROP TABLE IF EXISTS `auth_permission`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auth_permission` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `content_type_id` int NOT NULL,
@@ -747,11 +919,16 @@ CREATE TABLE IF NOT EXISTS `auth_permission` (
   UNIQUE KEY `auth_permission_content_type_id_codename_01ab375a_uniq` (`content_type_id`,`codename`),
   CONSTRAINT `auth_permission_content_type_id_2f476e4b_fk_django_co` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=477 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `auth_user`
+--
 
--- Dumping structure for table alumni_norsu.auth_user
-CREATE TABLE IF NOT EXISTS `auth_user` (
+DROP TABLE IF EXISTS `auth_user`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auth_user` (
   `id` int NOT NULL AUTO_INCREMENT,
   `password` varchar(128) NOT NULL,
   `last_login` datetime(6) DEFAULT NULL,
@@ -766,11 +943,16 @@ CREATE TABLE IF NOT EXISTS `auth_user` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `auth_user_groups`
+--
 
--- Dumping structure for table alumni_norsu.auth_user_groups
-CREATE TABLE IF NOT EXISTS `auth_user_groups` (
+DROP TABLE IF EXISTS `auth_user_groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auth_user_groups` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
   `group_id` int NOT NULL,
@@ -780,11 +962,16 @@ CREATE TABLE IF NOT EXISTS `auth_user_groups` (
   CONSTRAINT `auth_user_groups_group_id_97559544_fk_auth_group_id` FOREIGN KEY (`group_id`) REFERENCES `auth_group` (`id`),
   CONSTRAINT `auth_user_groups_user_id_6a12ed8b_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `auth_user_user_permissions`
+--
 
--- Dumping structure for table alumni_norsu.auth_user_user_permissions
-CREATE TABLE IF NOT EXISTS `auth_user_user_permissions` (
+DROP TABLE IF EXISTS `auth_user_user_permissions`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `auth_user_user_permissions` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `user_id` int NOT NULL,
   `permission_id` int NOT NULL,
@@ -794,11 +981,16 @@ CREATE TABLE IF NOT EXISTS `auth_user_user_permissions` (
   CONSTRAINT `auth_user_user_permi_permission_id_1fbb5f2c_fk_auth_perm` FOREIGN KEY (`permission_id`) REFERENCES `auth_permission` (`id`),
   CONSTRAINT `auth_user_user_permissions_user_id_a95ead1b_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_alumnistatistic`
+--
 
--- Dumping structure for table alumni_norsu.cms_alumnistatistic
-CREATE TABLE IF NOT EXISTS `cms_alumnistatistic` (
+DROP TABLE IF EXISTS `cms_alumnistatistic`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_alumnistatistic` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -812,11 +1004,16 @@ CREATE TABLE IF NOT EXISTS `cms_alumnistatistic` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_alumnistatistic_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_contactinfo`
+--
 
--- Dumping structure for table alumni_norsu.cms_contactinfo
-CREATE TABLE IF NOT EXISTS `cms_contactinfo` (
+DROP TABLE IF EXISTS `cms_contactinfo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_contactinfo` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -828,11 +1025,16 @@ CREATE TABLE IF NOT EXISTS `cms_contactinfo` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_contactinfo_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=7 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_faq`
+--
 
--- Dumping structure for table alumni_norsu.cms_faq
-CREATE TABLE IF NOT EXISTS `cms_faq` (
+DROP TABLE IF EXISTS `cms_faq`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_faq` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -843,11 +1045,16 @@ CREATE TABLE IF NOT EXISTS `cms_faq` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_faq_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_feature`
+--
 
--- Dumping structure for table alumni_norsu.cms_feature
-CREATE TABLE IF NOT EXISTS `cms_feature` (
+DROP TABLE IF EXISTS `cms_feature`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_feature` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -862,11 +1069,16 @@ CREATE TABLE IF NOT EXISTS `cms_feature` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_feature_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_footerlink`
+--
 
--- Dumping structure for table alumni_norsu.cms_footerlink
-CREATE TABLE IF NOT EXISTS `cms_footerlink` (
+DROP TABLE IF EXISTS `cms_footerlink`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_footerlink` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -881,11 +1093,16 @@ CREATE TABLE IF NOT EXISTS `cms_footerlink` (
   KEY `cms_footerl_section_3d1350_idx` (`section`,`is_active`,`order`),
   CONSTRAINT `cms_footerlink_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=12 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_norsucampus`
+--
 
--- Dumping structure for table alumni_norsu.cms_norsucampus
-CREATE TABLE IF NOT EXISTS `cms_norsucampus` (
+DROP TABLE IF EXISTS `cms_norsucampus`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_norsucampus` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -898,11 +1115,16 @@ CREATE TABLE IF NOT EXISTS `cms_norsucampus` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_norsucampus_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_norsuofficial`
+--
 
--- Dumping structure for table alumni_norsu.cms_norsuofficial
-CREATE TABLE IF NOT EXISTS `cms_norsuofficial` (
+DROP TABLE IF EXISTS `cms_norsuofficial`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_norsuofficial` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -920,11 +1142,16 @@ CREATE TABLE IF NOT EXISTS `cms_norsuofficial` (
   KEY `cms_norsuof_positio_519377_idx` (`position_level`,`is_active`,`order`),
   CONSTRAINT `cms_norsuofficial_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_norsuvmgohistory`
+--
 
--- Dumping structure for table alumni_norsu.cms_norsuvmgohistory
-CREATE TABLE IF NOT EXISTS `cms_norsuvmgohistory` (
+DROP TABLE IF EXISTS `cms_norsuvmgohistory`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_norsuvmgohistory` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -955,11 +1182,16 @@ CREATE TABLE IF NOT EXISTS `cms_norsuvmgohistory` (
   `quality_objectives_title` varchar(100) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_pagesection`
+--
 
--- Dumping structure for table alumni_norsu.cms_pagesection
-CREATE TABLE IF NOT EXISTS `cms_pagesection` (
+DROP TABLE IF EXISTS `cms_pagesection`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_pagesection` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -975,11 +1207,16 @@ CREATE TABLE IF NOT EXISTS `cms_pagesection` (
   KEY `cms_pagesec_order_3d28ca_idx` (`order`),
   CONSTRAINT `cms_pagesection_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_siteconfig`
+--
 
--- Dumping structure for table alumni_norsu.cms_siteconfig
-CREATE TABLE IF NOT EXISTS `cms_siteconfig` (
+DROP TABLE IF EXISTS `cms_siteconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_siteconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -1008,11 +1245,16 @@ CREATE TABLE IF NOT EXISTS `cms_siteconfig` (
   `hero_background_image` varchar(100) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_staffmember`
+--
 
--- Dumping structure for table alumni_norsu.cms_staffmember
-CREATE TABLE IF NOT EXISTS `cms_staffmember` (
+DROP TABLE IF EXISTS `cms_staffmember`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_staffmember` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -1027,11 +1269,16 @@ CREATE TABLE IF NOT EXISTS `cms_staffmember` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_staffmember_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=56 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_testimonial`
+--
 
--- Dumping structure for table alumni_norsu.cms_testimonial
-CREATE TABLE IF NOT EXISTS `cms_testimonial` (
+DROP TABLE IF EXISTS `cms_testimonial`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_testimonial` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -1045,11 +1292,16 @@ CREATE TABLE IF NOT EXISTS `cms_testimonial` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_testimonial_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `cms_timelineitem`
+--
 
--- Dumping structure for table alumni_norsu.cms_timelineitem
-CREATE TABLE IF NOT EXISTS `cms_timelineitem` (
+DROP TABLE IF EXISTS `cms_timelineitem`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `cms_timelineitem` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -1062,11 +1314,16 @@ CREATE TABLE IF NOT EXISTS `cms_timelineitem` (
   PRIMARY KEY (`id`),
   CONSTRAINT `cms_timelineitem_chk_1` CHECK ((`order` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `connections_connection`
+--
 
--- Dumping structure for table alumni_norsu.connections_connection
-CREATE TABLE IF NOT EXISTS `connections_connection` (
+DROP TABLE IF EXISTS `connections_connection`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `connections_connection` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `status` varchar(10) NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -1080,11 +1337,16 @@ CREATE TABLE IF NOT EXISTS `connections_connection` (
   CONSTRAINT `connections_connection_receiver_id_9730caeb_fk_auth_user_id` FOREIGN KEY (`receiver_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `connections_connection_requester_id_437bab48_fk_auth_user_id` FOREIGN KEY (`requester_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `connections_directconversation`
+--
 
--- Dumping structure for table alumni_norsu.connections_directconversation
-CREATE TABLE IF NOT EXISTS `connections_directconversation` (
+DROP TABLE IF EXISTS `connections_directconversation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `connections_directconversation` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
@@ -1096,11 +1358,16 @@ CREATE TABLE IF NOT EXISTS `connections_directconversation` (
   KEY `connections_directco_created_by_id_5a3622ea_fk_auth_user` (`created_by_id`),
   CONSTRAINT `connections_directco_created_by_id_5a3622ea_fk_auth_user` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `connections_directconversation_participants`
+--
 
--- Dumping structure for table alumni_norsu.connections_directconversation_participants
-CREATE TABLE IF NOT EXISTS `connections_directconversation_participants` (
+DROP TABLE IF EXISTS `connections_directconversation_participants`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `connections_directconversation_participants` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `directconversation_id` bigint NOT NULL,
   `user_id` int NOT NULL,
@@ -1110,11 +1377,16 @@ CREATE TABLE IF NOT EXISTS `connections_directconversation_participants` (
   CONSTRAINT `connections_directco_directconversation_i_0147aa6e_fk_connectio` FOREIGN KEY (`directconversation_id`) REFERENCES `connections_directconversation` (`id`),
   CONSTRAINT `connections_directco_user_id_ada8232c_fk_auth_user` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `connections_directmessage`
+--
 
--- Dumping structure for table alumni_norsu.connections_directmessage
-CREATE TABLE IF NOT EXISTS `connections_directmessage` (
+DROP TABLE IF EXISTS `connections_directmessage`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `connections_directmessage` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `attachment` varchar(100) DEFAULT NULL,
@@ -1128,11 +1400,16 @@ CREATE TABLE IF NOT EXISTS `connections_directmessage` (
   CONSTRAINT `connections_directme_conversation_id_b611b44c_fk_connectio` FOREIGN KEY (`conversation_id`) REFERENCES `connections_directconversation` (`id`),
   CONSTRAINT `connections_directmessage_sender_id_0c2a3443_fk_auth_user_id` FOREIGN KEY (`sender_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=10 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_address`
+--
 
--- Dumping structure for table alumni_norsu.core_address
-CREATE TABLE IF NOT EXISTS `core_address` (
+DROP TABLE IF EXISTS `core_address`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_address` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `address_type` varchar(10) NOT NULL,
   `street_address` varchar(255) NOT NULL,
@@ -1150,11 +1427,16 @@ CREATE TABLE IF NOT EXISTS `core_address` (
   KEY `core_addres_city_80b6d2_idx` (`city`,`state`,`country`),
   CONSTRAINT `core_address_user_id_7681a39c_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_brevoconfig`
+--
 
--- Dumping structure for table alumni_norsu.core_brevoconfig
-CREATE TABLE IF NOT EXISTS `core_brevoconfig` (
+DROP TABLE IF EXISTS `core_brevoconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_brevoconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `api_key` varchar(255) NOT NULL,
@@ -1169,11 +1451,16 @@ CREATE TABLE IF NOT EXISTS `core_brevoconfig` (
   `test_result` longtext NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_comment`
+--
 
--- Dumping structure for table alumni_norsu.core_comment
-CREATE TABLE IF NOT EXISTS `core_comment` (
+DROP TABLE IF EXISTS `core_comment`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_comment` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -1190,11 +1477,16 @@ CREATE TABLE IF NOT EXISTS `core_comment` (
   CONSTRAINT `core_comment_parent_id_1b4ed377_fk_core_comment_id` FOREIGN KEY (`parent_id`) REFERENCES `core_comment` (`id`),
   CONSTRAINT `core_comment_post_id_a75a789c_fk_core_post_id` FOREIGN KEY (`post_id`) REFERENCES `core_post` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_contactinfo`
+--
 
--- Dumping structure for table alumni_norsu.core_contactinfo
-CREATE TABLE IF NOT EXISTS `core_contactinfo` (
+DROP TABLE IF EXISTS `core_contactinfo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_contactinfo` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `contact_type` varchar(20) NOT NULL,
   `contact_value` varchar(255) NOT NULL,
@@ -1209,11 +1501,16 @@ CREATE TABLE IF NOT EXISTS `core_contactinfo` (
   KEY `core_contac_user_id_e9744d_idx` (`user_id`,`contact_type`,`is_primary`),
   CONSTRAINT `core_contactinfo_user_id_c66fea54_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_emailprovider`
+--
 
--- Dumping structure for table alumni_norsu.core_emailprovider
-CREATE TABLE IF NOT EXISTS `core_emailprovider` (
+DROP TABLE IF EXISTS `core_emailprovider`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_emailprovider` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `provider_type` varchar(10) NOT NULL,
   `is_active` tinyint(1) NOT NULL,
@@ -1225,11 +1522,16 @@ CREATE TABLE IF NOT EXISTS `core_emailprovider` (
   PRIMARY KEY (`id`),
   CONSTRAINT `core_emailprovider_chk_1` CHECK ((`emails_sent` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_engagementscore`
+--
 
--- Dumping structure for table alumni_norsu.core_engagementscore
-CREATE TABLE IF NOT EXISTS `core_engagementscore` (
+DROP TABLE IF EXISTS `core_engagementscore`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_engagementscore` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -1243,11 +1545,16 @@ CREATE TABLE IF NOT EXISTS `core_engagementscore` (
   CONSTRAINT `core_engagementscore_chk_1` CHECK ((`total_points` >= 0)),
   CONSTRAINT `core_engagementscore_chk_2` CHECK ((`level` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_notification`
+--
 
--- Dumping structure for table alumni_norsu.core_notification
-CREATE TABLE IF NOT EXISTS `core_notification` (
+DROP TABLE IF EXISTS `core_notification`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_notification` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `notification_type` varchar(35) NOT NULL,
   `object_id` int unsigned DEFAULT NULL,
@@ -1271,11 +1578,16 @@ CREATE TABLE IF NOT EXISTS `core_notification` (
   CONSTRAINT `core_notification_sender_id_7af58206_fk_auth_user_id` FOREIGN KEY (`sender_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `core_notification_chk_1` CHECK ((`object_id` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_notificationpreference`
+--
 
--- Dumping structure for table alumni_norsu.core_notificationpreference
-CREATE TABLE IF NOT EXISTS `core_notificationpreference` (
+DROP TABLE IF EXISTS `core_notificationpreference`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_notificationpreference` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `email_announcements` tinyint(1) NOT NULL,
   `email_events` tinyint(1) NOT NULL,
@@ -1298,11 +1610,16 @@ CREATE TABLE IF NOT EXISTS `core_notificationpreference` (
   UNIQUE KEY `user_id` (`user_id`),
   CONSTRAINT `core_notificationpreference_user_id_0f545da2_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_organizationschema`
+--
 
--- Dumping structure for table alumni_norsu.core_organizationschema
-CREATE TABLE IF NOT EXISTS `core_organizationschema` (
+DROP TABLE IF EXISTS `core_organizationschema`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_organizationschema` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(255) NOT NULL,
   `logo` varchar(200) NOT NULL,
@@ -1317,11 +1634,16 @@ CREATE TABLE IF NOT EXISTS `core_organizationschema` (
   `is_active` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_pageseo`
+--
 
--- Dumping structure for table alumni_norsu.core_pageseo
-CREATE TABLE IF NOT EXISTS `core_pageseo` (
+DROP TABLE IF EXISTS `core_pageseo`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_pageseo` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `page_path` varchar(255) NOT NULL,
   `meta_title` varchar(60) NOT NULL,
@@ -1338,11 +1660,16 @@ CREATE TABLE IF NOT EXISTS `core_pageseo` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `page_path` (`page_path`)
 ) ENGINE=InnoDB AUTO_INCREMENT=18 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_post`
+--
 
--- Dumping structure for table alumni_norsu.core_post
-CREATE TABLE IF NOT EXISTS `core_post` (
+DROP TABLE IF EXISTS `core_post`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_post` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `content` longtext NOT NULL,
@@ -1357,11 +1684,16 @@ CREATE TABLE IF NOT EXISTS `core_post` (
   KEY `core_post_is_publ_01104b_idx` (`is_published`),
   CONSTRAINT `core_post_author_id_083b751e_fk_auth_user_id` FOREIGN KEY (`author_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_reaction`
+--
 
--- Dumping structure for table alumni_norsu.core_reaction
-CREATE TABLE IF NOT EXISTS `core_reaction` (
+DROP TABLE IF EXISTS `core_reaction`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_reaction` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `reaction_type` varchar(10) NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -1375,11 +1707,16 @@ CREATE TABLE IF NOT EXISTS `core_reaction` (
   CONSTRAINT `core_reaction_post_id_1f5b4eb2_fk_core_post_id` FOREIGN KEY (`post_id`) REFERENCES `core_post` (`id`),
   CONSTRAINT `core_reaction_user_id_968339ea_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_recaptchaconfig`
+--
 
--- Dumping structure for table alumni_norsu.core_recaptchaconfig
-CREATE TABLE IF NOT EXISTS `core_recaptchaconfig` (
+DROP TABLE IF EXISTS `core_recaptchaconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_recaptchaconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `site_key` varchar(200) NOT NULL,
@@ -1392,11 +1729,16 @@ CREATE TABLE IF NOT EXISTS `core_recaptchaconfig` (
   `enabled` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_smtpconfig`
+--
 
--- Dumping structure for table alumni_norsu.core_smtpconfig
-CREATE TABLE IF NOT EXISTS `core_smtpconfig` (
+DROP TABLE IF EXISTS `core_smtpconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_smtpconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `host` varchar(255) NOT NULL,
@@ -1416,11 +1758,16 @@ CREATE TABLE IF NOT EXISTS `core_smtpconfig` (
   PRIMARY KEY (`id`),
   CONSTRAINT `core_smtpconfig_chk_1` CHECK ((`port` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_ssoconfig`
+--
 
--- Dumping structure for table alumni_norsu.core_ssoconfig
-CREATE TABLE IF NOT EXISTS `core_ssoconfig` (
+DROP TABLE IF EXISTS `core_ssoconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_ssoconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `provider` varchar(20) NOT NULL,
@@ -1441,11 +1788,16 @@ CREATE TABLE IF NOT EXISTS `core_ssoconfig` (
   UNIQUE KEY `core_ssoconfig_provider_is_active_f114c0a8_uniq` (`provider`,`is_active`),
   CONSTRAINT `core_ssoconfig_chk_1` CHECK ((`login_count` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_userauditlog`
+--
 
--- Dumping structure for table alumni_norsu.core_userauditlog
-CREATE TABLE IF NOT EXISTS `core_userauditlog` (
+DROP TABLE IF EXISTS `core_userauditlog`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_userauditlog` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `action` varchar(20) NOT NULL,
   `timestamp` datetime(6) NOT NULL,
@@ -1461,11 +1813,16 @@ CREATE TABLE IF NOT EXISTS `core_userauditlog` (
   CONSTRAINT `core_userauditlog_performed_by_id_0d6f31c1_fk_auth_user_id` FOREIGN KEY (`performed_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `core_userauditlog_user_id_ba31f729_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_userengagement`
+--
 
--- Dumping structure for table alumni_norsu.core_userengagement
-CREATE TABLE IF NOT EXISTS `core_userengagement` (
+DROP TABLE IF EXISTS `core_userengagement`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_userengagement` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created` datetime(6) NOT NULL,
   `modified` datetime(6) NOT NULL,
@@ -1484,11 +1841,16 @@ CREATE TABLE IF NOT EXISTS `core_userengagement` (
   CONSTRAINT `core_userengagement_user_id_1e3b1978_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `core_userengagement_chk_1` CHECK ((`points` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `core_userstatuschange`
+--
 
--- Dumping structure for table alumni_norsu.core_userstatuschange
-CREATE TABLE IF NOT EXISTS `core_userstatuschange` (
+DROP TABLE IF EXISTS `core_userstatuschange`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `core_userstatuschange` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `timestamp` datetime(6) NOT NULL,
   `old_status` tinyint(1) NOT NULL,
@@ -1503,11 +1865,16 @@ CREATE TABLE IF NOT EXISTS `core_userstatuschange` (
   CONSTRAINT `core_userstatuschange_changed_by_id_e7faf51b_fk_auth_user_id` FOREIGN KEY (`changed_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `core_userstatuschange_user_id_8860ed38_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `django_admin_log`
+--
 
--- Dumping structure for table alumni_norsu.django_admin_log
-CREATE TABLE IF NOT EXISTS `django_admin_log` (
+DROP TABLE IF EXISTS `django_admin_log`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `django_admin_log` (
   `id` int NOT NULL AUTO_INCREMENT,
   `action_time` datetime(6) NOT NULL,
   `object_id` longtext,
@@ -1523,55 +1890,80 @@ CREATE TABLE IF NOT EXISTS `django_admin_log` (
   CONSTRAINT `django_admin_log_user_id_c564eba6_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `django_admin_log_chk_1` CHECK ((`action_flag` >= 0))
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `django_content_type`
+--
 
--- Dumping structure for table alumni_norsu.django_content_type
-CREATE TABLE IF NOT EXISTS `django_content_type` (
+DROP TABLE IF EXISTS `django_content_type`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `django_content_type` (
   `id` int NOT NULL AUTO_INCREMENT,
   `app_label` varchar(100) NOT NULL,
   `model` varchar(100) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `django_content_type_app_label_model_76bd3d3b_uniq` (`app_label`,`model`)
 ) ENGINE=InnoDB AUTO_INCREMENT=120 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `django_migrations`
+--
 
--- Dumping structure for table alumni_norsu.django_migrations
-CREATE TABLE IF NOT EXISTS `django_migrations` (
+DROP TABLE IF EXISTS `django_migrations`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `django_migrations` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `app` varchar(255) NOT NULL,
   `name` varchar(255) NOT NULL,
   `applied` datetime(6) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=140 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `django_session`
+--
 
--- Dumping structure for table alumni_norsu.django_session
-CREATE TABLE IF NOT EXISTS `django_session` (
+DROP TABLE IF EXISTS `django_session`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `django_session` (
   `session_key` varchar(40) NOT NULL,
   `session_data` longtext NOT NULL,
   `expire_date` datetime(6) NOT NULL,
   PRIMARY KEY (`session_key`),
   KEY `django_session_expire_date_a5c62663` (`expire_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `django_site`
+--
 
--- Dumping structure for table alumni_norsu.django_site
-CREATE TABLE IF NOT EXISTS `django_site` (
+DROP TABLE IF EXISTS `django_site`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `django_site` (
   `id` int NOT NULL AUTO_INCREMENT,
   `domain` varchar(100) NOT NULL,
   `name` varchar(50) NOT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `django_site_domain_a2e37b91_uniq` (`domain`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_blacklistedentity`
+--
 
--- Dumping structure for table alumni_norsu.donations_blacklistedentity
-CREATE TABLE IF NOT EXISTS `donations_blacklistedentity` (
+DROP TABLE IF EXISTS `donations_blacklistedentity`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_blacklistedentity` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `entity_type` varchar(15) NOT NULL,
   `value` varchar(255) NOT NULL,
@@ -1585,11 +1977,16 @@ CREATE TABLE IF NOT EXISTS `donations_blacklistedentity` (
   KEY `donations_blackliste_created_by_id_9012cd31_fk_auth_user` (`created_by_id`),
   CONSTRAINT `donations_blackliste_created_by_id_9012cd31_fk_auth_user` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_campaign`
+--
 
--- Dumping structure for table alumni_norsu.donations_campaign
-CREATE TABLE IF NOT EXISTS `donations_campaign` (
+DROP TABLE IF EXISTS `donations_campaign`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_campaign` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(200) NOT NULL,
   `slug` varchar(220) NOT NULL,
@@ -1618,11 +2015,16 @@ CREATE TABLE IF NOT EXISTS `donations_campaign` (
   CONSTRAINT `donations_campaign_created_by_id_a242fc32_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `donations_campaign_gcash_config_id_cb9e6eec_fk_donations` FOREIGN KEY (`gcash_config_id`) REFERENCES `donations_gcashconfig` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_campaigntype`
+--
 
--- Dumping structure for table alumni_norsu.donations_campaigntype
-CREATE TABLE IF NOT EXISTS `donations_campaigntype` (
+DROP TABLE IF EXISTS `donations_campaigntype`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_campaigntype` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `slug` varchar(120) NOT NULL,
@@ -1630,11 +2032,16 @@ CREATE TABLE IF NOT EXISTS `donations_campaigntype` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `slug` (`slug`)
 ) ENGINE=InnoDB AUTO_INCREMENT=9 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_campaignupdate`
+--
 
--- Dumping structure for table alumni_norsu.donations_campaignupdate
-CREATE TABLE IF NOT EXISTS `donations_campaignupdate` (
+DROP TABLE IF EXISTS `donations_campaignupdate`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_campaignupdate` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `content` longtext NOT NULL,
@@ -1650,11 +2057,16 @@ CREATE TABLE IF NOT EXISTS `donations_campaignupdate` (
   CONSTRAINT `donations_campaignup_campaign_id_a8275e4c_fk_donations` FOREIGN KEY (`campaign_id`) REFERENCES `donations_campaign` (`id`),
   CONSTRAINT `donations_campaignupdate_created_by_id_25334757_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_donation`
+--
 
--- Dumping structure for table alumni_norsu.donations_donation
-CREATE TABLE IF NOT EXISTS `donations_donation` (
+DROP TABLE IF EXISTS `donations_donation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_donation` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `donor_name` varchar(200) NOT NULL,
   `donor_email` varchar(254) NOT NULL,
@@ -1683,11 +2095,16 @@ CREATE TABLE IF NOT EXISTS `donations_donation` (
   CONSTRAINT `donations_donation_donor_id_25b1f2bc_fk_auth_user_id` FOREIGN KEY (`donor_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `donations_donation_verified_by_id_1d62d7b2_fk_auth_user_id` FOREIGN KEY (`verified_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_donorrecognition`
+--
 
--- Dumping structure for table alumni_norsu.donations_donorrecognition
-CREATE TABLE IF NOT EXISTS `donations_donorrecognition` (
+DROP TABLE IF EXISTS `donations_donorrecognition`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_donorrecognition` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `description` longtext NOT NULL,
@@ -1696,11 +2113,16 @@ CREATE TABLE IF NOT EXISTS `donations_donorrecognition` (
   `is_active` tinyint(1) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_fraudalert`
+--
 
--- Dumping structure for table alumni_norsu.donations_fraudalert
-CREATE TABLE IF NOT EXISTS `donations_fraudalert` (
+DROP TABLE IF EXISTS `donations_fraudalert`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_fraudalert` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `alert_type` varchar(20) NOT NULL,
   `severity` varchar(10) NOT NULL,
@@ -1720,11 +2142,16 @@ CREATE TABLE IF NOT EXISTS `donations_fraudalert` (
   CONSTRAINT `donations_fraudalert_donation_id_6e2b628d_fk_donations` FOREIGN KEY (`donation_id`) REFERENCES `donations_donation` (`id`),
   CONSTRAINT `donations_fraudalert_reviewed_by_id_d5158a1e_fk_auth_user_id` FOREIGN KEY (`reviewed_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `donations_gcashconfig`
+--
 
--- Dumping structure for table alumni_norsu.donations_gcashconfig
-CREATE TABLE IF NOT EXISTS `donations_gcashconfig` (
+DROP TABLE IF EXISTS `donations_gcashconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `donations_gcashconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `gcash_number` varchar(15) NOT NULL,
@@ -1736,11 +2163,16 @@ CREATE TABLE IF NOT EXISTS `donations_gcashconfig` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `events_event`
+--
 
--- Dumping structure for table alumni_norsu.events_event
-CREATE TABLE IF NOT EXISTS `events_event` (
+DROP TABLE IF EXISTS `events_event`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `events_event` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -1761,11 +2193,35 @@ CREATE TABLE IF NOT EXISTS `events_event` (
   CONSTRAINT `events_event_created_by_id_2c28ea90_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `events_event_chk_1` CHECK ((`max_participants` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `events_event_notified_groups`
+--
 
--- Dumping structure for table alumni_norsu.events_eventrsvp
-CREATE TABLE IF NOT EXISTS `events_eventrsvp` (
+DROP TABLE IF EXISTS `events_event_notified_groups`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `events_event_notified_groups` (
+  `id` bigint NOT NULL AUTO_INCREMENT,
+  `event_id` bigint NOT NULL,
+  `alumnigroup_id` bigint NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `events_event_notified_gr_event_id_alumnigroup_id_f63c83ca_uniq` (`event_id`,`alumnigroup_id`),
+  KEY `events_event_notifie_alumnigroup_id_d47843c2_fk_alumni_gr` (`alumnigroup_id`),
+  CONSTRAINT `events_event_notifie_alumnigroup_id_d47843c2_fk_alumni_gr` FOREIGN KEY (`alumnigroup_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
+  CONSTRAINT `events_event_notifie_event_id_62b4531f_fk_events_ev` FOREIGN KEY (`event_id`) REFERENCES `events_event` (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+
+--
+-- Table structure for table `events_eventrsvp`
+--
+
+DROP TABLE IF EXISTS `events_eventrsvp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `events_eventrsvp` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `status` varchar(5) NOT NULL,
   `created_at` datetime(6) NOT NULL,
@@ -1779,25 +2235,16 @@ CREATE TABLE IF NOT EXISTS `events_eventrsvp` (
   CONSTRAINT `events_eventrsvp_event_id_052def65_fk_events_event_id` FOREIGN KEY (`event_id`) REFERENCES `events_event` (`id`),
   CONSTRAINT `events_eventrsvp_user_id_6ba93060_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `feedback_feedback`
+--
 
--- Dumping structure for table alumni_norsu.events_event_notified_groups
-CREATE TABLE IF NOT EXISTS `events_event_notified_groups` (
-  `id` bigint NOT NULL AUTO_INCREMENT,
-  `event_id` bigint NOT NULL,
-  `alumnigroup_id` bigint NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `events_event_notified_gr_event_id_alumnigroup_id_f63c83ca_uniq` (`event_id`,`alumnigroup_id`),
-  KEY `events_event_notifie_alumnigroup_id_d47843c2_fk_alumni_gr` (`alumnigroup_id`),
-  CONSTRAINT `events_event_notifie_alumnigroup_id_d47843c2_fk_alumni_gr` FOREIGN KEY (`alumnigroup_id`) REFERENCES `alumni_groups_alumnigroup` (`id`),
-  CONSTRAINT `events_event_notifie_event_id_62b4531f_fk_events_ev` FOREIGN KEY (`event_id`) REFERENCES `events_event` (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
-
--- Data exporting was unselected.
-
--- Dumping structure for table alumni_norsu.feedback_feedback
-CREATE TABLE IF NOT EXISTS `feedback_feedback` (
+DROP TABLE IF EXISTS `feedback_feedback`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `feedback_feedback` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `category` varchar(20) NOT NULL,
   `subject` varchar(200) NOT NULL,
@@ -1813,11 +2260,16 @@ CREATE TABLE IF NOT EXISTS `feedback_feedback` (
   KEY `feedback_feedback_user_id_f7dd5014_fk_auth_user_id` (`user_id`),
   CONSTRAINT `feedback_feedback_user_id_f7dd5014_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `jobs_jobapplication`
+--
 
--- Dumping structure for table alumni_norsu.jobs_jobapplication
-CREATE TABLE IF NOT EXISTS `jobs_jobapplication` (
+DROP TABLE IF EXISTS `jobs_jobapplication`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `jobs_jobapplication` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `application_date` datetime(6) NOT NULL,
   `status` varchar(20) NOT NULL,
@@ -1834,11 +2286,16 @@ CREATE TABLE IF NOT EXISTS `jobs_jobapplication` (
   CONSTRAINT `jobs_jobapplication_applicant_id_7f41cf6a_fk_auth_user_id` FOREIGN KEY (`applicant_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `jobs_jobapplication_job_id_625fd19d_fk_jobs_jobposting_id` FOREIGN KEY (`job_id`) REFERENCES `jobs_jobposting` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `jobs_jobposting`
+--
 
--- Dumping structure for table alumni_norsu.jobs_jobposting
-CREATE TABLE IF NOT EXISTS `jobs_jobposting` (
+DROP TABLE IF EXISTS `jobs_jobposting`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `jobs_jobposting` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `job_title` varchar(200) NOT NULL,
   `slug` varchar(250) NOT NULL,
@@ -1872,11 +2329,16 @@ CREATE TABLE IF NOT EXISTS `jobs_jobposting` (
   KEY `jobs_jobpos_source_9226ee_idx` (`source`),
   CONSTRAINT `jobs_jobposting_posted_by_id_3d191c74_fk_auth_user_id` FOREIGN KEY (`posted_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `jobs_requireddocument`
+--
 
--- Dumping structure for table alumni_norsu.jobs_requireddocument
-CREATE TABLE IF NOT EXISTS `jobs_requireddocument` (
+DROP TABLE IF EXISTS `jobs_requireddocument`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `jobs_requireddocument` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `document_type` varchar(20) NOT NULL,
@@ -1889,11 +2351,16 @@ CREATE TABLE IF NOT EXISTS `jobs_requireddocument` (
   KEY `jobs_requireddocument_job_id_54208415_fk_jobs_jobposting_id` (`job_id`),
   CONSTRAINT `jobs_requireddocument_job_id_54208415_fk_jobs_jobposting_id` FOREIGN KEY (`job_id`) REFERENCES `jobs_jobposting` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `jobs_scrapedjob`
+--
 
--- Dumping structure for table alumni_norsu.jobs_scrapedjob
-CREATE TABLE IF NOT EXISTS `jobs_scrapedjob` (
+DROP TABLE IF EXISTS `jobs_scrapedjob`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `jobs_scrapedjob` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `search_keyword` varchar(200) NOT NULL,
   `search_location` varchar(200) NOT NULL,
@@ -1911,11 +2378,16 @@ CREATE TABLE IF NOT EXISTS `jobs_scrapedjob` (
   KEY `jobs_scrape_scraped_141fa2_idx` (`scraped_at`),
   CONSTRAINT `jobs_scrapedjob_scraped_by_id_cd4104f9_fk_auth_user_id` FOREIGN KEY (`scraped_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `location_tracking_locationdata`
+--
 
--- Dumping structure for table alumni_norsu.location_tracking_locationdata
-CREATE TABLE IF NOT EXISTS `location_tracking_locationdata` (
+DROP TABLE IF EXISTS `location_tracking_locationdata`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `location_tracking_locationdata` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `latitude` decimal(9,6) NOT NULL,
   `longitude` decimal(9,6) NOT NULL,
@@ -1926,11 +2398,16 @@ CREATE TABLE IF NOT EXISTS `location_tracking_locationdata` (
   KEY `location_tracking_locationdata_user_id_941869a3_fk_auth_user_id` (`user_id`),
   CONSTRAINT `location_tracking_locationdata_user_id_941869a3_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=419 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `log_viewer_archivestorageconfig`
+--
 
--- Dumping structure for table alumni_norsu.log_viewer_archivestorageconfig
-CREATE TABLE IF NOT EXISTS `log_viewer_archivestorageconfig` (
+DROP TABLE IF EXISTS `log_viewer_archivestorageconfig`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_viewer_archivestorageconfig` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `max_storage_gb` decimal(10,2) NOT NULL,
   `warning_threshold_percent` int NOT NULL,
@@ -1941,11 +2418,16 @@ CREATE TABLE IF NOT EXISTS `log_viewer_archivestorageconfig` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `log_viewer_auditlog`
+--
 
--- Dumping structure for table alumni_norsu.log_viewer_auditlog
-CREATE TABLE IF NOT EXISTS `log_viewer_auditlog` (
+DROP TABLE IF EXISTS `log_viewer_auditlog`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_viewer_auditlog` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `object_id` int unsigned NOT NULL,
   `action` varchar(10) NOT NULL,
@@ -1974,11 +2456,16 @@ CREATE TABLE IF NOT EXISTS `log_viewer_auditlog` (
   CONSTRAINT `log_viewer_auditlog_user_id_702b80dc_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `log_viewer_auditlog_chk_1` CHECK ((`object_id` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=1232 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `log_viewer_logcleanupschedule`
+--
 
--- Dumping structure for table alumni_norsu.log_viewer_logcleanupschedule
-CREATE TABLE IF NOT EXISTS `log_viewer_logcleanupschedule` (
+DROP TABLE IF EXISTS `log_viewer_logcleanupschedule`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_viewer_logcleanupschedule` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `enabled` tinyint(1) NOT NULL,
   `frequency` varchar(10) NOT NULL,
@@ -1991,11 +2478,16 @@ CREATE TABLE IF NOT EXISTS `log_viewer_logcleanupschedule` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `log_viewer_logoperationhistory`
+--
 
--- Dumping structure for table alumni_norsu.log_viewer_logoperationhistory
-CREATE TABLE IF NOT EXISTS `log_viewer_logoperationhistory` (
+DROP TABLE IF EXISTS `log_viewer_logoperationhistory`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_viewer_logoperationhistory` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `operation_type` varchar(10) NOT NULL,
   `status` varchar(10) NOT NULL,
@@ -2015,11 +2507,16 @@ CREATE TABLE IF NOT EXISTS `log_viewer_logoperationhistory` (
   KEY `log_viewer__status_f11816_idx` (`status`,`started_at` DESC),
   CONSTRAINT `log_viewer_logoperat_triggered_by_id_496e1426_fk_auth_user` FOREIGN KEY (`triggered_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `log_viewer_logretentionpolicy`
+--
 
--- Dumping structure for table alumni_norsu.log_viewer_logretentionpolicy
-CREATE TABLE IF NOT EXISTS `log_viewer_logretentionpolicy` (
+DROP TABLE IF EXISTS `log_viewer_logretentionpolicy`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `log_viewer_logretentionpolicy` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `log_type` varchar(10) NOT NULL,
   `enabled` tinyint(1) NOT NULL,
@@ -2033,11 +2530,16 @@ CREATE TABLE IF NOT EXISTS `log_viewer_logretentionpolicy` (
   UNIQUE KEY `log_type` (`log_type`),
   CONSTRAINT `log_viewer_logretentionpolicy_chk_1` CHECK ((`retention_days` >= 0))
 ) ENGINE=InnoDB AUTO_INCREMENT=3 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_conversation`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_conversation
-CREATE TABLE IF NOT EXISTS `mentorship_conversation` (
+DROP TABLE IF EXISTS `mentorship_conversation`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_conversation` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `created_at` datetime(6) NOT NULL,
   `updated_at` datetime(6) NOT NULL,
@@ -2053,11 +2555,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_conversation` (
   CONSTRAINT `mentorship_conversat_participant_1_id_e3e6f739_fk_auth_user` FOREIGN KEY (`participant_1_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `mentorship_conversat_participant_2_id_822878d6_fk_auth_user` FOREIGN KEY (`participant_2_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_mentorshipgoal`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_mentorshipgoal
-CREATE TABLE IF NOT EXISTS `mentorship_mentorshipgoal` (
+DROP TABLE IF EXISTS `mentorship_mentorshipgoal`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_mentorshipgoal` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2075,11 +2582,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_mentorshipgoal` (
   CONSTRAINT `mentorship_mentorshi_mentorship_id_3b1a0146_fk_accounts_` FOREIGN KEY (`mentorship_id`) REFERENCES `accounts_mentorshiprequest` (`id`),
   CONSTRAINT `mentorship_mentorshipgoal_created_by_id_f19e1fac_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_mentorshipmeeting`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_mentorshipmeeting
-CREATE TABLE IF NOT EXISTS `mentorship_mentorshipmeeting` (
+DROP TABLE IF EXISTS `mentorship_mentorshipmeeting`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_mentorshipmeeting` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2095,11 +2607,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_mentorshipmeeting` (
   KEY `mentorship_mentorshi_mentorship_id_0069b743_fk_accounts_` (`mentorship_id`),
   CONSTRAINT `mentorship_mentorshi_mentorship_id_0069b743_fk_accounts_` FOREIGN KEY (`mentorship_id`) REFERENCES `accounts_mentorshiprequest` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_mentorshipmessage`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_mentorshipmessage
-CREATE TABLE IF NOT EXISTS `mentorship_mentorshipmessage` (
+DROP TABLE IF EXISTS `mentorship_mentorshipmessage`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_mentorshipmessage` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `attachment` varchar(100) DEFAULT NULL,
@@ -2113,11 +2630,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_mentorshipmessage` (
   CONSTRAINT `mentorship_mentorshi_mentorship_id_d31e363f_fk_accounts_` FOREIGN KEY (`mentorship_id`) REFERENCES `accounts_mentorshiprequest` (`id`),
   CONSTRAINT `mentorship_mentorshipmessage_sender_id_add35e19_fk_auth_user_id` FOREIGN KEY (`sender_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_mentorshipmilestone`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_mentorshipmilestone
-CREATE TABLE IF NOT EXISTS `mentorship_mentorshipmilestone` (
+DROP TABLE IF EXISTS `mentorship_mentorshipmilestone`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_mentorshipmilestone` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2131,11 +2653,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_mentorshipmilestone` (
   KEY `mentorship_mentorshi_goal_id_2e0e534d_fk_mentorshi` (`goal_id`),
   CONSTRAINT `mentorship_mentorshi_goal_id_2e0e534d_fk_mentorshi` FOREIGN KEY (`goal_id`) REFERENCES `mentorship_mentorshipgoal` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_mentorshipprogress`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_mentorshipprogress
-CREATE TABLE IF NOT EXISTS `mentorship_mentorshipprogress` (
+DROP TABLE IF EXISTS `mentorship_mentorshipprogress`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_mentorshipprogress` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2151,11 +2678,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_mentorshipprogress` (
   CONSTRAINT `mentorship_mentorshi_created_by_id_0ec1efef_fk_auth_user` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`),
   CONSTRAINT `mentorship_mentorshi_mentorship_id_f84db681_fk_accounts_` FOREIGN KEY (`mentorship_id`) REFERENCES `accounts_mentorshiprequest` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_mentorshipskillprogress`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_mentorshipskillprogress
-CREATE TABLE IF NOT EXISTS `mentorship_mentorshipskillprogress` (
+DROP TABLE IF EXISTS `mentorship_mentorshipskillprogress`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_mentorshipskillprogress` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `skill_name` varchar(100) NOT NULL,
   `initial_proficiency` int NOT NULL,
@@ -2169,11 +2701,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_mentorshipskillprogress` (
   UNIQUE KEY `mentorship_mentorshipski_mentorship_id_skill_name_1964da1c_uniq` (`mentorship_id`,`skill_name`),
   CONSTRAINT `mentorship_mentorshi_mentorship_id_a4f20164_fk_accounts_` FOREIGN KEY (`mentorship_id`) REFERENCES `accounts_mentorshiprequest` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_message`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_message
-CREATE TABLE IF NOT EXISTS `mentorship_message` (
+DROP TABLE IF EXISTS `mentorship_message`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_message` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `content` longtext NOT NULL,
   `attachment` varchar(100) DEFAULT NULL,
@@ -2187,11 +2724,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_message` (
   CONSTRAINT `mentorship_message_conversation_id_4c3f78e7_fk_mentorshi` FOREIGN KEY (`conversation_id`) REFERENCES `mentorship_conversation` (`id`),
   CONSTRAINT `mentorship_message_sender_id_a27f4846_fk_auth_user_id` FOREIGN KEY (`sender_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `mentorship_timelinemilestone`
+--
 
--- Dumping structure for table alumni_norsu.mentorship_timelinemilestone
-CREATE TABLE IF NOT EXISTS `mentorship_timelinemilestone` (
+DROP TABLE IF EXISTS `mentorship_timelinemilestone`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `mentorship_timelinemilestone` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `period` varchar(50) NOT NULL,
   `description` varchar(500) NOT NULL,
@@ -2203,11 +2745,16 @@ CREATE TABLE IF NOT EXISTS `mentorship_timelinemilestone` (
   UNIQUE KEY `mentorship_timelinemiles_mentorship_id_period_des_b4004e99_uniq` (`mentorship_id`,`period`,`description`),
   CONSTRAINT `mentorship_timelinem_mentorship_id_2f6bc359_fk_accounts_` FOREIGN KEY (`mentorship_id`) REFERENCES `accounts_mentorshiprequest` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `notifications_notification`
+--
 
--- Dumping structure for table alumni_norsu.notifications_notification
-CREATE TABLE IF NOT EXISTS `notifications_notification` (
+DROP TABLE IF EXISTS `notifications_notification`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `notifications_notification` (
   `id` int NOT NULL AUTO_INCREMENT,
   `level` varchar(20) NOT NULL,
   `unread` tinyint(1) NOT NULL,
@@ -2240,11 +2787,16 @@ CREATE TABLE IF NOT EXISTS `notifications_notification` (
   CONSTRAINT `notifications_notifi_target_content_type__ccb24d88_fk_django_co` FOREIGN KEY (`target_content_type_id`) REFERENCES `django_content_type` (`id`),
   CONSTRAINT `notifications_notification_recipient_id_d055f3f0_fk_auth_user_id` FOREIGN KEY (`recipient_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `setup_setupstate`
+--
 
--- Dumping structure for table alumni_norsu.setup_setupstate
-CREATE TABLE IF NOT EXISTS `setup_setupstate` (
+DROP TABLE IF EXISTS `setup_setupstate`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `setup_setupstate` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `is_complete` tinyint(1) NOT NULL,
   `completed_at` datetime(6) DEFAULT NULL,
@@ -2253,11 +2805,16 @@ CREATE TABLE IF NOT EXISTS `setup_setupstate` (
   `updated_at` datetime(6) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `socialaccount_socialaccount`
+--
 
--- Dumping structure for table alumni_norsu.socialaccount_socialaccount
-CREATE TABLE IF NOT EXISTS `socialaccount_socialaccount` (
+DROP TABLE IF EXISTS `socialaccount_socialaccount`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `socialaccount_socialaccount` (
   `id` int NOT NULL AUTO_INCREMENT,
   `provider` varchar(200) NOT NULL,
   `uid` varchar(191) NOT NULL,
@@ -2270,11 +2827,16 @@ CREATE TABLE IF NOT EXISTS `socialaccount_socialaccount` (
   KEY `socialaccount_socialaccount_user_id_8146e70c_fk_auth_user_id` (`user_id`),
   CONSTRAINT `socialaccount_socialaccount_user_id_8146e70c_fk_auth_user_id` FOREIGN KEY (`user_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `socialaccount_socialapp`
+--
 
--- Dumping structure for table alumni_norsu.socialaccount_socialapp
-CREATE TABLE IF NOT EXISTS `socialaccount_socialapp` (
+DROP TABLE IF EXISTS `socialaccount_socialapp`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `socialaccount_socialapp` (
   `id` int NOT NULL AUTO_INCREMENT,
   `provider` varchar(30) NOT NULL,
   `name` varchar(40) NOT NULL,
@@ -2285,11 +2847,16 @@ CREATE TABLE IF NOT EXISTS `socialaccount_socialapp` (
   `settings` json NOT NULL DEFAULT (_utf8mb4'{}'),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `socialaccount_socialapp_sites`
+--
 
--- Dumping structure for table alumni_norsu.socialaccount_socialapp_sites
-CREATE TABLE IF NOT EXISTS `socialaccount_socialapp_sites` (
+DROP TABLE IF EXISTS `socialaccount_socialapp_sites`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `socialaccount_socialapp_sites` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `socialapp_id` int NOT NULL,
   `site_id` int NOT NULL,
@@ -2299,11 +2866,16 @@ CREATE TABLE IF NOT EXISTS `socialaccount_socialapp_sites` (
   CONSTRAINT `socialaccount_social_socialapp_id_97fb6e7d_fk_socialacc` FOREIGN KEY (`socialapp_id`) REFERENCES `socialaccount_socialapp` (`id`),
   CONSTRAINT `socialaccount_socialapp_sites_site_id_2579dee5_fk_django_site_id` FOREIGN KEY (`site_id`) REFERENCES `django_site` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `socialaccount_socialtoken`
+--
 
--- Dumping structure for table alumni_norsu.socialaccount_socialtoken
-CREATE TABLE IF NOT EXISTS `socialaccount_socialtoken` (
+DROP TABLE IF EXISTS `socialaccount_socialtoken`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `socialaccount_socialtoken` (
   `id` int NOT NULL AUTO_INCREMENT,
   `token` longtext NOT NULL,
   `token_secret` longtext NOT NULL,
@@ -2316,11 +2888,16 @@ CREATE TABLE IF NOT EXISTS `socialaccount_socialtoken` (
   CONSTRAINT `socialaccount_social_account_id_951f210e_fk_socialacc` FOREIGN KEY (`account_id`) REFERENCES `socialaccount_socialaccount` (`id`),
   CONSTRAINT `socialaccount_social_app_id_636a42d7_fk_socialacc` FOREIGN KEY (`app_id`) REFERENCES `socialaccount_socialapp` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_achievement`
+--
 
--- Dumping structure for table alumni_norsu.surveys_achievement
-CREATE TABLE IF NOT EXISTS `surveys_achievement` (
+DROP TABLE IF EXISTS `surveys_achievement`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_achievement` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2336,11 +2913,16 @@ CREATE TABLE IF NOT EXISTS `surveys_achievement` (
   CONSTRAINT `surveys_achievement_alumni_id_e21ca943_fk_alumni_di` FOREIGN KEY (`alumni_id`) REFERENCES `alumni_directory_alumni` (`id`),
   CONSTRAINT `surveys_achievement_verified_by_id_007544bf_fk_auth_user_id` FOREIGN KEY (`verified_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_employmentrecord`
+--
 
--- Dumping structure for table alumni_norsu.surveys_employmentrecord
-CREATE TABLE IF NOT EXISTS `surveys_employmentrecord` (
+DROP TABLE IF EXISTS `surveys_employmentrecord`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_employmentrecord` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `company_name` varchar(200) NOT NULL,
   `job_title` varchar(200) NOT NULL,
@@ -2356,11 +2938,16 @@ CREATE TABLE IF NOT EXISTS `surveys_employmentrecord` (
   CONSTRAINT `surveys_employmentre_alumni_id_982a6fe4_fk_alumni_di` FOREIGN KEY (`alumni_id`) REFERENCES `alumni_directory_alumni` (`id`),
   CONSTRAINT `surveys_employmentrecord_location_id_3e34ab68_fk_core_address_id` FOREIGN KEY (`location_id`) REFERENCES `core_address` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_questionoption`
+--
 
--- Dumping structure for table alumni_norsu.surveys_questionoption
-CREATE TABLE IF NOT EXISTS `surveys_questionoption` (
+DROP TABLE IF EXISTS `surveys_questionoption`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_questionoption` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `option_text` varchar(200) NOT NULL,
   `display_order` int NOT NULL,
@@ -2370,11 +2957,16 @@ CREATE TABLE IF NOT EXISTS `surveys_questionoption` (
   KEY `surveys_questionopti_question_id_688ddc7f_fk_surveys_s` (`question_id`),
   CONSTRAINT `surveys_questionopti_question_id_688ddc7f_fk_surveys_s` FOREIGN KEY (`question_id`) REFERENCES `surveys_surveyquestion` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_report`
+--
 
--- Dumping structure for table alumni_norsu.surveys_report
-CREATE TABLE IF NOT EXISTS `surveys_report` (
+DROP TABLE IF EXISTS `surveys_report`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_report` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2391,11 +2983,16 @@ CREATE TABLE IF NOT EXISTS `surveys_report` (
   KEY `surveys_report_created_by_id_da202bc5_fk_auth_user_id` (`created_by_id`),
   CONSTRAINT `surveys_report_created_by_id_da202bc5_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_responseanswer`
+--
 
--- Dumping structure for table alumni_norsu.surveys_responseanswer
-CREATE TABLE IF NOT EXISTS `surveys_responseanswer` (
+DROP TABLE IF EXISTS `surveys_responseanswer`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_responseanswer` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `text_answer` longtext,
   `rating_value` int DEFAULT NULL,
@@ -2410,11 +3007,16 @@ CREATE TABLE IF NOT EXISTS `surveys_responseanswer` (
   CONSTRAINT `surveys_responseansw_response_id_050ef226_fk_surveys_s` FOREIGN KEY (`response_id`) REFERENCES `surveys_surveyresponse` (`id`),
   CONSTRAINT `surveys_responseansw_selected_option_id_dd3ab198_fk_surveys_q` FOREIGN KEY (`selected_option_id`) REFERENCES `surveys_questionoption` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_survey`
+--
 
--- Dumping structure for table alumni_norsu.surveys_survey
-CREATE TABLE IF NOT EXISTS `surveys_survey` (
+DROP TABLE IF EXISTS `surveys_survey`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_survey` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `title` varchar(200) NOT NULL,
   `description` longtext NOT NULL,
@@ -2429,11 +3031,16 @@ CREATE TABLE IF NOT EXISTS `surveys_survey` (
   KEY `surveys_survey_created_by_id_46a3da67_fk_auth_user_id` (`created_by_id`),
   CONSTRAINT `surveys_survey_created_by_id_46a3da67_fk_auth_user_id` FOREIGN KEY (`created_by_id`) REFERENCES `auth_user` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_surveyquestion`
+--
 
--- Dumping structure for table alumni_norsu.surveys_surveyquestion
-CREATE TABLE IF NOT EXISTS `surveys_surveyquestion` (
+DROP TABLE IF EXISTS `surveys_surveyquestion`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_surveyquestion` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `question_text` longtext NOT NULL,
   `question_type` varchar(20) NOT NULL,
@@ -2446,11 +3053,16 @@ CREATE TABLE IF NOT EXISTS `surveys_surveyquestion` (
   KEY `surveys_surveyquestion_survey_id_ca0121e7_fk_surveys_survey_id` (`survey_id`),
   CONSTRAINT `surveys_surveyquestion_survey_id_ca0121e7_fk_surveys_survey_id` FOREIGN KEY (`survey_id`) REFERENCES `surveys_survey` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=8 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `surveys_surveyresponse`
+--
 
--- Dumping structure for table alumni_norsu.surveys_surveyresponse
-CREATE TABLE IF NOT EXISTS `surveys_surveyresponse` (
+DROP TABLE IF EXISTS `surveys_surveyresponse`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `surveys_surveyresponse` (
   `id` bigint NOT NULL AUTO_INCREMENT,
   `submitted_at` datetime(6) NOT NULL,
   `ip_address` char(39) DEFAULT NULL,
@@ -2462,11 +3074,16 @@ CREATE TABLE IF NOT EXISTS `surveys_surveyresponse` (
   CONSTRAINT `surveys_surveyrespon_alumni_id_d9f84010_fk_alumni_di` FOREIGN KEY (`alumni_id`) REFERENCES `alumni_directory_alumni` (`id`),
   CONSTRAINT `surveys_surveyresponse_survey_id_4ad3a956_fk_surveys_survey_id` FOREIGN KEY (`survey_id`) REFERENCES `surveys_survey` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=4 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `taggit_tag`
+--
 
--- Dumping structure for table alumni_norsu.taggit_tag
-CREATE TABLE IF NOT EXISTS `taggit_tag` (
+DROP TABLE IF EXISTS `taggit_tag`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `taggit_tag` (
   `id` int NOT NULL AUTO_INCREMENT,
   `name` varchar(100) NOT NULL,
   `slug` varchar(100) NOT NULL,
@@ -2474,11 +3091,16 @@ CREATE TABLE IF NOT EXISTS `taggit_tag` (
   UNIQUE KEY `name` (`name`),
   UNIQUE KEY `slug` (`slug`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
 
--- Data exporting was unselected.
+--
+-- Table structure for table `taggit_taggeditem`
+--
 
--- Dumping structure for table alumni_norsu.taggit_taggeditem
-CREATE TABLE IF NOT EXISTS `taggit_taggeditem` (
+DROP TABLE IF EXISTS `taggit_taggeditem`;
+/*!40101 SET @saved_cs_client     = @@character_set_client */;
+/*!50503 SET character_set_client = utf8mb4 */;
+CREATE TABLE `taggit_taggeditem` (
   `id` int NOT NULL AUTO_INCREMENT,
   `object_id` int NOT NULL,
   `content_type_id` int NOT NULL,
@@ -2491,11 +3113,15 @@ CREATE TABLE IF NOT EXISTS `taggit_taggeditem` (
   CONSTRAINT `taggit_taggeditem_content_type_id_9957a03c_fk_django_co` FOREIGN KEY (`content_type_id`) REFERENCES `django_content_type` (`id`),
   CONSTRAINT `taggit_taggeditem_tag_id_f4f5b767_fk_taggit_tag_id` FOREIGN KEY (`tag_id`) REFERENCES `taggit_tag` (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+/*!40101 SET character_set_client = @saved_cs_client */;
+/*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;
 
--- Data exporting was unselected.
-
-/*!40103 SET TIME_ZONE=IFNULL(@OLD_TIME_ZONE, 'system') */;
-/*!40101 SET SQL_MODE=IFNULL(@OLD_SQL_MODE, '') */;
-/*!40014 SET FOREIGN_KEY_CHECKS=IFNULL(@OLD_FOREIGN_KEY_CHECKS, 1) */;
+/*!40101 SET SQL_MODE=@OLD_SQL_MODE */;
+/*!40014 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS */;
+/*!40014 SET UNIQUE_CHECKS=@OLD_UNIQUE_CHECKS */;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40111 SET SQL_NOTES=IFNULL(@OLD_SQL_NOTES, 1) */;
+/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
+/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+/*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
+
+-- Dump completed on 2026-03-06 21:48:14
