@@ -357,6 +357,7 @@ CSP_STYLE_SRC = (
 )
 CSP_FONT_SRC = (
     "'self'",
+    "data:",
     "https://fonts.gstatic.com",
     "https://cdn.jsdelivr.net",
     "https://cdnjs.cloudflare.com",
