@@ -14,6 +14,7 @@ from django.db import transaction
 from cms.models import (
     SiteConfig,
     AboutPageConfig,
+    NORSUVMGOHistory,
     Feature,
     Testimonial,
     StaffMember,
@@ -77,6 +78,63 @@ Negros Oriental, Philippines''',
             'vision': '''A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.''',
             'about_page_title': 'About NORSU Alumni Network',
             'about_page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
+        }
+
+        # ------------------------------------------------------------
+        # 2B. VMGO SECTION DATA (Singleton)
+        # NORSU Vision, Mission, Goals, and Core Values
+        # ------------------------------------------------------------
+        VMGO_SECTION_DATA = {
+            'section_title': 'NORSU Vision, Mission, Goals & Core Values',
+            'is_active': True,
+            'about_title': 'About NORSU',
+            'about_content': (
+                'Negros Oriental State University (NORSU) is a premier state university '
+                'in the Philippines committed to quality instruction, impactful research, '
+                'community-responsive extension services, and sustainable production '
+                'initiatives for national and global development.'
+            ),
+            'vision_title': 'NORSU Vision',
+            'vision': 'A dynamic, competitive, and globally responsive state university.',
+            'mission_title': 'NORSU Mission',
+            'mission': (
+                'The University shall provide excellent instruction, relevant and responsive '
+                'research and extension services, and quality-assured production through '
+                'competent and highly motivated human capital.'
+            ),
+            'goals_title': 'Goals',
+            'goals': """A
+Achieve global recognition by program excellence
+
+S
+Strengthen research through impactful innovation
+
+P
+Promote enhanced community extension services
+
+I
+Integrate partnerships and international relations
+
+R
+Revitalize infrastructure with operational systems
+
+E
+Enrich student life and leadership opportunities""",
+            'values_title': 'Core Values',
+            'core_values': """S
+Spirituality
+
+H
+Honesty
+
+I
+Innovation
+
+N
+Nurturance
+
+E
+Excellence""",
         }
 
         # ------------------------------------------------------------
@@ -454,6 +512,20 @@ Sunday: Closed''',
                     overall_results['total_updated'] += 1
             except Exception as e:
                 overall_results['errors'].append(f'AboutPageConfig: {str(e)}')
+
+            # 2B. Seed NORSUVMGOHistory
+            try:
+                _, created = self.seed_with_transaction(
+                    self.seed_singleton_model,
+                    NORSUVMGOHistory,
+                    VMGO_SECTION_DATA
+                )
+                if created:
+                    overall_results['total_created'] += 1
+                else:
+                    overall_results['total_updated'] += 1
+            except Exception as e:
+                overall_results['errors'].append(f'NORSUVMGOHistory: {str(e)}')
             
             # Seed multiple record models
             self.stdout.write(self.style.HTTP_INFO('\n[*] Seeding Multiple Record Models...'))
