@@ -2254,15 +2254,20 @@
                 featureIcons.forEach(icon => {
                     icon.classList.remove('fa-fallback');
                 });
-                
-                // Debug: Log icon elements
+
+                // Per-icon fallback: if a configured icon class is invalid, replace it.
+                const fallbackIcons = [
+                    'fas fa-users',
+                    'fas fa-calendar-alt',
+                    'fas fa-briefcase',
+                    'fas fa-user-graduate'
+                ];
                 featureIcons.forEach((icon, index) => {
                     const iconElement = icon.querySelector('i');
-                    if (iconElement) {
-                        console.log(`Icon ${index}:`, {
-                            classes: iconElement.className,
-                            computed: window.getComputedStyle(iconElement, ':before').getPropertyValue('content')
-                        });
+                    if (!iconElement) return;
+                    const computed = window.getComputedStyle(iconElement, ':before').getPropertyValue('content');
+                    if (!computed || computed === 'none' || computed === '""') {
+                        iconElement.className = fallbackIcons[index % fallbackIcons.length];
                     }
                 });
             }
