@@ -111,6 +111,17 @@ class BossJobScraper:
                 params['region'] = region
             
             logger.info(f"Searching BossJob.ph for '{keyword}' in '{location}' using URL: {full_search_url}")
+
+            # Selenium-first mode: use browser automation as primary fetch path
+            # to reduce HTTP 403 blocks from direct requests.
+            if self.enable_selenium:
+                selenium_result = self._selenium_fetch(full_search_url, params, keyword, location)
+                if selenium_result and selenium_result.get('success'):
+                    logger.info("Selenium primary fetch succeeded for BossJob search")
+                    if use_cache:
+                        cache.set(cache_key, selenium_result, 1800)
+                    return selenium_result
+                logger.warning("Selenium primary fetch did not return success; falling back to HTTP requests")
             
             # Make the request with a plausible Referer
             headers = {'Referer': f"{self.base_url}/"}
