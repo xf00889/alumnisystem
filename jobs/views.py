@@ -285,6 +285,7 @@ def job_list(request):
     featured_jobs = jobs.filter(is_featured=True)[:5]
     
     # For skill-based view, use the job_matches list
+    scraped_jobs_total_count = 0
     if skill_based_view and user_profile and view_type == 'posted':
         paginator = Paginator([match['job'] for match in job_matches], 10)
         page = request.GET.get('page')
@@ -293,8 +294,12 @@ def job_list(request):
         # Create a map for easy lookup of match data
         match_data = {match['job'].id: match for match in job_matches}
     elif view_type == 'scraped':
+        # Keep only scrape runs that actually have job entries
+        scraped_jobs_with_data = [entry for entry in scraped_jobs if entry.jobs_count > 0]
+        scraped_jobs_total_count = sum(entry.jobs_count for entry in scraped_jobs_with_data)
+
         # Pagination for scraped jobs
-        paginator = Paginator(scraped_jobs, 10)
+        paginator = Paginator(scraped_jobs_with_data, 10)
         page = request.GET.get('page')
         jobs_page = paginator.get_page(page)
         match_data = {}
@@ -323,6 +328,7 @@ def job_list(request):
         'recommended_skills': recommended_skills[:5] if recommended_skills else [],  # Show top 5 recommendations
         'view_type': view_type,
         'scraped_jobs': scraped_jobs if view_type == 'scraped' else None,
+        'scraped_jobs_total_count': scraped_jobs_total_count,
     }
     return render(request, 'jobs/job_list.html', context)
 
