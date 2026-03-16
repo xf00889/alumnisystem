@@ -32,7 +32,7 @@ User = get_user_model()
 class Command(BaseCommand):
     help = "Seed realistic sample announcements, events, and groups for list pages."
 
-    DEFAULT_PREFIX = "[SEED]"
+    DEFAULT_PREFIX = ""
     USERNAME_PREFIX = "seed_alumni_"
     SEED_MARKER = "Seeded by seed_sample_content command."
 
@@ -151,7 +151,7 @@ class Command(BaseCommand):
         parser.add_argument(
             "--prefix",
             default=self.DEFAULT_PREFIX,
-            help=f"Prefix for seeded records (default: {self.DEFAULT_PREFIX}).",
+            help="Optional prefix for seeded records (default: none).",
         )
         parser.add_argument(
             "--seed",
@@ -186,20 +186,18 @@ class Command(BaseCommand):
             users_count=users_count,
         )
 
-        if not prefix:
-            prefix = self.DEFAULT_PREFIX
-
         self.random = random.Random(seed_value)
+        prefix_part = self._prefix_part(prefix)
 
         self.stdout.write(self.style.SUCCESS("Starting sample content seeding..."))
-        self.stdout.write(f"Prefix: {prefix}")
+        self.stdout.write(f"Prefix: {prefix or '(none)'}")
         self.stdout.write(f"Random seed: {seed_value}")
         self.stdout.write("")
 
         with transaction.atomic():
             if options["reset"]:
                 reset_stats = self._reset_seed_data(
-                    prefix=prefix,
+                    prefix_part=prefix_part,
                     reset_users=options["reset_users"],
                 )
                 self.stdout.write("Reset complete:")
@@ -211,11 +209,11 @@ class Command(BaseCommand):
 
             users, user_stats = self._ensure_seed_users(users_count, password)
             categories, category_stats = self._ensure_categories()
-            groups, group_stats = self._ensure_groups(prefix, groups_count, users)
+            groups, group_stats = self._ensure_groups(prefix_part, groups_count, users)
             membership_stats = self._ensure_memberships(groups, users)
-            events, event_stats = self._ensure_events(prefix, events_count, users, groups)
+            events, event_stats = self._ensure_events(prefix_part, events_count, users, groups)
             announcement_stats = self._ensure_announcements(
-                prefix,
+                prefix_part,
                 announcements_count,
                 categories,
             )
@@ -270,18 +268,32 @@ class Command(BaseCommand):
         if users_count < 1 and (groups_count > 0 or events_count > 0):
             raise CommandError("--users must be at least 1 when creating groups/events.")
 
-    def _reset_seed_data(self, prefix, reset_users=False):
+    def _prefix_part(self, prefix):
+        return f"{prefix} " if prefix else ""
+
+    def _reset_seed_data(self, prefix_part, reset_users=False):
+        legacy_prefix_part = "[SEED] "
         announcement_deleted, _ = Announcement.objects.filter(
-            title__startswith=f"{prefix} Announcement "
+            content__contains=self.SEED_MARKER
         ).delete()
         event_deleted, _ = Event.objects.filter(
-            title__startswith=f"{prefix} Event "
+            description__contains=self.SEED_MARKER
         ).delete()
         seed_group_ids = list(
             AlumniGroup.objects.filter(
-                name__startswith=f"{prefix} Group "
+                description__contains=self.SEED_MARKER
             ).values_list("id", flat=True)
         )
+
+        # Backward-compatible fallback for any very old runs.
+        if not seed_group_ids:
+            legacy_matches = AlumniGroup.objects.filter(
+                name__startswith=f"{legacy_prefix_part}Group "
+            ).values_list("id", flat=True)
+            current_matches = AlumniGroup.objects.filter(
+                name__startswith=f"{prefix_part}Group "
+            ).values_list("id", flat=True)
+            seed_group_ids = list(set(list(legacy_matches) + list(current_matches)))
 
         group_deleted = 0
         if seed_group_ids:
@@ -380,7 +392,7 @@ class Command(BaseCommand):
 
         return categories, {"created": created, "updated": updated, "existing": existing}
 
-    def _ensure_groups(self, prefix, count, users):
+    def _ensure_groups(self, prefix_part, count, users):
         groups = []
         created = 0
         existing = 0
@@ -403,7 +415,7 @@ class Command(BaseCommand):
             batch_start_year = batch_end_year - self.random.choice([3, 4, 5])
 
             name = (
-                f"{prefix} Group {index:02d}: "
+                f"{prefix_part}Group {index:02d}: "
                 f"{program} {batch_start_year}-{batch_end_year} ({campus_short})"
             )
             description = (
@@ -512,14 +524,14 @@ class Command(BaseCommand):
 
         return {"created": created, "existing": existing}
 
-    def _ensure_events(self, prefix, count, users, groups):
+    def _ensure_events(self, prefix_part, count, users, groups):
         created = 0
         existing = 0
         events = []
 
         for index in range(1, count + 1):
             theme = self.random.choice(self.EVENT_THEMES)
-            title = f"{prefix} Event {index:02d}: {theme}"
+            title = f"{prefix_part}Event {index:02d}: {theme}"
             status = self.random.choices(
                 ["draft", "published", "cancelled", "completed"],
                 weights=[20, 55, 10, 15],
@@ -627,13 +639,13 @@ class Command(BaseCommand):
 
         return start, end
 
-    def _ensure_announcements(self, prefix, count, categories):
+    def _ensure_announcements(self, prefix_part, count, categories):
         created = 0
         existing = 0
 
         for index in range(1, count + 1):
             topic = self.random.choice(self.ANNOUNCEMENT_TOPICS)
-            title = f"{prefix} Announcement {index:02d}: {topic}"
+            title = f"{prefix_part}Announcement {index:02d}: {topic}"
             posted_at = timezone.now() - timedelta(
                 days=self.random.randint(0, 120),
                 hours=self.random.randint(0, 23),
