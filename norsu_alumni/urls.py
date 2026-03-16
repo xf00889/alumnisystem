@@ -4,6 +4,7 @@ from django.conf import settings
 from django.conf.urls.static import static
 from django.http import HttpResponseRedirect, Http404
 from django.contrib.sitemaps.views import sitemap
+from django.views.generic.base import RedirectView
 from accounts import security_views
 from accounts import google_views
 from core.sitemaps import StaticPageSitemap, EventSitemap, JobSitemap
@@ -32,6 +33,12 @@ urlpatterns = [
     path('sitemap.xml', sitemap, {'sitemaps': sitemaps}, name='sitemap'),
     # Robots.txt
     path('robots.txt', views.robots_txt, name='robots_txt'),
+    # Favicon (root path for browser/search crawler discovery)
+    path(
+        'favicon.ico',
+        RedirectView.as_view(url=f'{settings.STATIC_URL}images/alumni_logo.png', permanent=True),
+        name='favicon',
+    ),
     # Handle old profile API endpoint by calling the accounts API view
     path('profile/api/search-connected-users/', profile_search_connected_users, name='profile_search_connected_users'),
     # Custom login view with rate limiting (must be before allauth.urls to override)
