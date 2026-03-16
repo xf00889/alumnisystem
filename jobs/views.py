@@ -188,8 +188,8 @@ def job_list(request):
     # Get scraped jobs
     scraped_jobs = ScrapedJob.objects.filter(is_active=True).order_by('-scraped_at')
     
-    # Check if user wants to view scraped jobs
-    view_type = request.GET.get('view_type', 'posted')  # 'posted' or 'scraped'
+    # Scraper/external view is disabled; keep job board on posted jobs only.
+    view_type = 'posted'
     
     # Search functionality
     query = request.GET.get('q')
