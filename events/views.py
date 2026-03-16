@@ -20,12 +20,6 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-
-def _is_privileged_event_user(user):
-    """Staff/superusers/coordinators can see all event statuses."""
-    is_coordinator = hasattr(user, 'profile') and user.profile.is_alumni_coordinator
-    return user.is_staff or user.is_superuser or is_coordinator
-
 class EventListView(LoginRequiredMixin, ListView):
     model = Event
     template_name = 'events/event_list_new.html'
@@ -63,20 +57,16 @@ class EventListView(LoginRequiredMixin, ListView):
             location__isnull=False  # Events must have locations
         )
 
-        privileged_user = _is_privileged_event_user(self.request.user)
-
-        # Regular users should never see draft/cancelled events.
-        if not privileged_user:
-            queryset = queryset.filter(status__in=['published', 'completed'])
+        # /events/ should only display published/completed statuses.
+        queryset = queryset.filter(status__in=['published', 'completed'])
 
         # Get filter parameters
         status = self.request.GET.get('status')
         search = self.request.GET.get('search')
 
         # Apply filters
-        if status:
-            if privileged_user or status in ['published', 'completed']:
-                queryset = queryset.filter(status=status)
+        if status in ['published', 'completed']:
+            queryset = queryset.filter(status=status)
 
         if search:
             queryset = queryset.filter(
@@ -120,10 +110,7 @@ class EventListView(LoginRequiredMixin, ListView):
         context = super().get_context_data(**kwargs)
         now = timezone.now()
         
-        privileged_user = _is_privileged_event_user(self.request.user)
-        visible_events = Event.objects.all()
-        if not privileged_user:
-            visible_events = visible_events.filter(status__in=['published', 'completed'])
+        visible_events = Event.objects.filter(status__in=['published', 'completed'])
 
         # Get upcoming events
         upcoming_events = visible_events.filter(
@@ -148,10 +135,9 @@ class EventListView(LoginRequiredMixin, ListView):
             'search_query': self.request.GET.get('search', ''),
             'current_status': (
                 self.request.GET.get('status', '')
-                if privileged_user or self.request.GET.get('status', '') in ['published', 'completed']
+                if self.request.GET.get('status', '') in ['published', 'completed']
                 else ''
             ),
-            'can_view_all_event_statuses': privileged_user,
         })
         
         # Log performance metrics
@@ -180,7 +166,7 @@ class EventDetailView(LoginRequiredMixin, DetailView):
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if not _is_privileged_event_user(self.request.user) and obj.status in ['draft', 'cancelled']:
+        if obj.status in ['draft', 'cancelled']:
             raise PermissionDenied("This event is not available.")
         return obj
 
@@ -242,7 +228,7 @@ class EventModalView(LoginRequiredMixin, DetailView):
 
     def get_object(self, queryset=None):
         obj = super().get_object(queryset)
-        if not _is_privileged_event_user(self.request.user) and obj.status in ['draft', 'cancelled']:
+        if obj.status in ['draft', 'cancelled']:
             raise PermissionDenied("This event is not available.")
         return obj
 
@@ -390,7 +376,7 @@ class EventDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
 @login_required
 def event_rsvp(request, pk):
     event = get_object_or_404(Event, pk=pk)
-    if not _is_privileged_event_user(request.user) and event.status in ['draft', 'cancelled']:
+    if event.status in ['draft', 'cancelled']:
         messages.error(request, 'This event is not available for RSVP.')
         return redirect('events:event_list')
     if request.method == 'POST':
