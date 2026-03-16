@@ -426,24 +426,6 @@ Sunday: Closed''',
                 'order': 4,
                 'is_active': True,
             },
-            {
-                'statistic_type': 'countries',
-                'value': '30+',
-                'label': 'Countries Represented',
-                'icon': 'fas fa-globe-americas',
-                'icon_color': '#6f42c1',
-                'order': 5,
-                'is_active': True,
-            },
-            {
-                'statistic_type': 'mentors',
-                'value': '200+',
-                'label': 'Active Mentors',
-                'icon': 'fas fa-chalkboard-teacher',
-                'icon_color': '#fd7e14',
-                'order': 6,
-                'is_active': True,
-            },
         ]
 
         # ------------------------------------------------------------
@@ -586,6 +568,10 @@ Sunday: Closed''',
             
             # 9. Seed AlumniStatistics
             try:
+                # Keep homepage stats limited to the seeded set by deactivating others.
+                active_stat_types = [item['statistic_type'] for item in ALUMNI_STATISTICS_DATA]
+                AlumniStatistic.objects.exclude(statistic_type__in=active_stat_types).update(is_active=False)
+
                 stats = self.seed_with_transaction(
                     self.seed_multiple_records,
                     AlumniStatistic,
