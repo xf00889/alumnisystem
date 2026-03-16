@@ -151,6 +151,7 @@ class EventListView(LoginRequiredMixin, ListView):
                 if privileged_user or self.request.GET.get('status', '') in ['published', 'completed']
                 else ''
             ),
+            'can_view_all_event_statuses': privileged_user,
         })
         
         # Log performance metrics
