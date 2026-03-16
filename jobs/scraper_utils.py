@@ -50,6 +50,10 @@ class BossJobScraper:
     def _get_region_from_location(self, location: str) -> str:
         """Map location to region for BossJob.ph URL structure"""
         location_lower = location.lower()
+
+        # Nationwide/general searches should not force NCR region.
+        if location_lower.strip() in ['philippines', 'ph', 'nationwide', 'all', 'remote']:
+            return ''
         
         # Common region mappings for Philippines
         region_mapping = {
@@ -101,8 +105,10 @@ class BossJobScraper:
             
             params = {
                 'location': location_formatted,
-                'region': self._get_region_from_location(location)
             }
+            region = self._get_region_from_location(location)
+            if region:
+                params['region'] = region
             
             logger.info(f"Searching BossJob.ph for '{keyword}' in '{location}' using URL: {full_search_url}")
             
@@ -150,33 +156,59 @@ class BossJobScraper:
             if status == 403:
                 try:
                     self._throttle_request()
-                    alt_headers = {
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
-                        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-                        'Accept-Language': 'en-US,en;q=0.9',
-                        'Referer': f'{self.base_url}/en-us/jobs-hiring',
-                        'Cache-Control': 'no-cache',
-                    }
-                    resp2 = self.session.get(full_search_url, params=params, headers=alt_headers, timeout=12)
-                    if resp2.status_code == 200:
-                        soup = BeautifulSoup(resp2.content, 'html.parser')
-                        jobs = self._extract_jobs(soup, keyword)
-                        result = {
-                            'success': True,
-                            'jobs': jobs,
-                            'total_found': len(jobs),
-                            'keyword': keyword,
-                            'location': location,
-                            'message': f"Found {len(jobs)} job(s) for '{keyword}' in '{location}'",
-                            'debug_info': {
-                                'url_accessed': f"{full_search_url}?{urljoin('', '&'.join([f'{k}={v}' for k, v in params.items()]))}",
-                                'response_status': resp2.status_code,
-                                'note': '403 recovered with alternate headers',
-                            }
-                        }
-                        if use_cache:
-                            cache.set(cache_key, result, 1800)
-                        return result
+                    alt_header_profiles = [
+                        {
+                            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.9',
+                            'Referer': f'{self.base_url}/en-us/jobs-hiring',
+                            'Cache-Control': 'no-cache',
+                        },
+                        {
+                            'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36',
+                            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                            'Accept-Language': 'en-US,en;q=0.8',
+                            'Referer': f'{self.base_url}/',
+                            'Pragma': 'no-cache',
+                        },
+                    ]
+
+                    fallback_attempts = [
+                        (full_search_url, params, 'alt_headers_same_url'),
+                        (full_search_url, {'location': params.get('location')}, 'alt_headers_no_region'),
+                        (full_search_url, {}, 'alt_headers_no_params'),
+                        (self.search_url, {'q': keyword, 'location': location}, 'base_search_query_params'),
+                        (self.search_url, {}, 'base_search_no_params'),
+                    ]
+
+                    for headers in alt_header_profiles:
+                        for attempt_url, attempt_params, attempt_label in fallback_attempts:
+                            self._throttle_request()
+                            resp2 = self.session.get(
+                                attempt_url,
+                                params=attempt_params,
+                                headers=headers,
+                                timeout=12
+                            )
+                            if resp2.status_code == 200:
+                                soup = BeautifulSoup(resp2.content, 'html.parser')
+                                jobs = self._extract_jobs(soup, keyword)
+                                result = {
+                                    'success': True,
+                                    'jobs': jobs,
+                                    'total_found': len(jobs),
+                                    'keyword': keyword,
+                                    'location': location,
+                                    'message': f"Found {len(jobs)} job(s) for '{keyword}' in '{location}'",
+                                    'debug_info': {
+                                        'url_accessed': resp2.url,
+                                        'response_status': resp2.status_code,
+                                        'note': f'403 recovered with fallback: {attempt_label}',
+                                    }
+                                }
+                                if use_cache:
+                                    cache.set(cache_key, result, 1800)
+                                return result
                 except requests.RequestException:
                     pass
 
