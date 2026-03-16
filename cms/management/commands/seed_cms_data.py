@@ -13,7 +13,6 @@ from django.core.management.base import BaseCommand
 from django.db import transaction
 from cms.models import (
     SiteConfig,
-    AboutPageConfig,
     NORSUVMGOHistory,
     Feature,
     Testimonial,
@@ -65,23 +64,7 @@ Negros Oriental, Philippines''',
         }
 
         # ------------------------------------------------------------
-        # 2. ABOUT PAGE CONFIGURATION DATA (Singleton)
-        # University information, mission, vision, and about page content
-        # ------------------------------------------------------------
-        ABOUT_PAGE_CONFIG_DATA = {
-            'university_name': 'Negros Oriental State University',
-            'university_short_name': 'NORSU',
-            'university_description': '''Negros Oriental State University (NORSU) is a premier state university in the Philippines, committed to providing quality education and fostering excellence in research, extension, and production services.''',
-            'university_extended_description': '''Established in 2004 through the merger of several educational institutions, NORSU has grown to become a leading center of learning in the Visayas region. Our university is dedicated to developing competent professionals who contribute to national development and global competitiveness.''',
-            'establishment_year': '2004',
-            'mission': '''To provide quality and relevant education through instruction, research, extension, and production services for the holistic development of individuals and communities towards a progressive society.''',
-            'vision': '''A premier state university in the Asia-Pacific region recognized for excellence in instruction, research, extension, and production that produces globally competitive graduates and empowered communities.''',
-            'about_page_title': 'About NORSU Alumni Network',
-            'about_page_subtitle': 'Learn more about our university, mission, and the people behind our alumni community',
-        }
-
-        # ------------------------------------------------------------
-        # 2B. VMGO SECTION DATA (Singleton)
+        # 2. VMGO SECTION DATA (Singleton)
         # NORSU Vision, Mission, Goals, and Core Values
         # ------------------------------------------------------------
         VMGO_SECTION_DATA = {
@@ -499,21 +482,7 @@ Sunday: Closed''',
             except Exception as e:
                 overall_results['errors'].append(f'SiteConfig: {str(e)}')
             
-            # 2. Seed AboutPageConfig
-            try:
-                _, created = self.seed_with_transaction(
-                    self.seed_singleton_model,
-                    AboutPageConfig,
-                    ABOUT_PAGE_CONFIG_DATA
-                )
-                if created:
-                    overall_results['total_created'] += 1
-                else:
-                    overall_results['total_updated'] += 1
-            except Exception as e:
-                overall_results['errors'].append(f'AboutPageConfig: {str(e)}')
-
-            # 2B. Seed NORSUVMGOHistory
+            # 2. Seed NORSUVMGOHistory
             try:
                 _, created = self.seed_with_transaction(
                     self.seed_singleton_model,
