@@ -748,9 +748,49 @@ document.addEventListener('DOMContentLoaded', function() {
 <!-- Cascading Dropdown Script -->
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Courses organized by college for cascading dropdown
+    // Campus-specific program mapping
+    const programsByCampus = {
+        'NORSU-BSC': {  // Bayawan-Sta. Catalina Campus
+            'CTE': [
+                ['BSED', 'Bachelor of Secondary Education'],
+                ['BSED-ENG', 'BS in Secondary Education - Major in English'],
+                ['BSED-MATH', 'BS in Secondary Education - Major in Mathematics'],
+                ['BSED-SCI', 'BS in Secondary Education - Major in Science'],
+                ['BEED', 'Bachelor of Elementary Education'],
+                ['BEED-GC', 'BS in Elementary Education - Major in General Curriculum']
+            ],
+            'CAS': [
+                ['BSCS', 'BS in Computer Science'],
+                ['BSIT', 'BS in Information Technology']
+            ],
+            'CCJE': [
+                ['BSCRIM', 'BS in Criminology']
+            ],
+            'CIT': [
+                ['BIT', 'Bachelor of Industrial Technology'],
+                ['BIT-AT', 'Bachelor of Industrial Technology - Major in Automotive Technology'],
+                ['BIT-CT', 'Bachelor of Industrial Technology - Major in Computer Technology'],
+                ['BIT-ELT', 'Bachelor of Industrial Technology - Major in Electrical Technology'],
+                ['BIT-ELXT', 'Bachelor of Industrial Technology - Major in Electronics Technology']
+            ],
+            'CBA': [
+                ['BSOA', 'BS in Office Administration'],
+                ['BSHM', 'BS in Hospitality Management'],
+                ['BSBA', 'BS in Business Administration']
+            ]
+        },
+        'NORSU-MAIN': 'ALL',  // Main Campus - All programs available
+        'NORSU-BAIS': 'ALL',
+        'NORSU-GUI': 'ALL',
+        'NORSU-MAB': 'ALL',
+        'NORSU-SIA': 'ALL',
+        'NORSU-PAM': 'ALL',
+        'OTHER': 'ALL'
+    };
+
+    // Fallback: All courses by college (for campuses with 'ALL')
     const coursesByCollege = {
-        'CAS': [  // College of Arts and Sciences
+        'CAS': [
             ['BSIT', 'BS in Information Technology'],
             ['BSCS', 'BS in Computer Science'],
             ['BSP', 'BS in Psychology'],
@@ -758,7 +798,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ['BSPHY', 'BS in Physics'],
             ['BSBIO', 'BS in Biology']
         ],
-        'CBA': [  // College of Business Administration
+        'CBA': [
             ['BSA', 'BS in Accountancy'],
             ['BSBA', 'BS in Business Administration'],
             ['BSBA-FM', 'BSBA in Financial Management'],
@@ -767,7 +807,7 @@ document.addEventListener('DOMContentLoaded', function() {
             ['BSOA', 'BS in Office Administration'],
             ['BSHM', 'BS in Hospitality Management']
         ],
-        'CTE': [  // College of Teacher Education
+        'CTE': [
             ['BEED', 'Bachelor of Elementary Education'],
             ['BEED-GC', 'BS in Elementary Education - Major in General Curriculum'],
             ['BSED', 'Bachelor of Secondary Education'],
@@ -776,30 +816,30 @@ document.addEventListener('DOMContentLoaded', function() {
             ['BSED-SCI', 'BS in Secondary Education - Major in Science'],
             ['BSED-SS', 'BS in Education - Social Studies']
         ],
-        'CNPAHS': [  // College of Nursing, Pharmacy and Allied Health Sciences
+        'CNPAHS': [
             ['BSN', 'BS in Nursing'],
             ['BSP', 'BS in Pharmacy'],
             ['BSMT', 'BS in Medical Technology']
         ],
-        'CCJE': [  // College of Criminal Justice Education
+        'CCJE': [
             ['BSCRIM', 'BS in Criminology']
         ],
-        'CTHM': [  // College of Tourism and Hospitality Management
+        'CTHM': [
             ['BSHRM', 'BS in Hotel and Restaurant Management'],
             ['BSTM', 'BS in Tourism Management']
         ],
-        'CEA': [  // College of Engineering and Architecture
+        'CEA': [
             ['BSCE', 'BS in Civil Engineering'],
             ['BSEE', 'BS in Electrical Engineering'],
             ['BSME', 'BS in Mechanical Engineering'],
             ['BSARCH', 'BS in Architecture']
         ],
-        'CAFF': [  // College of Agriculture, Forestry and Fishery
+        'CAFF': [
             ['BSA-AGRI', 'BS in Agriculture'],
             ['BSF', 'BS in Forestry'],
             ['BSFT', 'BS in Fisheries Technology']
         ],
-        'CIT': [  // College of Industrial Technology
+        'CIT': [
             ['BIT', 'Bachelor of Industrial Technology'],
             ['BIT-AT', 'Bachelor of Industrial Technology - Major in Automotive Technology'],
             ['BIT-CT', 'Bachelor of Industrial Technology - Major in Computer Technology'],
@@ -809,24 +849,111 @@ document.addEventListener('DOMContentLoaded', function() {
             ['BSIT-ET', 'BS in Industrial Technology - Electronics'],
             ['BSIT-FPSM', 'BS in Industrial Technology - Food Processing']
         ],
-        'COL': [  // College of Law
+        'COL': [
             ['JD', 'Juris Doctor'],
             ['LLB', 'Bachelor of Laws']
         ]
     };
 
+    // College names mapping
+    const collegeNames = {
+        'CAS': 'College of Arts and Sciences',
+        'CBA': 'College of Business Administration',
+        'CTE': 'College of Teacher Education',
+        'CNPAHS': 'College of Nursing, Pharmacy and Allied Health Sciences',
+        'CCJE': 'College of Criminal Justice Education',
+        'CTHM': 'College of Tourism and Hospitality Management',
+        'CEA': 'College of Engineering and Architecture',
+        'CAFF': 'College of Agriculture, Forestry and Fishery',
+        'CIT': 'College of Industrial Technology',
+        'COL': 'College of Law'
+    };
+
+    const campusSelect = document.getElementById('id_campus');
     const collegeSelect = document.getElementById('id_college');
     const courseSelect = document.getElementById('id_course_graduated');
 
-    if (collegeSelect && courseSelect) {
+    if (campusSelect && collegeSelect && courseSelect) {
+        // Handle campus selection change
+        campusSelect.addEventListener('change', function() {
+            const selectedCampus = this.value;
+
+            // Clear college and course dropdowns
+            collegeSelect.innerHTML = '';
+            courseSelect.innerHTML = '';
+
+            // Reset states
+            collegeSelect.classList.remove('campus-selected', 'college-selected');
+            courseSelect.classList.remove('college-selected', 'course-selected', 'other-program');
+            this.classList.remove('campus-selected');
+
+            if (selectedCampus === '') {
+                // No campus selected - disable both college and course
+                collegeSelect.disabled = true;
+                courseSelect.disabled = true;
+
+                // Add placeholder options
+                const collegePlaceholder = document.createElement('option');
+                collegePlaceholder.value = '';
+                collegePlaceholder.textContent = '-- Select your campus first --';
+                collegeSelect.appendChild(collegePlaceholder);
+
+                const coursePlaceholder = document.createElement('option');
+                coursePlaceholder.value = '';
+                coursePlaceholder.textContent = '-- Select your campus and college first --';
+                courseSelect.appendChild(coursePlaceholder);
+
+                showMessage('Please select your campus first.', 'info', campusSelect);
+            } else {
+                // Campus selected - populate colleges
+                setTimeout(() => {
+                    collegeSelect.disabled = false;
+                    courseSelect.disabled = true;
+                    this.classList.add('campus-selected');
+
+                    // Add default option
+                    const defaultOption = document.createElement('option');
+                    defaultOption.value = '';
+                    defaultOption.textContent = '-- Select your college --';
+                    collegeSelect.appendChild(defaultOption);
+
+                    // Get available colleges for this campus
+                    const campusPrograms = programsByCampus[selectedCampus];
+                    let availableColleges = [];
+
+                    if (campusPrograms === 'ALL') {
+                        // All colleges available
+                        availableColleges = Object.keys(coursesByCollege);
+                    } else {
+                        // Only specific colleges available
+                        availableColleges = Object.keys(campusPrograms);
+                    }
+
+                    // Add college options
+                    availableColleges.forEach(collegeCode => {
+                        const option = document.createElement('option');
+                        option.value = collegeCode;
+                        option.textContent = collegeNames[collegeCode] || collegeCode;
+                        collegeSelect.appendChild(option);
+                    });
+
+                    // Add placeholder to course dropdown
+                    const coursePlaceholder = document.createElement('option');
+                    coursePlaceholder.value = '';
+                    coursePlaceholder.textContent = '-- Select your college first --';
+                    courseSelect.appendChild(coursePlaceholder);
+
+                    showMessage(`${availableColleges.length} colleges available at this campus.`, 'success', campusSelect);
+                }, 300);
+            }
+        });
+
         // Handle college selection change
         collegeSelect.addEventListener('change', function() {
+            const selectedCampus = campusSelect.value;
             const selectedCollege = this.value;
 
-            // Add loading state
-            courseSelect.classList.add('loading');
-
-            // Clear existing course options
+            // Clear course dropdown
             courseSelect.innerHTML = '';
 
             // Remove previous CSS classes
@@ -836,7 +963,6 @@ document.addEventListener('DOMContentLoaded', function() {
             if (selectedCollege === '') {
                 // No college selected - disable course dropdown
                 courseSelect.disabled = true;
-                courseSelect.classList.remove('loading');
 
                 // Add placeholder option
                 const placeholderOption = document.createElement('option');
@@ -844,16 +970,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 placeholderOption.textContent = '-- Select your college first --';
                 courseSelect.appendChild(placeholderOption);
 
-                showMessage('Please select your college first to see available programs.', 'info', courseSelect);
-
-                // Update dependency indicator
-                updateDependencyIndicator(courseSelect, 'disabled');
+                showMessage('Please select your college to see available programs.', 'info', collegeSelect);
             } else {
-                // College selected - enable course dropdown and populate with courses
-                setTimeout(() => {  // Simulate brief loading for better UX
+                // College selected - populate courses
+                setTimeout(() => {
                     courseSelect.disabled = false;
-                    courseSelect.classList.remove('loading');
                     courseSelect.classList.add('college-selected');
+                    this.classList.add('college-selected');
 
                     // Add default option
                     const defaultOption = document.createElement('option');
@@ -861,8 +984,19 @@ document.addEventListener('DOMContentLoaded', function() {
                     defaultOption.textContent = '-- Select your program --';
                     courseSelect.appendChild(defaultOption);
 
-                    // Add courses for selected college
-                    const courses = coursesByCollege[selectedCollege] || [];
+                    // Get courses for this campus-college combination
+                    let courses = [];
+                    const campusPrograms = programsByCampus[selectedCampus];
+
+                    if (campusPrograms === 'ALL') {
+                        // Use all courses for this college
+                        courses = coursesByCollege[selectedCollege] || [];
+                    } else {
+                        // Use campus-specific courses
+                        courses = campusPrograms[selectedCollege] || [];
+                    }
+
+                    // Add course options
                     courses.forEach(([courseCode, courseName]) => {
                         const option = document.createElement('option');
                         option.value = courseCode;
@@ -876,15 +1010,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     otherOption.textContent = 'Other Program';
                     courseSelect.appendChild(otherOption);
 
-                    // Show success message
-                    const courseCount = courses.length;
-                    showMessage(`${courseCount} programs available for the selected college.`, 'success', courseSelect);
-
-                    // Add visual feedback to college field
-                    this.classList.add('college-selected');
-
-                    // Update dependency indicator
-                    updateDependencyIndicator(courseSelect, 'enabled');
+                    showMessage(`${courses.length} programs available.`, 'success', collegeSelect);
                 }, 300);
             }
         });
@@ -898,7 +1024,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             if (selectedCourse === 'OTHER') {
                 this.classList.add('other-program');
-                showMessage('You selected "Other Program". Please ensure your college selection is correct.', 'warning', this);
+                showMessage('You selected "Other Program". Please ensure your selections are correct.', 'warning', this);
             } else if (selectedCourse !== '') {
                 this.classList.add('course-selected');
                 showMessage('Program selected successfully!', 'success', this);
@@ -906,34 +1032,11 @@ document.addEventListener('DOMContentLoaded', function() {
         });
 
         // Initialize form state
-        if (collegeSelect.value === '') {
+        if (campusSelect.value === '') {
+            collegeSelect.disabled = true;
             courseSelect.disabled = true;
-            updateDependencyIndicator(courseSelect, 'disabled');
-        } else {
-            updateDependencyIndicator(courseSelect, 'enabled');
-        }
-
-        // Add dependency indicators on page load
-        addDependencyIndicators();
-    }
-
-    function updateDependencyIndicator(element, state) {
-        const indicator = element.parentNode.querySelector('.dependency-indicator');
-        if (indicator) {
-            indicator.className = `dependency-indicator ${state}`;
-            indicator.textContent = state === 'disabled' ? 'Select college first' : 'Dependent on college';
-        }
-    }
-
-    function addDependencyIndicators() {
-        // Add indicator to course field
-        const courseContainer = courseSelect.closest('.form-group') || courseSelect.parentNode;
-        if (!courseContainer.querySelector('.dependency-indicator')) {
-            const indicator = document.createElement('div');
-            indicator.className = 'dependency-indicator disabled';
-            indicator.textContent = 'Select college first';
-            courseContainer.style.position = 'relative';
-            courseContainer.appendChild(indicator);
+        } else if (collegeSelect.value === '') {
+            courseSelect.disabled = true;
         }
     }
 

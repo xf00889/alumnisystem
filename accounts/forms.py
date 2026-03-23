@@ -325,7 +325,105 @@ class PostRegistrationForm(forms.Form):
         ('', '-- Select your college --'),
     ] + list(Alumni.COLLEGE_CHOICES)
 
-    # Organize courses by college for cascading dropdown functionality
+    # Campus-specific program mapping
+    # Format: Campus -> College -> Programs
+    PROGRAMS_BY_CAMPUS = {
+        'NORSU-BSC': {  # Bayawan-Sta. Catalina Campus
+            'CTE': [
+                ('BSED', 'Bachelor of Secondary Education'),
+                ('BSED-ENG', 'BS in Secondary Education - Major in English'),
+                ('BSED-MATH', 'BS in Secondary Education - Major in Mathematics'),
+                ('BSED-SCI', 'BS in Secondary Education - Major in Science'),
+                ('BEED', 'Bachelor of Elementary Education'),
+                ('BEED-GC', 'BS in Elementary Education - Major in General Curriculum'),
+            ],
+            'CAS': [
+                ('BSCS', 'BS in Computer Science'),
+                ('BSIT', 'BS in Information Technology'),
+            ],
+            'CCJE': [
+                ('BSCRIM', 'BS in Criminology'),
+            ],
+            'CIT': [
+                ('BIT', 'Bachelor of Industrial Technology'),
+                ('BIT-AT', 'Bachelor of Industrial Technology - Major in Automotive Technology'),
+                ('BIT-CT', 'Bachelor of Industrial Technology - Major in Computer Technology'),
+                ('BIT-ELT', 'Bachelor of Industrial Technology - Major in Electrical Technology'),
+                ('BIT-ELXT', 'Bachelor of Industrial Technology - Major in Electronics Technology'),
+            ],
+            'CBA': [
+                ('BSOA', 'BS in Office Administration'),
+                ('BSHM', 'BS in Hospitality Management'),
+                ('BSBA', 'BS in Business Administration'),
+            ],
+        },
+        'NORSU-MAIN': {  # Main Campus - All programs available
+            'CAS': [
+                ('BSIT', 'BS in Information Technology'),
+                ('BSCS', 'BS in Computer Science'),
+                ('BSP', 'BS in Psychology'),
+                ('BSM', 'BS in Mathematics'),
+                ('BSPHY', 'BS in Physics'),
+                ('BSBIO', 'BS in Biology'),
+            ],
+            'CBA': [
+                ('BSA', 'BS in Accountancy'),
+                ('BSBA', 'BS in Business Administration'),
+                ('BSBA-FM', 'BSBA in Financial Management'),
+                ('BSBA-MM', 'BSBA in Marketing Management'),
+                ('BSBA-HRM', 'BSBA in Human Resource Management'),
+            ],
+            'CTE': [
+                ('BEED', 'Bachelor of Elementary Education'),
+                ('BSED', 'Bachelor of Secondary Education'),
+                ('BSED-ENG', 'BS in Secondary Education - Major in English'),
+                ('BSED-MATH', 'BS in Secondary Education - Major in Mathematics'),
+                ('BSED-SCI', 'BS in Secondary Education - Major in Science'),
+                ('BSED-SS', 'BS in Education - Social Studies'),
+            ],
+            'CNPAHS': [
+                ('BSN', 'BS in Nursing'),
+                ('BSP', 'BS in Pharmacy'),
+                ('BSMT', 'BS in Medical Technology'),
+            ],
+            'CCJE': [
+                ('BSCRIM', 'BS in Criminology'),
+            ],
+            'CTHM': [
+                ('BSHRM', 'BS in Hotel and Restaurant Management'),
+                ('BSTM', 'BS in Tourism Management'),
+            ],
+            'CEA': [
+                ('BSCE', 'BS in Civil Engineering'),
+                ('BSEE', 'BS in Electrical Engineering'),
+                ('BSME', 'BS in Mechanical Engineering'),
+                ('BSARCH', 'BS in Architecture'),
+            ],
+            'CAFF': [
+                ('BSA-AGRI', 'BS in Agriculture'),
+                ('BSF', 'BS in Forestry'),
+                ('BSFT', 'BS in Fisheries Technology'),
+            ],
+            'CIT': [
+                ('BSIT-AT', 'BS in Industrial Technology - Automotive'),
+                ('BSIT-ET', 'BS in Industrial Technology - Electronics'),
+                ('BSIT-FPSM', 'BS in Industrial Technology - Food Processing'),
+            ],
+            'COL': [
+                ('JD', 'Juris Doctor'),
+                ('LLB', 'Bachelor of Laws'),
+            ],
+        },
+        # Add other campuses as needed - for now they get all programs
+        'NORSU-BAIS': 'ALL',
+        'NORSU-GUI': 'ALL',
+        'NORSU-MAB': 'ALL',
+        'NORSU-SIA': 'ALL',
+        'NORSU-PAM': 'ALL',
+        'OTHER': 'ALL',
+    }
+
+    # Organize courses by college for cascading dropdown functionality (fallback for campuses with 'ALL')
     COURSES_BY_COLLEGE = {
         'CAS': [  # College of Arts and Sciences
             ('BSIT', 'BS in Information Technology'),
@@ -446,6 +544,15 @@ class PostRegistrationForm(forms.Form):
         }),
         help_text="Enter your last name as it appears on your diploma"
     )
+    campus = forms.ChoiceField(
+        choices=SCHOOL_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+        }),
+        help_text="Select your campus first",
+        label="Campus"
+    )
     graduation_year = forms.IntegerField(
         required=True,
         min_value=1970,
@@ -464,8 +571,9 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
+            'disabled': 'disabled',
         }),
-        help_text="Select your college first",
+        help_text="Select your campus first to see available colleges",
         label="College"
     )
     course_graduated = forms.ChoiceField(
@@ -475,7 +583,7 @@ class PostRegistrationForm(forms.Form):
             'class': 'form-control',
             'disabled': 'disabled',
         }),
-        help_text="Select your college first to see available programs",
+        help_text="Select your campus and college first to see available programs",
         label="Course Graduated"
     )
     present_occupation = forms.CharField(
@@ -500,11 +608,14 @@ class PostRegistrationForm(forms.Form):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        # Initially set course choices to be empty (will be populated by JavaScript)
+        # Initially set college and course choices to be empty (will be populated by JavaScript)
         # But keep all choices available for validation
         if not self.data:  # Only on initial form load, not on form submission
+            self.fields['college'].widget.choices = [
+                ('', '-- Select your campus first --')
+            ]
             self.fields['course_graduated'].widget.choices = [
-                ('', '-- Select your college first --')
+                ('', '-- Select your campus and college first --')
             ]
 
     def clean_graduation_year(self):
@@ -516,51 +627,112 @@ class PostRegistrationForm(forms.Form):
 
     def clean(self):
         cleaned_data = super().clean()
+        campus = cleaned_data.get('campus')
         course = cleaned_data.get('course_graduated')
         college = cleaned_data.get('college')
 
-        # Validate that both college and course are selected
+        # Validate that campus, college and course are selected
+        if not campus:
+            raise forms.ValidationError("Please select your campus.")
+
         if not college:
             raise forms.ValidationError("Please select your college.")
 
         if not course:
             raise forms.ValidationError("Please select your course/program.")
 
-        # Validate course-college mapping for non-OTHER courses
-        if course and college and course != 'OTHER':
-            expected_college = self.COURSE_COLLEGE_MAPPING.get(course)
-            if expected_college and college != expected_college:
-                # Get college display name for better error message
-                from alumni_directory.models import Alumni
-                college_dict = dict(Alumni.COLLEGE_CHOICES)
-                expected_college_name = college_dict.get(expected_college, expected_college)
-                selected_college_name = college_dict.get(college, college)
+        # Validate campus-college-course combination for non-OTHER courses
+        if campus and college and course and course != 'OTHER':
+            # Get available programs for this campus and college
+            campus_programs = self.PROGRAMS_BY_CAMPUS.get(campus)
+            
+            if campus_programs and campus_programs != 'ALL':
+                # Campus has specific program restrictions
+                if college not in campus_programs:
+                    from alumni_directory.models import Alumni
+                    college_dict = dict(Alumni.COLLEGE_CHOICES)
+                    college_name = college_dict.get(college, college)
+                    raise forms.ValidationError(
+                        f"{college_name} is not available at the selected campus. "
+                        f"Please select a different college or campus."
+                    )
+                
+                # Check if course is available for this campus-college combination
+                available_courses = [course_code for course_code, _ in campus_programs.get(college, [])]
+                if course not in available_courses:
+                    from alumni_directory.models import Alumni
+                    college_dict = dict(Alumni.COLLEGE_CHOICES)
+                    college_name = college_dict.get(college, college)
+                    raise forms.ValidationError(
+                        f"The course '{course}' is not available in {college_name} at the selected campus. "
+                        f"Please select a different course or choose 'Other Program'."
+                    )
+            else:
+                # Campus allows all programs - use fallback validation
+                expected_college = self.COURSE_COLLEGE_MAPPING.get(course)
+                if expected_college and college != expected_college:
+                    from alumni_directory.models import Alumni
+                    college_dict = dict(Alumni.COLLEGE_CHOICES)
+                    expected_college_name = college_dict.get(expected_college, expected_college)
+                    selected_college_name = college_dict.get(college, college)
 
-                raise forms.ValidationError(
-                    f"Invalid combination: The course '{course}' does not belong to {selected_college_name}. "
-                    f"This course belongs to {expected_college_name}. "
-                    f"Please select the correct college first, then choose your course from the available options."
-                )
-
-        # Validate that the course is available for the selected college
-        if course and college and course != 'OTHER':
-            available_courses = [course_code for course_code, _ in self.COURSES_BY_COLLEGE.get(college, [])]
-            if course not in available_courses:
-                from alumni_directory.models import Alumni
-                college_dict = dict(Alumni.COLLEGE_CHOICES)
-                college_name = college_dict.get(college, college)
-                raise forms.ValidationError(
-                    f"The course '{course}' is not available in {college_name}. "
-                    f"Please select a different course or choose 'Other Program'."
-                )
+                    raise forms.ValidationError(
+                        f"Invalid combination: The course '{course}' does not belong to {selected_college_name}. "
+                        f"This course belongs to {expected_college_name}. "
+                        f"Please select the correct college first, then choose your course from the available options."
+                    )
 
         return cleaned_data
 
     @classmethod
+    def get_colleges_for_campus(cls, campus_code):
+        """
+        Get college choices for a specific campus.
+        """
+        if not campus_code:
+            return [('', '-- Select your campus first --')]
+
+        campus_programs = cls.PROGRAMS_BY_CAMPUS.get(campus_code)
+        
+        if campus_programs == 'ALL' or not campus_programs:
+            # Return all colleges
+            return cls.COLLEGE_CHOICES
+        
+        # Return only colleges available at this campus
+        from alumni_directory.models import Alumni
+        available_colleges = [('', '-- Select your college --')]
+        for college_code in campus_programs.keys():
+            college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, college_code)
+            available_colleges.append((college_code, college_name))
+        
+        return available_colleges
+
+    @classmethod
+    def get_courses_for_campus_college(cls, campus_code, college_code):
+        """
+        Get course choices for a specific campus and college combination.
+        """
+        if not campus_code or not college_code:
+            return [('', '-- Select your campus and college first --')]
+
+        campus_programs = cls.PROGRAMS_BY_CAMPUS.get(campus_code)
+        
+        if campus_programs == 'ALL' or not campus_programs:
+            # Use fallback - all courses for this college
+            courses = cls.COURSES_BY_COLLEGE.get(college_code, [])
+        else:
+            # Use campus-specific programs
+            courses = campus_programs.get(college_code, [])
+        
+        choices = [('', '-- Select your program --')]
+        choices.extend(courses)
+        choices.append(('OTHER', 'Other Program'))
+        return choices
+
+    @classmethod
     def get_courses_for_college(cls, college_code):
         """
-        Get course choices for a specific college.
-        Useful for AJAX requests or dynamic form population.
+        Get course choices for a specific college (legacy method for backward compatibility).
         """
         if not college_code:
             return [('', '-- Select your college first --')]
@@ -583,6 +755,7 @@ class PostRegistrationForm(forms.Form):
             is_primary=True,
             defaults={
                 'program': self.cleaned_data['course_graduated'],
+                'school': self.cleaned_data['campus'],
                 'graduation_year': self.cleaned_data['graduation_year'],
             }
         )
@@ -609,8 +782,23 @@ class PostRegistrationForm(forms.Form):
         # Auto-determine college if not explicitly selected and course is mapped
         college = self.cleaned_data['college']
         course = self.cleaned_data['course_graduated']
+        campus = self.cleaned_data['campus']
+        
         if not college and course in self.COURSE_COLLEGE_MAPPING:
             college = self.COURSE_COLLEGE_MAPPING[course]
+
+        # Map campus code to Alumni model campus format
+        campus_mapping = {
+            'NORSU-MAIN': 'MAIN',
+            'NORSU-BAIS': 'BAIS1',
+            'NORSU-GUI': 'GUI',
+            'NORSU-MAB': 'MAB',
+            'NORSU-BSC': 'BSC',
+            'NORSU-SIA': 'SIATON',
+            'NORSU-PAM': 'PAM',
+            'OTHER': 'MAIN',  # Default to main for other
+        }
+        alumni_campus = campus_mapping.get(campus, 'MAIN')
 
         Alumni.objects.update_or_create(
             user=user,
@@ -618,6 +806,7 @@ class PostRegistrationForm(forms.Form):
                 'graduation_year': self.cleaned_data['graduation_year'],
                 'course': self.cleaned_data['course_graduated'],
                 'college': college,
+                'campus': alumni_campus,
                 'current_company': self.cleaned_data['company_name'],
                 'job_title': self.cleaned_data['present_occupation'],
                 'employment_status': 'EMPLOYED_FULL'  # Assuming full-time employment
