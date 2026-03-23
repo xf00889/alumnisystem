@@ -222,7 +222,6 @@ class Education(models.Model):
         ('NORSU-SC', 'NORSU Siaton'),
         ('NORSU-PC', 'NORSU Pamplona'),
         ('NORSU-BSC', 'NORSU Bayawan-Sta. Catalina'),
-        ('NORSU-VC', 'NORSU Valencia'),
         ('OTHER', 'Other Campus'),
     ]
 
