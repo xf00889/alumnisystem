@@ -1161,6 +1161,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             majorSelect.appendChild(option);
                         });
                         
+                        // Add "Other" option
+                        const otherMajorOption = document.createElement('option');
+                        otherMajorOption.value = 'OTHER';
+                        otherMajorOption.textContent = 'Other (Please specify)';
+                        majorSelect.appendChild(otherMajorOption);
+                        
                         showMessage(`${majors.length} majors available for this program.`, 'info', this);
                     } else {
                         // Program has no majors - disable and show message
@@ -1181,6 +1187,30 @@ document.addEventListener('DOMContentLoaded', function() {
                 showMessage('Program selected successfully!', 'success', this);
             }
         });
+
+        // Handle major selection change to show/hide custom input
+        if (majorSelect) {
+            const majorOtherInput = document.getElementById('id_major_other');
+            
+            majorSelect.addEventListener('change', function() {
+                const selectedMajor = this.value;
+                
+                if (majorOtherInput) {
+                    if (selectedMajor === 'OTHER') {
+                        // Show custom input field
+                        majorOtherInput.style.display = 'block';
+                        majorOtherInput.required = true;
+                        majorOtherInput.focus();
+                        showMessage('Please specify your major in the text field below.', 'info', this);
+                    } else {
+                        // Hide custom input field
+                        majorOtherInput.style.display = 'none';
+                        majorOtherInput.required = false;
+                        majorOtherInput.value = '';
+                    }
+                }
+            });
+        }
 
         // Initialize form state
         if (campusSelect.value === '') {

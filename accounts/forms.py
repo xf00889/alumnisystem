@@ -684,6 +684,17 @@ class PostRegistrationForm(forms.Form):
         help_text="Select your program first to see available majors (if applicable)",
         label="Major/Specialization"
     )
+    major_other = forms.CharField(
+        max_length=100,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your major/specialization',
+            'style': 'display: none;',
+        }),
+        help_text="Specify your major if not listed above",
+        label="Specify Major"
+    )
     present_occupation = forms.CharField(
         max_length=200,
         required=True,
@@ -783,6 +794,13 @@ class PostRegistrationForm(forms.Form):
                         f"Please select the correct college first, then choose your course from the available options."
                     )
 
+        # Validate major_other field if major is "OTHER"
+        major = cleaned_data.get('major')
+        major_other = cleaned_data.get('major_other')
+        
+        if major == 'OTHER' and not major_other:
+            raise forms.ValidationError("Please specify your major when selecting 'Other'.")
+
         return cleaned_data
 
     @classmethod
@@ -871,6 +889,7 @@ class PostRegistrationForm(forms.Form):
         
         choices = [('', '-- Select your major --')]
         choices.extend(majors)
+        choices.append(('OTHER', 'Other (Please specify)'))
         return choices
 
     def save(self, user):
@@ -879,13 +898,19 @@ class PostRegistrationForm(forms.Form):
         user.last_name = self.cleaned_data['last_name']
         user.save()
 
+        # Determine the major to save
+        major = self.cleaned_data.get('major', '')
+        if major == 'OTHER':
+            # Use custom major input
+            major = self.cleaned_data.get('major_other', '')
+
         # Create or update primary education record
         Education.objects.update_or_create(
             profile=user.profile,
             is_primary=True,
             defaults={
                 'program': self.cleaned_data['course_graduated'],
-                'major': self.cleaned_data.get('major', ''),
+                'major': major,
                 'school': self.cleaned_data['campus'],
                 'graduation_year': self.cleaned_data['graduation_year'],
             }
