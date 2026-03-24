@@ -778,14 +778,21 @@
                         {% if empty_sections.documents %}
                         <p class="text-muted mb-0">No documents uploaded yet</p>
                         {% else %}
+                        <!-- Debug: Show raw document count and types -->
+                        <div class="alert alert-info mb-3">
+                            <strong>Debug Info:</strong><br>
+                            Total documents: {{ doc_stats.total }}<br>
+                            Documents dictionary keys: {{ documents.keys|join:", " }}<br>
+                            Expected types: {% for doc_type, doc_label in document_types %}{{ doc_type }}{% if not forloop.last %}, {% endif %}{% endfor %}
+                        </div>
+                        
+                        <!-- Show all documents from the dictionary -->
                         <div class="row g-3">
-                            {% for doc_type, doc_label in document_types %}
-                            {% with type_docs=documents|get_item:doc_type %}
-                            {% if type_docs %}
+                            {% for doc_type, docs_list in documents.items %}
                             <div class="col-md-6">
-                                <span class="info-label d-block mb-2">{{ doc_label }}</span>
+                                <span class="info-label d-block mb-2">{{ doc_type }} ({{ docs_list|length }})</span>
                                 <div class="list-group">
-                                    {% for doc in type_docs %}
+                                    {% for doc in docs_list %}
                                     <div class="list-group-item d-flex justify-content-between align-items-center">
                                         <div class="flex-grow-1">
                                             <h6 class="mb-1" style="font-size: 0.8rem;">{{ doc.title }}</h6>
@@ -808,18 +815,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
-                            {% endif %}
-                            {% endwith %}
                             {% endfor %}
-                            
-                            <!-- Debug: Show if no documents matched any type -->
-                            {% if doc_stats.total > 0 %}
-                            <div class="col-12">
-                                <small class="text-muted">
-                                    <!-- Debug info: {{ doc_stats.total }} document(s) found -->
-                                </small>
-                            </div>
-                            {% endif %}
                         </div>
                         {% endif %}
                     </div>
