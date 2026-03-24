@@ -460,11 +460,23 @@ def alumni_detail(request, pk):
 
 @user_passes_test(is_admin, login_url='account_login')
 def download_document(request, doc_id):
+    """
+    Handle document downloads for both AlumniDocument and accounts.Document.
+    Tries AlumniDocument first, then falls back to accounts.Document.
+    """
     try:
-        document = get_object_or_404(AlumniDocument, id=doc_id)
+        # Try to get AlumniDocument first
+        try:
+            document = AlumniDocument.objects.get(id=doc_id)
+            file_obj = document.file
+        except AlumniDocument.DoesNotExist:
+            # Fall back to accounts.Document
+            from accounts.models import Document
+            document = get_object_or_404(Document, id=doc_id)
+            file_obj = document.file
         
         # Verify the document exists and is accessible
-        if not document.file:
+        if not file_obj:
             logger.warning(f"Document {doc_id} has no file attached")
             return JsonResponse({
                 'status': 'error',
@@ -475,8 +487,8 @@ def download_document(request, doc_id):
         
         response = JsonResponse({
             'status': 'success',
-            'url': document.file.url,
-            'filename': document.file.name.split('/')[-1]
+            'url': file_obj.url,
+            'filename': file_obj.name.split('/')[-1]
         })
         
         return response
@@ -487,6 +499,7 @@ def download_document(request, doc_id):
             'status': 'error',
             'message': 'An error occurred while processing the document download.'
         }, status=500)
+
 
 @user_passes_test(is_admin, login_url='account_login')
 def send_reminder(request, pk):
@@ -1224,12 +1237,25 @@ def alumni_management(request):
         
         # Get counts for filtering dropdown options
         graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
-        courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
+        
+        # Get all available programs from the system
+        # Import the program mapping from accounts.forms
+        from accounts.forms import PostRegistrationForm
+        
+        # Collect all unique programs from COURSES_BY_COLLEGE
+        all_programs_dict = {}
+        for college_code, programs in PostRegistrationForm.COURSES_BY_COLLEGE.items():
+            for program_code, program_name in programs:
+                if program_code not in all_programs_dict:
+                    all_programs_dict[program_code] = program_name
+        
+        # Sort programs by name for better UX
+        all_programs = sorted(all_programs_dict.items(), key=lambda x: x[1])
         
         context = {
             'alumni_list': alumni_page,
             'graduation_years': graduation_years,
-            'courses': courses,
+            'all_programs': all_programs,  # All available programs in the system
             'colleges': Alumni.COLLEGE_CHOICES,
             'search_query': search_query,
             'selected_year': grad_year[0] if grad_year else None,
@@ -1315,13 +1341,14 @@ def alumni_detail_modal(request, pk):
             documents_by_type[doc_type].append(doc)
 
         # Document types for template iteration
+        # Includes types from both AlumniDocument and accounts.Document models
         document_types = [
             ('RESUME', 'Resume/CV'),
             ('CERT', 'Certification'),
+            ('CERTIFICATE', 'Certificate'),
             ('DIPLOMA', 'Diploma'),
             ('TOR', 'Transcript of Records'),
             ('TRANSCRIPT', 'Academic Transcript'),
-            ('CERTIFICATE', 'Certificate'),
             ('OTHER', 'Other'),
         ]
 

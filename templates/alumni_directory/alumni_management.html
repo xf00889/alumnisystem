@@ -736,18 +736,18 @@
                                     <i class="fas fa-graduation-cap me-2"></i>Programs
                                 </h6>
                                 <div class="form-check mb-2">
-                                    <input class="form-check-input" type="checkbox" id="selectAllCourses" checked>
-                                    <label class="form-check-label fw-bold" for="selectAllCourses">
-                                        Select All Courses
+                                    <input class="form-check-input" type="checkbox" id="selectAllPrograms" checked>
+                                    <label class="form-check-label fw-bold" for="selectAllPrograms">
+                                        Select All Programs
                                     </label>
                                 </div>
-                                <div class="course-options" style="max-height: 200px; overflow-y: auto;">
-                                    {% for course_item in courses %}
+                                <div class="program-options" style="max-height: 200px; overflow-y: auto;">
+                                    {% for program_code, program_name in all_programs %}
                                     <div class="form-check">
-                                        <input class="form-check-input course-checkbox" type="checkbox"
-                                               id="course_{{ course_item|slugify }}" name="courses" value="{{ course_item }}" checked>
-                                        <label class="form-check-label" for="course_{{ course_item|slugify }}">
-                                            {{ course_item }}
+                                        <input class="form-check-input program-checkbox" type="checkbox"
+                                               id="program_{{ program_code|slugify }}" name="programs" value="{{ program_code }}" checked>
+                                        <label class="form-check-label" for="program_{{ program_code|slugify }}">
+                                            {{ program_name }}
                                         </label>
                                     </div>
                                     {% endfor %}
@@ -1181,8 +1181,8 @@
         const selectAllColleges = document.getElementById('selectAllColleges');
         const collegeCheckboxes = document.querySelectorAll('.college-checkbox');
 
-        const selectAllCourses = document.getElementById('selectAllCourses');
-        const courseCheckboxes = document.querySelectorAll('.course-checkbox');
+        const selectAllPrograms = document.getElementById('selectAllPrograms');
+        const programCheckboxes = document.querySelectorAll('.program-checkbox');
 
         const selectAllYears = document.getElementById('selectAllYears');
         const yearCheckboxes = document.querySelectorAll('.year-checkbox');
@@ -1213,22 +1213,22 @@
             });
         });
 
-        // Handle Select All Courses
-        selectAllCourses.addEventListener('change', function() {
-            courseCheckboxes.forEach(checkbox => {
+        // Handle Select All Programs
+        selectAllPrograms.addEventListener('change', function() {
+            programCheckboxes.forEach(checkbox => {
                 checkbox.checked = this.checked;
             });
             updateExportSummary();
         });
 
-        // Handle individual course checkboxes
-        courseCheckboxes.forEach(checkbox => {
+        // Handle individual program checkboxes
+        programCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
-                const allChecked = Array.from(courseCheckboxes).every(cb => cb.checked);
-                const noneChecked = Array.from(courseCheckboxes).every(cb => !cb.checked);
+                const allChecked = Array.from(programCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(programCheckboxes).every(cb => !cb.checked);
 
-                selectAllCourses.checked = allChecked;
-                selectAllCourses.indeterminate = !allChecked && !noneChecked;
+                selectAllPrograms.checked = allChecked;
+                selectAllPrograms.indeterminate = !allChecked && !noneChecked;
                 updateExportSummary();
             });
         });
