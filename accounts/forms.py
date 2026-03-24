@@ -492,30 +492,44 @@ class PostRegistrationForm(forms.Form):
 
     # Majors available for specific programs
     MAJORS_BY_PROGRAM = {
+        # Bachelor of Secondary Education
         'BSED': [
             ('ENGLISH', 'Major in English'),
+            ('FILIPINO', 'Major in Filipino'),
             ('MATHEMATICS', 'Major in Mathematics'),
             ('SCIENCE', 'Major in Science'),
             ('SOCIAL_STUDIES', 'Major in Social Studies'),
-            ('FILIPINO', 'Major in Filipino'),
-            ('VALUES_EDUCATION', 'Major in Values Education'),
+            ('VALUES_EDUCATION', 'Major in Religious and Values Education'),
         ],
         'BSED-ENG': [('ENGLISH', 'Major in English')],
         'BSED-MATH': [('MATHEMATICS', 'Major in Mathematics')],
         'BSED-SCI': [('SCIENCE', 'Major in Science')],
         'BSED-SS': [('SOCIAL_STUDIES', 'Major in Social Studies')],
+        
+        # Bachelor of Elementary Education
         'BEED': [
-            ('GENERAL_CURRICULUM', 'Major in General Curriculum'),
+            ('GENERAL_EDUCATION', 'Major in General Education'),
+            ('EARLY_CHILDHOOD', 'Major in Early Childhood Education'),
             ('SPECIAL_EDUCATION', 'Major in Special Education'),
-            ('PRESCHOOL_EDUCATION', 'Major in Preschool Education'),
+            ('ENGLISH', 'Major in English'),
+            ('FILIPINO', 'Major in Filipino'),
+            ('MATHEMATICS', 'Major in Mathematics'),
+            ('SCIENCE', 'Major in Science'),
+            ('SOCIAL_STUDIES', 'Major in Social Studies'),
+            ('MAPE', 'Major in Music, Arts and Physical Education'),
+            ('THE', 'Major in Technology and Home Economics'),
         ],
-        'BEED-GC': [('GENERAL_CURRICULUM', 'Major in General Curriculum')],
+        'BEED-GC': [('GENERAL_EDUCATION', 'Major in General Education')],
+        
+        # Bachelor of Industrial Technology
         'BIT': [
             ('AUTOMOTIVE', 'Major in Automotive Technology'),
             ('COMPUTER', 'Major in Computer Technology'),
             ('ELECTRICAL', 'Major in Electrical Technology'),
             ('ELECTRONICS', 'Major in Electronics Technology'),
             ('DRAFTING', 'Major in Drafting Technology'),
+            ('FOOD_PROCESSING', 'Major in Food Processing Technology'),
+            ('WELDING', 'Major in Welding and Fabrication Technology'),
         ],
         'BIT-AT': [('AUTOMOTIVE', 'Major in Automotive Technology')],
         'BIT-CT': [('COMPUTER', 'Major in Computer Technology')],
@@ -523,7 +537,9 @@ class PostRegistrationForm(forms.Form):
         'BIT-ELXT': [('ELECTRONICS', 'Major in Electronics Technology')],
         'BSIT-AT': [('AUTOMOTIVE', 'Major in Automotive Technology')],
         'BSIT-ET': [('ELECTRONICS', 'Major in Electronics Technology')],
-        'BSIT-FPSM': [('FOOD_PROCESSING', 'Major in Food Processing')],
+        'BSIT-FPSM': [('FOOD_PROCESSING', 'Major in Food Processing and Service Management')],
+        
+        # Bachelor of Science in Business Administration
         'BSBA': [
             ('FINANCIAL_MANAGEMENT', 'Major in Financial Management'),
             ('MARKETING_MANAGEMENT', 'Major in Marketing Management'),
@@ -533,7 +549,8 @@ class PostRegistrationForm(forms.Form):
         'BSBA-FM': [('FINANCIAL_MANAGEMENT', 'Major in Financial Management')],
         'BSBA-MM': [('MARKETING_MANAGEMENT', 'Major in Marketing Management')],
         'BSBA-HRM': [('HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management')],
-        # Programs without majors will not appear in this dict
+        
+        # Programs without majors: BSIT, BSCS, BSA, BSHM, BSTM, BSN, BSCRIM, etc.
     }
 
     # Default course choices (empty until college is selected)
