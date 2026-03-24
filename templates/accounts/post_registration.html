@@ -855,7 +855,7 @@ document.addEventListener('DOMContentLoaded', function() {
         ]
     };
 
-    // Majors available for specific programs
+    // Majors available for specific programs (general list)
     const majorsByProgram = {
         // Bachelor of Secondary Education
         'BSED': [
@@ -914,6 +914,33 @@ document.addEventListener('DOMContentLoaded', function() {
         'BSBA-FM': [['FINANCIAL_MANAGEMENT', 'Major in Financial Management']],
         'BSBA-MM': [['MARKETING_MANAGEMENT', 'Major in Marketing Management']],
         'BSBA-HRM': [['HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management']]
+    };
+
+    // Campus-specific major restrictions (Bayawan campus has limited majors)
+    const majorsByCampusProgram = {
+        'NORSU-BSC': {  // Bayawan-Sta. Catalina Campus
+            'BSED': [
+                ['SCIENCE', 'Major in Science'],
+                ['MATHEMATICS', 'Major in Mathematics'],
+                ['ENGLISH', 'Major in English']
+            ],
+            'BEED': [
+                ['GENERAL_CURRICULUM', 'Major in General Curriculum']
+            ],
+            'BIT': [
+                ['AUTOMOTIVE', 'Major in Automotive Technology'],
+                ['COMPUTER', 'Major in Computer Technology'],
+                ['ELECTRICAL', 'Major in Electrical Technology'],
+                ['ELECTRONICS', 'Major in Electronics Technology']
+            ],
+            // BSCS, BSIT, BSCRIM, BSOA, BSHM, BSBA have no majors at BSC
+            'BSCS': [],
+            'BSIT': [],
+            'BSCRIM': [],
+            'BSOA': [],
+            'BSHM': [],
+            'BSBA': []
+        }
     };
 
     // College names mapping
@@ -1084,6 +1111,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // Handle course selection change
         courseSelect.addEventListener('change', function() {
             const selectedCourse = this.value;
+            const selectedCampus = campusSelect.value;
 
             // Remove previous CSS classes
             this.classList.remove('course-selected', 'other-program');
@@ -1100,8 +1128,22 @@ document.addEventListener('DOMContentLoaded', function() {
                     placeholderOption.textContent = '-- Select your program first --';
                     majorSelect.appendChild(placeholderOption);
                 } else {
-                    // Check if this program has majors
-                    const majors = majorsByProgram[selectedCourse] || [];
+                    // Check if campus has specific major restrictions
+                    let majors = [];
+                    
+                    if (selectedCampus && majorsByCampusProgram[selectedCampus]) {
+                        // Campus has specific restrictions
+                        if (selectedCourse in majorsByCampusProgram[selectedCampus]) {
+                            // Use campus-specific majors (even if empty)
+                            majors = majorsByCampusProgram[selectedCampus][selectedCourse] || [];
+                        } else {
+                            // Campus doesn't specify this program, use general list
+                            majors = majorsByProgram[selectedCourse] || [];
+                        }
+                    } else {
+                        // No campus restrictions, use general list
+                        majors = majorsByProgram[selectedCourse] || [];
+                    }
                     
                     if (majors.length > 0) {
                         // Program has majors - enable and populate

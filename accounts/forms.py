@@ -491,6 +491,8 @@ class PostRegistrationForm(forms.Form):
     }
 
     # Majors available for specific programs
+    # Format: Program Code -> List of majors
+    # Note: This is a general list. Campus-specific majors are defined in MAJORS_BY_CAMPUS_PROGRAM
     MAJORS_BY_PROGRAM = {
         # Bachelor of Secondary Education
         'BSED': [
@@ -551,6 +553,29 @@ class PostRegistrationForm(forms.Form):
         'BSBA-HRM': [('HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management')],
         
         # Programs without majors: BSIT, BSCS, BSA, BSHM, BSTM, BSN, BSCRIM, etc.
+    }
+
+    # Campus-specific major restrictions
+    # Format: Campus Code -> Program Code -> List of majors
+    MAJORS_BY_CAMPUS_PROGRAM = {
+        'NORSU-BSC': {  # Bayawan-Sta. Catalina Campus - Specific majors only
+            'BSED': [
+                ('SCIENCE', 'Major in Science'),
+                ('MATHEMATICS', 'Major in Mathematics'),
+                ('ENGLISH', 'Major in English'),
+            ],
+            'BEED': [
+                ('GENERAL_CURRICULUM', 'Major in General Curriculum'),
+            ],
+            'BIT': [
+                ('AUTOMOTIVE', 'Major in Automotive Technology'),
+                ('COMPUTER', 'Major in Computer Technology'),
+                ('ELECTRICAL', 'Major in Electrical Technology'),
+                ('ELECTRONICS', 'Major in Electronics Technology'),
+            ],
+            # BSCS, BSIT, BSCRIM, BSOA, BSHM, BSBA have no majors at BSC
+        },
+        # Other campuses use the general MAJORS_BY_PROGRAM
     }
 
     # Default course choices (empty until college is selected)
@@ -820,15 +845,27 @@ class PostRegistrationForm(forms.Form):
         return choices
 
     @classmethod
-    def get_majors_for_program(cls, program_code):
+    def get_majors_for_program(cls, program_code, campus_code=None):
         """
-        Get major choices for a specific program.
+        Get major choices for a specific program, optionally filtered by campus.
         Returns empty list if program has no majors.
         """
         if not program_code or program_code == 'OTHER':
             return []
 
-        majors = cls.MAJORS_BY_PROGRAM.get(program_code, [])
+        # Check if campus has specific major restrictions
+        if campus_code and campus_code in cls.MAJORS_BY_CAMPUS_PROGRAM:
+            campus_majors = cls.MAJORS_BY_CAMPUS_PROGRAM[campus_code].get(program_code, [])
+            if campus_majors or program_code in cls.MAJORS_BY_CAMPUS_PROGRAM[campus_code]:
+                # Campus has specific majors for this program (even if empty list)
+                majors = campus_majors
+            else:
+                # Campus doesn't specify this program, use general list
+                majors = cls.MAJORS_BY_PROGRAM.get(program_code, [])
+        else:
+            # No campus specified or campus not in restrictions, use general list
+            majors = cls.MAJORS_BY_PROGRAM.get(program_code, [])
+        
         if not majors:
             return []
         
