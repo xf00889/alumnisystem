@@ -185,7 +185,7 @@ class AlumniDocument(models.Model):
     )
     description = models.TextField(blank=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
-    is_verified = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=True)  # Auto-verify all uploaded documents
 
     class Meta:
         ordering = ['-uploaded_at']

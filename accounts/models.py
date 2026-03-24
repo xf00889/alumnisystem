@@ -416,7 +416,7 @@ class Document(models.Model):
     document_type = models.CharField(max_length=20, choices=DOCUMENT_TYPES)
     uploaded_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-    is_verified = models.BooleanField(default=False)
+    is_verified = models.BooleanField(default=True)  # Auto-verify all uploaded documents
 
     def __str__(self):
         return f"{self.title} ({self.get_document_type_display()})"

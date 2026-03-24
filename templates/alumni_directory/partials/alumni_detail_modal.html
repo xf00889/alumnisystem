@@ -771,26 +771,23 @@
                             </span>
                             <div class="badge-group">
                                 <span class="badge bg-primary">{{ doc_stats.total }}</span>
-                                <span class="badge bg-success">{{ doc_stats.verified }}</span>
-                                <span class="badge bg-warning">{{ doc_stats.pending }}</span>
                             </div>
                         </div>
                         {% if empty_sections.documents %}
                         <p class="text-muted mb-0">No documents uploaded yet</p>
                         {% else %}
-                        <!-- Debug: Show raw document count and types -->
-                        <div class="alert alert-info mb-3">
-                            <strong>Debug Info:</strong><br>
-                            Total documents: {{ doc_stats.total }}<br>
-                            Documents dictionary keys: {{ documents.keys|join:", " }}<br>
-                            Expected types: {% for doc_type, doc_label in document_types %}{{ doc_type }}{% if not forloop.last %}, {% endif %}{% endfor %}
-                        </div>
-                        
-                        <!-- Show all documents from the dictionary -->
+                        <!-- Show all documents grouped by type -->
                         <div class="row g-3">
                             {% for doc_type, docs_list in documents.items %}
+                            {% if docs_list %}
                             <div class="col-md-6">
-                                <span class="info-label d-block mb-2">{{ doc_type }} ({{ docs_list|length }})</span>
+                                <span class="info-label d-block mb-2">
+                                    {% for type_code, type_label in document_types %}
+                                        {% if type_code == doc_type %}
+                                            {{ type_label }}
+                                        {% endif %}
+                                    {% endfor %}
+                                </span>
                                 <div class="list-group">
                                     {% for doc in docs_list %}
                                     <div class="list-group-item d-flex justify-content-between align-items-center">
@@ -801,11 +798,6 @@
                                             </small>
                                         </div>
                                         <div class="d-flex align-items-center" style="gap: var(--space-xs);">
-                                            {% if doc.is_verified %}
-                                            <span class="badge bg-success">✓</span>
-                                            {% else %}
-                                            <span class="badge bg-warning">⏳</span>
-                                            {% endif %}
                                             <a href="{% url 'alumni_directory:download_document' doc.id %}"
                                                class="btn btn-sm btn-primary download-document-btn">
                                                 <i class="fas fa-download"></i>
@@ -815,6 +807,7 @@
                                     {% endfor %}
                                 </div>
                             </div>
+                            {% endif %}
                             {% endfor %}
                         </div>
                         {% endif %}
