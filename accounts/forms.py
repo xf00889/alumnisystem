@@ -490,6 +490,52 @@ class PostRegistrationForm(forms.Form):
         ],
     }
 
+    # Majors available for specific programs
+    MAJORS_BY_PROGRAM = {
+        'BSED': [
+            ('ENGLISH', 'Major in English'),
+            ('MATHEMATICS', 'Major in Mathematics'),
+            ('SCIENCE', 'Major in Science'),
+            ('SOCIAL_STUDIES', 'Major in Social Studies'),
+            ('FILIPINO', 'Major in Filipino'),
+            ('VALUES_EDUCATION', 'Major in Values Education'),
+        ],
+        'BSED-ENG': [('ENGLISH', 'Major in English')],
+        'BSED-MATH': [('MATHEMATICS', 'Major in Mathematics')],
+        'BSED-SCI': [('SCIENCE', 'Major in Science')],
+        'BSED-SS': [('SOCIAL_STUDIES', 'Major in Social Studies')],
+        'BEED': [
+            ('GENERAL_CURRICULUM', 'Major in General Curriculum'),
+            ('SPECIAL_EDUCATION', 'Major in Special Education'),
+            ('PRESCHOOL_EDUCATION', 'Major in Preschool Education'),
+        ],
+        'BEED-GC': [('GENERAL_CURRICULUM', 'Major in General Curriculum')],
+        'BIT': [
+            ('AUTOMOTIVE', 'Major in Automotive Technology'),
+            ('COMPUTER', 'Major in Computer Technology'),
+            ('ELECTRICAL', 'Major in Electrical Technology'),
+            ('ELECTRONICS', 'Major in Electronics Technology'),
+            ('DRAFTING', 'Major in Drafting Technology'),
+        ],
+        'BIT-AT': [('AUTOMOTIVE', 'Major in Automotive Technology')],
+        'BIT-CT': [('COMPUTER', 'Major in Computer Technology')],
+        'BIT-ELT': [('ELECTRICAL', 'Major in Electrical Technology')],
+        'BIT-ELXT': [('ELECTRONICS', 'Major in Electronics Technology')],
+        'BSIT-AT': [('AUTOMOTIVE', 'Major in Automotive Technology')],
+        'BSIT-ET': [('ELECTRONICS', 'Major in Electronics Technology')],
+        'BSIT-FPSM': [('FOOD_PROCESSING', 'Major in Food Processing')],
+        'BSBA': [
+            ('FINANCIAL_MANAGEMENT', 'Major in Financial Management'),
+            ('MARKETING_MANAGEMENT', 'Major in Marketing Management'),
+            ('HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management'),
+            ('OPERATIONS_MANAGEMENT', 'Major in Operations Management'),
+        ],
+        'BSBA-FM': [('FINANCIAL_MANAGEMENT', 'Major in Financial Management')],
+        'BSBA-MM': [('MARKETING_MANAGEMENT', 'Major in Marketing Management')],
+        'BSBA-HRM': [('HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management')],
+        # Programs without majors will not appear in this dict
+    }
+
     # Default course choices (empty until college is selected)
     PROGRAM_CHOICES = [
         ('', '-- Select your college first --'),
@@ -586,6 +632,16 @@ class PostRegistrationForm(forms.Form):
         help_text="Select your campus and college first to see available programs",
         label="Course Graduated"
     )
+    major = forms.ChoiceField(
+        choices=[('', '-- Select your program first --')],
+        required=False,
+        widget=forms.Select(attrs={
+            'class': 'form-control',
+            'disabled': 'disabled',
+        }),
+        help_text="Select your program first to see available majors (if applicable)",
+        label="Major/Specialization"
+    )
     present_occupation = forms.CharField(
         max_length=200,
         required=True,
@@ -616,6 +672,9 @@ class PostRegistrationForm(forms.Form):
             ]
             self.fields['course_graduated'].widget.choices = [
                 ('', '-- Select your campus and college first --')
+            ]
+            self.fields['major'].widget.choices = [
+                ('', '-- Select your program first --')
             ]
 
     def clean_graduation_year(self):
@@ -743,6 +802,23 @@ class PostRegistrationForm(forms.Form):
         choices.append(('OTHER', 'Other Program'))
         return choices
 
+    @classmethod
+    def get_majors_for_program(cls, program_code):
+        """
+        Get major choices for a specific program.
+        Returns empty list if program has no majors.
+        """
+        if not program_code or program_code == 'OTHER':
+            return []
+
+        majors = cls.MAJORS_BY_PROGRAM.get(program_code, [])
+        if not majors:
+            return []
+        
+        choices = [('', '-- Select your major --')]
+        choices.extend(majors)
+        return choices
+
     def save(self, user):
         # Update user's first and last name
         user.first_name = self.cleaned_data['first_name']
@@ -755,6 +831,7 @@ class PostRegistrationForm(forms.Form):
             is_primary=True,
             defaults={
                 'program': self.cleaned_data['course_graduated'],
+                'major': self.cleaned_data.get('major', ''),
                 'school': self.cleaned_data['campus'],
                 'graduation_year': self.cleaned_data['graduation_year'],
             }

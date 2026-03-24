@@ -855,6 +855,51 @@ document.addEventListener('DOMContentLoaded', function() {
         ]
     };
 
+    // Majors available for specific programs
+    const majorsByProgram = {
+        'BSED': [
+            ['ENGLISH', 'Major in English'],
+            ['MATHEMATICS', 'Major in Mathematics'],
+            ['SCIENCE', 'Major in Science'],
+            ['SOCIAL_STUDIES', 'Major in Social Studies'],
+            ['FILIPINO', 'Major in Filipino'],
+            ['VALUES_EDUCATION', 'Major in Values Education']
+        ],
+        'BSED-ENG': [['ENGLISH', 'Major in English']],
+        'BSED-MATH': [['MATHEMATICS', 'Major in Mathematics']],
+        'BSED-SCI': [['SCIENCE', 'Major in Science']],
+        'BSED-SS': [['SOCIAL_STUDIES', 'Major in Social Studies']],
+        'BEED': [
+            ['GENERAL_CURRICULUM', 'Major in General Curriculum'],
+            ['SPECIAL_EDUCATION', 'Major in Special Education'],
+            ['PRESCHOOL_EDUCATION', 'Major in Preschool Education']
+        ],
+        'BEED-GC': [['GENERAL_CURRICULUM', 'Major in General Curriculum']],
+        'BIT': [
+            ['AUTOMOTIVE', 'Major in Automotive Technology'],
+            ['COMPUTER', 'Major in Computer Technology'],
+            ['ELECTRICAL', 'Major in Electrical Technology'],
+            ['ELECTRONICS', 'Major in Electronics Technology'],
+            ['DRAFTING', 'Major in Drafting Technology']
+        ],
+        'BIT-AT': [['AUTOMOTIVE', 'Major in Automotive Technology']],
+        'BIT-CT': [['COMPUTER', 'Major in Computer Technology']],
+        'BIT-ELT': [['ELECTRICAL', 'Major in Electrical Technology']],
+        'BIT-ELXT': [['ELECTRONICS', 'Major in Electronics Technology']],
+        'BSIT-AT': [['AUTOMOTIVE', 'Major in Automotive Technology']],
+        'BSIT-ET': [['ELECTRONICS', 'Major in Electronics Technology']],
+        'BSIT-FPSM': [['FOOD_PROCESSING', 'Major in Food Processing']],
+        'BSBA': [
+            ['FINANCIAL_MANAGEMENT', 'Major in Financial Management'],
+            ['MARKETING_MANAGEMENT', 'Major in Marketing Management'],
+            ['HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management'],
+            ['OPERATIONS_MANAGEMENT', 'Major in Operations Management']
+        ],
+        'BSBA-FM': [['FINANCIAL_MANAGEMENT', 'Major in Financial Management']],
+        'BSBA-MM': [['MARKETING_MANAGEMENT', 'Major in Marketing Management']],
+        'BSBA-HRM': [['HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management']]
+    };
+
     // College names mapping
     const collegeNames = {
         'CAS': 'College of Arts and Sciences',
@@ -872,6 +917,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const campusSelect = document.getElementById('id_campus');
     const collegeSelect = document.getElementById('id_college');
     const courseSelect = document.getElementById('id_course_graduated');
+    const majorSelect = document.getElementById('id_major');
 
     if (campusSelect && collegeSelect && courseSelect) {
         // Handle campus selection change
@@ -881,6 +927,10 @@ document.addEventListener('DOMContentLoaded', function() {
             // Clear college and course dropdowns
             collegeSelect.innerHTML = '';
             courseSelect.innerHTML = '';
+            if (majorSelect) {
+                majorSelect.innerHTML = '';
+                majorSelect.disabled = true;
+            }
 
             // Reset states
             collegeSelect.classList.remove('campus-selected', 'college-selected');
@@ -1022,6 +1072,49 @@ document.addEventListener('DOMContentLoaded', function() {
             // Remove previous CSS classes
             this.classList.remove('course-selected', 'other-program');
 
+            // Clear and handle major dropdown
+            if (majorSelect) {
+                majorSelect.innerHTML = '';
+                
+                if (selectedCourse === '' || selectedCourse === 'OTHER') {
+                    // No course or OTHER selected - disable major
+                    majorSelect.disabled = true;
+                    const placeholderOption = document.createElement('option');
+                    placeholderOption.value = '';
+                    placeholderOption.textContent = '-- Select your program first --';
+                    majorSelect.appendChild(placeholderOption);
+                } else {
+                    // Check if this program has majors
+                    const majors = majorsByProgram[selectedCourse] || [];
+                    
+                    if (majors.length > 0) {
+                        // Program has majors - enable and populate
+                        majorSelect.disabled = false;
+                        
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = '-- Select your major --';
+                        majorSelect.appendChild(defaultOption);
+                        
+                        majors.forEach(([majorCode, majorName]) => {
+                            const option = document.createElement('option');
+                            option.value = majorCode;
+                            option.textContent = majorName;
+                            majorSelect.appendChild(option);
+                        });
+                        
+                        showMessage(`${majors.length} majors available for this program.`, 'info', this);
+                    } else {
+                        // Program has no majors - disable and show message
+                        majorSelect.disabled = true;
+                        const noneOption = document.createElement('option');
+                        noneOption.value = '';
+                        noneOption.textContent = '-- No major required --';
+                        majorSelect.appendChild(noneOption);
+                    }
+                }
+            }
+
             if (selectedCourse === 'OTHER') {
                 this.classList.add('other-program');
                 showMessage('You selected "Other Program". Please ensure your selections are correct.', 'warning', this);
@@ -1035,8 +1128,12 @@ document.addEventListener('DOMContentLoaded', function() {
         if (campusSelect.value === '') {
             collegeSelect.disabled = true;
             courseSelect.disabled = true;
+            if (majorSelect) majorSelect.disabled = true;
         } else if (collegeSelect.value === '') {
             courseSelect.disabled = true;
+            if (majorSelect) majorSelect.disabled = true;
+        } else if (courseSelect.value === '') {
+            if (majorSelect) majorSelect.disabled = true;
         }
     }
 
