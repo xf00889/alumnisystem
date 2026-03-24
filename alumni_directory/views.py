@@ -1334,11 +1334,16 @@ def alumni_detail_modal(request, pk):
 
         # Group documents by type for template
         documents_by_type = {}
+        unmatched_documents = []  # Track documents that don't match any type
+        
         for doc in combined_documents:
             doc_type = doc.document_type
             if doc_type not in documents_by_type:
                 documents_by_type[doc_type] = []
             documents_by_type[doc_type].append(doc)
+        
+        # Log what document types we found
+        logger.info(f"Alumni {pk} - Document types found: {list(documents_by_type.keys())}")
 
         # Document types for template iteration
         # Includes types from both AlumniDocument and accounts.Document models
@@ -1400,6 +1405,13 @@ def alumni_detail_modal(request, pk):
             'documents': not combined_documents,
             'additional': not any([alumni.bio, alumni.achievements])
         }
+
+        # Debug logging for documents
+        logger.info(f"Alumni {pk} - Total documents: {total_documents}")
+        logger.info(f"Alumni {pk} - Documents by type: {list(documents_by_type.keys())}")
+        logger.info(f"Alumni {pk} - Empty sections documents: {empty_sections['documents']}")
+        for doc_type, docs in documents_by_type.items():
+            logger.info(f"Alumni {pk} - {doc_type}: {len(docs)} documents")
 
         # Get achievements
         achievements = alumni.achievements_list.all().order_by('-date_achieved')
