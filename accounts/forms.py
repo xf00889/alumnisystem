@@ -729,6 +729,19 @@ class PostRegistrationForm(forms.Form):
             self.fields['major'].widget.choices = [
                 ('', '-- Select your program first --')
             ]
+        else:
+            # On form submission, dynamically set major choices based on submitted data
+            campus = self.data.get('campus')
+            course = self.data.get('course_graduated')
+            
+            if campus and course:
+                # Get available majors for this program and campus
+                major_choices = self.get_majors_for_program(course, campus)
+                if major_choices:
+                    self.fields['major'].choices = major_choices
+                else:
+                    # No majors for this program
+                    self.fields['major'].choices = [('', 'No major required')]
 
     def clean_graduation_year(self):
         year = self.cleaned_data['graduation_year']
