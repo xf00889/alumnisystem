@@ -1068,39 +1068,64 @@ class ProfileUpdateForm(forms.ModelForm):
         return cleaned_data
 
 class EducationForm(forms.ModelForm):
-    program = forms.ChoiceField(
-        choices=Education.PROGRAM_CHOICES,
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
+    # Reuse the same choices from PostRegistrationForm
+    campus = forms.ChoiceField(
+        choices=PostRegistrationForm.SCHOOL_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="Campus"
     )
-    school = forms.ChoiceField(
-        choices=Education.SCHOOL_CHOICES,
+    college = forms.ChoiceField(
+        choices=PostRegistrationForm.COLLEGE_CHOICES,
         required=False,
-        widget=forms.Select(attrs={'class': 'form-control'})
+        widget=forms.Select(attrs={'class': 'form-control', 'disabled': 'disabled'}),
+        label="College"
+    )
+    program = forms.ChoiceField(
+        choices=PostRegistrationForm.ALL_PROGRAM_CHOICES,
+        required=True,
+        widget=forms.Select(attrs={'class': 'form-control', 'disabled': 'disabled'}),
+        label="Program/Course"
+    )
+    major = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={'class': 'form-control'}),
+        label="Major/Specialization",
+        help_text="Your specialization (if any)"
     )
     graduation_year = forms.IntegerField(
         required=False,
-        widget=forms.NumberInput(attrs={'class': 'form-control'}),
-        label='Year Graduated'
+        widget=forms.NumberInput(attrs={'class': 'form-control', 'min': 1970, 'max': datetime.datetime.now().year}),
+        label='Graduation Year'
     )
     
     class Meta:
         model = Education
         fields = ['program', 'major', 'school', 'graduation_year', 'achievements']
         widgets = {
-            'major': forms.TextInput(attrs={'class': 'form-control'}),
             'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         }
         labels = {
-            'graduation_year': 'Year Graduated',
+            'graduation_year': 'Graduation Year',
         }
         help_texts = {
-            'program': 'Your program',
-            'major': 'Your specialization (if any)',
-            'school': 'Your campus',
-            'graduation_year': 'Year of graduation',
             'achievements': 'Notable achievements, awards, or honors'
         }
+    
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Map the school field to campus for consistency
+        if self.instance and self.instance.pk:
+            self.fields['campus'].initial = self.instance.school
+    
+    def save(self, commit=True):
+        instance = super().save(commit=False)
+        # Map campus back to school field
+        instance.school = self.cleaned_data.get('campus')
+        if commit:
+            instance.save()
+        return instance
 
 class ExperienceForm(forms.ModelForm):
     class Meta:
