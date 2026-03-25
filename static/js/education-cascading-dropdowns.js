@@ -196,15 +196,29 @@ const collegeNames = {
  * @param {string} formId - The ID of the form element
  */
 function initEducationCascadingDropdowns(formId) {
+    console.log('Initializing cascading dropdowns for form:', formId);
+    
     const form = document.getElementById(formId);
-    if (!form) return;
+    if (!form) {
+        console.error('Form not found:', formId);
+        return;
+    }
 
     const campusSelect = form.querySelector('[name="campus"]');
     const collegeSelect = form.querySelector('[name="college"]');
     const programSelect = form.querySelector('[name="program"]');
     const majorInput = form.querySelector('[name="major"]');
 
-    if (!campusSelect || !collegeSelect || !programSelect) return;
+    if (!campusSelect || !collegeSelect || !programSelect) {
+        console.error('Required fields not found in form:', formId);
+        return;
+    }
+
+    console.log('Form elements found:', {
+        campus: campusSelect.value,
+        college: collegeSelect.value,
+        program: programSelect.value
+    });
 
     // Get initial values from data attributes or current values
     const initialProgram = programSelect.getAttribute('data-initial-value') || programSelect.value;
@@ -215,7 +229,14 @@ function initEducationCascadingDropdowns(formId) {
     // If no college but we have a program, derive it from the program
     if (!initialCollege && initialProgram) {
         initialCollege = getProgramCollege(initialProgram);
+        console.log('Derived college from program:', initialProgram, '->', initialCollege);
     }
+
+    console.log('Initial values:', {
+        campus: campusSelect.value,
+        college: initialCollege,
+        program: initialProgram
+    });
 
     // Handle campus change
     campusSelect.addEventListener('change', function() {
