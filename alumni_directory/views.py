@@ -49,27 +49,15 @@ def apply_selective_export_filters(request, base_queryset=None):
     # Apply selective export filters
     export_campuses = [c for c in request.GET.getlist('export_campuses') if c]
     if export_campuses:
-        # Include alumni with matching campus OR null/empty campus
-        from django.db.models import Q
-        export_queryset = export_queryset.filter(
-            Q(campus__in=export_campuses) | Q(campus__isnull=True) | Q(campus='')
-        )
+        export_queryset = export_queryset.filter(campus__in=export_campuses)
 
     export_colleges = [c for c in request.GET.getlist('export_colleges') if c]
     if export_colleges:
-        # Include alumni with matching college OR null/empty college
-        from django.db.models import Q
-        export_queryset = export_queryset.filter(
-            Q(college__in=export_colleges) | Q(college__isnull=True) | Q(college='')
-        )
+        export_queryset = export_queryset.filter(college__in=export_colleges)
 
     export_courses = [c for c in request.GET.getlist('export_courses') if c]
     if export_courses:
-        # Include alumni with matching course OR null/empty course
-        from django.db.models import Q
-        export_queryset = export_queryset.filter(
-            Q(course__in=export_courses) | Q(course__isnull=True) | Q(course='')
-        )
+        export_queryset = export_queryset.filter(course__in=export_courses)
 
     export_years = [y for y in request.GET.getlist('export_years') if y]
     if export_years:
@@ -982,6 +970,11 @@ def alumni_management(request):
                 college_lookup  # Include college name search
             )
         
+        # Campus filter
+        campus = request.GET.get('campus', '').strip()
+        if campus:
+            queryset = queryset.filter(campus=campus)
+        
         # Graduation Year filter
         grad_year = [y for y in request.GET.getlist('graduation_year') if y]
         if grad_year:
@@ -1313,6 +1306,7 @@ def alumni_management(request):
         
         # Get counts for filtering dropdown options
         graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
+        courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
         
         # Get all available programs from the system
         # Import the program mapping from accounts.forms
@@ -1334,7 +1328,9 @@ def alumni_management(request):
             'all_programs': all_programs,  # All available programs in the system
             'colleges': Alumni.COLLEGE_CHOICES,
             'campuses': Alumni.CAMPUS_CHOICES,  # Add campuses for export filter
+            'courses': courses,  # Add courses for filter dropdown
             'search_query': search_query,
+            'selected_campus': campus,
             'selected_year': grad_year[0] if grad_year else None,
             'selected_course': course[0] if course else None,
             'selected_college': college[0] if college else None,

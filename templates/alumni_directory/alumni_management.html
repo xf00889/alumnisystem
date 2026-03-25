@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load campus_filters %}
 
 {% block title %}Alumni Management{% endblock %}
 
@@ -439,7 +440,7 @@
             <div class="filter-controls">
                 <form method="get" action="{% url 'alumni_directory:alumni_management' %}" class="needs-validation" novalidate>
                     <div class="row g-3">
-                        <div class="col-md-4">
+                        <div class="col-md-3">
                             <div class="form-group">
                                 <label for="search" class="form-label">Search</label>
                                 <div class="input-group">
@@ -447,6 +448,19 @@
                                     <input type="text" id="search" name="search" value="{{ search_query }}" 
                                            class="form-control" placeholder="Search by name, program, college, or location">
                                 </div>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="form-group">
+                                <label for="campus" class="form-label">Campus</label>
+                                <select id="campus" name="campus" class="form-select">
+                                    <option value="">All Campuses</option>
+                                    {% for campus_code, campus_name in campuses %}
+                                    <option value="{{ campus_code }}" {% if selected_campus == campus_code %}selected{% endif %}>
+                                        NORSU - {% if campus_code == 'BSC' %}BSC{% elif campus_code == 'MAIN' %}Main{% elif campus_code == 'NORTH' %}North{% elif campus_code == 'BAIS1' or campus_code == 'BAIS2' %}Bais{% elif campus_code == 'GUI' %}Guihulngan{% elif campus_code == 'MAB' %}Mabinay{% elif campus_code == 'PAM' %}Pamplona{% elif campus_code == 'SIATON' %}Siaton{% endif %}
+                                    </option>
+                                    {% endfor %}
+                                </select>
                             </div>
                         </div>
                         <div class="col-md-2">
@@ -482,9 +496,9 @@
                                 </select>
                             </div>
                         </div>
-                        <div class="col-md-2 d-flex align-items-end">
+                        <div class="col-md-1 d-flex align-items-end">
                             <button type="submit" class="btn btn-primary w-100">
-                                <i class="fas fa-filter me-1"></i> Apply Filters
+                                <i class="fas fa-filter me-1"></i> Filter
                             </button>
                         </div>
                     </div>
@@ -506,6 +520,7 @@
                             <tr>
                                 <th>ID</th>
                                 <th>Full Name</th>
+                                <th>Campus</th>
                                 <th>College</th>
                                 <th>Year</th>
                                 <th>Program</th>
@@ -521,6 +536,13 @@
                                 <td>{{ alumni.id }}</td>
                                 <td>
                                     <strong>{{ alumni.full_name }}</strong>
+                                </td>
+                                <td>
+                                    {% if alumni.campus %}
+                                        <span class="badge bg-primary">NORSU - {{ alumni.get_campus_display|campus_short_name }}</span>
+                                    {% else %}
+                                        <span class="text-muted">Not specified</span>
+                                    {% endif %}
                                 </td>
                                 <td>
                                     {% if alumni.college %}
