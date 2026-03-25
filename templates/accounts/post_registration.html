@@ -1231,10 +1231,38 @@ document.addEventListener('DOMContentLoaded', function() {
             courseSelect.disabled = true;
             if (majorSelect) majorSelect.disabled = true;
         } else if (collegeSelect.value === '') {
+            // Campus is selected but college is not - enable college
+            collegeSelect.disabled = false;
             courseSelect.disabled = true;
             if (majorSelect) majorSelect.disabled = true;
+            
+            // Trigger campus change to populate colleges
+            campusSelect.dispatchEvent(new Event('change'));
         } else if (courseSelect.value === '') {
+            // Campus and college are selected - enable both
+            collegeSelect.disabled = false;
+            courseSelect.disabled = false;
             if (majorSelect) majorSelect.disabled = true;
+            
+            // Trigger campus and college change to populate dropdowns
+            campusSelect.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+                collegeSelect.dispatchEvent(new Event('change'));
+            }, 100);
+        } else {
+            // All fields have values - enable all and trigger changes
+            collegeSelect.disabled = false;
+            courseSelect.disabled = false;
+            if (majorSelect) majorSelect.disabled = false;
+            
+            // Trigger all changes to populate dropdowns
+            campusSelect.dispatchEvent(new Event('change'));
+            setTimeout(() => {
+                collegeSelect.dispatchEvent(new Event('change'));
+                setTimeout(() => {
+                    courseSelect.dispatchEvent(new Event('change'));
+                }, 100);
+            }, 100);
         }
         
         // Hide major_other field initially

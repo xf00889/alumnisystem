@@ -390,6 +390,7 @@ class PostRegistrationForm(forms.Form):
             ('BSCRIM', 'BS in Criminology'),
         ],
         'CIT': [  # College of Industrial Technology
+            ('BIT', 'Bachelor of Science in Industrial Technology'),
             ('BSAT', 'BS in Automotive Technology'),
             ('BSAM', 'BS in Aviation Maintenance'),
             ('BSCT', 'BS in Civil Technology'),
