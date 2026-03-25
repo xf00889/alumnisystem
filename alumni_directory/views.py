@@ -33,6 +33,9 @@ def apply_selective_export_filters(request, base_queryset=None):
         export_queryset = Alumni.objects.select_related('user').all()
     else:
         export_queryset = base_queryset
+    
+    # Apply sorting: year (descending), then course, then last name, then first name
+    export_queryset = export_queryset.order_by('-graduation_year', 'course', 'user__last_name', 'user__first_name')
 
     # Apply selective export filters
     export_campuses = [c for c in request.GET.getlist('export_campuses') if c]
