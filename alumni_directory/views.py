@@ -34,8 +34,8 @@ def apply_selective_export_filters(request, base_queryset=None):
     else:
         export_queryset = base_queryset
     
-    # Apply sorting: year (descending), then course, then last name, then first name
-    export_queryset = export_queryset.order_by('-graduation_year', 'course', 'user__last_name', 'user__first_name')
+    # Apply sorting: campus, year (descending), course, then last name, then first name
+    export_queryset = export_queryset.order_by('campus', '-graduation_year', 'course', 'user__last_name', 'user__first_name')
 
     # Apply selective export filters
     export_campuses = [c for c in request.GET.getlist('export_campuses') if c]
@@ -982,9 +982,9 @@ def alumni_management(request):
                 filename = f"alumni_management_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
 
             # Define field configuration for exports
-            field_names = ['id', 'full_name', 'college_display', 'graduation_year', 'course', 
+            field_names = ['id', 'full_name', 'campus_display', 'college_display', 'graduation_year', 'course', 
                           'job_title', 'current_company', 'employment_address']
-            field_labels = ['ID', 'Full Name', 'College', 'Year', 'Course', 
+            field_labels = ['ID', 'Full Name', 'Campus', 'College', 'Year', 'Course', 
                            'Present Occupation', 'Name of Company', 'Employment Address']
 
             if export_format == 'excel':
@@ -1024,6 +1024,7 @@ def alumni_management(request):
                     row_data = [
                         alumni.id,
                         alumni.full_name,
+                        alumni.get_campus_display() if alumni.campus else 'Not specified',
                         alumni.college_display if alumni.college else 'Not specified',
                         alumni.graduation_year,
                         alumni.course,
@@ -1187,6 +1188,7 @@ def alumni_management(request):
                     row_data = [
                         str(alumni.id),
                         alumni.full_name,
+                        alumni.get_campus_display() if alumni.campus else 'Not specified',
                         alumni.college_display if alumni.college else 'Not specified',
                         str(alumni.graduation_year),
                         alumni.course or '',
