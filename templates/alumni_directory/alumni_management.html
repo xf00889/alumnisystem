@@ -703,6 +703,32 @@
             <form id="exportOptionsForm">
                 <div class="modal-body">
                     <div class="row g-4">
+                        <!-- Campus Selection -->
+                        <div class="col-md-6">
+                            <div class="export-section">
+                                <h6 class="export-section-title">
+                                    <i class="fas fa-map-marker-alt me-2"></i>Campuses
+                                </h6>
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" id="selectAllCampuses" checked>
+                                    <label class="form-check-label fw-bold" for="selectAllCampuses">
+                                        Select All Campuses
+                                    </label>
+                                </div>
+                                <div class="campus-options" style="max-height: 200px; overflow-y: auto;">
+                                    {% for campus_code, campus_name in campuses %}
+                                    <div class="form-check">
+                                        <input class="form-check-input campus-checkbox" type="checkbox"
+                                               id="campus_{{ campus_code }}" name="campuses" value="{{ campus_code }}" checked>
+                                        <label class="form-check-label" for="campus_{{ campus_code }}">
+                                            {{ campus_name }}
+                                        </label>
+                                    </div>
+                                    {% endfor %}
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- College Selection -->
                         <div class="col-md-6">
                             <div class="export-section">
@@ -1178,6 +1204,9 @@
         const previewExportBtn = document.getElementById('previewExportBtn');
 
         // Select All functionality for each section
+        const selectAllCampuses = document.getElementById('selectAllCampuses');
+        const campusCheckboxes = document.querySelectorAll('.campus-checkbox');
+
         const selectAllColleges = document.getElementById('selectAllColleges');
         const collegeCheckboxes = document.querySelectorAll('.college-checkbox');
 
@@ -1192,6 +1221,26 @@
 
         const selectAllVerification = document.getElementById('selectAllVerification');
         const verificationCheckboxes = document.querySelectorAll('.verification-checkbox');
+
+        // Handle Select All Campuses
+        selectAllCampuses.addEventListener('change', function() {
+            campusCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            updateExportSummary();
+        });
+
+        // Handle individual campus checkboxes
+        campusCheckboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', function() {
+                const allChecked = Array.from(campusCheckboxes).every(cb => cb.checked);
+                const noneChecked = Array.from(campusCheckboxes).every(cb => !cb.checked);
+
+                selectAllCampuses.checked = allChecked;
+                selectAllCampuses.indeterminate = !allChecked && !noneChecked;
+                updateExportSummary();
+            });
+        });
 
         // Handle Select All Colleges
         selectAllColleges.addEventListener('change', function() {
@@ -1317,8 +1366,9 @@
 
         // Update export summary
         function updateExportSummary() {
+            const selectedCampuses = Array.from(campusCheckboxes).filter(cb => cb.checked).length;
             const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).length;
-            const selectedCourses = Array.from(courseCheckboxes).filter(cb => cb.checked).length;
+            const selectedPrograms = Array.from(programCheckboxes).filter(cb => cb.checked).length;
             const selectedYears = Array.from(yearCheckboxes).filter(cb => cb.checked).length;
             const yearFrom = document.getElementById('yearFrom').value;
             const yearTo = document.getElementById('yearTo').value;
@@ -1327,16 +1377,22 @@
 
             let summaryParts = [];
 
+            if (selectedCampuses === campusCheckboxes.length) {
+                summaryParts.push('All campuses');
+            } else if (selectedCampuses > 0) {
+                summaryParts.push(`${selectedCampuses} campus${selectedCampuses > 1 ? 'es' : ''}`);
+            }
+
             if (selectedColleges === collegeCheckboxes.length) {
-                summaryParts.push('All colleges');
+                summaryParts.push('all colleges');
             } else if (selectedColleges > 0) {
                 summaryParts.push(`${selectedColleges} college${selectedColleges > 1 ? 's' : ''}`);
             }
 
-            if (selectedCourses === courseCheckboxes.length) {
-                summaryParts.push('all courses');
-            } else if (selectedCourses > 0) {
-                summaryParts.push(`${selectedCourses} course${selectedCourses > 1 ? 's' : ''}`);
+            if (selectedPrograms === programCheckboxes.length) {
+                summaryParts.push('all programs');
+            } else if (selectedPrograms > 0) {
+                summaryParts.push(`${selectedPrograms} program${selectedPrograms > 1 ? 's' : ''}`);
             }
 
             if (yearFrom || yearTo) {
@@ -1381,16 +1437,22 @@
                 const params = new URLSearchParams();
                 params.append('format', format);
 
+                // Add selected campuses
+                const selectedCampuses = Array.from(campusCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedCampuses.length > 0 && selectedCampuses.length < campusCheckboxes.length) {
+                    selectedCampuses.forEach(campus => params.append('export_campuses', campus));
+                }
+
                 // Add selected colleges
                 const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
                 if (selectedColleges.length > 0 && selectedColleges.length < collegeCheckboxes.length) {
                     selectedColleges.forEach(college => params.append('export_colleges', college));
                 }
 
-                // Add selected courses
-                const selectedCourses = Array.from(courseCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                if (selectedCourses.length > 0 && selectedCourses.length < courseCheckboxes.length) {
-                    selectedCourses.forEach(course => params.append('export_courses', course));
+                // Add selected programs
+                const selectedPrograms = Array.from(programCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+                if (selectedPrograms.length > 0 && selectedPrograms.length < programCheckboxes.length) {
+                    selectedPrograms.forEach(program => params.append('export_courses', program));
                 }
 
                 // Add selected years or year range

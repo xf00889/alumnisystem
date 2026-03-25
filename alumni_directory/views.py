@@ -35,6 +35,10 @@ def apply_selective_export_filters(request, base_queryset=None):
         export_queryset = base_queryset
 
     # Apply selective export filters
+    export_campuses = [c for c in request.GET.getlist('export_campuses') if c]
+    if export_campuses:
+        export_queryset = export_queryset.filter(campus__in=export_campuses)
+
     export_colleges = [c for c in request.GET.getlist('export_colleges') if c]
     if export_colleges:
         export_queryset = export_queryset.filter(college__in=export_colleges)
@@ -74,6 +78,10 @@ def apply_selective_export_filters(request, base_queryset=None):
     # Generate dynamic filename
     filename_parts = ['alumni']
 
+    if export_campuses:
+        campus_codes = '_'.join(export_campuses)
+        filename_parts.append(campus_codes)
+
     if export_colleges:
         college_codes = '_'.join(export_colleges)
         filename_parts.append(college_codes)
@@ -98,7 +106,7 @@ def apply_selective_export_filters(request, base_queryset=None):
     filename = '_'.join(filename_parts) + '.csv'
 
     # Check if any selective filters were applied
-    has_selective_filters = any([export_colleges, export_courses, export_years, year_from, year_to,
+    has_selective_filters = any([export_campuses, export_colleges, export_courses, export_years, year_from, year_to,
                                 export_employment_status, export_verification_status])
 
     return export_queryset, filename, has_selective_filters
@@ -1257,6 +1265,7 @@ def alumni_management(request):
             'graduation_years': graduation_years,
             'all_programs': all_programs,  # All available programs in the system
             'colleges': Alumni.COLLEGE_CHOICES,
+            'campuses': Alumni.CAMPUS_CHOICES,  # Add campuses for export filter
             'search_query': search_query,
             'selected_year': grad_year[0] if grad_year else None,
             'selected_course': course[0] if course else None,
