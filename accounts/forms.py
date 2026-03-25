@@ -1068,12 +1068,18 @@ class ProfileUpdateForm(forms.ModelForm):
         return cleaned_data
 
 class EducationForm(forms.ModelForm):
-    # Simplified form without cascading dropdowns
+    # Simple form with all fields enabled
     campus = forms.ChoiceField(
         choices=PostRegistrationForm.SCHOOL_CHOICES,
         required=True,
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Campus"
+    )
+    college = forms.ChoiceField(
+        choices=PostRegistrationForm.COLLEGE_CHOICES,
+        required=False,
+        widget=forms.Select(attrs={'class': 'form-control'}),
+        label="College"
     )
     program = forms.ChoiceField(
         choices=PostRegistrationForm.ALL_PROGRAM_CHOICES,
@@ -1112,11 +1118,31 @@ class EducationForm(forms.ModelForm):
         # Map the school field to campus for consistency
         if self.instance and self.instance.pk:
             self.fields['campus'].initial = self.instance.school
+            
+            # Try to get college from Alumni model
+            try:
+                alumni = self.instance.profile.user.alumni
+                if alumni and alumni.college:
+                    self.fields['college'].initial = alumni.college
+            except:
+                pass
     
     def save(self, commit=True):
         instance = super().save(commit=False)
         # Map campus back to school field
         instance.school = self.cleaned_data.get('campus')
+        
+        # Update Alumni college if provided
+        college = self.cleaned_data.get('college')
+        if college and commit:
+            try:
+                from alumni_directory.models import Alumni
+                alumni, created = Alumni.objects.get_or_create(user=instance.profile.user)
+                alumni.college = college
+                alumni.save(update_fields=['college'])
+            except:
+                pass
+        
         if commit:
             instance.save()
         return instance
