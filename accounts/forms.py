@@ -1068,23 +1068,17 @@ class ProfileUpdateForm(forms.ModelForm):
         return cleaned_data
 
 class EducationForm(forms.ModelForm):
-    # Reuse the same choices from PostRegistrationForm
+    # Simplified form without cascading dropdowns
     campus = forms.ChoiceField(
         choices=PostRegistrationForm.SCHOOL_CHOICES,
         required=True,
         widget=forms.Select(attrs={'class': 'form-control'}),
         label="Campus"
     )
-    college = forms.ChoiceField(
-        choices=PostRegistrationForm.COLLEGE_CHOICES,
-        required=False,
-        widget=forms.Select(attrs={'class': 'form-control', 'disabled': 'disabled'}),
-        label="College"
-    )
     program = forms.ChoiceField(
         choices=PostRegistrationForm.ALL_PROGRAM_CHOICES,
         required=True,
-        widget=forms.Select(attrs={'class': 'form-control', 'disabled': 'disabled'}),
+        widget=forms.Select(attrs={'class': 'form-control'}),
         label="Program/Course"
     )
     major = forms.CharField(
