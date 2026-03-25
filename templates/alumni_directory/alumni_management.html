@@ -1252,7 +1252,7 @@
             updateExportSummary();
         });
 
-        // Handle individual campus checkboxes
+        // Handle individual campus checkboxes with dynamic filtering
         campusCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 const allChecked = Array.from(campusCheckboxes).every(cb => cb.checked);
@@ -1260,9 +1260,82 @@
 
                 selectAllCampuses.checked = allChecked;
                 selectAllCampuses.indeterminate = !allChecked && !noneChecked;
+                
+                // Dynamic filtering: update colleges and programs based on selected campuses
+                filterCollegesAndPrograms();
+                
                 updateExportSummary();
             });
         });
+        
+        // Also trigger filtering when Select All Campuses changes
+        selectAllCampuses.addEventListener('change', function() {
+            campusCheckboxes.forEach(checkbox => {
+                checkbox.checked = this.checked;
+            });
+            filterCollegesAndPrograms();
+            updateExportSummary();
+        });
+
+        // Function to dynamically filter colleges and programs based on selected campuses
+        function filterCollegesAndPrograms() {
+            const selectedCampuses = Array.from(campusCheckboxes)
+                .filter(cb => cb.checked)
+                .map(cb => cb.value);
+            
+            // If no campuses selected or all selected, show all colleges and programs
+            if (selectedCampuses.length === 0 || selectedCampuses.length === campusCheckboxes.length) {
+                collegeCheckboxes.forEach(cb => {
+                    cb.parentElement.style.display = '';
+                    cb.checked = true;
+                });
+                programCheckboxes.forEach(cb => {
+                    cb.parentElement.style.display = '';
+                    cb.checked = true;
+                });
+                selectAllColleges.checked = true;
+                selectAllPrograms.checked = true;
+                return;
+            }
+            
+            // Get unique colleges and programs for selected campuses from the actual alumni data
+            // We'll make an AJAX call to get this data
+            fetch(`{% url 'alumni_directory:alumni_management' %}?get_filter_data=1&campuses=${selectedCampuses.join(',')}`)
+                .then(response => response.json())
+                .then(data => {
+                    // Filter colleges
+                    collegeCheckboxes.forEach(cb => {
+                        if (data.colleges.includes(cb.value)) {
+                            cb.parentElement.style.display = '';
+                            cb.checked = true;
+                        } else {
+                            cb.parentElement.style.display = 'none';
+                            cb.checked = false;
+                        }
+                    });
+                    
+                    // Filter programs
+                    programCheckboxes.forEach(cb => {
+                        if (data.programs.includes(cb.value)) {
+                            cb.parentElement.style.display = '';
+                            cb.checked = true;
+                        } else {
+                            cb.parentElement.style.display = 'none';
+                            cb.checked = false;
+                        }
+                    });
+                    
+                    // Update select all checkboxes
+                    const visibleColleges = Array.from(collegeCheckboxes).filter(cb => cb.parentElement.style.display !== 'none');
+                    selectAllColleges.checked = visibleColleges.every(cb => cb.checked);
+                    
+                    const visiblePrograms = Array.from(programCheckboxes).filter(cb => cb.parentElement.style.display !== 'none');
+                    selectAllPrograms.checked = visiblePrograms.every(cb => cb.checked);
+                })
+                .catch(error => {
+                    console.error('Error fetching filter data:', error);
+                });
+        }
 
         // Handle Select All Colleges
         selectAllColleges.addEventListener('change', function() {

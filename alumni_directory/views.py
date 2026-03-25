@@ -983,6 +983,25 @@ def alumni_management(request):
             else:
                 messages.error(request, "Please select a CSV file to import.")
         
+        # Handle AJAX request for dynamic filter data
+        if request.GET.get('get_filter_data'):
+            campuses = request.GET.get('campuses', '').split(',')
+            campuses = [c.strip() for c in campuses if c.strip()]
+            
+            if campuses:
+                # Get unique colleges and programs for selected campuses
+                alumni_in_campuses = Alumni.objects.filter(campus__in=campuses)
+                colleges = list(alumni_in_campuses.values_list('college', flat=True).distinct())
+                programs = list(alumni_in_campuses.values_list('course', flat=True).distinct())
+            else:
+                colleges = []
+                programs = []
+            
+            return JsonResponse({
+                'colleges': colleges,
+                'programs': programs
+            })
+        
         # Base queryset with efficient loading
         queryset = Alumni.objects.select_related('user').all()
         
