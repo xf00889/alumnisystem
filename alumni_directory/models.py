@@ -24,15 +24,14 @@ class Alumni(models.Model):
 
     COLLEGE_CHOICES = (
         ('CAS', 'College of Arts and Sciences'),
-        ('CAF', 'College of Agriculture and Forestry'),
-        ('CAFF', 'College of Agriculture, Forestry and Fishery'),
-        ('CBA', 'College of Business Administration'),
+        ('CBA', 'College of Business'),
+        ('CAFF', 'College of Agriculture, Forestry and Fisheries'),
         ('CCJE', 'College of Criminal Justice Education'),
-        ('CEA', 'College of Engineering and Architecture'),
+        ('CEA', 'College of Engineering'),
         ('CIT', 'College of Industrial Technology'),
         ('COL', 'College of Law'),
         ('CNPAHS', 'College of Nursing, Pharmacy and Allied Health Sciences'),
-        ('CTE', 'College of Teacher Education'),
+        ('CTE', 'College of Education'),
         ('CTHM', 'College of Tourism and Hospitality Management'),
     )
 

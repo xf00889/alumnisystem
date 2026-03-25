@@ -327,98 +327,10 @@ class PostRegistrationForm(forms.Form):
 
     # Campus-specific program mapping
     # Format: Campus -> College -> Programs
+    # Note: All campuses now show all programs under each college
     PROGRAMS_BY_CAMPUS = {
-        'NORSU-BSC': {  # Bayawan-Sta. Catalina Campus
-            'CTE': [
-                ('BSED', 'Bachelor of Secondary Education'),
-                ('BSED-ENG', 'BS in Secondary Education - Major in English'),
-                ('BSED-MATH', 'BS in Secondary Education - Major in Mathematics'),
-                ('BSED-SCI', 'BS in Secondary Education - Major in Science'),
-                ('BEED', 'Bachelor of Elementary Education'),
-                ('BEED-GC', 'BS in Elementary Education - Major in General Curriculum'),
-            ],
-            'CAS': [
-                ('BSCS', 'BS in Computer Science'),
-                ('BSIT', 'BS in Information Technology'),
-            ],
-            'CCJE': [
-                ('BSCRIM', 'BS in Criminology'),
-            ],
-            'CIT': [
-                ('BIT', 'Bachelor of Industrial Technology'),
-                ('BIT-AT', 'Bachelor of Industrial Technology - Major in Automotive Technology'),
-                ('BIT-CT', 'Bachelor of Industrial Technology - Major in Computer Technology'),
-                ('BIT-ELT', 'Bachelor of Industrial Technology - Major in Electrical Technology'),
-                ('BIT-ELXT', 'Bachelor of Industrial Technology - Major in Electronics Technology'),
-            ],
-            'CBA': [
-                ('BSOA', 'BS in Office Administration'),
-                ('BSHM', 'BS in Hospitality Management'),
-                ('BSBA', 'BS in Business Administration'),
-            ],
-            'CAF': [
-                ('BSA-AGRI', 'BS in Agriculture'),
-                ('BSF', 'BS in Forestry'),
-            ],
-        },
-        'NORSU-MAIN': {  # Main Campus - All programs available
-            'CAS': [
-                ('BSIT', 'BS in Information Technology'),
-                ('BSCS', 'BS in Computer Science'),
-                ('BSP', 'BS in Psychology'),
-                ('BSM', 'BS in Mathematics'),
-                ('BSPHY', 'BS in Physics'),
-                ('BSBIO', 'BS in Biology'),
-            ],
-            'CBA': [
-                ('BSA', 'BS in Accountancy'),
-                ('BSBA', 'BS in Business Administration'),
-                ('BSBA-FM', 'BSBA in Financial Management'),
-                ('BSBA-MM', 'BSBA in Marketing Management'),
-                ('BSBA-HRM', 'BSBA in Human Resource Management'),
-            ],
-            'CTE': [
-                ('BEED', 'Bachelor of Elementary Education'),
-                ('BSED', 'Bachelor of Secondary Education'),
-                ('BSED-ENG', 'BS in Secondary Education - Major in English'),
-                ('BSED-MATH', 'BS in Secondary Education - Major in Mathematics'),
-                ('BSED-SCI', 'BS in Secondary Education - Major in Science'),
-                ('BSED-SS', 'BS in Education - Social Studies'),
-            ],
-            'CNPAHS': [
-                ('BSN', 'BS in Nursing'),
-                ('BSP', 'BS in Pharmacy'),
-                ('BSMT', 'BS in Medical Technology'),
-            ],
-            'CCJE': [
-                ('BSCRIM', 'BS in Criminology'),
-            ],
-            'CTHM': [
-                ('BSHRM', 'BS in Hotel and Restaurant Management'),
-                ('BSTM', 'BS in Tourism Management'),
-            ],
-            'CEA': [
-                ('BSCE', 'BS in Civil Engineering'),
-                ('BSEE', 'BS in Electrical Engineering'),
-                ('BSME', 'BS in Mechanical Engineering'),
-                ('BSARCH', 'BS in Architecture'),
-            ],
-            'CAFF': [
-                ('BSA-AGRI', 'BS in Agriculture'),
-                ('BSF', 'BS in Forestry'),
-                ('BSFT', 'BS in Fisheries Technology'),
-            ],
-            'CIT': [
-                ('BSIT-AT', 'BS in Industrial Technology - Automotive'),
-                ('BSIT-ET', 'BS in Industrial Technology - Electronics'),
-                ('BSIT-FPSM', 'BS in Industrial Technology - Food Processing'),
-            ],
-            'COL': [
-                ('JD', 'Juris Doctor'),
-                ('LLB', 'Bachelor of Laws'),
-            ],
-        },
-        # Add other campuses as needed - for now they get all programs
+        'NORSU-MAIN': 'ALL',
+        'NORSU-BSC': 'ALL',
         'NORSU-BAIS': 'ALL',
         'NORSU-GUI': 'ALL',
         'NORSU-MAB': 'ALL',
@@ -430,71 +342,70 @@ class PostRegistrationForm(forms.Form):
     # Organize courses by college for cascading dropdown functionality (fallback for campuses with 'ALL')
     COURSES_BY_COLLEGE = {
         'CAS': [  # College of Arts and Sciences
-            ('BSIT', 'BS in Information Technology'),
-            ('BSCS', 'BS in Computer Science'),
-            ('BSP', 'BS in Psychology'),
-            ('BSM', 'BS in Mathematics'),
-            ('BSPHY', 'BS in Physics'),
             ('BSBIO', 'BS in Biology'),
+            ('BSCHEM', 'BS in Chemistry'),
+            ('BSCS', 'BS in Computer Science'),
+            ('BSGEO', 'BS in Geology'),
+            ('BSIT', 'BS in Information Technology'),
+            ('BMC', 'Bachelor of Mass Communication'),
+            ('BSM', 'BS in Mathematics'),
+            ('BSP', 'BS in Psychology'),
         ],
-        'CBA': [  # College of Business Administration
+        'CBA': [  # College of Business (formerly College of Business Administration)
             ('BSA', 'BS in Accountancy'),
             ('BSBA', 'BS in Business Administration'),
-            ('BSBA-FM', 'BSBA in Financial Management'),
-            ('BSBA-MM', 'BSBA in Marketing Management'),
-            ('BSBA-HRM', 'BSBA in Human Resource Management'),
-            ('BSOA', 'BS in Office Administration'),
-            ('BSHM', 'BS in Hospitality Management'),
+            ('BSBA-HRDM', 'BSBA Major in Human Resource Development Management'),
+            ('BSBA-FM', 'BSBA Major in Financial Management'),
+            ('BSOSM', 'BS in Office Systems Management'),
         ],
-        'CTE': [  # College of Teacher Education
-            ('BEED', 'Bachelor of Elementary Education'),
-            ('BEED-GC', 'BS in Elementary Education - Major in General Curriculum'),
-            ('BSED', 'Bachelor of Secondary Education'),
-            ('BSED-ENG', 'BS in Secondary Education - Major in English'),
-            ('BSED-MATH', 'BS in Secondary Education - Major in Mathematics'),
-            ('BSED-SCI', 'BS in Secondary Education - Major in Science'),
-            ('BSED-SS', 'BS in Education - Social Studies'),
+        'CEA': [  # College of Engineering (formerly College of Engineering and Architecture)
+            ('BSARCH', 'BS in Architecture'),
+            ('BSCE', 'BS in Civil Engineering'),
+            ('BSCPE', 'BS in Computer Engineering'),
+            ('BSEE', 'BS in Electrical Engineering'),
+            ('BSECE', 'BS in Electronics and Communication Engineering'),
+            ('BSGE', 'BS in Geodetic Engineering'),
+            ('BSGTHE', 'BS in Geothermal Engineering'),
+            ('BSME', 'BS in Mechanical Engineering'),
         ],
         'CNPAHS': [  # College of Nursing, Pharmacy and Allied Health Sciences
             ('BSN', 'BS in Nursing'),
             ('BSP', 'BS in Pharmacy'),
-            ('BSMT', 'BS in Medical Technology'),
+            ('MIDWIFERY', 'Midwifery'),
+            ('AMDNA', 'AMDNA'),
+        ],
+        'CTHM': [  # College of Tourism and Hospitality Management
+            ('BSHM', 'BS in Hospitality Management'),
+            ('BSTM', 'BS in Tourism'),
+        ],
+        'CAFF': [  # College of Agriculture, Forestry and Fisheries
+            ('BSF', 'BS in Forestry'),
+            ('BSA-AGRI', 'BS in Agriculture'),
+            ('BSA-AGRON', 'BS in Agriculture Major in Agronomy'),
+            ('BSA-HORT', 'BS in Agriculture Major in Horticulture'),
+            ('BSA-ANSCI', 'BS in Agriculture Major in Animal Science'),
+            ('BSA-AGEXT', 'BS in Agriculture Major in Agricultural Extension'),
         ],
         'CCJE': [  # College of Criminal Justice Education
             ('BSCRIM', 'BS in Criminology'),
         ],
-        'CTHM': [  # College of Tourism and Hospitality Management
-            ('BSHRM', 'BS in Hotel and Restaurant Management'),
-            ('BSTM', 'BS in Tourism Management'),
-        ],
-        'CEA': [  # College of Engineering and Architecture
-            ('BSCE', 'BS in Civil Engineering'),
-            ('BSEE', 'BS in Electrical Engineering'),
-            ('BSME', 'BS in Mechanical Engineering'),
-            ('BSARCH', 'BS in Architecture'),
-        ],
-        'CAFF': [  # College of Agriculture, Forestry and Fishery
-            ('BSA-AGRI', 'BS in Agriculture'),
-            ('BSF', 'BS in Forestry'),
-            ('BSFT', 'BS in Fisheries Technology'),
-        ],
-        'CAF': [  # College of Agriculture and Forestry (BSC Campus)
-            ('BSA-AGRI', 'BS in Agriculture'),
-            ('BSF', 'BS in Forestry'),
-        ],
         'CIT': [  # College of Industrial Technology
-            ('BIT', 'Bachelor of Industrial Technology'),
-            ('BIT-AT', 'Bachelor of Industrial Technology - Major in Automotive Technology'),
-            ('BIT-CT', 'Bachelor of Industrial Technology - Major in Computer Technology'),
-            ('BIT-ELT', 'Bachelor of Industrial Technology - Major in Electrical Technology'),
-            ('BIT-ELXT', 'Bachelor of Industrial Technology - Major in Electronics Technology'),
-            ('BSIT-AT', 'BS in Industrial Technology - Automotive'),
-            ('BSIT-ET', 'BS in Industrial Technology - Electronics'),
-            ('BSIT-FPSM', 'BS in Industrial Technology - Food Processing'),
+            ('BSAT', 'BS in Automotive Technology'),
+            ('BSAM', 'BS in Aviation Maintenance'),
+            ('BSCT', 'BS in Civil Technology'),
+            ('BSCET', 'BS in Computer and Electronics Technology'),
+            ('BSET', 'BS in Electrical Technology'),
+            ('BSFT', 'BS in Food Technology'),
+            ('BSIT-INDTECH', 'BS in Industrial Technology'),
+            ('BSMT', 'BS in Mechanical Technology'),
+            ('BSRACT', 'BS in Refrigeration and Air-Conditioning Technology'),
+        ],
+        'CTE': [  # College of Education (formerly College of Teacher Education)
+            ('BSED', 'BS in Elementary Education'),
+            ('BEED', 'BS in Secondary Education'),
         ],
         'COL': [  # College of Law
-            ('JD', 'Juris Doctor'),
-            ('LLB', 'Bachelor of Laws'),
+            ('LLB', 'Bachelor of Law'),
         ],
     }
 
@@ -551,14 +462,23 @@ class PostRegistrationForm(forms.Form):
         
         # Bachelor of Science in Business Administration
         'BSBA': [
+            ('HRDM', 'Major in Human Resource Development Management'),
             ('FINANCIAL_MANAGEMENT', 'Major in Financial Management'),
-            ('MARKETING_MANAGEMENT', 'Major in Marketing Management'),
-            ('HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management'),
-            ('OPERATIONS_MANAGEMENT', 'Major in Operations Management'),
         ],
+        'BSBA-HRDM': [('HRDM', 'Major in Human Resource Development Management')],
         'BSBA-FM': [('FINANCIAL_MANAGEMENT', 'Major in Financial Management')],
-        'BSBA-MM': [('MARKETING_MANAGEMENT', 'Major in Marketing Management')],
-        'BSBA-HRM': [('HUMAN_RESOURCE_MANAGEMENT', 'Major in Human Resource Management')],
+        
+        # Bachelor of Science in Agriculture
+        'BSA-AGRI': [
+            ('AGRONOMY', 'Major in Agronomy'),
+            ('HORTICULTURE', 'Major in Horticulture'),
+            ('ANIMAL_SCIENCE', 'Major in Animal Science'),
+            ('AGRICULTURAL_EXTENSION', 'Major in Agricultural Extension'),
+        ],
+        'BSA-AGRON': [('AGRONOMY', 'Major in Agronomy')],
+        'BSA-HORT': [('HORTICULTURE', 'Major in Horticulture')],
+        'BSA-ANSCI': [('ANIMAL_SCIENCE', 'Major in Animal Science')],
+        'BSA-AGEXT': [('AGRICULTURAL_EXTENSION', 'Major in Agricultural Extension')],
         
         # Programs without majors: BSIT, BSCS, BSA, BSHM, BSTM, BSN, BSCRIM, etc.
     }
