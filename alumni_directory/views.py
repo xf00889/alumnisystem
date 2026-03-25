@@ -34,6 +34,11 @@ def apply_selective_export_filters(request, base_queryset=None):
     else:
         export_queryset = base_queryset
     
+    # Log initial count
+    import logging
+    logger = logging.getLogger(__name__)
+    logger.info(f"Initial queryset count: {export_queryset.count()}")
+    
     # Apply sorting: campus, year (descending), course, then last name, then first name
     # Handle null/empty campus values by putting them last
     from django.db.models import Case, When, Value, IntegerField
@@ -50,18 +55,36 @@ def apply_selective_export_filters(request, base_queryset=None):
     export_campuses = [c for c in request.GET.getlist('export_campuses') if c]
     if export_campuses:
         export_queryset = export_queryset.filter(campus__in=export_campuses)
+        logger.info(f"After campus filter ({export_campuses}): {export_queryset.count()}")
 
     export_colleges = [c for c in request.GET.getlist('export_colleges') if c]
     if export_colleges:
-        export_queryset = export_queryset.filter(college__in=export_colleges)
+        # Check if all colleges are selected - if so, don't filter (treat as "no filter")
+        all_colleges = [code for code, name in Alumni.COLLEGE_CHOICES]
+        if set(export_colleges) != set(all_colleges):
+            export_queryset = export_queryset.filter(college__in=export_colleges)
+            logger.info(f"After college filter ({export_colleges}): {export_queryset.count()}")
+        else:
+            logger.info(f"All colleges selected, skipping college filter")
 
     export_courses = [c for c in request.GET.getlist('export_courses') if c]
-    if export_courses:
+    # Don't filter by courses if too many are selected (likely means "all")
+    # This prevents excluding alumni with courses not in the predefined list
+    if export_courses and len(export_courses) < 100:  # Reasonable threshold
         export_queryset = export_queryset.filter(course__in=export_courses)
+        logger.info(f"After course filter: {export_queryset.count()}")
 
     export_years = [y for y in request.GET.getlist('export_years') if y]
+    # Get all distinct years from database
     if export_years:
-        export_queryset = export_queryset.filter(graduation_year__in=export_years)
+        all_years = set(Alumni.objects.values_list('graduation_year', flat=True).distinct())
+        export_years_set = set(int(y) for y in export_years if y.isdigit())
+        # Only filter if not all years are selected
+        if export_years_set != all_years:
+            export_queryset = export_queryset.filter(graduation_year__in=export_years)
+            logger.info(f"After year filter: {export_queryset.count()}")
+        else:
+            logger.info(f"All years selected, skipping year filter")
 
     # Year range filters
     year_from = request.GET.get('export_year_from', '').strip()
@@ -79,19 +102,32 @@ def apply_selective_export_filters(request, base_queryset=None):
 
     export_employment_status = [e for e in request.GET.getlist('export_employment_status') if e]
     if export_employment_status:
-        export_queryset = export_queryset.filter(employment_status__in=export_employment_status)
+        # Check if all employment statuses are selected
+        all_employment = [code for code, name in Alumni.EMPLOYMENT_STATUS_CHOICES]
+        if set(export_employment_status) != set(all_employment):
+            export_queryset = export_queryset.filter(employment_status__in=export_employment_status)
+            logger.info(f"After employment filter: {export_queryset.count()}")
+        else:
+            logger.info(f"All employment statuses selected, skipping employment filter")
 
     export_verification_status = [v for v in request.GET.getlist('export_verification_status') if v]
     if export_verification_status:
-        # Convert string values to boolean
-        verification_filters = []
-        for status in export_verification_status:
-            if status.lower() == 'true':
-                verification_filters.append(True)
-            elif status.lower() == 'false':
-                verification_filters.append(False)
-        if verification_filters:
-            export_queryset = export_queryset.filter(is_verified__in=verification_filters)
+        # Only filter if not both true and false are selected (which means "all")
+        if len(export_verification_status) < 2:
+            # Convert string values to boolean
+            verification_filters = []
+            for status in export_verification_status:
+                if status.lower() == 'true':
+                    verification_filters.append(True)
+                elif status.lower() == 'false':
+                    verification_filters.append(False)
+            if verification_filters:
+                export_queryset = export_queryset.filter(is_verified__in=verification_filters)
+                logger.info(f"After verification filter: {export_queryset.count()}")
+        else:
+            logger.info(f"Both verification statuses selected, skipping verification filter")
+
+    logger.info(f"Final queryset count: {export_queryset.count()}")
 
     # Generate dynamic filename
     filename_parts = ['alumni']
