@@ -623,6 +623,17 @@ class PostRegistrationForm(forms.Form):
         help_text="Specify your major if not listed above",
         label="Specify Major"
     )
+    course_other = forms.CharField(
+        max_length=200,
+        required=False,
+        widget=forms.TextInput(attrs={
+            'class': 'form-control',
+            'placeholder': 'Enter your program/course',
+            'style': 'display: none;',
+        }),
+        help_text="Specify your program if not listed above",
+        label="Specify Program"
+    )
     present_occupation = forms.CharField(
         max_length=200,
         required=True,
@@ -742,6 +753,12 @@ class PostRegistrationForm(forms.Form):
         if major == 'OTHER' and not major_other:
             raise forms.ValidationError("Please specify your major when selecting 'Other'.")
 
+        # Validate course_other field if course is "OTHER"
+        course_other = cleaned_data.get('course_other')
+        
+        if course == 'OTHER' and not course_other:
+            raise forms.ValidationError("Please specify your program when selecting 'Other Program'.")
+
         return cleaned_data
 
     @classmethod
@@ -845,12 +862,18 @@ class PostRegistrationForm(forms.Form):
             # Use custom major input
             major = self.cleaned_data.get('major_other', '')
 
+        # Determine the course/program to save
+        course = self.cleaned_data.get('course_graduated', '')
+        if course == 'OTHER':
+            # Use custom program input
+            course = self.cleaned_data.get('course_other', '')
+
         # Create or update primary education record
         Education.objects.update_or_create(
             profile=user.profile,
             is_primary=True,
             defaults={
-                'program': self.cleaned_data['course_graduated'],
+                'program': course,
                 'major': major,
                 'school': self.cleaned_data['campus'],
                 'graduation_year': self.cleaned_data['graduation_year'],
@@ -878,11 +901,11 @@ class PostRegistrationForm(forms.Form):
         # Create or update Alumni record
         # Auto-determine college if not explicitly selected and course is mapped
         college = self.cleaned_data['college']
-        course = self.cleaned_data['course_graduated']
+        original_course = self.cleaned_data['course_graduated']
         campus = self.cleaned_data['campus']
         
-        if not college and course in self.COURSE_COLLEGE_MAPPING:
-            college = self.COURSE_COLLEGE_MAPPING[course]
+        if not college and original_course in self.COURSE_COLLEGE_MAPPING:
+            college = self.COURSE_COLLEGE_MAPPING[original_course]
 
         # Map campus code to Alumni model campus format
         campus_mapping = {
@@ -901,7 +924,7 @@ class PostRegistrationForm(forms.Form):
             user=user,
             defaults={
                 'graduation_year': self.cleaned_data['graduation_year'],
-                'course': self.cleaned_data['course_graduated'],
+                'course': course,  # Use the determined course (custom or selected)
                 'college': college,
                 'campus': alumni_campus,
                 'current_company': self.cleaned_data['company_name'],

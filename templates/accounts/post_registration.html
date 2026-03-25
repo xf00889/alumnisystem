@@ -1136,6 +1136,12 @@ document.addEventListener('DOMContentLoaded', function() {
                             majorSelect.appendChild(option);
                         });
                         
+                        // Add "None" option
+                        const noneOption = document.createElement('option');
+                        noneOption.value = 'NONE';
+                        noneOption.textContent = 'None';
+                        majorSelect.appendChild(noneOption);
+                        
                         // Add "Other" option
                         const otherMajorOption = document.createElement('option');
                         otherMajorOption.value = 'OTHER';
@@ -1144,21 +1150,50 @@ document.addEventListener('DOMContentLoaded', function() {
                         
                         showMessage(`${majors.length} majors available for this program.`, 'info', this);
                     } else {
-                        // Program has no majors - disable and show message
-                        majorSelect.disabled = true;
+                        // Program has no majors - enable and allow selection of "None"
+                        majorSelect.disabled = false;
+                        
+                        const defaultOption = document.createElement('option');
+                        defaultOption.value = '';
+                        defaultOption.textContent = '-- Select an option --';
+                        majorSelect.appendChild(defaultOption);
+                        
                         const noneOption = document.createElement('option');
-                        noneOption.value = '';
-                        noneOption.textContent = '-- No major required --';
+                        noneOption.value = 'NONE';
+                        noneOption.textContent = 'None';
                         majorSelect.appendChild(noneOption);
+                        
+                        const otherOption = document.createElement('option');
+                        otherOption.value = 'OTHER';
+                        otherOption.textContent = 'Other (Please specify)';
+                        majorSelect.appendChild(otherOption);
                     }
                 }
             }
 
             if (selectedCourse === 'OTHER') {
                 this.classList.add('other-program');
-                showMessage('You selected "Other Program". Please ensure your selections are correct.', 'warning', this);
+                // Show custom program input field
+                const courseOtherInput = document.getElementById('id_course_other');
+                if (courseOtherInput) {
+                    // Show the parent div (crispy forms wrapper)
+                    const parentDiv = courseOtherInput.closest('.form-group') || courseOtherInput.parentElement;
+                    parentDiv.style.display = 'block';
+                    courseOtherInput.required = true;
+                    courseOtherInput.focus();
+                }
+                showMessage('Please specify your program in the text field below.', 'warning', this);
             } else if (selectedCourse !== '') {
                 this.classList.add('course-selected');
+                // Hide custom program input field
+                const courseOtherInput = document.getElementById('id_course_other');
+                if (courseOtherInput) {
+                    // Hide the parent div (crispy forms wrapper)
+                    const parentDiv = courseOtherInput.closest('.form-group') || courseOtherInput.parentElement;
+                    parentDiv.style.display = 'none';
+                    courseOtherInput.required = false;
+                    courseOtherInput.value = '';
+                }
                 showMessage('Program selected successfully!', 'success', this);
             }
         });
@@ -1173,13 +1208,15 @@ document.addEventListener('DOMContentLoaded', function() {
                 if (majorOtherInput) {
                     if (selectedMajor === 'OTHER') {
                         // Show custom input field
-                        majorOtherInput.style.display = 'block';
+                        const parentDiv = majorOtherInput.closest('.form-group') || majorOtherInput.parentElement;
+                        parentDiv.style.display = 'block';
                         majorOtherInput.required = true;
                         majorOtherInput.focus();
                         showMessage('Please specify your major in the text field below.', 'info', this);
                     } else {
                         // Hide custom input field
-                        majorOtherInput.style.display = 'none';
+                        const parentDiv = majorOtherInput.closest('.form-group') || majorOtherInput.parentElement;
+                        parentDiv.style.display = 'none';
                         majorOtherInput.required = false;
                         majorOtherInput.value = '';
                     }
