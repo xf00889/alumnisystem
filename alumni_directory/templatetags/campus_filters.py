@@ -14,8 +14,8 @@ def campus_short_name(campus_display):
     # Mapping of campus names to abbreviations
     campus_map = {
         'Dumaguete Main Campus': 'Main',
-        'Bais City Campus I': 'Bais I',
-        'Bais City Campus II': 'Bais II',
+        'Bais City Campus I': 'Bais',
+        'Bais City Campus II': 'Bais',
         'Bayawan-Sta. Catalina Campus': 'BSC',
         'Siaton Campus': 'Siaton',
         'Guihulngan Campus': 'Guihulngan',
