@@ -356,6 +356,10 @@ class PostRegistrationForm(forms.Form):
                 ('BSHM', 'BS in Hospitality Management'),
                 ('BSBA', 'BS in Business Administration'),
             ],
+            'CAF': [
+                ('BSA-AGRI', 'BS in Agriculture'),
+                ('BSF', 'BS in Forestry'),
+            ],
         },
         'NORSU-MAIN': {  # Main Campus - All programs available
             'CAS': [
@@ -473,6 +477,10 @@ class PostRegistrationForm(forms.Form):
             ('BSA-AGRI', 'BS in Agriculture'),
             ('BSF', 'BS in Forestry'),
             ('BSFT', 'BS in Fisheries Technology'),
+        ],
+        'CAF': [  # College of Agriculture and Forestry (BSC Campus)
+            ('BSA-AGRI', 'BS in Agriculture'),
+            ('BSF', 'BS in Forestry'),
         ],
         'CIT': [  # College of Industrial Technology
             ('BIT', 'Bachelor of Industrial Technology'),
