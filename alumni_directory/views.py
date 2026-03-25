@@ -1069,8 +1069,10 @@ def alumni_management(request):
                     cell.fill = header_fill
                     cell.alignment = header_alignment
                 
-                # Write data rows
+                # Write data rows with text wrapping
                 data_start_row = header_start_row + 1
+                data_alignment = Alignment(horizontal="left", vertical="top", wrap_text=True)
+                
                 for row_idx, alumni in enumerate(export_queryset, data_start_row):
                     # Get current experience for occupation and company
                     current_exp = None
@@ -1108,28 +1110,25 @@ def alumni_management(request):
                     ]
                     
                     for col, value in enumerate(row_data, 1):
-                        ws.cell(row=row_idx, column=col, value=str(value) if value else '')
+                        cell = ws.cell(row=row_idx, column=col, value=str(value) if value else '')
+                        cell.alignment = data_alignment
                 
-                # Auto-adjust column widths
-                for column in ws.columns:
-                    max_length = 0
-                    column_letter = None
-                    for cell in column:
-                        if not isinstance(cell, MergedCell):
-                            column_letter = cell.column_letter
-                            break
-                    
-                    if column_letter is None:
-                        continue
-                    
-                    for cell in column:
-                        try:
-                            if not isinstance(cell, MergedCell) and len(str(cell.value)) > max_length:
-                                max_length = len(str(cell.value))
-                        except:
-                            pass
-                    adjusted_width = min(max_length + 2, 50)
-                    ws.column_dimensions[column_letter].width = adjusted_width
+                # Set optimized column widths for better fit
+                # ID, Full Name, Campus, College, Year, Course, Present Occupation, Company, Location
+                column_widths = {
+                    'A': 6,   # ID
+                    'B': 20,  # Full Name
+                    'C': 18,  # Campus
+                    'D': 15,  # College
+                    'E': 6,   # Year
+                    'F': 20,  # Course
+                    'G': 25,  # Present Occupation
+                    'H': 22,  # Company
+                    'I': 20   # Location
+                }
+                
+                for col_letter, width in column_widths.items():
+                    ws.column_dimensions[col_letter].width = width
                 
                 # Save to response
                 response = HttpResponse(
@@ -1292,9 +1291,10 @@ def alumni_management(request):
                     row = [Paragraph(str(val), data_cell_style) for val in row_data]
                     table_data.append(row)
                 
-                # Calculate column widths
+                # Calculate column widths - optimized for better fit
+                # ID, Full Name, Campus, College, Year, Course, Present Occupation, Company, Location
                 available_width = pagesize[0] - 30
-                col_widths = [0.08, 0.15, 0.12, 0.08, 0.15, 0.15, 0.15, 0.12]
+                col_widths = [0.05, 0.13, 0.11, 0.09, 0.04, 0.13, 0.16, 0.15, 0.14]
                 final_col_widths = [w * available_width for w in col_widths]
                 
                 # Create table
