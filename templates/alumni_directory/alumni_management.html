@@ -1252,7 +1252,7 @@
             updateExportSummary();
         });
 
-        // Handle individual campus checkboxes with dynamic filtering
+        // Handle individual campus checkboxes
         campusCheckboxes.forEach(checkbox => {
             checkbox.addEventListener('change', function() {
                 const allChecked = Array.from(campusCheckboxes).every(cb => cb.checked);
@@ -1260,82 +1260,9 @@
 
                 selectAllCampuses.checked = allChecked;
                 selectAllCampuses.indeterminate = !allChecked && !noneChecked;
-                
-                // Dynamic filtering: update colleges and programs based on selected campuses
-                filterCollegesAndPrograms();
-                
                 updateExportSummary();
             });
         });
-        
-        // Also trigger filtering when Select All Campuses changes
-        selectAllCampuses.addEventListener('change', function() {
-            campusCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-            filterCollegesAndPrograms();
-            updateExportSummary();
-        });
-
-        // Function to dynamically filter colleges and programs based on selected campuses
-        function filterCollegesAndPrograms() {
-            const selectedCampuses = Array.from(campusCheckboxes)
-                .filter(cb => cb.checked)
-                .map(cb => cb.value);
-            
-            // If no campuses selected or all selected, show all colleges and programs
-            if (selectedCampuses.length === 0 || selectedCampuses.length === campusCheckboxes.length) {
-                collegeCheckboxes.forEach(cb => {
-                    cb.parentElement.style.display = '';
-                    cb.checked = true;
-                });
-                programCheckboxes.forEach(cb => {
-                    cb.parentElement.style.display = '';
-                    cb.checked = true;
-                });
-                selectAllColleges.checked = true;
-                selectAllPrograms.checked = true;
-                return;
-            }
-            
-            // Get unique colleges and programs for selected campuses from the actual alumni data
-            // We'll make an AJAX call to get this data
-            fetch(`{% url 'alumni_directory:alumni_management' %}?get_filter_data=1&campuses=${selectedCampuses.join(',')}`)
-                .then(response => response.json())
-                .then(data => {
-                    // Filter colleges
-                    collegeCheckboxes.forEach(cb => {
-                        if (data.colleges.includes(cb.value)) {
-                            cb.parentElement.style.display = '';
-                            cb.checked = true;
-                        } else {
-                            cb.parentElement.style.display = 'none';
-                            cb.checked = false;
-                        }
-                    });
-                    
-                    // Filter programs
-                    programCheckboxes.forEach(cb => {
-                        if (data.programs.includes(cb.value)) {
-                            cb.parentElement.style.display = '';
-                            cb.checked = true;
-                        } else {
-                            cb.parentElement.style.display = 'none';
-                            cb.checked = false;
-                        }
-                    });
-                    
-                    // Update select all checkboxes
-                    const visibleColleges = Array.from(collegeCheckboxes).filter(cb => cb.parentElement.style.display !== 'none');
-                    selectAllColleges.checked = visibleColleges.every(cb => cb.checked);
-                    
-                    const visiblePrograms = Array.from(programCheckboxes).filter(cb => cb.parentElement.style.display !== 'none');
-                    selectAllPrograms.checked = visiblePrograms.every(cb => cb.checked);
-                })
-                .catch(error => {
-                    console.error('Error fetching filter data:', error);
-                });
-        }
 
         // Handle Select All Colleges
         selectAllColleges.addEventListener('change', function() {
@@ -1540,13 +1467,15 @@
 
                 // Add selected colleges
                 const selectedColleges = Array.from(collegeCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                if (selectedColleges.length > 0) {
+                // Only send if not all are selected
+                if (selectedColleges.length > 0 && selectedColleges.length < collegeCheckboxes.length) {
                     selectedColleges.forEach(college => params.append('export_colleges', college));
                 }
 
                 // Add selected programs
                 const selectedPrograms = Array.from(programCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                if (selectedPrograms.length > 0) {
+                // Only send if not all are selected
+                if (selectedPrograms.length > 0 && selectedPrograms.length < programCheckboxes.length) {
                     selectedPrograms.forEach(program => params.append('export_courses', program));
                 }
 
@@ -1559,20 +1488,23 @@
 
                 if (!yearFrom && !yearTo) {
                     const selectedYears = Array.from(yearCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                    if (selectedYears.length > 0) {
+                    // Only send if not all are selected
+                    if (selectedYears.length > 0 && selectedYears.length < yearCheckboxes.length) {
                         selectedYears.forEach(year => params.append('export_years', year));
                     }
                 }
 
                 // Add selected employment status
                 const selectedEmployment = Array.from(employmentCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                if (selectedEmployment.length > 0) {
+                // Only send if not all are selected
+                if (selectedEmployment.length > 0 && selectedEmployment.length < employmentCheckboxes.length) {
                     selectedEmployment.forEach(status => params.append('export_employment_status', status));
                 }
 
                 // Add selected verification status
                 const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                if (selectedVerification.length > 0) {
+                // Only send if not all are selected
+                if (selectedVerification.length > 0 && selectedVerification.length < verificationCheckboxes.length) {
                     selectedVerification.forEach(status => params.append('export_verification_status', status));
                 }
 
