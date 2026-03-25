@@ -206,6 +206,17 @@ function initEducationCascadingDropdowns(formId) {
 
     if (!campusSelect || !collegeSelect || !programSelect) return;
 
+    // Get initial values from data attributes or current values
+    const initialProgram = programSelect.getAttribute('data-initial-value') || programSelect.value;
+    
+    // Derive college from program using the mapping
+    let initialCollege = collegeSelect.getAttribute('data-initial-value') || collegeSelect.value;
+    
+    // If no college but we have a program, derive it from the program
+    if (!initialCollege && initialProgram) {
+        initialCollege = getProgramCollege(initialProgram);
+    }
+
     // Handle campus change
     campusSelect.addEventListener('change', function() {
         const selectedCampus = this.value;
@@ -213,7 +224,7 @@ function initEducationCascadingDropdowns(formId) {
         // Clear and reset dependent fields
         collegeSelect.innerHTML = '';
         programSelect.innerHTML = '';
-        if (majorInput) majorInput.value = '';
+        if (majorInput && !programSelect.value) majorInput.value = '';
 
         if (selectedCampus === '') {
             collegeSelect.disabled = true;
@@ -245,6 +256,15 @@ function initEducationCascadingDropdowns(formId) {
                 option.textContent = collegeNames[collegeCode] || collegeCode;
                 collegeSelect.appendChild(option);
             });
+            
+            // Restore initial college value if it exists and is valid
+            if (initialCollege && availableColleges.includes(initialCollege)) {
+                collegeSelect.value = initialCollege;
+                // Trigger college change to populate programs
+                setTimeout(() => {
+                    collegeSelect.dispatchEvent(new Event('change'));
+                }, 50);
+            }
         }
     });
 
@@ -255,7 +275,7 @@ function initEducationCascadingDropdowns(formId) {
         
         // Clear program
         programSelect.innerHTML = '';
-        if (majorInput) majorInput.value = '';
+        if (majorInput && !programSelect.value) majorInput.value = '';
 
         if (selectedCollege === '') {
             programSelect.disabled = true;
@@ -281,6 +301,18 @@ function initEducationCascadingDropdowns(formId) {
                 option.textContent = programName;
                 programSelect.appendChild(option);
             });
+            
+            // Restore initial program value if it exists and is valid
+            if (initialProgram) {
+                const programCodes = programs.map(p => p[0]);
+                if (programCodes.includes(initialProgram)) {
+                    programSelect.value = initialProgram;
+                    // Trigger program change to update major placeholder
+                    setTimeout(() => {
+                        programSelect.dispatchEvent(new Event('change'));
+                    }, 50);
+                }
+            }
         }
     });
 
@@ -312,13 +344,57 @@ function initEducationCascadingDropdowns(formId) {
         });
     }
 
-    // Initialize form state if values exist
+    // Initialize form state if campus has a value
     if (campusSelect.value) {
+        // Trigger campus change to populate colleges
         campusSelect.dispatchEvent(new Event('change'));
-        setTimeout(() => {
-            if (collegeSelect.value) {
-                collegeSelect.dispatchEvent(new Event('change'));
+    } else {
+        // No campus selected - enable college anyway if it has a value
+        // This handles legacy data where college might exist without proper campus
+        if (initialCollege) {
+            collegeSelect.disabled = false;
+            collegeSelect.innerHTML = '<option value="">-- Select your college --</option>';
+            
+            // Add all colleges as fallback
+            Object.keys(collegeNames).forEach(collegeCode => {
+                const option = document.createElement('option');
+                option.value = collegeCode;
+                option.textContent = collegeNames[collegeCode];
+                collegeSelect.appendChild(option);
+            });
+            
+            collegeSelect.value = initialCollege;
+            
+            // Enable and populate program dropdown
+            if (initialProgram) {
+                programSelect.disabled = false;
+                programSelect.innerHTML = '<option value="">-- Select your program --</option>';
+                
+                const programs = coursesByCollege[initialCollege] || [];
+                programs.forEach(([programCode, programName]) => {
+                    const option = document.createElement('option');
+                    option.value = programCode;
+                    option.textContent = programName;
+                    programSelect.appendChild(option);
+                });
+                
+                programSelect.value = initialProgram;
             }
-        }, 100);
+        }
     }
+}
+
+/**
+ * Helper function to get college from program code
+ * @param {string} programCode - The program code
+ * @returns {string} - The college code
+ */
+function getProgramCollege(programCode) {
+    for (const [collegeCode, programs] of Object.entries(coursesByCollege)) {
+        const programCodes = programs.map(p => p[0]);
+        if (programCodes.includes(programCode)) {
+            return collegeCode;
+        }
+    }
+    return '';
 }
