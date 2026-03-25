@@ -549,7 +549,8 @@ class PostRegistrationForm(forms.Form):
             'class': 'form-control',
             'placeholder': 'Enter your first name'
         }),
-        help_text="Enter your first name as it appears on your diploma"
+        help_text="Enter your first name as it appears on your diploma",
+        label="First Name"
     )
     last_name = forms.CharField(
         max_length=150,
@@ -558,7 +559,8 @@ class PostRegistrationForm(forms.Form):
             'class': 'form-control',
             'placeholder': 'Enter your last name'
         }),
-        help_text="Enter your last name as it appears on your diploma"
+        help_text="Enter your last name as it appears on your diploma",
+        label="Last Name"
     )
     campus = forms.ChoiceField(
         choices=SCHOOL_CHOICES,
@@ -566,21 +568,8 @@ class PostRegistrationForm(forms.Form):
         widget=forms.Select(attrs={
             'class': 'form-control',
         }),
-        help_text="Select your campus first",
+        help_text="Select your campus",
         label="Campus"
-    )
-    graduation_year = forms.IntegerField(
-        required=True,
-        min_value=1970,
-        max_value=datetime.datetime.now().year,
-        widget=forms.NumberInput(attrs={
-            'class': 'form-control',
-            'placeholder': 'YYYY',
-            'min': 1970,
-            'max': datetime.datetime.now().year
-        }),
-        help_text="Year you graduated",
-        label="Year"
     )
     college = forms.ChoiceField(
         choices=COLLEGE_CHOICES,
@@ -600,7 +589,7 @@ class PostRegistrationForm(forms.Form):
             'disabled': 'disabled',
         }),
         help_text="Select your campus and college first to see available programs",
-        label="Course Graduated"
+        label="Program/Course"
     )
     major = forms.ChoiceField(
         choices=[('', '-- Select your program first --')],
@@ -618,21 +607,22 @@ class PostRegistrationForm(forms.Form):
         widget=forms.TextInput(attrs={
             'class': 'form-control',
             'placeholder': 'Enter your major/specialization',
-            'style': 'display: none;',
         }),
         help_text="Specify your major if not listed above",
         label="Specify Major"
     )
-    course_other = forms.CharField(
-        max_length=200,
-        required=False,
-        widget=forms.TextInput(attrs={
+    graduation_year = forms.IntegerField(
+        required=True,
+        min_value=1970,
+        max_value=datetime.datetime.now().year,
+        widget=forms.NumberInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter your program/course',
-            'style': 'display: none;',
+            'placeholder': 'YYYY',
+            'min': 1970,
+            'max': datetime.datetime.now().year
         }),
-        help_text="Specify your program if not listed above",
-        label="Specify Program"
+        help_text="Year you graduated",
+        label="Graduation Year"
     )
     present_occupation = forms.CharField(
         max_length=200,
@@ -641,7 +631,8 @@ class PostRegistrationForm(forms.Form):
             'class': 'form-control',
             'placeholder': 'e.g. Software Engineer, Teacher, Nurse'
         }),
-        help_text="Your current job title or position"
+        help_text="Your current job title or position",
+        label="Present Occupation"
     )
     company_name = forms.CharField(
         max_length=200,
@@ -650,7 +641,8 @@ class PostRegistrationForm(forms.Form):
             'class': 'form-control',
             'placeholder': 'e.g. Accenture Philippines, DepEd, Provincial Hospital'
         }),
-        help_text="The name of the company or organization you currently work for"
+        help_text="The name of the company or organization you currently work for",
+        label="Company Name"
     )
 
     def __init__(self, *args, **kwargs):

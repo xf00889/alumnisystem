@@ -1203,17 +1203,21 @@ document.addEventListener('DOMContentLoaded', function() {
                 const selectedMajor = this.value;
                 
                 if (majorOtherInput) {
+                    const parentDiv = majorOtherInput.closest('.form-group') || majorOtherInput.closest('div[id*="div_id"]') || majorOtherInput.parentElement;
+                    
                     if (selectedMajor === 'OTHER') {
                         // Show custom input field
-                        const parentDiv = majorOtherInput.closest('.form-group') || majorOtherInput.parentElement;
-                        parentDiv.style.display = 'block';
+                        if (parentDiv) {
+                            parentDiv.style.display = 'block';
+                        }
                         majorOtherInput.required = true;
                         majorOtherInput.focus();
                         showMessage('Please specify your major in the text field below.', 'info', this);
                     } else {
                         // Hide custom input field
-                        const parentDiv = majorOtherInput.closest('.form-group') || majorOtherInput.parentElement;
-                        parentDiv.style.display = 'none';
+                        if (parentDiv) {
+                            parentDiv.style.display = 'none';
+                        }
                         majorOtherInput.required = false;
                         majorOtherInput.value = '';
                     }
@@ -1231,6 +1235,15 @@ document.addEventListener('DOMContentLoaded', function() {
             if (majorSelect) majorSelect.disabled = true;
         } else if (courseSelect.value === '') {
             if (majorSelect) majorSelect.disabled = true;
+        }
+        
+        // Hide major_other field initially
+        const majorOtherInput = document.getElementById('id_major_other');
+        if (majorOtherInput) {
+            const parentDiv = majorOtherInput.closest('.form-group') || majorOtherInput.closest('div[id*="div_id"]') || majorOtherInput.parentElement;
+            if (parentDiv) {
+                parentDiv.style.display = 'none';
+            }
         }
     }
 
