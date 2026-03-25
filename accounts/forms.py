@@ -472,9 +472,8 @@ class PostRegistrationForm(forms.Form):
         # Bachelor of Science in Agriculture
         'BSA-AGRI': [
             ('AGRONOMY', 'Major in Agronomy'),
-            ('HORTICULTURE', 'Major in Horticulture'),
             ('ANIMAL_SCIENCE', 'Major in Animal Science'),
-            ('AGRICULTURAL_EXTENSION', 'Major in Agricultural Extension'),
+            ('FORESTRY', 'Major in Forestry'),
         ],
         'BSA-AGRON': [('AGRONOMY', 'Major in Agronomy')],
         'BSA-HORT': [('HORTICULTURE', 'Major in Horticulture')],
