@@ -37,7 +37,6 @@ class Alumni(models.Model):
 
     CAMPUS_CHOICES = (
         ('MAIN', 'Dumaguete Main Campus'),
-        ('NORTH', 'Dumaguete North Campus'),
         ('BAIS1', 'Bais City Campus I'),
         ('BAIS2', 'Bais City Campus II'),
         ('BSC', 'Bayawan-Sta. Catalina Campus'),
