@@ -35,20 +35,41 @@ def apply_selective_export_filters(request, base_queryset=None):
         export_queryset = base_queryset
     
     # Apply sorting: campus, year (descending), course, then last name, then first name
-    export_queryset = export_queryset.order_by('campus', '-graduation_year', 'course', 'user__last_name', 'user__first_name')
+    # Handle null/empty campus values by putting them last
+    from django.db.models import Case, When, Value, IntegerField
+    export_queryset = export_queryset.annotate(
+        campus_sort=Case(
+            When(campus__isnull=True, then=Value(1)),
+            When(campus='', then=Value(1)),
+            default=Value(0),
+            output_field=IntegerField()
+        )
+    ).order_by('campus_sort', 'campus', '-graduation_year', 'course', 'user__last_name', 'user__first_name')
 
     # Apply selective export filters
     export_campuses = [c for c in request.GET.getlist('export_campuses') if c]
     if export_campuses:
-        export_queryset = export_queryset.filter(campus__in=export_campuses)
+        # Include alumni with matching campus OR null/empty campus
+        from django.db.models import Q
+        export_queryset = export_queryset.filter(
+            Q(campus__in=export_campuses) | Q(campus__isnull=True) | Q(campus='')
+        )
 
     export_colleges = [c for c in request.GET.getlist('export_colleges') if c]
     if export_colleges:
-        export_queryset = export_queryset.filter(college__in=export_colleges)
+        # Include alumni with matching college OR null/empty college
+        from django.db.models import Q
+        export_queryset = export_queryset.filter(
+            Q(college__in=export_colleges) | Q(college__isnull=True) | Q(college='')
+        )
 
     export_courses = [c for c in request.GET.getlist('export_courses') if c]
     if export_courses:
-        export_queryset = export_queryset.filter(course__in=export_courses)
+        # Include alumni with matching course OR null/empty course
+        from django.db.models import Q
+        export_queryset = export_queryset.filter(
+            Q(course__in=export_courses) | Q(course__isnull=True) | Q(course='')
+        )
 
     export_years = [y for y in request.GET.getlist('export_years') if y]
     if export_years:
@@ -58,9 +79,15 @@ def apply_selective_export_filters(request, base_queryset=None):
     year_from = request.GET.get('export_year_from', '').strip()
     year_to = request.GET.get('export_year_to', '').strip()
     if year_from:
-        export_queryset = export_queryset.filter(graduation_year__gte=year_from)
+        try:
+            export_queryset = export_queryset.filter(graduation_year__gte=int(year_from))
+        except (ValueError, TypeError):
+            pass
     if year_to:
-        export_queryset = export_queryset.filter(graduation_year__lte=year_to)
+        try:
+            export_queryset = export_queryset.filter(graduation_year__lte=int(year_to))
+        except (ValueError, TypeError):
+            pass
 
     export_employment_status = [e for e in request.GET.getlist('export_employment_status') if e]
     if export_employment_status:
@@ -106,7 +133,7 @@ def apply_selective_export_filters(request, base_queryset=None):
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
     filename_parts.append(timestamp)
 
-    filename = '_'.join(filename_parts) + '.csv'
+    filename = '_'.join(filename_parts)
 
     # Check if any selective filters were applied
     has_selective_filters = any([export_campuses, export_colleges, export_courses, export_years, year_from, year_to,
@@ -1018,19 +1045,37 @@ def alumni_management(request):
                 for row_idx, alumni in enumerate(export_queryset, data_start_row):
                     # Get current experience for occupation and company
                     current_exp = None
-                    if hasattr(alumni.user, 'profile'):
-                        current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                    try:
+                        if hasattr(alumni.user, 'profile') and alumni.user.profile:
+                            current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                    except Exception:
+                        pass
+                    
+                    # Handle empty/null values gracefully
+                    campus_display = 'Not specified'
+                    try:
+                        if alumni.campus:
+                            campus_display = alumni.get_campus_display() or 'Not specified'
+                    except Exception:
+                        pass
+                    
+                    college_display = 'Not specified'
+                    try:
+                        if alumni.college:
+                            college_display = alumni.college_display or 'Not specified'
+                    except Exception:
+                        pass
                     
                     row_data = [
-                        alumni.id,
-                        alumni.full_name,
-                        alumni.get_campus_display() if alumni.campus else 'Not specified',
-                        alumni.college_display if alumni.college else 'Not specified',
-                        alumni.graduation_year,
-                        alumni.course,
-                        current_exp.position if current_exp else alumni.job_title,
-                        current_exp.company if current_exp else alumni.current_company,
-                        current_exp.location if current_exp else f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else ""
+                        alumni.id or '',
+                        alumni.full_name or 'Unknown',
+                        campus_display,
+                        college_display,
+                        alumni.graduation_year or '',
+                        alumni.course or 'Not specified',
+                        current_exp.position if current_exp else (alumni.job_title or 'Unemployed'),
+                        current_exp.company if current_exp else (alumni.current_company or 'Unemployed'),
+                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified")
                     ]
                     
                     for col, value in enumerate(row_data, 1):
@@ -1182,19 +1227,37 @@ def alumni_management(request):
                 for alumni in export_queryset_limited:
                     # Get current experience
                     current_exp = None
-                    if hasattr(alumni.user, 'profile'):
-                        current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                    try:
+                        if hasattr(alumni.user, 'profile') and alumni.user.profile:
+                            current_exp = alumni.user.profile.experience.filter(is_current=True).first()
+                    except Exception:
+                        pass
+                    
+                    # Handle empty/null values gracefully
+                    campus_display = 'Not specified'
+                    try:
+                        if alumni.campus:
+                            campus_display = alumni.get_campus_display() or 'Not specified'
+                    except Exception:
+                        pass
+                    
+                    college_display = 'Not specified'
+                    try:
+                        if alumni.college:
+                            college_display = alumni.college_display or 'Not specified'
+                    except Exception:
+                        pass
                     
                     row_data = [
-                        str(alumni.id),
-                        alumni.full_name,
-                        alumni.get_campus_display() if alumni.campus else 'Not specified',
-                        alumni.college_display if alumni.college else 'Not specified',
-                        str(alumni.graduation_year),
-                        alumni.course or '',
-                        current_exp.position if current_exp else (alumni.job_title or ''),
-                        current_exp.company if current_exp else (alumni.current_company or ''),
-                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "")
+                        str(alumni.id or ''),
+                        alumni.full_name or 'Unknown',
+                        campus_display,
+                        college_display,
+                        str(alumni.graduation_year or ''),
+                        alumni.course or 'Not specified',
+                        current_exp.position if current_exp else (alumni.job_title or 'Unemployed'),
+                        current_exp.company if current_exp else (alumni.current_company or 'Unemployed'),
+                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified")
                     ]
                     
                     row = [Paragraph(str(val), data_cell_style) for val in row_data]
