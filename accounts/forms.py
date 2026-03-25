@@ -729,7 +729,7 @@ class PostRegistrationForm(forms.Form):
                     college_name = college_dict.get(college, college)
                     raise forms.ValidationError(
                         f"The course '{course}' is not available in {college_name} at the selected campus. "
-                        f"Please select a different course or choose 'Other Program'."
+                        f"Please select a different course."
                     )
             else:
                 # Campus allows all programs - use fallback validation
@@ -752,12 +752,6 @@ class PostRegistrationForm(forms.Form):
         
         if major == 'OTHER' and not major_other:
             raise forms.ValidationError("Please specify your major when selecting 'Other'.")
-
-        # Validate course_other field if course is "OTHER"
-        course_other = cleaned_data.get('course_other')
-        
-        if course == 'OTHER' and not course_other:
-            raise forms.ValidationError("Please specify your program when selecting 'Other Program'.")
 
         return cleaned_data
 
@@ -862,11 +856,8 @@ class PostRegistrationForm(forms.Form):
             # Use custom major input
             major = self.cleaned_data.get('major_other', '')
 
-        # Determine the course/program to save
+        # Get the course/program
         course = self.cleaned_data.get('course_graduated', '')
-        if course == 'OTHER':
-            # Use custom program input
-            course = self.cleaned_data.get('course_other', '')
 
         # Create or update primary education record
         Education.objects.update_or_create(
@@ -901,11 +892,10 @@ class PostRegistrationForm(forms.Form):
         # Create or update Alumni record
         # Auto-determine college if not explicitly selected and course is mapped
         college = self.cleaned_data['college']
-        original_course = self.cleaned_data['course_graduated']
         campus = self.cleaned_data['campus']
         
-        if not college and original_course in self.COURSE_COLLEGE_MAPPING:
-            college = self.COURSE_COLLEGE_MAPPING[original_course]
+        if not college and course in self.COURSE_COLLEGE_MAPPING:
+            college = self.COURSE_COLLEGE_MAPPING[course]
 
         # Map campus code to Alumni model campus format
         campus_mapping = {
@@ -924,7 +914,7 @@ class PostRegistrationForm(forms.Form):
             user=user,
             defaults={
                 'graduation_year': self.cleaned_data['graduation_year'],
-                'course': course,  # Use the determined course (custom or selected)
+                'course': course,
                 'college': college,
                 'campus': alumni_campus,
                 'current_company': self.cleaned_data['company_name'],
