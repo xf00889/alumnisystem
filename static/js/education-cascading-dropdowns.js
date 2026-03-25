@@ -241,6 +241,7 @@ function initEducationCascadingDropdowns(formId) {
     // Handle campus change
     campusSelect.addEventListener('change', function() {
         const selectedCampus = this.value;
+        console.log('Campus changed to:', selectedCampus);
         
         // Clear and reset dependent fields
         collegeSelect.innerHTML = '';
@@ -248,12 +249,14 @@ function initEducationCascadingDropdowns(formId) {
         if (majorInput && !programSelect.value) majorInput.value = '';
 
         if (selectedCampus === '') {
+            console.log('No campus selected, disabling fields');
             collegeSelect.disabled = true;
             programSelect.disabled = true;
             
             collegeSelect.innerHTML = '<option value="">-- Select your campus first --</option>';
             programSelect.innerHTML = '<option value="">-- Select your campus and college first --</option>';
         } else {
+            console.log('Campus selected, enabling college field');
             collegeSelect.disabled = false;
             programSelect.disabled = true;
             
@@ -266,8 +269,10 @@ function initEducationCascadingDropdowns(formId) {
 
             if (campusPrograms === 'ALL') {
                 availableColleges = Object.keys(coursesByCollege);
+                console.log('Campus allows ALL colleges:', availableColleges.length);
             } else {
                 availableColleges = Object.keys(campusPrograms);
+                console.log('Campus has specific colleges:', availableColleges);
             }
 
             // Add college options
@@ -278,8 +283,11 @@ function initEducationCascadingDropdowns(formId) {
                 collegeSelect.appendChild(option);
             });
             
+            console.log('Added', availableColleges.length, 'colleges to dropdown');
+            
             // Restore initial college value if it exists and is valid
             if (initialCollege && availableColleges.includes(initialCollege)) {
+                console.log('Restoring initial college:', initialCollege);
                 collegeSelect.value = initialCollege;
                 // Trigger college change to populate programs
                 setTimeout(() => {
@@ -367,12 +375,15 @@ function initEducationCascadingDropdowns(formId) {
 
     // Initialize form state if campus has a value
     if (campusSelect.value) {
+        console.log('Campus has value, triggering change event');
         // Trigger campus change to populate colleges
         campusSelect.dispatchEvent(new Event('change'));
     } else {
+        console.log('No campus value, checking for legacy data');
         // No campus selected - enable college anyway if it has a value
         // This handles legacy data where college might exist without proper campus
         if (initialCollege) {
+            console.log('Found initial college, enabling college dropdown');
             collegeSelect.disabled = false;
             collegeSelect.innerHTML = '<option value="">-- Select your college --</option>';
             
@@ -388,6 +399,7 @@ function initEducationCascadingDropdowns(formId) {
             
             // Enable and populate program dropdown
             if (initialProgram) {
+                console.log('Found initial program, enabling program dropdown');
                 programSelect.disabled = false;
                 programSelect.innerHTML = '<option value="">-- Select your program --</option>';
                 
@@ -403,6 +415,8 @@ function initEducationCascadingDropdowns(formId) {
             }
         }
     }
+    
+    console.log('Initialization complete for form:', formId);
 }
 
 /**
