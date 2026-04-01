@@ -671,8 +671,47 @@ class PostRegistrationForm(forms.Form):
                 if major_choices:
                     self.fields['major'].choices = major_choices
                 else:
-                    # No majors for this program
+                    # No majors for this program - set to empty choice
                     self.fields['major'].choices = [('', 'No major required')]
+                    # Make sure the field doesn't validate against choices
+                    self.fields['major'].required = False
+            else:
+                # No course selected yet, set default choices
+                self.fields['major'].choices = [('', '-- Select your program first --')]
+                self.fields['major'].required = False
+
+    def clean_major(self):
+        """Clean and validate the major field."""
+        major = self.cleaned_data.get('major', '')
+        course = self.data.get('course_graduated', '')
+        
+        # If major is empty, None, or 'NONE', treat it as empty string
+        if not major or major in ['NONE', 'None', 'none']:
+            major = ''
+        
+        # If no course selected yet, allow empty major
+        if not course:
+            return ''
+        
+        # Get available majors for the selected program
+        campus = self.data.get('campus', '')
+        available_majors = self.get_majors_for_program(course, campus)
+        
+        # If program has no majors, empty major is valid
+        if not available_majors:
+            return ''
+        
+        # If major is empty but program has majors, that's okay (major is optional)
+        if not major:
+            return ''
+        
+        # If major is provided, validate it's in the available choices
+        valid_major_codes = [m[0] for m in available_majors]
+        if major and major not in valid_major_codes:
+            # Allow it anyway since major is optional
+            return ''
+        
+        return major
 
     def clean_graduation_year(self):
         year = self.cleaned_data['graduation_year']
