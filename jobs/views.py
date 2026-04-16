@@ -434,6 +434,7 @@ def job_list(request):
         'preferences_configured': preferences_configured,
         'matching_jobs_count': matching_jobs_count,
         'active_filters': active_filters,
+        'has_active_preferences': len(active_filters) > 0,  # Hide sidebar when preferences are active
         'is_admin_or_hr': is_admin_or_hr_user,
         'show_all': request.GET.get('show_all', 'false').lower() == 'true',
     }
