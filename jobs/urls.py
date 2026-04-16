@@ -23,6 +23,11 @@ urlpatterns = [
     path('preferences/remove-filter/<str:filter_key>/', views.remove_filter, name='remove_filter'),
     path('preferences/clear-all/', views.clear_all_filters, name='clear_all_filters'),
     
+    # Job scraper URLs
+    path('scraper/', views.job_scraper, name='job_scraper'),
+    path('scraper/results/', views.job_scraper_results, name='job_scraper_results'),
+    path('scraper/redirect/<int:job_id>/', views.job_redirect, name='job_redirect'),
+
     # Slug-based patterns (must be last)
     path('<slug:slug>/', views.job_detail, name='job_detail'),
     path('<slug:slug>/edit/', views.edit_job, name='edit_job'),
