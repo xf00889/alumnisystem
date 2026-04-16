@@ -43,7 +43,7 @@ def is_hr_or_admin(user):
 
 def careers(request):
     """Public careers page for job listings"""
-    jobs = JobPosting.objects.filter(is_active=True).order_by('-posted_date')
+    jobs = JobPosting.objects.filter(is_active=True).exclude(slug="").order_by('-posted_date')
     
     # Get filter parameters (for future implementation)
     job_type = request.GET.get('job_type')
@@ -221,7 +221,7 @@ def job_list(request):
             # Extract jobs and match data
             jobs = JobPosting.objects.filter(
                 id__in=[match['job'].id for match in job_matches]
-            )
+            ).exclude(slug="")
             
             # Calculate matching_jobs_count
             matching_jobs_count = len(job_matches)
@@ -587,7 +587,7 @@ def job_detail(request, slug):
 @login_required
 @user_passes_test(is_hr_or_admin)
 def manage_jobs(request):
-    jobs = JobPosting.objects.all()
+    jobs = JobPosting.objects.exclude(slug="")
     
     # Get statistics
     stats = {
