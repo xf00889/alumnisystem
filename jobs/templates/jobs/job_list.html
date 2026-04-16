@@ -873,37 +873,11 @@
         <div class="dashboard-header">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    {% if user.is_authenticated and not is_admin_or_hr %}
-                        {% if preferences_configured %}
-                            <h1 class="mb-2">
-                                <i class="bi bi-funnel me-3"></i>
-                                <span id="matchCounter">{{ matching_jobs_count }}</span> jobs match your preferences
-                            </h1>
-                            <p class="mb-0">Personalized job recommendations based on your preferences</p>
-                        {% else %}
-                            <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>Job Board</h1>
-                            <p class="mb-0">Discover your next career opportunity</p>
-                        {% endif %}
-                    {% else %}
-                        <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>All Job Postings</h1>
-                        <p class="mb-0">Manage and review all job opportunities</p>
-                    {% endif %}
+                    <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>Job Board</h1>
+                    <p class="mb-0">Discover your next career opportunity</p>
                 </div>
-                <div class="col-md-4 text-end d-flex align-items-center justify-content-end" style="gap: var(--space-sm);">
-                    {% if user.is_authenticated and not is_admin_or_hr %}
-                        <button type="button" class="btn btn-outline-light me-2" id="editPreferencesBtn">
-                            <i class="bi bi-sliders me-2"></i>Edit Preferences
-                        </button>
-                        {% if preferences_configured %}
-                            <div class="form-check form-switch d-inline-block">
-                                <input class="form-check-input" type="checkbox" id="showAllToggle" 
-                                       {% if show_all %}checked{% endif %}>
-                                <label class="form-check-label text-white" for="showAllToggle">
-                                    Show all jobs
-                                </label>
-                            </div>
-                        {% endif %}
-                    {% elif perms.jobs.add_jobposting or user|is_hr_or_admin %}
+                <div class="col-md-4 text-end">
+                    {% if perms.jobs.add_jobposting or user|is_hr_or_admin %}
                         <a href="{% url 'jobs:manage_jobs' %}" class="btn btn-outline-light me-2">
                             <i class="fas fa-tasks me-2"></i>Manage Jobs
                         </a>
@@ -915,46 +889,70 @@
             </div>
         </div>
 
-        <!-- Active Filter Badges Section -->
-        {% if user.is_authenticated and not is_admin_or_hr and preferences_configured and active_filters %}
-        <div class="content-section">
-            <div class="active-filters" id="activeFilters">
-                {% for filter in active_filters %}
-                    <span class="badge bg-info me-2 mb-2">
-                        {{ filter.label }}
-                        <button type="button" class="btn-close btn-close-white btn-sm ms-1" 
-                                data-filter="{{ filter.key }}" 
-                                aria-label="Remove filter"
-                                style="font-size: 0.6rem; padding: 0.2rem;"></button>
-                    </span>
-                {% endfor %}
-                {% if active_filters|length > 1 %}
-                    <a href="{% url 'jobs:clear_all_filters' %}" class="text-danger ms-2">
-                        <i class="bi bi-x-circle me-1"></i>Clear all filters
-                    </a>
-                {% endif %}
-            </div>
-        </div>
-        {% endif %}
-
-        <!-- Empty State Section -->
-        {% if user.is_authenticated and not is_admin_or_hr and matching_jobs_count == 0 and preferences_configured and not show_all %}
-        <div class="alert alert-info text-center">
-            <i class="bi bi-info-circle fs-1 d-block mb-3"></i>
-            <h5>No jobs match your preferences</h5>
-            <p class="mb-3">Try adjusting your filters or view all available jobs</p>
-            <button type="button" class="btn btn-primary me-2" id="viewAllJobsBtn">
-                <i class="bi bi-eye me-1"></i>View all jobs
-            </button>
-            <button type="button" class="btn btn-outline-primary" id="editPreferencesBtn2">
-                <i class="bi bi-sliders me-1"></i>Edit preferences
-            </button>
-        </div>
-        {% endif %}
-
         <div class="row">
-            <!-- Job Listings - Full width, no sidebar -->
-            <div class="col-12">
+            <!-- Filters Sidebar -->
+            {% if user.is_authenticated and not is_admin_or_hr %}
+            <div class="col-lg-3 mb-4">
+                <div class="filter-section">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5><i class="fas fa-sliders-h me-2"></i>Your Preferences</h5>
+                        <button type="button" class="btn btn-sm btn-primary" id="editPreferencesBtn">
+                            <i class="bi bi-pencil me-1"></i>Edit
+                        </button>
+                    </div>
+                    
+                    {% if preferences_configured %}
+                        <!-- Active Preferences Display -->
+                        <div class="mb-3">
+                            <small class="text-muted d-block mb-2">
+                                <i class="bi bi-check-circle text-success me-1"></i>
+                                {{ matching_jobs_count }} jobs match your preferences
+                            </small>
+                        </div>
+
+                        <!-- Show All Toggle -->
+                        <div class="mb-4">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input" type="checkbox" id="showAllToggle" 
+                                       {% if show_all %}checked{% endif %}>
+                                <label class="form-check-label" for="showAllToggle">
+                                    Show all jobs
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Active Filters -->
+                        {% if active_filters %}
+                        <div class="mb-3">
+                            <label class="form-label fw-medium">Active Filters</label>
+                            <div class="active-filters-sidebar">
+                                {% for filter in active_filters %}
+                                    <span class="badge bg-info d-block mb-2 text-start">
+                                        {{ filter.label }}
+                                    </span>
+                                {% endfor %}
+                            </div>
+                            <a href="{% url 'jobs:clear_all_filters' %}" class="btn btn-sm btn-outline-danger w-100 mt-2">
+                                <i class="bi bi-x-circle me-1"></i>Clear all filters
+                            </a>
+                        </div>
+                        {% endif %}
+                    {% else %}
+                        <!-- No Preferences Set -->
+                        <div class="alert alert-info">
+                            <i class="bi bi-info-circle me-2"></i>
+                            <small>Set your preferences to get personalized job recommendations</small>
+                        </div>
+                        <button type="button" class="btn btn-primary w-100" id="setPreferencesBtn">
+                            <i class="bi bi-sliders me-1"></i>Set Preferences
+                        </button>
+                    {% endif %}
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Job Listings -->
+            <div class="col-lg-{% if user.is_authenticated and not is_admin_or_hr %}9{% else %}12{% endif %}">
                 {% if featured_jobs %}
                 <!-- Featured Jobs Section -->
                 <div class="mb-5">
