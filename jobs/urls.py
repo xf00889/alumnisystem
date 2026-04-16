@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import views_scraper
 
 app_name = 'jobs'
 
@@ -23,11 +24,11 @@ urlpatterns = [
     path('preferences/remove-filter/<str:filter_key>/', views.remove_filter, name='remove_filter'),
     path('preferences/clear-all/', views.clear_all_filters, name='clear_all_filters'),
     
-    # Job scraper URLs
-    path('scraper/', views.job_scraper, name='job_scraper'),
-    path('scraper/results/', views.job_scraper_results, name='job_scraper_results'),
-    path('scraper/redirect/<int:job_id>/', views.job_redirect, name='job_redirect'),
-
+    # Multi-site job scraper URLs (custom admin dashboard)
+    path('scraper/', views_scraper.scraper_dashboard, name='scraper_dashboard'),
+    path('scraper/publish/<int:pk>/', views_scraper.publish_scraped_job_view, name='publish_scraped_job'),
+    path('scraper/delete/<int:pk>/', views_scraper.delete_scraped_job_view, name='delete_scraped_job'),
+    
     # Slug-based patterns (must be last)
     path('<slug:slug>/', views.job_detail, name='job_detail'),
     path('<slug:slug>/edit/', views.edit_job, name='edit_job'),

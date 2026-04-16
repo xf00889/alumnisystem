@@ -1,0 +1,289 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Job Scraper - Philippine Job Sites{% endblock %}
+
+{% block extra_css %}
+<style>
+    .scraper-card {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+    
+    .scraper-card h2 {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: #2b3c6b;
+        margin-bottom: 1rem;
+        padding-bottom: 0.75rem;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .site-checkbox-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+        gap: 0.75rem;
+        margin: 1rem 0;
+    }
+    
+    .site-checkbox-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.5rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    
+    .site-checkbox-item:hover {
+        background: #f7fafc;
+        border-color: #2b3c6b;
+    }
+    
+    .site-checkbox-item input[type="checkbox"] {
+        width: 18px;
+        height: 18px;
+        cursor: pointer;
+    }
+    
+    .site-checkbox-item label {
+        margin: 0;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+    }
+    
+    .scraped-jobs-table {
+        width: 100%;
+        border-collapse: collapse;
+    }
+    
+    .scraped-jobs-table th {
+        background: #f7fafc;
+        padding: 0.75rem;
+        text-align: left;
+        font-weight: 600;
+        font-size: 0.875rem;
+        color: #4a5568;
+        border-bottom: 2px solid #e2e8f0;
+    }
+    
+    .scraped-jobs-table td {
+        padding: 0.75rem;
+        border-bottom: 1px solid #e2e8f0;
+        font-size: 0.875rem;
+    }
+    
+    .scraped-jobs-table tr:hover {
+        background: #f7fafc;
+    }
+    
+    .badge-source {
+        display: inline-block;
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: #e2e8f0;
+        color: #4a5568;
+    }
+    
+    .btn-publish {
+        background: #48bb78;
+        color: white;
+        border: none;
+        padding: 0.375rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-publish:hover {
+        background: #38a169;
+    }
+    
+    .btn-delete {
+        background: #e53e3e;
+        color: white;
+        border: none;
+        padding: 0.375rem 0.75rem;
+        border-radius: 4px;
+        font-size: 0.875rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+    
+    .btn-delete:hover {
+        background: #c53030;
+    }
+    
+    .alert-info {
+        background: #ebf8ff;
+        border-left: 4px solid #4299e1;
+        padding: 1rem;
+        border-radius: 4px;
+        margin-bottom: 1rem;
+        font-size: 0.875rem;
+        color: #2c5282;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row">
+        <div class="col-12">
+            <h1 class="mb-4">
+                <i class="fas fa-robot"></i> Scrape Philippine Job Sites
+            </h1>
+        </div>
+    </div>
+
+    <!-- Scraper Form -->
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="scraper-card">
+                <h2><i class="fas fa-search"></i> Run New Scrape</h2>
+                
+                <div class="alert-info">
+                    <i class="fas fa-info-circle"></i>
+                    Fill in the keyword and location, select which sites to scrape, then click
+                    <strong>Run Scraper</strong>. Results are saved and can be published to the job board below.
+                </div>
+
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.keyword.id_for_label }}" class="form-label">
+                            <strong>Job Keyword</strong>
+                        </label>
+                        {{ form.keyword }}
+                        <small class="form-text text-muted">
+                            e.g. <em>software engineer</em>, <em>nurse</em>, <em>accountant</em>
+                        </small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="{{ form.location.id_for_label }}" class="form-label">
+                            <strong>Location</strong>
+                        </label>
+                        {{ form.location }}
+                        <small class="form-text text-muted">
+                            e.g. <em>Manila</em>, <em>Cebu</em>, <em>Philippines</em>
+                        </small>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label">
+                            <strong>Sites to Scrape</strong>
+                        </label>
+                        <div class="site-checkbox-grid">
+                            {% for checkbox in form.sources %}
+                            <div class="site-checkbox-item">
+                                {{ checkbox.tag }}
+                                <label for="{{ checkbox.id_for_label }}">
+                                    {{ checkbox.choice_label }}
+                                </label>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-2 align-items-center">
+                        <button type="submit" name="run_scraper" class="btn btn-primary">
+                            <i class="fas fa-play"></i> Run Scraper
+                        </button>
+                        <small class="text-muted">
+                            ⚠ May take 30–60 seconds depending on sites selected
+                        </small>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="scraper-card">
+                <h2><i class="fas fa-info-circle"></i> How It Works</h2>
+                <ol style="font-size: 0.875rem; line-height: 1.6;">
+                    <li>Enter a job keyword and location</li>
+                    <li>Select which job sites to scrape</li>
+                    <li>Click "Run Scraper" and wait</li>
+                    <li>Review scraped results below</li>
+                    <li>Click "Publish" to add jobs to the job board</li>
+                </ol>
+                <hr>
+                <p style="font-size: 0.875rem; color: #718096;">
+                    <strong>Note:</strong> Scraped jobs are saved as records. 
+                    Use the "Publish" button to convert them into visible job postings.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Scrapes -->
+    <div class="row">
+        <div class="col-12">
+            <div class="scraper-card">
+                <h2><i class="fas fa-database"></i> Recent Scrapes</h2>
+                
+                {% if recent_scrapes %}
+                <div class="table-responsive">
+                    <table class="scraped-jobs-table">
+                        <thead>
+                            <tr>
+                                <th>Keyword</th>
+                                <th>Location</th>
+                                <th>Source</th>
+                                <th>Jobs Found</th>
+                                <th>Scraped At</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for scrape in recent_scrapes %}
+                            <tr>
+                                <td><strong>{{ scrape.search_keyword }}</strong></td>
+                                <td>{{ scrape.search_location }}</td>
+                                <td>
+                                    <span class="badge-source">
+                                        {{ scrape.get_source_display }}
+                                    </span>
+                                </td>
+                                <td>{{ scrape.total_found }}</td>
+                                <td>{{ scrape.scraped_at|date:"M d, Y g:i A" }}</td>
+                                <td>
+                                    <div class="d-flex gap-2">
+                                        <a href="{% url 'jobs:publish_scraped_job' scrape.pk %}" 
+                                           class="btn-publish"
+                                           onclick="return confirm('Publish {{ scrape.total_found }} job(s) to the job board?')">
+                                            <i class="fas fa-upload"></i> Publish
+                                        </a>
+                                        <a href="{% url 'jobs:delete_scraped_job' scrape.pk %}" 
+                                           class="btn-delete"
+                                           onclick="return confirm('Delete this scrape record?')">
+                                            <i class="fas fa-trash"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-muted" style="text-align: center; padding: 2rem;">
+                    <i class="fas fa-inbox" style="font-size: 3rem; opacity: 0.3;"></i><br>
+                    No scraped jobs yet. Run a scrape above to get started.
+                </p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
