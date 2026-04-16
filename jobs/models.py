@@ -3,6 +3,7 @@ from django.utils.text import slugify
 from django.core.validators import URLValidator
 from django.contrib.auth import get_user_model
 from django.db.models import Max
+from django.utils import timezone
 import re
 import json
 
@@ -217,3 +218,141 @@ class ScrapedJob(models.Model):
         if 0 <= index < len(jobs):
             return jobs[index]
         return None
+
+
+class JobPreference(models.Model):
+    """Stores user job filtering preferences"""
+    
+    SOURCE_TYPE_CHOICES = [
+        ('INTERNAL', 'NORSU Internal'),
+        ('EXTERNAL', 'External'),
+        ('BOTH', 'Both'),
+    ]
+    
+    # Relationship
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name='job_preferences',
+        help_text="User who owns these preferences"
+    )
+    
+    # Configuration Status
+    is_configured = models.BooleanField(
+        default=False,
+        help_text="Whether user has completed preference setup"
+    )
+    was_prompted = models.BooleanField(
+        default=False,
+        help_text="Whether user was shown the modal"
+    )
+    
+    # Hard Filters (Exclusionary)
+    job_types = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Selected job types (FULL_TIME, PART_TIME, etc.)"
+    )
+    location_text = models.CharField(
+        max_length=500,
+        blank=True,
+        help_text="Comma-separated preferred locations"
+    )
+    remote_only = models.BooleanField(
+        default=False,
+        help_text="Only show remote jobs"
+    )
+    willing_to_relocate = models.BooleanField(
+        default=False,
+        help_text="Willing to relocate for opportunities"
+    )
+    minimum_salary = models.IntegerField(
+        null=True,
+        blank=True,
+        help_text="Minimum acceptable salary in PHP"
+    )
+    source_type = models.CharField(
+        max_length=20,
+        choices=SOURCE_TYPE_CHOICES,
+        default='BOTH',
+        help_text="Job source preference"
+    )
+    
+    # Soft Filters (Scoring)
+    industries = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Preferred industries/categories"
+    )
+    experience_levels = models.JSONField(
+        default=list,
+        blank=True,
+        help_text="Preferred experience levels"
+    )
+    
+    # Skill Matching Integration
+    skill_matching_enabled = models.BooleanField(
+        default=False,
+        help_text="Enable skill-based filtering"
+    )
+    skill_match_threshold = models.IntegerField(
+        default=50,
+        help_text="Minimum skill match percentage (0-100)"
+    )
+    
+    # Analytics
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    first_configured_at = models.DateTimeField(
+        null=True,
+        blank=True,
+        help_text="Timestamp when preferences were first configured"
+    )
+    modification_count = models.IntegerField(
+        default=0,
+        help_text="Number of times preferences have been modified"
+    )
+    
+    class Meta:
+        verbose_name = 'Job Preference'
+        verbose_name_plural = 'Job Preferences'
+        indexes = [
+            models.Index(fields=['is_configured']),
+            models.Index(fields=['updated_at']),
+        ]
+    
+    def __str__(self):
+        return f"Job Preferences for {self.user.get_full_name()}"
+    
+    def save(self, *args, **kwargs):
+        # Track first configuration
+        if self.is_configured and not self.first_configured_at:
+            self.first_configured_at = timezone.now()
+        
+        # Increment modification count (only for updates, not creation)
+        if self.pk:
+            self.modification_count += 1
+        
+        super().save(*args, **kwargs)
+        
+        # Invalidate cache after saving preferences
+        self.invalidate_cache()
+    
+    def invalidate_cache(self):
+        """
+        Invalidate the cached job matches for this user.
+        
+        This method is called automatically after saving preferences
+        to ensure users see updated results based on their new preferences.
+        """
+        from django.core.cache import cache
+        import logging
+        
+        logger = logging.getLogger(__name__)
+        cache_key = f"job_preferences_{self.user.id}"
+        
+        try:
+            cache.delete(cache_key)
+            logger.debug(f"Invalidated cache for user {self.user.id}")
+        except Exception as e:
+            logger.error(f"Error invalidating cache for user {self.user.id}: {e}")

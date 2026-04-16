@@ -1,10 +1,14 @@
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Optional
 import json
+import re
+import logging
 from datetime import datetime
 from django.db.models import Q
 from django.utils import timezone
 from accounts.models import Profile, Skill, SkillMatch
 from .models import JobPosting
+
+logger = logging.getLogger(__name__)
 
 def calculate_skill_relevancy(
     skill: Skill,
@@ -105,12 +109,11 @@ def find_matching_jobs(
     Returns a list of (job, score, matched_skills, missing_skills) tuples.
     """
     # Get active jobs that haven't been applied to
-    active_jobs = JobPosting.objects.filter(
-        is_active=True,
-        application_deadline__gt=timezone.now() if hasattr(JobPosting, 'application_deadline') else Q()
-    ).exclude(
-        applications__applicant=profile.user if hasattr(profile, 'user') else Q()
-    )
+    active_jobs = JobPosting.objects.filter(is_active=True)
+    
+    # Exclude jobs the user has already applied to
+    if hasattr(profile, 'user'):
+        active_jobs = active_jobs.exclude(applications__applicant=profile.user)
     
     matches = []
     for job in active_jobs:
@@ -191,3 +194,64 @@ def get_skill_recommendations(profile: Profile) -> Dict:
             })
     
     return sorted(recommendations, key=lambda x: x['frequency'], reverse=True) 
+
+
+def parse_salary_range(salary_text: str) -> Optional[int]:
+    """
+    Parse various salary range formats and return the minimum salary value.
+    
+    Supported formats:
+    - "₱20,000 - ₱30,000" -> 20000
+    - "20K-30K" -> 20000
+    - "Above ₱50,000" -> 50000
+    - "₱25,000" -> 25000
+    
+    Args:
+        salary_text: The salary text to parse
+        
+    Returns:
+        The minimum salary as an integer, or None if unparseable
+    """
+    if not salary_text or not isinstance(salary_text, str):
+        return None
+    
+    try:
+        # Clean the text
+        text = salary_text.strip()
+        
+        # Handle "Above ₱50,000" format
+        above_match = re.search(r'above\s*₱?\s*([\d,]+)', text, re.IGNORECASE)
+        if above_match:
+            salary_str = above_match.group(1).replace(',', '')
+            return int(salary_str)
+        
+        # Handle "20K-30K" or "20k-30k" format
+        k_range_match = re.search(r'(\d+)\s*k\s*-\s*(\d+)\s*k', text, re.IGNORECASE)
+        if k_range_match:
+            min_salary = int(k_range_match.group(1)) * 1000
+            return min_salary
+        
+        # Handle single "20K" or "20k" format
+        k_single_match = re.search(r'(\d+)\s*k', text, re.IGNORECASE)
+        if k_single_match:
+            return int(k_single_match.group(1)) * 1000
+        
+        # Handle "₱20,000 - ₱30,000" format
+        range_match = re.search(r'₱?\s*([\d,]+)\s*-\s*₱?\s*([\d,]+)', text)
+        if range_match:
+            min_salary_str = range_match.group(1).replace(',', '')
+            return int(min_salary_str)
+        
+        # Handle single "₱25,000" format
+        single_match = re.search(r'₱?\s*([\d,]+)', text)
+        if single_match:
+            salary_str = single_match.group(1).replace(',', '')
+            return int(salary_str)
+        
+        # If no pattern matches, return None
+        logger.warning(f"Unable to parse salary format: {salary_text}")
+        return None
+        
+    except (ValueError, AttributeError) as e:
+        logger.error(f"Error parsing salary '{salary_text}': {str(e)}")
+        return None 

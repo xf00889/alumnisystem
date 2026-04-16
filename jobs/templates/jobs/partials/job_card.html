@@ -1,0 +1,111 @@
+{% load jobs_extras %}
+
+{# Job Card Partial - Displays a single job posting with optional match score badge #}
+{# Context variables: job (required), match_score (optional), skill_based_view (optional), match_data (optional) #}
+
+<div class="job-card" data-job-id="{{ job.id }}" style="position: relative;">
+    {# Match Score Badge - Only shown when match_score is provided #}
+    {% if match_score is not None %}
+    <div class="match-badge" style="position: absolute; top: 10px; right: 10px; z-index: 10;">
+        <span class="badge bg-success" aria-label="Match score: {{ match_score }}%">
+            {{ match_score }}% Match
+        </span>
+    </div>
+    {% endif %}
+
+    <div class="job-card-body">
+        <div class="d-flex justify-content-between align-items-start">
+            <div class="flex-grow-1">
+                <h3 class="h5 mb-1 job-title">
+                    {{ job.job_title|format_job_title }}
+                </h3>
+                <p class="mb-2 company-name">{{ job.company_name }}</p>
+                
+                {# Skill-based matching display (existing functionality) #}
+                {% if skill_based_view and job.id in match_data %}
+                {% with match=match_data|get_item:job.id %}
+                <div class="mb-3">
+                    <div class="progress">
+                        <div class="progress-bar bg-success" style="width: {{ match.score }}%;"></div>
+                    </div>
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted">Skills Match</small>
+                        {% if match.score >= 75 %}
+                        <span class="match-score high">{{ match.score|floatformat:0 }}% Match</span>
+                        {% elif match.score >= 50 %}
+                        <span class="match-score medium">{{ match.score|floatformat:0 }}% Match</span>
+                        {% else %}
+                        <span class="match-score low">{{ match.score|floatformat:0 }}% Match</span>
+                        {% endif %}
+                    </div>
+                    
+                    {% if match.matched_skills %}
+                    <div class="matched-skills">
+                        <small class="text-muted d-block mb-1">Matching skills:</small>
+                        <div>
+                            {% for skill_name, data in match.matched_skills.items %}
+                            <span class="skill-tag">{{ skill_name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                    
+                    {% if match.missing_skills %}
+                    <div class="missing-skills-container">
+                        <small class="text-muted d-block mb-1">Skills to develop:</small>
+                        <div>
+                            {% for skill_name, data in match.missing_skills.items %}
+                            <span class="skill-tag">{{ skill_name }}</span>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+                {% endwith %}
+                {% endif %}
+                
+                {# Job details badges #}
+                <div class="d-flex flex-wrap gap-2 mb-2">
+                    <span class="job-detail-badge">
+                        <i class="fas fa-map-marker-alt me-1"></i>{{ job.location }}
+                    </span>
+                    <span class="job-detail-badge">
+                        <i class="fas fa-briefcase me-1"></i>{{ job.get_job_type_display }}
+                    </span>
+                    {% if job.salary_range %}
+                    <span class="job-detail-badge">
+                        <i class="fas fa-money-bill-wave me-1"></i>{{ job.salary_range }}
+                    </span>
+                    {% endif %}
+                    <span class="source-badge-sm {% if job.source_type == 'INTERNAL' %}internal{% else %}external{% endif %}">
+                        {{ job.get_source_type_display }}
+                    </span>
+                </div>
+                
+                {# Posted time #}
+                <small class="text-muted posted-time">
+                    <i class="fas fa-clock me-1"></i>Posted {{ job.posted_date|timesince }} ago
+                </small>
+            </div>
+            
+            {# Action buttons #}
+            <div class="d-flex gap-2 align-items-start ms-3 job-actions">
+                <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-sm details-btn">
+                    <i class="fas fa-info-circle me-1"></i>Details
+                </a>
+                {% if job.accepts_internal_applications %}
+                <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-sm apply-btn">
+                    <i class="fas fa-paper-plane me-1"></i>Apply
+                </a>
+                {% endif %}
+                <button class="btn btn-outline-secondary btn-sm share-btn" 
+                        data-job-title="{{ job.job_title|format_job_title }}"
+                        data-job-url="{{ request.scheme }}://{{ request.get_host }}{% url 'jobs:job_detail' job.slug %}"
+                        data-bs-toggle="tooltip" 
+                        title="Share this job">
+                    <i class="fas fa-share-alt"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

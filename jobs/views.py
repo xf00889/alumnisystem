@@ -10,8 +10,9 @@ from django.utils import timezone
 from django.db import transaction
 from django.core.mail import send_mail
 from django.conf import settings
+from django_ratelimit.decorators import ratelimit
 from .models import JobPosting, JobApplication, RequiredDocument, ScrapedJob
-from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet
+from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet, JobPreferenceForm
 from .scraper_forms import JobScraperForm
 from .scraper_utils import scraper
 from .utils import calculate_job_match_score, get_skill_recommendations
@@ -191,6 +192,96 @@ def job_list(request):
     # Scraper/external view is disabled; keep job board on posted jobs only.
     view_type = 'posted'
     
+    # Check if user is admin/HR using existing function
+    is_admin_or_hr_user = is_hr_or_admin(request.user)
+    
+    # Initialize preference-related variables
+    show_preference_modal = False
+    preferences_configured = False
+    matching_jobs_count = 0
+    active_filters = []
+    preference_service = None
+    
+    # For alumni users (not admin/HR), check preferences and apply filtering
+    if request.user.is_authenticated and not is_admin_or_hr_user:
+        from .preference_filter import PreferenceFilterService
+        
+        # Get PreferenceFilterService instance
+        preference_service = PreferenceFilterService(request.user)
+        
+        # Check if preferences are configured
+        preferences_configured = preference_service.preferences.is_configured
+        
+        # Determine if modal should be shown
+        show_preference_modal = preference_service.should_show_modal(request.session)
+        
+        # Handle "show_all" toggle from GET parameter
+        show_all = request.GET.get('show_all', 'false').lower() == 'true'
+        
+        # Apply preference filtering if configured and not showing all
+        if preferences_configured and not show_all:
+            # Get filtered jobs using service
+            job_matches = preference_service.get_filtered_jobs()
+            
+            # Extract jobs and match data
+            jobs = JobPosting.objects.filter(
+                id__in=[match['job'].id for match in job_matches]
+            )
+            
+            # Calculate matching_jobs_count
+            matching_jobs_count = len(job_matches)
+            
+            # Create match_data dictionary for template
+            match_data = {match['job'].id: match for match in job_matches}
+            
+            # Build active_filters list for display
+            prefs = preference_service.preferences
+            
+            if prefs.job_types:
+                job_type_labels = dict(JobPosting.JOB_TYPE_CHOICES)
+                for jt in prefs.job_types:
+                    active_filters.append({
+                        'key': f'job_type_{jt}',
+                        'label': job_type_labels.get(jt, jt)
+                    })
+            
+            if prefs.remote_only:
+                active_filters.append({
+                    'key': 'remote_only',
+                    'label': 'Remote Only'
+                })
+            
+            if prefs.location_text and not prefs.willing_to_relocate:
+                active_filters.append({
+                    'key': 'location',
+                    'label': f'Location: {prefs.location_text}'
+                })
+            
+            if prefs.minimum_salary:
+                active_filters.append({
+                    'key': 'minimum_salary',
+                    'label': f'Min Salary: ₱{prefs.minimum_salary:,}'
+                })
+            
+            if prefs.source_type != 'BOTH':
+                source_type_labels = dict(JobPosting.SOURCE_TYPE_CHOICES)
+                active_filters.append({
+                    'key': 'source_type',
+                    'label': source_type_labels.get(prefs.source_type, prefs.source_type)
+                })
+            
+            if prefs.skill_matching_enabled:
+                active_filters.append({
+                    'key': 'skill_matching',
+                    'label': f'Skill Match ≥{prefs.skill_match_threshold}%'
+                })
+        else:
+            # No filtering applied
+            match_data = {}
+    else:
+        # Admin/HR or unauthenticated users see all jobs without filtering
+        match_data = {}
+    
     # Search functionality
     query = request.GET.get('q')
     if query:
@@ -291,8 +382,19 @@ def job_list(request):
         page = request.GET.get('page')
         jobs_page = paginator.get_page(page)
         
-        # Create a map for easy lookup of match data
-        match_data = {match['job'].id: match for match in job_matches}
+        # Create a map for easy lookup of match data (merge with preference match_data if exists)
+        skill_match_data = {match['job'].id: match for match in job_matches}
+        if match_data:
+            # Merge skill matching data with preference matching data
+            for job_id, skill_match in skill_match_data.items():
+                if job_id in match_data:
+                    match_data[job_id]['skill_score'] = skill_match['score']
+                    match_data[job_id]['matched_skills'] = skill_match.get('matched_skills', {})
+                    match_data[job_id]['missing_skills'] = skill_match.get('missing_skills', {})
+                else:
+                    match_data[job_id] = skill_match
+        else:
+            match_data = skill_match_data
     elif view_type == 'scraped':
         # Keep only scrape runs that actually have job entries
         scraped_jobs_with_data = [entry for entry in scraped_jobs if entry.jobs_count > 0]
@@ -302,13 +404,11 @@ def job_list(request):
         paginator = Paginator(scraped_jobs_with_data, 10)
         page = request.GET.get('page')
         jobs_page = paginator.get_page(page)
-        match_data = {}
     else:
         # Pagination for regular view
         paginator = Paginator(jobs, 10)
         page = request.GET.get('page')
         jobs_page = paginator.get_page(page)
-        match_data = {}
     
     # Get scraped source choices
     scraped_source_choices = getattr(ScrapedJob, 'SOURCE_CHOICES', [])
@@ -329,8 +429,282 @@ def job_list(request):
         'view_type': view_type,
         'scraped_jobs': scraped_jobs if view_type == 'scraped' else None,
         'scraped_jobs_total_count': scraped_jobs_total_count,
+        # Preference-related context
+        'show_preference_modal': show_preference_modal,
+        'preferences_configured': preferences_configured,
+        'matching_jobs_count': matching_jobs_count,
+        'active_filters': active_filters,
+        'is_admin_or_hr': is_admin_or_hr_user,
+        'show_all': request.GET.get('show_all', 'false').lower() == 'true',
     }
     return render(request, 'jobs/job_list.html', context)
+
+
+@login_required
+@ratelimit(key='user', rate='10/m', method='POST')
+def save_preferences(request):
+    """
+    Save user job preferences.
+    
+    This view handles the submission of the job preference configuration form.
+    It validates the form data, saves the preferences, and clears the user's
+    preference cache to ensure updated results are shown.
+    
+    Rate limited to 10 requests per minute per user to prevent abuse.
+    """
+    # Check if request was rate limited
+    if getattr(request, 'limited', False):
+        logger.warning(f"Rate limit exceeded for user {request.user.id} on save_preferences")
+        return JsonResponse({
+            'success': False,
+            'error': 'Too many requests. Please try again in a moment.'
+        }, status=429)
+    
+    # Only accept POST requests
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request method. Only POST is allowed.'
+        }, status=405)
+    
+    try:
+        # Get or create user's job preferences
+        from .models import JobPreference
+        preferences, created = JobPreference.objects.get_or_create(user=request.user)
+        
+        # Instantiate form with POST data and existing preferences instance
+        form = JobPreferenceForm(request.POST, instance=preferences)
+        
+        # Validate form
+        if form.is_valid():
+            try:
+                # Use atomic transaction to ensure data consistency
+                with transaction.atomic():
+                    # Save the preferences
+                    preferences = form.save(commit=False)
+                    
+                    # Mark preferences as configured
+                    preferences.is_configured = True
+                    
+                    # Save to database
+                    preferences.save()
+                    
+                    # Clear user's preference cache
+                    cache_key = f"job_preferences_{request.user.id}"
+                    cache.delete(cache_key)
+                    
+                    logger.info(f"User {request.user.id} successfully saved job preferences")
+                    
+                    # Return success response
+                    return JsonResponse({
+                        'success': True,
+                        'message': 'Your job preferences have been saved successfully!'
+                    })
+                    
+            except Exception as e:
+                # Log the error with full traceback
+                logger.error(
+                    f"Error saving preferences for user {request.user.id}: {str(e)}",
+                    exc_info=True
+                )
+                
+                # Return error response
+                return JsonResponse({
+                    'success': False,
+                    'error': 'An error occurred while saving your preferences. Please try again.'
+                }, status=500)
+        else:
+            # Form validation failed - return errors
+            logger.warning(
+                f"Form validation failed for user {request.user.id}: {form.errors.as_json()}"
+            )
+            
+            # Format errors for JSON response
+            errors = {}
+            for field, error_list in form.errors.items():
+                errors[field] = [str(error) for error in error_list]
+            
+            return JsonResponse({
+                'success': False,
+                'error': 'Please correct the errors in the form.',
+                'errors': errors
+            }, status=400)
+            
+    except Exception as e:
+        # Catch any unexpected errors
+        logger.error(
+            f"Unexpected error in save_preferences for user {request.user.id}: {str(e)}",
+            exc_info=True
+        )
+        
+        return JsonResponse({
+            'success': False,
+            'error': 'An unexpected error occurred. Please try again later.'
+        }, status=500)
+
+
+@login_required
+def remind_later(request):
+    """
+    Handle "Remind me later" action for job preference modal.
+    
+    This view marks that the user was prompted to configure preferences
+    and sets a session flag to prevent showing the modal again in the
+    current session.
+    """
+    # Only accept POST requests
+    if request.method != 'POST':
+        return JsonResponse({
+            'success': False,
+            'error': 'Invalid request method. Only POST is allowed.'
+        }, status=405)
+    
+    try:
+        # Get or create user's job preferences
+        from .models import JobPreference
+        preferences, created = JobPreference.objects.get_or_create(user=request.user)
+        
+        # Mark that user was prompted
+        preferences.was_prompted = True
+        preferences.save()
+        
+        # Set session flag to prevent showing modal again in this session
+        request.session['preference_modal_prompted'] = True
+        
+        logger.info(f"User {request.user.id} chose 'remind me later' for job preferences")
+        
+        # Return success response
+        return JsonResponse({
+            'success': True,
+            'message': 'You can configure your preferences anytime from the job board.'
+        })
+        
+    except Exception as e:
+        # Log the error with full traceback
+        logger.error(
+            f"Error in remind_later for user {request.user.id}: {str(e)}",
+            exc_info=True
+        )
+        
+        # Return error response
+        return JsonResponse({
+            'success': False,
+            'error': 'An error occurred. Please try again.'
+        }, status=500)
+
+
+@login_required
+def remove_filter(request, filter_key):
+    """
+    Remove a specific filter from user's job preferences.
+    
+    This view clears a specific hard filter from the user's preferences,
+    invalidates the cache, and redirects back to the job list.
+    
+    Args:
+        filter_key: The preference field to clear (e.g., 'job_types', 'location_text', 
+                   'remote_only', 'minimum_salary', 'source_type')
+    """
+    try:
+        # Get user's job preferences
+        from .models import JobPreference
+        preferences = JobPreference.objects.get(user=request.user)
+        
+        # Map of valid filter keys to their default values
+        filter_defaults = {
+            'job_types': [],
+            'location_text': '',
+            'remote_only': False,
+            'minimum_salary': None,
+            'source_type': 'BOTH',
+        }
+        
+        # Validate filter_key
+        if filter_key not in filter_defaults:
+            logger.warning(
+                f"Invalid filter_key '{filter_key}' provided by user {request.user.id}"
+            )
+            messages.error(request, 'Invalid filter specified.')
+            return redirect('jobs:job_list')
+        
+        # Clear the specific filter by setting it to default value
+        setattr(preferences, filter_key, filter_defaults[filter_key])
+        preferences.save()
+        
+        # Cache is automatically invalidated by the model's save method
+        
+        logger.info(
+            f"User {request.user.id} removed filter '{filter_key}' from preferences"
+        )
+        
+        messages.success(request, f'Filter removed successfully.')
+        
+    except JobPreference.DoesNotExist:
+        logger.warning(
+            f"User {request.user.id} attempted to remove filter but has no preferences"
+        )
+        messages.error(request, 'No preferences found.')
+    
+    except Exception as e:
+        # Log the error with full traceback
+        logger.error(
+            f"Error removing filter '{filter_key}' for user {request.user.id}: {str(e)}",
+            exc_info=True
+        )
+        messages.error(request, 'An error occurred while removing the filter.')
+    
+    # Redirect back to job list
+    return redirect('jobs:job_list')
+
+
+@login_required
+def clear_all_filters(request):
+    """
+    Clear all hard filters from user's job preferences.
+    
+    This view resets all hard filter fields to their default values while
+    preserving soft filter preferences (industries, experience_levels).
+    The cache is automatically invalidated by the model's save method.
+    """
+    try:
+        # Get user's job preferences
+        from .models import JobPreference
+        preferences = JobPreference.objects.get(user=request.user)
+        
+        # Clear all hard filters (preserve soft filters)
+        preferences.job_types = []
+        preferences.location_text = ''
+        preferences.remote_only = False
+        preferences.minimum_salary = None
+        preferences.source_type = 'BOTH'
+        preferences.skill_matching_enabled = False
+        
+        # Save preferences (cache is automatically invalidated by model's save method)
+        preferences.save()
+        
+        logger.info(
+            f"User {request.user.id} cleared all hard filters from preferences"
+        )
+        
+        messages.success(request, 'All filters have been cleared successfully.')
+        
+    except JobPreference.DoesNotExist:
+        logger.warning(
+            f"User {request.user.id} attempted to clear filters but has no preferences"
+        )
+        messages.error(request, 'No preferences found.')
+    
+    except Exception as e:
+        # Log the error with full traceback
+        logger.error(
+            f"Error clearing all filters for user {request.user.id}: {str(e)}",
+            exc_info=True
+        )
+        messages.error(request, 'An error occurred while clearing filters.')
+    
+    # Redirect back to job list
+    return redirect('jobs:job_list')
+
 
 def job_detail(request, slug):
     job = get_object_or_404(JobPosting, slug=slug)

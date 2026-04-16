@@ -1,0 +1,246 @@
+<!-- Multi-step modal for job preference configuration -->
+<div class="modal fade" id="preferenceModal" tabindex="-1" aria-labelledby="preferenceModalLabel" aria-hidden="true" data-bs-backdrop="static">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="preferenceModalLabel">
+                    Set Your Job Preferences
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body">
+                <!-- Progress Indicator -->
+                <div class="progress mb-4" style="height: 5px;">
+                    <div class="progress-bar" role="progressbar" 
+                         style="width: 20%;" 
+                         aria-valuenow="1" 
+                         aria-valuemin="1" 
+                         aria-valuemax="5"
+                         id="progressBar"></div>
+                </div>
+                
+                <!-- Step Indicator Badge -->
+                <div class="step-indicator mb-3 text-center">
+                    <span class="badge bg-primary">Step <span id="currentStep">1</span> of 5</span>
+                </div>
+                
+                <form id="preferenceForm" method="post">
+                    {% csrf_token %}
+                    
+                    <!-- Step 1: Job Type -->
+                    <div class="preference-step" data-step="1">
+                        <h6 class="mb-3">What type of work are you looking for?</h6>
+                        <p class="text-muted small mb-3">Select all that apply</p>
+                        
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="job_types" value="FULL_TIME" class="form-check-input" id="jobType_FULL_TIME">
+                            <label class="form-check-label" for="jobType_FULL_TIME">Full Time</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="job_types" value="PART_TIME" class="form-check-input" id="jobType_PART_TIME">
+                            <label class="form-check-label" for="jobType_PART_TIME">Part Time</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="job_types" value="CONTRACT" class="form-check-input" id="jobType_CONTRACT">
+                            <label class="form-check-label" for="jobType_CONTRACT">Contract</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="job_types" value="REMOTE" class="form-check-input" id="jobType_REMOTE">
+                            <label class="form-check-label" for="jobType_REMOTE">Remote</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="job_types" value="INTERNSHIP" class="form-check-input" id="jobType_INTERNSHIP">
+                            <label class="form-check-label" for="jobType_INTERNSHIP">Internship</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 2: Industry -->
+                    <div class="preference-step d-none" data-step="2">
+                        <h6 class="mb-3">Which industries interest you?</h6>
+                        <p class="text-muted small mb-3">Select all that apply</p>
+                        
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="technology" class="form-check-input" id="industry_technology">
+                            <label class="form-check-label" for="industry_technology">Technology</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="finance" class="form-check-input" id="industry_finance">
+                            <label class="form-check-label" for="industry_finance">Finance & Accounting</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="healthcare" class="form-check-input" id="industry_healthcare">
+                            <label class="form-check-label" for="industry_healthcare">Healthcare & Medical</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="education" class="form-check-input" id="industry_education">
+                            <label class="form-check-label" for="industry_education">Education & Training</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="sales_marketing" class="form-check-input" id="industry_sales_marketing">
+                            <label class="form-check-label" for="industry_sales_marketing">Sales & Marketing</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="hospitality" class="form-check-input" id="industry_hospitality">
+                            <label class="form-check-label" for="industry_hospitality">Hospitality & Tourism</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="manufacturing" class="form-check-input" id="industry_manufacturing">
+                            <label class="form-check-label" for="industry_manufacturing">Manufacturing & Production</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="administrative" class="form-check-input" id="industry_administrative">
+                            <label class="form-check-label" for="industry_administrative">Administrative & Clerical</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="construction" class="form-check-input" id="industry_construction">
+                            <label class="form-check-label" for="industry_construction">Construction & Engineering</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="creative" class="form-check-input" id="industry_creative">
+                            <label class="form-check-label" for="industry_creative">Creative & Design</label>
+                        </div>
+                        <div class="form-check mb-2">
+                            <input type="checkbox" name="industries" value="other" class="form-check-input" id="industry_other">
+                            <label class="form-check-label" for="industry_other">Other</label>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 3: Location -->
+                    <div class="preference-step d-none" data-step="3">
+                        <h6 class="mb-3">Where would you like to work?</h6>
+                        
+                        <div class="mb-3">
+                            <label for="location_text" class="form-label">Preferred Locations</label>
+                            <input type="text" 
+                                   name="location_text" 
+                                   id="location_text"
+                                   class="form-control" 
+                                   placeholder="e.g., Dumaguete, Cebu, Manila">
+                            <div class="form-text">Enter comma-separated locations</div>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            <input type="checkbox" 
+                                   name="remote_only" 
+                                   class="form-check-input" 
+                                   id="remote_only">
+                            <label class="form-check-label" for="remote_only">
+                                Remote only
+                            </label>
+                        </div>
+                        
+                        <div class="form-check mb-2">
+                            <input type="checkbox" 
+                                   name="willing_to_relocate" 
+                                   class="form-check-input" 
+                                   id="willing_to_relocate">
+                            <label class="form-check-label" for="willing_to_relocate">
+                                Willing to relocate
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 4: Experience & Salary -->
+                    <div class="preference-step d-none" data-step="4">
+                        <h6 class="mb-3">Experience level and salary expectations</h6>
+                        
+                        <div class="mb-3">
+                            <label class="form-label">Experience Level</label>
+                            <p class="text-muted small mb-2">Select all that apply</p>
+                            
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="experience_levels" value="ENTRY" class="form-check-input" id="exp_ENTRY">
+                                <label class="form-check-label" for="exp_ENTRY">Entry Level</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="experience_levels" value="MID" class="form-check-input" id="exp_MID">
+                                <label class="form-check-label" for="exp_MID">Mid Level</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="experience_levels" value="SENIOR" class="form-check-input" id="exp_SENIOR">
+                                <label class="form-check-label" for="exp_SENIOR">Senior Level</label>
+                            </div>
+                            <div class="form-check mb-2">
+                                <input type="checkbox" name="experience_levels" value="EXECUTIVE" class="form-check-input" id="exp_EXECUTIVE">
+                                <label class="form-check-label" for="exp_EXECUTIVE">Executive Level</label>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="minimum_salary" class="form-label">Minimum Salary (Optional)</label>
+                            <input type="number" 
+                                   name="minimum_salary" 
+                                   id="minimum_salary"
+                                   class="form-control" 
+                                   placeholder="e.g., 20000"
+                                   min="0">
+                            <div class="form-text">Enter amount in PHP</div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="source_type" class="form-label">Job Source Preference</label>
+                            <select name="source_type" id="source_type" class="form-select">
+                                <option value="BOTH" selected>Both Internal and External</option>
+                                <option value="INTERNAL">NORSU Internal Only</option>
+                                <option value="EXTERNAL">External Only</option>
+                            </select>
+                        </div>
+                    </div>
+                    
+                    <!-- Step 5: Skill Matching -->
+                    <div class="preference-step d-none" data-step="5">
+                        <h6 class="mb-3">Skill Matching</h6>
+                        <p class="text-muted small mb-3">Enable skill-based filtering to match jobs with your profile skills</p>
+                        
+                        <div class="form-check form-switch mb-3">
+                            <input type="checkbox" 
+                                   name="skill_matching_enabled" 
+                                   class="form-check-input" 
+                                   id="skillMatchToggle"
+                                   role="switch">
+                            <label class="form-check-label" for="skillMatchToggle">
+                                Enable skill-based filtering
+                            </label>
+                        </div>
+                        
+                        <div id="skillThresholdContainer" class="d-none">
+                            <label for="skillThreshold" class="form-label">Minimum skill match percentage</label>
+                            <input type="range" 
+                                   name="skill_match_threshold" 
+                                   class="form-range" 
+                                   min="0" 
+                                   max="100" 
+                                   value="50" 
+                                   id="skillThreshold"
+                                   aria-label="Skill match threshold slider">
+                            <div class="text-center mt-2">
+                                <span class="badge bg-secondary fs-6">
+                                    <span id="thresholdValue">50</span>%
+                                </span>
+                            </div>
+                            <div class="form-text text-center">
+                                Only show jobs that match at least this percentage of your skills
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="remindLaterBtn">
+                    Remind me later
+                </button>
+                <button type="button" class="btn btn-outline-primary" id="prevBtn" disabled>
+                    <i class="bi bi-arrow-left"></i> Previous
+                </button>
+                <button type="button" class="btn btn-primary" id="nextBtn">
+                    Next <i class="bi bi-arrow-right"></i>
+                </button>
+                <button type="button" class="btn btn-success d-none" id="saveBtn">
+                    <i class="bi bi-check-circle"></i> Save Preferences
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

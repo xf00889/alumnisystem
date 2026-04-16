@@ -1,6 +1,6 @@
 from django import forms
 from django.forms import inlineformset_factory
-from .models import JobPosting, JobApplication, RequiredDocument
+from .models import JobPosting, JobApplication, RequiredDocument, JobPreference
 from core.recaptcha_fields import DatabaseReCaptchaField
 from core.recaptcha_widgets import DatabaseReCaptchaV3
 from core.recaptcha_utils import is_recaptcha_enabled
@@ -144,3 +144,143 @@ class JobApplicationForm(forms.ModelForm):
         if documents and documents.size > 10 * 1024 * 1024:  # 10MB limit
             raise forms.ValidationError('Additional documents file size must be under 10MB.')
         return documents 
+
+
+class JobPreferenceForm(forms.ModelForm):
+    """Form for job preference configuration"""
+    
+    class Meta:
+        model = JobPreference
+        fields = [
+            'job_types',
+            'industries',
+            'location_text',
+            'remote_only',
+            'willing_to_relocate',
+            'experience_levels',
+            'minimum_salary',
+            'source_type',
+            'skill_matching_enabled',
+            'skill_match_threshold',
+        ]
+        widgets = {
+            'job_types': forms.CheckboxSelectMultiple(
+                choices=JobPosting.JOB_TYPE_CHOICES
+            ),
+            'industries': forms.CheckboxSelectMultiple(
+                choices=JobPosting.CATEGORY_CHOICES
+            ),
+            'experience_levels': forms.CheckboxSelectMultiple(
+                choices=JobPosting.EXPERIENCE_LEVEL_CHOICES
+            ),
+            'location_text': forms.TextInput(attrs={
+                'placeholder': 'e.g., Dumaguete, Cebu, Manila',
+                'class': 'form-control'
+            }),
+            'remote_only': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'willing_to_relocate': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'minimum_salary': forms.NumberInput(attrs={
+                'placeholder': 'e.g., 20000',
+                'class': 'form-control',
+                'min': 0
+            }),
+            'source_type': forms.Select(attrs={
+                'class': 'form-select'
+            }),
+            'skill_matching_enabled': forms.CheckboxInput(attrs={
+                'class': 'form-check-input'
+            }),
+            'skill_match_threshold': forms.NumberInput(attrs={
+                'min': 0,
+                'max': 100,
+                'class': 'form-control'
+            }),
+        }
+    
+    def clean_skill_match_threshold(self):
+        """Validate threshold is between 0-100"""
+        threshold = self.cleaned_data.get('skill_match_threshold')
+        if threshold is not None and (threshold < 0 or threshold > 100):
+            raise forms.ValidationError("Threshold must be between 0 and 100")
+        return threshold
+    
+    def clean_job_types(self):
+        """Validate job types against JobPosting.JOB_TYPE_CHOICES"""
+        job_types = self.cleaned_data.get('job_types')
+        
+        if not job_types:
+            return job_types
+        
+        # Get valid job type values from JobPosting choices
+        valid_job_types = [choice[0] for choice in JobPosting.JOB_TYPE_CHOICES]
+        
+        # Validate each selected job type
+        invalid_types = [jt for jt in job_types if jt not in valid_job_types]
+        
+        if invalid_types:
+            raise forms.ValidationError(
+                f"Invalid job type(s): {', '.join(invalid_types)}. "
+                f"Valid options are: {', '.join(valid_job_types)}"
+            )
+        
+        return job_types
+    
+    def clean_industries(self):
+        """Validate industries against JobPosting.CATEGORY_CHOICES"""
+        industries = self.cleaned_data.get('industries')
+        
+        if not industries:
+            return industries
+        
+        # Get valid industry/category values from JobPosting choices
+        valid_industries = [choice[0] for choice in JobPosting.CATEGORY_CHOICES]
+        
+        # Validate each selected industry
+        invalid_industries = [ind for ind in industries if ind not in valid_industries]
+        
+        if invalid_industries:
+            raise forms.ValidationError(
+                f"Invalid industry/category: {', '.join(invalid_industries)}. "
+                f"Valid options are: {', '.join(valid_industries)}"
+            )
+        
+        return industries
+    
+    def clean_experience_levels(self):
+        """Validate experience levels against JobPosting.EXPERIENCE_LEVEL_CHOICES"""
+        experience_levels = self.cleaned_data.get('experience_levels')
+        
+        if not experience_levels:
+            return experience_levels
+        
+        # Get valid experience level values from JobPosting choices
+        valid_levels = [choice[0] for choice in JobPosting.EXPERIENCE_LEVEL_CHOICES]
+        
+        # Validate each selected experience level
+        invalid_levels = [level for level in experience_levels if level not in valid_levels]
+        
+        if invalid_levels:
+            raise forms.ValidationError(
+                f"Invalid experience level(s): {', '.join(invalid_levels)}. "
+                f"Valid options are: {', '.join(valid_levels)}"
+            )
+        
+        return experience_levels
+    
+    def clean_minimum_salary(self):
+        """Validate minimum salary is a positive integer"""
+        minimum_salary = self.cleaned_data.get('minimum_salary')
+        
+        # Allow None/blank values (field is optional)
+        if minimum_salary is None:
+            return minimum_salary
+        
+        # Ensure it's a positive integer
+        if minimum_salary < 0:
+            raise forms.ValidationError("Minimum salary must be a positive number")
+        
+        return minimum_salary

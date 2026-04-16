@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.contrib import messages
-from .models import JobPosting, JobApplication
+from .models import JobPosting, JobApplication, JobPreference
 
 @admin.register(JobPosting)
 class JobPostingAdmin(admin.ModelAdmin):
@@ -108,3 +108,42 @@ class JobApplicationAdmin(admin.ModelAdmin):
     mark_as_rejected.short_description = "Mark selected applications as rejected"
     
     actions = ['mark_as_shortlisted', 'mark_as_interviewed', 'mark_as_accepted', 'mark_as_rejected']
+
+@admin.register(JobPreference)
+class JobPreferenceAdmin(admin.ModelAdmin):
+    list_display = ('user', 'is_configured', 'updated_at', 'modification_count')
+    list_filter = ('is_configured', 'skill_matching_enabled', 'remote_only', 'willing_to_relocate', 'source_type')
+    search_fields = ('user__username', 'user__email', 'user__first_name', 'user__last_name')
+    readonly_fields = ('created_at', 'updated_at', 'first_configured_at', 'modification_count')
+    date_hierarchy = 'updated_at'
+    ordering = ('-updated_at',)
+    list_per_page = 20
+    
+    fieldsets = (
+        ('User Information', {
+            'fields': ('user',)
+        }),
+        ('Configuration Status', {
+            'fields': ('is_configured', 'was_prompted')
+        }),
+        ('Hard Filters', {
+            'fields': ('job_types', 'location_text', 'remote_only', 'willing_to_relocate', 'minimum_salary', 'source_type'),
+            'description': 'Exclusionary filters that remove non-matching jobs'
+        }),
+        ('Soft Filters', {
+            'fields': ('industries', 'experience_levels'),
+            'description': 'Scoring filters that rank matching jobs'
+        }),
+        ('Skill Matching', {
+            'fields': ('skill_matching_enabled', 'skill_match_threshold')
+        }),
+        ('Analytics', {
+            'fields': ('created_at', 'updated_at', 'first_configured_at', 'modification_count'),
+            'classes': ('collapse',)
+        }),
+    )
+    
+    def get_readonly_fields(self, request, obj=None):
+        if obj:  # Editing existing object
+            return self.readonly_fields + ('user',)
+        return self.readonly_fields

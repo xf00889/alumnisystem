@@ -17,6 +17,12 @@ urlpatterns = [
     path('application/<int:application_id>/send-email/', views.send_application_email, name='send_application_email'),
     path('export/<int:job_id>/applicants/', views.export_applicants, name='export_applicants'),
     
+    # Job preference URLs
+    path('preferences/save/', views.save_preferences, name='save_preferences'),
+    path('preferences/remind-later/', views.remind_later, name='remind_later'),
+    path('preferences/remove-filter/<str:filter_key>/', views.remove_filter, name='remove_filter'),
+    path('preferences/clear-all/', views.clear_all_filters, name='clear_all_filters'),
+    
     # Slug-based patterns (must be last)
     path('<slug:slug>/', views.job_detail, name='job_detail'),
     path('<slug:slug>/edit/', views.edit_job, name='edit_job'),

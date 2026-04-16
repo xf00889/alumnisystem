@@ -7,6 +7,7 @@
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/job_listing.css' %}">
 <link rel="stylesheet" href="{% static 'css/skill_matching.css' %}">
+<link rel="stylesheet" href="{% static 'css/job_preferences.css' %}">
 <style>
     /* Enhanced Design System - Consistent with Alumni Modal */
     :root {
@@ -863,27 +864,93 @@
 
 
 {% block content %}
+<!-- Include Preference Modal -->
+{% include 'jobs/partials/preference_modal.html' %}
+
 <div class="page-container">
     <div class="container-fluid">
         <!-- Dashboard Header -->
         <div class="dashboard-header">
             <div class="row align-items-center">
                 <div class="col-md-8">
-                    <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>Job Board</h1>
-                    <p class="mb-0">Discover your next career opportunity</p>
+                    {% if user.is_authenticated and not is_admin_or_hr %}
+                        {% if preferences_configured %}
+                            <h1 class="mb-2">
+                                <i class="bi bi-funnel me-3"></i>
+                                <span id="matchCounter">{{ matching_jobs_count }}</span> jobs match your preferences
+                            </h1>
+                            <p class="mb-0">Personalized job recommendations based on your preferences</p>
+                        {% else %}
+                            <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>Job Board</h1>
+                            <p class="mb-0">Discover your next career opportunity</p>
+                        {% endif %}
+                    {% else %}
+                        <h1 class="mb-2"><i class="fas fa-briefcase me-3"></i>All Job Postings</h1>
+                        <p class="mb-0">Manage and review all job opportunities</p>
+                    {% endif %}
                 </div>
                 <div class="col-md-4 text-end d-flex align-items-center justify-content-end" style="gap: var(--space-sm);">
-                    {% if perms.jobs.add_jobposting or user|is_hr_or_admin %}
-                    <a href="{% url 'jobs:manage_jobs' %}" class="btn btn-outline-light me-2">
-                        <i class="fas fa-tasks me-2"></i>Manage Jobs
-                    </a>
-                    <a href="{% url 'jobs:post_job' %}" class="btn btn-light">
-                        <i class="fas fa-plus-circle me-2"></i>Post a Job
-                    </a>
+                    {% if user.is_authenticated and not is_admin_or_hr %}
+                        <button type="button" class="btn btn-outline-light me-2" id="editPreferencesBtn">
+                            <i class="bi bi-sliders me-2"></i>Edit Preferences
+                        </button>
+                        {% if preferences_configured %}
+                            <div class="form-check form-switch d-inline-block">
+                                <input class="form-check-input" type="checkbox" id="showAllToggle" 
+                                       {% if show_all %}checked{% endif %}>
+                                <label class="form-check-label text-white" for="showAllToggle">
+                                    Show all jobs
+                                </label>
+                            </div>
+                        {% endif %}
+                    {% elif perms.jobs.add_jobposting or user|is_hr_or_admin %}
+                        <a href="{% url 'jobs:manage_jobs' %}" class="btn btn-outline-light me-2">
+                            <i class="fas fa-tasks me-2"></i>Manage Jobs
+                        </a>
+                        <a href="{% url 'jobs:post_job' %}" class="btn btn-light">
+                            <i class="fas fa-plus-circle me-2"></i>Post a Job
+                        </a>
                     {% endif %}
                 </div>
             </div>
         </div>
+
+        <!-- Active Filter Badges Section -->
+        {% if user.is_authenticated and not is_admin_or_hr and preferences_configured and active_filters %}
+        <div class="content-section">
+            <div class="active-filters" id="activeFilters">
+                {% for filter in active_filters %}
+                    <span class="badge bg-info me-2 mb-2">
+                        {{ filter.label }}
+                        <button type="button" class="btn-close btn-close-white btn-sm ms-1" 
+                                data-filter="{{ filter.key }}" 
+                                aria-label="Remove filter"
+                                style="font-size: 0.6rem; padding: 0.2rem;"></button>
+                    </span>
+                {% endfor %}
+                {% if active_filters|length > 1 %}
+                    <a href="{% url 'jobs:clear_all_filters' %}" class="text-danger ms-2">
+                        <i class="bi bi-x-circle me-1"></i>Clear all filters
+                    </a>
+                {% endif %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Empty State Section -->
+        {% if user.is_authenticated and not is_admin_or_hr and matching_jobs_count == 0 and preferences_configured and not show_all %}
+        <div class="alert alert-info text-center">
+            <i class="bi bi-info-circle fs-1 d-block mb-3"></i>
+            <h5>No jobs match your preferences</h5>
+            <p class="mb-3">Try adjusting your filters or view all available jobs</p>
+            <button type="button" class="btn btn-primary me-2" id="viewAllJobsBtn">
+                <i class="bi bi-eye me-1"></i>View all jobs
+            </button>
+            <button type="button" class="btn btn-outline-primary" id="editPreferencesBtn2">
+                <i class="bi bi-sliders me-1"></i>Edit preferences
+            </button>
+        </div>
+        {% endif %}
 
         <!-- Job Type Toggle -->
         <div class="content-section">
@@ -1395,6 +1462,12 @@
 {% endblock %}
 
 {% block extra_js %}
+<script>
+// Set preference modal flag on body
+document.body.dataset.showPreferenceModal = "{% if show_preference_modal %}true{% else %}false{% endif %}";
+</script>
+<script src="{% static 'js/preference_modal.js' %}"></script>
+<script src="{% static 'js/job_filters.js' %}"></script>
 <script src="{% static 'js/job_listing.js' %}"></script>
 <script>
 // Toggle all jobs for scraped job cards

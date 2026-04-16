@@ -1,0 +1,625 @@
+/**
+ * Job Preferences System Styles
+ * 
+ * This stylesheet provides styling for the job board user preferences system,
+ * including the multi-step preference modal, filter badges, match counter,
+ * and responsive layouts.
+ */
+
+/* ============================================================================
+   CSS Custom Properties (Theme Variables)
+   ========================================================================== */
+
+:root {
+    /* Colors */
+    --jp-primary-color: #0d6efd;
+    --jp-success-color: #198754;
+    --jp-info-color: #0dcaf0;
+    --jp-danger-color: #dc3545;
+    --jp-warning-color: #ffc107;
+    --jp-light-color: #f8f9fa;
+    --jp-dark-color: #212529;
+    --jp-muted-color: #6c757d;
+    
+    /* Spacing */
+    --jp-spacing-xs: 0.25rem;
+    --jp-spacing-sm: 0.5rem;
+    --jp-spacing-md: 1rem;
+    --jp-spacing-lg: 1.5rem;
+    --jp-spacing-xl: 2rem;
+    
+    /* Transitions */
+    --jp-transition-fast: 0.15s ease-in-out;
+    --jp-transition-normal: 0.3s ease-in-out;
+    --jp-transition-slow: 0.5s ease-in-out;
+    
+    /* Shadows */
+    --jp-shadow-sm: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    --jp-shadow-md: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.1);
+    --jp-shadow-lg: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    
+    /* Border Radius */
+    --jp-border-radius: 0.375rem;
+    --jp-border-radius-sm: 0.25rem;
+    --jp-border-radius-lg: 0.5rem;
+    
+    /* Typography */
+    --jp-font-size-base: 1rem;
+    --jp-font-size-sm: 0.875rem;
+    --jp-font-size-lg: 1.125rem;
+    --jp-font-weight-normal: 400;
+    --jp-font-weight-medium: 500;
+    --jp-font-weight-bold: 700;
+}
+
+/* ============================================================================
+   Preference Modal Styles
+   ========================================================================== */
+
+/* Modal Container */
+#preferenceModal .modal-dialog {
+    max-width: 800px; /* modal-lg equivalent */
+}
+
+#preferenceModal .modal-content {
+    border-radius: var(--jp-border-radius-lg);
+    box-shadow: var(--jp-shadow-lg);
+}
+
+#preferenceModal .modal-header {
+    border-bottom: 2px solid var(--jp-light-color);
+    padding: var(--jp-spacing-lg);
+}
+
+#preferenceModal .modal-title {
+    font-weight: var(--jp-font-weight-bold);
+    color: var(--jp-dark-color);
+}
+
+#preferenceModal .modal-body {
+    padding: var(--jp-spacing-xl);
+}
+
+#preferenceModal .modal-footer {
+    border-top: 2px solid var(--jp-light-color);
+    padding: var(--jp-spacing-lg);
+}
+
+/* Progress Bar */
+#preferenceModal .progress {
+    height: 5px;
+    background-color: var(--jp-light-color);
+    border-radius: var(--jp-border-radius);
+    overflow: hidden;
+}
+
+#preferenceModal .progress-bar {
+    background-color: var(--jp-primary-color);
+    transition: width var(--jp-transition-normal);
+}
+
+/* Step Indicator Badge */
+#preferenceModal .step-indicator {
+    text-align: center;
+}
+
+#preferenceModal .step-indicator .badge {
+    font-size: var(--jp-font-size-base);
+    font-weight: var(--jp-font-weight-medium);
+    padding: var(--jp-spacing-sm) var(--jp-spacing-md);
+    border-radius: var(--jp-border-radius);
+}
+
+/* Form Steps */
+.preference-step {
+    min-height: 250px;
+    animation: fadeIn var(--jp-transition-normal);
+}
+
+.preference-step h6 {
+    font-weight: var(--jp-font-weight-bold);
+    color: var(--jp-dark-color);
+    margin-bottom: var(--jp-spacing-lg);
+    font-size: var(--jp-font-size-lg);
+}
+
+.preference-step .form-check {
+    padding: var(--jp-spacing-sm) 0;
+}
+
+.preference-step .form-check-input {
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.125rem;
+    cursor: pointer;
+}
+
+.preference-step .form-check-label {
+    cursor: pointer;
+    margin-left: var(--jp-spacing-sm);
+    font-size: var(--jp-font-size-base);
+}
+
+.preference-step .form-control {
+    border-radius: var(--jp-border-radius);
+    border: 1px solid #ced4da;
+    padding: var(--jp-spacing-sm) var(--jp-spacing-md);
+    transition: border-color var(--jp-transition-fast), box-shadow var(--jp-transition-fast);
+}
+
+.preference-step .form-control:focus {
+    border-color: var(--jp-primary-color);
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+}
+
+/* Skill Threshold Slider */
+#skillThresholdContainer {
+    padding: var(--jp-spacing-md);
+    background-color: var(--jp-light-color);
+    border-radius: var(--jp-border-radius);
+    margin-top: var(--jp-spacing-md);
+}
+
+#skillThresholdContainer label {
+    font-weight: var(--jp-font-weight-medium);
+    margin-bottom: var(--jp-spacing-sm);
+    display: block;
+}
+
+#skillThreshold {
+    cursor: pointer;
+}
+
+#thresholdValue {
+    font-size: 1.5rem;
+    font-weight: var(--jp-font-weight-bold);
+    color: var(--jp-primary-color);
+}
+
+/* ============================================================================
+   Filter Badges Styles
+   ========================================================================== */
+
+.active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--jp-spacing-sm);
+    align-items: center;
+    margin-top: var(--jp-spacing-sm);
+}
+
+.active-filters .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--jp-spacing-xs);
+    padding: var(--jp-spacing-sm) var(--jp-spacing-md);
+    font-size: var(--jp-font-size-sm);
+    font-weight: var(--jp-font-weight-medium);
+    border-radius: var(--jp-border-radius);
+    transition: opacity var(--jp-transition-fast), transform var(--jp-transition-fast);
+}
+
+.active-filters .badge:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+}
+
+/* Close Button on Badges */
+.active-filters .btn-close {
+    width: 0.75rem;
+    height: 0.75rem;
+    padding: 0;
+    margin-left: var(--jp-spacing-xs);
+    opacity: 0.8;
+    transition: opacity var(--jp-transition-fast), transform var(--jp-transition-fast);
+}
+
+.active-filters .btn-close:hover {
+    opacity: 1;
+    transform: scale(1.2);
+}
+
+.active-filters .btn-close:focus {
+    box-shadow: 0 0 0 0.25rem rgba(255, 255, 255, 0.5);
+    outline: none;
+}
+
+/* Clear All Filters Link */
+#clearAllFilters {
+    font-size: var(--jp-font-size-sm);
+    font-weight: var(--jp-font-weight-medium);
+    text-decoration: none;
+    color: var(--jp-danger-color);
+    transition: color var(--jp-transition-fast);
+    white-space: nowrap;
+}
+
+#clearAllFilters:hover {
+    color: #bb2d3b;
+    text-decoration: underline;
+}
+
+/* ============================================================================
+   Match Counter Styles
+   ========================================================================== */
+
+.job-board-header {
+    margin-bottom: var(--jp-spacing-lg);
+}
+
+.job-board-header h4 {
+    font-size: 1.5rem;
+    font-weight: var(--jp-font-weight-bold);
+    color: var(--jp-dark-color);
+    margin-bottom: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--jp-spacing-sm);
+}
+
+.job-board-header h4 i {
+    color: var(--jp-primary-color);
+    font-size: 1.25rem;
+}
+
+#matchCounter {
+    color: var(--jp-primary-color);
+    font-weight: var(--jp-font-weight-bold);
+}
+
+/* Header Actions */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--jp-spacing-md);
+}
+
+.header-actions .btn {
+    white-space: nowrap;
+    transition: all var(--jp-transition-fast);
+}
+
+.header-actions .btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--jp-shadow-sm);
+}
+
+.header-actions .form-check-label {
+    margin-left: var(--jp-spacing-sm);
+    cursor: pointer;
+    user-select: none;
+}
+
+/* ============================================================================
+   Match Badge on Job Cards
+   ========================================================================== */
+
+.job-card {
+    position: relative;
+    transition: transform var(--jp-transition-fast), box-shadow var(--jp-transition-fast);
+}
+
+.job-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--jp-shadow-md);
+}
+
+.match-badge {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 10;
+}
+
+.match-badge .badge {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--jp-font-size-sm);
+    font-weight: var(--jp-font-weight-bold);
+    border-radius: var(--jp-border-radius);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    background-color: var(--jp-success-color);
+    color: white;
+}
+
+/* ============================================================================
+   Empty State Styles
+   ========================================================================== */
+
+.alert.text-center {
+    padding: var(--jp-spacing-xl);
+}
+
+.alert i.fs-1 {
+    font-size: 3rem;
+    color: var(--jp-info-color);
+    margin-bottom: var(--jp-spacing-md);
+}
+
+.alert h5 {
+    font-weight: var(--jp-font-weight-bold);
+    color: var(--jp-dark-color);
+    margin-bottom: var(--jp-spacing-sm);
+}
+
+.alert p {
+    color: var(--jp-muted-color);
+    margin-bottom: var(--jp-spacing-lg);
+}
+
+.alert .btn {
+    margin: 0 var(--jp-spacing-xs);
+    min-width: 120px;
+}
+
+/* ============================================================================
+   Responsive Styles for Mobile (< 768px)
+   ========================================================================== */
+
+@media (max-width: 767.98px) {
+    /* Stack header elements vertically */
+    .job-board-header .d-flex {
+        flex-direction: column;
+        align-items: flex-start !important;
+        gap: var(--jp-spacing-md);
+    }
+    
+    .job-board-header h4 {
+        font-size: 1.25rem;
+    }
+    
+    .header-actions {
+        width: 100%;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .header-actions .btn {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    .header-actions .form-check {
+        width: 100%;
+        padding: var(--jp-spacing-sm);
+    }
+    
+    /* Adjust modal for small screens */
+    #preferenceModal .modal-dialog {
+        margin: var(--jp-spacing-sm);
+        max-width: calc(100% - 1rem);
+    }
+    
+    #preferenceModal .modal-body {
+        padding: var(--jp-spacing-md);
+    }
+    
+    #preferenceModal .modal-footer {
+        flex-direction: column;
+        gap: var(--jp-spacing-sm);
+    }
+    
+    #preferenceModal .modal-footer .btn {
+        width: 100%;
+    }
+    
+    /* Ensure touch targets are 44x44px minimum */
+    .preference-step .form-check-input {
+        width: 1.5rem;
+        height: 1.5rem;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .preference-step .form-check-label {
+        padding: var(--jp-spacing-sm);
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+    }
+    
+    .active-filters .badge {
+        padding: var(--jp-spacing-sm) var(--jp-spacing-md);
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+    }
+    
+    .active-filters .btn-close {
+        width: 1rem;
+        height: 1rem;
+        min-width: 44px;
+        min-height: 44px;
+        padding: var(--jp-spacing-sm);
+    }
+    
+    .header-actions .btn {
+        min-height: 44px;
+        padding: var(--jp-spacing-sm) var(--jp-spacing-md);
+    }
+    
+    /* Reduce padding on mobile for better space usage */
+    .alert.text-center {
+        padding: var(--jp-spacing-md);
+    }
+    
+    .alert i.fs-1 {
+        font-size: 2rem;
+    }
+    
+    .alert .btn {
+        width: 100%;
+        margin: var(--jp-spacing-xs) 0;
+    }
+    
+    /* Stack filter badges on mobile */
+    .active-filters {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .active-filters .badge {
+        width: 100%;
+        justify-content: space-between;
+    }
+    
+    /* Match badge positioning on mobile */
+    .match-badge {
+        top: 5px;
+        right: 5px;
+    }
+    
+    .match-badge .badge {
+        padding: 0.375rem 0.5rem;
+        font-size: 0.75rem;
+    }
+}
+
+/* ============================================================================
+   Animation Utilities
+   ========================================================================== */
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(-20px);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.fade-in {
+    animation: fadeIn var(--jp-transition-normal);
+}
+
+.slide-in {
+    animation: slideIn var(--jp-transition-normal);
+}
+
+/* ============================================================================
+   Loading States
+   ========================================================================== */
+
+.btn.loading {
+    position: relative;
+    color: transparent;
+    pointer-events: none;
+}
+
+.btn.loading::after {
+    content: "";
+    position: absolute;
+    width: 1rem;
+    height: 1rem;
+    top: 50%;
+    left: 50%;
+    margin-left: -0.5rem;
+    margin-top: -0.5rem;
+    border: 2px solid currentColor;
+    border-radius: 50%;
+    border-right-color: transparent;
+    animation: spinner 0.75s linear infinite;
+}
+
+@keyframes spinner {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* ============================================================================
+   Accessibility Enhancements
+   ========================================================================== */
+
+/* Focus Indicators */
+.preference-step .form-check-input:focus,
+.preference-step .form-control:focus,
+.header-actions .form-check-input:focus,
+.btn:focus {
+    outline: 2px solid var(--jp-primary-color);
+    outline-offset: 2px;
+}
+
+/* High Contrast Mode Support */
+@media (prefers-contrast: high) {
+    .active-filters .badge {
+        border: 2px solid currentColor;
+    }
+    
+    .match-badge .badge {
+        border: 2px solid white;
+    }
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ============================================================================
+   Dark Mode Support (Optional Enhancement)
+   ========================================================================== */
+
+@media (prefers-color-scheme: dark) {
+    :root {
+        --jp-light-color: #343a40;
+        --jp-dark-color: #f8f9fa;
+        --jp-muted-color: #adb5bd;
+    }
+    
+    #preferenceModal .modal-content {
+        background-color: #212529;
+        color: #f8f9fa;
+    }
+    
+    #preferenceModal .modal-header,
+    #preferenceModal .modal-footer {
+        border-color: #495057;
+    }
+    
+    .preference-step .form-control {
+        background-color: #343a40;
+        border-color: #495057;
+        color: #f8f9fa;
+    }
+    
+    #skillThresholdContainer {
+        background-color: #343a40;
+    }
+}
+
+/* ============================================================================
+   Print Styles
+   ========================================================================== */
+
+@media print {
+    #preferenceModal,
+    .header-actions,
+    .active-filters .btn-close,
+    #clearAllFilters {
+        display: none !important;
+    }
+    
+    .job-card {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+}

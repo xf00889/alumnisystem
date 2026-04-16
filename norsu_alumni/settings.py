@@ -642,6 +642,9 @@ else:
 DOCS_CACHE_TIMEOUT = 3600  # 1 hour for rendered markdown
 DOCS_TOC_CACHE_TIMEOUT = 3600  # 1 hour for table of contents
 
+# Job preferences cache settings
+JOB_PREFERENCES_CACHE_TIMEOUT = 300  # 5 minutes for filtered job results
+
 # Cache middleware settings
 CACHE_MIDDLEWARE_ALIAS = 'default'
 CACHE_MIDDLEWARE_SECONDS = 300
