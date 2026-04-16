@@ -356,21 +356,30 @@ class PreferenceModal {
 }
 
 // Initialize on page load
+let globalPreferenceModal = null;
+
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize PreferenceModal instance
-    const preferenceModal = new PreferenceModal();
+    globalPreferenceModal = new PreferenceModal();
     
     // Check if modal should be auto-shown
     const showModal = document.body.dataset.showPreferenceModal === 'true';
     if (showModal) {
-        preferenceModal.show();
+        globalPreferenceModal.show();
     }
     
     // Add click handlers to all "Edit Preferences" buttons
     const editButtons = document.querySelectorAll('[id^="editPreferencesBtn"]');
+    console.log('Found edit buttons:', editButtons.length);
     editButtons.forEach(btn => {
-        btn.addEventListener('click', () => {
-            preferenceModal.show();
+        btn.addEventListener('click', (e) => {
+            console.log('Edit Preferences button clicked');
+            e.preventDefault();
+            if (globalPreferenceModal) {
+                globalPreferenceModal.show();
+            } else {
+                console.error('PreferenceModal not initialized');
+            }
         });
     });
 });
