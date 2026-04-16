@@ -186,12 +186,6 @@ def check_job_application_eligibility(request, job_id):
 def job_list(request):
     jobs = JobPosting.objects.filter(is_active=True)
     
-    # Get scraped jobs
-    scraped_jobs = ScrapedJob.objects.filter(is_active=True).order_by('-scraped_at')
-    
-    # Scraper/external view is disabled; keep job board on posted jobs only.
-    view_type = 'posted'
-    
     # Check if user is admin/HR using existing function
     is_admin_or_hr_user = is_hr_or_admin(request.user)
     
@@ -201,6 +195,7 @@ def job_list(request):
     matching_jobs_count = 0
     active_filters = []
     preference_service = None
+    match_data = {}
     
     # For alumni users (not admin/HR), check preferences and apply filtering
     if request.user.is_authenticated and not is_admin_or_hr_user:
@@ -275,166 +270,29 @@ def job_list(request):
                     'key': 'skill_matching',
                     'label': f'Skill Match ≥{prefs.skill_match_threshold}%'
                 })
-        else:
-            # No filtering applied
-            match_data = {}
-    else:
-        # Admin/HR or unauthenticated users see all jobs without filtering
-        match_data = {}
-    
-    # Search functionality
-    query = request.GET.get('q')
-    if query:
-        if view_type == 'scraped':
-            scraped_jobs = scraped_jobs.filter(
-                Q(search_keyword__icontains=query) |
-                Q(search_location__icontains=query)
-            )
-        else:
-            jobs = jobs.filter(
-                Q(job_title__icontains=query) |
-                Q(company_name__icontains=query) |
-                Q(location__icontains=query) |
-                Q(job_description__icontains=query)
-            )
-    
-    # Filtering
-    job_type = request.GET.get('job_type')
-    source_type = request.GET.get('source_type')
-    
-    if job_type and view_type == 'posted':
-        jobs = jobs.filter(job_type=job_type)
-    if source_type:
-        if view_type == 'scraped':
-            scraped_jobs = scraped_jobs.filter(source=source_type)
-        else:
-            jobs = jobs.filter(source_type=source_type)
-    
-    # Skill-based view toggle (only for posted jobs)
-    skill_based_view = request.GET.get('skill_based', 'false').lower() == 'true'
-    
-    # Get user profile if authenticated and skill-based view is enabled
-    user_profile = None
-    job_matches = []
-    recommended_skills = []
-    
-    if request.user.is_authenticated and skill_based_view and view_type == 'posted':
-        try:
-            user_profile = Profile.objects.get(user=request.user)
-            
-            # Get job matches from database
-            skill_matches = SkillMatch.objects.filter(
-                profile=user_profile, 
-                job__in=jobs
-            ).select_related('job')
-            
-            # If no matches exist yet or all are outdated, calculate them on the fly
-            if not skill_matches.exists():
-                for job in jobs:
-                    score, matched_skills, missing_skills = calculate_job_match_score(
-                        user_profile, job, required_skills_only=False
-                    )
-                    if score > 0:
-                        job_matches.append({
-                            'job': job,
-                            'score': score,
-                            'matched_skills': matched_skills,
-                            'missing_skills': missing_skills
-                        })
-                
-                # Sort by score descending
-                job_matches.sort(key=lambda x: x['score'], reverse=True)
-            else:
-                # Convert existing matches to the expected format
-                for match in skill_matches:
-                    job_matches.append({
-                        'job': match.job,
-                        'score': match.match_score,
-                        'matched_skills': json.loads(match.matched_skills) if match.matched_skills else {},
-                        'missing_skills': json.loads(match.missing_skills) if match.missing_skills else {}
-                    })
-            
-            # Sort by score descending
-            job_matches.sort(key=lambda x: x['score'], reverse=True)
-            
-            # Get skill recommendations
-            recommended_skills = get_skill_recommendations(user_profile)
-        except Profile.DoesNotExist:
-            pass
-        
-    # Sorting
-    sort = request.GET.get('sort')
-    if skill_based_view and job_matches and view_type == 'posted':
-        # Already sorted by match score above
-        pass
-    elif sort == 'oldest':
-        jobs = jobs.order_by('posted_date')
-    else:  # newest first is default
-        jobs = jobs.order_by('-posted_date')
     
     # Featured jobs
-    featured_jobs = jobs.filter(is_featured=True)[:5]
+    featured_jobs = jobs.filter(is_featured=True).order_by('-posted_date')[:5]
     
-    # For skill-based view, use the job_matches list
-    scraped_jobs_total_count = 0
-    if skill_based_view and user_profile and view_type == 'posted':
-        paginator = Paginator([match['job'] for match in job_matches], 10)
-        page = request.GET.get('page')
-        jobs_page = paginator.get_page(page)
-        
-        # Create a map for easy lookup of match data (merge with preference match_data if exists)
-        skill_match_data = {match['job'].id: match for match in job_matches}
-        if match_data:
-            # Merge skill matching data with preference matching data
-            for job_id, skill_match in skill_match_data.items():
-                if job_id in match_data:
-                    match_data[job_id]['skill_score'] = skill_match['score']
-                    match_data[job_id]['matched_skills'] = skill_match.get('matched_skills', {})
-                    match_data[job_id]['missing_skills'] = skill_match.get('missing_skills', {})
-                else:
-                    match_data[job_id] = skill_match
-        else:
-            match_data = skill_match_data
-    elif view_type == 'scraped':
-        # Keep only scrape runs that actually have job entries
-        scraped_jobs_with_data = [entry for entry in scraped_jobs if entry.jobs_count > 0]
-        scraped_jobs_total_count = sum(entry.jobs_count for entry in scraped_jobs_with_data)
-
-        # Pagination for scraped jobs
-        paginator = Paginator(scraped_jobs_with_data, 10)
-        page = request.GET.get('page')
-        jobs_page = paginator.get_page(page)
-    else:
-        # Pagination for regular view
-        paginator = Paginator(jobs, 10)
-        page = request.GET.get('page')
-        jobs_page = paginator.get_page(page)
+    # Sort jobs by newest first
+    jobs = jobs.order_by('-posted_date')
     
-    # Get scraped source choices
-    scraped_source_choices = getattr(ScrapedJob, 'SOURCE_CHOICES', [])
+    # Pagination
+    paginator = Paginator(jobs, 10)
+    page = request.GET.get('page')
+    jobs_page = paginator.get_page(page)
     
     context = {
         'jobs': jobs_page,
         'featured_jobs': featured_jobs,
-        'current_query': query,
-        'current_job_type': job_type,
-        'current_source_type': source_type,
-        'current_sort': sort,
-        'job_types': JobPosting.JOB_TYPE_CHOICES,
-        'source_types': JobPosting.SOURCE_TYPE_CHOICES,
-        'scraped_source_choices': scraped_source_choices,
-        'skill_based_view': skill_based_view,
         'match_data': match_data,
-        'recommended_skills': recommended_skills[:5] if recommended_skills else [],  # Show top 5 recommendations
-        'view_type': view_type,
-        'scraped_jobs': scraped_jobs if view_type == 'scraped' else None,
-        'scraped_jobs_total_count': scraped_jobs_total_count,
+        'view_type': 'posted',
         # Preference-related context
         'show_preference_modal': show_preference_modal,
         'preferences_configured': preferences_configured,
         'matching_jobs_count': matching_jobs_count,
         'active_filters': active_filters,
-        'has_active_preferences': len(active_filters) > 0,  # Hide sidebar when preferences are active
+        'has_active_preferences': len(active_filters) > 0,
         'is_admin_or_hr': is_admin_or_hr_user,
         'show_all': request.GET.get('show_all', 'false').lower() == 'true',
     }
