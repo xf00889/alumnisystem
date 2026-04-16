@@ -1,20 +1,296 @@
 {% load static %}
 
+<style>
+    /* Job Preferences Modal Design System - Matching Alumni Detail Modal */
+    :root {
+        --primary-color: #2b3c6b;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --ui-hover: #f7fafc;
+        --ui-subtle: #f8fafc;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --text-muted: #a0aec0;
+        --text-light: #ffffff;
+        --feedback-success: #48bb78;
+        --feedback-warning: #ed8936;
+        --feedback-error: #e53e3e;
+        --feedback-info: #4299e1;
+        --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.07);
+        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
+        --radius-sm: 0.25rem;
+        --radius-md: 0.375rem;
+        --radius-lg: 0.5rem;
+        --space-xs: 0.375rem;
+        --space-sm: 0.5rem;
+        --space-md: 0.75rem;
+        --space-lg: 1rem;
+        --space-xl: 1.5rem;
+    }
+
+    /* Clean Modal Structure */
+    #preferenceModal .modal-content {
+        border-radius: var(--radius-lg);
+        border: 1px solid var(--ui-border);
+        box-shadow: var(--shadow-lg);
+        font-family: 'Poppins', sans-serif;
+        overflow: hidden;
+    }
+
+    #preferenceModal .modal-header {
+        background: var(--primary-color);
+        color: var(--text-light);
+        padding: var(--space-lg);
+        border-bottom: none;
+    }
+
+    #preferenceModal .modal-header .modal-title {
+        font-size: 1rem;
+        font-weight: 600;
+    }
+
+    #preferenceModal .modal-body {
+        padding: var(--space-md);
+        font-size: 0.8rem;
+        line-height: 1.4;
+        max-height: 70vh;
+        overflow-y: auto;
+        scrollbar-width: thin;
+        scrollbar-color: var(--ui-border) transparent;
+    }
+
+    #preferenceModal .modal-body::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    #preferenceModal .modal-body::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    #preferenceModal .modal-body::-webkit-scrollbar-thumb {
+        background: var(--ui-border);
+        border-radius: 3px;
+    }
+
+    #preferenceModal .modal-footer {
+        background: var(--ui-subtle);
+        border-top: 1px solid var(--ui-border);
+        padding: var(--space-md) var(--space-lg);
+    }
+
+    /* Progress Indicator */
+    #preferenceModal .progress {
+        height: 4px;
+        border-radius: var(--radius-sm);
+        background-color: var(--ui-border);
+        margin-bottom: var(--space-md);
+    }
+
+    #preferenceModal .progress-bar {
+        background: var(--feedback-success);
+        border-radius: var(--radius-sm);
+        transition: width 0.6s ease;
+    }
+
+    /* Step Indicator */
+    #preferenceModal .step-indicator {
+        margin-bottom: var(--space-lg);
+        text-align: center;
+    }
+
+    #preferenceModal .step-indicator .badge {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-sm);
+        background: var(--primary-color);
+    }
+
+    /* Content Sections */
+    #preferenceModal .preference-step {
+        animation: fadeIn 0.2s ease-in-out;
+    }
+
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(5px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+
+    #preferenceModal .preference-step h6 {
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--primary-color);
+        margin-bottom: var(--space-md);
+    }
+
+    #preferenceModal .preference-step p.text-muted {
+        font-size: 0.75rem;
+        color: var(--text-muted);
+        margin-bottom: var(--space-md);
+    }
+
+    /* Form Elements */
+    #preferenceModal .form-check {
+        padding: var(--space-sm);
+        border-radius: var(--radius-sm);
+        transition: all 0.15s ease;
+    }
+
+    #preferenceModal .form-check:hover {
+        background: var(--ui-hover);
+    }
+
+    #preferenceModal .form-check-label {
+        font-size: 0.8rem;
+        color: var(--text-primary);
+        font-weight: 500;
+        cursor: pointer;
+    }
+
+    #preferenceModal .form-check-input {
+        cursor: pointer;
+    }
+
+    #preferenceModal .form-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: var(--space-sm);
+    }
+
+    #preferenceModal .form-control,
+    #preferenceModal .form-select {
+        font-size: 0.8rem;
+        padding: var(--space-sm) var(--space-md);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-sm);
+        transition: all 0.15s ease;
+    }
+
+    #preferenceModal .form-control:focus,
+    #preferenceModal .form-select:focus {
+        border-color: var(--primary-color);
+        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.1);
+    }
+
+    #preferenceModal .form-text {
+        font-size: 0.7rem;
+        color: var(--text-muted);
+        margin-top: var(--space-xs);
+    }
+
+    #preferenceModal .input-group-text {
+        font-size: 0.8rem;
+        background: var(--ui-subtle);
+        border: 1px solid var(--ui-border);
+        color: var(--text-secondary);
+    }
+
+    /* Alerts */
+    #preferenceModal .alert {
+        border-radius: var(--radius-md);
+        border: 1px solid var(--ui-border);
+        font-size: 0.8rem;
+        padding: var(--space-md);
+        margin-top: var(--space-md);
+    }
+
+    #preferenceModal .alert-danger {
+        background: rgba(229, 62, 62, 0.1);
+        border-color: var(--feedback-error);
+        color: var(--feedback-error);
+    }
+
+    #preferenceModal .alert-info {
+        background: rgba(66, 153, 225, 0.1);
+        border-color: var(--feedback-info);
+        color: var(--feedback-info);
+    }
+
+    /* Buttons */
+    #preferenceModal .btn {
+        font-size: 0.8rem;
+        font-weight: 500;
+        padding: var(--space-sm) var(--space-lg);
+        border-radius: var(--radius-sm);
+        transition: all 0.15s ease;
+    }
+
+    #preferenceModal .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+
+    #preferenceModal .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+
+    #preferenceModal .btn-outline-light {
+        border-color: var(--ui-border);
+        color: var(--text-primary);
+    }
+
+    #preferenceModal .btn-outline-light:hover {
+        background: var(--ui-hover);
+        border-color: var(--primary-color);
+        color: var(--primary-color);
+    }
+
+    #preferenceModal .btn-close-white {
+        filter: brightness(0) invert(1);
+    }
+
+    /* Range Slider */
+    #preferenceModal .form-range {
+        height: 6px;
+    }
+
+    #preferenceModal .form-range::-webkit-slider-thumb {
+        background: var(--primary-color);
+        width: 16px;
+        height: 16px;
+    }
+
+    #preferenceModal .form-range::-moz-range-thumb {
+        background: var(--primary-color);
+        width: 16px;
+        height: 16px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+        #preferenceModal .modal-body {
+            padding: var(--space-sm);
+        }
+
+        #preferenceModal .modal-footer {
+            padding: var(--space-sm);
+        }
+
+        #preferenceModal .btn {
+            font-size: 0.75rem;
+            padding: var(--space-xs) var(--space-md);
+        }
+    }
+</style>
+
 <!-- Multi-step Preference Configuration Modal -->
 <div class="modal fade" id="preferenceModal" tabindex="-1" aria-labelledby="preferenceModalLabel" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
     <div class="modal-dialog modal-lg modal-dialog-centered">
-        <div class="modal-content preference-modal-content">
-            <div class="modal-header preference-modal-header border-0">
-                <h5 class="modal-title text-white fw-bold" id="preferenceModalLabel">
-                    Set Your Job Preferences
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="preferenceModalLabel">
+                    <i class="bi bi-sliders me-2"></i>Set Your Job Preferences
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             
-            <div class="modal-body preference-modal-body">
+            <div class="modal-body">
                 <!-- Progress Indicator -->
-                <div class="progress mb-4" style="height: 6px; background-color: rgba(255,255,255,0.1);" role="progressbar" aria-label="Preference setup progress">
-                    <div class="progress-bar bg-primary" 
+                <div class="progress" role="progressbar" aria-label="Preference setup progress">
+                    <div class="progress-bar" 
                          style="width: 20%;" 
                          aria-valuenow="1" 
                          aria-valuemin="1" 
@@ -23,8 +299,8 @@
                 </div>
                 
                 <!-- Step Indicator -->
-                <div class="step-indicator mb-4 text-center">
-                    <span class="badge bg-primary px-4 py-2 fs-6">Step <span id="currentStep">1</span> of 5</span>
+                <div class="step-indicator">
+                    <span class="badge">Step <span id="currentStep">1</span> of 5</span>
                 </div>
                 
                 <!-- Preference Form -->
@@ -375,19 +651,19 @@
             </div>
             
             <!-- Modal Footer with Navigation Buttons -->
-            <div class="modal-footer preference-modal-footer border-0 d-flex justify-content-between">
+            <div class="modal-footer d-flex justify-content-between">
                 <button type="button" class="btn btn-outline-light" id="remindLaterBtn">
-                    Remind me later
+                    <i class="bi bi-clock me-1"></i>Remind me later
                 </button>
                 <div class="btn-group" role="group" aria-label="Navigation buttons">
                     <button type="button" class="btn btn-outline-light" id="prevBtn" disabled>
-                        Previous
+                        <i class="bi bi-arrow-left me-1"></i>Previous
                     </button>
                     <button type="button" class="btn btn-primary" id="nextBtn">
-                        Next
+                        Next<i class="bi bi-arrow-right ms-1"></i>
                     </button>
                     <button type="button" class="btn btn-primary d-none" id="saveBtn">
-                        Save Preferences
+                        <i class="bi bi-check-circle me-1"></i>Save Preferences
                     </button>
                 </div>
             </div>
