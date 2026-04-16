@@ -45,6 +45,7 @@ class JobPostingForm(forms.ModelForm):
             'company_name',
             'location',
             'job_type',
+            'category',
             'source_type',
             'experience_level',
             'job_description',
@@ -66,6 +67,12 @@ class JobPostingForm(forms.ModelForm):
             'skills_required': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Enter required skills (comma-separated)...'}),
             'education_requirements': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Enter education requirements...'}),
             'benefits': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Enter job benefits and perks...'}),
+            'location': forms.TextInput(attrs={'placeholder': 'e.g., Dumaguete City, Negros Oriental'}),
+            'category': forms.Select(attrs={'class': 'form-select'}),
+        }
+        labels = {
+            'category': 'Industry',
+            'location': 'Preferred Location',
         }
 
     def clean(self):
