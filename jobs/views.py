@@ -184,7 +184,7 @@ def check_job_application_eligibility(request, job_id):
         }, status=500)
 
 def job_list(request):
-    jobs = JobPosting.objects.filter(is_active=True)
+    jobs = JobPosting.objects.filter(is_active=True).exclude(slug="")
     
     # Check if user is admin/HR using existing function
     is_admin_or_hr_user = is_hr_or_admin(request.user)
