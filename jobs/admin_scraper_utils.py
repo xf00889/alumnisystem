@@ -177,6 +177,23 @@ def publish_scraped_job(scraped_job: ScrapedJob, posted_by: User) -> dict:
     if postings_to_create:
         try:
             with transaction.atomic():
+                # Generate slugs manually since bulk_create doesn't call save()
+                for posting in postings_to_create:
+                    if not posting.slug:
+                        from django.utils.text import slugify
+                        import re
+                        
+                        base_slug = slugify(f"{posting.job_title}-{posting.company_name}")
+                        posting.slug = base_slug
+                        n = 0
+                        # Ensure unique slug
+                        while JobPosting.objects.filter(slug=posting.slug).exists():
+                            n += 1
+                            # Remove any existing numeric suffix
+                            clean_slug = re.sub(r'-\d+$', '', base_slug)
+                            # Add new numeric suffix
+                            posting.slug = f"{clean_slug}-{n}"
+                
                 created = JobPosting.objects.bulk_create(
                     postings_to_create,
                     ignore_conflicts=True,
