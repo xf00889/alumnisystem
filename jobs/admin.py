@@ -1,6 +1,12 @@
 from django.contrib import admin
 from django.contrib import messages
-from .models import JobPosting, JobApplication, JobPreference
+from django.http import HttpResponseRedirect
+from django.shortcuts import render
+from django.urls import path, reverse
+from django.utils.html import format_html
+from django.utils.safestring import mark_safe
+
+from .models import JobPosting, JobApplication, JobPreference, ScrapedJob
 
 @admin.register(JobPosting)
 class JobPostingAdmin(admin.ModelAdmin):
@@ -147,3 +153,261 @@ class JobPreferenceAdmin(admin.ModelAdmin):
         if obj:  # Editing existing object
             return self.readonly_fields + ('user',)
         return self.readonly_fields
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# ScrapedJob Admin — scrape + publish workflow
+# ─────────────────────────────────────────────────────────────────────────────
+
+class ScrapeJobsForm(admin.helpers.ActionForm):
+    """Inline form shown above the ScrapedJob changelist for triggering a scrape."""
+    pass
+
+
+@admin.register(ScrapedJob)
+class ScrapedJobAdmin(admin.ModelAdmin):
+    list_display = (
+        "search_keyword",
+        "search_location",
+        "source_display",
+        "total_found",
+        "scraped_by",
+        "scraped_at",
+        "is_active",
+        "publish_button",
+    )
+    list_filter = ("source", "is_active", "scraped_at", "scraped_by")
+    search_fields = ("search_keyword", "search_location", "scraped_by__username")
+    readonly_fields = ("scraped_at", "total_found", "scraped_by", "jobs_preview")
+    date_hierarchy = "scraped_at"
+    ordering = ("-scraped_at",)
+    list_per_page = 20
+
+    fieldsets = (
+        ("Search Parameters", {
+            "fields": ("search_keyword", "search_location", "source", "is_active"),
+        }),
+        ("Results", {
+            "fields": ("total_found", "scraped_by", "scraped_at", "jobs_preview"),
+        }),
+        ("Raw Data", {
+            "fields": ("scraped_data",),
+            "classes": ("collapse",),
+        }),
+    )
+
+    # ── Custom URL for the "Scrape Now" page ─────────────────────────────────
+
+    def get_urls(self):
+        urls = super().get_urls()
+        custom = [
+            path(
+                "scrape-now/",
+                self.admin_site.admin_view(self.scrape_now_view),
+                name="jobs_scrapedjob_scrape_now",
+            ),
+            path(
+                "<int:pk>/publish/",
+                self.admin_site.admin_view(self.publish_single_view),
+                name="jobs_scrapedjob_publish_single",
+            ),
+        ]
+        return custom + urls
+
+    # ── "Scrape Now" view ─────────────────────────────────────────────────────
+
+    def scrape_now_view(self, request):
+        """
+        Custom admin page with a form to trigger a multi-site scrape.
+        GET  → show form
+        POST → run scrapers, save ScrapedJob records, redirect to changelist
+        """
+        from .botasaurus_scrapers.orchestrator import SCRAPERS, scrape_all_sites
+        from django import forms as django_forms
+
+        class ScrapeForm(django_forms.Form):
+            keyword = django_forms.CharField(
+                max_length=100,
+                label="Job keyword",
+                widget=django_forms.TextInput(attrs={
+                    "class": "vTextField",
+                    "placeholder": "e.g. software engineer",
+                    "autofocus": True,
+                }),
+            )
+            location = django_forms.CharField(
+                max_length=100,
+                label="Location",
+                initial="Philippines",
+                widget=django_forms.TextInput(attrs={
+                    "class": "vTextField",
+                    "placeholder": "e.g. Manila, Cebu, Philippines",
+                }),
+            )
+            sources = django_forms.MultipleChoiceField(
+                choices=[(k, v[0]) for k, v in SCRAPERS.items()],
+                initial=list(SCRAPERS.keys()),
+                widget=django_forms.CheckboxSelectMultiple,
+                label="Sites to scrape",
+                required=True,
+            )
+
+        context = {
+            **self.admin_site.each_context(request),
+            "title": "Scrape Jobs from Philippine Job Sites",
+            "opts": self.model._meta,
+            "has_permission": True,
+        }
+
+        if request.method == "POST":
+            form = ScrapeForm(request.POST)
+            if form.is_valid():
+                keyword = form.cleaned_data["keyword"]
+                location = form.cleaned_data["location"]
+                sources = form.cleaned_data["sources"]
+
+                self.message_user(
+                    request,
+                    f"Scraping '{keyword}' in '{location}' from {len(sources)} site(s)… "
+                    "This may take up to 60 seconds.",
+                    messages.INFO,
+                )
+
+                try:
+                    results = scrape_all_sites(keyword, location, sources=sources, max_workers=4)
+                except Exception as exc:
+                    self.message_user(request, f"Scraping failed: {exc}", messages.ERROR)
+                    context["form"] = form
+                    return render(request, "admin/jobs/scrapedjob/scrape_now.html", context)
+
+                saved = 0
+                total_jobs = 0
+                for result in results:
+                    if not result.get("jobs"):
+                        continue
+                    src = result.get("source", "OTHER")
+                    # Deactivate previous entries for same search + source
+                    ScrapedJob.objects.filter(
+                        search_keyword=keyword,
+                        search_location=location,
+                        source=src,
+                        scraped_by=request.user,
+                    ).update(is_active=False)
+
+                    ScrapedJob.objects.create(
+                        search_keyword=keyword,
+                        search_location=location,
+                        source=src,
+                        scraped_data=result,
+                        total_found=result.get("total_found", 0),
+                        scraped_by=request.user,
+                    )
+                    saved += 1
+                    total_jobs += result.get("total_found", 0)
+
+                self.message_user(
+                    request,
+                    f"Done! Saved {saved} scrape record(s) with {total_jobs} total job(s). "
+                    "Use 'Publish to Job Board' to make them visible to users.",
+                    messages.SUCCESS,
+                )
+                return HttpResponseRedirect(
+                    reverse("admin:jobs_scrapedjob_changelist")
+                )
+        else:
+            form = ScrapeForm()
+
+        context["form"] = form
+        return render(request, "admin/jobs/scrapedjob/scrape_now.html", context)
+
+    # ── Publish single record view ────────────────────────────────────────────
+
+    def publish_single_view(self, request, pk):
+        """Publish a single ScrapedJob record to the job board."""
+        from .admin_scraper_utils import publish_scraped_job
+
+        scraped_job = ScrapedJob.objects.get(pk=pk)
+        summary = publish_scraped_job(scraped_job, posted_by=request.user)
+
+        self.message_user(
+            request,
+            f"Published {summary['published']} new job(s), "
+            f"skipped {summary['skipped']} duplicate(s), "
+            f"{summary['errors']} error(s).",
+            messages.SUCCESS if summary["errors"] == 0 else messages.WARNING,
+        )
+        return HttpResponseRedirect(reverse("admin:jobs_scrapedjob_changelist"))
+
+    # ── Admin actions ─────────────────────────────────────────────────────────
+
+    @admin.action(description="Publish selected scraped jobs to the Job Board")
+    def publish_to_job_board(self, request, queryset):
+        from .admin_scraper_utils import publish_multiple_scraped_jobs
+
+        summary = publish_multiple_scraped_jobs(queryset, posted_by=request.user)
+        self.message_user(
+            request,
+            f"Published {summary['published']} new job(s), "
+            f"skipped {summary['skipped']} duplicate(s), "
+            f"{summary['errors']} error(s).",
+            messages.SUCCESS if summary["errors"] == 0 else messages.WARNING,
+        )
+
+    @admin.action(description="Deactivate selected scrape records")
+    def deactivate_records(self, request, queryset):
+        updated = queryset.update(is_active=False)
+        self.message_user(request, f"{updated} record(s) deactivated.", messages.SUCCESS)
+
+    actions = ["publish_to_job_board", "deactivate_records"]
+
+    # ── Custom display columns ────────────────────────────────────────────────
+
+    def source_display(self, obj):
+        return obj.get_source_display()
+    source_display.short_description = "Source"
+
+    def publish_button(self, obj):
+        url = reverse("admin:jobs_scrapedjob_publish_single", args=[obj.pk])
+        return format_html(
+            '<a class="button" href="{}" style="'
+            'background:#417690;color:#fff;padding:4px 10px;'
+            'border-radius:4px;text-decoration:none;font-size:12px;">'
+            '▶ Publish</a>',
+            url,
+        )
+    publish_button.short_description = "Publish"
+    publish_button.allow_tags = True
+
+    def jobs_preview(self, obj):
+        """Show first 5 jobs from the scraped data as a preview table."""
+        jobs = obj.jobs_data[:5]
+        if not jobs:
+            return "No jobs in this record."
+        rows = ""
+        for job in jobs:
+            rows += (
+                f"<tr>"
+                f"<td style='padding:4px 8px;border-bottom:1px solid #eee'>{job.get('title','—')}</td>"
+                f"<td style='padding:4px 8px;border-bottom:1px solid #eee'>{job.get('company','—')}</td>"
+                f"<td style='padding:4px 8px;border-bottom:1px solid #eee'>{job.get('location','—')}</td>"
+                f"<td style='padding:4px 8px;border-bottom:1px solid #eee'>{job.get('salary','—')}</td>"
+                f"</tr>"
+            )
+        return mark_safe(
+            f"<table style='border-collapse:collapse;font-size:13px;width:100%'>"
+            f"<thead><tr>"
+            f"<th style='text-align:left;padding:4px 8px;background:#f8f8f8'>Title</th>"
+            f"<th style='text-align:left;padding:4px 8px;background:#f8f8f8'>Company</th>"
+            f"<th style='text-align:left;padding:4px 8px;background:#f8f8f8'>Location</th>"
+            f"<th style='text-align:left;padding:4px 8px;background:#f8f8f8'>Salary</th>"
+            f"</tr></thead><tbody>{rows}</tbody></table>"
+            f"<p style='color:#666;font-size:12px'>Showing first 5 of {obj.total_found} job(s).</p>"
+        )
+    jobs_preview.short_description = "Jobs Preview"
+
+    # ── Changelist page — add "Scrape Now" button ─────────────────────────────
+
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context["scrape_now_url"] = reverse("admin:jobs_scrapedjob_scrape_now")
+        return super().changelist_view(request, extra_context=extra_context)

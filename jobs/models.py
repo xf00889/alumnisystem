@@ -93,7 +93,18 @@ class JobPosting(models.Model):
     is_active = models.BooleanField(default=True)
     posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='job_postings')
     source = models.CharField(max_length=50, default='manual', choices=[
-        ('manual', 'Manual')
+        ('manual', 'Manual'),
+        ('bossjob', 'BossJob.ph'),
+        ('jobstreet', 'JobStreet Philippines'),
+        ('indeed', 'Indeed Philippines'),
+        ('linkedin', 'LinkedIn'),
+        ('kalibrr', 'Kalibrr'),
+        ('philjobnet', 'PhilJobNet (DOLE)'),
+        ('onlinejobs', 'OnlineJobs.ph'),
+        ('jora', 'Jora Philippines'),
+        ('mynimo', 'Mynimo'),
+        ('workabroad', 'WorkAbroad.ph'),
+        ('other', 'Other'),
     ])
     source_type = models.CharField(max_length=20, choices=SOURCE_TYPE_CHOICES, default='EXTERNAL')
     category = models.CharField(max_length=50, choices=CATEGORY_CHOICES, default='other', help_text="Job industry category")
@@ -174,8 +185,15 @@ class ScrapedJob(models.Model):
     
     SOURCE_CHOICES = [
         ('BOSSJOB', 'BossJob.ph'),
-        ('JOBSTREET', 'JobStreet'),
+        ('JOBSTREET', 'JobStreet Philippines'),
         ('LINKEDIN', 'LinkedIn'),
+        ('INDEED', 'Indeed Philippines'),
+        ('KALIBRR', 'Kalibrr'),
+        ('PHILJOBNET', 'PhilJobNet (DOLE)'),
+        ('ONLINEJOBS', 'OnlineJobs.ph'),
+        ('JORA', 'Jora Philippines'),
+        ('MYNIMO', 'Mynimo'),
+        ('WORKABROAD', 'WorkAbroad.ph'),
         ('OTHER', 'Other'),
     ]
     

@@ -1,0 +1,90 @@
+{% extends "admin/base_site.html" %}
+{% load i18n %}
+
+{% block title %}Scrape Jobs — {{ block.super }}{% endblock %}
+
+{% block breadcrumbs %}
+<div class="breadcrumbs">
+    <a href="{% url 'admin:index' %}">Home</a>
+    &rsaquo; <a href="{% url 'admin:jobs_scrapedjob_changelist' %}">Scraped Jobs</a>
+    &rsaquo; Scrape Now
+</div>
+{% endblock %}
+
+{% block content %}
+<h1>Scrape Jobs from Philippine Job Sites</h1>
+
+<p style="color:#666;margin-bottom:1.5rem;">
+    Fill in the keyword and location, select which sites to scrape, then click
+    <strong>Run Scraper</strong>. Results are saved as <em>Scraped Job</em> records.
+    Afterwards, use the <strong>Publish to Job Board</strong> action to make them
+    visible to users.
+</p>
+
+{% if messages %}
+<ul class="messagelist">
+    {% for message in messages %}
+    <li class="{{ message.tags }}">{{ message }}</li>
+    {% endfor %}
+</ul>
+{% endif %}
+
+<div style="max-width:700px;">
+    <form method="post">
+        {% csrf_token %}
+
+        <fieldset class="module aligned">
+            <h2>Search Parameters</h2>
+
+            <div class="form-row">
+                <label for="id_keyword" class="required">Job keyword:</label>
+                {{ form.keyword }}
+                {% if form.keyword.errors %}
+                    <p class="errornote">{{ form.keyword.errors }}</p>
+                {% endif %}
+                <p class="help">e.g. <em>software engineer</em>, <em>nurse</em>, <em>accountant</em></p>
+            </div>
+
+            <div class="form-row">
+                <label for="id_location" class="required">Location:</label>
+                {{ form.location }}
+                {% if form.location.errors %}
+                    <p class="errornote">{{ form.location.errors }}</p>
+                {% endif %}
+                <p class="help">e.g. <em>Manila</em>, <em>Cebu</em>, <em>Philippines</em></p>
+            </div>
+        </fieldset>
+
+        <fieldset class="module aligned">
+            <h2>Sites to Scrape</h2>
+            <div class="form-row">
+                <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0.5rem;padding:0.5rem 0;">
+                    {% for checkbox in form.sources %}
+                    <label style="display:flex;align-items:center;gap:0.4rem;font-weight:normal;cursor:pointer;">
+                        {{ checkbox.tag }}
+                        <span>{{ checkbox.choice_label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+                {% if form.sources.errors %}
+                    <p class="errornote">{{ form.sources.errors }}</p>
+                {% endif %}
+            </div>
+        </fieldset>
+
+        <div style="margin-top:1rem;display:flex;gap:1rem;align-items:center;">
+            <input type="submit" value="▶ Run Scraper"
+                   class="default"
+                   style="background:#417690;color:#fff;padding:8px 20px;border:none;
+                          border-radius:4px;font-size:14px;cursor:pointer;">
+            <a href="{% url 'admin:jobs_scrapedjob_changelist' %}"
+               style="color:#666;text-decoration:none;">← Cancel</a>
+        </div>
+
+        <p style="margin-top:1rem;color:#888;font-size:12px;">
+            ⚠ Scraping may take 30–60 seconds depending on the number of sites selected.
+            The page will reload automatically when done.
+        </p>
+    </form>
+</div>
+{% endblock %}
