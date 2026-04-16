@@ -15,7 +15,15 @@ class PreferenceModal {
             console.error('Preference modal element not found');
             return;
         }
+        
+        // Check if Bootstrap is loaded
+        if (typeof bootstrap === 'undefined') {
+            console.error('Bootstrap is not loaded');
+            return;
+        }
+        
         this.modal = new bootstrap.Modal(modalElement);
+        console.log('PreferenceModal initialized successfully');
         
         // Initialize event listeners
         this.initializeEventListeners();
@@ -361,6 +369,9 @@ let globalPreferenceModal = null;
 document.addEventListener('DOMContentLoaded', () => {
     // Initialize PreferenceModal instance
     globalPreferenceModal = new PreferenceModal();
+    
+    // Also expose as window.preferenceModal for compatibility with job_filters.js
+    window.preferenceModal = globalPreferenceModal;
     
     // Check if modal should be auto-shown
     const showModal = document.body.dataset.showPreferenceModal === 'true';
