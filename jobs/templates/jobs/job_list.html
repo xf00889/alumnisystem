@@ -192,6 +192,114 @@
         box-shadow: var(--shadow-md);
         transform: translateY(-1px);
     }
+    
+    /* Modern Job Card Styling - Clean & Simple */
+    .modern-job-card {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: var(--radius-md);
+        padding: var(--space-lg);
+        margin-bottom: var(--space-md);
+        transition: all var(--transition-fast);
+    }
+    
+    .modern-job-card:hover {
+        box-shadow: var(--shadow-md);
+        border-color: var(--primary-color);
+    }
+    
+    .company-icon {
+        width: 48px;
+        height: 48px;
+        background: #1e293b;
+        border-radius: var(--radius-md);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.25rem;
+        flex-shrink: 0;
+    }
+    
+    .job-title-modern {
+        font-size: 1.125rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin: 0;
+    }
+    
+    .job-title-modern a {
+        color: var(--text-primary);
+        text-decoration: none;
+        transition: color var(--transition-fast);
+    }
+    
+    .job-title-modern a:hover {
+        color: var(--primary-color);
+    }
+    
+    .company-name-modern {
+        font-size: 0.9375rem;
+        color: var(--text-secondary);
+        margin: 0;
+    }
+    
+    .job-location-modern {
+        font-size: 0.875rem;
+        color: var(--text-muted);
+        margin: 0;
+    }
+    
+    .btn-apply-modern {
+        padding: 0.5rem 1.5rem;
+        border-radius: var(--radius-md);
+        font-weight: 500;
+        font-size: 0.9375rem;
+        transition: all var(--transition-fast);
+    }
+    
+    .btn-apply-modern:hover {
+        transform: translateY(-1px);
+        box-shadow: var(--shadow-sm);
+    }
+    
+    /* Filter Pills */
+    .filter-pills {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    .filter-pill {
+        display: inline-block;
+        padding: 0.375rem 0.75rem;
+        background: #e0e7ff;
+        color: #4f46e5;
+        border-radius: 1.5rem;
+        font-size: 0.875rem;
+        font-weight: 500;
+        border: 1px solid #c7d2fe;
+    }
+    
+    /* Search Input */
+    .search-input-wrapper {
+        position: relative;
+    }
+    
+    .search-icon {
+        position: absolute;
+        left: 0.75rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--text-muted);
+        font-size: 0.875rem;
+    }
+    
+    .search-input {
+        padding-left: 2.5rem;
+    }
+    
     /* Job Card Styling */
     .job-card {
         background: var(--ui-surface);
@@ -894,20 +1002,41 @@
             {% if user.is_authenticated and not is_admin_or_hr %}
             <div class="col-lg-3 mb-4">
                 <div class="filter-section">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5><i class="fas fa-sliders-h me-2"></i>Your Preferences</h5>
-                        <button type="button" class="btn btn-sm btn-primary" id="editPreferencesBtn">
-                            <i class="bi bi-pencil me-1"></i>Edit
-                        </button>
+                    <h5 class="mb-4"><i class="fas fa-sliders-h me-2"></i>Search & Filters</h5>
+                    
+                    <!-- Search Box -->
+                    <div class="mb-4">
+                        <div class="search-input-wrapper">
+                            <i class="fas fa-search search-icon"></i>
+                            <input type="text" 
+                                   class="form-control search-input" 
+                                   placeholder="Search jobs..."
+                                   id="jobSearchInput">
+                        </div>
+                    </div>
+                    
+                    <!-- Location Filter -->
+                    <div class="mb-4">
+                        <label class="form-label fw-medium">Location</label>
+                        <input type="text" 
+                               class="form-control" 
+                               placeholder="Location (City or Remote)"
+                               id="locationInput">
                     </div>
                     
                     {% if preferences_configured %}
                         <!-- Active Preferences Display -->
-                        <div class="mb-3">
-                            <small class="text-muted d-block mb-2">
-                                <i class="bi bi-check-circle text-success me-1"></i>
-                                {{ matching_jobs_count }} jobs match your preferences
-                            </small>
+                        <div class="mb-4">
+                            <label class="form-label fw-medium">Your Preferences</label>
+                            <div class="d-flex justify-content-between align-items-center mb-2">
+                                <small class="text-muted">
+                                    <i class="bi bi-check-circle text-success me-1"></i>
+                                    {{ matching_jobs_count }} jobs match
+                                </small>
+                                <button type="button" class="btn btn-sm btn-link p-0" id="editPreferencesBtn">
+                                    Edit
+                                </button>
+                            </div>
                         </div>
 
                         <!-- Show All Toggle -->
@@ -921,27 +1050,29 @@
                             </div>
                         </div>
 
-                        <!-- Active Filters -->
+                        <!-- Active Filters as Pills -->
                         {% if active_filters %}
                         <div class="mb-3">
                             <label class="form-label fw-medium">Active Filters</label>
-                            <div class="active-filters-sidebar">
+                            <div class="filter-pills">
                                 {% for filter in active_filters %}
-                                    <span class="badge bg-info d-block mb-2 text-start">
+                                    <span class="filter-pill">
                                         {{ filter.label }}
                                     </span>
                                 {% endfor %}
                             </div>
-                            <a href="{% url 'jobs:clear_all_filters' %}" class="btn btn-sm btn-outline-danger w-100 mt-2">
-                                <i class="bi bi-x-circle me-1"></i>Clear all filters
+                            <a href="{% url 'jobs:clear_all_filters' %}" class="text-primary small">
+                                Clear All
                             </a>
                         </div>
                         {% endif %}
                     {% else %}
                         <!-- No Preferences Set -->
-                        <div class="alert alert-info">
-                            <i class="bi bi-info-circle me-2"></i>
-                            <small>Set your preferences to get personalized job recommendations</small>
+                        <div class="alert alert-light border">
+                            <small class="text-muted">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Set preferences for personalized recommendations
+                            </small>
                         </div>
                         <button type="button" class="btn btn-primary w-100" id="setPreferencesBtn">
                             <i class="bi bi-sliders me-1"></i>Set Preferences
@@ -1116,88 +1247,51 @@
                         {% if jobs %}
                         <div class="job-list">
                         {% for job in jobs %}
-                        <div class="job-card" data-job-id="{{ job.id }}">
-                            <div class="job-card-body">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div class="flex-grow-1">
-                                        <h3 class="h5 mb-1 job-title">
-                                            {{ job.job_title|format_job_title }}
-                                        </h3>
-                                        <p class="mb-2 company-name">{{ job.company_name }}</p>
-                                        
-                                        {% if skill_based_view and job.id in match_data %}
-                                        {% with match=match_data|get_item:job.id %}
-                                        <div class="mb-3">
-                                            <div class="progress">
-                                                <div class="progress-bar bg-success" style="width: {{ match.score }}%;"></div>
-                                            </div>
-                                            <div class="d-flex justify-content-between align-items-center">
-                                                <small class="text-muted">Skills Match</small>
-                                                {% if match.score >= 75 %}
-                                                <span class="match-score high">{{ match.score|floatformat:0 }}% Match</span>
-                                                {% elif match.score >= 50 %}
-                                                <span class="match-score medium">{{ match.score|floatformat:0 }}% Match</span>
-                                                {% else %}
-                                                <span class="match-score low">{{ match.score|floatformat:0 }}% Match</span>
+                        <div class="modern-job-card">
+                            <div class="d-flex align-items-start">
+                                <!-- Company Logo/Icon -->
+                                <div class="company-icon me-3">
+                                    <i class="fas fa-building"></i>
+                                </div>
+                                
+                                <!-- Job Details -->
+                                <div class="flex-grow-1">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <div>
+                                            <h3 class="job-title-modern mb-1">
+                                                <a href="{% url 'jobs:job_detail' job.slug %}">
+                                                    {{ job.job_title|format_job_title }}
+                                                </a>
+                                                {% if job.posted_date|timesince|slice:":1" == "0" or "minute" in job.posted_date|timesince or "hour" in job.posted_date|timesince %}
+                                                <span class="badge bg-info ms-2">New</span>
                                                 {% endif %}
-                                            </div>
-                                            
-                                            {% if match.matched_skills %}
-                                            <div class="matched-skills">
-                                                <small class="text-muted d-block mb-1">Matching skills:</small>
-                                                <div>
-                                                    {% for skill_name, data in match.matched_skills.items %}
-                                                    <span class="skill-tag">{{ skill_name }}</span>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endif %}
-                                            
-                                            {% if match.missing_skills %}
-                                            <div class="missing-skills-container">
-                                                <small class="text-muted d-block mb-1">Skills to develop:</small>
-                                                <div>
-                                                    {% for skill_name, data in match.missing_skills.items %}
-                                                    <span class="skill-tag">{{ skill_name }}</span>
-                                                    {% endfor %}
-                                                </div>
-                                            </div>
-                                            {% endif %}
+                                            </h3>
+                                            <p class="company-name-modern mb-1">{{ job.company_name }}</p>
+                                            <p class="job-location-modern mb-0">
+                                                {{ job.location }}
+                                                {% if job.job_type == 'REMOTE' %}(Remote){% endif %}
+                                                {% if job.job_type != 'REMOTE' and job.job_type != 'FULL_TIME' %}({{ job.get_job_type_display }}){% endif %}
+                                            </p>
                                         </div>
-                                        {% endwith %}
-                                        {% endif %}
                                         
-                                        <div class="d-flex flex-wrap gap-2 mb-2">
-                                            <span class="job-detail-badge">
-                                                <i class="fas fa-map-marker-alt me-1"></i>{{ job.location }}
-                                            </span>
-                                            <span class="job-detail-badge">
-                                                <i class="fas fa-briefcase me-1"></i>{{ job.get_job_type_display }}
-                                            </span>
-                                            {% if job.salary_range %}
-                                            <span class="job-detail-badge">
-                                                <i class="fas fa-money-bill-wave me-1"></i>{{ job.salary_range }}
-                                            </span>
+                                        <!-- Apply Button -->
+                                        <div>
+                                            {% if job.accepts_internal_applications %}
+                                            <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-outline-primary btn-apply-modern">
+                                                Apply
+                                            </a>
+                                            {% else %}
+                                            <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-secondary btn-apply-modern">
+                                                View
+                                            </a>
                                             {% endif %}
-                                            <span class="source-badge-sm {% if job.source_type == 'INTERNAL' %}internal{% else %}external{% endif %}">
-                                                {{ job.get_source_type_display }}
-                                            </span>
                                         </div>
-                                        <small class="text-muted posted-time">
-                                            <i class="fas fa-clock me-1"></i>Posted {{ job.posted_date|timesince }} ago
-                                        </small>
                                     </div>
-                                    <div class="d-flex gap-2 align-items-start ms-3 job-actions">
-                                        <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-sm details-btn">
-                                            <i class="fas fa-info-circle me-1"></i>Details
-                                        </a>
-                                        {% if job.accepts_internal_applications %}
-                                        <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary btn-sm apply-btn">
-                                            <i class="fas fa-paper-plane me-1"></i>Apply
-                                        </a>
-                                        {% endif %}
-                                        <button class="btn btn-outline-secondary btn-sm share-btn" 
-                                                data-job-title="{{ job.job_title|format_job_title }}"
+                                </div>
+                            </div>
+                        </div>
+                        {% endfor %}
+                        </div>
                                                 data-job-url="{{ request.scheme }}://{{ request.get_host }}{% url 'jobs:job_detail' job.slug %}"
                                                 data-bs-toggle="tooltip" 
                                                 title="Share this job">
