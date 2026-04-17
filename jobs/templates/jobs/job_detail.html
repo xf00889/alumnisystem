@@ -447,6 +447,77 @@
                 {% endif %}
             </div>
 
+            <!-- AI Match Score Card -->
+            {% if user.is_authenticated and ai_match %}
+            <div class="dashboard-card">
+                <h5 class="text-gray-900 fw-bold mb-3">
+                    <i class="fas fa-robot text-primary me-2"></i>AI Match Score
+                    {% if ai_match.cached %}
+                    <span class="badge bg-light text-muted ms-1" style="font-size:0.65rem;" title="Cached result">cached</span>
+                    {% endif %}
+                </h5>
+
+                {% if ai_match.error %}
+                    <p class="text-muted small mb-0">
+                        <i class="fas fa-info-circle me-1"></i>{{ ai_match.reason }}
+                    </p>
+                {% else %}
+                    <!-- Score bar -->
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="progress flex-grow-1 me-3" style="height: 10px; border-radius: 5px;">
+                            <div class="progress-bar
+                                {% if ai_match.score >= 70 %}bg-success
+                                {% elif ai_match.score >= 40 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                role="progressbar"
+                                style="width: {{ ai_match.score }}%"
+                                aria-valuenow="{{ ai_match.score }}"
+                                aria-valuemin="0" aria-valuemax="100">
+                            </div>
+                        </div>
+                        <span class="fw-bold fs-5
+                            {% if ai_match.score >= 70 %}text-success
+                            {% elif ai_match.score >= 40 %}text-warning
+                            {% else %}text-danger{% endif %}">
+                            {{ ai_match.score }}%
+                        </span>
+                    </div>
+
+                    <p class="text-muted small mb-3">{{ ai_match.reason }}</p>
+
+                    {% if ai_match.strengths %}
+                    <div class="mb-2">
+                        <p class="fw-semibold text-success small mb-1">
+                            <i class="fas fa-check-circle me-1"></i>Strengths
+                        </p>
+                        <ul class="list-unstyled mb-0 ps-2">
+                            {% for s in ai_match.strengths %}
+                            <li class="small text-gray-600 mb-1">
+                                <i class="fas fa-circle text-success me-1" style="font-size:0.4rem; vertical-align:middle;"></i>{{ s }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+
+                    {% if ai_match.gaps %}
+                    <div>
+                        <p class="fw-semibold text-danger small mb-1">
+                            <i class="fas fa-exclamation-circle me-1"></i>Gaps
+                        </p>
+                        <ul class="list-unstyled mb-0 ps-2">
+                            {% for g in ai_match.gaps %}
+                            <li class="small text-gray-600 mb-1">
+                                <i class="fas fa-circle text-danger me-1" style="font-size:0.4rem; vertical-align:middle;"></i>{{ g }}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </div>
+                    {% endif %}
+                {% endif %}
+            </div>
+            {% endif %}
+
             <!-- Posted By Card -->
             <div class="dashboard-card">
                 <h5 class="text-gray-900 fw-bold mb-4">Posted By</h5>

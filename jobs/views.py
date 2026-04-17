@@ -569,18 +569,28 @@ def job_detail(request, slug):
     job = get_object_or_404(JobPosting, slug=slug)
     user_application = None
     applicants = None
-    
+    ai_match = None
+
     if request.user.is_authenticated:
         user_application = JobApplication.objects.filter(job=job, applicant=request.user).first()
-        
+
         # Add applicants list for admin/HR users
         if request.user.is_staff or is_hr_or_admin(request.user):
             applicants = job.applications.all().select_related('applicant__profile')
-    
+
+        # AI job matching — only for regular alumni users (not admin/HR)
+        if not is_hr_or_admin(request.user):
+            try:
+                from .ai_matching import get_ai_match_score
+                ai_match = get_ai_match_score(request.user, job)
+            except Exception as e:
+                logger.error(f"AI matching failed for user={request.user.id}, job={job.id}: {e}")
+
     context = {
         'job': job,
         'user_application': user_application,
         'applicants': applicants,
+        'ai_match': ai_match,
     }
     return render(request, 'jobs/job_detail.html', context)
 

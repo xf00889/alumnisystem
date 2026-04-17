@@ -794,3 +794,7 @@ SESSION_COOKIE_PATH = '/'
 #         },
 #     },
 # }
+
+
+# Google Gemini AI Configuration (for AI-powered job matching)
+GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
