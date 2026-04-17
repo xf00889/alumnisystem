@@ -33,6 +33,7 @@ from .recaptcha_config import ReCaptchaConfig
 from .sso_config import SSOConfig
 from .user_management import UserAuditLog, UserStatusChange
 from .seo import PageSEO, OrganizationSchema
+from .ai_config import AIConfig
 
 __all__ = [
     'TimeStampedModel',
@@ -54,4 +55,5 @@ __all__ = [
     'UserStatusChange',
     'PageSEO',
     'OrganizationSchema',
+    'AIConfig',
 ]

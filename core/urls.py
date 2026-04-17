@@ -3,6 +3,7 @@ from . import admin_views
 from . import smtp_admin_views
 from . import recaptcha_admin_views, recaptcha_analytics_views
 from . import sso_admin_views
+from . import ai_config_views
 from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
@@ -102,6 +103,15 @@ urlpatterns = [
     path('admin-dashboard/sso/<int:config_id>/delete/', sso_admin_views.sso_configuration_delete, name='sso_configuration_delete'),
     path('admin-dashboard/sso/<int:config_id>/activate/', sso_admin_views.sso_configuration_activate, name='sso_configuration_activate'),
     path('admin-dashboard/sso/<int:config_id>/toggle-enabled/', sso_admin_views.sso_configuration_toggle_enabled, name='sso_configuration_toggle_enabled'),
+
+    # AI Configuration URLs
+    path('admin-dashboard/ai/', ai_config_views.ai_configuration_list, name='ai_configuration_list'),
+    path('admin-dashboard/ai/create/', ai_config_views.ai_configuration_create, name='ai_configuration_create'),
+    path('admin-dashboard/ai/<int:config_id>/edit/', ai_config_views.ai_configuration_edit, name='ai_configuration_edit'),
+    path('admin-dashboard/ai/<int:config_id>/test/', ai_config_views.ai_configuration_test, name='ai_configuration_test'),
+    path('admin-dashboard/ai/<int:config_id>/activate/', ai_config_views.ai_configuration_activate, name='ai_configuration_activate'),
+    path('admin-dashboard/ai/<int:config_id>/toggle-enabled/', ai_config_views.ai_configuration_toggle_enabled, name='ai_configuration_toggle_enabled'),
+    path('admin-dashboard/ai/<int:config_id>/delete/', ai_config_views.ai_configuration_delete, name='ai_configuration_delete'),
     
     # User Management URLs
     path('admin-dashboard/users/', user_management_views.UserListView.as_view(), name='user_list'),

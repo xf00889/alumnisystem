@@ -7,27 +7,18 @@ and returns a match score with strengths and gaps.
 
 import json
 import logging
-from django.conf import settings
 from django.core.cache import cache
 
 logger = logging.getLogger(__name__)
 
 
 def _get_gemini_client():
-    """Initialize and return the Gemini generative model."""
+    """Initialize and return the Gemini generative model using DB config."""
     try:
-        import google.generativeai as genai
-        api_key = getattr(settings, 'GEMINI_API_KEY', '')
-        if not api_key:
-            logger.warning("GEMINI_API_KEY is not set in settings.")
-            return None
-        genai.configure(api_key=api_key)
-        return genai.GenerativeModel("gemini-2.0-flash")
-    except ImportError:
-        logger.error("google-generativeai package is not installed. Run: pip install google-generativeai")
-        return None
+        from core.ai_config_utils import get_gemini_model
+        return get_gemini_model()
     except Exception as e:
-        logger.error(f"Failed to initialize Gemini client: {e}")
+        logger.error(f"Failed to initialize Gemini client from DB config: {e}")
         return None
 
 
