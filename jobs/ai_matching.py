@@ -6,6 +6,7 @@ and returns a match score with strengths and gaps.
 """
 
 import json
+import re
 import logging
 from django.core.cache import cache
 
@@ -54,7 +55,8 @@ def build_user_profile(user):
         for e in profile.experience.all()[:10]:
             duration = ""
             if e.start_date:
-                end = e.end_date or __import__('datetime').date.today()
+                import datetime
+                end = e.end_date or datetime.date.today()
                 months = (end.year - e.start_date.year) * 12 + (end.month - e.start_date.month)
                 duration = f"{months // 12}y {months % 12}m"
             experience.append(
@@ -91,6 +93,39 @@ def build_job_summary(job):
     }
 
 
+def _extract_json(text):
+    """
+    Robustly extract a JSON object from a string that may contain
+    markdown fences, thinking text, or other surrounding content.
+    """
+    if not text:
+        return None
+
+    # 1. Try direct parse first
+    try:
+        return json.loads(text.strip())
+    except json.JSONDecodeError:
+        pass
+
+    # 2. Strip ```json ... ``` or ``` ... ``` fences
+    fence_match = re.search(r'```(?:json)?\s*([\s\S]*?)```', text)
+    if fence_match:
+        try:
+            return json.loads(fence_match.group(1).strip())
+        except json.JSONDecodeError:
+            pass
+
+    # 3. Find the first { ... } block in the text
+    brace_match = re.search(r'\{[\s\S]*\}', text)
+    if brace_match:
+        try:
+            return json.loads(brace_match.group(0))
+        except json.JSONDecodeError:
+            pass
+
+    return None
+
+
 def get_ai_match_score(user, job):
     """
     Use Google Gemini to score how well a user matches a job posting.
@@ -105,7 +140,7 @@ def get_ai_match_score(user, job):
     }
     Falls back gracefully if the API is unavailable.
     """
-    # Check cache first (cache for 24 hours to save API calls)
+    # Check cache first (24 hours to save API calls)
     cache_key = f"ai_match_{user.id}_{job.id}"
     cached = cache.get(cache_key)
     if cached:
@@ -114,7 +149,7 @@ def get_ai_match_score(user, job):
 
     client, model_name = _get_gemini_client()
     if not client:
-        return _fallback_result("AI matching is currently unavailable.")
+        return _fallback_result("AI matching is currently unavailable. Please configure an AI API key in the admin dashboard.")
 
     user_data = build_user_profile(user)
     job_data = build_job_summary(job)
@@ -131,45 +166,55 @@ CANDIDATE PROFILE:
 JOB POSTING:
 {json.dumps(job_data, indent=2)}
 
-Respond ONLY with a valid JSON object in this exact format (no markdown, no extra text):
-{{
-  "score": <integer 0-100>,
-  "reason": "<one concise sentence summarizing the overall match>",
-  "strengths": ["<specific strength 1>", "<specific strength 2>", "<specific strength 3>"],
-  "gaps": ["<specific gap 1>", "<specific gap 2>"]
-}}
+You MUST respond with ONLY a valid JSON object. No explanation, no markdown, no code fences.
+Use this exact structure:
+{{"score": 75, "reason": "One sentence summary.", "strengths": ["strength 1", "strength 2"], "gaps": ["gap 1"]}}
 
 Scoring guide:
-- 80-100: Excellent match, candidate meets most/all requirements
-- 60-79: Good match, candidate meets core requirements with minor gaps
-- 40-59: Moderate match, some relevant experience but notable gaps
-- 20-39: Weak match, limited relevant experience
-- 0-19: Poor match, significant skill/experience mismatch
+- 80-100: Excellent match
+- 60-79: Good match with minor gaps
+- 40-59: Moderate match with notable gaps
+- 20-39: Weak match
+- 0-19: Poor match
 """
 
+    raw = ""
     try:
         from google.genai import types
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.2,
-                max_output_tokens=400,
+                temperature=0.1,
+                max_output_tokens=500,
             )
         )
 
-        raw = response.text.strip()
+        # Safely get text — response.text can be None for thinking models
+        raw = ""
+        if response.text:
+            raw = response.text.strip()
+        elif response.candidates:
+            # Extract text from candidates for thinking models
+            for candidate in response.candidates:
+                if hasattr(candidate, 'content') and candidate.content:
+                    for part in candidate.content.parts:
+                        if hasattr(part, 'text') and part.text:
+                            raw += part.text
 
-        # Strip markdown code fences if present
-        if raw.startswith("```"):
-            raw = raw.split("```")[1]
-            if raw.startswith("json"):
-                raw = raw[4:]
-            raw = raw.strip()
+        logger.debug(f"Gemini raw response for user={user.id}, job={job.id}: {raw[:300]}")
 
-        result = json.loads(raw)
+        if not raw:
+            logger.error(f"Gemini returned empty response for user={user.id}, job={job.id}")
+            return _fallback_result("AI returned an empty response.")
 
-        # Validate and clamp score
+        result = _extract_json(raw)
+
+        if result is None:
+            logger.error(f"Could not extract JSON from Gemini response: {raw[:300]}")
+            return _fallback_result("AI returned an unexpected response format.")
+
+        # Validate and clamp
         result['score'] = max(0, min(100, int(result.get('score', 0))))
         result['strengths'] = result.get('strengths', [])[:5]
         result['gaps'] = result.get('gaps', [])[:5]
@@ -179,14 +224,11 @@ Scoring guide:
         # Cache for 24 hours
         cache.set(cache_key, result, 60 * 60 * 24)
 
-        logger.info(f"AI match score computed: user={user.id}, job={job.id}, score={result['score']}")
+        logger.info(f"AI match score: user={user.id}, job={job.id}, score={result['score']}")
         return result
 
-    except json.JSONDecodeError as e:
-        logger.error(f"Gemini returned invalid JSON for user={user.id}, job={job.id}: {e}\nRaw: {raw[:200]}")
-        return _fallback_result("AI returned an unexpected response.")
     except Exception as e:
-        logger.error(f"Gemini API error for user={user.id}, job={job.id}: {e}")
+        logger.error(f"Gemini API error for user={user.id}, job={job.id}: {e}\nRaw: {raw[:200]}")
         return _fallback_result("AI matching service is temporarily unavailable.")
 
 

@@ -118,13 +118,24 @@ class AIConfig(models.Model):
             client = genai.Client(api_key=self.api_key)
             response = client.models.generate_content(
                 model=self.model_name,
-                contents="Reply with exactly: OK",
+                contents="Reply with the word OK only.",
                 config=types.GenerateContentConfig(
-                    max_output_tokens=5,
+                    max_output_tokens=10,
                     temperature=0,
                 )
             )
-            _ = response.text  # Will raise if key/model is invalid
+            # response.text can be None for thinking models — check candidates too
+            text = response.text or ""
+            if not text and response.candidates:
+                for candidate in response.candidates:
+                    if hasattr(candidate, 'content') and candidate.content:
+                        for part in candidate.content.parts:
+                            if hasattr(part, 'text') and part.text:
+                                text += part.text
+
+            if not text:
+                raise ValueError("Empty response from model")
+
             msg = f"Gemini API key is valid. Model '{self.model_name}' responded successfully."
             AIConfig.objects.filter(pk=self.pk).update(
                 is_verified=True,
