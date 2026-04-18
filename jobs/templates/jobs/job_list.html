@@ -1078,6 +1078,27 @@
                             <i class="bi bi-sliders me-1"></i>Set Preferences
                         </button>
                     {% endif %}
+
+                    {% if user.is_authenticated and not is_admin_or_hr %}
+                    <!-- AI Sort Button -->
+                    <div class="mt-4 pt-3 border-top">
+                        <button type="button" class="btn btn-primary w-100" id="aiSortBtn"
+                                onclick="triggerAISort()">
+                            <i class="fas fa-robot me-2"></i>Sort by AI Match
+                        </button>
+                        <div id="aiSortStatus" class="mt-2 text-center" style="display:none;">
+                            <div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div>
+                            <small class="text-muted">Scoring jobs with AI...</small>
+                        </div>
+                        <div id="aiSortInfo" class="mt-2" style="display:none;">
+                            <small class="text-muted">
+                                <i class="fas fa-check-circle text-success me-1"></i>
+                                Sorted by AI match score
+                                <a href="#" onclick="clearAISort(); return false;" class="ms-2 text-danger">Clear</a>
+                            </small>
+                        </div>
+                    </div>
+                    {% endif %}
                 </div>
             </div>
             {% endif %}
@@ -1247,7 +1268,7 @@
                         {% if jobs %}
                         <div class="job-list">
                         {% for job in jobs %}
-                        <div class="modern-job-card">
+                        <div class="modern-job-card" data-job-id="{{ job.id }}">
                             <div class="d-flex align-items-start">
                                 <!-- Company Logo/Icon -->
                                 <div class="company-icon me-3">
@@ -1287,6 +1308,8 @@
                                             {% endif %}
                                         </div>
                                     </div>
+                                    <!-- AI Match Score Badge (injected by JS) -->
+                                    <div class="ai-match-badge-container" id="ai-badge-{{ job.id }}"></div>
                                 </div>
                             </div>
                         </div>
@@ -1426,5 +1449,141 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+// ============================================================
+// AI SORT BY MATCH FEATURE
+// ============================================================
+
+const AI_SORT_URL = "{% url 'jobs:ai_sort_jobs' %}";
+const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCsrfToken();
+
+function getCsrfToken() {
+    const cookies = document.cookie.split(';');
+    for (let c of cookies) {
+        const [k, v] = c.trim().split('=');
+        if (k === 'csrftoken') return decodeURIComponent(v);
+    }
+    return '';
+}
+
+function getJobIds() {
+    return Array.from(document.querySelectorAll('.modern-job-card[data-job-id]'))
+        .map(el => parseInt(el.dataset.jobId))
+        .filter(id => !isNaN(id));
+}
+
+function triggerAISort() {
+    const jobIds = getJobIds();
+    if (!jobIds.length) {
+        if (typeof ToastUtils !== 'undefined') ToastUtils.showWarning('No jobs visible to sort.');
+        return;
+    }
+
+    const btn = document.getElementById('aiSortBtn');
+    const status = document.getElementById('aiSortStatus');
+    const info = document.getElementById('aiSortInfo');
+
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Scoring...';
+    status.style.display = 'block';
+    info.style.display = 'none';
+
+    fetch(AI_SORT_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': CSRF_TOKEN,
+            'X-Requested-With': 'XMLHttpRequest',
+        },
+        body: JSON.stringify({ job_ids: jobIds }),
+    })
+    .then(r => r.json())
+    .then(data => {
+        btn.disabled = false;
+        status.style.display = 'none';
+
+        if (!data.success) {
+            btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
+            if (typeof ToastUtils !== 'undefined') ToastUtils.showError(data.error || 'AI sort failed.');
+            return;
+        }
+
+        applyAISort(data.jobs);
+        btn.innerHTML = '<i class="fas fa-robot me-2"></i>Re-sort by AI Match';
+        info.style.display = 'block';
+    })
+    .catch(err => {
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
+        status.style.display = 'none';
+        console.error('AI sort error:', err);
+        if (typeof ToastUtils !== 'undefined') ToastUtils.showError('AI sort failed. Please try again.');
+    });
+}
+
+function applyAISort(sortedJobs) {
+    const container = document.querySelector('.job-list');
+    if (!container) return;
+
+    // Build a map of id -> score data
+    const scoreMap = {};
+    sortedJobs.forEach(j => { scoreMap[j.id] = j; });
+
+    // Re-order DOM cards
+    const cards = Array.from(container.querySelectorAll('.modern-job-card[data-job-id]'));
+    cards.sort((a, b) => {
+        const sa = scoreMap[parseInt(a.dataset.jobId)]?.score || 0;
+        const sb = scoreMap[parseInt(b.dataset.jobId)]?.score || 0;
+        return sb - sa;
+    });
+    cards.forEach(card => container.appendChild(card));
+
+    // Inject score badges
+    sortedJobs.forEach(job => {
+        const badge = document.getElementById(`ai-badge-${job.id}`);
+        if (!badge) return;
+
+        if (job.error || job.score === 0) {
+            badge.innerHTML = '';
+            return;
+        }
+
+        const color = job.score >= 70 ? '#198754' : job.score >= 40 ? '#fd7e14' : '#dc3545';
+        const label = job.score >= 70 ? 'Great Match' : job.score >= 40 ? 'Moderate Match' : 'Low Match';
+
+        badge.innerHTML = `
+            <div class="ai-match-inline mt-2">
+                <div class="d-flex align-items-center gap-2">
+                    <div style="flex:1; height:6px; background:#e9ecef; border-radius:3px; overflow:hidden;">
+                        <div style="width:${job.score}%; height:100%; background:${color}; border-radius:3px; transition:width 0.6s ease;"></div>
+                    </div>
+                    <span style="font-size:0.75rem; font-weight:600; color:${color}; white-space:nowrap;">
+                        <i class="fas fa-robot me-1"></i>${job.score}% — ${label}
+                    </span>
+                </div>
+                ${job.reason ? `<p class="mb-0 mt-1" style="font-size:0.7rem; color:#6c757d;">${job.reason}</p>` : ''}
+            </div>
+        `;
+    });
+
+    if (typeof ToastUtils !== 'undefined') {
+        ToastUtils.showSuccess(`Jobs sorted by AI match score.`);
+    }
+}
+
+function clearAISort() {
+    // Remove all AI badges
+    document.querySelectorAll('.ai-match-badge-container').forEach(el => el.innerHTML = '');
+
+    // Reset button
+    const btn = document.getElementById('aiSortBtn');
+    if (btn) btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
+
+    const info = document.getElementById('aiSortInfo');
+    if (info) info.style.display = 'none';
+
+    // Reload page to restore original order
+    window.location.reload();
+}
 </script>
 {% endblock %}

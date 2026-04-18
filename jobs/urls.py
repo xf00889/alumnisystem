@@ -23,6 +23,9 @@ urlpatterns = [
     path('preferences/remind-later/', views.remind_later, name='remind_later'),
     path('preferences/remove-filter/<str:filter_key>/', views.remove_filter, name='remove_filter'),
     path('preferences/clear-all/', views.clear_all_filters, name='clear_all_filters'),
+
+    # AI sort endpoint
+    path('api/ai-sort/', views.ai_sort_jobs, name='ai_sort_jobs'),
     
     # Multi-site job scraper URLs (custom admin dashboard)
     path('scraper/', views_scraper.scraper_dashboard, name='scraper_dashboard'),

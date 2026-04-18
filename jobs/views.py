@@ -1312,3 +1312,64 @@ def job_redirect(request, job_id):
         logger.error(f"Error in job redirect: {str(e)}")
         messages.error(request, "An error occurred while accessing the job link. Please try searching again.")
         return redirect('jobs:job_scraper')
+
+
+@login_required
+@ratelimit(key='user', rate='5/m', method='POST')
+def ai_sort_jobs(request):
+    """
+    API endpoint: score the current page of jobs against the user's profile
+    using AI and return them sorted by match score (highest first).
+
+    POST body (JSON): { "job_ids": [1, 2, 3, ...] }
+    Returns: { "success": true, "jobs": [{"id": 1, "score": 85, "reason": "..."}, ...] }
+    """
+    if getattr(request, 'limited', False):
+        return JsonResponse({'success': False, 'error': 'Too many requests. Please wait a moment.'}, status=429)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required.'}, status=405)
+
+    try:
+        data = json.loads(request.body)
+        job_ids = data.get('job_ids', [])
+    except (json.JSONDecodeError, AttributeError):
+        return JsonResponse({'success': False, 'error': 'Invalid JSON body.'}, status=400)
+
+    if not job_ids:
+        return JsonResponse({'success': False, 'error': 'No job IDs provided.'}, status=400)
+
+    if len(job_ids) > 20:
+        job_ids = job_ids[:20]  # Safety cap
+
+    # Check AI is available before starting
+    from core.ai_config_utils import is_ai_enabled
+    if not is_ai_enabled():
+        return JsonResponse({
+            'success': False,
+            'error': 'AI matching is not configured. Please set up an AI API key in the admin dashboard.'
+        }, status=503)
+
+    from .ai_matching import get_ai_match_score
+    jobs_qs = JobPosting.objects.filter(id__in=job_ids, is_active=True)
+
+    results = []
+    for job in jobs_qs:
+        try:
+            score_data = get_ai_match_score(request.user, job)
+            results.append({
+                'id': job.id,
+                'score': score_data.get('score') or 0,
+                'reason': score_data.get('reason', ''),
+                'strengths': score_data.get('strengths', []),
+                'gaps': score_data.get('gaps', []),
+                'error': score_data.get('error', False),
+            })
+        except Exception as e:
+            logger.error(f"AI sort error for job {job.id}: {e}")
+            results.append({'id': job.id, 'score': 0, 'reason': '', 'error': True})
+
+    # Sort by score descending
+    results.sort(key=lambda x: x['score'], reverse=True)
+
+    return JsonResponse({'success': True, 'jobs': results})
