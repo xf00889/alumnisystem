@@ -1477,6 +1477,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 const AI_SORT_URL = "{% url 'jobs:ai_sort_jobs' %}";
 const AI_SORT_ENABLED = {% if ai_sort_enabled %}true{% else %}false{% endif %};
+const AI_PROFILE_VERSION = {{ ai_profile_version|default:0 }};
 const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCsrfToken();
 const AI_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
 
@@ -1495,9 +1496,11 @@ function getJobIds() {
         .filter(id => !isNaN(id));
 }
 
-/** Build a stable cache key from the sorted list of job IDs on this page */
+/** Build a stable cache key from the sorted list of job IDs on this page.
+ *  Includes AI_PROFILE_VERSION so the key changes whenever the user's
+ *  profile/skills/education/experience is updated. */
 function buildCacheKey(jobIds) {
-    return 'ai_sort_' + [...jobIds].sort((a, b) => a - b).join('_');
+    return 'ai_sort_v' + AI_PROFILE_VERSION + '_' + [...jobIds].sort((a, b) => a - b).join('_');
 }
 
 /** Read cached sort results from sessionStorage. Returns null if missing/expired. */

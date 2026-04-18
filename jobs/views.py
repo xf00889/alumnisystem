@@ -284,13 +284,17 @@ def job_list(request):
 
     # Check if AI matching is available for this user
     ai_sort_enabled = False
+    ai_profile_version = 0
     if request.user.is_authenticated and not is_admin_or_hr_user:
         try:
             from core.ai_config_utils import is_ai_enabled
+            from django.core.cache import cache as django_cache
             ai_sort_enabled = is_ai_enabled()
+            ai_profile_version = django_cache.get(f"ai_profile_version_{request.user.id}", 0)
         except Exception:
             ai_sort_enabled = False
-    
+            ai_profile_version = 0
+
     context = {
         'jobs': jobs_page,
         'featured_jobs': featured_jobs,
@@ -306,6 +310,7 @@ def job_list(request):
         'show_all': request.GET.get('show_all', 'false').lower() == 'true',
         # AI sort context
         'ai_sort_enabled': ai_sort_enabled,
+        'ai_profile_version': ai_profile_version,
     }
     return render(request, 'jobs/job_list.html', context)
 
