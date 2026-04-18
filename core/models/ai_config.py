@@ -124,17 +124,23 @@ class AIConfig(models.Model):
                     temperature=0,
                 )
             )
-            # response.text can be None for thinking models — check candidates too
-            text = response.text or ""
-            if not text and response.candidates:
-                for candidate in response.candidates:
-                    if hasattr(candidate, 'content') and candidate.content:
-                        for part in candidate.content.parts:
-                            if hasattr(part, 'text') and part.text:
-                                text += part.text
+            # Safely extract text — handles thinking models
+            text = ""
+            try:
+                text = response.text or ""
+            except Exception:
+                pass
+            if not text:
+                for candidate in (response.candidates or []):
+                    content = getattr(candidate, 'content', None)
+                    if content:
+                        for part in getattr(content, 'parts', []) or []:
+                            t = getattr(part, 'text', None)
+                            if t:
+                                text += t
 
             if not text:
-                raise ValueError("Empty response from model")
+                raise ValueError("Model returned an empty response. Check your API key and model name.")
 
             msg = f"Gemini API key is valid. Model '{self.model_name}' responded successfully."
             AIConfig.objects.filter(pk=self.pk).update(

@@ -133,8 +133,8 @@
                 <div class="mb-4">
                     <label for="model_name" class="form-label">Model Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="model_name" name="model_name"
-                           value="{{ config.model_name|default:'gemini-2.5-flash' }}" required
-                           placeholder="e.g., gemini-2.5-flash">
+                           value="{{ config.model_name|default:'gemini-2.0-flash-lite' }}" required
+                           placeholder="e.g., gemini-2.0-flash-lite">
                     <div class="form-text">The specific model to use for AI features.</div>
                     <div class="model-suggestions" id="model-suggestions">
                         <!-- Populated by JS -->
@@ -178,7 +178,10 @@
 
 {% block extra_js %}
 <script>
-const modelSuggestions = {{ model_suggestions|safe }};
+const modelSuggestions = {
+    "gemini": ["gemini-2.0-flash-lite", "gemini-2.0-flash", "gemini-2.5-flash", "gemini-1.5-flash"],
+    "openai": ["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]
+};
 
 function updateModelSuggestions() {
     const provider = document.getElementById('provider').value;

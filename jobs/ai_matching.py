@@ -93,6 +93,38 @@ def build_job_summary(job):
     }
 
 
+def _extract_text_from_response(response):
+    """
+    Safely extract text from a Gemini response object.
+    Handles both standard and thinking model response structures.
+    """
+    # Try response.text first (works for most models)
+    try:
+        if response.text:
+            return response.text
+    except Exception:
+        pass
+
+    # For thinking models: iterate candidates -> content -> parts
+    try:
+        for candidate in (response.candidates or []):
+            content = getattr(candidate, 'content', None)
+            if not content:
+                continue
+            parts = getattr(content, 'parts', []) or []
+            text_parts = []
+            for part in parts:
+                t = getattr(part, 'text', None)
+                if t:
+                    text_parts.append(t)
+            if text_parts:
+                return ''.join(text_parts)
+    except Exception as e:
+        logger.error(f"Error extracting text from candidates: {e}")
+
+    return ""
+
+
 def _extract_json(text):
     """
     Robustly extract a JSON object from a string that may contain
@@ -115,11 +147,20 @@ def _extract_json(text):
         except json.JSONDecodeError:
             pass
 
-    # 3. Find the first { ... } block in the text
-    brace_match = re.search(r'\{[\s\S]*\}', text)
-    if brace_match:
+    # 3. Find the LAST { ... } block (thinking models put reasoning first)
+    brace_matches = list(re.finditer(r'\{[\s\S]*?\}', text))
+    for m in reversed(brace_matches):
         try:
-            return json.loads(brace_match.group(0))
+            return json.loads(m.group(0))
+        except json.JSONDecodeError:
+            continue
+
+    # 4. Find the largest { ... } block spanning the whole JSON
+    start = text.rfind('{')
+    end = text.rfind('}')
+    if start != -1 and end != -1 and end > start:
+        try:
+            return json.loads(text[start:end + 1])
         except json.JSONDecodeError:
             pass
 
@@ -190,19 +231,10 @@ Scoring guide:
             )
         )
 
-        # Safely get text — response.text can be None for thinking models
-        raw = ""
-        if response.text:
-            raw = response.text.strip()
-        elif response.candidates:
-            # Extract text from candidates for thinking models
-            for candidate in response.candidates:
-                if hasattr(candidate, 'content') and candidate.content:
-                    for part in candidate.content.parts:
-                        if hasattr(part, 'text') and part.text:
-                            raw += part.text
+        # Safely get text using robust extractor
+        raw = _extract_text_from_response(response)
 
-        logger.debug(f"Gemini raw response for user={user.id}, job={job.id}: {raw[:300]}")
+        logger.debug(f"Gemini raw response for user={user.id}, job={job.id}: {raw[:500]}")
 
         if not raw:
             logger.error(f"Gemini returned empty response for user={user.id}, job={job.id}")

@@ -53,7 +53,7 @@ def get_gemini_client():
     try:
         from google import genai
         client = genai.Client(api_key=config.api_key)
-        return client, config.model_name or 'gemini-2.5-flash'
+        return client, config.model_name or 'gemini-2.0-flash-lite'
     except ImportError:
         logger.error("google-genai package is not installed. Run: pip install google-genai")
         return None, None
