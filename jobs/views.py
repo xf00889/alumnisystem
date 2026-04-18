@@ -281,6 +281,15 @@ def job_list(request):
     paginator = Paginator(jobs, 10)
     page = request.GET.get('page')
     jobs_page = paginator.get_page(page)
+
+    # Check if AI matching is available for this user
+    ai_sort_enabled = False
+    if request.user.is_authenticated and not is_admin_or_hr_user:
+        try:
+            from core.ai_config_utils import is_ai_enabled
+            ai_sort_enabled = is_ai_enabled()
+        except Exception:
+            ai_sort_enabled = False
     
     context = {
         'jobs': jobs_page,
@@ -295,6 +304,8 @@ def job_list(request):
         'has_active_preferences': len(active_filters) > 0,
         'is_admin_or_hr': is_admin_or_hr_user,
         'show_all': request.GET.get('show_all', 'false').lower() == 'true',
+        # AI sort context
+        'ai_sort_enabled': ai_sort_enabled,
     }
     return render(request, 'jobs/job_list.html', context)
 

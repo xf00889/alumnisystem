@@ -281,6 +281,11 @@
         font-weight: 500;
         border: 1px solid #c7d2fe;
     }
+
+    /* AI Match Inline Badge */
+    .ai-match-inline {
+        padding: 0.375rem 0;
+    }
     
     /* Search Input */
     .search-input-wrapper {
@@ -1082,9 +1087,25 @@
                     {% if user.is_authenticated and not is_admin_or_hr %}
                     <!-- AI Sort Button -->
                     <div class="mt-4 pt-3 border-top">
+                        {% if ai_sort_enabled %}
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-success me-2" style="font-size:0.7rem;">
+                                <i class="fas fa-robot me-1"></i>AI Active
+                            </span>
+                            <small class="text-muted">Sorting by match</small>
+                        </div>
+                        {% else %}
+                        <div class="d-flex align-items-center mb-2">
+                            <span class="badge bg-secondary me-2" style="font-size:0.7rem;">
+                                <i class="fas fa-sliders-h me-1"></i>Preference Sort
+                            </span>
+                            <small class="text-muted">AI not configured</small>
+                        </div>
+                        {% endif %}
                         <button type="button" class="btn btn-primary w-100" id="aiSortBtn"
-                                onclick="triggerAISort()">
-                            <i class="fas fa-robot me-2"></i>Sort by AI Match
+                                onclick="triggerAISort()" {% if not ai_sort_enabled %}disabled title="Configure an AI API key in the admin dashboard to enable this feature"{% endif %}>
+                            <i class="fas fa-robot me-2"></i>
+                            {% if ai_sort_enabled %}Sort by AI Match{% else %}AI Not Configured{% endif %}
                         </button>
                         <div id="aiSortStatus" class="mt-2 text-center" style="display:none;">
                             <div class="spinner-border spinner-border-sm text-primary me-1" role="status"></div>
