@@ -1476,7 +1476,9 @@ document.addEventListener('DOMContentLoaded', function() {
 // ============================================================
 
 const AI_SORT_URL = "{% url 'jobs:ai_sort_jobs' %}";
+const AI_SORT_ENABLED = {% if ai_sort_enabled %}true{% else %}false{% endif %};
 const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCsrfToken();
+const AI_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
 
 function getCsrfToken() {
     const cookies = document.cookie.split(';');
@@ -1493,21 +1495,76 @@ function getJobIds() {
         .filter(id => !isNaN(id));
 }
 
-function triggerAISort() {
+/** Build a stable cache key from the sorted list of job IDs on this page */
+function buildCacheKey(jobIds) {
+    return 'ai_sort_' + [...jobIds].sort((a, b) => a - b).join('_');
+}
+
+/** Read cached sort results from sessionStorage. Returns null if missing/expired. */
+function readSortCache(cacheKey) {
+    try {
+        const raw = sessionStorage.getItem(cacheKey);
+        if (!raw) return null;
+        const { jobs, ts } = JSON.parse(raw);
+        if (Date.now() - ts > AI_CACHE_TTL_MS) {
+            sessionStorage.removeItem(cacheKey);
+            return null;
+        }
+        return jobs;
+    } catch (e) {
+        return null;
+    }
+}
+
+/** Write sort results to sessionStorage with a timestamp. */
+function writeSortCache(cacheKey, jobs) {
+    try {
+        sessionStorage.setItem(cacheKey, JSON.stringify({ jobs, ts: Date.now() }));
+    } catch (e) {
+        // sessionStorage full or unavailable — ignore
+    }
+}
+
+/** Remove cached results for the current page (used by "Re-sort" to force fresh fetch). */
+function clearSortCache(cacheKey) {
+    try { sessionStorage.removeItem(cacheKey); } catch (e) {}
+}
+
+function triggerAISort(isAutomatic = false) {
     const jobIds = getJobIds();
     if (!jobIds.length) {
-        if (typeof ToastUtils !== 'undefined') ToastUtils.showWarning('No jobs visible to sort.');
+        if (!isAutomatic && typeof ToastUtils !== 'undefined') ToastUtils.showWarning('No jobs visible to sort.');
         return;
+    }
+
+    const cacheKey = buildCacheKey(jobIds);
+
+    // On auto-trigger: check sessionStorage first — skip API call if cached
+    if (isAutomatic) {
+        const cached = readSortCache(cacheKey);
+        if (cached) {
+            applyAISort(cached);
+            const btn = document.getElementById('aiSortBtn');
+            const info = document.getElementById('aiSortInfo');
+            if (btn) btn.innerHTML = '<i class="fas fa-robot me-2"></i>Re-sort by AI Match';
+            if (info) info.style.display = 'block';
+            return; // No API call needed
+        }
+    } else {
+        // Manual re-sort: always clear cache and fetch fresh
+        clearSortCache(cacheKey);
     }
 
     const btn = document.getElementById('aiSortBtn');
     const status = document.getElementById('aiSortStatus');
     const info = document.getElementById('aiSortInfo');
 
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Scoring...';
-    status.style.display = 'block';
-    info.style.display = 'none';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Scoring...';
+    }
+    if (status) status.style.display = 'block';
+    if (info) info.style.display = 'none';
 
     fetch(AI_SORT_URL, {
         method: 'POST',
@@ -1520,25 +1577,34 @@ function triggerAISort() {
     })
     .then(r => r.json())
     .then(data => {
-        btn.disabled = false;
-        status.style.display = 'none';
+        if (btn) btn.disabled = false;
+        if (status) status.style.display = 'none';
 
         if (!data.success) {
-            btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
-            if (typeof ToastUtils !== 'undefined') ToastUtils.showError(data.error || 'AI sort failed.');
+            if (btn) btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
+            if (!isAutomatic && typeof ToastUtils !== 'undefined') ToastUtils.showError(data.error || 'AI sort failed.');
             return;
         }
 
+        // Cache the results in sessionStorage
+        writeSortCache(cacheKey, data.jobs);
+
         applyAISort(data.jobs);
-        btn.innerHTML = '<i class="fas fa-robot me-2"></i>Re-sort by AI Match';
-        info.style.display = 'block';
+        if (btn) btn.innerHTML = '<i class="fas fa-robot me-2"></i>Re-sort by AI Match';
+        if (info) info.style.display = 'block';
+
+        if (!isAutomatic && typeof ToastUtils !== 'undefined') {
+            ToastUtils.showSuccess('Jobs sorted by AI match score.');
+        }
     })
     .catch(err => {
-        btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
-        status.style.display = 'none';
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
+        }
+        if (status) status.style.display = 'none';
         console.error('AI sort error:', err);
-        if (typeof ToastUtils !== 'undefined') ToastUtils.showError('AI sort failed. Please try again.');
+        if (!isAutomatic && typeof ToastUtils !== 'undefined') ToastUtils.showError('AI sort failed. Please try again.');
     });
 }
 
@@ -1546,11 +1612,10 @@ function applyAISort(sortedJobs) {
     const container = document.querySelector('.job-list');
     if (!container) return;
 
-    // Build a map of id -> score data
     const scoreMap = {};
     sortedJobs.forEach(j => { scoreMap[j.id] = j; });
 
-    // Re-order DOM cards
+    // Re-order DOM cards by score
     const cards = Array.from(container.querySelectorAll('.modern-job-card[data-job-id]'));
     cards.sort((a, b) => {
         const sa = scoreMap[parseInt(a.dataset.jobId)]?.score || 0;
@@ -1579,32 +1644,38 @@ function applyAISort(sortedJobs) {
                         <div style="width:${job.score}%; height:100%; background:${color}; border-radius:3px; transition:width 0.6s ease;"></div>
                     </div>
                     <span style="font-size:0.75rem; font-weight:600; color:${color}; white-space:nowrap;">
-                        <i class="fas fa-robot me-1"></i>${job.score}% — ${label}
+                        <i class="fas fa-robot me-1"></i>${job.score}% &mdash; ${label}
                     </span>
                 </div>
                 ${job.reason ? `<p class="mb-0 mt-1" style="font-size:0.7rem; color:#6c757d;">${job.reason}</p>` : ''}
             </div>
         `;
     });
-
-    if (typeof ToastUtils !== 'undefined') {
-        ToastUtils.showSuccess(`Jobs sorted by AI match score.`);
-    }
 }
 
 function clearAISort() {
-    // Remove all AI badges
+    // Clear sessionStorage cache for this page
+    const cacheKey = buildCacheKey(getJobIds());
+    clearSortCache(cacheKey);
+
     document.querySelectorAll('.ai-match-badge-container').forEach(el => el.innerHTML = '');
 
-    // Reset button
     const btn = document.getElementById('aiSortBtn');
     if (btn) btn.innerHTML = '<i class="fas fa-robot me-2"></i>Sort by AI Match';
 
     const info = document.getElementById('aiSortInfo');
     if (info) info.style.display = 'none';
 
-    // Reload page to restore original order
     window.location.reload();
 }
+
+// Auto-trigger on page load:
+// - If sessionStorage has cached results for this page → apply instantly (no API call)
+// - If not cached → fetch from server, then cache the result
+document.addEventListener('DOMContentLoaded', function() {
+    if (AI_SORT_ENABLED) {
+        setTimeout(() => triggerAISort(true), 300);
+    }
+});
 </script>
 {% endblock %}
