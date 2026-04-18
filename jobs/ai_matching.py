@@ -97,15 +97,16 @@ def _extract_text_from_response(response):
     """
     Safely extract text from a Gemini response object.
     Handles both standard and thinking model response structures.
+    Skips 'thought' parts (internal reasoning from 2.5 thinking models).
     """
-    # Try response.text first (works for most models)
+    # Try response.text first (works for non-thinking models)
     try:
         if response.text:
             return response.text
     except Exception:
         pass
 
-    # For thinking models: iterate candidates -> content -> parts
+    # For thinking models: iterate candidates -> content -> parts, skip thought parts
     try:
         for candidate in (response.candidates or []):
             content = getattr(candidate, 'content', None)
@@ -114,6 +115,9 @@ def _extract_text_from_response(response):
             parts = getattr(content, 'parts', []) or []
             text_parts = []
             for part in parts:
+                # Skip internal thought/reasoning parts
+                if getattr(part, 'thought', False):
+                    continue
                 t = getattr(part, 'text', None)
                 if t:
                     text_parts.append(t)
@@ -222,13 +226,19 @@ Scoring guide:
     raw = ""
     try:
         from google.genai import types
+
+        # Disable thinking for 2.5 models — forces plain text output
+        config_kwargs = {
+            "temperature": 0.1,
+            "max_output_tokens": 500,
+        }
+        if '2.5' in model_name:
+            config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
-            config=types.GenerateContentConfig(
-                temperature=0.1,
-                max_output_tokens=500,
-            )
+            config=types.GenerateContentConfig(**config_kwargs)
         )
 
         # Safely get text using robust extractor

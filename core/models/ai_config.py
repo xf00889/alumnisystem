@@ -116,15 +116,22 @@ class AIConfig(models.Model):
             from google import genai
             from google.genai import types
             client = genai.Client(api_key=self.api_key)
+
+            # Build config — disable thinking for 2.5 models so we get plain text
+            config_kwargs = {
+                "max_output_tokens": 10,
+                "temperature": 0,
+            }
+            if '2.5' in self.model_name:
+                config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+
             response = client.models.generate_content(
                 model=self.model_name,
                 contents="Reply with the word OK only.",
-                config=types.GenerateContentConfig(
-                    max_output_tokens=10,
-                    temperature=0,
-                )
+                config=types.GenerateContentConfig(**config_kwargs)
             )
-            # Safely extract text — handles thinking models
+
+            # Safely extract text
             text = ""
             try:
                 text = response.text or ""
@@ -135,6 +142,9 @@ class AIConfig(models.Model):
                     content = getattr(candidate, 'content', None)
                     if content:
                         for part in getattr(content, 'parts', []) or []:
+                            # Skip thought parts
+                            if getattr(part, 'thought', False):
+                                continue
                             t = getattr(part, 'text', None)
                             if t:
                                 text += t
