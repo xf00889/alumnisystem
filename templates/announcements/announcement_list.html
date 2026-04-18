@@ -1860,19 +1860,31 @@ function openAnnouncementModal(announcementId) {
     document.body.style.overflow = 'hidden';
     
     // Fetch announcement details
-    console.log('Fetching from URL:', `/announcements/${announcementId}/`);
-    fetch(`/announcements/${announcementId}/`)
+    console.log('Fetching from URL:', `/announcements/api/${announcementId}/`);
+    fetch(`/announcements/api/${announcementId}/`)
                 .then(response => {
             console.log('Response status:', response.status);
                     if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
-            return response.text();
+            return response.json();
         })
-        .then(html => {
-            console.log('Received HTML response');
-            // Extract content from the response
+        .then(data => {
+            if (data.status !== 'success') {
+                throw new Error(data.message || 'Failed to load announcement');
+            }
+            const ann = data.announcement;
+            // Build a synthetic doc-like object for the rest of the handler
             const parser = new DOMParser();
+            const html = `
+                <div class="announcement-title">${ann.title}</div>
+                <div class="priority-badge">${ann.priority_display}</div>
+                <div class="announcement-content">${ann.content}</div>
+                <div class="announcement-date">${ann.date_posted}</div>
+                <div class="announcement-category">${ann.category}</div>
+                <div class="announcement-views">${ann.views_count}</div>
+                <div class="announcement-target">${ann.target_display}</div>
+            `;
             const doc = parser.parseFromString(html, 'text/html');
             
             // Extract announcement details

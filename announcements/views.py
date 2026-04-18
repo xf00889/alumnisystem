@@ -410,3 +410,36 @@ class PublicAnnouncementCreateView(LoginRequiredMixin, UserPassesTestMixin, Succ
         else:
             messages.warning(self.request, "The announcement was created but there was an error sending email notifications.")
         return response
+
+
+from django.contrib.auth.decorators import login_required
+
+@login_required
+def announcement_detail_api(request, pk):
+    """
+    JSON API endpoint for the announcement modal.
+    Returns announcement data for any active announcement visible in the list.
+    Uses a relaxed permission check — if the announcement is active and the
+    user is authenticated, they can view it in the modal.
+    """
+    announcement = get_object_or_404(Announcement, pk=pk, is_active=True)
+
+    # Increment view count
+    Announcement.objects.filter(pk=pk).update(views_count=announcement.views_count + 1)
+
+    data = {
+        'id': announcement.pk,
+        'title': announcement.title,
+        'content': announcement.content,
+        'date_posted': announcement.date_posted.strftime('%B %d, %Y'),
+        'priority_level': announcement.priority_level,
+        'priority_display': announcement.get_priority_level_display(),
+        'target_audience': announcement.target_audience,
+        'target_display': announcement.get_target_audience_display(),
+        'category': announcement.category.name if announcement.category else '',
+        'views_count': announcement.views_count + 1,
+        'can_edit': request.user.is_staff or request.user.is_superuser or (
+            hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator
+        ),
+    }
+    return JsonResponse({'status': 'success', 'announcement': data})
