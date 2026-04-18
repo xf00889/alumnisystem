@@ -42,21 +42,26 @@ def is_ai_enabled():
     return bool(config and config.enabled and config.api_key)
 
 
-def get_gemini_model():
+def get_gemini_client():
     """
-    Return an initialized Gemini GenerativeModel using the DB config.
-    Returns None if config is missing or package not installed.
+    Return an initialized Gemini Client using the DB config (new google-genai SDK).
+    Returns (client, model_name) tuple, or (None, None) if unavailable.
     """
     config = get_ai_config()
     if not config or config.provider != 'gemini':
-        return None
+        return None, None
     try:
-        import google.generativeai as genai
-        genai.configure(api_key=config.api_key)
-        return genai.GenerativeModel(config.model_name or 'gemini-2.0-flash')
+        from google import genai
+        client = genai.Client(api_key=config.api_key)
+        return client, config.model_name or 'gemini-2.0-flash'
     except ImportError:
-        logger.error("google-generativeai is not installed.")
-        return None
+        logger.error("google-genai package is not installed. Run: pip install google-genai")
+        return None, None
     except Exception as e:
-        logger.error(f"Failed to initialize Gemini model: {e}")
-        return None
+        logger.error(f"Failed to initialize Gemini client: {e}")
+        return None, None
+
+
+def get_gemini_model():
+    """Legacy alias — returns (client, model_name) via get_gemini_client()."""
+    return get_gemini_client()

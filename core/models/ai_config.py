@@ -111,16 +111,20 @@ class AIConfig(models.Model):
             return False, msg
 
     def _test_gemini(self):
-        """Test Google Gemini API key."""
+        """Test Google Gemini API key using the new google-genai SDK."""
         try:
-            import google.generativeai as genai
-            genai.configure(api_key=self.api_key)
-            model = genai.GenerativeModel(self.model_name)
-            response = model.generate_content(
-                "Reply with exactly: OK",
-                generation_config={"max_output_tokens": 5, "temperature": 0}
+            from google import genai
+            from google.genai import types
+            client = genai.Client(api_key=self.api_key)
+            response = client.models.generate_content(
+                model=self.model_name,
+                contents="Reply with exactly: OK",
+                config=types.GenerateContentConfig(
+                    max_output_tokens=5,
+                    temperature=0,
+                )
             )
-            _ = response.text  # Will raise if key is invalid
+            _ = response.text  # Will raise if key/model is invalid
             msg = f"Gemini API key is valid. Model '{self.model_name}' responded successfully."
             AIConfig.objects.filter(pk=self.pk).update(
                 is_verified=True,
@@ -129,7 +133,7 @@ class AIConfig(models.Model):
             )
             return True, msg
         except ImportError:
-            msg = "google-generativeai package is not installed. Run: pip install google-generativeai"
+            msg = "google-genai package is not installed. Run: pip install google-genai"
             AIConfig.objects.filter(pk=self.pk).update(
                 is_verified=False, test_result=msg, last_tested=timezone.now()
             )

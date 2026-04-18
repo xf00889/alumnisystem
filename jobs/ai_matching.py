@@ -13,13 +13,16 @@ logger = logging.getLogger(__name__)
 
 
 def _get_gemini_client():
-    """Initialize and return the Gemini generative model using DB config."""
+    """
+    Return (client, model_name) using the new google-genai SDK from DB config.
+    Returns (None, None) if unavailable.
+    """
     try:
-        from core.ai_config_utils import get_gemini_model
-        return get_gemini_model()
+        from core.ai_config_utils import get_gemini_client
+        return get_gemini_client()
     except Exception as e:
         logger.error(f"Failed to initialize Gemini client from DB config: {e}")
-        return None
+        return None, None
 
 
 def build_user_profile(user):
@@ -109,8 +112,8 @@ def get_ai_match_score(user, job):
         cached['cached'] = True
         return cached
 
-    model = _get_gemini_client()
-    if not model:
+    client, model_name = _get_gemini_client()
+    if not client:
         return _fallback_result("AI matching is currently unavailable.")
 
     user_data = build_user_profile(user)
@@ -145,12 +148,14 @@ Scoring guide:
 """
 
     try:
-        response = model.generate_content(
-            prompt,
-            generation_config={
-                "temperature": 0.2,
-                "max_output_tokens": 400,
-            }
+        from google.genai import types
+        response = client.models.generate_content(
+            model=model_name,
+            contents=prompt,
+            config=types.GenerateContentConfig(
+                temperature=0.2,
+                max_output_tokens=400,
+            )
         )
 
         raw = response.text.strip()
