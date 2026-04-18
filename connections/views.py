@@ -228,6 +228,38 @@ def reject_connection_request(request, connection_id):
 
 
 @login_required
+@require_http_methods(["POST"])
+def cancel_connection_request(request, connection_id):
+    """Cancel a pending connection request sent by the current user"""
+    try:
+        connection = Connection.objects.get(
+            id=connection_id,
+            requester=request.user,
+            status='PENDING'
+        )
+        receiver_id = connection.receiver.id
+        connection.delete()
+        return JsonResponse({
+            'status': 'success',
+            'success': True,
+            'message': 'Connection request cancelled.',
+            'user_id': receiver_id
+        })
+    except Connection.DoesNotExist:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': 'Connection request not found or already processed.'
+        }, status=404)
+    except Exception as e:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': 'An error occurred while cancelling the connection request.'
+        }, status=400)
+
+
+@login_required
 def my_connections(request):
     """View all accepted connections"""
     # Get Connection objects instead of User objects

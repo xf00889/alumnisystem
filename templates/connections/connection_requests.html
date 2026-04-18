@@ -804,10 +804,14 @@
                                                     Sent {{ request.created_at|timesince }} ago
                                                 </div>
                                                 
-                                                <div class="text-center">
+                                                <div class="d-flex align-items-center justify-content-between">
                                                     <span class="pending-badge">
                                                         <i class="fas fa-hourglass-half"></i> Pending
                                                     </span>
+                                                    <button class="btn btn-outline-danger btn-sm cancel-btn"
+                                                            data-connection-id="{{ request.id }}">
+                                                        <i class="fas fa-times me-1"></i>Cancel
+                                                    </button>
                                                 </div>
                                             </div>
                                         </div>
@@ -1056,6 +1060,50 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, 5000);
     }
+
+    // Cancel sent connection request
+    document.querySelectorAll('.cancel-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const connectionId = this.dataset.connectionId;
+            const card = this.closest('.col-md-6, .col-lg-4');
+            const btn = this;
+
+            btn.disabled = true;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Cancelling...';
+
+            fetch(`/connections/cancel/${connectionId}/`, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    card.style.transition = 'opacity 0.3s';
+                    card.style.opacity = '0';
+                    setTimeout(() => {
+                        card.remove();
+                        showAlert('Connection request cancelled.', 'success');
+                        const remaining = document.querySelectorAll('#outgoing .request-card').length;
+                        if (remaining === 0) {
+                            setTimeout(() => location.reload(), 1200);
+                        }
+                    }, 300);
+                } else {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+                    showAlert(data.message || 'Could not cancel request.', 'danger');
+                }
+            })
+            .catch(() => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-times me-1"></i>Cancel';
+                showAlert('An error occurred. Please try again.', 'danger');
+            });
+        });
+    });
 });
 </script>
 {% endblock %}
