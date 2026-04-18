@@ -65,7 +65,7 @@ def ai_configuration_create(request):
         'page_title': 'Add AI Configuration',
         'provider_choices': AIConfig.PROVIDER_CHOICES,
         'model_suggestions': {
-            'gemini': ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+            'gemini': ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-1.5-flash'],
             'openai': ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'],
         },
     }
@@ -108,7 +108,7 @@ def ai_configuration_edit(request, config_id):
         'page_title': f'Edit AI Configuration: {config.name}',
         'provider_choices': AIConfig.PROVIDER_CHOICES,
         'model_suggestions': {
-            'gemini': ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-flash', 'gemini-1.5-pro'],
+            'gemini': ['gemini-2.5-flash', 'gemini-2.5-flash-lite', 'gemini-2.5-pro', 'gemini-1.5-flash'],
             'openai': ['gpt-4o-mini', 'gpt-4o', 'gpt-3.5-turbo'],
         },
     }
@@ -187,4 +187,5 @@ def ai_configuration_delete(request, config_id):
     except Exception as e:
         messages.error(request, f'Error deleting configuration: {str(e)}')
     return redirect('core:ai_configuration_list')
+
 

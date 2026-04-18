@@ -41,8 +41,8 @@ class AIConfig(models.Model):
 
     model_name = models.CharField(
         max_length=100,
-        default='gemini-2.0-flash',
-        help_text="Model to use (e.g., gemini-2.0-flash, gpt-4o-mini)"
+        default='gemini-2.5-flash',
+        help_text="Model to use (e.g., gemini-2.5-flash, gpt-4o-mini)"
     )
 
     is_active = models.BooleanField(
