@@ -576,7 +576,6 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'disabled': 'disabled',
         }),
         help_text="Select your campus first to see available colleges",
         label="College"
@@ -586,7 +585,6 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'disabled': 'disabled',
         }),
         help_text="Select your campus and college first to see available programs",
         label="Program/Course"
@@ -596,7 +594,6 @@ class PostRegistrationForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'disabled': 'disabled',
         }),
         help_text="Select your program first to see available majors (if applicable)",
         label="Major/Specialization"
