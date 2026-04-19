@@ -50,6 +50,10 @@ def home(request):
         from accounts.models import Profile
         profile, created = Profile.objects.get_or_create(user=request.user)
         
+        # Always fetch fresh from DB to avoid stale cache
+        if not created:
+            profile.refresh_from_db()
+        
         # Check if user has completed registration
         if not profile.has_completed_registration:
             return redirect('accounts:post_registration')

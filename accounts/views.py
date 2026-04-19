@@ -123,6 +123,13 @@ def post_registration(request):
                     # Save the form data
                     form.save(request.user)
 
+                    # Force-refresh profile and verify the flag was set
+                    request.user.profile.refresh_from_db()
+                    if not request.user.profile.has_completed_registration:
+                        # Fallback: set it directly
+                        request.user.profile.has_completed_registration = True
+                        request.user.profile.save(update_fields=['has_completed_registration'])
+
                     logger.info(
                         f"Registration completed: User ID={request.user.id}, Email={request.user.email}",
                         extra={
@@ -135,8 +142,10 @@ def post_registration(request):
                     messages.success(request, 'Registration completed successfully!')
                 return redirect('core:home')
             except Exception as e:
+                import traceback
+                tb = traceback.format_exc()
                 logger.error(
-                    f"Error completing registration: {str(e)}",
+                    f"Error completing registration for user={request.user.id}: {str(e)}\n{tb}",
                     extra={
                         'user_id': request.user.id,
                         'error_type': type(e).__name__
@@ -145,7 +154,6 @@ def post_registration(request):
                 )
                 messages.error(request, f'An error occurred while saving your registration: {str(e)}')
         else:
-            # Log what failed so we can debug
             logger.warning(
                 f"Post-registration form invalid for user={request.user.id}: {dict(form.errors)}",
                 extra={'user_id': request.user.id, 'form_errors': str(form.errors)}
