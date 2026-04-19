@@ -414,8 +414,11 @@
         }
 
         .btn-submit:disabled {
-            opacity: 0.6;
+            opacity: 0.5;
             cursor: not-allowed;
+            background: linear-gradient(135deg, #94a3b8 0%, #64748b 100%);
+            box-shadow: none;
+            transform: none !important;
         }
 
         /* Back to Home Link */
@@ -1388,15 +1391,44 @@ document.addEventListener('DOMContentLoaded', function () {
 
     let debounceTimer = null;
     let lastCheckedKey = null;
+    let isDuplicate = false;  // single source of truth
 
-    function showState(state) {
-        [scanningState, foundState, clearState].forEach(el => el.style.display = 'none');
+    function setDuplicateState(val) {
+        isDuplicate = val;
+        if (submitBtn) {
+            submitBtn.disabled = val;
+        }
+    }
+
+    function showScanning() {
         banner.style.display = 'block';
-        if (state) state.style.display = 'flex';
+        scanningState.style.display = 'flex';
+        foundState.style.display = 'none';
+        clearState.style.display = 'none';
+        setDuplicateState(false);  // not confirmed yet, allow scanning to finish
+        if (submitBtn) submitBtn.disabled = true;  // disable while scanning
+    }
+
+    function showFound(message) {
+        banner.style.display = 'block';
+        scanningState.style.display = 'none';
+        foundState.style.display = 'block';
+        clearState.style.display = 'none';
+        foundMessage.textContent = message;
+        setDuplicateState(true);
+    }
+
+    function showClear() {
+        banner.style.display = 'block';
+        scanningState.style.display = 'none';
+        foundState.style.display = 'none';
+        clearState.style.display = 'flex';
+        setDuplicateState(false);
     }
 
     function hideBanner() {
         banner.style.display = 'none';
+        setDuplicateState(false);
     }
 
     function getFormValues() {
@@ -1430,8 +1462,7 @@ document.addEventListener('DOMContentLoaded', function () {
         if (key === lastCheckedKey) return;
         lastCheckedKey = key;
 
-        // Show scanning state
-        showState(scanningState);
+        showScanning();
 
         fetch(DUPLICATE_CHECK_URL, {
             method: 'POST',
@@ -1444,14 +1475,13 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(res => res.json())
         .then(data => {
             if (data.duplicate_found) {
-                foundMessage.textContent = data.message;
-                showState(foundState);
-                foundState.style.display = 'block';
+                showFound(data.message);
             } else {
-                showState(clearState);
+                showClear();
             }
         })
         .catch(() => {
+            // On network error, don't block the user
             hideBanner();
         });
     }
@@ -1460,38 +1490,32 @@ document.addEventListener('DOMContentLoaded', function () {
     [firstNameField, lastNameField, gradYearField].forEach(el => {
         if (el) el.addEventListener('input', triggerCheck);
     });
-
-    // College and course are select elements populated dynamically
-    // Use MutationObserver + change events
     [collegeField, courseField].forEach(el => {
         if (el) el.addEventListener('change', triggerCheck);
     });
-
-    // Also re-check when course dropdown is repopulated by the cascading script
     if (courseField) {
         new MutationObserver(triggerCheck).observe(courseField, { childList: true });
     }
 
-    // Show loading state on form submit
+    // Form submit: double-check isDuplicate flag
     const form = document.getElementById('postRegForm');
     if (form) {
         form.addEventListener('submit', function (e) {
-            // Block submission if duplicate was detected
-            if (banner.style.display !== 'none' && foundState.style.display !== 'none') {
+            if (isDuplicate) {
                 e.preventDefault();
-                // Scroll the banner into view so the user sees the warning
                 banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                // Pulse the banner to draw attention
-                foundState.style.transition = 'transform 0.1s ease';
-                foundState.style.transform = 'scale(1.02)';
-                setTimeout(() => { foundState.style.transform = 'scale(1)'; }, 150);
+                foundState.animate([
+                    { transform: 'translateX(-4px)' },
+                    { transform: 'translateX(4px)' },
+                    { transform: 'translateX(-4px)' },
+                    { transform: 'translateX(0)' },
+                ], { duration: 300, easing: 'ease-in-out' });
                 return;
             }
-            if (submitBtn) {
-                submitBtn.disabled = true;
-                submitBtn.querySelector('.btn-text').style.display = 'none';
-                submitBtn.querySelector('.btn-loading').style.display = 'flex';
-            }
+            // Show saving state
+            submitBtn.disabled = true;
+            submitBtn.querySelector('.btn-text').style.display = 'none';
+            submitBtn.querySelector('.btn-loading').style.display = 'flex';
         });
     }
 });
