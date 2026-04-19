@@ -1,6 +1,10 @@
-from django.test import TestCase
+from django.test import TestCase, RequestFactory
 from django.contrib.auth import get_user_model
+from django.http import HttpResponse
+from django.contrib.messages.storage.fallback import FallbackStorage
+from django.contrib.sessions.middleware import SessionMiddleware
 from accounts.models import Profile
+from accounts.decorators import post_registration_required
 
 User = get_user_model()
 
@@ -35,6 +39,83 @@ class ProfileSignalTestCase(TestCase):
         # Should not create a new profile
         self.assertFalse(created)
         self.assertEqual(Profile.objects.filter(user=user).count(), 1)
+
+    def test_user_save_does_not_reset_profile_registration_state(self):
+        """Saving User should not overwrite profile completion from stale relation cache."""
+        user = User.objects.create_user(
+            username='testuser3',
+            email='test3@example.com',
+            password='testpass123'
+        )
+
+        profile = user.profile
+        profile.current_position = 'Engineer'
+        profile.has_completed_registration = True
+        profile.save(update_fields=['current_position', 'has_completed_registration'])
+
+        # Simulate a stale cached related profile object on the in-memory User instance
+        user.profile.current_position = ''
+        user.profile.has_completed_registration = False
+        user.first_name = 'Updated'
+        user.save(update_fields=['first_name'])
+
+        profile.refresh_from_db()
+        self.assertTrue(profile.has_completed_registration)
+        self.assertEqual(profile.current_position, 'Engineer')
+
+
+class PostRegistrationDecoratorTestCase(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def _attach_session_and_messages(self, request):
+        session_middleware = SessionMiddleware(lambda req: None)
+        session_middleware.process_request(request)
+        request.session.save()
+        setattr(request, '_messages', FallbackStorage(request))
+
+    def test_allows_completed_users(self):
+        user = User.objects.create_user(
+            username='completeuser',
+            email='complete@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        user.profile.has_completed_registration = True
+        user.profile.save(update_fields=['has_completed_registration'])
+
+        @post_registration_required
+        def protected_view(request):
+            return HttpResponse('ok', status=200)
+
+        request = self.factory.get('/dummy/')
+        request.user = user
+        self._attach_session_and_messages(request)
+
+        response = protected_view(request)
+        self.assertEqual(response.status_code, 200)
+
+    def test_redirects_incomplete_users(self):
+        user = User.objects.create_user(
+            username='incompleteuser',
+            email='incomplete@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        user.profile.has_completed_registration = False
+        user.profile.save(update_fields=['has_completed_registration'])
+
+        @post_registration_required
+        def protected_view(request):
+            return HttpResponse('ok', status=200)
+
+        request = self.factory.get('/dummy/')
+        request.user = user
+        self._attach_session_and_messages(request)
+
+        response = protected_view(request)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/accounts/post-registration/', response.url)
 
 
 class GoogleSSOErrorHandlingTestCase(TestCase):

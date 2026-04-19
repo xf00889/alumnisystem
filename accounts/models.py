@@ -621,22 +621,21 @@ def create_user_profile(sender, instance, created, **kwargs):
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
-    """Save the Profile when User is saved, creating it if missing"""
+    """Ensure the Profile exists when User is saved."""
     try:
-        if hasattr(instance, 'profile') and instance.profile:
-            instance.profile.save()
-        else:
-            # Profile doesn't exist, create it
-            profile, created = Profile.objects.get_or_create(user=instance)
-            if created:
-                logger.warning(
-                    f"Profile was missing for user {instance.id} ({instance.email}), created new profile in save signal",
-                    extra={
-                        'user_id': instance.id,
-                        'user_email': instance.email,
-                        'signal': 'save_user_profile'
-                    }
-                )
+        # Important: do not call instance.profile.save() here.
+        # User instances can carry a cached/stale related Profile object, and
+        # saving it from this signal can overwrite recent Profile updates.
+        profile, created = Profile.objects.get_or_create(user=instance)
+        if created:
+            logger.warning(
+                f"Profile was missing for user {instance.id} ({instance.email}), created new profile in save signal",
+                extra={
+                    'user_id': instance.id,
+                    'user_email': instance.email,
+                    'signal': 'save_user_profile'
+                }
+            )
     except Exception as e:
         logger.error(
             f"Error saving profile for user {instance.id} ({instance.email}): {str(e)}",

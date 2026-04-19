@@ -48,7 +48,7 @@ def post_registration_required(view_func):
         # Check if user has completed post-registration
         try:
             profile = request.user.profile
-            if not profile.first_name or not profile.last_name:
+            if not profile.has_completed_registration:
                 messages.info(request, 'Please complete your profile to access this page.')
                 return redirect('accounts:post_registration')
         except:

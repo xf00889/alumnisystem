@@ -881,12 +881,14 @@ class PostRegistrationForm(forms.Form):
         return choices
 
     def save(self, user):
-        # Update user's first and last name — use update_fields to avoid
-        # triggering the save_user_profile signal which would re-save the
-        # profile from the stale in-memory instance (has_completed_registration=False)
+        # Update names directly via queryset update to avoid post_save side-effects
+        # from user.save() that can re-persist a stale in-memory profile object.
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
-        user.save(update_fields=['first_name', 'last_name'])
+        User.objects.filter(pk=user.pk).update(
+            first_name=user.first_name,
+            last_name=user.last_name,
+        )
 
         # Determine the major to save
         major = self.cleaned_data.get('major', '')
