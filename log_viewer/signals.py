@@ -23,6 +23,19 @@ _original_values_cache = {}
 _table_existence_cache = {}
 
 
+def _get_numeric_object_id(instance):
+    """
+    Return integer object id for AuditLog.object_id, or None when PK is non-numeric.
+    """
+    pk = getattr(instance, 'pk', None)
+    if pk is None:
+        return None
+    try:
+        return int(pk)
+    except (TypeError, ValueError):
+        return None
+
+
 def is_running_in_migration():
     """
     Detect if code is currently executing within a migration context.
@@ -289,6 +302,16 @@ def log_create_or_update(sender, instance, created, **kwargs):
     
     try:
         action = 'CREATE' if created else 'UPDATE'
+        object_id = _get_numeric_object_id(instance)
+        if object_id is None:
+            logger.debug(
+                "Skipping audit log for %s.%s with non-numeric primary key: %r",
+                sender._meta.app_label,
+                sender._meta.model_name,
+                getattr(instance, 'pk', None),
+            )
+            return
+
         content_type = ContentType.objects.get_for_model(sender)
         
         # Get user
@@ -334,7 +357,7 @@ def log_create_or_update(sender, instance, created, **kwargs):
         # Create audit log entry
         audit_log = AuditLog.objects.create(
             content_type=content_type,
-            object_id=instance.pk,
+            object_id=object_id,
             action=action,
             model_name=sender._meta.model_name,
             app_label=sender._meta.app_label,
@@ -448,6 +471,16 @@ def log_delete(sender, instance, **kwargs):
         return
     
     try:
+        object_id = _get_numeric_object_id(instance)
+        if object_id is None:
+            logger.debug(
+                "Skipping delete audit log for %s.%s with non-numeric primary key: %r",
+                sender._meta.app_label,
+                sender._meta.model_name,
+                getattr(instance, 'pk', None),
+            )
+            return
+
         content_type = ContentType.objects.get_for_model(sender)
         
         # Get user
@@ -473,7 +506,7 @@ def log_delete(sender, instance, **kwargs):
         # Create audit log entry
         audit_log = AuditLog.objects.create(
             content_type=content_type,
-            object_id=instance.pk if hasattr(instance, 'pk') and instance.pk else None,
+            object_id=object_id,
             action='DELETE',
             model_name=sender._meta.model_name,
             app_label=sender._meta.app_label,

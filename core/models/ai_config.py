@@ -113,22 +113,32 @@ class AIConfig(models.Model):
     def _test_gemini(self):
         """Test Google Gemini API key using the new google-genai SDK."""
         try:
-            from google import genai
-            from google.genai import types
-            client = genai.Client(api_key=self.api_key)
+            from core.ai_config_utils import get_gemini_client
+            client, model_name = get_gemini_client()
+            if not client:
+                raise ValueError("Could not initialize Gemini client.")
+            model_to_use = self.model_name or model_name
 
             # Build config — disable thinking for 2.5 models so we get plain text
             config_kwargs = {
                 "max_output_tokens": 10,
                 "temperature": 0,
             }
-            if '2.5' in self.model_name:
-                config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+
+            config_payload = config_kwargs
+            try:
+                from google.genai import types  # Optional dependency path.
+                if '2.5' in model_to_use:
+                    config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+                config_payload = types.GenerateContentConfig(**config_kwargs)
+            except Exception:
+                # Fallback clients (or incompatible SDK env) can use dict config.
+                pass
 
             response = client.models.generate_content(
-                model=self.model_name,
+                model=model_to_use,
                 contents="Reply with the word OK only.",
-                config=types.GenerateContentConfig(**config_kwargs)
+                config=config_payload
             )
 
             # Safely extract text
@@ -152,19 +162,13 @@ class AIConfig(models.Model):
             if not text:
                 raise ValueError("Model returned an empty response. Check your API key and model name.")
 
-            msg = f"Gemini API key is valid. Model '{self.model_name}' responded successfully."
+            msg = f"Gemini API key is valid. Model '{model_to_use}' responded successfully."
             AIConfig.objects.filter(pk=self.pk).update(
                 is_verified=True,
                 test_result=msg,
                 last_tested=timezone.now()
             )
             return True, msg
-        except ImportError:
-            msg = "google-genai package is not installed. Run: pip install google-genai"
-            AIConfig.objects.filter(pk=self.pk).update(
-                is_verified=False, test_result=msg, last_tested=timezone.now()
-            )
-            return False, msg
         except Exception as e:
             msg = f"Gemini test failed: {str(e)}"
             AIConfig.objects.filter(pk=self.pk).update(

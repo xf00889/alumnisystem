@@ -241,20 +241,26 @@ Scoring guide:
 
     raw = ""
     try:
-        from google.genai import types
-
-        # Disable thinking for 2.5 models — forces plain text output
+        # Disable thinking for 2.5 models when SDK supports it.
         config_kwargs = {
             "temperature": 0.1,
             "max_output_tokens": 500,
         }
-        if '2.5' in model_name:
-            config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+
+        config_payload = config_kwargs
+        try:
+            from google.genai import types  # Optional; can fail on incompatible SDK/env.
+            if '2.5' in model_name:
+                config_kwargs["thinking_config"] = types.ThinkingConfig(thinking_budget=0)
+            config_payload = types.GenerateContentConfig(**config_kwargs)
+        except Exception:
+            # Fallback clients (or older envs) accept dict config.
+            pass
 
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
-            config=types.GenerateContentConfig(**config_kwargs)
+            config=config_payload
         )
 
         # Safely get text using robust extractor
