@@ -89,3 +89,6 @@ else:
     urlpatterns += [
         re_path(r'^media/(?P<path>.*)$', serve_media, name='serve_media'),
     ]
+
+# Global error handlers (used when DEBUG=False)
+handler500 = 'core.view_handlers.error_handlers.handler500'

@@ -103,6 +103,8 @@ class MaintenanceModeMiddlewareTestCase(BaseSystemControlsTestCase):
 
         self.assertEqual(response.status_code, 503)
         self.assertContains(response, "Planned maintenance in progress", status_code=503)
+        self.assertContains(response, "logo_norsu.png", status_code=503)
+        self.assertContains(response, "alumni_logo.png", status_code=503)
 
     def test_maintenance_on_allows_admin_dashboard(self):
         self._enable_maintenance()
@@ -164,3 +166,11 @@ class RuntimeDebugHandlersTestCase(BaseSystemControlsTestCase):
         response_false = self.client.get(reverse("core:health_check"))
         self.assertEqual(response_false.status_code, 200)
         self.assertFalse(response_false.json().get("debug"))
+
+    def test_project_uses_custom_handler500(self):
+        from norsu_alumni import urls as project_urls
+
+        self.assertEqual(
+            project_urls.handler500,
+            "core.view_handlers.error_handlers.handler500",
+        )

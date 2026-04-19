@@ -1,7 +1,6 @@
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
 import logging
-import traceback
 
 from core.system_settings_utils import is_runtime_debug_enabled
 

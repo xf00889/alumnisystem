@@ -28,6 +28,7 @@ from .forms import (
 from .security import SecurityCodeManager, RateLimiter, SecurityAuditLogger
 from .email_utils import render_verification_email, render_resend_verification_email, render_password_reset_email
 from core.recaptcha_utils import get_recaptcha_public_key, is_recaptcha_enabled
+from core.system_settings_utils import is_runtime_debug_enabled
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -265,7 +266,7 @@ NORSU Alumni Network Team
                     messages.warning(request, 'Account created but email could not be sent. Please contact support.')
                 
                 # In development mode, also log the verification code to console
-                if settings.DEBUG:
+                if is_runtime_debug_enabled():
                     logger.info(f"DEVELOPMENT MODE: Verification code for {user.email} is: {verification_code}")
                     print(f"DEVELOPMENT MODE: Verification code for {user.email} is: {verification_code}")
                 
@@ -503,7 +504,7 @@ NORSU Alumni Network Team
                     })
                 
                 # In development mode, also log the new verification code to console
-                if settings.DEBUG:
+                if is_runtime_debug_enabled():
                     logger.info(f"DEVELOPMENT MODE: New verification code for {email} is: {verification_code}")
                     print(f"DEVELOPMENT MODE: New verification code for {email} is: {verification_code}")
                 
@@ -658,7 +659,7 @@ NORSU Alumni Network Team
                 return render(request, 'accounts/password_reset_email.html', {'form': form})
             
             # In development mode, also log the verification code to console
-            if settings.DEBUG:
+            if is_runtime_debug_enabled():
                 logger.info(f"DEVELOPMENT MODE: Password reset code for {email} is: {verification_code}")
                 print(f"DEVELOPMENT MODE: Password reset code for {email} is: {verification_code}")
             
@@ -886,7 +887,7 @@ NORSU Alumni Network Team
                 })
             
             # In development mode, also log the verification code to console
-            if settings.DEBUG:
+            if is_runtime_debug_enabled():
                 logger.info(f"DEVELOPMENT MODE: Password reset code resent for {email} is: {verification_code}")
                 print(f"DEVELOPMENT MODE: Password reset code resent for {email} is: {verification_code}")
             
@@ -1030,7 +1031,7 @@ NORSU Alumni Network Team
                 })
             
             # In development mode, also log the verification code to console
-            if settings.DEBUG:
+            if is_runtime_debug_enabled():
                 logger.info(f"DEVELOPMENT MODE: New verification code for {email} is: {verification_code}")
                 print(f"DEVELOPMENT MODE: New verification code for {email} is: {verification_code}")
             

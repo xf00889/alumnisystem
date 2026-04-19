@@ -8,59 +8,195 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #2b3c6b;
-            --bg-1: #f6f8fc;
-            --bg-2: #e9eef8;
-            --text-1: #1f2a44;
-            --text-2: #4b5875;
+            --brand-navy: #1d3c74;
+            --brand-blue: #2f66b4;
+            --brand-gold: #e5b95b;
+            --ink: #1d2743;
+            --muted: #5a6887;
+            --surface: rgba(255, 255, 255, 0.92);
+            --border: rgba(255, 255, 255, 0.4);
         }
-        * { box-sizing: border-box; }
+        * {
+            box-sizing: border-box;
+        }
         body {
             margin: 0;
             min-height: 100vh;
             font-family: 'Poppins', sans-serif;
-            background: radial-gradient(circle at 15% 20%, #ffffff 0%, var(--bg-1) 45%, var(--bg-2) 100%);
-            color: var(--text-1);
+            background:
+                radial-gradient(1200px 600px at 10% -10%, rgba(47, 102, 180, 0.22), transparent 65%),
+                radial-gradient(900px 520px at 90% 0%, rgba(229, 185, 91, 0.22), transparent 60%),
+                linear-gradient(170deg, #f7f9ff 0%, #edf2ff 45%, #e6ecfb 100%);
+            color: var(--ink);
             display: grid;
             place-items: center;
-            padding: 1rem;
+            padding: 1.25rem;
         }
         .card {
-            width: min(680px, 100%);
-            background: rgba(255,255,255,0.9);
-            border: 1px solid #dce5f5;
-            border-radius: 16px;
-            box-shadow: 0 18px 40px rgba(43, 60, 107, 0.12);
-            padding: 2rem;
+            width: min(760px, 100%);
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 22px;
+            box-shadow:
+                0 24px 50px rgba(29, 60, 116, 0.16),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            padding: 2.25rem;
             text-align: center;
+            position: relative;
+            overflow: hidden;
         }
-        .icon {
-            width: 64px;
-            height: 64px;
+        .card::before,
+        .card::after {
+            content: "";
+            position: absolute;
             border-radius: 50%;
-            margin: 0 auto 1rem;
-            display: grid;
-            place-items: center;
-            background: rgba(43, 60, 107, 0.12);
-            color: var(--primary);
-            font-size: 1.6rem;
-            font-weight: 700;
+            z-index: 0;
+            pointer-events: none;
         }
-        h1 { margin: 0 0 0.6rem; font-size: 1.9rem; color: var(--primary); }
-        p { margin: 0; color: var(--text-2); line-height: 1.6; }
-        .code {
-            margin-top: 1.25rem;
-            font-size: 0.85rem;
-            color: #70809f;
+        .card::before {
+            width: 240px;
+            height: 240px;
+            right: -60px;
+            top: -95px;
+            background: radial-gradient(circle, rgba(47, 102, 180, 0.16), rgba(47, 102, 180, 0));
+        }
+        .card::after {
+            width: 210px;
+            height: 210px;
+            left: -70px;
+            bottom: -90px;
+            background: radial-gradient(circle, rgba(229, 185, 91, 0.18), rgba(229, 185, 91, 0));
+        }
+        .content {
+            position: relative;
+            z-index: 1;
+        }
+        .brand-row {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1.1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+        .logo {
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(29, 60, 116, 0.12);
+            border-radius: 14px;
+            box-shadow: 0 10px 26px rgba(29, 60, 116, 0.12);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0.45rem;
+        }
+        .logo img {
+            display: block;
+            object-fit: contain;
+        }
+        .logo-norsu img {
+            width: min(220px, 45vw);
+            max-height: 78px;
+        }
+        .logo-alumni img {
+            width: min(82px, 18vw);
+            height: min(82px, 18vw);
+        }
+        .status-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--brand-navy);
+            background: rgba(47, 102, 180, 0.11);
+            border: 1px solid rgba(47, 102, 180, 0.22);
+            border-radius: 999px;
+            padding: 0.38rem 0.82rem;
+            margin-bottom: 0.95rem;
+        }
+        .dot {
+            width: 9px;
+            height: 9px;
+            border-radius: 50%;
+            background: #d9534f;
+            box-shadow: 0 0 0 6px rgba(217, 83, 79, 0.16);
+            animation: pulse 1.8s infinite;
+        }
+        h1 {
+            margin: 0 0 0.55rem;
+            font-size: clamp(1.55rem, 3.4vw, 2.15rem);
+            color: var(--brand-navy);
+            letter-spacing: 0.2px;
+        }
+        .subtitle {
+            margin: 0 auto;
+            max-width: 620px;
+            color: var(--muted);
+            line-height: 1.68;
+            font-size: 1rem;
+        }
+        .meta {
+            margin-top: 1.4rem;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.75rem;
+        }
+        .meta-badge {
+            font-size: 0.82rem;
+            color: #4e5f80;
+            background: rgba(255, 255, 255, 0.72);
+            border: 1px solid rgba(29, 60, 116, 0.14);
+            border-radius: 999px;
+            padding: 0.35rem 0.75rem;
+        }
+        @keyframes pulse {
+            0% { transform: scale(1); opacity: 1; }
+            50% { transform: scale(1.12); opacity: 0.72; }
+            100% { transform: scale(1); opacity: 1; }
+        }
+        @media (max-width: 560px) {
+            .card {
+                padding: 1.35rem 1rem;
+                border-radius: 18px;
+            }
+            .brand-row {
+                gap: 0.7rem;
+                margin-bottom: 0.75rem;
+            }
+            .logo-norsu img {
+                width: min(180px, 55vw);
+                max-height: 64px;
+            }
+            .logo-alumni img {
+                width: min(68px, 20vw);
+                height: min(68px, 20vw);
+            }
         }
     </style>
 </head>
 <body>
     <section class="card" role="status" aria-live="polite">
-        <div class="icon">!</div>
-        <h1>Site Under Maintenance</h1>
-        <p>{{ maintenance_message }}</p>
-        <p class="code">HTTP 503 • Please try again later.</p>
+        <div class="content">
+            <div class="brand-row">
+                <div class="logo logo-norsu">
+                    <img src="{% static 'images/logo_norsu.png' %}" alt="NORSU Logo">
+                </div>
+                <div class="logo logo-alumni">
+                    <img src="{% static 'images/alumni_logo.png' %}" alt="NORSU Alumni Logo">
+                </div>
+            </div>
+            <div class="status-chip">
+                <span class="dot" aria-hidden="true"></span>
+                Scheduled Maintenance
+            </div>
+            <h1>We&rsquo;ll Be Back Shortly</h1>
+            <p class="subtitle">{{ maintenance_message }}</p>
+            <div class="meta">
+                <span class="meta-badge">NORSU Alumni System</span>
+                <span class="meta-badge">HTTP 503</span>
+            </div>
+        </div>
     </section>
 </body>
 </html>
