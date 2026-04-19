@@ -876,10 +876,12 @@ class PostRegistrationForm(forms.Form):
         return choices
 
     def save(self, user):
-        # Update user's first and last name
+        # Update user's first and last name — use update_fields to avoid
+        # triggering the save_user_profile signal which would re-save the
+        # profile from the stale in-memory instance (has_completed_registration=False)
         user.first_name = self.cleaned_data['first_name']
         user.last_name = self.cleaned_data['last_name']
-        user.save()
+        user.save(update_fields=['first_name', 'last_name'])
 
         # Determine the major to save
         major = self.cleaned_data.get('major', '')
@@ -907,7 +909,7 @@ class PostRegistrationForm(forms.Form):
         profile.current_position = self.cleaned_data['present_occupation']
         profile.current_employer = self.cleaned_data['company_name']
         profile.has_completed_registration = True
-        profile.save()
+        profile.save(update_fields=['current_position', 'current_employer', 'has_completed_registration'])
 
         # Create current employment experience
         import datetime
