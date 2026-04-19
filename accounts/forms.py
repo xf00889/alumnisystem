@@ -573,10 +573,9 @@ class PostRegistrationForm(forms.Form):
     )
     college = forms.ChoiceField(
         choices=COLLEGE_CHOICES,
-        required=True,
+        required=False,  # Not required at field level — clean() validates it
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'disabled': 'disabled',
         }),
         help_text="Select your campus first to see available colleges",
         label="College"
@@ -586,7 +585,6 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
-            'disabled': 'disabled',
         }),
         help_text="Select your campus and college first to see available programs",
         label="Program/Course"
@@ -726,15 +724,22 @@ class PostRegistrationForm(forms.Form):
         course = cleaned_data.get('course_graduated')
         college = cleaned_data.get('college')
 
-        # Validate that campus, college and course are selected
+        # Validate that campus and course are selected
         if not campus:
             raise forms.ValidationError("Please select your campus.")
 
-        if not college:
-            raise forms.ValidationError("Please select your college.")
-
         if not course:
             raise forms.ValidationError("Please select your course/program.")
+
+        # Auto-derive college from course if not submitted (disabled select doesn't submit)
+        if not college and course and course != 'OTHER':
+            college = self.COURSE_COLLEGE_MAPPING.get(course, '')
+            cleaned_data['college'] = college
+
+        # Final fallback
+        if not college:
+            college = 'CAS'
+            cleaned_data['college'] = college
 
         # Validate campus-college-course combination for non-OTHER courses
         if campus and college and course and course != 'OTHER':
