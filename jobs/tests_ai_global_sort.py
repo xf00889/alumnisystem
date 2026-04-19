@@ -325,3 +325,9 @@ class AIGlobalSortViewTests(TestCase):
         self.assertTrue(payload["success"])
         self.assertIn("jobs_html", payload)
         self.assertIn("filters_html", payload)
+
+    @patch("jobs.views._get_ai_sort_state", return_value=(True, 1))
+    def test_job_list_renders_mobile_actions_controls(self, _mock_ai_state):
+        response = self.client.get(reverse("jobs:job_list"))
+        self.assertContains(response, 'id="openFilterSheetBtn"')
+        self.assertContains(response, 'id="mobileSortSelect"')
