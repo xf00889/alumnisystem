@@ -25,7 +25,7 @@
         /* Text Colors */
         --text-primary: #2d3748;
         --text-secondary: #718096;
-        --text-muted: #a0aec0;
+        --text-muted: #6b7280;
         --text-light: #ffffff;
 
         /* Feedback Colors */
@@ -208,6 +208,11 @@
     .modern-job-card:hover {
         box-shadow: var(--shadow-md);
         border-color: var(--primary-color);
+    }
+
+    .modern-job-card:focus-visible {
+        outline: 3px solid rgba(43, 60, 107, 0.35);
+        outline-offset: 2px;
     }
 
     /* Card body grows to push button to bottom */
@@ -525,6 +530,11 @@
     .form-control:focus, .form-select:focus {
         border-color: var(--primary-color);
         box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.1);
+    }
+
+    a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible {
+        outline: 2px solid rgba(43, 60, 107, 0.4);
+        outline-offset: 2px;
     }
 
     /* Search Input with Icon */
@@ -1122,27 +1132,91 @@
             {% if user.is_authenticated and not is_admin_or_hr %}
             <div class="col-lg-3 mb-4">
                 <div class="filter-section">
-                    <h5 class="mb-4"><i class="fas fa-sliders-h me-2"></i>Search & Filters</h5>
-                    
-                    <!-- Search Box -->
-                    <div class="mb-4">
-                        <div class="search-input-wrapper">
-                            <i class="fas fa-search search-icon"></i>
-                            <input type="text" 
-                                   class="form-control search-input" 
-                                   placeholder="Search jobs..."
-                                   id="jobSearchInput">
+                    <div class="d-flex align-items-center justify-content-between mb-3">
+                        <h5 class="mb-0"><i class="fas fa-sliders-h me-2"></i>Search & Filters</h5>
+                        <button type="button" class="btn btn-sm btn-outline-primary d-lg-none" data-bs-toggle="collapse" data-bs-target="#mobileFilterBody">
+                            <i class="fas fa-filter me-1"></i>Toggle
+                        </button>
+                    </div>
+
+                    <form method="get" action="{% url 'jobs:job_list' %}" id="jobFilterForm" class="job-filters" aria-label="Job filter form">
+                        <input type="hidden" name="sort" value="{{ current_sort }}">
+                        {% if show_all %}<input type="hidden" name="show_all" value="true">{% endif %}
+                        <div id="mobileFilterBody" class="collapse d-lg-block show">
+                            <div class="mb-3">
+                                <label class="form-label fw-medium" for="jobSearchInput">Search</label>
+                                <div class="search-input-wrapper">
+                                    <i class="fas fa-search search-icon"></i>
+                                    <input type="text"
+                                           class="form-control search-input"
+                                           placeholder="Search jobs..."
+                                           id="jobSearchInput"
+                                           name="q"
+                                           value="{{ current_query }}"
+                                           aria-label="Search jobs">
+                                </div>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium" for="locationInput">Location</label>
+                                <input type="text"
+                                       class="form-control"
+                                       placeholder="Location (City or Remote)"
+                                       id="locationInput"
+                                       name="location"
+                                       value="{{ current_location }}">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium" for="jobTypeSelect">Job Type</label>
+                                <select class="form-select" id="jobTypeSelect" name="job_type">
+                                    <option value="">All Job Types</option>
+                                    {% for value, label in job_type_options %}
+                                    <option value="{{ value }}" {% if current_job_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium" for="sourceTypeSelect">Source</label>
+                                <select class="form-select" id="sourceTypeSelect" name="source_type">
+                                    <option value="">All Sources</option>
+                                    {% for value, label in source_type_options %}
+                                    <option value="{{ value }}" {% if current_source_type == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium" for="postedWithinSelect">Posted Within</label>
+                                <select class="form-select" id="postedWithinSelect" name="posted_within">
+                                    <option value="">Any Time</option>
+                                    {% for value, label in posted_within_options %}
+                                    <option value="{{ value }}" {% if current_posted_within == value %}selected{% endif %}>{{ label }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label fw-medium" for="salaryMinInput">Minimum Salary (PHP)</label>
+                                <input type="number"
+                                       class="form-control"
+                                       id="salaryMinInput"
+                                       name="salary_min"
+                                       min="0"
+                                       step="1000"
+                                       value="{{ current_salary_min }}"
+                                       placeholder="e.g. 20000">
+                            </div>
+
+                            <div class="d-grid gap-2 mb-3">
+                                <button type="submit" class="btn btn-primary apply-filters-btn">
+                                    <i class="fas fa-search me-2"></i>Apply Filters
+                                </button>
+                                <a href="{{ reset_filters_url }}" class="btn btn-outline-secondary">Reset Filters</a>
+                            </div>
                         </div>
-                    </div>
-                    
-                    <!-- Location Filter -->
-                    <div class="mb-4">
-                        <label class="form-label fw-medium">Location</label>
-                        <input type="text" 
-                               class="form-control" 
-                               placeholder="Location (City or Remote)"
-                               id="locationInput">
-                    </div>
+                    </form>
                     
                     {% if preferences_configured %}
                         <!-- Active Preferences Display -->
@@ -1201,14 +1275,14 @@
 
                     {% if user.is_authenticated and not is_admin_or_hr %}
                     <!-- AI Sort Button -->
-                    <div class="mt-4 pt-3 border-top">
+                    <div class="mt-4 pt-3 border-top" aria-live="polite">
                         {% if ai_sort_enabled %}
                         <div class="d-flex align-items-center mb-2">
                             <span class="badge {% if ai_global_mode %}bg-success{% else %}bg-info{% endif %} me-2" style="font-size:0.7rem;">
                                 <i class="fas fa-robot me-1"></i>AI Active
                             </span>
                             <small class="text-muted">
-                                {% if ai_global_mode %}Global ranking on (default){% else %}Latest order mode{% endif %}
+                                {% if ai_global_mode %}Best AI Match (default){% elif current_sort == 'updated' %}Recently updated mode{% else %}Latest posting mode{% endif %}
                             </small>
                         </div>
                         {% else %}
@@ -1236,8 +1310,8 @@
                                 Global AI ranking is active
                                 <a href="{{ ai_clear_sort_url }}" class="ms-2 text-danger">Switch to Latest</a>
                                 {% else %}
-                                <i class="fas fa-check-circle text-success me-1"></i>
-                                Sorted by AI match score
+                                <i class="fas fa-list-check text-primary me-1"></i>
+                                Use sort dropdown to switch modes
                                 {% endif %}
                             </small>
                         </div>
@@ -1370,13 +1444,25 @@
                             {% endif %}
                             {% endif %}
                         </h2>
-                        <span class="jobs-count-badge">
-                            {% if view_type == 'scraped' %}
-                            {{ scraped_jobs_total_count|default:0 }} external jobs found
-                            {% else %}
-                            {{ jobs.paginator.count }} jobs found
+                        <div class="d-flex align-items-center gap-2">
+                            {% if view_type != 'scraped' %}
+                            <label for="sortSelect" class="visually-hidden">Sort jobs</label>
+                            <select id="sortSelect" class="form-select form-select-sm" style="min-width: 180px;" aria-label="Sort jobs">
+                                {% if ai_sort_enabled and user.is_authenticated and not is_admin_or_hr %}
+                                <option value="ai_global" {% if current_sort == 'ai_global' %}selected{% endif %}>Best AI Match</option>
+                                {% endif %}
+                                <option value="latest" {% if current_sort == 'latest' or not current_sort %}selected{% endif %}>Newest</option>
+                                <option value="updated" {% if current_sort == 'updated' %}selected{% endif %}>Recently Updated</option>
+                            </select>
                             {% endif %}
-                        </span>
+                            <span class="jobs-count-badge">
+                                {% if view_type == 'scraped' %}
+                                {{ scraped_jobs_total_count|default:0 }} external jobs found
+                                {% else %}
+                                {{ jobs.paginator.count }} jobs found
+                                {% endif %}
+                            </span>
+                        </div>
                     </div>
 
                     {% if view_type == 'scraped' %}
@@ -1434,98 +1520,10 @@
                         </div>
                         {% endif %}
                     {% else %}
-                        {% if jobs %}
-                        <div class="job-list">
-                        {% for job in jobs %}
-                        <div class="modern-job-card" data-job-id="{{ job.id }}">
-                            <div class="d-flex align-items-start card-body-content">
-                                <!-- Company Logo/Icon -->
-                                <div class="company-icon me-3">
-                                    <i class="fas fa-building"></i>
-                                </div>
-
-                                <!-- Job Details -->
-                                <div class="flex-grow-1">
-                                    <h3 class="job-title-modern mb-1">
-                                        <a href="{% url 'jobs:job_detail' job.slug %}">
-                                            {{ job.job_title|format_job_title }}
-                                        </a>
-                                        {% if job.posted_date|timesince|slice:":1" == "0" or "minute" in job.posted_date|timesince or "hour" in job.posted_date|timesince %}
-                                        <span class="badge bg-info ms-2">New</span>
-                                        {% endif %}
-                                    </h3>
-                                    <p class="company-name-modern mb-1">{{ job.company_name }}</p>
-                                    <p class="job-location-modern mb-0">
-                                        {{ job.location }}
-                                        {% if job.job_type == 'REMOTE' %}(Remote){% endif %}
-                                        {% if job.job_type != 'REMOTE' and job.job_type != 'FULL_TIME' %}({{ job.get_job_type_display }}){% endif %}
-                                    </p>
-                                    <!-- AI Match Score Badge (injected by JS) -->
-                                    <div class="ai-match-badge-container" id="ai-badge-{{ job.id }}"></div>
-                                </div>
-                            </div>
-
-                            <!-- Action button — bottom center -->
-                            <div class="card-action">
-                                {% if job.accepts_internal_applications %}
-                                <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-outline-primary btn-apply-modern">
-                                    Apply
-                                </a>
-                                {% else %}
-                                <a href="{% url 'jobs:job_detail' job.slug %}" class="btn btn-outline-primary btn-apply-modern">
-                                    View
-                                </a>
-                                {% endif %}
-                            </div>
+                        {% include 'jobs/partials/job_active_filters.html' %}
+                        <div id="jobsResults">
+                            {% include 'jobs/partials/job_list_results.html' %}
                         </div>
-                        {% endfor %}
-                        </div>
-                        
-                        {% if jobs.has_other_pages %}
-                        <nav aria-label="Job pagination" class="mt-5">
-                            <ul class="pagination justify-content-center">
-                                {% if jobs.has_previous %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ jobs.previous_page_number }}{% if skill_based_view %}&skill_based=true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if view_type %}&view_type={{ view_type }}{% endif %}{% if show_all %}&show_all=true{% endif %}">
-                                        <i class="fas fa-chevron-left"></i>
-                                    </a>
-                                </li>
-                                {% endif %}
-
-                                {% for num in jobs.paginator.page_range %}
-                                <li class="page-item {% if jobs.number == num %}active{% endif %}">
-                                    <a class="page-link" href="?page={{ num }}{% if skill_based_view %}&skill_based=true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if view_type %}&view_type={{ view_type }}{% endif %}{% if show_all %}&show_all=true{% endif %}">
-                                        {{ num }}
-                                    </a>
-                                </li>
-                                {% endfor %}
-
-                                {% if jobs.has_next %}
-                                <li class="page-item">
-                                    <a class="page-link" href="?page={{ jobs.next_page_number }}{% if skill_based_view %}&skill_based=true{% endif %}{% if current_query %}&q={{ current_query }}{% endif %}{% if current_job_type %}&job_type={{ current_job_type }}{% endif %}{% if current_source_type %}&source_type={{ current_source_type }}{% endif %}{% if current_sort %}&sort={{ current_sort }}{% endif %}{% if view_type %}&view_type={{ view_type }}{% endif %}{% if show_all %}&show_all=true{% endif %}">
-                                        <i class="fas fa-chevron-right"></i>
-                                    </a>
-                                </li>
-                                {% endif %}
-                            </ul>
-                        </nav>
-                        {% endif %}
-                        {% else %}
-                        <div class="content-section text-center" style="padding: var(--space-xl);">
-                            <div style="color: var(--text-muted); font-size: 3rem; margin-bottom: var(--space-lg);">
-                                <i class="fas fa-search"></i>
-                            </div>
-                            <h3 style="font-size: 1rem; font-weight: 600; color: var(--text-primary); margin-bottom: var(--space-md);">
-                                No jobs found
-                            </h3>
-                            <p style="font-size: 0.875rem; color: var(--text-secondary); margin-bottom: var(--space-lg);">
-                                We couldn't find any jobs matching your criteria. Try adjusting your filters or check back later for new opportunities.
-                            </p>
-                            <a href="{% url 'jobs:job_list' %}" class="btn btn-primary">
-                                <i class="fas fa-redo me-1"></i>Clear Filters
-                            </a>
-                        </div>
-                        {% endif %}
                     {% endif %}
                 </div>
             </div>
@@ -1622,6 +1620,7 @@ document.addEventListener('DOMContentLoaded', function() {
 const AI_SORT_URL = "{% url 'jobs:ai_sort_jobs' %}";
 const AI_GLOBAL_PROGRESS_URL = "{% url 'jobs:ai_global_progress' %}";
 const AI_GLOBAL_START_URL = "{% url 'jobs:ai_global_start' %}";
+const JOB_LIST_URL = "{% url 'jobs:job_list' %}";
 const AI_SORT_ENABLED = {% if ai_sort_enabled %}true{% else %}false{% endif %};
 const AI_GLOBAL_MODE = {% if ai_global_mode %}true{% else %}false{% endif %};
 const AI_GLOBAL_ASYNC_AVAILABLE = {% if ai_global_async_available %}true{% else %}false{% endif %};
@@ -1630,6 +1629,7 @@ const AI_PROFILE_VERSION = {{ ai_profile_version|default:0 }};
 const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]')?.value || getCsrfToken();
 const AI_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours in ms
 const AI_GLOBAL_POLL_INTERVAL_MS = 3500;
+let filterDebounceTimer = null;
 
 function getCsrfToken() {
     const cookies = document.cookie.split(';');
@@ -1815,6 +1815,103 @@ function applyAISort(sortedJobs) {
     });
 }
 
+function updateListFromPayload(payload) {
+    if (!payload || !payload.success) return;
+    const jobsResults = document.getElementById('jobsResults');
+    if (jobsResults && payload.jobs_html) {
+        jobsResults.innerHTML = payload.jobs_html;
+    }
+    const activeFilterChips = document.getElementById('activeFilterChips');
+    if (activeFilterChips && payload.filters_html) {
+        const temp = document.createElement('div');
+        temp.innerHTML = payload.filters_html;
+        const newChips = temp.querySelector('#activeFilterChips');
+        if (newChips) {
+            activeFilterChips.replaceWith(newChips);
+        } else {
+            activeFilterChips.remove();
+        }
+    } else if (!activeFilterChips && payload.filters_html) {
+        const container = document.querySelector('#jobsResults');
+        if (container) {
+            container.insertAdjacentHTML('beforebegin', payload.filters_html);
+        }
+    }
+    bindDynamicFilters();
+    bindJobCards();
+}
+
+async function fetchListPartial(queryString) {
+    const url = `${JOB_LIST_URL}?${queryString}${queryString ? '&' : ''}partial=jobs`;
+    const response = await fetch(url, {
+        headers: { 'X-Requested-With': 'XMLHttpRequest' },
+    });
+    const payload = await response.json();
+    updateListFromPayload(payload);
+    window.history.replaceState({}, '', `${JOB_LIST_URL}?${queryString}`);
+}
+
+function buildFilterQueryFromForm() {
+    const form = document.getElementById('jobFilterForm');
+    if (!form) return '';
+    const params = new URLSearchParams(new FormData(form));
+    for (const [key, value] of [...params.entries()]) {
+        if (value === '' || value === null) {
+            params.delete(key);
+        }
+    }
+    return params.toString();
+}
+
+function getCurrentFiltersPayload() {
+    const form = document.getElementById('jobFilterForm');
+    if (!form) return {};
+    const formData = new FormData(form);
+    return {
+        q: formData.get('q') || '',
+        location: formData.get('location') || '',
+        job_type: formData.get('job_type') || '',
+        source_type: formData.get('source_type') || '',
+        posted_within: formData.get('posted_within') || '',
+        salary_min: formData.get('salary_min') || '',
+    };
+}
+
+function bindDynamicFilters() {
+    document.querySelectorAll('.ajax-filter-chip').forEach((chip) => {
+        if (chip.dataset.bound === '1') return;
+        chip.dataset.bound = '1';
+        chip.addEventListener('click', async (event) => {
+            event.preventDefault();
+            const href = chip.getAttribute('href') || '';
+            const query = href.includes('?') ? href.split('?')[1] : '';
+            try {
+                await fetchListPartial(query);
+            } catch (err) {
+                window.location.href = href;
+            }
+        });
+    });
+}
+
+function bindJobCards() {
+    document.querySelectorAll('.modern-job-card[role="link"]').forEach((card) => {
+        if (card.dataset.bound === '1') return;
+        card.dataset.bound = '1';
+        card.addEventListener('click', (event) => {
+            if (event.target.closest('a,button,input,select,label')) return;
+            const detailLink = card.querySelector('.job-title-modern a');
+            if (detailLink) window.location.href = detailLink.href;
+        });
+        card.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter') {
+                const detailLink = card.querySelector('.job-title-modern a');
+                if (detailLink) window.location.href = detailLink.href;
+            }
+        });
+    });
+}
+
 function clearAISort() {
     // Clear sessionStorage cache for this page
     const cacheKey = buildCacheKey(getJobIds());
@@ -1876,7 +1973,7 @@ async function startAIGlobalAsyncIfAvailable() {
                 'X-CSRFToken': CSRF_TOKEN,
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify({ show_all: SHOW_ALL }),
+            body: JSON.stringify({ show_all: SHOW_ALL, filters: getCurrentFiltersPayload() }),
         });
     } catch (err) {
         console.warn('AI global async start failed:', err);
@@ -1894,7 +1991,7 @@ async function pollAIGlobalProgress() {
                 'X-CSRFToken': CSRF_TOKEN,
                 'X-Requested-With': 'XMLHttpRequest',
             },
-            body: JSON.stringify({ show_all: SHOW_ALL }),
+            body: JSON.stringify({ show_all: SHOW_ALL, filters: getCurrentFiltersPayload() }),
         });
 
         const data = await response.json();
@@ -1927,6 +2024,54 @@ async function pollAIGlobalProgress() {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
+    bindDynamicFilters();
+    bindJobCards();
+
+    const sortSelect = document.getElementById('sortSelect');
+    if (sortSelect) {
+        sortSelect.addEventListener('change', async () => {
+            const form = document.getElementById('jobFilterForm');
+            if (form) {
+                const hiddenSort = form.querySelector('input[name="sort"]');
+                if (hiddenSort) hiddenSort.value = sortSelect.value;
+            }
+            const query = buildFilterQueryFromForm();
+            try {
+                await fetchListPartial(query);
+            } catch (err) {
+                window.location.href = `${JOB_LIST_URL}?${query}`;
+            }
+        });
+    }
+
+    const filterForm = document.getElementById('jobFilterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const query = buildFilterQueryFromForm();
+            try {
+                await fetchListPartial(query);
+            } catch (err) {
+                window.location.href = `${JOB_LIST_URL}?${query}`;
+            }
+        });
+    }
+
+    const searchInput = document.getElementById('jobSearchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            window.clearTimeout(filterDebounceTimer);
+            filterDebounceTimer = window.setTimeout(async () => {
+                const query = buildFilterQueryFromForm();
+                try {
+                    await fetchListPartial(query);
+                } catch (err) {
+                    // fallback to no-op to avoid hard reload on every key
+                }
+            }, 450);
+        });
+    }
+
     if (AI_GLOBAL_MODE && AI_SORT_ENABLED) {
         startAIGlobalAsyncIfAvailable();
         pollAIGlobalProgress();

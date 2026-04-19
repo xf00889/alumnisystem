@@ -264,3 +264,64 @@ class AIGlobalSortViewTests(TestCase):
         self.assertEqual(payload["queued_jobs"], 1)
         self.assertTrue(payload["async_available"])
         dummy_async_task.assert_called_once()
+
+    @patch("jobs.views._get_ai_sort_state", return_value=(True, 1))
+    def test_job_list_defaults_to_ai_global_when_sort_missing(self, _mock_ai_state):
+        response = self.client.get(reverse("jobs:job_list"))
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.context["ai_global_mode"])
+        self.assertEqual(response.context["current_sort"], "ai_global")
+
+    @patch("jobs.views._get_ai_sort_state", return_value=(True, 1))
+    def test_job_list_supports_updated_sort(self, _mock_ai_state):
+        first = self.jobs[-1]
+        JobPosting.objects.filter(id=first.id).update(updated_at=timezone.now() + timedelta(days=1))
+
+        response = self.client.get(f"{reverse('jobs:job_list')}?sort=updated")
+        self.assertEqual(response.status_code, 200)
+        self.assertFalse(response.context["ai_global_mode"])
+        self.assertEqual(response.context["current_sort"], "updated")
+        first_page_ids = [job.id for job in response.context["jobs"].object_list]
+        self.assertEqual(first_page_ids[0], first.id)
+
+    @patch("jobs.views._get_ai_sort_state", return_value=(True, 1))
+    def test_job_list_query_filters_affect_result_set(self, _mock_ai_state):
+        target = self.jobs[0]
+        JobPosting.objects.filter(id=target.id).update(
+            job_title="Unique Python Role",
+            location="Dumaguete City",
+            source_type="INTERNAL",
+            job_type="FULL_TIME",
+            salary_range="₱40,000 - ₱55,000",
+            posted_date=timezone.now(),
+        )
+
+        response = self.client.get(
+            reverse("jobs:job_list"),
+            data={
+                "q": "Unique Python",
+                "location": "Dumaguete",
+                "source_type": "INTERNAL",
+                "job_type": "FULL_TIME",
+                "posted_within": "7d",
+                "salary_min": "30000",
+                "sort": "latest",
+            },
+        )
+        self.assertEqual(response.status_code, 200)
+        ids = [job.id for job in response.context["jobs"].object_list]
+        self.assertIn(target.id, ids)
+        self.assertGreaterEqual(len(response.context["query_filter_chips"]), 1)
+
+    @patch("jobs.views._get_ai_sort_state", return_value=(True, 1))
+    def test_job_list_partial_jobs_response(self, _mock_ai_state):
+        response = self.client.get(
+            reverse("jobs:job_list"),
+            data={"partial": "jobs", "sort": "latest"},
+            HTTP_X_REQUESTED_WITH="XMLHttpRequest",
+        )
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertTrue(payload["success"])
+        self.assertIn("jobs_html", payload)
+        self.assertIn("filters_html", payload)

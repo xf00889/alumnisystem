@@ -326,6 +326,51 @@
         padding: 1.5rem;
         box-shadow: var(--shadow-sm);
     }
+
+    .right-panel-sticky {
+        position: sticky;
+        top: 1rem;
+    }
+
+    .section-card {
+        margin-bottom: 1.5rem;
+    }
+
+    .source-host-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 0.3rem 0.65rem;
+        border: 1px solid var(--ui-border);
+        border-radius: 999px;
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+        background: var(--ui-hover);
+    }
+
+    .job-apply-sticky-mobile {
+        display: none;
+    }
+
+    @media (max-width: 991.98px) {
+        .right-panel-sticky {
+            position: static;
+        }
+        .job-apply-sticky-mobile {
+            position: fixed;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: block;
+            background: rgba(255, 255, 255, 0.95);
+            border-top: 1px solid var(--ui-border);
+            padding: 0.65rem;
+            z-index: 1040;
+            backdrop-filter: blur(6px);
+        }
+        body {
+            padding-bottom: 74px;
+        }
+    }
 </style>
 {% endblock %}
 
@@ -396,7 +441,7 @@
                 </div>
 
                 <!-- Job Description -->
-                <div class="job-description mb-5">
+                <div class="job-description section-card">
                     <h3 class="h5 text-gray-900 fw-bold mb-4">
                         <i class="fas fa-align-left text-primary me-2"></i>Job Description
                     </h3>
@@ -415,7 +460,7 @@
 
                 {% if job.requirements %}
                 <!-- Job Requirements -->
-                <div class="job-requirements mb-5">
+                <div class="job-requirements section-card">
                     <h3 class="h5 text-gray-900 fw-bold mb-4">
                         <i class="fas fa-clipboard-list text-primary me-2"></i>Job Requirements
                     </h3>
@@ -425,10 +470,49 @@
                     </div>
                 </div>
                 {% endif %}
+
+                {% if job.responsibilities %}
+                <div class="section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-list-check text-primary me-2"></i>Responsibilities
+                    </h3>
+                    <div class="description-content text-gray-600">
+                        {{ job.responsibilities|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                {% if job.benefits %}
+                <div class="section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-gift text-primary me-2"></i>Benefits
+                    </h3>
+                    <div class="description-content text-gray-600">
+                        {{ job.benefits|linebreaks }}
+                    </div>
+                </div>
+                {% endif %}
+
+                <div class="section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-paper-plane text-primary me-2"></i>How to Apply
+                    </h3>
+                    <div class="description-content text-gray-600">
+                        {% if job.accepts_internal_applications %}
+                        <p class="mb-0">Apply directly through this portal using the <strong>Apply Now</strong> button.</p>
+                        {% elif source_url %}
+                        <p class="mb-2">This role is hosted externally. Use the external application button on the right panel.</p>
+                        <span class="source-host-badge"><i class="fas fa-link me-1"></i>{{ source_host|default:"External Source" }}</span>
+                        {% else %}
+                        <p class="mb-0">Please contact the hiring organization directly for application instructions.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
 
         <div class="col-xl-4 col-lg-5 order-1 order-lg-2">
+            <div class="right-panel-sticky">
             <!-- HR Action Buttons Card -->
             {% if user.is_authenticated and user|is_hr_or_admin %}
             <div class="dashboard-card">
@@ -498,11 +582,14 @@
                         </div>
                     {% endif %}
                 {% else %}
-                    {% if job.application_link %}
+                    {% if source_url %}
                         <div class="text-center">
-                            <a href="{{ job.application_link }}" class="btn btn-primary btn-lg w-100 fw-medium" target="_blank" rel="noopener noreferrer">
+                            <a href="{{ source_url }}" class="btn btn-primary btn-lg w-100 fw-medium" target="_blank" rel="noopener noreferrer">
                                 <i class="fas fa-external-link-alt me-2"></i>Apply on External Site
                             </a>
+                            {% if source_host %}
+                            <span class="source-host-badge mt-3"><i class="fas fa-globe me-1"></i>{{ source_host }}</span>
+                            {% endif %}
                             <small class="text-gray-500 d-block mt-3">
                                 <i class="fas fa-info-circle me-1"></i>You will be redirected to an external website
                             </small>
@@ -528,9 +615,12 @@
             <!-- AI Match Score Card -->
             {% if user.is_authenticated and ai_match %}
             <div class="dashboard-card">
-                <h5 class="text-gray-900 fw-bold mb-3">
-                    AI Match Score
-                </h5>
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="text-gray-900 fw-bold mb-0">AI Match Score</h5>
+                    <span class="badge {% if ai_match_state == 'ready' %}bg-success{% elif ai_match_state == 'failed' %}bg-secondary{% else %}bg-warning text-dark{% endif %}">
+                        {% if ai_match_state == 'ready' %}Scored{% elif ai_match_state == 'failed' %}Failed{% else %}Pending{% endif %}
+                    </span>
+                </div>
 
                 {% if ai_match.error %}
                     <p class="text-muted small mb-0">
@@ -567,11 +657,14 @@
                         </p>
                         <ul class="list-unstyled mb-0 ps-2">
                             {% for s in ai_match.strengths %}
-                            <li class="small text-gray-600 mb-1">
+                            <li class="small text-gray-600 mb-1 {% if forloop.counter > 2 %}d-none ai-strength-extra{% endif %}">
                                 <i class="fas fa-circle text-success me-1" style="font-size:0.4rem; vertical-align:middle;"></i>{{ s }}
                             </li>
                             {% endfor %}
                         </ul>
+                        {% if ai_match.strengths|length > 2 %}
+                        <a href="#" class="small text-decoration-none" id="showMoreStrengths">Show more</a>
+                        {% endif %}
                     </div>
                     {% endif %}
 
@@ -582,13 +675,22 @@
                         </p>
                         <ul class="list-unstyled mb-0 ps-2">
                             {% for g in ai_match.gaps %}
-                            <li class="small text-gray-600 mb-1">
+                            <li class="small text-gray-600 mb-1 {% if forloop.counter > 2 %}d-none ai-gap-extra{% endif %}">
                                 <i class="fas fa-circle text-danger me-1" style="font-size:0.4rem; vertical-align:middle;"></i>{{ g }}
                             </li>
                             {% endfor %}
                         </ul>
+                        {% if ai_match.gaps|length > 2 %}
+                        <a href="#" class="small text-decoration-none" id="showMoreGaps">Show more</a>
+                        {% endif %}
                     </div>
                     {% endif %}
+
+                    <div class="mt-3 pt-3 border-top">
+                        <a href="{% url 'accounts:edit_profile' %}" class="small text-decoration-none">
+                            <i class="fas fa-user-edit me-1"></i>Improve profile to increase match
+                        </a>
+                    </div>
                 {% endif %}
             </div>
             {% endif %}
@@ -613,9 +715,28 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
     </div>
 </div>
+
+{% if not user.is_staff and not user|is_hr_or_admin %}
+<div class="job-apply-sticky-mobile">
+    {% if job.accepts_internal_applications %}
+        {% if user.is_authenticated and not user_application %}
+        <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary w-100"><i class="fas fa-paper-plane me-2"></i>Apply Now</a>
+        {% elif user_application %}
+        <button class="btn btn-outline-secondary w-100" disabled>Already Applied</button>
+        {% else %}
+        <a href="{% url 'account_login' %}" class="btn btn-primary w-100"><i class="fas fa-sign-in-alt me-2"></i>Log in to Apply</a>
+        {% endif %}
+    {% elif source_url %}
+        <a href="{{ source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary w-100">
+            <i class="fas fa-external-link-alt me-2"></i>Apply on {{ source_host|default:"External Site" }}
+        </a>
+    {% endif %}
+</div>
+{% endif %}
 
 {% block extra_js %}
 <script>
@@ -733,6 +854,24 @@ document.addEventListener('DOMContentLoaded', function() {
             viewApplication(applicationId);
         });
     });
+
+    const showMoreStrengths = document.getElementById('showMoreStrengths');
+    if (showMoreStrengths) {
+        showMoreStrengths.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.ai-strength-extra').forEach(item => item.classList.remove('d-none'));
+            showMoreStrengths.remove();
+        });
+    }
+
+    const showMoreGaps = document.getElementById('showMoreGaps');
+    if (showMoreGaps) {
+        showMoreGaps.addEventListener('click', function(e) {
+            e.preventDefault();
+            document.querySelectorAll('.ai-gap-extra').forEach(item => item.classList.remove('d-none'));
+            showMoreGaps.remove();
+        });
+    }
 });
 </script>
 {% endblock %}

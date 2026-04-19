@@ -32,9 +32,21 @@ import logging
 import json
 import os
 import importlib.util
+import re
+from urllib.parse import urlencode
 from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
+
+
+JOB_TYPE_CHOICES_MAP = dict(JobPosting.JOB_TYPE_CHOICES)
+SOURCE_TYPE_CHOICES_MAP = dict(JobPosting.SOURCE_TYPE_CHOICES)
+POSTED_WITHIN_CHOICES = {
+    '1d': ('Last 24 hours', timedelta(days=1)),
+    '3d': ('Last 3 days', timedelta(days=3)),
+    '7d': ('Last 7 days', timedelta(days=7)),
+    '30d': ('Last 30 days', timedelta(days=30)),
+}
 
 def is_hr_or_admin(user):
     """Check if user is HR, admin, or alumni coordinator"""
@@ -137,6 +149,132 @@ def _build_job_list_dataset(request, show_all_override=None, include_modal_promp
         'match_data': match_data,
         'show_all': show_all,
     }
+
+
+def _estimate_salary_max(salary_text: str) -> int | None:
+    """
+    Best-effort parser for salary text (e.g., '₱25,000-₱35,000', '20k-30k').
+    Returns inferred max salary in PHP, or None if not parseable.
+    """
+    if not salary_text:
+        return None
+    text = str(salary_text).lower().replace(',', '')
+    matches = re.findall(r'(\d+(?:\.\d+)?)\s*(k|m)?', text)
+    if not matches:
+        return None
+    values = []
+    for raw, unit in matches:
+        try:
+            val = float(raw)
+        except ValueError:
+            continue
+        if unit == 'k':
+            val *= 1000
+        elif unit == 'm':
+            val *= 1000000
+        values.append(int(val))
+    return max(values) if values else None
+
+
+def _normalize_filter_values(values):
+    return {
+        'q': str(values.get('q', '') or '').strip(),
+        'location': str(values.get('location', '') or '').strip(),
+        'job_type': str(values.get('job_type', '') or '').strip(),
+        'source_type': str(values.get('source_type', '') or '').strip(),
+        'posted_within': str(values.get('posted_within', '') or '').strip(),
+        'salary_min': str(values.get('salary_min', '') or '').strip(),
+    }
+
+
+def _apply_filter_values(jobs, filter_values):
+    """
+    Apply normalized filter values to a jobs queryset.
+    """
+    query = filter_values['q']
+    location = filter_values['location']
+    job_type = filter_values['job_type']
+    source_type = filter_values['source_type']
+    posted_within = filter_values['posted_within']
+    salary_min_raw = filter_values['salary_min']
+
+    if query:
+        jobs = jobs.filter(
+            Q(job_title__icontains=query) |
+            Q(company_name__icontains=query) |
+            Q(job_description__icontains=query) |
+            Q(requirements__icontains=query)
+        )
+
+    if location:
+        jobs = jobs.filter(location__icontains=location)
+
+    if job_type in JOB_TYPE_CHOICES_MAP:
+        jobs = jobs.filter(job_type=job_type)
+
+    if source_type in SOURCE_TYPE_CHOICES_MAP:
+        jobs = jobs.filter(source_type=source_type)
+
+    if posted_within in POSTED_WITHIN_CHOICES:
+        _, delta = POSTED_WITHIN_CHOICES[posted_within]
+        jobs = jobs.filter(posted_date__gte=timezone.now() - delta)
+
+    salary_min = None
+    if salary_min_raw:
+        try:
+            salary_min = max(0, int(salary_min_raw))
+        except ValueError:
+            salary_min = None
+
+    if salary_min is not None:
+        candidates = jobs.exclude(salary_range__isnull=True).exclude(salary_range__exact='')
+        keep_ids = []
+        for item in candidates.only('id', 'salary_range'):
+            parsed_max = _estimate_salary_max(item.salary_range)
+            if parsed_max is not None and parsed_max >= salary_min:
+                keep_ids.append(item.id)
+        jobs = jobs.filter(id__in=keep_ids)
+
+    return jobs
+
+
+def _apply_request_filters(jobs, request):
+    """
+    Apply query-parameter-driven filters for the job board list.
+    """
+    normalized = _normalize_filter_values(request.GET)
+    jobs = _apply_filter_values(jobs, normalized)
+    return jobs, normalized
+
+
+def _build_query_filter_chips(request, current_filters):
+    chips = []
+    base_params = request.GET.copy()
+    for key, value in current_filters.items():
+        if not value:
+            continue
+        params = base_params.copy()
+        params.pop(key, None)
+        params.pop('page', None)
+        label = None
+        if key == 'q':
+            label = f'Search: {value}'
+        elif key == 'location':
+            label = f'Location: {value}'
+        elif key == 'job_type':
+            label = f'Type: {JOB_TYPE_CHOICES_MAP.get(value, value)}'
+        elif key == 'source_type':
+            label = f'Source: {SOURCE_TYPE_CHOICES_MAP.get(value, value)}'
+        elif key == 'posted_within':
+            label = f'Posted: {POSTED_WITHIN_CHOICES.get(value, (value, None))[0]}'
+        elif key == 'salary_min':
+            label = f'Min Salary: ₱{value}'
+        if label:
+            chips.append({
+                'label': label,
+                'remove_url': f"{reverse('jobs:job_list')}?{params.urlencode()}" if params else reverse('jobs:job_list'),
+            })
+    return chips
 
 
 def _build_job_list_url(request, *, sort_value=None) -> str:
@@ -322,6 +460,8 @@ def job_list(request):
     match_data = dataset['match_data']
     show_all = dataset['show_all']
 
+    jobs, current_filters = _apply_request_filters(jobs, request)
+
     sort_param = (request.GET.get('sort') or '').strip().lower()
     current_sort = sort_param
     ai_sort_enabled, ai_profile_version = _get_ai_sort_state(request, is_admin_or_hr_user)
@@ -336,6 +476,9 @@ def job_list(request):
     # they explicitly request latest/date ordering via ?sort=latest.
     if eligible_for_ai_global and not sort_param:
         current_sort = 'ai_global'
+
+    if sort_param not in {'', 'ai_global', 'latest', 'updated'}:
+        current_sort = 'ai_global' if eligible_for_ai_global else 'latest'
 
     ai_global_requested = current_sort == 'ai_global'
     ai_global_mode = (
@@ -369,12 +512,62 @@ def job_list(request):
             'complete': ranking['pending_count'] == 0,
             'computed_now': ranking.get('computed_now', 0),
         }
+    elif current_sort == 'updated':
+        jobs = jobs.order_by('-updated_at', '-posted_date')
     else:
         jobs = jobs.order_by('-posted_date')
 
     paginator = Paginator(jobs, 10)
     page = request.GET.get('page')
     jobs_page = paginator.get_page(page)
+    ai_score_map = {}
+
+    if eligible_for_ai_global:
+        page_job_ids = [job.id for job in jobs_page.object_list]
+        score_rows = UserJobAIScore.objects.filter(
+            user=request.user,
+            job_id__in=page_job_ids,
+        )
+        for row in score_rows:
+            entry = {
+                'status': row.status,
+                'score': row.score,
+                'reason': (row.reason or '')[:220],
+                'label': 'Scoring',
+                'color': '#6c757d',
+            }
+
+            if row.status == UserJobAIScore.Status.READY and row.score is not None:
+                score_value = max(0, min(100, int(row.score)))
+                if score_value >= 70:
+                    label = 'Great Match'
+                    color = '#198754'
+                elif score_value >= 40:
+                    label = 'Moderate Match'
+                    color = '#fd7e14'
+                else:
+                    label = 'Low Match'
+                    color = '#dc3545'
+                entry.update({
+                    'score': score_value,
+                    'label': label,
+                    'color': color,
+                })
+            elif row.status == UserJobAIScore.Status.FAILED:
+                entry.update({
+                    'label': 'Match unavailable',
+                    'color': '#6c757d',
+                })
+
+            ai_score_map[row.job_id] = entry
+
+    query_filter_chips = _build_query_filter_chips(request, current_filters)
+    all_chips = [{'label': item['label']} for item in active_filters] + query_filter_chips
+
+    non_page_params = request.GET.copy()
+    non_page_params.pop('page', None)
+    non_page_params.pop('partial', None)
+    pagination_query = non_page_params.urlencode()
 
     context = {
         'jobs': jobs_page,
@@ -385,6 +578,8 @@ def job_list(request):
         'preferences_configured': preferences_configured,
         'matching_jobs_count': matching_jobs_count,
         'active_filters': active_filters,
+        'query_filter_chips': query_filter_chips,
+        'all_active_filter_chips': all_chips,
         'has_active_preferences': len(active_filters) > 0,
         'is_admin_or_hr': is_admin_or_hr_user,
         'show_all': show_all,
@@ -392,14 +587,29 @@ def job_list(request):
         'ai_profile_version': ai_profile_version,
         'ai_global_mode': ai_global_mode,
         'ai_global_progress': ai_global_progress,
+        'ai_score_map': ai_score_map,
         'ai_global_async_available': importlib.util.find_spec("django_q") is not None,
         'ai_global_sort_url': _build_job_list_url(request, sort_value='ai_global'),
         'ai_clear_sort_url': _build_job_list_url(request, sort_value='latest'),
         'current_sort': current_sort,
-        'current_query': request.GET.get('q', ''),
-        'current_job_type': request.GET.get('job_type', ''),
-        'current_source_type': request.GET.get('source_type', ''),
+        'current_query': current_filters['q'],
+        'current_location': current_filters['location'],
+        'current_job_type': current_filters['job_type'],
+        'current_source_type': current_filters['source_type'],
+        'current_posted_within': current_filters['posted_within'],
+        'current_salary_min': current_filters['salary_min'],
+        'posted_within_options': [(key, value[0]) for key, value in POSTED_WITHIN_CHOICES.items()],
+        'job_type_options': JobPosting.JOB_TYPE_CHOICES,
+        'source_type_options': JobPosting.SOURCE_TYPE_CHOICES,
+        'pagination_query': pagination_query,
+        'reset_filters_url': reverse('jobs:job_list'),
     }
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' and request.GET.get('partial') == 'jobs':
+        return JsonResponse({
+            'success': True,
+            'jobs_html': render_to_string('jobs/partials/job_list_results.html', context=context, request=request),
+            'filters_html': render_to_string('jobs/partials/job_active_filters.html', context=context, request=request),
+        })
     return render(request, 'jobs/job_list.html', context)
 
 
@@ -674,6 +884,7 @@ def job_detail(request, slug):
     user_application = None
     applicants = None
     ai_match = None
+    ai_match_state = 'unavailable'
 
     if request.user.is_authenticated:
         user_application = JobApplication.objects.filter(job=job, applicant=request.user).first()
@@ -687,14 +898,25 @@ def job_detail(request, slug):
             try:
                 from .ai_matching import get_ai_match_score
                 ai_match = get_ai_match_score(request.user, job)
+                if ai_match:
+                    ai_match_state = 'failed' if ai_match.get('error') else 'ready'
             except Exception as e:
                 logger.error(f"AI matching failed for user={request.user.id}, job={job.id}: {e}")
+                ai_match_state = 'failed'
+
+    source_url = job.application_link or ''
+    source_host = ''
+    if source_url:
+        source_host = re.sub(r'^https?://', '', source_url).split('/')[0]
 
     context = {
         'job': job,
         'user_application': user_application,
         'applicants': applicants,
         'ai_match': ai_match,
+        'ai_match_state': ai_match_state,
+        'source_url': source_url,
+        'source_host': source_host,
     }
     return render(request, 'jobs/job_detail.html', context)
 
@@ -1497,6 +1719,7 @@ def ai_global_progress(request):
 
     payload = _parse_json_body(request)
     show_all = bool(payload.get('show_all', False))
+    filter_values = _normalize_filter_values(payload.get('filters', {}))
 
     dataset = _build_job_list_dataset(request, show_all_override=show_all, include_modal_prompt=False)
     if dataset['is_admin_or_hr']:
@@ -1509,9 +1732,11 @@ def ai_global_progress(request):
             'error': 'AI matching is not configured. Please set up an AI API key in the admin dashboard.'
         }, status=503)
 
+    filtered_jobs = _apply_filter_values(dataset['jobs_queryset'], filter_values)
+
     ranking = rank_jobs_for_queryset(
         user=request.user,
-        queryset=dataset['jobs_queryset'],
+        queryset=filtered_jobs,
         profile_version=ai_profile_version,
         batch_size=getattr(settings, 'AI_GLOBAL_SORT_BATCH_SIZE', 10),
         compute_batch=True,
@@ -1539,6 +1764,7 @@ def ai_global_start(request):
 
     payload = _parse_json_body(request)
     show_all = bool(payload.get('show_all', False))
+    filter_values = _normalize_filter_values(payload.get('filters', {}))
 
     dataset = _build_job_list_dataset(request, show_all_override=show_all, include_modal_prompt=False)
     if dataset['is_admin_or_hr']:
@@ -1551,7 +1777,8 @@ def ai_global_start(request):
             'error': 'AI matching is not configured. Please set up an AI API key in the admin dashboard.'
         }, status=503)
 
-    jobs = list(dataset['jobs_queryset'].order_by('-posted_date'))
+    filtered_jobs = _apply_filter_values(dataset['jobs_queryset'], filter_values)
+    jobs = list(filtered_jobs.order_by('-posted_date'))
     stale_ids = get_stale_job_ids_for_jobs(request.user, jobs, ai_profile_version)
     pending_cutoff = timezone.now() - timedelta(
         minutes=max(1, int(getattr(settings, 'AI_GLOBAL_PENDING_TIMEOUT_MINUTES', 5)))
