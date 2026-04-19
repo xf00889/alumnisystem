@@ -1475,7 +1475,18 @@ document.addEventListener('DOMContentLoaded', function () {
     // Show loading state on form submit
     const form = document.getElementById('postRegForm');
     if (form) {
-        form.addEventListener('submit', function () {
+        form.addEventListener('submit', function (e) {
+            // Block submission if duplicate was detected
+            if (banner.style.display !== 'none' && foundState.style.display !== 'none') {
+                e.preventDefault();
+                // Scroll the banner into view so the user sees the warning
+                banner.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                // Pulse the banner to draw attention
+                foundState.style.transition = 'transform 0.1s ease';
+                foundState.style.transform = 'scale(1.02)';
+                setTimeout(() => { foundState.style.transform = 'scale(1)'; }, 150);
+                return;
+            }
             if (submitBtn) {
                 submitBtn.disabled = true;
                 submitBtn.querySelector('.btn-text').style.display = 'none';

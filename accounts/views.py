@@ -90,6 +90,29 @@ def post_registration(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
+                    # Server-side duplicate check before saving
+                    first_name = form.cleaned_data.get('first_name', '').strip()
+                    last_name = form.cleaned_data.get('last_name', '').strip()
+                    college = form.cleaned_data.get('college', '').strip()
+                    course = form.cleaned_data.get('course_graduated', '').strip()
+                    graduation_year = form.cleaned_data.get('graduation_year')
+
+                    duplicate_exists = Alumni.objects.filter(
+                        user__first_name__iexact=first_name,
+                        user__last_name__iexact=last_name,
+                        college=college,
+                        course__iexact=course,
+                        graduation_year=graduation_year,
+                        user__is_active=True,
+                    ).exclude(user=request.user).exists()
+
+                    if duplicate_exists:
+                        logger.warning(
+                            f"Duplicate alumni detected on submit: user={request.user.id}, "
+                            f"name={first_name} {last_name}, course={course}, year={graduation_year}"
+                        )
+                        return redirect('accounts:duplicate_alumni')
+
                     # Save the form data
                     form.save(request.user)
                     
@@ -148,6 +171,13 @@ def post_registration(request):
         'verification_success': verification_success,
         'verification_message': verification_message,
     })
+
+
+@login_required
+def duplicate_alumni(request):
+    """Shown when a duplicate alumni record is detected during post-registration."""
+    return render(request, 'accounts/duplicate_alumni.html')
+
 
 @login_required
 def profile_detail(request, username=None):

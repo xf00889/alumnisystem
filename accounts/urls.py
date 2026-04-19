@@ -9,6 +9,7 @@ urlpatterns = [
     path('profile/<str:username>/', views.profile_detail, name='profile_detail'),
     path('profile/update/', views.profile_update, name='profile_update'),
     path('post-registration/', views.post_registration, name='post_registration'),
+    path('duplicate-alumni/', views.duplicate_alumni, name='duplicate_alumni'),
     path('api/search-users/', views.search_users_api, name='search_users_api'),
     path('api/search-connected-users/', views.search_connected_users_api, name='search_connected_users_api'),
     path('update/skills/', views.update_skills, name='update_skills'),
