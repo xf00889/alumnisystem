@@ -22,12 +22,15 @@ DETAIL_FETCH_LIMIT = 8
 
 
 def _normalize_description(text: str) -> str:
-    """Strip HTML and normalize whitespace from description text."""
+    """Strip HTML and keep readable line breaks for downstream cleaning."""
     if not text:
         return ""
     text = html.unescape(text)
+    text = re.sub(r"(?i)<br\s*/?>", "\n", text)
+    text = re.sub(r"</(p|div|li|h1|h2|h3|h4|h5|h6|ul|ol)>", "\n", text, flags=re.IGNORECASE)
     text = re.sub(r"<[^>]+>", " ", text)
-    text = re.sub(r"\s+", " ", text).strip()
+    text = re.sub(r"[ \t]+", " ", text)
+    text = re.sub(r"\n{3,}", "\n\n", text).strip()
     return text
 
 
@@ -90,7 +93,7 @@ def _fetch_linkedin_job_description(req: Request, url: str) -> str:
         node = soup.select_one(selector)
         if not node:
             continue
-        text = _normalize_description(node.get_text(" ", strip=True))
+        text = _normalize_description(node.get_text("\n", strip=True))
         if len(text) >= 80:
             return text
 

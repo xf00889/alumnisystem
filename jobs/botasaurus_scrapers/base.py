@@ -14,6 +14,77 @@ def normalize_text(text: str) -> str:
         return ""
     return re.sub(r"\s+", " ", text.strip())
 
+_SECTION_HEADINGS = (
+    "Job Description",
+    "About the job",
+    "Responsibilities",
+    "Job Responsibilities",
+    "Qualifications",
+    "Job Qualifications",
+    "Requirements",
+    "Preferred Skills",
+    "Soft Skills",
+    "Benefits",
+)
+
+
+def normalize_description(text: str) -> str:
+    """
+    Clean job descriptions while preserving readability.
+    - Removes known boilerplate/prompt text.
+    - Preserves section separation and bullet points.
+    """
+    if not text:
+        return ""
+
+    cleaned = text.replace("\r\n", "\n").replace("\r", "\n")
+    cleaned = re.sub(r"[ \t]+", " ", cleaned)
+
+    # Drop known prompt-template lead-ins, e.g.
+    # "Tips: Provide a summary of the role..."
+    cleaned = re.sub(
+        r"^\s*tips:\s*provide a summary of the role.*?(?=\b(responsibilities|job responsibilities|qualifications|job qualifications|requirements)\b)",
+        "",
+        cleaned,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    # Create paragraph breaks before common section headings.
+    heading_pattern = r"\b(" + "|".join(re.escape(h) for h in _SECTION_HEADINGS) + r")\b"
+    cleaned = re.sub(
+        rf"(?m)(^|\n)\s*{heading_pattern}\s*(?:[:\-]|•)?\s*",
+        lambda m: f"\n\n{m.group(2)}:\n",
+        cleaned,
+    )
+    cleaned = re.sub(
+        rf"([.!?])\s+{heading_pattern}\s*(?:[:\-]|•)\s*",
+        lambda m: f"{m.group(1)}\n\n{m.group(2)}:\n",
+        cleaned,
+    )
+    cleaned = re.sub(
+        rf"\s+{heading_pattern}\s*(?:[:\-]|•)\s*",
+        lambda m: f"\n\n{m.group(1)}:\n",
+        cleaned,
+    )
+    cleaned = re.sub(
+        rf"(?m)^\s*{heading_pattern}\s*(?:[:\-]|•)?\s*$",
+        lambda m: f"{m.group(1)}:",
+        cleaned,
+    )
+
+    # Convert bullets to one-per-line list items.
+    cleaned = re.sub(r"\s*[•·]\s*", "\n- ", cleaned)
+    cleaned = re.sub(r"(?m)^\s*-\s*", "- ", cleaned)
+
+    # Tidy line spacing.
+    cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
+
+    lines = [re.sub(r"\s+", " ", line).strip() for line in cleaned.split("\n")]
+    cleaned = "\n".join(line for line in lines if line)
+
+    return cleaned.strip()
+
 
 def clean_salary(text: str) -> str:
     """Return a cleaned salary string, or empty string if not useful."""
@@ -41,7 +112,7 @@ def build_job_dict(
         "title": normalize_text(title) or "Job Title Not Available",
         "company": normalize_text(company) or "Company Not Specified",
         "location": normalize_text(location) or "Location Not Specified",
-        "description": normalize_text(description),
+        "description": normalize_description(description),
         "salary": clean_salary(salary),
         "job_type": normalize_text(job_type),
         "url": url or "",
