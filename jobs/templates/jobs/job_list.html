@@ -1833,6 +1833,9 @@ function clearAISort() {
 
 let aiGlobalStartTriggered = false;
 let aiGlobalPollTimer = null;
+let aiGlobalLastScoredCount = Number("{{ ai_global_progress.scored_count|default:0 }}");
+let aiGlobalLastRefreshAt = Date.now();
+const AI_GLOBAL_REFRESH_THROTTLE_MS = 12000;
 
 function updateAIGlobalProgressUI(data) {
     const wrap = document.getElementById('aiGlobalProgressWrap');
@@ -1900,6 +1903,18 @@ async function pollAIGlobalProgress() {
         }
 
         updateAIGlobalProgressUI(data);
+
+        // Refresh the page periodically when new scores are computed so
+        // server-side ranked pagination actually updates on screen.
+        if (Number(data.scored_count || 0) > aiGlobalLastScoredCount) {
+            aiGlobalLastScoredCount = Number(data.scored_count || 0);
+            const now = Date.now();
+            if (data.complete || (now - aiGlobalLastRefreshAt) >= AI_GLOBAL_REFRESH_THROTTLE_MS) {
+                aiGlobalLastRefreshAt = now;
+                window.location.reload();
+                return;
+            }
+        }
 
         if (data.complete) {
             return;
