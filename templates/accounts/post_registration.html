@@ -1408,6 +1408,7 @@ document.addEventListener('DOMContentLoaded', function () {
     let debounceTimer = null;
     let lastCheckedKey = null;
     let isDuplicate = false;  // single source of truth
+    let isFetching = false;   // guard against concurrent fetches
 
     function setDuplicateState(val) {
         isDuplicate = val;
@@ -1421,8 +1422,7 @@ document.addEventListener('DOMContentLoaded', function () {
         scanningState.style.display = 'flex';
         foundState.style.display = 'none';
         clearState.style.display = 'none';
-        setDuplicateState(false);  // not confirmed yet, allow scanning to finish
-        if (submitBtn) submitBtn.disabled = true;  // disable while scanning
+        // Don't touch isDuplicate or button here — wait for result
     }
 
     function showFound(message) {
@@ -1475,9 +1475,11 @@ document.addEventListener('DOMContentLoaded', function () {
         }
 
         const key = JSON.stringify(vals);
-        if (key === lastCheckedKey) return;
-        lastCheckedKey = key;
+        if (key === lastCheckedKey) return;  // same data, skip
+        if (isFetching) return;              // fetch already in-flight, skip
 
+        lastCheckedKey = key;
+        isFetching = true;
         showScanning();
 
         fetch(DUPLICATE_CHECK_URL, {
@@ -1490,6 +1492,7 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(res => res.json())
         .then(data => {
+            isFetching = false;
             if (data.duplicate_found) {
                 showFound(data.message);
             } else {
@@ -1497,6 +1500,7 @@ document.addEventListener('DOMContentLoaded', function () {
             }
         })
         .catch(() => {
+            isFetching = false;
             // On network error, don't block the user
             hideBanner();
         });
