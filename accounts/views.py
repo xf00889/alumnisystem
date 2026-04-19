@@ -162,7 +162,12 @@ def post_registration(request):
                     exc_info=True
                 )
                 messages.error(request, f'An error occurred: {str(e)}')
-                raise
+                return render(request, 'accounts/post_registration.html', {
+                    'form': form,
+                    'title': 'Complete Registration',
+                    'verification_success': False,
+                    'verification_message': '',
+                })
     else:
         # Pre-fill form with existing user data
         initial_data = {

@@ -5,6 +5,7 @@ from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
 from accounts.models import Profile
 from accounts.decorators import post_registration_required
+from alumni_directory.models import Alumni
 
 User = get_user_model()
 
@@ -116,6 +117,77 @@ class PostRegistrationDecoratorTestCase(TestCase):
         response = protected_view(request)
         self.assertEqual(response.status_code, 302)
         self.assertIn('/accounts/post-registration/', response.url)
+
+
+class PostRegistrationTransactionTestCase(TestCase):
+    def test_post_registration_handles_imported_match_without_broken_transaction(self):
+        """
+        Regression test for TransactionManagementError in post-registration:
+        when an imported placeholder alumni match exists, registration should
+        still complete successfully and attach that imported record to user.
+        """
+        first_name = 'RegTxn'
+        last_name = 'MatchCase'
+
+        placeholder = User.objects.create_user(
+            username='placeholder_import_user',
+            email='placeholder_import@example.com',
+            password='testpass123',
+            is_active=False,
+            first_name=first_name,
+            last_name=last_name,
+        )
+        Alumni.objects.create(
+            user=placeholder,
+            graduation_year=2024,
+            course='BSIT',
+            college='CAS',
+            campus='MAIN',
+            current_company='',
+            job_title='',
+            employment_status='UNEMPLOYED',
+            gender='O',
+            province='',
+            city='',
+            address='',
+        )
+
+        user = User.objects.create_user(
+            username='registration_user',
+            email='registration_user@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        Profile.objects.get_or_create(user=user)
+
+        logged_in = self.client.login(email=user.email, password='testpass123')
+        self.assertTrue(logged_in)
+
+        response = self.client.post('/accounts/post-registration/', data={
+            'first_name': first_name,
+            'last_name': last_name,
+            'campus': 'NORSU-MAIN',
+            'college': 'CAS',
+            'course_graduated': 'BSIT',
+            'major': '',
+            'major_other': '',
+            'graduation_year': 2024,
+            'present_occupation': 'Engineer',
+            'company_name': 'Acme Inc.',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/')
+
+        user.refresh_from_db()
+        self.assertTrue(user.profile.has_completed_registration)
+
+        alumni_record = Alumni.objects.get(user=user)
+        self.assertTrue(alumni_record.is_verified)
+        self.assertEqual(alumni_record.campus, 'MAIN')
+        self.assertEqual(alumni_record.graduation_year, 2024)
+
+        self.assertFalse(User.objects.filter(pk=placeholder.pk).exists())
 
 
 class GoogleSSOErrorHandlingTestCase(TestCase):
