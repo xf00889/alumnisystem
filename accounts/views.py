@@ -66,6 +66,17 @@ from core.models.notifications import Notification
 
 @email_verified_required
 def post_registration(request):
+    campus_mapping = {
+        'NORSU-MAIN': 'MAIN',
+        'NORSU-BAIS': 'BAIS1',
+        'NORSU-GUI': 'GUI',
+        'NORSU-MAB': 'MAB',
+        'NORSU-BSC': 'BSC',
+        'NORSU-SIA': 'SIATON',
+        'NORSU-PAM': 'PAM',
+        'OTHER': 'MAIN',
+    }
+
     # First, ensure the user has a profile
     try:
         profile = request.user.profile
@@ -95,13 +106,16 @@ def post_registration(request):
                     last_name = form.cleaned_data.get('last_name', '').strip()
                     college = form.cleaned_data.get('college', '').strip()
                     course = form.cleaned_data.get('course_graduated', '').strip()
+                    campus = form.cleaned_data.get('campus', '').strip()
                     graduation_year = form.cleaned_data.get('graduation_year')
+                    alumni_campus = campus_mapping.get(campus, 'MAIN')
 
                     duplicate_exists = Alumni.objects.filter(
                         user__first_name__iexact=first_name,
                         user__last_name__iexact=last_name,
                         college=college,
                         course__iexact=course,
+                        campus=alumni_campus,
                         graduation_year=graduation_year,
                         user__is_active=True,
                     ).exclude(user=request.user).exists()
@@ -2703,11 +2717,17 @@ def check_duplicate_alumni(request):
 
         first_name = data.get('first_name', '').strip()
         last_name = data.get('last_name', '').strip()
+        campus = data.get('campus', '').strip()
         college = data.get('college', '').strip()
         course = data.get('course', '').strip()
         graduation_year = data.get('graduation_year')
 
-        if not all([first_name, last_name, college, course, graduation_year]):
+        # College select can be empty from dynamic UI; derive from course when possible.
+        if not college and course and course != 'OTHER':
+            from .forms import PostRegistrationForm
+            college = PostRegistrationForm.COURSE_COLLEGE_MAPPING.get(course, '')
+
+        if not all([first_name, last_name, campus, course, graduation_year]):
             return JsonResponse({'duplicate_found': False, 'message': 'Incomplete data.'})
 
         try:
@@ -2715,11 +2735,24 @@ def check_duplicate_alumni(request):
         except (ValueError, TypeError):
             return JsonResponse({'duplicate_found': False, 'message': 'Invalid graduation year.'})
 
+        campus_mapping = {
+            'NORSU-MAIN': 'MAIN',
+            'NORSU-BAIS': 'BAIS1',
+            'NORSU-GUI': 'GUI',
+            'NORSU-MAB': 'MAB',
+            'NORSU-BSC': 'BSC',
+            'NORSU-SIA': 'SIATON',
+            'NORSU-PAM': 'PAM',
+            'OTHER': 'MAIN',
+        }
+        alumni_campus = campus_mapping.get(campus, 'MAIN')
+
         duplicate = Alumni.objects.filter(
             user__first_name__iexact=first_name,
             user__last_name__iexact=last_name,
             college=college,
             course__iexact=course,
+            campus=alumni_campus,
             graduation_year=graduation_year,
             user__is_active=True,
         ).exclude(user=request.user).exists()

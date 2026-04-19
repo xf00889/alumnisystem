@@ -148,11 +148,11 @@ class GoogleSSOErrorHandlingTestCase(TestCase):
         
         # Check that redirect is returned
         self.assertEqual(response.status_code, 302)
-        self.assertEqual(response.url, '/accounts/login/')
+        self.assertEqual(response.url, '/accounts/social/login/cancelled/')
         
-        # Check that info message is added
+        # Cancellation path should redirect without adding extra messages
         messages = list(django_messages.get_messages(self.request))
-        self.assertTrue(any('cancelled' in str(m).lower() for m in messages))
+        self.assertEqual(len(messages), 0)
     
     def test_authentication_error_invalid_credentials(self):
         """Test that invalid OAuth credentials are handled"""
@@ -298,7 +298,6 @@ class GoogleSSOErrorHandlingTestCase(TestCase):
     
     def test_duplicate_google_account_detection(self):
         """Test that duplicate Google account linking is prevented"""
-        from django.contrib import messages as django_messages
         from unittest.mock import Mock
         from allauth.socialaccount.models import SocialAccount
         from allauth.core.exceptions import ImmediateHttpResponse
@@ -335,14 +334,12 @@ class GoogleSSOErrorHandlingTestCase(TestCase):
         self.request.user = Mock()
         self.request.user.is_authenticated = False
         
-        # Call pre_social_login - the exception is caught internally, 
-        # so we check for the error message instead
-        self.adapter.pre_social_login(self.request, sociallogin)
-        
-        # Check that error message is added
-        messages = list(django_messages.get_messages(self.request))
-        self.assertTrue(any('already associated' in str(m).lower() for m in messages),
-                       f"Expected 'already associated' message, got: {[str(m) for m in messages]}")
+        # Duplicate link attempt should short-circuit with ImmediateHttpResponse
+        with self.assertRaises(ImmediateHttpResponse) as cm:
+            self.adapter.pre_social_login(self.request, sociallogin)
+
+        self.assertEqual(cm.exception.response.status_code, 302)
+        self.assertIn('/accounts/login/', cm.exception.response.url)
     
     def test_same_google_account_login_allowed(self):
         """Test that logging in with the same Google account is allowed"""

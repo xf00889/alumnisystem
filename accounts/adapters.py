@@ -6,6 +6,7 @@ from django.contrib import messages
 from django.core.files.base import ContentFile
 from django.shortcuts import redirect
 from allauth.socialaccount.models import SocialLogin
+from allauth.core.exceptions import ImmediateHttpResponse
 import requests
 import logging
 
@@ -454,7 +455,6 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                                 f"Please sign in with that Google account or use email/password login."
                             )
                             # Prevent the login by raising an exception
-                            from allauth.core.exceptions import ImmediateHttpResponse
                             raise ImmediateHttpResponse(redirect('account_login'))
                     else:
                         # No Google account linked yet, connect this one
@@ -480,8 +480,10 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                         request,
                         "There was an issue with your account. Please contact support."
                     )
-                    from allauth.core.exceptions import ImmediateHttpResponse
                     raise ImmediateHttpResponse(redirect('account_login'))
+                except ImmediateHttpResponse:
+                    # Preserve intentional control-flow redirects from allauth.
+                    raise
                 except Exception as e:
                     # Log any other errors but don't block the authentication
                     logger.error(f"Error linking social account: {str(e)}", exc_info=True)
@@ -489,6 +491,9 @@ class CustomSocialAccountAdapter(DefaultSocialAccountAdapter):
                         request,
                         "There was an issue processing your login. Please try again."
                     )
+        except ImmediateHttpResponse:
+            # Preserve intentional control-flow redirects from allauth.
+            raise
         except Exception as e:
             # Catch-all for any unexpected errors in pre_social_login
             logger.error(f"Unexpected error in pre_social_login: {str(e)}", exc_info=True)
