@@ -4,6 +4,7 @@ PhilJobNet is the official Philippine government job portal run by DOLE.
 Current public job listing route: https://philjobnet.gov.ph/job-vacancies/
 """
 import logging
+import re
 from typing import Dict
 from urllib.parse import quote_plus
 
@@ -24,26 +25,63 @@ SOURCE = "PHILJOBNET"
 BASE_URL = "https://philjobnet.gov.ph"
 
 
-def _fetch_job_description(req: Request, detail_url: str) -> str:
-    """Fetch description from a PhilJobNet job detail page."""
+def _fetch_job_details(req: Request, detail_url: str, fallback_location: str) -> dict:
+    """Fetch structured details from a PhilJobNet job detail page."""
     try:
         detail_resp = req.get(detail_url, timeout=12)
         detail_resp.raise_for_status()
     except Exception:
-        return ""
+        return {}
 
     detail_soup = soupify(detail_resp)
-    # Current site uses a structured "jobdescription" block.
-    node = (
-        detail_soup.select_one("div.jobdescription")
-        or detail_soup.select_one("div.row.mb-3.jobdescription")
-        or detail_soup.select_one("div.icon-box")
-    )
-    if not node:
-        return ""
+    title = ""
+    title_el = detail_soup.select_one("h1.jobtitle")
+    if title_el:
+        title = " ".join(title_el.get_text(" ", strip=True).split())
 
-    text = normalize_description(node.get_text("\n", strip=True))
-    return text if is_meaningful_description(text) else ""
+    company = ""
+    company_el = detail_soup.select_one("span.companytitle")
+    if company_el:
+        company = " ".join(company_el.get_text(" ", strip=True).split())
+
+    salary = ""
+    salary_el = detail_soup.select_one("h3.salary span, h3.salary")
+    if salary_el:
+        salary = " ".join(salary_el.get_text(" ", strip=True).split())
+
+    location = fallback_location
+    labels = detail_soup.select("h3.jobdesctitle")
+    values = detail_soup.select("div.jobdescription")
+    for label_el, value_el in zip(labels, values):
+        label = " ".join(label_el.get_text(" ", strip=True).split()).lower()
+        value = " ".join(value_el.get_text(" ", strip=True).split())
+        if "work location" in label and value:
+            location = value
+            break
+
+    # Keep only primary description sections.
+    description_parts = []
+    for label_el, value_el in zip(labels, values):
+        label = " ".join(label_el.get_text(" ", strip=True).split()).lower()
+        value = " ".join(value_el.get_text(" ", strip=True).split())
+        if not value:
+            continue
+        if "job description" in label:
+            description_parts.append(value)
+        elif "qualifications" in label or "requirements" in label:
+            description_parts.append(f"Qualifications/Requirements: {value}")
+
+    description = normalize_description("\n\n".join(description_parts))
+    if not is_meaningful_description(description):
+        description = ""
+
+    return {
+        "title": title,
+        "company": company,
+        "location": location,
+        "salary": salary,
+        "description": description,
+    }
 
 
 @request(
@@ -76,19 +114,22 @@ def _fetch_philjobnet(req: Request, data: dict):
         if href.startswith("/"):
             href = BASE_URL + href
 
-        # Card link text is a compact summary block.
+        details = _fetch_job_details(req, href, fallback_location=location)
+
+        # Fallback from search card only if detail parsing misses title.
         raw = " ".join(a.get_text(" ", strip=True).split())
         if not raw:
             continue
+        fallback_title = raw
+        # Remove everything after salary/company block if present.
+        fallback_title = re.split(r"\s+salary\s+", fallback_title, maxsplit=1, flags=re.IGNORECASE)[0].strip()
+        fallback_title = fallback_title[:140].strip()
 
-        # Typical summary starts with title then salary/company/location etc.
-        # Use conservative extraction to avoid malformed fields.
-        title = raw.split(" Salary", 1)[0].strip() if " Salary" in raw else raw[:120].strip()
-        company = ""
-        loc = location
-        salary = ""
-
-        description = _fetch_job_description(req, href)
+        title = details.get("title") or fallback_title
+        company = details.get("company") or ""
+        loc = details.get("location") or location
+        salary = details.get("salary") or ""
+        description = details.get("description") or ""
 
         jobs.append(build_job_dict(
             title=title,
