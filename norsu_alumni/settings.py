@@ -259,6 +259,7 @@ SOCIALACCOUNT_PROVIDERS = {
         ],
         'AUTH_PARAMS': {
             'access_type': 'online',
+            'prompt': 'select_account',  # Always show account picker — prevents silent re-login after cancel
         },
         'VERIFIED_EMAIL': True,  # Trust Google's email verification
     },

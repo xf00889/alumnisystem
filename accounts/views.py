@@ -2745,7 +2745,7 @@ def cancel_registration(request):
     """
     Called when a user with an incomplete registration (has_completed_registration=False)
     chooses to cancel — e.g. after a duplicate is detected.
-    Logs them out and deletes their account so no orphaned data remains.
+    Logs them out, flushes the session, and deletes their account so no orphaned data remains.
     """
     from django.contrib.auth import logout as auth_logout
 
@@ -2763,7 +2763,9 @@ def cancel_registration(request):
         f"user_id={user.id}, email={user.email}"
     )
 
+    # Flush session first to clear all allauth OAuth state
+    request.session.flush()
     auth_logout(request)
-    user.delete()  # cascades to Profile, Alumni, etc.
+    user.delete()  # cascades to Profile, SocialAccount, Alumni, etc.
 
     return redirect('account_login')
