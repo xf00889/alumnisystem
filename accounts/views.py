@@ -2651,3 +2651,57 @@ def check_availability(request):
         return JsonResponse({
             'error': 'An error occurred while checking availability.'
         }, status=500)
+
+
+@login_required
+@require_POST
+def check_duplicate_alumni(request):
+    """
+    AJAX endpoint to check if an alumni with the same name, college, program,
+    and graduation year already exists in the system.
+    """
+    import json as _json
+    try:
+        try:
+            data = _json.loads(request.body)
+        except _json.JSONDecodeError:
+            return JsonResponse({'error': 'Invalid JSON.'}, status=400)
+
+        first_name = data.get('first_name', '').strip()
+        last_name = data.get('last_name', '').strip()
+        college = data.get('college', '').strip()
+        course = data.get('course', '').strip()
+        graduation_year = data.get('graduation_year')
+
+        if not all([first_name, last_name, college, course, graduation_year]):
+            return JsonResponse({'duplicate_found': False, 'message': 'Incomplete data.'})
+
+        try:
+            graduation_year = int(graduation_year)
+        except (ValueError, TypeError):
+            return JsonResponse({'duplicate_found': False, 'message': 'Invalid graduation year.'})
+
+        duplicate = Alumni.objects.filter(
+            user__first_name__iexact=first_name,
+            user__last_name__iexact=last_name,
+            college=college,
+            course__iexact=course,
+            graduation_year=graduation_year,
+            user__is_active=True,
+        ).exclude(user=request.user).exists()
+
+        if duplicate:
+            return JsonResponse({
+                'duplicate_found': True,
+                'message': (
+                    f"An alumni record for {first_name} {last_name} with the same "
+                    f"program and graduation year already exists. "
+                    "If this is you, please contact the administrator."
+                ),
+            })
+
+        return JsonResponse({'duplicate_found': False, 'message': 'No duplicate found.'})
+
+    except Exception as e:
+        logger.error(f"Error in duplicate alumni check: {e}", exc_info=True)
+        return JsonResponse({'error': 'An error occurred.'}, status=500)

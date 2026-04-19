@@ -65,6 +65,9 @@ urlpatterns = [
     
     # Availability check endpoint for real-time email/username validation
     path('check-availability/', views.check_availability, name='check_availability'),
+
+    # Duplicate alumni detection during post-registration
+    path('check-duplicate-alumni/', views.check_duplicate_alumni, name='check_duplicate_alumni'),
     
     # Email verification endpoints
     path('verify-email/', security_views.verify_email, name='verify_email'),

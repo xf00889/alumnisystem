@@ -705,12 +705,43 @@
                 <p class="form-subtitle">Please provide your academic and employment information</p>
             </div>
 
-            <form method="post" class="post-reg-form">
+            <form method="post" class="post-reg-form" id="postRegForm">
                 {% csrf_token %}
                 {{ form|crispy }}
-                <button type="submit" class="btn-submit">
-                    <i class="fas fa-check-circle"></i>
-                    Complete Registration
+
+                <!-- Duplicate Detection Banner -->
+                <div id="duplicateCheckBanner" style="display:none; margin-bottom: 1rem;">
+                    <!-- Scanning state -->
+                    <div id="duplicateScanningState" style="display:none; background: rgba(59,130,246,0.08); border: 1.5px solid rgba(59,130,246,0.3); border-radius: 0.75rem; padding: 0.875rem 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <span class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true" style="flex-shrink:0;"></span>
+                        <span style="color: #3b82f6; font-size: 0.875rem; font-weight: 500;">Scanning for existing alumni records&hellip;</span>
+                    </div>
+                    <!-- Duplicate found state -->
+                    <div id="duplicateFoundState" style="display:none; background: rgba(239,68,68,0.08); border: 1.5px solid rgba(239,68,68,0.3); border-radius: 0.75rem; padding: 0.875rem 1rem;">
+                        <div style="display:flex; align-items:flex-start; gap:0.75rem;">
+                            <i class="fas fa-exclamation-triangle" style="color:#ef4444; margin-top:2px; flex-shrink:0;"></i>
+                            <div>
+                                <p style="color:#ef4444; font-size:0.875rem; font-weight:600; margin:0 0 0.25rem;">Possible Duplicate Detected</p>
+                                <p id="duplicateFoundMessage" style="color:#b91c1c; font-size:0.8125rem; margin:0; line-height:1.5;"></p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- No duplicate state -->
+                    <div id="duplicateClearState" style="display:none; background: rgba(16,185,129,0.08); border: 1.5px solid rgba(16,185,129,0.3); border-radius: 0.75rem; padding: 0.875rem 1rem; display: flex; align-items: center; gap: 0.75rem;">
+                        <i class="fas fa-check-circle" style="color:#10b981; flex-shrink:0;"></i>
+                        <span style="color:#059669; font-size:0.875rem; font-weight:500;">No existing record found. You may proceed.</span>
+                    </div>
+                </div>
+
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    <span class="btn-text">
+                        <i class="fas fa-check-circle"></i>
+                        Complete Registration
+                    </span>
+                    <span class="btn-loading" style="display:none; align-items:center; gap:0.5rem;">
+                        <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        Saving&hellip;
+                    </span>
                 </button>
             </form>
 
@@ -1335,5 +1366,125 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
+<!-- Duplicate Alumni Detection Script -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const DUPLICATE_CHECK_URL = "{% url 'accounts:check_duplicate_alumni' %}";
+    const CSRF_TOKEN = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    const firstNameField = document.getElementById('id_first_name');
+    const lastNameField = document.getElementById('id_last_name');
+    const collegeField = document.getElementById('id_college');
+    const courseField = document.getElementById('id_course_graduated');
+    const gradYearField = document.getElementById('id_graduation_year');
+
+    const banner = document.getElementById('duplicateCheckBanner');
+    const scanningState = document.getElementById('duplicateScanningState');
+    const foundState = document.getElementById('duplicateFoundState');
+    const foundMessage = document.getElementById('duplicateFoundMessage');
+    const clearState = document.getElementById('duplicateClearState');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let debounceTimer = null;
+    let lastCheckedKey = null;
+
+    function showState(state) {
+        [scanningState, foundState, clearState].forEach(el => el.style.display = 'none');
+        banner.style.display = 'block';
+        if (state) state.style.display = 'flex';
+    }
+
+    function hideBanner() {
+        banner.style.display = 'none';
+    }
+
+    function getFormValues() {
+        return {
+            first_name: firstNameField ? firstNameField.value.trim() : '',
+            last_name: lastNameField ? lastNameField.value.trim() : '',
+            college: collegeField ? collegeField.value.trim() : '',
+            course: courseField ? courseField.value.trim() : '',
+            graduation_year: gradYearField ? gradYearField.value.trim() : '',
+        };
+    }
+
+    function allFieldsFilled(vals) {
+        return vals.first_name && vals.last_name && vals.college &&
+               vals.course && vals.graduation_year;
+    }
+
+    function triggerCheck() {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(runCheck, 600);
+    }
+
+    function runCheck() {
+        const vals = getFormValues();
+        if (!allFieldsFilled(vals)) {
+            hideBanner();
+            return;
+        }
+
+        const key = JSON.stringify(vals);
+        if (key === lastCheckedKey) return;
+        lastCheckedKey = key;
+
+        // Show scanning state
+        showState(scanningState);
+
+        fetch(DUPLICATE_CHECK_URL, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRFToken': CSRF_TOKEN,
+            },
+            body: JSON.stringify(vals),
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.duplicate_found) {
+                foundMessage.textContent = data.message;
+                showState(foundState);
+                foundState.style.display = 'block';
+            } else {
+                showState(clearState);
+            }
+        })
+        .catch(() => {
+            hideBanner();
+        });
+    }
+
+    // Watch all relevant fields
+    [firstNameField, lastNameField, gradYearField].forEach(el => {
+        if (el) el.addEventListener('input', triggerCheck);
+    });
+
+    // College and course are select elements populated dynamically
+    // Use MutationObserver + change events
+    [collegeField, courseField].forEach(el => {
+        if (el) el.addEventListener('change', triggerCheck);
+    });
+
+    // Also re-check when course dropdown is repopulated by the cascading script
+    if (courseField) {
+        new MutationObserver(triggerCheck).observe(courseField, { childList: true });
+    }
+
+    // Show loading state on form submit
+    const form = document.getElementById('postRegForm');
+    if (form) {
+        form.addEventListener('submit', function () {
+            if (submitBtn) {
+                submitBtn.disabled = true;
+                submitBtn.querySelector('.btn-text').style.display = 'none';
+                submitBtn.querySelector('.btn-loading').style.display = 'flex';
+            }
+        });
+    }
+});
+</script>
+
 </body>
 </html>
