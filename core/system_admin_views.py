@@ -11,7 +11,6 @@ from core.models import SystemSettings
 from core.system_settings_utils import (
     DEFAULT_MAINTENANCE_MESSAGE,
     clear_system_settings_cache,
-    is_runtime_debug_enabled,
 )
 
 
@@ -31,7 +30,6 @@ def system_settings_view(request):
 
     if request.method == "POST":
         settings_obj.maintenance_mode = request.POST.get("maintenance_mode") == "on"
-        settings_obj.runtime_debug = request.POST.get("runtime_debug") == "on"
         settings_obj.maintenance_message = (
             request.POST.get("maintenance_message", "").strip() or DEFAULT_MAINTENANCE_MESSAGE
         )
@@ -44,7 +42,5 @@ def system_settings_view(request):
     context = {
         "page_title": "System Controls",
         "settings_obj": settings_obj,
-        "env_debug": settings.DEBUG,
-        "effective_runtime_debug": is_runtime_debug_enabled(),
     }
     return render(request, "admin/system_settings.html", context)
