@@ -1125,20 +1125,26 @@
                      </a>
                      
                      {% if user.is_authenticated and user != alumni.user %}
-                         {% load connections_tags %}
-                         {% get_connection_status user alumni.user as connection_status %}
-                         {% if connection_status == 'none' %}
-                             <button class="btn-connect" data-user-id="{{ alumni.user.id }}">
-                                 <i class="fas fa-user-plus"></i> Connect
-                             </button>
-                         {% elif connection_status == 'pending_sent' %}
-                             <button class="btn-connect" disabled>
-                                 <i class="fas fa-clock"></i> Pending
-                             </button>
-                         {% elif connection_status == 'connected' %}
-                             <a href="{% url 'connections:conversations_list' %}" class="btn-connect">
-                                 <i class="fas fa-comments"></i> Message
-                             </a>
+                         {% if alumni.user.is_active %}
+                             {% load connections_tags %}
+                             {% get_connection_status user alumni.user as connection_status %}
+                             {% if connection_status == 'none' %}
+                                 <button class="btn-connect" data-user-id="{{ alumni.user.id }}">
+                                     <i class="fas fa-user-plus"></i> Connect
+                                 </button>
+                             {% elif connection_status == 'pending_sent' %}
+                                 <button class="btn-connect" disabled>
+                                     <i class="fas fa-clock"></i> Pending
+                                 </button>
+                             {% elif connection_status == 'connected' %}
+                                 <a href="{% url 'connections:conversations_list' %}" class="btn-connect">
+                                     <i class="fas fa-comments"></i> Message
+                                 </a>
+                             {% endif %}
+                         {% else %}
+                             <span class="btn-connect" style="opacity:0.5; cursor:default;" title="This alumnus has not registered yet">
+                                 <i class="fas fa-user-clock"></i> Not Registered
+                             </span>
                          {% endif %}
                      {% endif %}
                  </div>

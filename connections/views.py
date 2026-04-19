@@ -81,7 +81,15 @@ def test_inline_interface(request):
 def send_connection_request(request, user_id):
     """Send a connection request to another user"""
     receiver = get_object_or_404(User, id=user_id)
-    
+
+    # Block requests to unregistered/inactive users (e.g. imported alumni who haven't signed up)
+    if not receiver.is_active:
+        return JsonResponse({
+            'status': 'error',
+            'success': False,
+            'message': 'This alumni has not registered yet and cannot receive connection requests.'
+        })
+
     # Check if user is trying to connect to themselves
     if receiver == request.user:
         return JsonResponse({
