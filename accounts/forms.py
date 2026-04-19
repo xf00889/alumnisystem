@@ -954,6 +954,67 @@ class PostRegistrationForm(forms.Form):
             }
         )
 
+        # ── Layer 3: Registry Verification ──────────────────────────────────
+        # Check if an imported (unregistered) alumni record matches this user.
+        # The import creates Alumni records with is_active=False placeholder users.
+        # If a match is found by name + campus + graduation year,
+        # we reassign that Alumni record to this real user and mark them verified.
+        import logging as _logging
+        _logger = _logging.getLogger(__name__)
+        try:
+            grad_year = self.cleaned_data['graduation_year']
+
+            # Find imported alumni with matching name + campus + graduation year
+            imported_match = Alumni.objects.filter(
+                user__is_active=False,
+                user__first_name__iexact=user.first_name.strip(),
+                user__last_name__iexact=user.last_name.strip(),
+                graduation_year=grad_year,
+                campus=alumni_campus,
+            ).exclude(user=user).first()
+
+            if imported_match:
+                old_placeholder_user = imported_match.user
+
+                # Reassign the Alumni record to the real registered user
+                imported_match.user = user
+                imported_match.is_verified = True
+                imported_match.graduation_year = grad_year
+                imported_match.course = course
+                imported_match.college = college
+                imported_match.campus = alumni_campus
+                imported_match.current_company = self.cleaned_data['company_name']
+                imported_match.job_title = self.cleaned_data['present_occupation']
+                imported_match.employment_status = 'EMPLOYED_FULL'
+                imported_match.save()
+
+                # Remove the auto-generated placeholder user from the import
+                old_placeholder_user.delete()
+
+                _logger.info(
+                    f"Registry match: user={user.id} ({user.email}) "
+                    f"linked to imported alumni record. Auto-verified."
+                )
+            else:
+                # No registry match — leave is_verified=False for admin review
+                try:
+                    alumni_record = Alumni.objects.get(user=user)
+                    if alumni_record.is_verified:
+                        alumni_record.is_verified = False
+                        alumni_record.save(update_fields=['is_verified'])
+                except Alumni.DoesNotExist:
+                    pass
+                _logger.info(
+                    f"No registry match for user={user.id} ({user.email}). "
+                    f"Pending admin review."
+                )
+        except Exception as e:
+            _logger.error(
+                f"Registry verification error for user={user.id}: {e}",
+                exc_info=True
+            )
+            # Non-fatal — registration still completes, just without auto-verification
+
 class UserUpdateForm(forms.ModelForm):
     first_name = forms.CharField(
         max_length=150,
