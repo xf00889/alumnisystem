@@ -1,7 +1,7 @@
 """
 WorkAbroad.ph scraper using botasaurus.
 WorkAbroad.ph focuses on overseas Filipino worker (OFW) job listings.
-URL: https://www.workabroad.ph/search-jobs.php?q={keyword}&country={location}
+Current public route: https://www.workabroad.ph/search-jobs/b/landbased
 """
 import logging
 from typing import Dict
@@ -29,8 +29,10 @@ def _fetch_workabroad(req: Request, data: dict):
     keyword = data["keyword"]
     location = data["location"]
 
+    # Legacy /search-jobs.php now returns 404.
+    # Keep keyword in query string and use current public listing route.
     url = (
-        f"{BASE_URL}/search-jobs.php"
+        f"{BASE_URL}/search-jobs/b/landbased"
         f"?q={quote_plus(keyword)}"
         f"&country={quote_plus(location)}"
     )

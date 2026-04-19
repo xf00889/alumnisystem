@@ -12,7 +12,12 @@ from urllib.parse import quote_plus
 from botasaurus.request import request, Request
 from botasaurus.soupify import soupify
 
-from .base import build_job_dict, make_empty_result, make_success_result
+from .base import (
+    build_job_dict,
+    is_meaningful_description,
+    make_empty_result,
+    make_success_result,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -92,10 +97,11 @@ def _fetch_indeed_job_description(req: Request, url: str) -> str:
         if not node:
             continue
         text = _normalize_description(node.get_text("\n", strip=True))
-        if len(text) >= 80:
+        if is_meaningful_description(text):
             return text
 
-    return _extract_json_ld_description(soup)
+    json_ld_text = _extract_json_ld_description(soup)
+    return json_ld_text if is_meaningful_description(json_ld_text) else ""
 
 
 @request(
@@ -160,6 +166,8 @@ def _fetch_indeed(req: Request, data: dict):
             full_description = _fetch_indeed_job_description(req, href)
             if full_description:
                 description = full_description
+        if not is_meaningful_description(description):
+            description = ""
 
         jobs.append(build_job_dict(
             title=title,

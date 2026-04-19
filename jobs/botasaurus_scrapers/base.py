@@ -3,7 +3,6 @@ Base utilities shared across all botasaurus job scrapers.
 """
 import re
 import logging
-from typing import Optional
 
 logger = logging.getLogger(__name__)
 
@@ -14,25 +13,10 @@ def normalize_text(text: str) -> str:
         return ""
     return re.sub(r"\s+", " ", text.strip())
 
-_SECTION_HEADINGS = (
-    "Job Description",
-    "About the job",
-    "Responsibilities",
-    "Job Responsibilities",
-    "Qualifications",
-    "Job Qualifications",
-    "Requirements",
-    "Preferred Skills",
-    "Soft Skills",
-    "Benefits",
-)
-
-
 def normalize_description(text: str) -> str:
     """
-    Clean job descriptions while preserving readability.
-    - Removes known boilerplate/prompt text.
-    - Preserves section separation and bullet points.
+    Clean job descriptions with minimal transformation.
+    Keep formatting stable and only remove known scraper junk.
     """
     if not text:
         return ""
@@ -48,35 +32,7 @@ def normalize_description(text: str) -> str:
         cleaned,
         flags=re.IGNORECASE | re.DOTALL,
     )
-
-    # Create paragraph breaks before common section headings.
-    heading_pattern = r"\b(" + "|".join(re.escape(h) for h in _SECTION_HEADINGS) + r")\b"
-    cleaned = re.sub(
-        rf"(?m)(^|\n)\s*{heading_pattern}\s*(?:[:\-]|•)?\s*",
-        lambda m: f"\n\n{m.group(2)}:\n",
-        cleaned,
-    )
-    cleaned = re.sub(
-        rf"([.!?])\s+{heading_pattern}\s*(?:[:\-]|•)\s*",
-        lambda m: f"{m.group(1)}\n\n{m.group(2)}:\n",
-        cleaned,
-    )
-    cleaned = re.sub(
-        rf"\s+{heading_pattern}\s*(?:[:\-]|•)\s*",
-        lambda m: f"\n\n{m.group(1)}:\n",
-        cleaned,
-    )
-    cleaned = re.sub(
-        rf"(?m)^\s*{heading_pattern}\s*(?:[:\-]|•)?\s*$",
-        lambda m: f"{m.group(1)}:",
-        cleaned,
-    )
-
-    # Convert bullets to one-per-line list items.
-    cleaned = re.sub(r"\s*[•·]\s*", "\n- ", cleaned)
-    cleaned = re.sub(r"(?m)^\s*-\s*", "- ", cleaned)
-
-    # Tidy line spacing.
+    # Keep readable spacing, avoid single-line walls.
     cleaned = re.sub(r"[ \t]+\n", "\n", cleaned)
     cleaned = re.sub(r"\n{3,}", "\n\n", cleaned)
 
@@ -84,6 +40,26 @@ def normalize_description(text: str) -> str:
     cleaned = "\n".join(line for line in lines if line)
 
     return cleaned.strip()
+
+
+def is_meaningful_description(text: str) -> bool:
+    """Reject metadata-like or too-short snippets as job descriptions."""
+    if not text:
+        return False
+    t = normalize_description(text)
+    low = t.lower()
+    if len(t) < 80:
+        return False
+    if "be an early applicant" in low:
+        return False
+    if "hours ago" in low and len(t) < 220:
+        return False
+    if "posted" in low and "ago" in low and len(t) < 220:
+        return False
+    # Need enough words to be a real description.
+    if len(re.findall(r"[A-Za-z]{3,}", t)) < 18:
+        return False
+    return True
 
 
 def clean_salary(text: str) -> str:
