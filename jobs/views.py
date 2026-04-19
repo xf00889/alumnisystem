@@ -8,21 +8,31 @@ from django.http import JsonResponse, HttpResponse
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.db import transaction
+from django.urls import reverse
 from django.core.mail import send_mail
 from django.conf import settings
 from django_ratelimit.decorators import ratelimit
-from .models import JobPosting, JobApplication, RequiredDocument, ScrapedJob
+from .models import JobPosting, JobApplication, RequiredDocument, ScrapedJob, UserJobAIScore
 from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet, JobPreferenceForm
 from .scraper_forms import JobScraperForm
 from .scraper_utils import scraper
 from .utils import calculate_job_match_score, get_skill_recommendations
+from .ai_global_sort import (
+    apply_ordered_ids,
+    compute_scores_for_job_ids,
+    get_ai_profile_version,
+    get_stale_job_ids_for_jobs,
+    mark_scores_pending,
+    rank_jobs_for_queryset,
+)
 from accounts.models import Profile, SkillMatch
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Border, Side
 import logging
 import json
 import os
-from datetime import datetime
+import importlib.util
+from datetime import datetime, timedelta
 
 logger = logging.getLogger(__name__)
 
@@ -40,6 +50,123 @@ def is_hr_or_admin(user):
         return user.profile.is_hr or user.profile.is_alumni_coordinator
     except:
         return False
+
+
+def _build_active_filters_from_preferences(preferences) -> list:
+    active_filters = []
+
+    if preferences.job_types:
+        job_type_labels = dict(JobPosting.JOB_TYPE_CHOICES)
+        for job_type in preferences.job_types:
+            active_filters.append({
+                'key': f'job_type_{job_type}',
+                'label': job_type_labels.get(job_type, job_type)
+            })
+
+    if preferences.remote_only:
+        active_filters.append({'key': 'remote_only', 'label': 'Remote Only'})
+
+    if preferences.location_text and not preferences.willing_to_relocate:
+        active_filters.append({
+            'key': 'location',
+            'label': f'Location: {preferences.location_text}'
+        })
+
+    if preferences.minimum_salary:
+        active_filters.append({
+            'key': 'minimum_salary',
+            'label': f'Min Salary: ₱{preferences.minimum_salary:,}'
+        })
+
+    if preferences.source_type != 'BOTH':
+        source_type_labels = dict(JobPosting.SOURCE_TYPE_CHOICES)
+        active_filters.append({
+            'key': 'source_type',
+            'label': source_type_labels.get(preferences.source_type, preferences.source_type)
+        })
+
+    if preferences.skill_matching_enabled:
+        active_filters.append({
+            'key': 'skill_matching',
+            'label': f'Skill Match ≥{preferences.skill_match_threshold}%'
+        })
+
+    return active_filters
+
+
+def _build_job_list_dataset(request, show_all_override=None, include_modal_prompt=True) -> dict:
+    jobs = JobPosting.objects.filter(is_active=True).exclude(slug="")
+    is_admin_or_hr_user = is_hr_or_admin(request.user)
+
+    show_preference_modal = False
+    preferences_configured = False
+    matching_jobs_count = 0
+    active_filters = []
+    match_data = {}
+
+    show_all = (
+        bool(show_all_override)
+        if show_all_override is not None
+        else request.GET.get('show_all', 'false').lower() == 'true'
+    )
+
+    if request.user.is_authenticated and not is_admin_or_hr_user:
+        from .preference_filter import PreferenceFilterService
+
+        preference_service = PreferenceFilterService(request.user)
+        preferences_configured = preference_service.preferences.is_configured
+
+        if include_modal_prompt:
+            show_preference_modal = preference_service.should_show_modal(request.session)
+
+        if preferences_configured and not show_all:
+            job_matches = preference_service.get_filtered_jobs()
+            job_ids = [match['job'].id for match in job_matches]
+            jobs = JobPosting.objects.filter(id__in=job_ids).exclude(slug="")
+            matching_jobs_count = len(job_matches)
+            match_data = {match['job'].id: match for match in job_matches}
+            active_filters = _build_active_filters_from_preferences(preference_service.preferences)
+
+    return {
+        'jobs_queryset': jobs,
+        'is_admin_or_hr': is_admin_or_hr_user,
+        'show_preference_modal': show_preference_modal,
+        'preferences_configured': preferences_configured,
+        'matching_jobs_count': matching_jobs_count,
+        'active_filters': active_filters,
+        'match_data': match_data,
+        'show_all': show_all,
+    }
+
+
+def _build_job_list_url(request, *, sort_value=None) -> str:
+    params = request.GET.copy()
+    if sort_value is None:
+        params.pop('sort', None)
+    else:
+        params['sort'] = sort_value
+    params.pop('page', None)
+
+    base = reverse('jobs:job_list')
+    query = params.urlencode()
+    return f"{base}?{query}" if query else base
+
+
+def _get_ai_sort_state(request, is_admin_or_hr_user):
+    ai_sort_enabled = False
+    ai_profile_version = 0
+
+    if request.user.is_authenticated and not is_admin_or_hr_user:
+        try:
+            from core.ai_config_utils import is_ai_enabled
+
+            ai_sort_enabled = is_ai_enabled()
+            ai_profile_version = get_ai_profile_version(request.user.id)
+        except Exception:
+            ai_sort_enabled = False
+            ai_profile_version = 0
+
+    return ai_sort_enabled, ai_profile_version
 
 def careers(request):
     """Public careers page for job listings"""
@@ -184,133 +311,85 @@ def check_job_application_eligibility(request, job_id):
         }, status=500)
 
 def job_list(request):
-    jobs = JobPosting.objects.filter(is_active=True).exclude(slug="")
-    
-    # Check if user is admin/HR using existing function
-    is_admin_or_hr_user = is_hr_or_admin(request.user)
-    
-    # Initialize preference-related variables
-    show_preference_modal = False
-    preferences_configured = False
-    matching_jobs_count = 0
-    active_filters = []
-    preference_service = None
-    match_data = {}
-    
-    # For alumni users (not admin/HR), check preferences and apply filtering
-    if request.user.is_authenticated and not is_admin_or_hr_user:
-        from .preference_filter import PreferenceFilterService
-        
-        # Get PreferenceFilterService instance
-        preference_service = PreferenceFilterService(request.user)
-        
-        # Check if preferences are configured
-        preferences_configured = preference_service.preferences.is_configured
-        
-        # Determine if modal should be shown
-        show_preference_modal = preference_service.should_show_modal(request.session)
-        
-        # Handle "show_all" toggle from GET parameter
-        show_all = request.GET.get('show_all', 'false').lower() == 'true'
-        
-        # Apply preference filtering if configured and not showing all
-        if preferences_configured and not show_all:
-            # Get filtered jobs using service
-            job_matches = preference_service.get_filtered_jobs()
-            
-            # Extract jobs and match data
-            jobs = JobPosting.objects.filter(
-                id__in=[match['job'].id for match in job_matches]
-            ).exclude(slug="")
-            
-            # Calculate matching_jobs_count
-            matching_jobs_count = len(job_matches)
-            
-            # Create match_data dictionary for template
-            match_data = {match['job'].id: match for match in job_matches}
-            
-            # Build active_filters list for display
-            prefs = preference_service.preferences
-            
-            if prefs.job_types:
-                job_type_labels = dict(JobPosting.JOB_TYPE_CHOICES)
-                for jt in prefs.job_types:
-                    active_filters.append({
-                        'key': f'job_type_{jt}',
-                        'label': job_type_labels.get(jt, jt)
-                    })
-            
-            if prefs.remote_only:
-                active_filters.append({
-                    'key': 'remote_only',
-                    'label': 'Remote Only'
-                })
-            
-            if prefs.location_text and not prefs.willing_to_relocate:
-                active_filters.append({
-                    'key': 'location',
-                    'label': f'Location: {prefs.location_text}'
-                })
-            
-            if prefs.minimum_salary:
-                active_filters.append({
-                    'key': 'minimum_salary',
-                    'label': f'Min Salary: ₱{prefs.minimum_salary:,}'
-                })
-            
-            if prefs.source_type != 'BOTH':
-                source_type_labels = dict(JobPosting.SOURCE_TYPE_CHOICES)
-                active_filters.append({
-                    'key': 'source_type',
-                    'label': source_type_labels.get(prefs.source_type, prefs.source_type)
-                })
-            
-            if prefs.skill_matching_enabled:
-                active_filters.append({
-                    'key': 'skill_matching',
-                    'label': f'Skill Match ≥{prefs.skill_match_threshold}%'
-                })
-    
-    # Featured jobs
+    dataset = _build_job_list_dataset(request, include_modal_prompt=True)
+    jobs = dataset['jobs_queryset']
+    is_admin_or_hr_user = dataset['is_admin_or_hr']
+
+    show_preference_modal = dataset['show_preference_modal']
+    preferences_configured = dataset['preferences_configured']
+    matching_jobs_count = dataset['matching_jobs_count']
+    active_filters = dataset['active_filters']
+    match_data = dataset['match_data']
+    show_all = dataset['show_all']
+
+    current_sort = request.GET.get('sort', '')
+    ai_global_requested = current_sort == 'ai_global'
+    ai_sort_enabled, ai_profile_version = _get_ai_sort_state(request, is_admin_or_hr_user)
+
+    ai_global_mode = (
+        ai_global_requested
+        and ai_sort_enabled
+        and request.user.is_authenticated
+        and not is_admin_or_hr_user
+    )
+
+    ai_global_progress = {
+        'scored_count': 0,
+        'pending_count': 0,
+        'total_count': jobs.count(),
+        'complete': False,
+        'computed_now': 0,
+    }
+
+    # Featured jobs remain date-ordered for visual consistency.
     featured_jobs = jobs.filter(is_featured=True).order_by('-posted_date')[:5]
-    
-    # Sort jobs by newest first
-    jobs = jobs.order_by('-posted_date')
-    
-    # Pagination
+
+    if ai_global_mode:
+        ranking = rank_jobs_for_queryset(
+            user=request.user,
+            queryset=jobs,
+            profile_version=ai_profile_version,
+            batch_size=getattr(settings, 'AI_GLOBAL_SORT_BATCH_SIZE', 10),
+            compute_batch=True,
+        )
+        jobs = apply_ordered_ids(jobs, ranking['ordered_ids'])
+        ai_global_progress = {
+            'scored_count': ranking['scored_count'],
+            'pending_count': ranking['pending_count'],
+            'total_count': ranking['total_count'],
+            'complete': ranking['pending_count'] == 0,
+            'computed_now': ranking.get('computed_now', 0),
+        }
+    else:
+        jobs = jobs.order_by('-posted_date')
+
     paginator = Paginator(jobs, 10)
     page = request.GET.get('page')
     jobs_page = paginator.get_page(page)
-
-    # Check if AI matching is available for this user
-    ai_sort_enabled = False
-    ai_profile_version = 0
-    if request.user.is_authenticated and not is_admin_or_hr_user:
-        try:
-            from core.ai_config_utils import is_ai_enabled
-            from django.core.cache import cache as django_cache
-            ai_sort_enabled = is_ai_enabled()
-            ai_profile_version = django_cache.get(f"ai_profile_version_{request.user.id}", 0)
-        except Exception:
-            ai_sort_enabled = False
-            ai_profile_version = 0
 
     context = {
         'jobs': jobs_page,
         'featured_jobs': featured_jobs,
         'match_data': match_data,
         'view_type': 'posted',
-        # Preference-related context
         'show_preference_modal': show_preference_modal,
         'preferences_configured': preferences_configured,
         'matching_jobs_count': matching_jobs_count,
         'active_filters': active_filters,
         'has_active_preferences': len(active_filters) > 0,
         'is_admin_or_hr': is_admin_or_hr_user,
-        'show_all': request.GET.get('show_all', 'false').lower() == 'true',
-        # AI sort context
+        'show_all': show_all,
         'ai_sort_enabled': ai_sort_enabled,
         'ai_profile_version': ai_profile_version,
+        'ai_global_mode': ai_global_mode,
+        'ai_global_progress': ai_global_progress,
+        'ai_global_async_available': importlib.util.find_spec("django_q") is not None,
+        'ai_global_sort_url': _build_job_list_url(request, sort_value='ai_global'),
+        'ai_clear_sort_url': _build_job_list_url(request, sort_value=None),
+        'current_sort': current_sort,
+        'current_query': request.GET.get('q', ''),
+        'current_job_type': request.GET.get('job_type', ''),
+        'current_source_type': request.GET.get('source_type', ''),
     }
     return render(request, 'jobs/job_list.html', context)
 
@@ -1389,3 +1468,143 @@ def ai_sort_jobs(request):
     results.sort(key=lambda x: x['score'], reverse=True)
 
     return JsonResponse({'success': True, 'jobs': results})
+
+
+def _parse_json_body(request):
+    try:
+        return json.loads(request.body or "{}")
+    except (TypeError, json.JSONDecodeError):
+        return {}
+
+
+@login_required
+@ratelimit(key='user', rate='20/m', method='POST')
+def ai_global_progress(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse({'success': False, 'error': 'Too many requests. Please wait a moment.'}, status=429)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required.'}, status=405)
+
+    payload = _parse_json_body(request)
+    show_all = bool(payload.get('show_all', False))
+
+    dataset = _build_job_list_dataset(request, show_all_override=show_all, include_modal_prompt=False)
+    if dataset['is_admin_or_hr']:
+        return JsonResponse({'success': False, 'error': 'AI global sorting is only available to alumni users.'}, status=403)
+
+    ai_sort_enabled, ai_profile_version = _get_ai_sort_state(request, dataset['is_admin_or_hr'])
+    if not ai_sort_enabled:
+        return JsonResponse({
+            'success': False,
+            'error': 'AI matching is not configured. Please set up an AI API key in the admin dashboard.'
+        }, status=503)
+
+    ranking = rank_jobs_for_queryset(
+        user=request.user,
+        queryset=dataset['jobs_queryset'],
+        profile_version=ai_profile_version,
+        batch_size=getattr(settings, 'AI_GLOBAL_SORT_BATCH_SIZE', 10),
+        compute_batch=True,
+    )
+
+    return JsonResponse({
+        'success': True,
+        'scored_count': ranking['scored_count'],
+        'pending_count': ranking['pending_count'],
+        'total_count': ranking['total_count'],
+        'complete': ranking['pending_count'] == 0,
+        'computed_now': ranking.get('computed_now', 0),
+        'async_available': importlib.util.find_spec("django_q") is not None,
+    })
+
+
+@login_required
+@ratelimit(key='user', rate='10/m', method='POST')
+def ai_global_start(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse({'success': False, 'error': 'Too many requests. Please wait a moment.'}, status=429)
+
+    if request.method != 'POST':
+        return JsonResponse({'success': False, 'error': 'POST required.'}, status=405)
+
+    payload = _parse_json_body(request)
+    show_all = bool(payload.get('show_all', False))
+
+    dataset = _build_job_list_dataset(request, show_all_override=show_all, include_modal_prompt=False)
+    if dataset['is_admin_or_hr']:
+        return JsonResponse({'success': False, 'error': 'AI global sorting is only available to alumni users.'}, status=403)
+
+    ai_sort_enabled, ai_profile_version = _get_ai_sort_state(request, dataset['is_admin_or_hr'])
+    if not ai_sort_enabled:
+        return JsonResponse({
+            'success': False,
+            'error': 'AI matching is not configured. Please set up an AI API key in the admin dashboard.'
+        }, status=503)
+
+    jobs = list(dataset['jobs_queryset'].order_by('-posted_date'))
+    stale_ids = get_stale_job_ids_for_jobs(request.user, jobs, ai_profile_version)
+    pending_cutoff = timezone.now() - timedelta(
+        minutes=max(1, int(getattr(settings, 'AI_GLOBAL_PENDING_TIMEOUT_MINUTES', 5)))
+    )
+    pending_ids = set(
+        UserJobAIScore.objects.filter(
+            user=request.user,
+            job_id__in=stale_ids,
+            status=UserJobAIScore.Status.PENDING,
+            profile_version=ai_profile_version,
+            updated_at__gte=pending_cutoff,
+        ).values_list('job_id', flat=True)
+    )
+    stale_ids = [job_id for job_id in stale_ids if job_id not in pending_ids]
+
+    if not stale_ids:
+        return JsonResponse({
+            'success': True,
+            'queued_jobs': 0,
+            'message': 'All jobs are already up to date or already queued.',
+        })
+
+    if importlib.util.find_spec("django_q") is None:
+        # Fallback to one immediate batch when queue worker is unavailable.
+        batch_size = getattr(settings, 'AI_GLOBAL_SORT_BATCH_SIZE', 10)
+        batch_ids = stale_ids[:batch_size]
+        jobs_by_id = {job.id: job for job in jobs}
+        processed = compute_scores_for_job_ids(
+            user=request.user,
+            jobs_by_id=jobs_by_id,
+            job_ids=batch_ids,
+            profile_version=ai_profile_version,
+        )
+        return JsonResponse({
+            'success': True,
+            'queued_jobs': 0,
+            'processed_sync': processed,
+            'message': 'Queue worker unavailable; processed one synchronous batch instead.',
+            'async_available': False,
+        })
+
+    from django_q.tasks import async_task
+
+    chunk_size = max(1, int(getattr(settings, 'AI_GLOBAL_ASYNC_CHUNK_SIZE', 50)))
+    mark_scores_pending(request.user, stale_ids, ai_profile_version)
+
+    queued = 0
+    for index in range(0, len(stale_ids), chunk_size):
+        chunk = stale_ids[index:index + chunk_size]
+        async_task(
+            'jobs.ai_global_sort_tasks.process_user_ai_scores_for_job_ids',
+            request.user.id,
+            chunk,
+            ai_profile_version,
+            max_retries=int(getattr(settings, 'AI_GLOBAL_ASYNC_MAX_RETRIES', 2)),
+            backoff_seconds=float(getattr(settings, 'AI_GLOBAL_ASYNC_BACKOFF_SECONDS', 0.5)),
+        )
+        queued += len(chunk)
+
+    return JsonResponse({
+        'success': True,
+        'queued_jobs': queued,
+        'message': f'Queued {queued} job score(s) for background processing.',
+        'async_available': True,
+    })

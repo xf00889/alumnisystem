@@ -13,6 +13,22 @@ from django.core.cache import cache
 logger = logging.getLogger(__name__)
 
 
+def _get_ai_profile_version(user_id):
+    return int(cache.get(f"ai_profile_version_{user_id}", 0) or 0)
+
+
+def _build_cache_key(user, job):
+    profile_version = _get_ai_profile_version(user.id)
+    job_version = 0
+    job_updated = getattr(job, "updated_at", None)
+    if job_updated:
+        try:
+            job_version = int(job_updated.timestamp())
+        except Exception:
+            job_version = 0
+    return f"ai_match_{user.id}_{job.id}_{profile_version}_{job_version}"
+
+
 def _get_gemini_client():
     """
     Return (client, model_name) using the new google-genai SDK from DB config.
@@ -186,7 +202,7 @@ def get_ai_match_score(user, job):
     Falls back gracefully if the API is unavailable.
     """
     # Check cache first (24 hours to save API calls)
-    cache_key = f"ai_match_{user.id}_{job.id}"
+    cache_key = _build_cache_key(user, job)
     cached = cache.get(cache_key)
     if cached:
         cached['cached'] = True

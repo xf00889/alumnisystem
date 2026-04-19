@@ -89,6 +89,7 @@ class JobPosting(models.Model):
     application_link = models.URLField(max_length=500, validators=[URLValidator()], blank=True, null=True)
     salary_range = models.CharField(max_length=100, blank=True, null=True)
     posted_date = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
     is_featured = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
     posted_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='job_postings')
@@ -374,3 +375,40 @@ class JobPreference(models.Model):
             logger.debug(f"Invalidated cache for user {self.user.id}")
         except Exception as e:
             logger.error(f"Error invalidating cache for user {self.user.id}: {e}")
+
+
+class UserJobAIScore(models.Model):
+    class Status(models.TextChoices):
+        PENDING = 'pending', 'Pending'
+        READY = 'ready', 'Ready'
+        FAILED = 'failed', 'Failed'
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='job_ai_scores')
+    job = models.ForeignKey('JobPosting', on_delete=models.CASCADE, related_name='user_ai_scores')
+
+    score = models.IntegerField(null=True, blank=True, help_text='AI match score (0-100)')
+    reason = models.TextField(blank=True)
+    strengths_json = models.JSONField(default=list, blank=True)
+    gaps_json = models.JSONField(default=list, blank=True)
+
+    status = models.CharField(max_length=12, choices=Status.choices, default=Status.PENDING)
+    error_message = models.TextField(blank=True)
+
+    profile_version = models.BigIntegerField(default=0)
+    computed_at = models.DateTimeField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = 'User Job AI Score'
+        verbose_name_plural = 'User Job AI Scores'
+        unique_together = ['user', 'job']
+        indexes = [
+            models.Index(fields=['user', 'status']),
+            models.Index(fields=['user', 'score']),
+            models.Index(fields=['computed_at']),
+        ]
+
+    def __str__(self):
+        score_label = self.score if self.score is not None else 'N/A'
+        return f"AI Score: user={self.user_id}, job={self.job_id}, score={score_label}"

@@ -6,7 +6,7 @@ from django.urls import path, reverse
 from django.utils.html import format_html
 from django.utils.safestring import mark_safe
 
-from .models import JobPosting, JobApplication, JobPreference, ScrapedJob
+from .models import JobPosting, JobApplication, JobPreference, ScrapedJob, UserJobAIScore
 
 @admin.register(JobPosting)
 class JobPostingAdmin(admin.ModelAdmin):
@@ -153,6 +153,28 @@ class JobPreferenceAdmin(admin.ModelAdmin):
         if obj:  # Editing existing object
             return self.readonly_fields + ('user',)
         return self.readonly_fields
+
+
+@admin.register(UserJobAIScore)
+class UserJobAIScoreAdmin(admin.ModelAdmin):
+    list_display = ('user', 'job', 'score', 'status', 'profile_version', 'computed_at', 'updated_at')
+    list_filter = ('status', 'profile_version', 'computed_at', 'updated_at')
+    search_fields = ('user__username', 'user__email', 'job__job_title', 'job__company_name')
+    readonly_fields = (
+        'user',
+        'job',
+        'score',
+        'reason',
+        'strengths_json',
+        'gaps_json',
+        'status',
+        'error_message',
+        'profile_version',
+        'computed_at',
+        'updated_at',
+        'created_at',
+    )
+    ordering = ('-computed_at', '-updated_at')
 
 
 # ─────────────────────────────────────────────────────────────────────────────

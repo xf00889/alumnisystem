@@ -11,7 +11,9 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 """
 
 import os
+import importlib.util
 from pathlib import Path
+from urllib.parse import urlparse
 from decouple import config, Csv
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -104,6 +106,10 @@ INSTALLED_APPS = [
     'log_viewer',  # Log viewer app for admin log management
     'docs.apps.DocsConfig',  # Documentation viewer
 ]
+
+HAS_DJANGO_Q = importlib.util.find_spec('django_q') is not None
+if HAS_DJANGO_Q:
+    INSTALLED_APPS.append('django_q')
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
@@ -647,6 +653,14 @@ DOCS_TOC_CACHE_TIMEOUT = 3600  # 1 hour for table of contents
 # Job preferences cache settings
 JOB_PREFERENCES_CACHE_TIMEOUT = 300  # 5 minutes for filtered job results
 
+# Global AI sort settings
+AI_GLOBAL_SORT_BATCH_SIZE = config('AI_GLOBAL_SORT_BATCH_SIZE', default=10, cast=int)
+AI_GLOBAL_ASYNC_CHUNK_SIZE = config('AI_GLOBAL_ASYNC_CHUNK_SIZE', default=50, cast=int)
+AI_GLOBAL_ASYNC_MAX_RETRIES = config('AI_GLOBAL_ASYNC_MAX_RETRIES', default=2, cast=int)
+AI_GLOBAL_ASYNC_BACKOFF_SECONDS = config('AI_GLOBAL_ASYNC_BACKOFF_SECONDS', default=0.5, cast=float)
+AI_GLOBAL_PENDING_TIMEOUT_MINUTES = config('AI_GLOBAL_PENDING_TIMEOUT_MINUTES', default=5, cast=int)
+AI_GLOBAL_SCORE_RETENTION_DAYS = config('AI_GLOBAL_SCORE_RETENTION_DAYS', default=30, cast=int)
+
 # Cache middleware settings
 CACHE_MIDDLEWARE_ALIAS = 'default'
 CACHE_MIDDLEWARE_SECONDS = 300
@@ -796,6 +810,35 @@ SESSION_COOKIE_PATH = '/'
 #         },
 #     },
 # }
+
+if HAS_DJANGO_Q:
+    redis_cluster_config = None
+    if REDIS_URL:
+        parsed = urlparse(REDIS_URL)
+        raw_db = (parsed.path or '/0').replace('/', '') or '0'
+        try:
+            redis_db = int(raw_db)
+        except ValueError:
+            redis_db = 0
+        redis_cluster_config = {
+            'host': parsed.hostname or '127.0.0.1',
+            'port': parsed.port or 6379,
+            'db': redis_db,
+            'password': parsed.password or None,
+        }
+
+    Q_CLUSTER = {
+        'name': 'norsu-ai',
+        'workers': 2,
+        'timeout': 120,
+        'retry': 180,
+        'queue_limit': 1000,
+        'bulk': 10,
+    }
+    if redis_cluster_config:
+        Q_CLUSTER['redis'] = redis_cluster_config
+    else:
+        Q_CLUSTER['orm'] = 'default'
 
 
 # Google Gemini AI Configuration (for AI-powered job matching)

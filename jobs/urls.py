@@ -26,6 +26,8 @@ urlpatterns = [
 
     # AI sort endpoint
     path('api/ai-sort/', views.ai_sort_jobs, name='ai_sort_jobs'),
+    path('api/ai-global-progress/', views.ai_global_progress, name='ai_global_progress'),
+    path('api/ai-global-start/', views.ai_global_start, name='ai_global_start'),
     
     # Multi-site job scraper URLs (custom admin dashboard)
     path('scraper/', views_scraper.scraper_dashboard, name='scraper_dashboard'),
