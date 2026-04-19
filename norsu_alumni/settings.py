@@ -107,6 +107,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'core.middleware.runtime_debug_middleware.RuntimeDebugMiddleware',  # Override DEBUG from DB setting
     'whitenoise.middleware.WhiteNoiseMiddleware',
     'csp.middleware.CSPMiddleware',  # Add CSP middleware
     'core.middleware.site_middleware.EnsureSiteMiddleware',  # Ensure site is always configured
