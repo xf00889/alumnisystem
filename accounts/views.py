@@ -111,7 +111,6 @@ def post_registration(request):
                             f"Duplicate alumni detected on submit: user={request.user.id}, "
                             f"name={first_name} {last_name}, course={course}, year={graduation_year}"
                         )
-                        # JS should have blocked this, but handle it server-side too
                         messages.error(request, 'A duplicate alumni record was detected. Please cancel your sign up.')
                         return render(request, 'accounts/post_registration.html', {
                             'form': form,
@@ -123,8 +122,7 @@ def post_registration(request):
 
                     # Save the form data
                     form.save(request.user)
-                    
-                    # Log registration completion
+
                     logger.info(
                         f"Registration completed: User ID={request.user.id}, Email={request.user.email}",
                         extra={
@@ -133,7 +131,7 @@ def post_registration(request):
                             'action': 'registration_complete'
                         }
                     )
-                    
+
                     messages.success(request, 'Registration completed successfully!')
                 return redirect('core:home')
             except Exception as e:
@@ -145,8 +143,13 @@ def post_registration(request):
                     },
                     exc_info=True
                 )
-                messages.error(request, f'An error occurred: {str(e)}')
-                raise
+                messages.error(request, f'An error occurred while saving your registration: {str(e)}')
+        else:
+            # Log what failed so we can debug
+            logger.warning(
+                f"Post-registration form invalid for user={request.user.id}: {dict(form.errors)}",
+                extra={'user_id': request.user.id, 'form_errors': str(form.errors)}
+            )
     else:
         # Pre-fill form with existing user data
         initial_data = {
