@@ -2743,29 +2743,34 @@ def check_duplicate_alumni(request):
 @require_POST
 def cancel_registration(request):
     """
-    Called when a user with an incomplete registration (has_completed_registration=False)
-    chooses to cancel — e.g. after a duplicate is detected.
-    Logs them out, flushes the session, and deletes their account so no orphaned data remains.
+    Cancels an incomplete registration. Deletes the user account along with all
+    allauth SocialAccount and EmailAddress records, then flushes the session.
     """
     from django.contrib.auth import logout as auth_logout
+    from allauth.socialaccount.models import SocialAccount
+    from allauth.account.models import EmailAddress
 
     user = request.user
     try:
         profile = user.profile
         if profile.has_completed_registration:
-            # Safety guard: never delete a completed account this way
             return redirect('core:home')
     except Exception:
         pass
 
     logger.info(
-        f"User cancelled incomplete registration and account deleted: "
-        f"user_id={user.id}, email={user.email}"
+        f"Cancelling incomplete registration — deleting user_id={user.id}, email={user.email}"
     )
 
-    # Flush session first to clear all allauth OAuth state
+    # Explicitly remove allauth records (cascade handles it too, but be explicit)
+    SocialAccount.objects.filter(user=user).delete()
+    EmailAddress.objects.filter(user=user).delete()
+
+    # Flush session to clear all OAuth state before logout
     request.session.flush()
     auth_logout(request)
-    user.delete()  # cascades to Profile, SocialAccount, Alumni, etc.
+
+    # Delete the user — cascades to Profile, Alumni, etc.
+    user.delete()
 
     return redirect('account_login')
