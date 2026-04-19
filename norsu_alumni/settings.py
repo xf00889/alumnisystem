@@ -121,6 +121,7 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     # 'accounts.middleware.SuppressAuthMessagesMiddleware',  # TEMPORARILY DISABLED - causing message persistence
     'setup.middleware.SetupRequiredMiddleware',  # Redirect to setup if incomplete
+    'accounts.middleware.RegistrationCompleteMiddleware',  # Redirect incomplete users to post-registration
 ]
 
 ROOT_URLCONF = 'norsu_alumni.urls'
