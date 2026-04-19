@@ -111,7 +111,15 @@ def post_registration(request):
                             f"Duplicate alumni detected on submit: user={request.user.id}, "
                             f"name={first_name} {last_name}, course={course}, year={graduation_year}"
                         )
-                        return redirect('accounts:duplicate_alumni')
+                        # JS should have blocked this, but handle it server-side too
+                        messages.error(request, 'A duplicate alumni record was detected. Please cancel your sign up.')
+                        return render(request, 'accounts/post_registration.html', {
+                            'form': form,
+                            'title': 'Complete Registration',
+                            'verification_success': False,
+                            'verification_message': '',
+                            'duplicate_detected': True,
+                        })
 
                     # Save the form data
                     form.save(request.user)
@@ -171,12 +179,6 @@ def post_registration(request):
         'verification_success': verification_success,
         'verification_message': verification_message,
     })
-
-
-@login_required
-def duplicate_alumni(request):
-    """Shown when a duplicate alumni record is detected during post-registration."""
-    return render(request, 'accounts/duplicate_alumni.html')
 
 
 @login_required
