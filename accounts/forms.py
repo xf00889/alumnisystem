@@ -576,6 +576,7 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
+            'disabled': 'disabled',
         }),
         help_text="Select your campus first to see available colleges",
         label="College"
@@ -585,6 +586,7 @@ class PostRegistrationForm(forms.Form):
         required=True,
         widget=forms.Select(attrs={
             'class': 'form-control',
+            'disabled': 'disabled',
         }),
         help_text="Select your campus and college first to see available programs",
         label="Program/Course"
@@ -594,6 +596,7 @@ class PostRegistrationForm(forms.Form):
         required=False,
         widget=forms.Select(attrs={
             'class': 'form-control',
+            'disabled': 'disabled',
         }),
         help_text="Select your program first to see available majors (if applicable)",
         label="Major/Specialization"
@@ -924,6 +927,10 @@ class PostRegistrationForm(forms.Form):
         
         if not college and course in self.COURSE_COLLEGE_MAPPING:
             college = self.COURSE_COLLEGE_MAPPING[course]
+        
+        # Final fallback — college cannot be blank in the DB
+        if not college:
+            college = 'CAS'  # Default to CAS if still undetermined
 
         # Map campus code to Alumni model campus format
         campus_mapping = {
@@ -947,7 +954,12 @@ class PostRegistrationForm(forms.Form):
                 'campus': alumni_campus,
                 'current_company': self.cleaned_data['company_name'],
                 'job_title': self.cleaned_data['present_occupation'],
-                'employment_status': 'EMPLOYED_FULL'  # Assuming full-time employment
+                'employment_status': 'EMPLOYED_FULL',
+                # Required fields — provide safe defaults so the record saves
+                'gender': getattr(user.profile, 'gender', '') or 'O',
+                'province': '',
+                'city': '',
+                'address': '',
             }
         )
 
