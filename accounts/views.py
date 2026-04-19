@@ -2735,3 +2735,33 @@ def check_duplicate_alumni(request):
     except Exception as e:
         logger.error(f"Error in duplicate alumni check: {e}", exc_info=True)
         return JsonResponse({'error': 'An error occurred.'}, status=500)
+
+
+@login_required
+@require_POST
+def cancel_registration(request):
+    """
+    Called when a user with an incomplete registration (has_completed_registration=False)
+    chooses to cancel — e.g. after a duplicate is detected.
+    Logs them out and deletes their account so no orphaned data remains.
+    """
+    from django.contrib.auth import logout as auth_logout
+
+    user = request.user
+    try:
+        profile = user.profile
+        if profile.has_completed_registration:
+            # Safety guard: never delete a completed account this way
+            return redirect('core:home')
+    except Exception:
+        pass
+
+    logger.info(
+        f"User cancelled incomplete registration and account deleted: "
+        f"user_id={user.id}, email={user.email}"
+    )
+
+    auth_logout(request)
+    user.delete()  # cascades to Profile, Alumni, etc.
+
+    return redirect('account_login')

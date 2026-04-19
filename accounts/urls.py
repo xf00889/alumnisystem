@@ -69,6 +69,9 @@ urlpatterns = [
 
     # Duplicate alumni detection during post-registration
     path('check-duplicate-alumni/', views.check_duplicate_alumni, name='check_duplicate_alumni'),
+
+    # Cancel incomplete registration (deletes account + logs out)
+    path('cancel-registration/', views.cancel_registration, name='cancel_registration'),
     
     # Email verification endpoints
     path('verify-email/', security_views.verify_email, name='verify_email'),
