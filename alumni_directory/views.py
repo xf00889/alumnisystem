@@ -835,14 +835,17 @@ def alumni_management(request):
                 )
                 
                 try:
-                    # Read CSV file
-                    decoded_file = csv_file.read().decode('utf-8')
                     # Decode with UTF-8-sig to handle BOM character from Excel-exported CSVs
                     try:
                         decoded_file = csv_file.read().decode('utf-8-sig')
                     except UnicodeDecodeError:
+                        csv_file.seek(0)
                         decoded_file = csv_file.read().decode('latin-1')
                     csv_data = csv.DictReader(decoded_file.splitlines())
+
+                    # Log detected headers for debugging
+                    fieldnames = csv_data.fieldnames or []
+                    logger.info(f"CSV import - detected headers: {fieldnames}")
                     
                     imported_count = 0
                     updated_count = 0
