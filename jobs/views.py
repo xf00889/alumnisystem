@@ -322,15 +322,24 @@ def job_list(request):
     match_data = dataset['match_data']
     show_all = dataset['show_all']
 
-    current_sort = request.GET.get('sort', '')
-    ai_global_requested = current_sort == 'ai_global'
+    sort_param = (request.GET.get('sort') or '').strip().lower()
+    current_sort = sort_param
     ai_sort_enabled, ai_profile_version = _get_ai_sort_state(request, is_admin_or_hr_user)
 
-    ai_global_mode = (
-        ai_global_requested
-        and ai_sort_enabled
+    eligible_for_ai_global = (
+        ai_sort_enabled
         and request.user.is_authenticated
         and not is_admin_or_hr_user
+    )
+
+    # Default behavior: AI global sorting is ON for eligible users unless
+    # they explicitly request latest/date ordering via ?sort=latest.
+    if eligible_for_ai_global and not sort_param:
+        current_sort = 'ai_global'
+
+    ai_global_requested = current_sort == 'ai_global'
+    ai_global_mode = (
+        ai_global_requested and eligible_for_ai_global
     )
 
     ai_global_progress = {
@@ -385,7 +394,7 @@ def job_list(request):
         'ai_global_progress': ai_global_progress,
         'ai_global_async_available': importlib.util.find_spec("django_q") is not None,
         'ai_global_sort_url': _build_job_list_url(request, sort_value='ai_global'),
-        'ai_clear_sort_url': _build_job_list_url(request, sort_value=None),
+        'ai_clear_sort_url': _build_job_list_url(request, sort_value='latest'),
         'current_sort': current_sort,
         'current_query': request.GET.get('q', ''),
         'current_job_type': request.GET.get('job_type', ''),
