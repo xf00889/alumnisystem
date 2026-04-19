@@ -120,6 +120,7 @@ MIDDLEWARE = [
     'allauth.account.middleware.AccountMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     # 'accounts.middleware.SuppressAuthMessagesMiddleware',  # TEMPORARILY DISABLED - causing message persistence
+    'core.middleware.maintenance_middleware.MaintenanceModeMiddleware',  # Global maintenance gate
     'setup.middleware.SetupRequiredMiddleware',  # Redirect to setup if incomplete
 ]
 

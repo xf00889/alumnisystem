@@ -1,8 +1,9 @@
 from django.http import JsonResponse, HttpResponse
 from django.shortcuts import render
-from django.conf import settings
 import logging
 import traceback
+
+from core.system_settings_utils import is_runtime_debug_enabled
 
 logger = logging.getLogger(__name__)
 
@@ -41,7 +42,7 @@ def handler500(request):
         logger.error(f"Exception message: {str(exc_info[1])}")
         logger.error(f"Traceback:", exc_info=True)
     
-    if settings.DEBUG:
+    if is_runtime_debug_enabled():
         # In debug mode, show detailed error
         return HttpResponse(
             f"<h1>Server Error (500)</h1>"
@@ -110,7 +111,7 @@ def health_check_view(request):
         return JsonResponse({
             'status': 'healthy',
             'database': 'connected',
-            'debug': settings.DEBUG
+            'debug': is_runtime_debug_enabled()
         })
     except Exception as e:
         logger.error(f"Health check failed: {e}")

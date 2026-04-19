@@ -4,6 +4,7 @@ from . import smtp_admin_views
 from . import recaptcha_admin_views, recaptcha_analytics_views
 from . import sso_admin_views
 from . import ai_config_views
+from . import system_admin_views
 from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
@@ -127,4 +128,7 @@ urlpatterns = [
     path('admin-dashboard/seo/<int:pk>/edit/', seo_admin_views.PageSEOEditView.as_view(), name='seo_page_edit'),
     path('admin-dashboard/seo/<int:pk>/delete/', seo_admin_views.PageSEODeleteView.as_view(), name='seo_page_delete'),
     path('admin-dashboard/seo/organization/', seo_admin_views.OrganizationSchemaEditView.as_view(), name='seo_organization_edit'),
+
+    # System Controls
+    path('admin-dashboard/system/', system_admin_views.system_settings_view, name='system_settings'),
 ]

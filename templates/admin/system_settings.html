@@ -1,0 +1,139 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}System Controls - NORSU Alumni Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    :root {
+        --primary-color: #2b3c6b;
+        --ui-background: #f8f9fa;
+        --ui-surface: #ffffff;
+        --ui-border: #e2e8f0;
+        --text-primary: #2d3748;
+        --text-secondary: #718096;
+        --warning: #f59e0b;
+        --danger: #dc3545;
+        --success: #28a745;
+    }
+
+    body { background-color: var(--ui-background); }
+    .system-controls-wrap { max-width: 980px; margin: 0 auto; padding: 1.5rem; }
+    .header-card {
+        background: var(--primary-color);
+        color: #fff;
+        border-radius: 0.375rem;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+    }
+    .panel {
+        background: var(--ui-surface);
+        border: 1px solid var(--ui-border);
+        border-radius: 0.375rem;
+        padding: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    .panel h3 {
+        color: var(--text-primary);
+        font-size: 1.1rem;
+        margin-bottom: 0.5rem;
+    }
+    .panel p { color: var(--text-secondary); margin-bottom: 1rem; }
+    .status-pill {
+        display: inline-block;
+        padding: 0.3rem 0.6rem;
+        border-radius: 999px;
+        font-size: 0.8rem;
+        font-weight: 600;
+        margin-left: 0.5rem;
+    }
+    .status-on { background: rgba(220, 53, 69, 0.15); color: var(--danger); }
+    .status-off { background: rgba(40, 167, 69, 0.12); color: var(--success); }
+    .warning-box {
+        border-left: 4px solid var(--warning);
+        background: #fff9eb;
+        padding: 0.9rem 1rem;
+        color: #8a6614;
+        border-radius: 0.25rem;
+        margin-top: 0.75rem;
+    }
+    .btn-primary {
+        background: var(--primary-color);
+        border-color: var(--primary-color);
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="system-controls-wrap">
+    <div class="header-card">
+        <h1 class="h3 mb-1"><i class="fas fa-sliders-h me-2"></i>System Controls</h1>
+        <p class="mb-0">Manage maintenance mode and app-level runtime debug settings.</p>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        <div class="panel">
+            <h3>
+                Maintenance Mode
+                <span class="status-pill {% if settings_obj.maintenance_mode %}status-on{% else %}status-off{% endif %}">
+                    {% if settings_obj.maintenance_mode %}Enabled{% else %}Disabled{% endif %}
+                </span>
+            </h3>
+            <p>
+                When enabled, public pages return a maintenance screen (HTTP 503). Custom admin pages remain accessible.
+            </p>
+            <div class="form-check form-switch mb-3">
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="maintenance_mode"
+                    name="maintenance_mode"
+                    {% if settings_obj.maintenance_mode %}checked{% endif %}
+                >
+                <label class="form-check-label" for="maintenance_mode">Enable maintenance mode</label>
+            </div>
+            <label class="form-label" for="maintenance_message">Maintenance Message</label>
+            <textarea
+                class="form-control"
+                id="maintenance_message"
+                name="maintenance_message"
+                rows="3"
+            >{{ settings_obj.maintenance_message }}</textarea>
+            <div class="warning-box">
+                Keep this message clear for users. Example: "The site is under maintenance. Please try again later."
+            </div>
+        </div>
+
+        <div class="panel">
+            <h3>
+                Runtime Debug Mode
+                <span class="status-pill {% if settings_obj.runtime_debug %}status-on{% else %}status-off{% endif %}">
+                    {% if settings_obj.runtime_debug %}Enabled{% else %}Disabled{% endif %}
+                </span>
+            </h3>
+            <p>
+                This controls app-level debug outputs only. It does not change Django deployment-level <code>settings.DEBUG</code>.
+            </p>
+            <div class="form-check form-switch">
+                <input
+                    class="form-check-input"
+                    type="checkbox"
+                    id="runtime_debug"
+                    name="runtime_debug"
+                    {% if settings_obj.runtime_debug %}checked{% endif %}
+                >
+                <label class="form-check-label" for="runtime_debug">Enable runtime debug mode</label>
+            </div>
+            <div class="warning-box">
+                Startup security/static/cookie settings still follow <code>settings.DEBUG</code> from environment.
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+            <i class="fas fa-save me-1"></i>Save System Settings
+        </button>
+    </form>
+</div>
+{% endblock %}
