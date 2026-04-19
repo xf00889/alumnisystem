@@ -42,9 +42,9 @@ class Migration(migrations.Migration):
                 'verbose_name_plural': 'User Job AI Scores',
                 'unique_together': {('user', 'job')},
                 'indexes': [
-                    models.Index(fields=['user', 'status']),
-                    models.Index(fields=['user', 'score']),
-                    models.Index(fields=['computed_at']),
+                    models.Index(fields=['user', 'status'], name='jobs_ujas_user_stat_idx'),
+                    models.Index(fields=['user', 'score'], name='jobs_ujas_user_score_idx'),
+                    models.Index(fields=['computed_at'], name='jobs_ujas_comp_at_idx'),
                 ],
             },
         ),
