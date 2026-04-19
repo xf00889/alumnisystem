@@ -196,24 +196,6 @@
         overflow: hidden;
     }
 
-    .dashboard-header h1,
-    .dashboard-header p,
-    .source-host-badge,
-    .ai-reason-text,
-    .ai-list-text {
-        overflow-wrap: anywhere;
-        word-break: break-word;
-    }
-
-    .focus-ring:focus-visible,
-    button:focus-visible,
-    a:focus-visible,
-    select:focus-visible {
-        outline: 2px solid #0a66c2;
-        outline-offset: 2px;
-        box-shadow: none;
-    }
-
     /* ── Mobile Responsiveness ─────────────────────────────── */
     @media (max-width: 767.98px) {
 
@@ -227,7 +209,6 @@
         .dashboard-header h1 {
             font-size: 1.125rem;
             line-height: 1.4;
-            margin-right: 0;
         }
 
         .dashboard-header h1 i {
@@ -287,49 +268,6 @@
             font-size: 0.875rem;
         }
 
-        .section-card {
-            margin-bottom: 0.9rem;
-        }
-
-        .section-accordion-toggle {
-            width: 100%;
-            border: 0;
-            background: transparent;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding: 0;
-            text-align: left;
-        }
-
-        .section-accordion-toggle .section-caret {
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-            transition: transform 0.2s ease;
-        }
-
-        .section-card.is-open .section-accordion-toggle .section-caret {
-            transform: rotate(180deg);
-        }
-
-        .section-panel {
-            display: none;
-            margin-top: 0.75rem;
-        }
-
-        .section-card.is-open .section-panel {
-            display: block;
-        }
-
-        .ai-reason-panel {
-            display: none;
-        }
-
-        .ai-reason-panel.is-open {
-            display: block;
-            margin-top: 0.5rem;
-        }
-
         /* Section headings */
         .h5 {
             font-size: 1rem !important;
@@ -359,24 +297,6 @@
         /* Row gap */
         .row.g-4 {
             --bs-gutter-y: 0.75rem;
-        }
-
-        .job-apply-sticky-mobile .mobile-action-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) auto;
-            gap: 0.5rem;
-        }
-
-        .job-apply-sticky-mobile .btn {
-            min-height: 44px;
-            font-size: 0.9rem;
-            white-space: nowrap;
-        }
-
-        .job-apply-sticky-mobile .btn-share-mobile {
-            min-width: 48px;
-            padding-left: 0.75rem;
-            padding-right: 0.75rem;
         }
     }
 
@@ -416,14 +336,6 @@
         margin-bottom: 1.5rem;
     }
 
-    .section-accordion-toggle .section-caret {
-        display: none;
-    }
-
-    .section-panel {
-        display: block;
-    }
-
     .source-host-badge {
         display: inline-flex;
         align-items: center;
@@ -443,9 +355,6 @@
         .right-panel-sticky {
             position: static;
         }
-    }
-
-    @media (max-width: 767.98px) {
         .job-apply-sticky-mobile {
             position: fixed;
             left: 0;
@@ -462,28 +371,6 @@
             padding-bottom: 74px;
         }
     }
-
-    @media (max-width: 767.98px) {
-        .section-accordion-toggle .section-caret {
-            display: inline-block;
-        }
-    }
-
-    .skeleton-line {
-        border-radius: 999px;
-        background: linear-gradient(90deg, #edf2f7 25%, #f8fafc 50%, #edf2f7 75%);
-        background-size: 200% 100%;
-        animation: skeleton-shimmer 1.2s ease-in-out infinite;
-    }
-
-    .skeleton-line.skeleton-sm { height: 9px; width: 40%; }
-    .skeleton-line.skeleton-md { height: 11px; width: 70%; }
-    .skeleton-line.skeleton-lg { height: 13px; width: 100%; }
-
-    @keyframes skeleton-shimmer {
-        0% { background-position: 200% 0; }
-        100% { background-position: -200% 0; }
-    }
 </style>
 {% endblock %}
 
@@ -497,7 +384,7 @@
                 <p class="mb-0 mb-md-0 mb-2">{{ job.company_name }} • Posted {{ job.posted_date|timesince }} ago</p>
             </div>
             <div class="col-md-4 text-md-end">
-                <button class="btn btn-outline-light fw-medium focus-ring" onclick="shareJob()" aria-label="Share this job">
+                <button class="btn btn-outline-light fw-medium" onclick="shareJob()">
                     <i class="fas fa-share-alt me-2"></i>Share Position
                 </button>
             </div>
@@ -554,15 +441,12 @@
                 </div>
 
                 <!-- Job Description -->
-                <div class="job-description section-card is-open" data-mobile-accordion>
-                    <button type="button" class="section-accordion-toggle focus-ring" data-accordion-toggle aria-expanded="true" aria-controls="section-description">
-                        <h3 class="h5 text-gray-900 fw-bold mb-0">
-                            <i class="fas fa-align-left text-primary me-2"></i>Job Description
-                        </h3>
-                        <i class="fas fa-chevron-down section-caret" aria-hidden="true"></i>
-                    </button>
-
-                    <div id="section-description" class="section-panel description-content text-gray-600">
+                <div class="job-description section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-align-left text-primary me-2"></i>Job Description
+                    </h3>
+                    
+                    <div class="description-content text-gray-600">
                         {% if job.job_description %}
                             {{ job.job_description|linebreaks }}
                         {% else %}
@@ -576,43 +460,34 @@
 
                 {% if job.requirements %}
                 <!-- Job Requirements -->
-                <div class="job-requirements section-card is-open" data-mobile-accordion>
-                    <button type="button" class="section-accordion-toggle focus-ring" data-accordion-toggle aria-expanded="true" aria-controls="section-requirements">
-                        <h3 class="h5 text-gray-900 fw-bold mb-0">
-                            <i class="fas fa-clipboard-list text-primary me-2"></i>Job Requirements
-                        </h3>
-                        <i class="fas fa-chevron-down section-caret" aria-hidden="true"></i>
-                    </button>
-
-                    <div id="section-requirements" class="section-panel description-content text-gray-600">
+                <div class="job-requirements section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-clipboard-list text-primary me-2"></i>Job Requirements
+                    </h3>
+                    
+                    <div class="description-content text-gray-600">
                         {{ job.requirements|linebreaks }}
                     </div>
                 </div>
                 {% endif %}
 
                 {% if job.responsibilities %}
-                <div class="section-card is-open" data-mobile-accordion>
-                    <button type="button" class="section-accordion-toggle focus-ring" data-accordion-toggle aria-expanded="true" aria-controls="section-responsibilities">
-                        <h3 class="h5 text-gray-900 fw-bold mb-0">
-                            <i class="fas fa-list-check text-primary me-2"></i>Responsibilities
-                        </h3>
-                        <i class="fas fa-chevron-down section-caret" aria-hidden="true"></i>
-                    </button>
-                    <div id="section-responsibilities" class="section-panel description-content text-gray-600">
+                <div class="section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-list-check text-primary me-2"></i>Responsibilities
+                    </h3>
+                    <div class="description-content text-gray-600">
                         {{ job.responsibilities|linebreaks }}
                     </div>
                 </div>
                 {% endif %}
 
                 {% if job.benefits %}
-                <div class="section-card is-open" data-mobile-accordion>
-                    <button type="button" class="section-accordion-toggle focus-ring" data-accordion-toggle aria-expanded="true" aria-controls="section-benefits">
-                        <h3 class="h5 text-gray-900 fw-bold mb-0">
-                            <i class="fas fa-gift text-primary me-2"></i>Benefits
-                        </h3>
-                        <i class="fas fa-chevron-down section-caret" aria-hidden="true"></i>
-                    </button>
-                    <div id="section-benefits" class="section-panel description-content text-gray-600">
+                <div class="section-card">
+                    <h3 class="h5 text-gray-900 fw-bold mb-4">
+                        <i class="fas fa-gift text-primary me-2"></i>Benefits
+                    </h3>
+                    <div class="description-content text-gray-600">
                         {{ job.benefits|linebreaks }}
                     </div>
                 </div>
@@ -752,7 +627,6 @@
                         <i class="fas fa-info-circle me-1"></i>{{ ai_match.reason }}
                     </p>
                 {% else %}
-                    {% if ai_match_state == 'ready' %}
                     <!-- Score bar -->
                     <div class="d-flex align-items-center mb-2">
                         <div class="progress flex-grow-1 me-3" style="height: 10px; border-radius: 5px;">
@@ -774,13 +648,7 @@
                         </span>
                     </div>
 
-                    <button type="button" class="btn btn-sm btn-outline-secondary d-md-none mb-2 focus-ring" id="toggleAiReason" aria-expanded="false" aria-controls="aiReasonPanel">
-                        Why this match
-                    </button>
-                    <div id="aiReasonPanel" class="ai-reason-panel">
-                        <p class="text-muted small mb-3 ai-reason-text">{{ ai_match.reason }}</p>
-                    </div>
-                    <p class="text-muted small mb-3 ai-reason-text d-none d-md-block">{{ ai_match.reason }}</p>
+                    <p class="text-muted small mb-3">{{ ai_match.reason }}</p>
 
                     {% if ai_match.strengths %}
                     <div class="mb-2">
@@ -823,16 +691,6 @@
                             <i class="fas fa-user-edit me-1"></i>Improve profile to increase match
                         </a>
                     </div>
-                    {% else %}
-                    <div class="mb-3">
-                        <div class="skeleton-line skeleton-lg mb-2"></div>
-                        <div class="skeleton-line skeleton-md mb-2"></div>
-                        <div class="skeleton-line skeleton-sm mb-3"></div>
-                        <p class="text-muted small mb-0">
-                            <i class="fas fa-robot me-1"></i>AI scoring is in progress. This card will update automatically.
-                        </p>
-                    </div>
-                    {% endif %}
                 {% endif %}
             </div>
             {% endif %}
@@ -864,35 +722,19 @@
 
 {% if not user.is_staff and not user|is_hr_or_admin %}
 <div class="job-apply-sticky-mobile">
-    <div class="mobile-action-grid">
-        {% if job.accepts_internal_applications %}
-            {% if user.is_authenticated and not user_application %}
-            <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary w-100 focus-ring" aria-label="Apply now">
-                <i class="fas fa-paper-plane me-2"></i>Apply Now
-            </a>
-            {% elif user_application %}
-            <button class="btn btn-outline-secondary w-100" disabled aria-label="Already applied">
-                Already Applied
-            </button>
-            {% else %}
-            <a href="{% url 'account_login' %}" class="btn btn-primary w-100 focus-ring" aria-label="Log in to apply">
-                <i class="fas fa-sign-in-alt me-2"></i>Log in to Apply
-            </a>
-            {% endif %}
-        {% elif source_url %}
-            <a href="{{ source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary w-100 focus-ring" aria-label="Apply on external site">
-                <i class="fas fa-external-link-alt me-2"></i>Apply on External Site
-            </a>
+    {% if job.accepts_internal_applications %}
+        {% if user.is_authenticated and not user_application %}
+        <a href="{% url 'jobs:apply_for_job' job.slug %}" class="btn btn-primary w-100"><i class="fas fa-paper-plane me-2"></i>Apply Now</a>
+        {% elif user_application %}
+        <button class="btn btn-outline-secondary w-100" disabled>Already Applied</button>
         {% else %}
-            <button class="btn btn-outline-secondary w-100" disabled aria-label="No direct apply action available">
-                Contact Organization to Apply
-            </button>
+        <a href="{% url 'account_login' %}" class="btn btn-primary w-100"><i class="fas fa-sign-in-alt me-2"></i>Log in to Apply</a>
         {% endif %}
-
-        <button type="button" class="btn btn-outline-primary btn-share-mobile focus-ring" onclick="shareJob()" aria-label="Share this job">
-            <i class="fas fa-share-alt"></i>
-        </button>
-    </div>
+    {% elif source_url %}
+        <a href="{{ source_url }}" target="_blank" rel="noopener noreferrer" class="btn btn-primary w-100">
+            <i class="fas fa-external-link-alt me-2"></i>Apply on {{ source_host|default:"External Site" }}
+        </a>
+    {% endif %}
 </div>
 {% endif %}
 
@@ -1004,43 +846,6 @@ function viewApplication(applicationId) {
 }
 
 document.addEventListener('DOMContentLoaded', function() {
-    const mobileMediaQuery = window.matchMedia('(max-width: 767.98px)');
-
-    function setAccordionState(card, isOpen) {
-        const toggle = card.querySelector('[data-accordion-toggle]');
-        const panel = card.querySelector('.section-panel');
-        if (!toggle || !panel) {
-            return;
-        }
-        card.classList.toggle('is-open', isOpen);
-        toggle.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-        panel.setAttribute('aria-hidden', isOpen ? 'false' : 'true');
-    }
-
-    function syncAccordionsForViewport() {
-        document.querySelectorAll('[data-mobile-accordion]').forEach(card => {
-            setAccordionState(card, !mobileMediaQuery.matches);
-        });
-    }
-
-    document.querySelectorAll('[data-accordion-toggle]').forEach(toggle => {
-        toggle.addEventListener('click', function() {
-            if (!mobileMediaQuery.matches) {
-                return;
-            }
-            const card = this.closest('[data-mobile-accordion]');
-            const isOpen = card.classList.contains('is-open');
-            setAccordionState(card, !isOpen);
-        });
-    });
-
-    if (mobileMediaQuery.addEventListener) {
-        mobileMediaQuery.addEventListener('change', syncAccordionsForViewport);
-    } else if (mobileMediaQuery.addListener) {
-        mobileMediaQuery.addListener(syncAccordionsForViewport);
-    }
-    syncAccordionsForViewport();
-
     // Add event listeners to view application buttons
     document.querySelectorAll('.view-application-btn').forEach(btn => {
         btn.addEventListener('click', function(e) {
@@ -1049,19 +854,6 @@ document.addEventListener('DOMContentLoaded', function() {
             viewApplication(applicationId);
         });
     });
-
-    const toggleAiReason = document.getElementById('toggleAiReason');
-    if (toggleAiReason) {
-        toggleAiReason.addEventListener('click', function() {
-            const panel = document.getElementById('aiReasonPanel');
-            if (!panel) {
-                return;
-            }
-            const isOpen = panel.classList.toggle('is-open');
-            this.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
-            this.textContent = isOpen ? 'Hide match reason' : 'Why this match';
-        });
-    }
 
     const showMoreStrengths = document.getElementById('showMoreStrengths');
     if (showMoreStrengths) {
