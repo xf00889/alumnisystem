@@ -1726,6 +1726,14 @@ function applyAISort(sortedJobs) {
     const container = document.querySelector('.job-list');
     if (!container) return;
 
+    // Escape AI text before injecting into innerHTML to prevent script/HTML injection.
+    const escapeHtml = (value) => String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+
     const scoreMap = {};
     sortedJobs.forEach(j => { scoreMap[j.id] = j; });
 
@@ -1750,6 +1758,7 @@ function applyAISort(sortedJobs) {
 
         const color = job.score >= 70 ? '#198754' : job.score >= 40 ? '#fd7e14' : '#dc3545';
         const label = job.score >= 70 ? 'Great Match' : job.score >= 40 ? 'Moderate Match' : 'Low Match';
+        const safeReason = job.reason ? escapeHtml(job.reason) : '';
 
         badge.innerHTML = `
             <div class="ai-match-inline mt-2">
@@ -1761,7 +1770,7 @@ function applyAISort(sortedJobs) {
                         <i class="fas fa-robot me-1"></i>${job.score}% &mdash; ${label}
                     </span>
                 </div>
-                ${job.reason ? `<p class="mb-0 mt-1" style="font-size:0.7rem; color:#6c757d;">${job.reason}</p>` : ''}
+                ${safeReason ? `<p class="mb-0 mt-1" style="font-size:0.7rem; color:#6c757d;">${safeReason}</p>` : ''}
             </div>
         `;
     });
