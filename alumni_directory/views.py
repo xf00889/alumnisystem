@@ -837,6 +837,11 @@ def alumni_management(request):
                 try:
                     # Read CSV file
                     decoded_file = csv_file.read().decode('utf-8')
+                    # Decode with UTF-8-sig to handle BOM character from Excel-exported CSVs
+                    try:
+                        decoded_file = csv_file.read().decode('utf-8-sig')
+                    except UnicodeDecodeError:
+                        decoded_file = csv_file.read().decode('latin-1')
                     csv_data = csv.DictReader(decoded_file.splitlines())
                     
                     imported_count = 0
@@ -845,81 +850,163 @@ def alumni_management(request):
                     error_details = []
                     
                     for row in csv_data:
-                        # Extract data from CSV row
-                        full_name = row.get('Full Name', '').strip()
-                        graduation_year = row.get('Year', '').strip()
-                        course = row.get('Course', '').strip()
-                        occupation = row.get('Present Occupation', '').strip()
-                        company = row.get('Name of Company', '').strip()
-                        address = row.get('Employment Address', '').strip()
-                        
-                        if full_name and graduation_year:
-                            # Split full name into first and last name
+                        # Support both old column names and coordinator CSV format
+                        # Coordinator CSV: FullName, Year-1, Course Grad, Rec #, Mobile No, Email Address
+                        # Old format: Full Name, Year, Course, Present Occupation, Name of Company, Employment Address
+
+                        full_name = (
+                            row.get('FullName') or
+                            row.get('Full Name') or
+                            row.get('full_name') or ''
+                        ).strip()
+
+                        graduation_year = (
+                            row.get('Year-1') or
+                            row.get('Year') or
+                            row.get('graduation_year') or ''
+                        ).strip()
+
+                        course = (
+                            row.get('Course Grad') or
+                            row.get('Course') or
+                            row.get('course') or ''
+                        ).strip()
+
+                        occupation = (
+                            row.get('Present Occupation') or
+                            row.get('occupation') or ''
+                        ).strip()
+
+                        company = (
+                            row.get('Name of Company') or
+                            row.get('company') or ''
+                        ).strip()
+
+                        address = (
+                            row.get('Employment Address') or
+                            row.get('address') or ''
+                        ).strip()
+
+                        # Coordinator CSV extras
+                        rec_number = (row.get('Rec #') or row.get('Rec#') or '').strip()
+                        mobile = (row.get('Mobile No') or row.get('Mobile') or '').strip()
+                        email_from_csv = (row.get('Email Address') or row.get('Email') or '').strip()
+
+                        # Skip empty rows and summary rows (e.g. "TOTAL" row)
+                        if not full_name or not graduation_year:
+                            continue
+                        try:
+                            int(graduation_year)
+                        except ValueError:
+                            continue  # Skip non-numeric year rows
+
+                        # Parse name — handle both formats:
+                        # Coordinator format: "Last, First M." → reversed, comma-separated
+                        # Standard format: "First Last"
+                        if ',' in full_name:
+                            # Coordinator format: "Aungon, Airies M."
+                            parts = full_name.split(',', 1)
+                            last_name = parts[0].strip()
+                            first_name = parts[1].strip() if len(parts) > 1 else ''
+                            # Remove middle initial if present (e.g. "Airies M." → "Airies")
+                            first_name_parts = first_name.split()
+                            first_name = first_name_parts[0] if first_name_parts else first_name
+                        else:
+                            # Standard format: "First Last"
                             name_parts = full_name.split(' ', 1)
                             first_name = name_parts[0]
                             last_name = name_parts[1] if len(name_parts) > 1 else ''
-                            
-                            # Try to find existing alumni by name and graduation year
+
+                        # Try to find existing alumni by name and graduation year
+                        try:
+                            alumni = Alumni.objects.get(
+                                user__first_name__iexact=first_name,
+                                user__last_name__iexact=last_name,
+                                graduation_year=graduation_year
+                            )
+                            # Update existing alumni
+                            alumni.course = course
+                            alumni.job_title = occupation
+                            alumni.current_company = company
+                            if address:
+                                address_parts = address.split(', ')
+                                if len(address_parts) >= 2:
+                                    alumni.city = address_parts[0]
+                                    alumni.province = address_parts[1]
+                            alumni.save()
+                            updated_count += 1
+                        except Alumni.DoesNotExist:
+                            # Create new user and alumni
                             try:
-                                alumni = Alumni.objects.get(
-                                    user__first_name__iexact=first_name,
-                                    user__last_name__iexact=last_name,
-                                    graduation_year=graduation_year
+                                # Use email from CSV if available, otherwise generate one
+                                if email_from_csv:
+                                    email = email_from_csv
+                                    username = email_from_csv.split('@')[0]
+                                else:
+                                    username = f"{first_name.lower()}.{last_name.lower()}.{graduation_year}"
+                                    email = f"{username}@norsu.alumni.placeholder"
+
+                                # Ensure username uniqueness
+                                base_username = username
+                                counter = 1
+                                while User.objects.filter(username=username).exists():
+                                    username = f"{base_username}{counter}"
+                                    counter += 1
+
+                                user = User.objects.create_user(
+                                    username=username,
+                                    first_name=first_name,
+                                    last_name=last_name,
+                                    email=email,
+                                    is_active=False  # Inactive until they register
                                 )
-                                # Update existing alumni
-                                alumni.course = course
-                                alumni.job_title = occupation
-                                alumni.current_company = company
+
+                                alumni = Alumni.objects.create(
+                                    user=user,
+                                    graduation_year=graduation_year,
+                                    course=course,
+                                    job_title=occupation,
+                                    current_company=company,
+                                    college='',
+                                    campus='BSC',  # Default for coordinator CSV
+                                    gender='O',
+                                    province='',
+                                    city='',
+                                    address='',
+                                )
+
                                 if address:
                                     address_parts = address.split(', ')
                                     if len(address_parts) >= 2:
                                         alumni.city = address_parts[0]
                                         alumni.province = address_parts[1]
-                                alumni.save()
-                                updated_count += 1
-                            except Alumni.DoesNotExist:
-                                # Create new user and alumni
-                                try:
-                                    user = User.objects.create_user(
-                                        username=f"{first_name.lower()}.{last_name.lower()}.{graduation_year}",
-                                        first_name=first_name,
-                                        last_name=last_name,
-                                        email=f"{first_name.lower()}.{last_name.lower()}@example.com"
-                                    )
-                                    
-                                    alumni = Alumni.objects.create(
-                                        user=user,
-                                        graduation_year=graduation_year,
-                                        course=course,
-                                        job_title=occupation,
-                                        current_company=company
-                                    )
-                                    
-                                    if address:
-                                        address_parts = address.split(', ')
-                                        if len(address_parts) >= 2:
-                                            alumni.city = address_parts[0]
-                                            alumni.province = address_parts[1]
-                                            alumni.save()
-                                    
-                                    imported_count += 1
-                                except IntegrityError as ie:
-                                    # Handle database constraint violation (duplicate email/username)
-                                    error_count += 1
-                                    error_details.append({
-                                        'row': full_name,
-                                        'error': 'Unable to create account. A user with this email or username already exists.'
-                                    })
-                                    logger.error(
-                                        f"Database constraint violation during CSV import: {full_name}",
-                                        extra={
-                                            'row_data': full_name,
-                                            'error_type': 'IntegrityError',
-                                            'error_message': str(ie),
-                                            'file_name': file_name,
-                                            'action': 'csv_import_integrity_error'
-                                        }
-                                    )
+                                        alumni.save()
+
+                                if mobile:
+                                    try:
+                                        user.profile.phone_number = mobile
+                                        user.profile.save()
+                                    except Exception:
+                                        pass
+
+                                imported_count += 1
+                            except IntegrityError as ie:
+                                # Handle database constraint violation (duplicate email/username)
+                                error_count += 1
+                                error_details.append({
+                                    'row': full_name,
+                                    'error': 'Unable to create account. A user with this email or username already exists.'
+                                })
+                                logger.error(
+                                    f"Database constraint violation during CSV import: {full_name}",
+                                    extra={
+                                        'row_data': full_name,
+                                        'error_type': 'IntegrityError',
+                                        'error_message': str(ie),
+                                        'file_name': file_name,
+                                        'action': 'csv_import_integrity_error'
+                                    }
+                                )
                             except Exception as row_error:
                                 error_count += 1
                                 error_details.append({
