@@ -124,12 +124,12 @@ def is_ai_enabled():
     return bool(config and config.enabled and config.api_key)
 
 
-def get_gemini_client():
+def get_gemini_client(config_override=None):
     """
     Return an initialized Gemini Client using the DB config (new google-genai SDK).
     Returns (client, model_name) tuple, or (None, None) if unavailable.
     """
-    config = get_ai_config()
+    config = config_override or get_ai_config()
     if not config or config.provider != 'gemini':
         return None, None
     try:

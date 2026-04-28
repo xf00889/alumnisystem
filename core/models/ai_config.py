@@ -114,7 +114,7 @@ class AIConfig(models.Model):
         """Test Google Gemini API key using the new google-genai SDK."""
         try:
             from core.ai_config_utils import get_gemini_client
-            client, model_name = get_gemini_client()
+            client, model_name = get_gemini_client(config_override=self)
             if not client:
                 raise ValueError("Could not initialize Gemini client.")
             model_to_use = self.model_name or model_name
