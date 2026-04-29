@@ -1099,7 +1099,10 @@ def alumni_management(request):
         # Campus filter
         campus = request.GET.get('campus', '').strip()
         if campus:
-            queryset = queryset.filter(campus=campus)
+            if campus == 'BAIS':
+                queryset = queryset.filter(campus__in=['BAIS1', 'BAIS2'])
+            else:
+                queryset = queryset.filter(campus=campus)
         
         # Graduation Year filter
         grad_year = [y for y in request.GET.getlist('graduation_year') if y]
@@ -1434,26 +1437,36 @@ def alumni_management(request):
         graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
         courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
         
-        # Get all available programs from the system
-        # Import the program mapping from accounts.forms
+        # Build a flat code→name lookup from PostRegistrationForm
         from accounts.forms import PostRegistrationForm
-        
-        # Collect all unique programs from COURSES_BY_COLLEGE
-        all_programs_dict = {}
+        program_name_map = {}
         for college_code, programs in PostRegistrationForm.COURSES_BY_COLLEGE.items():
             for program_code, program_name in programs:
-                if program_code not in all_programs_dict:
-                    all_programs_dict[program_code] = program_name
-        
-        # Sort programs by name for better UX
-        all_programs = sorted(all_programs_dict.items(), key=lambda x: x[1])
-        
+                program_name_map[program_code] = program_name
+
+        # Build the dropdown list from actual DB values, showing full name where possible
+        all_programs = []
+        for raw_course in sorted(set(c for c in courses if c)):
+            display_name = program_name_map.get(raw_course, raw_course)
+            all_programs.append((raw_course, display_name))
+
+        # Build deduplicated campus list — merge BAIS1 & BAIS2 into one "Bais" entry
+        seen_bais = False
+        dropdown_campuses = []
+        for code, name in Alumni.CAMPUS_CHOICES:
+            if code in ('BAIS1', 'BAIS2'):
+                if not seen_bais:
+                    dropdown_campuses.append(('BAIS', 'NORSU - Bais'))
+                    seen_bais = True
+            else:
+                dropdown_campuses.append((code, name))
+
         context = {
             'alumni_list': alumni_page,
             'graduation_years': graduation_years,
             'all_programs': all_programs,  # All available programs in the system
             'colleges': Alumni.COLLEGE_CHOICES,
-            'campuses': Alumni.CAMPUS_CHOICES,  # Add campuses for export filter
+            'campuses': dropdown_campuses,  # Deduplicated campus list
             'courses': courses,  # Add courses for filter dropdown
             'search_query': search_query,
             'selected_campus': campus,

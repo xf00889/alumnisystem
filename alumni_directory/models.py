@@ -24,7 +24,7 @@ class Alumni(models.Model):
 
     COLLEGE_CHOICES = (
         ('CAS', 'College of Arts and Sciences'),
-        ('CBA', 'College of Business'),
+        ('CBA', 'College of Business Administration'),
         ('CAFF', 'College of Agriculture, Forestry and Fisheries'),
         ('CCJE', 'College of Criminal Justice Education'),
         ('CEA', 'College of Engineering'),
