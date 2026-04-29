@@ -1,8 +1,8 @@
 {% if page_obj.paginator.num_pages > 1 %}
 <nav aria-label="Page navigation" class="mt-4">
-    <ul class="pagination justify-content-center">
+    <ul class="pagination justify-content-center flex-wrap" style="gap: 2px;">
         {% if page_obj.has_previous %}
-            <li class="page-item">
+            <li class="page-item d-none d-sm-inline-flex">
                 <a class="page-link" href="?page=1{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" aria-label="First">
                     <span aria-hidden="true">&laquo;&laquo;</span>
                 </a>
@@ -13,7 +13,7 @@
                 </a>
             </li>
         {% else %}
-            <li class="page-item disabled">
+            <li class="page-item disabled d-none d-sm-inline-flex">
                 <span class="page-link">&laquo;&laquo;</span>
             </li>
             <li class="page-item disabled">
@@ -26,7 +26,7 @@
                 <li class="page-item active">
                     <span class="page-link">{{ num }}</span>
                 </li>
-            {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+            {% elif num > page_obj.number|add:'-2' and num < page_obj.number|add:'2' %}
                 <li class="page-item">
                     <a class="page-link" href="?page={{ num }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}">{{ num }}</a>
                 </li>
@@ -39,7 +39,7 @@
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
-            <li class="page-item">
+            <li class="page-item d-none d-sm-inline-flex">
                 <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.q %}&q={{ request.GET.q }}{% endif %}" aria-label="Last">
                     <span aria-hidden="true">&raquo;&raquo;</span>
                 </a>
@@ -48,7 +48,7 @@
             <li class="page-item disabled">
                 <span class="page-link">&raquo;</span>
             </li>
-            <li class="page-item disabled">
+            <li class="page-item disabled d-none d-sm-inline-flex">
                 <span class="page-link">&raquo;&raquo;</span>
             </li>
         {% endif %}
@@ -56,6 +56,6 @@
 </nav>
 
 <div class="text-center text-muted small mt-2">
-    Showing {{ page_obj.start_index }} to {{ page_obj.end_index }} of {{ page_obj.paginator.count }} entries
+    Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }} &mdash; {{ page_obj.paginator.count }} entries
 </div>
-{% endif %} 
+{% endif %}
