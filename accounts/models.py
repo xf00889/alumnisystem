@@ -199,7 +199,7 @@ class Profile(models.Model):
 
 class Education(models.Model):
     PROGRAM_CHOICES = [
-        ('BSIT', 'Bachelor of Science in Information Technology'),
+        ('BSINT', 'Bachelor of Science in Information Technology'),
         ('BSCS', 'Bachelor of Science in Computer Science'),
         ('BSIS', 'Bachelor of Science in Information Systems'),
         ('BSA', 'Bachelor of Science in Accountancy'),
@@ -208,6 +208,7 @@ class Education(models.Model):
         ('BSED', 'Bachelor of Secondary Education'),
         ('BSN', 'Bachelor of Science in Nursing'),
         ('BSCRIM', 'Bachelor of Science in Criminology'),
+        ('BSIT', 'Bachelor of Science in Industrial Technology'),
         ('BSHRM', 'Bachelor of Science in Hotel and Restaurant Management'),
         ('BSTM', 'Bachelor of Science in Tourism Management'),
         ('BSE', 'Bachelor of Science in Engineering'),

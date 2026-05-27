@@ -12,7 +12,7 @@ const programsByCampus = {
             ['BSF', 'Bachelor of Science in Forestry']
         ],
         'CAS': [
-            ['BSIT', 'Bachelor of Science in Information Technology'],
+            ['BSINT', 'Bachelor of Science in Information Technology'],
             ['BSCS', 'Bachelor of Science in Computer Science']
         ],
         'CBA': [
@@ -24,7 +24,7 @@ const programsByCampus = {
             ['BSCRIM', 'Bachelor of Science in Criminology']
         ],
         'CIT': [
-            ['BIT', 'Bachelor of Science in Industrial Technology']
+            ['BSIT', 'Bachelor of Science in Industrial Technology']
         ],
         'CTE': [
             ['BEED', 'Bachelor of Elementary Education'],
@@ -46,7 +46,7 @@ const coursesByCollege = {
         ['BSCHEM', 'BS in Chemistry'],
         ['BSCS', 'BS in Computer Science'],
         ['BSGEO', 'BS in Geology'],
-        ['BSIT', 'BS in Information Technology'],
+        ['BSINT', 'BS in Information Technology'],
         ['BMC', 'Bachelor of Mass Communication'],
         ['BSM', 'BS in Mathematics'],
         ['BSP', 'BS in Psychology']
@@ -92,14 +92,13 @@ const coursesByCollege = {
         ['BSCRIM', 'BS in Criminology']
     ],
     'CIT': [
-        ['BIT', 'BS in Industrial Technology'],
+        ['BSIT', 'BS in Industrial Technology'],
         ['BSAT', 'BS in Automotive Technology'],
         ['BSAM', 'BS in Aviation Maintenance'],
         ['BSCT', 'BS in Civil Technology'],
         ['BSCET', 'BS in Computer and Electronics Technology'],
         ['BSET', 'BS in Electrical Technology'],
         ['BSFT', 'BS in Food Technology'],
-        ['BSIT-INDTECH', 'BS in Industrial Technology'],
         ['BSMT', 'BS in Mechanical Technology'],
         ['BSRACT', 'BS in Refrigeration and Air-Conditioning Technology']
     ],
@@ -134,7 +133,7 @@ const majorsByProgram = {
         ['MAPE', 'Major in Music, Arts and Physical Education'],
         ['THE', 'Major in Technology and Home Economics']
     ],
-    'BIT': [
+    'BSIT': [
         ['AUTOMOTIVE', 'Major in Automotive Technology'],
         ['COMPUTER', 'Major in Computer Technology'],
         ['ELECTRICAL', 'Major in Electrical Technology'],
@@ -162,14 +161,14 @@ const majorsByCampusProgram = {
         'BEED': [
             ['GENERAL_CURRICULUM', 'Major in General Curriculum']
         ],
-        'BIT': [
+        'BSIT': [
             ['AUTOMOTIVE', 'Major in Automotive Technology'],
             ['COMPUTER', 'Major in Computer Technology'],
             ['ELECTRICAL', 'Major in Electrical Technology'],
             ['ELECTRONICS', 'Major in Electronics Technology']
         ],
         'BSCS': [],
-        'BSIT': [],
+        'BSINT': [],
         'BSCRIM': [],
         'BSOA': [],
         'BSHM': [],

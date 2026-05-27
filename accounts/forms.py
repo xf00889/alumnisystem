@@ -346,7 +346,7 @@ class PostRegistrationForm(forms.Form):
             ('BSCHEM', 'BS in Chemistry'),
             ('BSCS', 'BS in Computer Science'),
             ('BSGEO', 'BS in Geology'),
-            ('BSIT', 'BS in Information Technology'),
+            ('BSINT', 'BS in Information Technology'),
             ('BMC', 'Bachelor of Mass Communication'),
             ('BSM', 'BS in Mathematics'),
             ('BSP', 'BS in Psychology'),
@@ -390,14 +390,13 @@ class PostRegistrationForm(forms.Form):
             ('BSCRIM', 'BS in Criminology'),
         ],
         'CIT': [  # College of Industrial Technology
-            ('BIT', 'Bachelor of Science in Industrial Technology'),
+            ('BSIT', 'BS in Industrial Technology'),
             ('BSAT', 'BS in Automotive Technology'),
             ('BSAM', 'BS in Aviation Maintenance'),
             ('BSCT', 'BS in Civil Technology'),
             ('BSCET', 'BS in Computer and Electronics Technology'),
             ('BSET', 'BS in Electrical Technology'),
             ('BSFT', 'BS in Food Technology'),
-            ('BSIT-INDTECH', 'BS in Industrial Technology'),
             ('BSMT', 'BS in Mechanical Technology'),
             ('BSRACT', 'BS in Refrigeration and Air-Conditioning Technology'),
         ],
@@ -443,8 +442,8 @@ class PostRegistrationForm(forms.Form):
         ],
         'BEED-GC': [('GENERAL_EDUCATION', 'Major in General Education')],
         
-        # Bachelor of Industrial Technology
-        'BIT': [
+        # Bachelor of Science in Industrial Technology
+        'BSIT': [
             ('AUTOMOTIVE', 'Major in Automotive Technology'),
             ('COMPUTER', 'Major in Computer Technology'),
             ('ELECTRICAL', 'Major in Electrical Technology'),
@@ -453,11 +452,10 @@ class PostRegistrationForm(forms.Form):
             ('FOOD_PROCESSING', 'Major in Food Processing Technology'),
             ('WELDING', 'Major in Welding and Fabrication Technology'),
         ],
-        'BIT-AT': [('AUTOMOTIVE', 'Major in Automotive Technology')],
-        'BIT-CT': [('COMPUTER', 'Major in Computer Technology')],
-        'BIT-ELT': [('ELECTRICAL', 'Major in Electrical Technology')],
-        'BIT-ELXT': [('ELECTRONICS', 'Major in Electronics Technology')],
         'BSIT-AT': [('AUTOMOTIVE', 'Major in Automotive Technology')],
+        'BSIT-CT': [('COMPUTER', 'Major in Computer Technology')],
+        'BSIT-ELT': [('ELECTRICAL', 'Major in Electrical Technology')],
+        'BSIT-ELXT': [('ELECTRONICS', 'Major in Electronics Technology')],
         'BSIT-ET': [('ELECTRONICS', 'Major in Electronics Technology')],
         'BSIT-FPSM': [('FOOD_PROCESSING', 'Major in Food Processing and Service Management')],
         
