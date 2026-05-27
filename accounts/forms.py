@@ -402,8 +402,8 @@ class PostRegistrationForm(forms.Form):
             ('BSRACT', 'BS in Refrigeration and Air-Conditioning Technology'),
         ],
         'CTE': [  # College of Education (formerly College of Teacher Education)
-            ('BSED', 'BS in Elementary Education'),
-            ('BEED', 'BS in Secondary Education'),
+            ('BSED', 'BS in Secondary Education'),
+            ('BEED', 'BS in Elementary Education'),
         ],
         'COL': [  # College of Law
             ('LLB', 'Bachelor of Law'),

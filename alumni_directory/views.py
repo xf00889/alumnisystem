@@ -198,6 +198,18 @@ def alumni_list(request):
         graduation_years = Alumni.objects.values_list('graduation_year', flat=True).distinct().order_by('-graduation_year')
         courses = Alumni.objects.values_list('course', flat=True).distinct().order_by('course')
         provinces = Alumni.objects.values_list('province', flat=True).distinct().order_by('province')
+
+        # Build code→display name lookup for the program filter
+        from accounts.forms import PostRegistrationForm
+        program_name_map = {}
+        for college_code, programs in PostRegistrationForm.COURSES_BY_COLLEGE.items():
+            for program_code, program_name in programs:
+                program_name_map[program_code] = program_name
+
+        all_programs = []
+        for raw_course in sorted(set(c for c in courses if c)):
+            display_name = program_name_map.get(raw_course, raw_course)
+            all_programs.append((raw_course, display_name))
         
         # Get counts for statistics
         graduation_years_count = graduation_years.count()
@@ -284,6 +296,7 @@ def alumni_list(request):
             'alumni_list': queryset,  # The decorator will paginate this
             'graduation_years': graduation_years,
             'courses': courses,
+            'all_programs': all_programs,
             'provinces': provinces,
             'colleges': Alumni.COLLEGE_CHOICES,
             'campuses': Alumni.CAMPUS_CHOICES,
