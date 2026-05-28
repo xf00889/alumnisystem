@@ -329,7 +329,7 @@
     }
 
     .college-options, .course-options, .year-options,
-    .employment-options, .verification-options {
+    .employment-options {
         max-height: 180px;
         overflow-y: auto;
         padding-right: 0.5rem;
@@ -927,28 +927,6 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
                                     </div>
                                 </div>
 
-                                <!-- Verification Status -->
-                                <div class="mb-3">
-                                    <label class="form-label small fw-bold">Verification Status</label>
-                                    <div class="form-check">
-                                        <input class="form-check-input" type="checkbox" id="selectAllVerification" checked>
-                                        <label class="form-check-label fw-bold" for="selectAllVerification">
-                                            All Verification Status
-                                        </label>
-                                    </div>
-                                    <div class="verification-options">
-                                        <div class="form-check">
-                                            <input class="form-check-input verification-checkbox" type="checkbox"
-                                                   id="verified_yes" name="verification_status" value="true" checked>
-                                            <label class="form-check-label" for="verified_yes">Verified Alumni</label>
-                                        </div>
-                                        <div class="form-check">
-                                            <input class="form-check-input verification-checkbox" type="checkbox"
-                                                   id="verified_no" name="verification_status" value="false" checked>
-                                            <label class="form-check-label" for="verified_no">Unverified Alumni</label>
-                                        </div>
-                                    </div>
-                                </div>
                             </div>
                         </div>
                     </div>
@@ -1272,8 +1250,6 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
         const selectAllEmployment = document.getElementById('selectAllEmployment');
         const employmentCheckboxes = document.querySelectorAll('.employment-checkbox');
 
-        const selectAllVerification = document.getElementById('selectAllVerification');
-        const verificationCheckboxes = document.querySelectorAll('.verification-checkbox');
 
         // Handle Select All Campuses
         selectAllCampuses.addEventListener('change', function() {
@@ -1397,25 +1373,6 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
             });
         });
 
-        // Handle Select All Verification Status
-        selectAllVerification.addEventListener('change', function() {
-            verificationCheckboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-            });
-            updateExportSummary();
-        });
-
-        // Handle individual verification checkboxes
-        verificationCheckboxes.forEach(checkbox => {
-            checkbox.addEventListener('change', function() {
-                const allChecked = Array.from(verificationCheckboxes).every(cb => cb.checked);
-                const noneChecked = Array.from(verificationCheckboxes).every(cb => !cb.checked);
-
-                selectAllVerification.checked = allChecked;
-                selectAllVerification.indeterminate = !allChecked && !noneChecked;
-                updateExportSummary();
-            });
-        });
 
         // Update export summary
         function updateExportSummary() {
@@ -1426,7 +1383,6 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
             const yearFrom = document.getElementById('yearFrom').value;
             const yearTo = document.getElementById('yearTo').value;
             const selectedEmployment = Array.from(employmentCheckboxes).filter(cb => cb.checked).length;
-            const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).length;
 
             let summaryParts = [];
 
@@ -1466,9 +1422,6 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
                 summaryParts.push(`${selectedEmployment} employment status${selectedEmployment > 1 ? 'es' : ''}`);
             }
 
-            if (selectedVerification < verificationCheckboxes.length && selectedVerification > 0) {
-                summaryParts.push(`${selectedVerification} verification status${selectedVerification > 1 ? 'es' : ''}`);
-            }
 
             if (summaryParts.length === 0) {
                 exportSummary.textContent = 'No criteria selected. Please select at least one option.';
@@ -1532,12 +1485,6 @@ document.getElementById('importForm').addEventListener('submit', function(e) {
                     selectedEmployment.forEach(status => params.append('export_employment_status', status));
                 }
 
-                // Add selected verification status
-                const selectedVerification = Array.from(verificationCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
-                // Only send if not all are selected
-                if (selectedVerification.length > 0 && selectedVerification.length < verificationCheckboxes.length) {
-                    selectedVerification.forEach(status => params.append('export_verification_status', status));
-                }
 
                 // Hide modal before redirecting if it exists and is visible
                 if (exportModalInstance) {

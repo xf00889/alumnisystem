@@ -110,23 +110,6 @@ def apply_selective_export_filters(request, base_queryset=None):
         else:
             logger.info(f"All employment statuses selected, skipping employment filter")
 
-    export_verification_status = [v for v in request.GET.getlist('export_verification_status') if v]
-    if export_verification_status:
-        # Only filter if not both true and false are selected (which means "all")
-        if len(export_verification_status) < 2:
-            # Convert string values to boolean
-            verification_filters = []
-            for status in export_verification_status:
-                if status.lower() == 'true':
-                    verification_filters.append(True)
-                elif status.lower() == 'false':
-                    verification_filters.append(False)
-            if verification_filters:
-                export_queryset = export_queryset.filter(is_verified__in=verification_filters)
-                logger.info(f"After verification filter: {export_queryset.count()}")
-        else:
-            logger.info(f"Both verification statuses selected, skipping verification filter")
-
     logger.info(f"Final queryset count: {export_queryset.count()}")
 
     # Generate dynamic filename
@@ -161,7 +144,7 @@ def apply_selective_export_filters(request, base_queryset=None):
 
     # Check if any selective filters were applied
     has_selective_filters = any([export_campuses, export_colleges, export_courses, export_years, year_from, year_to,
-                                export_employment_status, export_verification_status])
+                                export_employment_status])
 
     return export_queryset, filename, has_selective_filters
 

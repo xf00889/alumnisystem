@@ -979,13 +979,11 @@ class ModelExporter:
         return {
             'field_names': [
                 'id', 'user__username', 'user__email', 'user__first_name', 'user__last_name',
-                'college', 'graduation_year', 'course', 'current_company', 'job_title', 'is_verified',
-                'created_at', 'updated_at'
+                'college', 'graduation_year', 'course', 'current_company', 'job_title'
             ],
             'field_labels': [
                 'ID', 'Username', 'Email', 'First Name', 'Last Name',
-                'College', 'Graduation Year', 'Course', 'Current Company', 'Job Title', 'Verified',
-                'Created At', 'Updated At'
+                'College', 'Graduation Year', 'Course', 'Current Company', 'Job Title'
             ],
             'sheet_name': 'Alumni Data'
         }
