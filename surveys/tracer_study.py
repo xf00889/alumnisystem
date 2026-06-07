@@ -74,6 +74,19 @@ _CAMPUS_VALUE_KEY = {
     "PAM": "pamplona", "MAB": "mabinay",
 }
 
+# Profile.education.school choices -> questionnaire value_keys for p2_campus.
+# Used as a secondary source when Alumni.campus is blank.
+_EDUCATION_CAMPUS_VALUE_KEY = {
+    "NORSU-MAIN": "main1",
+    "NORSU-G": "guihulngan",
+    "NORSU-BC": "bais",     # Bais City — Bais Campuses
+    "NORSU-BSC": "bayawan",
+    "NORSU-MB": "mabinay",
+    "NORSU-SC": "siaton",
+    "NORSU-PC": "pamplona",
+    # "OTHER" / blank / null: no match
+}
+
 # Alumni.employment_status -> p3_employed value_key
 _EMPLOYED_VALUE_KEY = {
     "EMPLOYED_FULL": "yes", "EMPLOYED_PART": "yes",
@@ -89,6 +102,24 @@ def _compute_age(birth_date):
     return today.year - birth_date.year - (
         (today.month, today.day) < (birth_date.month, birth_date.day)
     )
+
+
+def _campus_from_education(profile):
+    """Pick a campus value_key from the most recent / primary Education row.
+
+    Returns None if profile is missing or has no education rows with a
+    mappable school code.
+    """
+    if profile is None:
+        return None
+    edu_qs = profile.education.exclude(school__isnull=True).exclude(school="")
+    # Prefer the primary record; otherwise the most recent graduation year.
+    primary = edu_qs.filter(is_primary=True).first()
+    if primary is None:
+        primary = edu_qs.order_by("-graduation_year", "-id").first()
+    if primary is None:
+        return None
+    return _EDUCATION_CAMPUS_VALUE_KEY.get(primary.school)
 
 
 def _alumni_prefill_source(alumni):
@@ -115,6 +146,9 @@ def _alumni_prefill_source(alumni):
     if course and alumni.major:
         course = f"{course} - {alumni.major}"
 
+    # Campus: prefer Alumni.campus, fall back to Profile.education.school.
+    campus = _CAMPUS_VALUE_KEY.get(alumni.campus) or _campus_from_education(profile)
+
     return {
         "p1_name": (user.get_full_name() or user.username) or None,
         "p1_address": address,
@@ -124,7 +158,7 @@ def _alumni_prefill_source(alumni):
         "p1_gender": _GENDER_VALUE_KEY.get(alumni.gender),
         "p2_course": course,
         "p2_year": str(alumni.graduation_year) if alumni.graduation_year else None,
-        "p2_campus": _CAMPUS_VALUE_KEY.get(alumni.campus),
+        "p2_campus": campus,
         "p3_employed": _EMPLOYED_VALUE_KEY.get(alumni.employment_status),
         "p3_position": alumni.job_title or None,
         "p3_company": alumni.current_company or None,
