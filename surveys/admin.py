@@ -1,7 +1,8 @@
 from django.contrib import admin
 from .models import (
     Survey, SurveyQuestion, QuestionOption, SurveyResponse, ResponseAnswer,
-    EmploymentRecord, Achievement, Report
+    EmploymentRecord, Achievement, Report, Employer, EmployerResponse,
+    EmployerResponseAnswer
 )
 
 class QuestionOptionInline(admin.TabularInline):
@@ -71,3 +72,36 @@ class ReportAdmin(admin.ModelAdmin):
     list_filter = ('report_type', 'created_at', 'last_run')
     search_fields = ('title', 'description')
     date_hierarchy = 'created_at'
+
+
+@admin.register(Employer)
+class EmployerAdmin(admin.ModelAdmin):
+    list_display = ('company_name', 'position', 'place_of_company', 'contact_email', 'created_at')
+    list_filter = ('place_of_company',)
+    search_fields = ('company_name', 'position', 'contact_email')
+    date_hierarchy = 'created_at'
+
+
+@admin.register(EmployerResponse)
+class EmployerResponseAdmin(admin.ModelAdmin):
+    list_display = ('survey', 'employer', 'submitted_at')
+    list_filter = ('submitted_at', 'survey')
+    search_fields = ('employer__company_name', 'survey__title')
+    date_hierarchy = 'submitted_at'
+
+
+@admin.register(EmployerResponseAnswer)
+class EmployerResponseAnswerAdmin(admin.ModelAdmin):
+    list_display = ('response', 'question', 'get_answer')
+    list_filter = ('question__question_type',)
+    search_fields = ('question__question_text', 'text_answer')
+
+    def get_answer(self, obj):
+        if obj.selected_option:
+            return obj.selected_option.option_text
+        elif obj.text_answer:
+            return obj.text_answer[:50]
+        elif obj.rating_value is not None:
+            return f"Rating: {obj.rating_value}"
+        return "No answer"
+    get_answer.short_description = "Answer"

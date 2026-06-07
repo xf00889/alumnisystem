@@ -957,25 +957,39 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
                         try:
                             option = QuestionOption.objects.get(id=option_id)
                             answer_data['selected_option'] = option
+                            if option.allow_custom:
+                                custom_text = request.POST.get(
+                                    f'question_{question.id}_other', ''
+                                ).strip()
+                                if custom_text:
+                                    answer_data['custom_text'] = custom_text
                             logger.debug(f"Selected option for Q{question.id}: {option.option_text}")
                         except QuestionOption.DoesNotExist:
                             logger.error(f"Option {option_id} not found for Q{question.id}")
-                        
+
                 elif question.question_type == 'checkbox':
                     # Handle multiple selections
                     selected_options = []
                     for option in question.options.all():
                         if request.POST.get(f'question_{question.id}_{option.id}'):
                             selected_options.append(option)
-                    
+
                     logger.debug(f"Checkbox selections for Q{question.id}: {len(selected_options)} options")
-                    
+
                     # For checkbox, create multiple answers
                     for option in selected_options:
+                        custom_kwargs = {}
+                        if option.allow_custom:
+                            custom_text = request.POST.get(
+                                f'question_{question.id}_other_{option.id}', ''
+                            ).strip()
+                            if custom_text:
+                                custom_kwargs['custom_text'] = custom_text
                         ResponseAnswer.objects.create(
                             response=response,
                             question=question,
-                            selected_option=option
+                            selected_option=option,
+                            **custom_kwargs,
                         )
                         answer_count += 1
                     continue  # Skip the default creation below
@@ -1038,11 +1052,15 @@ class SurveyListPublicView(LoginRequiredMixin, ListView):
     
     def get_queryset(self):
         # Show all surveys with 'active' status, regardless of start/end dates
-        # This ensures all active surveys are visible to alumni users
+        # This ensures all active surveys are visible to alumni users.
+        # The NORSU Graduate Tracer Study lives at /tracer-study/ and is
+        # intentionally excluded from the generic public list.
         queryset = Survey.objects.filter(
             status='active'
+        ).exclude(
+            title__icontains='NORSU Graduate Tracer Study'
         ).order_by('end_date')
-        
+
         # Log survey list access (DEBUG level)
         logger.debug(
             f"Survey list accessed by user: {self.request.user.username}",

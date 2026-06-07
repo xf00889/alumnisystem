@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Tracer Study Reports{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <div class="d-flex align-items-center mb-3">
+        <i class="fas fa-chart-bar fa-2x text-primary me-3"></i>
+        <div>
+            <h2 class="mb-0">Tracer Study Reports</h2>
+            <small class="text-muted">Aggregated results from the NORSU Graduate Tracer Study</small>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        {% for s in surveys %}
+        <div class="col-md-6">
+            <div class="card h-100 shadow-sm">
+                <div class="card-body">
+                    <h5 class="card-title">
+                        {% if s.audience == 'alumni' %}
+                            <i class="fas fa-user-graduate text-primary me-2"></i>
+                        {% else %}
+                            <i class="fas fa-building text-primary me-2"></i>
+                        {% endif %}
+                        {{ s.survey.title }}
+                    </h5>
+                    <p class="card-text text-muted">{{ s.survey.description|truncatechars:140 }}</p>
+                    <ul class="list-unstyled mb-3">
+                        <li><strong>Status:</strong>
+                            <span class="badge bg-{% if s.survey.status == 'active' %}success{% else %}secondary{% endif %}">
+                                {{ s.survey.get_status_display }}
+                            </span>
+                        </li>
+                        <li><strong>Total Responses:</strong> {{ s.count }}</li>
+                        <li><strong>Open Period:</strong>
+                            {{ s.survey.start_date|date:"M d, Y" }} –
+                            {{ s.survey.end_date|date:"M d, Y" }}
+                        </li>
+                    </ul>
+                    <a href="{% url 'surveys:tracer_study_report' s.survey.id %}"
+                       class="btn btn-primary">
+                        <i class="fas fa-chart-pie me-1"></i> View Report
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-warning">
+                No tracer study surveys found. Run
+                <code>python manage.py seed_tracer_study</code> to create them.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

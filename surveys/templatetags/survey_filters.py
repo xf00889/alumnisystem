@@ -1,4 +1,5 @@
 from django import template
+import json
 
 register = template.Library()
 
@@ -32,4 +33,35 @@ def replace(value, arg):
             # If no colon, just replace with space (default behavior)
             return str(value).replace(arg, ' ')
     except (ValueError, TypeError, AttributeError):
-        return value 
+        return value
+
+
+class _QuestionMeta:
+    """Lightweight wrapper so templates can dot-access conditional config."""
+
+    def __init__(self, data):
+        self.key = data.get("key", "")
+        self.part = data.get("part", "") or ""
+        self.show_when = data.get("show_when", {}) or {}
+        try:
+            self.show_when_json = json.dumps(self.show_when)
+        except (TypeError, ValueError):
+            self.show_when_json = "{}"
+
+
+@register.filter(name="load_question_meta")
+def load_question_meta(help_text):
+    """Parse JSON metadata stored in SurveyQuestion.help_text.
+
+    Returns a ``_QuestionMeta`` object with safe defaults. If the help_text
+    is empty or not valid JSON, returns an object with empty show_when.
+    """
+    if not help_text:
+        return _QuestionMeta({})
+    try:
+        data = json.loads(help_text)
+        if not isinstance(data, dict):
+            return _QuestionMeta({})
+        return _QuestionMeta(data)
+    except (ValueError, TypeError):
+        return _QuestionMeta({})

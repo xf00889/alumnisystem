@@ -1,4 +1,5 @@
 import csv
+import html
 import io
 import json
 import os
@@ -880,7 +881,7 @@ class ExportMixin:
                     value = ''
                 # Use Paragraph for automatic text wrapping
                 value_str = str(value)
-                row.append(Paragraph(value_str, data_cell_style))
+                row.append(Paragraph(html.escape(value_str), data_cell_style))
             table_data.append(row)
         
         # Calculate column widths dynamically based on content

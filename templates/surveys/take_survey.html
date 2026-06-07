@@ -492,9 +492,11 @@
             {% else %}
                 <form method="post">
                     {% csrf_token %}
-                    
+                    {% load survey_filters %}
                     {% for question in questions %}
-                    <div class="dashboard-card" id="question-{{ question.id }}">
+                    {% with qmeta=question.help_text|load_question_meta %}
+                    <div class="dashboard-card" id="question-{{ question.id }}"
+                         {% if qmeta.show_when %}data-conditional-on='{{ qmeta.show_when_json }}'{% endif %}>
                         <div class="card-body">
                             <label class="form-label">
                                 <span style="color: var(--primary-color); font-weight: 600;">{{ forloop.counter }}.</span>
@@ -503,34 +505,40 @@
                                 <span class="required-marker">*</span>
                                 {% endif %}
                             </label>
-                            
+
                             {% if question.question_type == 'text' %}
                                 <textarea class="form-control" name="question_{{ question.id }}" rows="3" {% if question.is_required %}required{% endif %}></textarea>
-                            
+
                             {% elif question.question_type == 'multiple_choice' %}
                                 <div class="mt-2">
                                     {% for option in question.options.all %}
                                         <div class="form-check">
-                                            <input class="form-check-input" type="radio" name="question_{{ question.id }}" value="{{ option.id }}" id="option-{{ option.id }}" {% if question.is_required %}required{% endif %}>
+                                            <input class="form-check-input conditional-option" type="radio" name="question_{{ question.id }}" value="{{ option.id }}" id="option-{{ option.id }}" data-option-key="{{ option.option_text|lower }}" data-option-id="{{ option.id }}" {% if question.is_required %}required{% endif %}>
                                             <label class="form-check-label" for="option-{{ option.id }}">
                                                 {{ option.option_text }}
                                             </label>
+                                            {% if option.allow_custom %}
+                                                <input type="text" class="form-control form-control-sm mt-1 d-none other-text-input" name="question_{{ question.id }}_other" id="other-{{ option.id }}" placeholder="Please specify" data-for-option="{{ option.id }}">
+                                            {% endif %}
                                         </div>
                                     {% endfor %}
                                 </div>
-                            
+
                             {% elif question.question_type == 'checkbox' %}
                                 <div class="mt-2">
                                     {% for option in question.options.all %}
                                         <div class="form-check">
-                                            <input class="form-check-input" type="checkbox" name="question_{{ question.id }}_{{ option.id }}" value="1" id="option-{{ option.id }}">
+                                            <input class="form-check-input" type="checkbox" name="question_{{ question.id }}_{{ option.id }}" value="1" id="option-{{ option.id }}" {% if option.allow_custom %}data-other-toggle="{{ option.id }}"{% endif %}>
                                             <label class="form-check-label" for="option-{{ option.id }}">
                                                 {{ option.option_text }}
                                             </label>
+                                            {% if option.allow_custom %}
+                                                <input type="text" class="form-control form-control-sm mt-1 d-none other-text-input" name="question_{{ question.id }}_other_{{ option.id }}" id="other-{{ option.id }}" placeholder="Please specify" data-for-option="{{ option.id }}">
+                                            {% endif %}
                                         </div>
                                     {% endfor %}
                                 </div>
-                            
+
                             {% elif question.question_type == 'rating' %}
                                 {% if question.scale_type == '1-10' %}
                                     <div class="rating-scale mt-2">
@@ -620,6 +628,35 @@
                                                 <input type="radio" id="rating5-{{ question.id }}" name="question_{{ question.id }}" value="5">
                                                 <label for="rating5-{{ question.id }}">Very Satisfied</label>
                                             </div>
+                                        </div>
+                                    </div>
+                                {% elif question.scale_type == 'extent' %}
+                                    <div class="rating-scale mt-2">
+                                        <div class="d-flex justify-content-between">
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating1-{{ question.id }}" name="question_{{ question.id }}" value="1" {% if question.is_required %}required{% endif %}>
+                                                <label for="rating1-{{ question.id }}"><strong>1</strong><br><small>Very Low</small></label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating2-{{ question.id }}" name="question_{{ question.id }}" value="2">
+                                                <label for="rating2-{{ question.id }}"><strong>2</strong><br><small>Low</small></label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating3-{{ question.id }}" name="question_{{ question.id }}" value="3">
+                                                <label for="rating3-{{ question.id }}"><strong>3</strong><br><small>Moderate</small></label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating4-{{ question.id }}" name="question_{{ question.id }}" value="4">
+                                                <label for="rating4-{{ question.id }}"><strong>4</strong><br><small>High</small></label>
+                                            </div>
+                                            <div class="rating-option text-center">
+                                                <input type="radio" id="rating5-{{ question.id }}" name="question_{{ question.id }}" value="5">
+                                                <label for="rating5-{{ question.id }}"><strong>5</strong><br><small>Very High</small></label>
+                                            </div>
+                                        </div>
+                                        <div class="d-flex justify-content-between text-muted small mt-1">
+                                            <span>Very Low</span>
+                                            <span>Very High</span>
                                         </div>
                                     </div>
                                 {% else %}
@@ -761,10 +798,11 @@
                                        pattern="https?://.+"
                                        title="Please enter a valid URL starting with http:// or https://"
                                        {% if question.is_required %}required{% endif %}>
-                                <div class="invalid-feedback">Please enter a valid URL starting with http:// or https://</div>
+                                        <div class="invalid-feedback">Please enter a valid URL starting with http:// or https://</div>
                             {% endif %}
                         </div>
                     </div>
+                    {% endwith %}
                     {% endfor %}
 
                     <!-- Submit Section (Dashboard Style) -->
@@ -892,7 +930,7 @@
                     this.classList.add('is-invalid');
                 }
             });
-            
+
             input.addEventListener('input', function() {
                 if (form.classList.contains('was-validated')) {
                     if (this.checkValidity()) {
@@ -906,6 +944,96 @@
             });
         });
     }
+
+    // ---------------------------------------------------------------------
+    // Tracer-study helpers: conditional show/hide + "Other (specify)" text
+    // ---------------------------------------------------------------------
+
+    // "Other (specify)" free-text: show input when its associated radio/checkbox
+    // is selected. The match-up is by data-option-id on the radio/checkbox and
+    // data-for-option on the text input.
+    function setupOtherTextToggles() {
+        var triggers = document.querySelectorAll(
+            'input[type="radio"][data-option-id], input[type="checkbox"][data-other-toggle]'
+        );
+        triggers.forEach(function(input) {
+            function sync() {
+                var optId = input.getAttribute('data-option-id') || input.getAttribute('data-other-toggle');
+                var textInput = document.getElementById('other-' + optId);
+                if (!textInput) return;
+                if (input.checked) {
+                    textInput.classList.remove('d-none');
+                    textInput.setAttribute('required', '');
+                } else {
+                    textInput.classList.add('d-none');
+                    textInput.removeAttribute('required');
+                    textInput.value = '';
+                }
+            }
+            input.addEventListener('change', sync);
+            sync();
+        });
+    }
+
+    // Conditional question show/hide. The hidden state is applied on load and
+    // re-evaluated when any conditional-option radio changes. Map format:
+    //   { "trigger_question_id": ["option_id_or_value", ...] }
+    // The trigger's selected value is compared against the *option's option
+    // text* lowercased (eg "yes" / "no" / "never") because the seed writes
+    // the textual answer label. We accept either a matching id (id-suffix
+    // match) or a substring on the option label.
+    function setupConditionalQuestions() {
+        var conditioned = document.querySelectorAll('[data-conditional-on]');
+        if (!conditioned.length) return;
+
+        function evaluateAll() {
+            conditioned.forEach(function(card) {
+                var raw = card.getAttribute('data-conditional-on');
+                try {
+                    var map = JSON.parse(raw);
+                } catch (e) {
+                    return;
+                }
+                var show = false;
+                Object.keys(map).forEach(function(triggerQId) {
+                    var allowed = map[triggerQId] || [];
+                    var selected = document.querySelector(
+                        'input[name="question_' + triggerQId + '"]:checked'
+                    );
+                    if (!selected) return;
+                    var label = (selected.nextElementSibling
+                        ? selected.nextElementSibling.textContent
+                        : '').trim().toLowerCase();
+                    var val = (selected.value || '').toLowerCase();
+                    allowed.forEach(function(allow) {
+                        var a = ('' + allow).toLowerCase();
+                        if (label.indexOf(a) !== -1 || val === a || val.indexOf(a) !== -1) {
+                            show = true;
+                        }
+                    });
+                });
+                card.style.display = show ? '' : 'none';
+                // Disable hidden inputs so they're not submitted
+                card.querySelectorAll('input, textarea, select').forEach(function(el) {
+                    if (show) {
+                        el.removeAttribute('disabled');
+                    } else {
+                        el.setAttribute('disabled', '');
+                    }
+                });
+            });
+        }
+
+        document.addEventListener('change', function(e) {
+            if (e.target && e.target.matches('input.conditional-option')) {
+                evaluateAll();
+            }
+        });
+        evaluateAll();
+    }
+
+    setupOtherTextToggles();
+    setupConditionalQuestions();
 })();
 </script>
 {% endblock %}

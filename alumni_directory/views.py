@@ -1,3 +1,4 @@
+import html
 import logging
 import io
 from django.shortcuts import render, get_object_or_404, redirect
@@ -1377,7 +1378,7 @@ def alumni_management(request):
                         current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified")
                     ]
                     
-                    row = [Paragraph(str(val), data_cell_style) for val in row_data]
+                    row = [Paragraph(html.escape(str(val)), data_cell_style) for val in row_data]
                     table_data.append(row)
                 
                 # Calculate column widths - optimized for better fit

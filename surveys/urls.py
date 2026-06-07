@@ -1,10 +1,18 @@
 from django.urls import path
 from django.views.generic.base import RedirectView
 from . import views
+from . import tracer_study
 
 app_name = 'surveys'
 
 urlpatterns = [
+    # Dedicated Graduate Tracer Study (NOT routed through the generic survey
+    # views or the public survey list).
+    path('tracer-study/', tracer_study.tracer_study_alumni, name='tracer_study_alumni'),
+    path('tracer-study/employer/', tracer_study.tracer_study_employer, name='tracer_study_employer'),
+    path('tracer-study/reports/', tracer_study.tracer_study_reports, name='tracer_study_reports'),
+    path('tracer-study/report/<int:survey_id>/', tracer_study.tracer_study_report, name='tracer_study_report'),
+
     # Admin Survey Management URLs
     path('admin/surveys/', views.SurveyListView.as_view(), name='survey_list'),
     path('admin/surveys/create/', views.SurveyCreateView.as_view(), name='survey_create'),

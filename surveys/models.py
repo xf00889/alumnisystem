@@ -55,6 +55,7 @@ class SurveyQuestion(models.Model):
         ('frequency', 'Frequency (Never - Always)'),
         ('agreement', 'Agreement (Strongly Disagree - Strongly Agree)'),
         ('satisfaction', 'Satisfaction (Very Unsatisfied - Very Satisfied)'),
+        ('extent', 'Extent of Manifestation (Very Low - Very High)'),
         ('custom', 'Custom Scale'),
     )
     
@@ -106,7 +107,8 @@ class ResponseAnswer(models.Model):
     text_answer = models.TextField(blank=True, null=True)
     rating_value = models.IntegerField(blank=True, null=True)
     selected_option = models.ForeignKey(QuestionOption, on_delete=models.CASCADE, blank=True, null=True)
-    
+    custom_text = models.CharField(max_length=500, blank=True, default='')
+
     def __str__(self):
         return f"Answer to {self.question.question_text}"
 
@@ -201,9 +203,57 @@ class Report(models.Model):
     )
     last_scheduled_run = models.DateTimeField(null=True, blank=True)
     next_scheduled_run = models.DateTimeField(null=True, blank=True)
-    
+
     def __str__(self):
         return self.title
-    
+
     class Meta:
         ordering = ['-created_at']
+
+
+class Employer(models.Model):
+    company_name = models.CharField(max_length=200)
+    position = models.CharField(max_length=200)
+    address = models.TextField(blank=True, default='')
+    place_of_company = models.CharField(max_length=200, blank=True, default='')
+    contact_email = models.EmailField(blank=True, default='')
+    contact_phone = models.CharField(max_length=40, blank=True, default='')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"{self.company_name} - {self.position}"
+
+    class Meta:
+        ordering = ['company_name']
+
+
+class EmployerResponse(models.Model):
+    survey = models.ForeignKey(Survey, on_delete=models.CASCADE, related_name='employer_responses')
+    employer = models.ForeignKey(Employer, on_delete=models.CASCADE, related_name='responses')
+    submitted_at = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+
+    def __str__(self):
+        return f"{self.survey.title} - {self.employer.company_name} - {self.submitted_at}"
+
+    class Meta:
+        ordering = ['-submitted_at']
+        unique_together = ['survey', 'employer']
+
+
+class EmployerResponseAnswer(models.Model):
+    """Mirror of ResponseAnswer for employer responses.
+
+    ResponseAnswer.response is a hard ForeignKey to SurveyResponse, so
+    employer answers need their own model to share the same question/
+    option/answer columns without a multi-target FK.
+    """
+    response = models.ForeignKey(EmployerResponse, on_delete=models.CASCADE, related_name='answers')
+    question = models.ForeignKey(SurveyQuestion, on_delete=models.CASCADE)
+    text_answer = models.TextField(blank=True, null=True)
+    rating_value = models.IntegerField(blank=True, null=True)
+    selected_option = models.ForeignKey(QuestionOption, on_delete=models.CASCADE, blank=True, null=True)
+    custom_text = models.CharField(max_length=500, blank=True, default='')
+
+    def __str__(self):
+        return f"EmployerAnswer to {self.question.question_text}"
