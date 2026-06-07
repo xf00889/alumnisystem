@@ -132,9 +132,9 @@ def _alumni_prefill_source(alumni):
     user = alumni.user
     profile = getattr(user, "profile", None)
 
-    age = _compute_age(alumni.date_of_birth) or _compute_age(
-        getattr(profile, "birth_date", None) if profile else None
-    )
+    dob = alumni.date_of_birth
+    if not dob and profile is not None:
+        dob = getattr(profile, "birth_date", None)
 
     address_parts = filter(None, [
         alumni.address, alumni.city, alumni.province,
@@ -154,8 +154,10 @@ def _alumni_prefill_source(alumni):
         "p1_address": address,
         "p1_email": user.email or None,
         "p1_contact": str(alumni.phone_number) if alumni.phone_number else None,
-        "p1_age": str(age) if age is not None else None,
+        "p1_dob": dob.isoformat() if dob else None,
         "p1_gender": _GENDER_VALUE_KEY.get(alumni.gender),
+        "p1_fb": (getattr(profile, "facebook_profile", "") or "") or None,
+        "p1_twitter": (getattr(profile, "twitter_profile", "") or "") or None,
         "p2_course": course,
         "p2_year": str(alumni.graduation_year) if alumni.graduation_year else None,
         "p2_campus": campus,
@@ -189,7 +191,7 @@ def _build_prefill_for_alumni(alumni, survey):
         if value is None or value == "":
             continue
 
-        if question.question_type in ("text", "email", "phone", "number"):
+        if question.question_type in ("text", "email", "phone", "number", "date", "url"):
             result[question.id] = str(value)
         elif question.question_type == "multiple_choice":
             opt = _resolve_option_id(question, key, str(value))

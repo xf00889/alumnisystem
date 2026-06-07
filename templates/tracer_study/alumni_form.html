@@ -74,7 +74,16 @@
                     </label>
 
                     {% if question.question_type == 'text' %}
-                        <textarea class="form-control" name="question_{{ question.id }}" rows="3" {% if question.is_required %}required{% endif %}>{{ prefill_answers|get_item:question.id }}</textarea>
+                        {% if qmeta.multiline %}
+                            <textarea class="form-control" name="question_{{ question.id }}" rows="3" maxlength="1000"
+                                      {% if qmeta.key == 'p1_address' %}autocomplete="street-address"{% elif qmeta.key == 'p3_company_address' %}autocomplete="street-address"{% endif %}
+                                      {% if question.is_required %}required{% endif %}>{{ prefill_answers|get_item:question.id }}</textarea>
+                        {% else %}
+                            <input type="text" class="form-control" name="question_{{ question.id }}" maxlength="200"
+                                   {% if qmeta.key == 'p1_name' %}autocomplete="name"{% elif qmeta.key == 'p2_course' %}autocomplete="off" placeholder="e.g. Bachelor of Science in Computer Science"{% elif qmeta.key == 'p3_position' %}autocomplete="organization-title" placeholder="e.g. Software Engineer"{% elif qmeta.key == 'p3_company' %}autocomplete="organization" placeholder="e.g. Acme Corp."{% else %}autocomplete="off"{% endif %}
+                                   value="{{ prefill_answers|get_item:question.id }}"
+                                   {% if question.is_required %}required{% endif %}>
+                        {% endif %}
 
                     {% elif question.question_type == 'multiple_choice' %}
                         {% for option in question.options.all %}
@@ -155,13 +164,26 @@
                         {% endif %}
 
                     {% elif question.question_type == 'email' %}
-                        <input type="email" class="form-control" name="question_{{ question.id }}" placeholder="example@email.com" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
+                        <input type="email" class="form-control" name="question_{{ question.id }}" placeholder="example@email.com" maxlength="254" autocomplete="email" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
 
                     {% elif question.question_type == 'phone' %}
-                        <input type="tel" class="form-control" name="question_{{ question.id }}" placeholder="e.g. +63 912 345 6789" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
+                        <input type="tel" class="form-control" name="question_{{ question.id }}" placeholder="e.g. +63 912 345 6789" maxlength="20" inputmode="tel" autocomplete="tel" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
+
+                    {% elif question.question_type == 'url' %}
+                        <input type="url" class="form-control" name="question_{{ question.id }}" placeholder="https://..." maxlength="500" autocomplete="off" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
+
+                    {% elif question.question_type == 'date' %}
+                        <input type="date" class="form-control" name="question_{{ question.id }}" max="{% now 'Y-m-d' %}" autocomplete="bday" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
 
                     {% elif question.question_type == 'number' %}
-                        <input type="number" class="form-control" name="question_{{ question.id }}" step="any" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
+                        <input type="number" class="form-control" name="question_{{ question.id }}"
+                               inputmode="numeric"
+                               {% if qmeta.min is not None %}min="{{ qmeta.min }}"{% endif %}
+                               {% if qmeta.max is not None %}max="{{ qmeta.max }}"{% endif %}
+                               step="1"
+                               {% if qmeta.max %}maxlength="{{ qmeta.max|stringformat:'d'|length }}"{% endif %}
+                               value="{{ prefill_answers|get_item:question.id }}"
+                               {% if question.is_required %}required{% endif %}>
                     {% endif %}
                 </div>
             </div>
