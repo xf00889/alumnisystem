@@ -94,7 +94,7 @@ class JobSitemap(Sitemap):
         from jobs.models import JobPosting
         return JobPosting.objects.filter(
             is_active=True
-        ).order_by('-posted_date')
+        ).exclude(slug__isnull=True).exclude(slug='').order_by('-posted_date')
     
     def location(self, obj):
         """

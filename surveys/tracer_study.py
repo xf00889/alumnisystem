@@ -183,7 +183,28 @@ def _save_employer_response(request, survey, employer):
 @login_required
 def tracer_study_alumni(request):
     survey = _get_active_survey(ALUMNI_TITLE)
-    alumni = get_object_or_404(Alumni, user=request.user)
+    # Authed users without an alumni profile fall into one of two cases:
+    #   * Staff / superuser / alumni coordinator without an Alumni row —
+    #     they have no business taking the survey themselves; send them
+    #     to the reports dashboard where the data lives.
+    #   * Regular authed user who hasn't completed alumni registration —
+    #     send them to the post-registration page so they can finish
+    #     creating their Alumni profile.
+    if not Alumni.objects.filter(user=request.user).exists():
+        is_staff_like = (
+            request.user.is_staff
+            or request.user.is_superuser
+            or (hasattr(request.user, "profile")
+                and request.user.profile.is_alumni_coordinator)
+        )
+        if is_staff_like:
+            return redirect("surveys:tracer_study_reports")
+        messages.info(
+            request,
+            "Please complete your alumni registration before taking the Tracer Study.",
+        )
+        return redirect("accounts:post_registration")
+    alumni = Alumni.objects.get(user=request.user)
 
     if _already_submitted_alumni(survey, alumni):
         return render(
