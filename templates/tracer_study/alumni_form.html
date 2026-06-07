@@ -42,6 +42,9 @@
                     <i class="far fa-calendar me-1"></i> Available until {{ survey.end_date|date:"F d, Y" }}
                     &middot; <i class="fas fa-question-circle me-1"></i> {{ questions.count }} question{{ questions.count|pluralize }}
                     &middot; <i class="fas fa-clock me-1"></i> Estimated time: {% if questions.count <= 20 %}15{% elif questions.count <= 30 %}20{% else %}25{% endif %} min
+                    {% if prefill_answers %}
+                    &middot; <i class="fas fa-magic me-1"></i> {{ prefill_answers|length }} field{{ prefill_answers|length|pluralize:" was,s were" }} pre-filled from your profile (editable)
+                    {% endif %}
                 </p>
             </div>
         </div>
@@ -71,7 +74,7 @@
                     </label>
 
                     {% if question.question_type == 'text' %}
-                        <textarea class="form-control" name="question_{{ question.id }}" rows="3" {% if question.is_required %}required{% endif %}></textarea>
+                        <textarea class="form-control" name="question_{{ question.id }}" rows="3" {% if question.is_required %}required{% endif %}>{{ prefill_answers|get_item:question.id }}</textarea>
 
                     {% elif question.question_type == 'multiple_choice' %}
                         {% for option in question.options.all %}
@@ -81,6 +84,7 @@
                                        id="option-{{ option.id }}"
                                        data-option-id="{{ option.id }}"
                                        data-option-key="{{ option.option_text|lower }}"
+                                       {% if prefill_answers|get_item:question.id == option.id %}checked{% endif %}
                                        {% if question.is_required %}required{% endif %}>
                                 <label class="form-check-label" for="option-{{ option.id }}">{{ option.option_text }}</label>
                                 {% if option.allow_custom %}
@@ -151,13 +155,13 @@
                         {% endif %}
 
                     {% elif question.question_type == 'email' %}
-                        <input type="email" class="form-control" name="question_{{ question.id }}" placeholder="example@email.com" {% if question.is_required %}required{% endif %}>
+                        <input type="email" class="form-control" name="question_{{ question.id }}" placeholder="example@email.com" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
 
                     {% elif question.question_type == 'phone' %}
-                        <input type="tel" class="form-control" name="question_{{ question.id }}" placeholder="e.g. +63 912 345 6789" {% if question.is_required %}required{% endif %}>
+                        <input type="tel" class="form-control" name="question_{{ question.id }}" placeholder="e.g. +63 912 345 6789" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
 
                     {% elif question.question_type == 'number' %}
-                        <input type="number" class="form-control" name="question_{{ question.id }}" step="any" {% if question.is_required %}required{% endif %}>
+                        <input type="number" class="form-control" name="question_{{ question.id }}" step="any" value="{{ prefill_answers|get_item:question.id }}" {% if question.is_required %}required{% endif %}>
                     {% endif %}
                 </div>
             </div>

@@ -65,3 +65,29 @@ def load_question_meta(help_text):
         return _QuestionMeta(data)
     except (ValueError, TypeError):
         return _QuestionMeta({})
+
+
+@register.filter(name="get_item")
+def get_item(dictionary, key):
+    """Look up a key in a dict. Returns empty string if missing/None.
+
+    Usage: ``{{ prefill_answers|get_item:question.id|default_if_none:"" }}``
+    """
+    if not dictionary:
+        return ""
+    try:
+        value = dictionary.get(key)
+    except (AttributeError, TypeError):
+        return ""
+    return "" if value is None else value
+
+
+@register.filter(name="has_prefill")
+def has_prefill(dictionary, key):
+    """True if dict has a non-empty value for key (used for radio checked)."""
+    if not dictionary:
+        return False
+    try:
+        return dictionary.get(key) not in (None, "")
+    except (AttributeError, TypeError):
+        return False

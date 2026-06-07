@@ -11,6 +11,10 @@ URLs:
                                 record on first submission and reuses it
                                 thereafter)
 """
+from datetime import date
+import json
+import logging
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -43,6 +47,172 @@ EMPLOYER_TITLE = "NORSU Graduate Tracer Study (EMPLOYER QUESTIONNAIRE)"
 
 def _get_active_survey(title):
     return get_object_or_404(Survey, title=title, status="active")
+
+
+# ---------------------------------------------------------------------------
+# Alumni profile -> question prefill
+# ---------------------------------------------------------------------------
+#
+# Map ``Alumni`` (and its user/profile) fields to the tracer-study question
+# ``key``s defined in ``seed_tracer_study.ALUMNI_QUESTIONS``. The prefill is
+# only used when the field has a value in the system; missing/blank values
+# leave the form field empty so the alumni can fill it in themselves.
+#
+# Returned dict format: ``{question_id: prefill_value}`` where prefill_value
+# is a string for text-like types and an ``option.id`` (int) for
+# ``multiple_choice``.
+
+# Alumni.gender choices -> questionnaire value_keys for p1_gender
+_GENDER_VALUE_KEY = {"M": "male", "F": "female", "O": "other"}
+
+# Alumni.campus choices -> questionnaire value_keys for p2_campus.
+# Alumni combines Main I + II into a single MAIN choice; default to Main I.
+_CAMPUS_VALUE_KEY = {
+    "MAIN": "main1",
+    "BAIS1": "bais", "BAIS2": "bais",
+    "BSC": "bayawan", "SIATON": "siaton", "GUI": "guihulngan",
+    "PAM": "pamplona", "MAB": "mabinay",
+}
+
+# Alumni.employment_status -> p3_employed value_key
+_EMPLOYED_VALUE_KEY = {
+    "EMPLOYED_FULL": "yes", "EMPLOYED_PART": "yes",
+    "SELF_EMPLOYED": "yes", "INTERN": "yes",
+    "UNEMPLOYED": "no", "STUDENT": "no", "RETIRED": "no",
+}
+
+
+def _compute_age(birth_date):
+    if not birth_date:
+        return None
+    today = date.today()
+    return today.year - birth_date.year - (
+        (today.month, today.day) < (birth_date.month, birth_date.day)
+    )
+
+
+def _alumni_prefill_source(alumni):
+    """Return {question_key: source_value} for any prefillable field.
+
+    The source value is the raw Alumni/Profile data; the view layer is
+    responsible for turning it into a concrete question value (option id
+    vs text) when it builds the per-question prefill dict.
+    """
+    user = alumni.user
+    profile = getattr(user, "profile", None)
+
+    age = _compute_age(alumni.date_of_birth) or _compute_age(
+        getattr(profile, "birth_date", None) if profile else None
+    )
+
+    address_parts = filter(None, [
+        alumni.address, alumni.city, alumni.province,
+        str(alumni.country.name) if alumni.country else None,
+    ])
+    address = ", ".join(address_parts) if address_parts else None
+
+    course = alumni.course or None
+    if course and alumni.major:
+        course = f"{course} - {alumni.major}"
+
+    return {
+        "p1_name": (user.get_full_name() or user.username) or None,
+        "p1_address": address,
+        "p1_email": user.email or None,
+        "p1_contact": str(alumni.phone_number) if alumni.phone_number else None,
+        "p1_age": str(age) if age is not None else None,
+        "p1_gender": _GENDER_VALUE_KEY.get(alumni.gender),
+        "p2_course": course,
+        "p2_year": str(alumni.graduation_year) if alumni.graduation_year else None,
+        "p2_campus": _CAMPUS_VALUE_KEY.get(alumni.campus),
+        "p3_employed": _EMPLOYED_VALUE_KEY.get(alumni.employment_status),
+        "p3_position": alumni.job_title or None,
+        "p3_company": alumni.current_company or None,
+    }
+
+
+def _build_prefill_for_alumni(alumni, survey):
+    """Resolve the prefill source into {question_id: prefill_value}.
+
+    The same Alumni record can power many question types; this function
+    walks the survey's questions, looks up the source value by ``key``,
+    and resolves multiple-choice value_keys to option ids.
+    """
+    source = _alumni_prefill_source(alumni)
+    if not source:
+        return {}
+
+    result = {}
+    for question in survey.questions.all().prefetch_related("options"):
+        try:
+            meta = json.loads(question.help_text) if question.help_text else {}
+        except (ValueError, TypeError):
+            meta = {}
+        key = meta.get("key")
+        if not key or key not in source:
+            continue
+        value = source[key]
+        if value is None or value == "":
+            continue
+
+        if question.question_type in ("text", "email", "phone", "number"):
+            result[question.id] = str(value)
+        elif question.question_type == "multiple_choice":
+            opt = _resolve_option_id(question, key, str(value))
+            if opt is not None:
+                result[question.id] = opt.id
+        # checkbox and rating/likert are intentionally not prefilled: the
+        # source data doesn't carry structured multi-select or subjective
+        # answers, and we'd rather not seed a partial selection.
+    return result
+
+
+# Per-question matchers for multiple-choice prefill. ``QuestionOption`` has
+# no ``value_key`` column (the seeder dropped it silently), so we look up
+# options by lowercased option_text for some questions and by a keyword
+# mapping for others. The mapping is keyed by the question's prefill key
+# (the same key used in ``ALUMNI_QUESTIONS`` in ``seed_tracer_study``).
+
+_CAMPUS_KEYWORDS = {
+    "main1": ["main campus i"],
+    "main2": ["main campus ii"],
+    "bayawan": ["bayawan"],
+    "siaton": ["siaton"],
+    "guihulngan": ["guihulngan"],
+    "bais": ["bais"],
+    "mabinay": ["mabinay"],
+    "pamplona": ["pamplona"],
+}
+
+
+def _resolve_option_id(question, question_key, value_key):
+    """Find the option in ``question`` that matches ``value_key``.
+
+    Returns the QuestionOption or None. Uses a per-question strategy:
+    exact case-insensitive option_text match, with a fallback to substring
+    matching for known variants (e.g. "other (please specify)" -> "other").
+    """
+    options = list(question.options.all())
+    if not options:
+        return None
+
+    if question_key == "p2_campus":
+        for kw in _CAMPUS_KEYWORDS.get(value_key, []):
+            for opt in options:
+                if kw in opt.option_text.lower():
+                    return opt
+        return None
+
+    # Default: case-insensitive match against option_text. "yes" / "no" /
+    # "never" map cleanly; "other" matches "Other (please specify)" via
+    # substring fallback.
+    for opt in options:
+        if opt.option_text.strip().lower() == value_key.lower():
+            return opt
+    for opt in options:
+        if value_key.lower() in opt.option_text.lower():
+            return opt
+    return None
 
 
 def _already_submitted_alumni(survey, alumni):
@@ -231,6 +401,7 @@ def tracer_study_alumni(request):
         )
 
     questions = survey.questions.all().prefetch_related("options")
+    prefill_answers = _build_prefill_for_alumni(alumni, survey)
     return render(
         request,
         "tracer_study/alumni_form.html",
@@ -238,6 +409,7 @@ def tracer_study_alumni(request):
             "survey": survey,
             "questions": questions,
             "alumni": alumni,
+            "prefill_answers": prefill_answers,
         },
     )
 
