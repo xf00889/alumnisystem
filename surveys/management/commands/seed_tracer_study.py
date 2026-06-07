@@ -68,6 +68,48 @@ CAMPUS_CHOICES = [
 ]
 
 
+HELP_TEXT = {
+    "p1_name": "As it appears on your school records. Editable so you can add middle name or suffix if needed.",
+    "p1_address": "Street, barangay, city/municipality, province, country.",
+    "p1_email": "Used only for official correspondence from the Alumni Affairs Office.",
+    "p1_contact": "Mobile number with country code, e.g. +63 917 123 4567.",
+    "p1_dob": "Used for statistical purposes only. Must not be a future date.",
+    "p1_fb": "Full URL of your Facebook profile, e.g. https://facebook.com/your.name",
+    "p1_twitter": "Full URL of your X / Twitter profile, e.g. https://x.com/your.handle",
+    "p2_course": "Full course title at NORSU, e.g. Bachelor of Science in Computer Science.",
+    "p2_year": "Year you graduated or expect to graduate.",
+    "p2_campus": "Campus where you completed your baccalaureate degree.",
+    "p2_honors": "Select all honors or awards you received. Use Other to specify.",
+    "p2_exam_name": "e.g. PRC Licensure Exam, Civil Service Eligibility, NAPOLCOM, etc.",
+    "p2_exam_year": "Year you passed the examination.",
+    "p3_employed": "Choose the option that best describes your current employment situation.",
+    "p3_reasons_unemployed": "Select all reasons that apply. Use Other to specify.",
+    "p3_status": "Your current employment arrangement.",
+    "p3_position": "Your job title or occupation, e.g. Software Engineer, Public School Teacher.",
+    "p3_company": "Name of the organization that employs you.",
+    "p3_company_address": "Complete address of your workplace.",
+    "p3_org_type": "Choose Government if employed by any national or local government agency.",
+    "p3_place": "Local means within the Philippines; Abroad means outside the country.",
+    "p3_first_job": "Indicate whether your current job is the first one you took after college.",
+    "p3_reasons_stay": "Select all factors that influenced you to stay. Use Other to specify.",
+    "p3_related_course": "Is the work you do related to the course you took at NORSU?",
+    "p3_reasons_accept": "Select all factors that influenced you to accept the job. Use Other to specify.",
+    "p3_reasons_change": "Select all factors that led you to change jobs. Use Other to specify.",
+    "p3_first_job_duration": "How long you stayed in your first job after college.",
+    "p3_find_first_job": "How you found or learned about your first job.",
+    "p3_time_to_first_job": "Time between graduation and landing your first job.",
+    "p3_curriculum_relevant": "How relevant the NORSU curriculum is to your current work.",
+    "p3_useful_competencies": "Select all competencies you find most useful. Use Other to specify.",
+    "p3_apply_learning": "Briefly describe how you apply knowledge or skills learned at NORSU in your work.",
+    "p3_suggestions": "Your feedback helps us improve our academic programs and student services.",
+    "p4_vision": "Rate how clearly NORSU articulated its vision, mission, and goals.",
+    "p4_mission": "Rate how well NORSU's programs aligned with its mission.",
+    "p4_goals": "Rate how well course goals matched program and university goals.",
+    "p4_competencies": "Rate how well the curriculum developed the competencies expected of graduates.",
+    "p4_relevance": "Rate the overall relevance of NORSU's programs to your current career.",
+}
+
+
 def mc(ordered_options, allow_custom_label=None):
     """Build a QuestionOption list for a single-select multiple choice.
 
@@ -800,6 +842,7 @@ def _apply_questions(survey, question_defs):
                     "multiline": bool(qd.get("multiline", False)),
                     "min": qd.get("min"),
                     "max": qd.get("max"),
+                    "description": HELP_TEXT.get(qd["key"], ""),
                 }),
             )
             for opt in qd.get("options", []):

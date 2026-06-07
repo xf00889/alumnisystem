@@ -46,6 +46,7 @@ class _QuestionMeta:
         self.multiline = bool(data.get("multiline", False))
         self.min = data.get("min")
         self.max = data.get("max")
+        self.description = data.get("description", "") or ""
         try:
             self.show_when_json = json.dumps(self.show_when)
         except (TypeError, ValueError):
