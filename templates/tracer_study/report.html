@@ -1,230 +1,223 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}{{ survey.title }} — Report{% endblock %}
+{% block title %}{{ survey.title }} &middot; Report{% endblock %}
 
-{% block extra_css %}
-<style>
-    .ts-report-header { background: #2b3c6b; color: #fff; border-radius: .5rem; padding: 1.5rem 1.75rem; margin-bottom: 1.5rem; }
-    .ts-report-header h1 { font-size: 1.4rem; font-weight: 600; margin: 0; }
-    .ts-report-header p { margin: .25rem 0 0; opacity: .85; font-size: .85rem; }
-    .ts-stat { background: #fff; border: 1px solid #e2e8f0; border-radius: .375rem; padding: 1rem 1.25rem; }
-    .ts-stat .label { font-size: .7rem; text-transform: uppercase; color: #718096; letter-spacing: .05em; }
-    .ts-stat .value { font-size: 1.75rem; font-weight: 600; color: #2b3c6b; }
-    .ts-section-header { background: #edf2f7; border-left: 4px solid #2b3c6b; padding: .65rem 1rem; margin: 1.5rem 0 1rem; border-radius: .25rem; }
-    .ts-section-header h3 { color: #2b3c6b; font-weight: 600; font-size: 1rem; margin: 0; }
-    .ts-q-card { background: #fff; border: 1px solid #e2e8f0; border-radius: .375rem; margin-bottom: 1rem; }
-    .ts-q-card .q-body { padding: 1.1rem 1.25rem; }
-    .ts-q-card .q-text { font-weight: 600; color: #2d3748; margin-bottom: .75rem; }
-    .ts-q-card .q-type { font-size: .7rem; text-transform: uppercase; color: #718096; letter-spacing: .05em; margin-bottom: .35rem; }
-    .ts-bar { background: #edf2f7; height: 10px; border-radius: 999px; overflow: hidden; }
-    .ts-bar > span { display: block; height: 100%; background: #2b3c6b; }
-    .ts-text-answer { border-left: 3px solid #cbd5e0; padding: .35rem .75rem; margin: .35rem 0; color: #2d3748; font-size: .875rem; }
-    @media print {
-        .sidebar, .navbar, .no-print { display: none !important; }
-        .content-wrapper { margin-left: 0 !important; }
-    }
-</style>
-{% endblock %}
+{% block extra_css %}{% include 'tracer_study/_design.html' %}{% endblock %}
 
 {% block content %}
-<div class="container py-4">
-    <div class="ts-report-header">
-        <h1><i class="fas fa-graduation-cap me-2"></i>{{ survey.title }}</h1>
-        <p>
-            {% if audience == 'alumni' %}
-                Alumni Questionnaire Report
-            {% else %}
-                Employer Questionnaire Report
-            {% endif %}
-            &middot; Generated {{ report.last_run|date:"M d, Y h:i A" }}
-        </p>
-    </div>
+<div class="tracer-interface">
+    <div class="container">
+        <div class="tracer-header">
+            <h1><i class="fas fa-graduation-cap"></i> {{ survey.title }}</h1>
+            <p>
+                {% if audience == 'alumni' %}
+                    Alumni Questionnaire Report
+                {% else %}
+                    Employer Questionnaire Report
+                {% endif %}
+                &middot; Generated {{ report.last_run|date:"M d, Y h:i A" }}
+            </p>
+        </div>
 
-    <div class="row g-3 mb-3">
-        <div class="col-md-3 col-6">
-            <div class="ts-stat">
-                <div class="label">Total Responses</div>
-                <div class="value">{{ total_responses }}</div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="ts-stat">
-                <div class="label">Total Questions</div>
-                <div class="value">{{ survey.questions.count }}</div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="ts-stat">
-                <div class="label">Status</div>
-                <div class="value" style="font-size: 1.1rem; padding-top: .35rem;">
-                    <span class="badge bg-{% if survey.status == 'active' %}success{% else %}secondary{% endif %}">
-                        {{ survey.get_status_display }}
-                    </span>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6">
-            <div class="ts-stat">
-                <div class="label">Open Period</div>
-                <div class="value" style="font-size: .95rem; padding-top: .35rem;">
-                    {{ survey.start_date|date:"M d, Y" }} –<br>
-                    {{ survey.end_date|date:"M d, Y" }}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div class="d-flex gap-2 mb-3 no-print">
-        <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
-            <i class="fas fa-print me-1"></i> Print / Save as PDF
-        </button>
-        <a href="{% url 'surveys:tracer_study_reports' %}" class="btn btn-outline-secondary btn-sm">
-            <i class="fas fa-arrow-left me-1"></i> All Tracer Reports
-        </a>
-        {% if audience == 'alumni' %}
-            <a href="{% url 'surveys:tracer_study_alumni' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-external-link-alt me-1"></i> Open Alumni Form
-            </a>
-        {% else %}
-            <a href="{% url 'surveys:tracer_study_employer' %}" class="btn btn-outline-secondary btn-sm">
-                <i class="fas fa-external-link-alt me-1"></i> Open Employer Form
-            </a>
-        {% endif %}
-    </div>
-
-    {% if total_responses == 0 %}
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-1"></i>
-            No responses have been recorded for this survey yet.
-        </div>
-    {% else %}
-        {% for section in sections %}
-            <div class="ts-section-header">
-                <h3><i class="fas fa-bookmark me-2"></i>{{ section.part|default:"Questions" }}</h3>
-            </div>
-
-            {% for item in section.questions %}
-            {% with q=item.question agg=item.aggregation %}
-            <div class="ts-q-card" id="q-{{ q.id }}">
-                <div class="q-body">
-                    <div class="q-type">
-                        Q{{ forloop.parentloop.counter }}.{{ forloop.counter }} &middot; {{ agg.type_label }}
-                        {% if q.is_required %}
-                            <span class="text-danger">*</span>
-                        {% endif %}
+        <div class="row g-3 mb-3">
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">Total Responses</div>
+                        <div class="stat-value">{{ total_responses }}</div>
                     </div>
-                    <div class="q-text">{{ q.question_text }}</div>
+                    <i class="fas fa-users stat-icon text-primary"></i>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">Total Questions</div>
+                        <div class="stat-value">{{ survey.questions.count }}</div>
+                    </div>
+                    <i class="fas fa-list-alt stat-icon text-success"></i>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">Status</div>
+                        <div class="stat-value" style="font-size: 1rem; padding-top: 0.5rem;">
+                            <span class="badge {% if survey.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
+                                {{ survey.get_status_display }}
+                            </span>
+                        </div>
+                    </div>
+                    <i class="fas fa-info-circle stat-icon text-warning"></i>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="stat-card">
+                    <div>
+                        <div class="stat-label">Open Period</div>
+                        <div class="stat-value" style="font-size: 0.95rem; padding-top: 0.3rem;">
+                            {{ survey.start_date|date:"M d, Y" }} –<br>
+                            {{ survey.end_date|date:"M d, Y" }}
+                        </div>
+                    </div>
+                    <i class="far fa-calendar-alt stat-icon text-info"></i>
+                </div>
+            </div>
+        </div>
 
-                    {% if agg.kind == "choice" or agg.kind == "checkbox" %}
-                        <table class="table table-sm mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Option</th>
-                                    <th class="text-end" style="width: 80px;">Count</th>
-                                    <th class="text-end" style="width: 90px;">%</th>
-                                    <th style="width: 30%;">Distribution</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in agg.rows %}
-                                <tr>
-                                    <td>{{ row.label }}</td>
-                                    <td class="text-end">{{ row.count }}</td>
-                                    <td class="text-end">
-                                        {% if agg.kind == 'choice' %}
-                                            {% if agg.total_selections %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
-                                        {% else %}
-                                            {% if agg.total_responses %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
-                                        {% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="ts-bar">
-                                            <span style="width: {% if agg.kind == 'choice' %}{% if agg.total_selections %}{{ row.percent }}{% else %}0{% endif %}{% else %}{% if agg.total_responses %}{{ row.percent }}{% else %}0{% endif %}{% endif %}%;"></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% if row.other %}
-                                <tr>
-                                    <td colspan="4" style="background: #f7fafc;">
-                                        <small class="text-muted">Free-text responses:</small>
-                                        {% for t in row.other %}
-                                            <div class="ts-text-answer">"{{ t }}"</div>
-                                        {% endfor %}
-                                    </td>
-                                </tr>
+        <div class="d-flex gap-2 mb-3 flex-wrap no-print">
+            <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
+                <i class="fas fa-print me-1"></i> Print / Save as PDF
+            </button>
+            <a href="{% url 'surveys:tracer_study_reports' %}" class="btn btn-outline-secondary btn-sm">
+                <i class="fas fa-arrow-left me-1"></i> All Tracer Reports
+            </a>
+            {% if audience == 'alumni' %}
+                <a href="{% url 'surveys:tracer_study_alumni' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-external-link-alt me-1"></i> Open Alumni Form
+                </a>
+            {% else %}
+                <a href="{% url 'surveys:tracer_study_employer' %}" class="btn btn-outline-secondary btn-sm">
+                    <i class="fas fa-external-link-alt me-1"></i> Open Employer Form
+                </a>
+            {% endif %}
+        </div>
+
+        {% if total_responses == 0 %}
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle me-1"></i>
+                No responses have been recorded for this survey yet.
+            </div>
+        {% else %}
+            {% for section in sections %}
+                <div class="tracer-part-header">
+                    <h3>
+                        <i class="fas fa-bookmark me-1"></i>
+                        <span>{{ section.part|default:"Questions" }}</span>
+                    </h3>
+                </div>
+
+                {% for item in section.questions %}
+                {% with q=item.question agg=item.aggregation %}
+                <div class="dashboard-card" id="q-{{ q.id }}">
+                    <div class="card-body">
+                        <div class="qnum" style="font-size: 0.7rem; text-transform: uppercase; color: var(--text-secondary); letter-spacing: 0.05em; margin-bottom: 0.35rem;">
+                            Question {{ forloop.parentloop.counter }}.{{ forloop.counter }} &middot; {{ agg.type_label }}
+                            {% if q.is_required %}<span class="text-danger">*</span>{% endif %}
+                        </div>
+                        <div class="form-label" style="margin-bottom: 1rem;">{{ q.question_text }}</div>
+
+                        {% if agg.kind == "choice" or agg.kind == "checkbox" %}
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Option</th>
+                                        <th class="text-end" style="width: 80px;">Count</th>
+                                        <th class="text-end" style="width: 90px;">%</th>
+                                        <th style="width: 30%;">Distribution</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in agg.rows %}
+                                    <tr>
+                                        <td>{{ row.label }}</td>
+                                        <td class="text-end">{{ row.count }}</td>
+                                        <td class="text-end">
+                                            {% if agg.kind == 'choice' %}
+                                                {% if agg.total_selections %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
+                                            {% else %}
+                                                {% if agg.total_responses %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="ts-bar">
+                                                <span style="width: {% if agg.kind == 'choice' %}{% if agg.total_selections %}{{ row.percent }}{% else %}0{% endif %}{% else %}{% if agg.total_responses %}{{ row.percent }}{% else %}0{% endif %}{% endif %}%;"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% if row.other %}
+                                    <tr>
+                                        <td colspan="4" style="background: var(--ui-hover);">
+                                            <small class="text-muted">Free-text responses:</small>
+                                            {% for t in row.other %}
+                                                <div class="ts-text-answer">"{{ t }}"</div>
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                    {% endif %}
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                            <small class="text-muted d-block mt-2">
+                                {% if agg.kind == 'choice' %}
+                                    Based on {{ agg.total_selections }} selection{{ agg.total_selections|pluralize }} from {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
+                                {% else %}
+                                    Multi-select. Counts may exceed total respondents. Based on {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
                                 {% endif %}
-                                {% endfor %}
-                            </tbody>
-                        </table>
-                        <small class="text-muted d-block mt-2">
-                            {% if agg.kind == 'choice' %}
-                                Based on {{ agg.total_selections }} selection{{ agg.total_selections|pluralize }} from {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
-                            {% else %}
-                                Multi-select. Counts may exceed total respondents. Based on {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
-                            {% endif %}
-                        </small>
+                            </small>
 
-                    {% elif agg.kind == "rating" %}
-                        <div class="d-flex align-items-baseline gap-3 mb-2">
-                            <div>
-                                <div class="text-muted" style="font-size: .7rem; text-transform: uppercase;">Average</div>
-                                <div style="font-size: 1.5rem; font-weight: 600; color: #2b3c6b;">
-                                    {{ agg.average|floatformat:2 }}
-                                    <small class="text-muted" style="font-size: .75rem;">/ 5</small>
+                        {% elif agg.kind == "rating" %}
+                            <div class="d-flex align-items-baseline gap-4 mb-3">
+                                <div>
+                                    <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Average</div>
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">
+                                        {{ agg.average|floatformat:2 }}
+                                        <small class="text-muted" style="font-size: 0.75rem;">/ 5</small>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div class="text-muted" style="font-size: 0.7rem; text-transform: uppercase;">Responses</div>
+                                    <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">{{ agg.count }}</div>
                                 </div>
                             </div>
-                            <div>
-                                <div class="text-muted" style="font-size: .7rem; text-transform: uppercase;">Responses</div>
-                                <div style="font-size: 1.5rem; font-weight: 600; color: #2b3c6b;">{{ agg.count }}</div>
-                            </div>
-                        </div>
-                        <table class="table table-sm mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Rating</th>
-                                    <th class="text-end" style="width: 80px;">Count</th>
-                                    <th class="text-end" style="width: 90px;">%</th>
-                                    <th style="width: 30%;">Distribution</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for row in agg.rows %}
-                                <tr>
-                                    <td>{{ row.label }}</td>
-                                    <td class="text-end">{{ row.count }}</td>
-                                    <td class="text-end">
-                                        {% if agg.count %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
-                                    </td>
-                                    <td>
-                                        <div class="ts-bar">
-                                            <span style="width: {% if agg.count %}{{ row.percent }}{% else %}0{% endif %}%;"></span>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% endfor %}
-                            </tbody>
-                        </table>
+                            <table class="table table-sm mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Rating</th>
+                                        <th class="text-end" style="width: 80px;">Count</th>
+                                        <th class="text-end" style="width: 90px;">%</th>
+                                        <th style="width: 30%;">Distribution</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for row in agg.rows %}
+                                    <tr>
+                                        <td>{{ row.label }}</td>
+                                        <td class="text-end">{{ row.count }}</td>
+                                        <td class="text-end">
+                                            {% if agg.count %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="ts-bar">
+                                                <span style="width: {% if agg.count %}{{ row.percent }}{% else %}0{% endif %}%;"></span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
 
-                    {% elif agg.kind == "text" %}
-                        <p class="text-muted mb-2" style="font-size: .8rem;">
-                            {{ agg.count }} response{{ agg.count|pluralize }} of {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
-                        </p>
-                        {% if agg.answers %}
-                            <div style="max-height: 320px; overflow-y: auto;">
-                                {% for a in agg.answers %}
-                                    <div class="ts-text-answer">"{{ a }}"</div>
-                                {% endfor %}
-                            </div>
-                        {% else %}
-                            <p class="text-muted mb-0">No text answers yet.</p>
+                        {% elif agg.kind == "text" %}
+                            <p class="text-muted mb-2" style="font-size: 0.8rem;">
+                                {{ agg.count }} response{{ agg.count|pluralize }} of {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
+                            </p>
+                            {% if agg.answers %}
+                                <div style="max-height: 320px; overflow-y: auto;">
+                                    {% for a in agg.answers %}
+                                        <div class="ts-text-answer">"{{ a }}"</div>
+                                    {% endfor %}
+                                </div>
+                            {% else %}
+                                <p class="text-muted mb-0">No text answers yet.</p>
+                            {% endif %}
                         {% endif %}
-                    {% endif %}
+                    </div>
                 </div>
-            </div>
-            {% endwith %}
+                {% endwith %}
+                {% endfor %}
             {% endfor %}
-        {% endfor %}
-    {% endif %}
+        {% endif %}
+    </div>
 </div>
 {% endblock %}
