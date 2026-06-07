@@ -760,20 +760,23 @@ def _apply_questions(survey, question_defs):
     Stores the source ``key`` and ``conditional`` info in ``help_text`` as
     JSON so the take_survey template can render conditional groups without
     needing a database migration for that.
+
+    The ``show_when`` map is built in two passes: pass 1 creates the
+    questions (collecting key -> id), pass 2 rewrites help_text with the
+    show_when keys converted to integer question ids. The form's JS reads
+    ``data-conditional-on`` and looks up radios by
+    ``input[name="question_<id>"]:checked``, so the keys must be ids.
     """
     import json
 
     with transaction.atomic():
         survey.questions.all().delete()
 
-        current_part = None
+        # Pass 1: create all questions; show_when is left empty for now.
+        created = {}        # key -> SurveyQuestion
+        part_for_key = {}   # key -> part label
         order = 0
         for qd in question_defs:
-            if qd["part"] != current_part:
-                # Section header is not a question; we keep ordering
-                # contiguous but do not create a SurveyQuestion for it.
-                current_part = qd["part"]
-
             question = SurveyQuestion.objects.create(
                 survey=survey,
                 question_text=qd["text"],
@@ -784,7 +787,7 @@ def _apply_questions(survey, question_defs):
                 help_text=json.dumps({
                     "key": qd["key"],
                     "part": qd.get("part", ""),
-                    "show_when": qd.get("show_when") or {},
+                    "show_when": {},
                 }),
             )
             for opt in qd.get("options", []):
@@ -794,7 +797,31 @@ def _apply_questions(survey, question_defs):
                     display_order=opt["display_order"],
                     allow_custom=opt.get("allow_custom", False),
                 )
+            created[qd["key"]] = question
+            part_for_key[qd["key"]] = qd.get("part", "")
             order += 1
+
+    # Pass 2: rewrite show_when with resolved question ids.
+    updates = []
+    for qd in question_defs:
+        raw = qd.get("show_when") or {}
+        if not raw:
+            continue
+        resolved = {}
+        for trigger_key, allowed in raw.items():
+            trigger_q = created.get(trigger_key)
+            if trigger_q is not None:
+                resolved[str(trigger_q.id)] = allowed
+        if not resolved:
+            continue
+        question = created[qd["key"]]
+        meta = json.loads(question.help_text) if question.help_text else {}
+        meta["show_when"] = resolved
+        question.help_text = json.dumps(meta)
+        updates.append(question)
+
+    if updates:
+        SurveyQuestion.objects.bulk_update(updates, ["help_text"])
 
 
 class Command(BaseCommand):

@@ -67,11 +67,14 @@ class NotificationManager {
                 headers: {
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
+                credentials: 'same-origin',
             });
-            
-            const data = await response.json();
-            
+
+            const data = await this._safeParseJSON(response);
+            if (!data) return;
+
             if (data.success) {
                 this.notifications = data.notifications;
                 this.notificationCount = data.unread_count;
@@ -83,7 +86,7 @@ class NotificationManager {
             console.error('Error loading notifications:', error);
         }
     }
-    
+
     async markAsRead(notificationId) {
         try {
             const response = await fetch(`/api/notifications/${notificationId}/read/`, {
@@ -91,15 +94,18 @@ class NotificationManager {
                 headers: {
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
+                credentials: 'same-origin',
             });
-            
-            const data = await response.json();
-            
+
+            const data = await this._safeParseJSON(response);
+            if (!data) return;
+
             if (data.success) {
                 this.notificationCount = data.unread_count;
                 this.updateBadge();
-                
+
                 // Update the notification in the list
                 const notification = this.notifications.find(n => n.id === notificationId);
                 if (notification) {
@@ -113,7 +119,7 @@ class NotificationManager {
             console.error('Error marking notification as read:', error);
         }
     }
-    
+
     async markAllAsRead() {
         try {
             const response = await fetch('/api/notifications/mark-all-read/', {
@@ -121,11 +127,14 @@ class NotificationManager {
                 headers: {
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
+                credentials: 'same-origin',
             });
-            
-            const data = await response.json();
-            
+
+            const data = await this._safeParseJSON(response);
+            if (!data) return;
+
             if (data.success) {
                 this.notificationCount = 0;
                 this.notifications.forEach(n => n.is_read = true);
@@ -140,7 +149,7 @@ class NotificationManager {
             ToastUtils.showError('Error marking notifications as read');
         }
     }
-    
+
     async getUnreadCount() {
         try {
             const response = await fetch('/api/notifications/unread-count/', {
@@ -148,17 +157,48 @@ class NotificationManager {
                 headers: {
                     'X-CSRFToken': csrftoken,
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                 },
+                credentials: 'same-origin',
             });
-            
-            const data = await response.json();
-            
+
+            const data = await this._safeParseJSON(response);
+            if (!data) return;
+
             if (data.success) {
                 this.notificationCount = data.unread_count;
                 this.updateBadge();
             }
         } catch (error) {
             console.error('Error getting unread count:', error);
+        }
+    }
+
+    // Parse a fetch response as JSON, but treat non-JSON / non-2xx responses
+    // as a no-op (returns null) instead of throwing. The notifications API
+    // can be blocked by Cloudflare (403 HTML) or by an idle session (302 to
+    // login), and we don't want either of those to crash the page.
+    async _safeParseJSON(response) {
+        if (!response) return null;
+        if (!response.ok) {
+            // Quietly swallow auth / bot-protection failures. The polling
+            // loop will retry on the next tick.
+            if (response.status === 401 || response.status === 403 || response.status === 302) {
+                return null;
+            }
+            console.warn(`Notifications API returned ${response.status}`);
+            return null;
+        }
+        const contentType = response.headers.get('content-type') || '';
+        if (contentType && !contentType.toLowerCase().includes('application/json')) {
+            console.warn(`Notifications API returned non-JSON content-type: ${contentType}`);
+            return null;
+        }
+        try {
+            return await response.json();
+        } catch (error) {
+            console.error('Notifications API response was not valid JSON:', error);
+            return null;
         }
     }
     
