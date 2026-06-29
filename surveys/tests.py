@@ -114,9 +114,12 @@ class TracerStudyReportResponseStatusTests(TestCase):
 
         workbook = load_workbook(BytesIO(export.content))
         self.assertEqual(workbook.sheetnames, ["Responded", "No Response"])
-        responded_names = [row[1].value for row in workbook["Responded"].iter_rows(min_row=2)]
-        missing_names = [row[1].value for row in workbook["No Response"].iter_rows(min_row=2)]
-        self.assertIn("Rina Responded", responded_names)
-        self.assertNotIn("Nico Missing", responded_names)
-        self.assertIn("Nico Missing", missing_names)
-        self.assertNotIn("Rina Responded", missing_names)
+        responded_values = [cell.value for row in workbook["Responded"].iter_rows() for cell in row]
+        missing_values = [cell.value for row in workbook["No Response"].iter_rows() for cell in row]
+        self.assertIn("Tracer Study Response Status", responded_values)
+        self.assertIn("Alumni Who Responded", responded_values)
+        self.assertIn("Alumni With No Response", missing_values)
+        self.assertIn("Rina Responded", responded_values)
+        self.assertNotIn("Nico Missing", responded_values)
+        self.assertIn("Nico Missing", missing_values)
+        self.assertNotIn("Rina Responded", missing_values)

@@ -822,14 +822,43 @@ def tracer_study_report_export(request, survey_id):
     responded_rows = [row for row in rows if row["submitted_at"]]
     missing_rows = [row for row in rows if not row["submitted_at"]]
 
+    from core.export_utils import LogoHeaderService
     from openpyxl import Workbook
+    from openpyxl.styles import Alignment, Font, PatternFill
+    from openpyxl.utils import get_column_letter
 
     wb = Workbook()
     headers = ["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"]
+    header_fill = PatternFill(start_color="2b3c6b", end_color="2b3c6b", fill_type="solid")
+    header_font = Font(bold=True, color="FFFFFF")
+    title_font = Font(bold=True, size=14, color="2b3c6b")
+    section_font = Font(bold=True, size=12, color="2b3c6b")
 
-    def write_sheet(ws, sheet_rows):
-        ws.append(headers)
-        ws.freeze_panes = "A2"
+    def write_sheet(ws, sheet_rows, sheet_title):
+        start_row = LogoHeaderService.add_excel_header(
+            ws,
+            LogoHeaderService.get_logo_path(),
+            title="Tracer Study Response Status",
+        )
+        ws.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=len(headers))
+        ws.cell(start_row, 1, "Tracer Study Response Status").font = title_font
+        ws.cell(start_row, 1).alignment = Alignment(horizontal="center")
+        ws.cell(start_row + 1, 1, f"Survey: {survey.title}")
+        ws.cell(start_row + 2, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        ws.cell(start_row + 3, 1, f"Responded: {len(responded_rows)}")
+        ws.cell(start_row + 3, 2, f"No Response: {len(missing_rows)}")
+
+        table_title_row = start_row + 5
+        ws.merge_cells(start_row=table_title_row, start_column=1, end_row=table_title_row, end_column=len(headers))
+        ws.cell(table_title_row, 1, sheet_title).font = section_font
+
+        header_row = table_title_row + 1
+        for col_num, header in enumerate(headers, 1):
+            cell = ws.cell(header_row, col_num, header)
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = Alignment(horizontal="center")
+        ws.freeze_panes = f"A{header_row + 1}"
         for row in sheet_rows:
             ws.append([
                 row["id"],
@@ -840,14 +869,14 @@ def tracer_study_report_export(request, survey_id):
                 row["status"],
                 row["submitted_at"].strftime("%Y-%m-%d %H:%M:%S") if row["submitted_at"] else "",
             ])
-        for column_cells in ws.columns:
-            max_length = max(len(str(cell.value or "")) for cell in column_cells)
-            ws.column_dimensions[column_cells[0].column_letter].width = min(max_length + 2, 45)
+        for col_num in range(1, len(headers) + 1):
+            max_length = max(len(str(ws.cell(row_num, col_num).value or "")) for row_num in range(1, ws.max_row + 1))
+            ws.column_dimensions[get_column_letter(col_num)].width = min(max_length + 2, 45)
 
     ws = wb.active
     ws.title = "Responded"
-    write_sheet(ws, responded_rows)
-    write_sheet(wb.create_sheet("No Response"), missing_rows)
+    write_sheet(ws, responded_rows, "Alumni Who Responded")
+    write_sheet(wb.create_sheet("No Response"), missing_rows, "Alumni With No Response")
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
