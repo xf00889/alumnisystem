@@ -978,6 +978,7 @@
     // Conditional question show/hide. The hidden state is applied on load and
     // re-evaluated when any conditional-option radio changes. Map format:
     //   { "trigger_question_id": ["option_id_or_value", ...] }
+    // Every trigger must match.
     // The trigger's selected value is compared against the *option's option
     // text* lowercased (eg "yes" / "no" / "never") because the seed writes
     // the textual answer label. We accept either a matching id (id-suffix
@@ -994,23 +995,28 @@
                 } catch (e) {
                     return;
                 }
-                var show = false;
+                var show = true;
                 Object.keys(map).forEach(function(triggerQId) {
                     var allowed = map[triggerQId] || [];
                     var selected = document.querySelector(
                         'input[name="question_' + triggerQId + '"]:checked'
                     );
-                    if (!selected) return;
+                    if (!selected) {
+                        show = false;
+                        return;
+                    }
                     var label = (selected.nextElementSibling
                         ? selected.nextElementSibling.textContent
                         : '').trim().toLowerCase();
                     var val = (selected.value || '').toLowerCase();
+                    var matched = false;
                     allowed.forEach(function(allow) {
                         var a = ('' + allow).toLowerCase();
                         if (label.indexOf(a) !== -1 || val === a || val.indexOf(a) !== -1) {
-                            show = true;
+                            matched = true;
                         }
                     });
+                    if (!matched) show = false;
                 });
                 card.style.display = show ? '' : 'none';
                 // Disable hidden inputs so they're not submitted

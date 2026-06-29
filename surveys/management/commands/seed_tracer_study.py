@@ -472,7 +472,7 @@ ALUMNI_QUESTIONS = [
             ("proximity", "Proximity to residence"),
             ("other", "Other (please specify)", True),
         ]),
-        "show_when": {"p3_employed": ["yes"]},
+        "show_when": {"p3_employed": ["yes"], "p3_first_job": ["no"]},
     },
     {
         "key": "p3_first_job_duration",
