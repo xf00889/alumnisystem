@@ -12,6 +12,7 @@ URLs:
                                 thereafter)
 """
 from datetime import date
+import csv
 import json
 import logging
 
@@ -19,7 +20,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.db.models import Count, Q
-from django.http import HttpResponseRedirect
+from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
@@ -43,6 +44,34 @@ from .models import (
 
 ALUMNI_TITLE = "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
 EMPLOYER_TITLE = "NORSU Graduate Tracer Study (EMPLOYER QUESTIONNAIRE)"
+
+
+def _can_view_tracer_reports(user):
+    return (
+        user.is_staff
+        or user.is_superuser
+        or (hasattr(user, "profile") and user.profile.is_alumni_coordinator)
+    )
+
+
+def _alumni_response_rows(survey):
+    responses = {
+        response.alumni_id: response
+        for response in SurveyResponse.objects.filter(survey=survey).select_related("alumni__user")
+    }
+    rows = []
+    for alumni in Alumni.objects.select_related("user").order_by("user__last_name", "user__first_name"):
+        response = responses.get(alumni.id)
+        rows.append({
+            "id": alumni.id,
+            "name": alumni.full_name or alumni.user.username,
+            "email": alumni.user.email,
+            "course": alumni.course,
+            "graduation_year": alumni.graduation_year,
+            "status": "Responded" if response else "Not Responded",
+            "submitted_at": response.submitted_at if response else None,
+        })
+    return rows
 
 
 def _get_active_survey(title):
@@ -678,8 +707,7 @@ def _aggregate_question(survey, question, alumni_model, employer_model):
 @login_required
 def tracer_study_reports(request):
     """Landing page for the two tracer study reports."""
-    if not (request.user.is_staff or request.user.is_superuser or
-            (hasattr(request.user, "profile") and request.user.profile.is_alumni_coordinator)):
+    if not _can_view_tracer_reports(request.user):
         return redirect("surveys:tracer_study_alumni")
 
     surveys = []
@@ -704,8 +732,7 @@ def tracer_study_reports(request):
 @login_required
 def tracer_study_report(request, survey_id):
     """Aggregate report for a tracer study survey."""
-    if not (request.user.is_staff or request.user.is_superuser or
-            (hasattr(request.user, "profile") and request.user.profile.is_alumni_coordinator)):
+    if not _can_view_tracer_reports(request.user):
         return redirect("surveys:tracer_study_alumni")
 
     survey = _tracer_study_survey_or_404(survey_id)
@@ -732,6 +759,15 @@ def tracer_study_report(request, survey_id):
 
     response_model = SurveyResponse if audience == "alumni" else EmployerResponse
     total_responses = response_model.objects.filter(survey=survey).count()
+    response_rows = []
+    responded_rows = []
+    missing_rows = []
+    response_rate = None
+    if audience == "alumni":
+        response_rows = _alumni_response_rows(survey)
+        responded_rows = [row for row in response_rows if row["submitted_at"]]
+        missing_rows = [row for row in response_rows if not row["submitted_at"]]
+        response_rate = (len(responded_rows) / len(response_rows) * 100) if response_rows else 0
 
     # Group questions by part (stored in help_text JSON)
     questions = (
@@ -764,7 +800,40 @@ def tracer_study_report(request, survey_id):
             "survey": survey,
             "audience": audience,
             "total_responses": total_responses,
+            "total_expected": len(response_rows),
+            "responded_rows": responded_rows,
+            "missing_rows": missing_rows,
+            "response_rate": response_rate,
             "sections": sections,
             "report": report,
         },
     )
+
+
+@login_required
+def tracer_study_report_export(request, survey_id, status):
+    if not _can_view_tracer_reports(request.user):
+        return redirect("surveys:tracer_study_alumni")
+
+    survey = _tracer_study_survey_or_404(survey_id)
+    if survey.title != ALUMNI_TITLE or status not in {"responded", "missing"}:
+        raise Http404
+
+    rows = _alumni_response_rows(survey)
+    rows = [row for row in rows if bool(row["submitted_at"]) == (status == "responded")]
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = f'attachment; filename="tracer-study-{status}.csv"'
+    writer = csv.writer(response)
+    writer.writerow(["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"])
+    for row in rows:
+        writer.writerow([
+            row["id"],
+            row["name"],
+            row["email"],
+            row["course"],
+            row["graduation_year"],
+            row["status"],
+            row["submitted_at"].strftime("%Y-%m-%d %H:%M:%S") if row["submitted_at"] else "",
+        ])
+    return response

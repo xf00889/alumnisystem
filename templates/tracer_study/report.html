@@ -84,6 +84,110 @@
             {% endif %}
         </div>
 
+        {% if audience == 'alumni' %}
+            <div class="row g-3 mb-3">
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-label">Expected Alumni</div>
+                            <div class="stat-value">{{ total_expected }}</div>
+                        </div>
+                        <i class="fas fa-user-graduate stat-icon text-primary"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-label">Responded</div>
+                            <div class="stat-value">{{ responded_rows|length }}</div>
+                        </div>
+                        <i class="fas fa-check-circle stat-icon text-success"></i>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="stat-card">
+                        <div>
+                            <div class="stat-label">No Response</div>
+                            <div class="stat-value">{{ missing_rows|length }}</div>
+                        </div>
+                        <i class="fas fa-clock stat-icon text-warning"></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="dashboard-card mb-3">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between gap-2 align-items-center flex-wrap mb-3">
+                        <div>
+                            <h5 class="mb-1">Alumni Response Status</h5>
+                            <p class="text-muted mb-0">{{ response_rate|floatformat:1 }}% response rate</p>
+                        </div>
+                        <div class="d-flex gap-2 flex-wrap no-print">
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id 'responded' %}" class="btn btn-outline-success btn-sm">
+                                <i class="fas fa-file-export me-1"></i> Export Responded
+                            </a>
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id 'missing' %}" class="btn btn-outline-warning btn-sm">
+                                <i class="fas fa-file-export me-1"></i> Export No Response
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="row g-3">
+                        <div class="col-lg-6">
+                            <h6 class="mb-2">Responded</h6>
+                            <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Program</th>
+                                            <th>Submitted</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in responded_rows %}
+                                        <tr>
+                                            <td>{{ row.name }}</td>
+                                            <td>{{ row.course|default:"-" }}</td>
+                                            <td>{{ row.submitted_at|date:"M d, Y h:i A" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="3" class="text-muted">No alumni have responded yet.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <h6 class="mb-2">No Response</h6>
+                            <div class="table-responsive" style="max-height: 360px; overflow-y: auto;">
+                                <table class="table table-sm align-middle">
+                                    <thead>
+                                        <tr>
+                                            <th>Name</th>
+                                            <th>Program</th>
+                                            <th>Graduation Year</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {% for row in missing_rows %}
+                                        <tr>
+                                            <td>{{ row.name }}</td>
+                                            <td>{{ row.course|default:"-" }}</td>
+                                            <td>{{ row.graduation_year|default:"-" }}</td>
+                                        </tr>
+                                        {% empty %}
+                                        <tr><td colspan="3" class="text-muted">Everyone has responded.</td></tr>
+                                        {% endfor %}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        {% endif %}
+
         {% if total_responses == 0 %}
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-1"></i>
