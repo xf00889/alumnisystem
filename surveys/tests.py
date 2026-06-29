@@ -181,5 +181,5 @@ class TracerStudyBannerContextTests(TestCase):
         )
 
         self.assertIn("class=\"tracer-study-banner no-print\"", html)
-        self.assertIn("top: 76px", html)
-        self.assertIn("margin-top: 150px", html)
+        self.assertIn("top: 64px", html)
+        self.assertIn("margin-top: 138px", html)
