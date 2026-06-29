@@ -213,55 +213,66 @@ def alumni_list(request):
             }
         )
         
+        can_view_alumni_details = is_admin(request.user)
+
         # Apply filters
         search_query = request.GET.get('search', '').strip()
         if search_query:
-            # Create a lookup for college display names
-            college_lookup = Q()
-            for code, name in Alumni.COLLEGE_CHOICES:
-                if search_query.lower() in name.lower():
-                    college_lookup |= Q(college=code)
+            if can_view_alumni_details:
+                # Create a lookup for college display names
+                college_lookup = Q()
+                for code, name in Alumni.COLLEGE_CHOICES:
+                    if search_query.lower() in name.lower():
+                        college_lookup |= Q(college=code)
 
-            queryset = queryset.filter(
-                Q(user__first_name__icontains=search_query) |
-                Q(user__last_name__icontains=search_query) |
-                Q(course__icontains=search_query) |
-                Q(city__icontains=search_query) |
-                Q(province__icontains=search_query) |
-                Q(current_company__icontains=search_query) |
-                Q(job_title__icontains=search_query) |
-                college_lookup  # Include college name search
-            )
+                queryset = queryset.filter(
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query) |
+                    Q(course__icontains=search_query) |
+                    Q(city__icontains=search_query) |
+                    Q(province__icontains=search_query) |
+                    Q(current_company__icontains=search_query) |
+                    Q(job_title__icontains=search_query) |
+                    college_lookup  # Include college name search
+                )
+            else:
+                queryset = queryset.filter(
+                    Q(user__first_name__icontains=search_query) |
+                    Q(user__last_name__icontains=search_query)
+                )
         
         # Graduation Year filter
         grad_year = [y for y in request.GET.getlist('graduation_year') if y]
-        if grad_year:
+        if grad_year and can_view_alumni_details:
             queryset = queryset.filter(graduation_year__in=grad_year)
         
         # Course filter
         course = [c for c in request.GET.getlist('course') if c]
-        if course:
+        if course and can_view_alumni_details:
             queryset = queryset.filter(course__in=course)
         
         # College filter
         college = [c for c in request.GET.getlist('college') if c]
-        if college:
+        if college and can_view_alumni_details:
             queryset = queryset.filter(college__in=college)
         
         # Campus filter
         campus = [c for c in request.GET.getlist('campus') if c]
-        if campus:
+        if campus and can_view_alumni_details:
             queryset = queryset.filter(campus__in=campus)
         
         # Location filter
         province = [p for p in request.GET.getlist('province') if p]
-        if province:
+        if province and can_view_alumni_details:
             queryset = queryset.filter(province__in=province)
         
         # Employment Status filter
         employment_status = [e for e in request.GET.getlist('employment_status') if e]
-        if employment_status:
+        if employment_status and can_view_alumni_details:
             queryset = queryset.filter(employment_status__in=employment_status)
+        
+        if not can_view_alumni_details:
+            grad_year = course = college = campus = province = employment_status = []
         
         # Count selected filters
         selected_filters_count = sum(
@@ -271,6 +282,9 @@ def alumni_list(request):
             ]
         )
         any_filter_active = selected_filters_count > 0
+        show_alumni_results = any_filter_active
+        if not show_alumni_results:
+            queryset = Alumni.objects.none()
         
         # Get total counts
         total_alumni = Alumni.objects.count()
@@ -296,6 +310,8 @@ def alumni_list(request):
             },
             'selected_filters_count': selected_filters_count,
             'any_filter_active': any_filter_active,
+            'show_alumni_results': show_alumni_results,
+            'can_view_alumni_details': can_view_alumni_details,
             'total_alumni': total_alumni,
             'total_registered': total_registered,
             'graduation_years_count': graduation_years_count,
@@ -411,12 +427,16 @@ def alumni_detail(request, pk):
             # Profile doesn't exist or other error
             logger.warning(f"No profile found for alumni ID: {pk}")
             profile = None
+
+        is_owner = request.user == alumni.user
+        is_admin_user = is_admin(request.user)
+        can_view_private_profile = is_owner or is_admin_user
         
         # Get documents from both AlumniDocument and accounts.Document models
-        alumni_documents = list(alumni.documents.all().order_by('-uploaded_at'))
+        alumni_documents = list(alumni.documents.all().order_by('-uploaded_at')) if can_view_private_profile else []
         profile_documents = []
         
-        if profile:
+        if profile and can_view_private_profile:
             from accounts.models import Document
             
             # Create a wrapper class to make profile documents behave like AlumniDocuments
@@ -449,7 +469,7 @@ def alumni_detail(request, pk):
         logger.info(f"Documents for alumni ID {pk}: Total={total_documents}, Verified={verified_documents}, Pending={pending_verification}")
         
         # Debug: Check if documents exist in the database
-        if total_documents == 0:
+        if can_view_private_profile and total_documents == 0:
             logger.warning(f"No documents found for alumni ID: {pk}")
             # Check if there are any documents in the system at all
             all_docs_count = AlumniDocument.objects.count()
@@ -460,9 +480,9 @@ def alumni_detail(request, pk):
             logger.info(f"Total Profile Documents in system: {all_profile_docs_count}")
         
         # Get professional experiences using the ProfessionalExperience utility class
-        unified_experience = ProfessionalExperience.get_unified_experience(alumni)
-        career_path = ProfessionalExperience.get_career_path_only(alumni)
-        work_experience = ProfessionalExperience.get_regular_experience_only(alumni)
+        unified_experience = ProfessionalExperience.get_unified_experience(alumni) if can_view_private_profile else []
+        career_path = ProfessionalExperience.get_career_path_only(alumni) if can_view_private_profile else []
+        work_experience = ProfessionalExperience.get_regular_experience_only(alumni) if can_view_private_profile else []
         
         # Calculate profile completion percentage
         completion_fields = [
@@ -482,13 +502,7 @@ def alumni_detail(request, pk):
         completion_percentage = int((filled_fields / len(completion_fields)) * 100)
         
         # Get achievements
-        achievements = alumni.achievements_list.all().order_by('-date_achieved')
-        
-        # Check if current user is owner
-        is_owner = request.user == alumni.user
-        
-        # Check if the user is staff/admin
-        is_admin = request.user.is_staff
+        achievements = alumni.achievements_list.all().order_by('-date_achieved') if can_view_private_profile else []
         
         context = {
             'alumni': alumni,
@@ -503,7 +517,8 @@ def alumni_detail(request, pk):
             'work_experience': work_experience,
             'achievements': achievements,
             'is_owner': is_owner,
-            'is_admin': is_admin
+            'is_admin': is_admin_user,
+            'can_view_private_profile': can_view_private_profile
         }
         
         return render(request, 'alumni_directory/alumni_detail.html', context)

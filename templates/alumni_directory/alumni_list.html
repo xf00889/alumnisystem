@@ -970,9 +970,10 @@
                            id="search"
                            name="search" 
                            class="search-input" 
-                           placeholder="Enter name, program, college, or location..."
+                           placeholder="{% if can_view_alumni_details %}Enter name, program, college, or location...{% else %}Enter alumni name...{% endif %}"
                            value="{{ selected_filters.search }}">
                 </div>
+                {% if can_view_alumni_details %}
                 <div class="search-group">
                     <label class="search-label" for="graduation_year">Graduation Year</label>
                     <select id="graduation_year" name="graduation_year" class="search-select">
@@ -1000,6 +1001,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endif %}
                 <div>
                     <button type="submit" class="search-button">
                         <i class="fas fa-search"></i> Search
@@ -1069,11 +1071,17 @@
         {% endif %}
 
         <!-- Alumni Grid -->
-        {% if alumni_list %}
+        {% if not show_alumni_results %}
+        <div class="empty-state">
+            <i class="fas fa-search"></i>
+            <h3>Search Alumni</h3>
+            <p>Use the search box or filters to find alumni records.</p>
+        </div>
+        {% elif alumni_list %}
         <div class="alumni-grid">
             {% for alumni in alumni_list %}
             <div class="alumni-card">
-                {% if alumni.mentorship_status == 'VERIFIED' %}
+                {% if can_view_alumni_details and alumni.mentorship_status == 'VERIFIED' %}
                 <div class="mentor-badge">
                     <i class="fas fa-chalkboard-teacher"></i> Mentor
                 </div>
@@ -1085,10 +1093,13 @@
                          class="alumni-avatar">
                     <div class="alumni-info">
                         <h3>{{ alumni.full_name }}</h3>
+                        {% if can_view_alumni_details %}
                         <p class="username">{{ alumni.user.username }}</p>
+                        {% endif %}
                     </div>
                 </div>
                 
+                {% if can_view_alumni_details %}
                 <div class="alumni-details">
                     {% if alumni.college %}
                     <div class="detail-row">
@@ -1117,6 +1128,7 @@
                      </div>
                      {% endif %}
                  </div>
+                 {% endif %}
                  
                  <div class="alumni-actions">
                      <a href="{% url 'alumni_directory:alumni_detail' alumni.id %}"

@@ -993,7 +993,7 @@
             <div class="row align-items-center">
                 <div class="col-md-8 text-center text-md-start">
                     <h1><i class="fas fa-user-graduate me-3"></i>Alumni Profile</h1>
-                    <p>Detailed information about {{ alumni.full_name }}</p>
+                    <p>{% if can_view_private_profile %}Detailed information about {{ alumni.full_name }}{% else %}Alumni profile{% endif %}</p>
                 </div>
                 <div class="col-md-4 text-center text-md-end">
                     <a href="{% url 'alumni_directory:alumni_list' %}" class="btn btn-outline-light">
@@ -1015,7 +1015,7 @@
                         <img src="{% static 'images/default-avatar.png' %}" alt="{{ alumni.full_name }}" class="profile-avatar">
                     {% endif %}
                     
-                    {% if alumni.is_mentor %}
+                    {% if can_view_private_profile and alumni.is_mentor %}
                     <div class="mentor-badge" data-bs-toggle="tooltip" title="Mentor">
                         <i class="fas fa-chalkboard-teacher"></i>
                     </div>
@@ -1025,26 +1025,26 @@
             
             <div class="col-md-9">
                 <h1 class="profile-name text-truncate">{{ alumni.full_name }}</h1>
-                {% if alumni.job_title %}
+                {% if can_view_private_profile and alumni.job_title %}
                     <p class="profile-headline">{{ alumni.job_title }}{% if alumni.current_company %} at {{ alumni.current_company }}{% endif %}</p>
                 {% endif %}
                 
                 <div class="profile-meta">
-                    {% if alumni.user.profile.address or alumni.user.profile.city or alumni.user.profile.state %}
+                    {% if can_view_private_profile and alumni.user.profile.address or can_view_private_profile and alumni.user.profile.city or can_view_private_profile and alumni.user.profile.state %}
                     <div class="profile-meta-item">
                         <i class="fas fa-map-marker-alt"></i>
                         <span>{{ alumni.user.profile.address }}, {{ alumni.user.profile.city }}, {{ alumni.user.profile.state }}, {{ alumni.user.profile.country.name }}</span>
                     </div>
                     {% endif %}
                     
-                    {% if alumni.email %}
+                    {% if can_view_private_profile and alumni.email %}
                     <div class="profile-meta-item">
                         <i class="fas fa-envelope"></i>
                         <span>{{ alumni.email }}</span>
                     </div>
                     {% endif %}
                     
-                    {% if alumni.graduation_year %}
+                    {% if can_view_private_profile and alumni.graduation_year %}
                     <div class="profile-meta-item">
                         <i class="fas fa-graduation-cap"></i>
                         <span>Class of {{ alumni.graduation_year }}</span>
@@ -1058,6 +1058,7 @@
     <!-- Main content -->
     <div class="row">
         <!-- Left column -->
+        {% if can_view_private_profile %}
         <div class="col-lg-8">
             <!-- Personal Information -->
             <div class="dashboard-card">
@@ -1065,7 +1066,7 @@
                 <div class="row">
                     <div class="col-md-6">
                         <p><strong>Full Name:</strong> {{ alumni.full_name }}</p>
-                        {% if alumni.date_of_birth %}
+                        {% if can_view_private_profile and alumni.date_of_birth %}
                             <p><strong>Date of Birth:</strong> {{ alumni.date_of_birth|date:"F d, Y" }}</p>
                         {% endif %}
                         {% if alumni.gender %}
@@ -1073,16 +1074,16 @@
                         {% endif %}
                     </div>
                     <div class="col-md-6">
-                        {% if alumni.phone_number %}
+                        {% if can_view_private_profile and alumni.phone_number %}
                             <p><strong>Phone:</strong> {{ alumni.phone_number }}</p>
                         {% endif %}
-                        {% if alumni.email %}
+                        {% if can_view_private_profile and alumni.email %}
                             <p><strong>Email:</strong> {{ alumni.email }}</p>
                         {% endif %}
-                        {% if alumni.alternate_email %}
+                        {% if can_view_private_profile and alumni.alternate_email %}
                             <p><strong>Alternate Email:</strong> {{ alumni.alternate_email }}</p>
                         {% endif %}
-                        {% if alumni.user.profile.address or alumni.user.profile.city or alumni.user.profile.state %}
+                        {% if can_view_private_profile and alumni.user.profile.address or can_view_private_profile and alumni.user.profile.city or can_view_private_profile and alumni.user.profile.state %}
                             <p><strong>Address:</strong> 
                                 <span>{{ alumni.user.profile.address }}, {{ alumni.user.profile.city }}, {{ alumni.user.profile.state }}, {{ alumni.user.profile.country.name }}</span>
                             </p>
@@ -1243,10 +1244,12 @@
                 {% endif %}
             </div>
         </div>
+        {% endif %}
 
         <!-- Right sidebar -->
         <div class="col-lg-4">
             <!-- University Information -->
+            {% if can_view_private_profile %}
             <div class="dashboard-card university-card">
                 <h3 class="section-title"><i class="fas fa-university me-2"></i>University</h3>
                 <div class="text-center mb-4">
@@ -1322,12 +1325,13 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
 
             <!-- Contact buttons -->
             <div class="dashboard-card contact-card">
                 <h3 class="section-title"><i class="fas fa-phone me-2"></i>Contact</h3>
                 <div class="contact-buttons">
-                    {% if alumni.is_mentor %}
+                    {% if can_view_private_profile and alumni.is_mentor %}
                         <a href="{% url 'mentorship:request_mentorship' mentor_id=alumni.id %}" class="contact-btn mentor-btn">
                             <i class="fas fa-user-graduate"></i>
                             <div>
@@ -1394,6 +1398,7 @@
                         {% endif %}
                     {% endif %}
                     
+                    {% if can_view_private_profile and alumni.email %}
                     <a href="mailto:{{ alumni.email }}" class="contact-btn email-btn">
                         <i class="fas fa-envelope"></i>
                         <div>
@@ -1401,8 +1406,9 @@
                             <small>{{ alumni.email }}</small>
                         </div>
                     </a>
+                    {% endif %}
                     
-                    {% if alumni.linkedin_profile %}
+                    {% if can_view_private_profile and alumni.linkedin_profile %}
                         <a href="{{ alumni.linkedin_profile }}" target="_blank" class="contact-btn linkedin-btn">
                             <i class="fab fa-linkedin"></i>
                             <div>
@@ -1413,6 +1419,7 @@
                 </div>
             </div>
 
+            {% if can_view_private_profile %}
             <!-- Documents -->
             <div class="dashboard-card">
                 <h3 class="section-title"><i class="fas fa-file-alt me-2"></i>Documents</h3>
@@ -1488,6 +1495,7 @@
                 </div>
                 {% endif %}
             </div>
+            {% endif %}
         </div>
     </div>
 </div>
