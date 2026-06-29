@@ -12,7 +12,7 @@ urlpatterns = [
     path('tracer-study/employer/', tracer_study.tracer_study_employer, name='tracer_study_employer'),
     path('tracer-study/reports/', tracer_study.tracer_study_reports, name='tracer_study_reports'),
     path('tracer-study/report/<int:survey_id>/', tracer_study.tracer_study_report, name='tracer_study_report'),
-    path('tracer-study/report/<int:survey_id>/export/<str:status>/', tracer_study.tracer_study_report_export, name='tracer_study_report_export'),
+    path('tracer-study/report/<int:survey_id>/export/', tracer_study.tracer_study_report_export, name='tracer_study_report_export'),
 
     # Admin Survey Management URLs
     path('admin/surveys/', views.SurveyListView.as_view(), name='survey_list'),

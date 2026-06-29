@@ -1,5 +1,6 @@
 import json
 from datetime import timedelta
+from io import BytesIO
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
@@ -101,13 +102,21 @@ class TracerStudyReportResponseStatusTests(TestCase):
         response = self.client.get(report_url)
         self.assertContains(response, "Rina Responded")
         self.assertContains(response, "Nico Missing")
-        self.assertContains(response, "Export Responded")
-        self.assertContains(response, "Export No Response")
+        self.assertContains(response, "Export Excel")
 
-        responded = self.client.get(reverse("surveys:tracer_study_report_export", args=[self.survey.id, "responded"]))
-        self.assertContains(responded, "Rina Responded")
-        self.assertNotContains(responded, "Nico Missing")
+        export = self.client.get(reverse("surveys:tracer_study_report_export", args=[self.survey.id]))
+        self.assertEqual(
+            export["Content-Type"],
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
 
-        missing = self.client.get(reverse("surveys:tracer_study_report_export", args=[self.survey.id, "missing"]))
-        self.assertContains(missing, "Nico Missing")
-        self.assertNotContains(missing, "Rina Responded")
+        from openpyxl import load_workbook
+
+        workbook = load_workbook(BytesIO(export.content))
+        self.assertEqual(workbook.sheetnames, ["Responded", "No Response"])
+        responded_names = [row[1].value for row in workbook["Responded"].iter_rows(min_row=2)]
+        missing_names = [row[1].value for row in workbook["No Response"].iter_rows(min_row=2)]
+        self.assertIn("Rina Responded", responded_names)
+        self.assertNotIn("Nico Missing", responded_names)
+        self.assertIn("Nico Missing", missing_names)
+        self.assertNotIn("Rina Responded", missing_names)

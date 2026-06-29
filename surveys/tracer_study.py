@@ -12,7 +12,6 @@ URLs:
                                 thereafter)
 """
 from datetime import date
-import csv
 import json
 import logging
 
@@ -811,29 +810,48 @@ def tracer_study_report(request, survey_id):
 
 
 @login_required
-def tracer_study_report_export(request, survey_id, status):
+def tracer_study_report_export(request, survey_id):
     if not _can_view_tracer_reports(request.user):
         return redirect("surveys:tracer_study_alumni")
 
     survey = _tracer_study_survey_or_404(survey_id)
-    if survey.title != ALUMNI_TITLE or status not in {"responded", "missing"}:
+    if survey.title != ALUMNI_TITLE:
         raise Http404
 
     rows = _alumni_response_rows(survey)
-    rows = [row for row in rows if bool(row["submitted_at"]) == (status == "responded")]
+    responded_rows = [row for row in rows if row["submitted_at"]]
+    missing_rows = [row for row in rows if not row["submitted_at"]]
 
-    response = HttpResponse(content_type="text/csv")
-    response["Content-Disposition"] = f'attachment; filename="tracer-study-{status}.csv"'
-    writer = csv.writer(response)
-    writer.writerow(["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"])
-    for row in rows:
-        writer.writerow([
-            row["id"],
-            row["name"],
-            row["email"],
-            row["course"],
-            row["graduation_year"],
-            row["status"],
-            row["submitted_at"].strftime("%Y-%m-%d %H:%M:%S") if row["submitted_at"] else "",
-        ])
+    from openpyxl import Workbook
+
+    wb = Workbook()
+    headers = ["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"]
+
+    def write_sheet(ws, sheet_rows):
+        ws.append(headers)
+        ws.freeze_panes = "A2"
+        for row in sheet_rows:
+            ws.append([
+                row["id"],
+                row["name"],
+                row["email"],
+                row["course"],
+                row["graduation_year"],
+                row["status"],
+                row["submitted_at"].strftime("%Y-%m-%d %H:%M:%S") if row["submitted_at"] else "",
+            ])
+        for column_cells in ws.columns:
+            max_length = max(len(str(cell.value or "")) for cell in column_cells)
+            ws.column_dimensions[column_cells[0].column_letter].width = min(max_length + 2, 45)
+
+    ws = wb.active
+    ws.title = "Responded"
+    write_sheet(ws, responded_rows)
+    write_sheet(wb.create_sheet("No Response"), missing_rows)
+
+    response = HttpResponse(
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.xlsx"'
+    wb.save(response)
     return response
