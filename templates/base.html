@@ -210,25 +210,25 @@
          }
 
          .tracer-study-banner {
-             position: sticky;
+             position: fixed;
              top: 76px;
-             z-index: 1020;
+             left: 0;
+             right: 0;
+             z-index: 1030;
              display: flex;
              align-items: center;
              justify-content: space-between;
              gap: 1rem;
-             margin-bottom: 1rem;
-             padding: 0.875rem 1rem;
-             border: 1px solid rgba(43, 60, 107, 0.18);
-             border-left: 4px solid #2b3c6b;
-             border-radius: 0.5rem;
-             background: #ffffff;
-             box-shadow: 0 6px 18px rgba(43, 60, 107, 0.12);
+             width: 100%;
+             padding: 0.8rem 2rem;
+             border-bottom: 1px solid rgba(146, 64, 14, 0.2);
+             background: linear-gradient(90deg, #fff7ed 0%, #fef3c7 58%, #e0f2fe 100%);
+             box-shadow: 0 8px 20px rgba(43, 60, 107, 0.14);
          }
 
          .tracer-study-banner-title {
              font-weight: 700;
-             color: #2b3c6b;
+             color: #92400e;
              margin-bottom: 0.1rem;
          }
 
@@ -236,6 +236,19 @@
              color: #4a5568;
              font-size: 0.875rem;
              margin: 0;
+         }
+
+         .tracer-study-banner .btn {
+             background: #2b3c6b;
+             border-color: #2b3c6b;
+             color: #fff;
+             box-shadow: 0 4px 10px rgba(43, 60, 107, 0.24);
+         }
+
+         .tracer-study-banner .btn:hover {
+             background: #1f2f59;
+             border-color: #1f2f59;
+             color: #fff;
          }
          
          /* Mobile responsiveness for content wrapper */
@@ -869,23 +882,24 @@
     </nav>
     {% endif %}
 
-    <!-- Main Content -->
-    <main class="content-wrapper {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: 76px;"{% endif %}>
-        {% if show_tracer_study_banner %}
-        <div class="tracer-study-banner no-print">
-            <div>
-                <div class="tracer-study-banner-title">
-                    <i class="fas fa-clipboard-list me-2"></i>Graduate Tracer Study Required
-                </div>
-                <p class="tracer-study-banner-text">
-                    Help NORSU update alumni career outcomes by completing the tracer study.
-                </p>
+    {% if show_tracer_study_banner %}
+    <div class="tracer-study-banner no-print">
+        <div>
+            <div class="tracer-study-banner-title">
+                <i class="fas fa-clipboard-list me-2"></i>Graduate Tracer Study Required
             </div>
-            <a href="{% url 'surveys:tracer_study_alumni' %}" class="btn btn-primary btn-sm">
-                Answer Tracer Study
-            </a>
+            <p class="tracer-study-banner-text">
+                Help NORSU update alumni career outcomes by completing the tracer study.
+            </p>
         </div>
-        {% endif %}
+        <a href="{% url 'surveys:tracer_study_alumni' %}" class="btn btn-primary btn-sm">
+            Answer Tracer Study
+        </a>
+    </div>
+    {% endif %}
+
+    <!-- Main Content -->
+    <main class="content-wrapper {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: {% if show_tracer_study_banner %}150px{% else %}76px{% endif %};"{% endif %}>
 
         {% if messages %}
             <!-- Django messages container - hidden and processed by ToastUtils -->

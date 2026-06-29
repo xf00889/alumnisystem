@@ -7,6 +7,7 @@ from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.management import call_command
 from django.test import RequestFactory, TestCase, override_settings
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 
@@ -166,3 +167,19 @@ class TracerStudyBannerContextTests(TestCase):
         SurveyResponse.objects.create(survey=self.survey, alumni=self.alumni)
 
         self.assertFalse(tracer_study_banner_context(self.request_for_user())["show_tracer_study_banner"])
+
+    def test_base_template_offsets_content_when_banner_shows(self):
+        request = self.request_for_user()
+        html = render_to_string(
+            "base.html",
+            {
+                "request": request,
+                "user": self.user,
+                "show_tracer_study_banner": True,
+                "seo": {"title": "Test"},
+            },
+        )
+
+        self.assertIn("class=\"tracer-study-banner no-print\"", html)
+        self.assertIn("top: 76px", html)
+        self.assertIn("margin-top: 150px", html)
