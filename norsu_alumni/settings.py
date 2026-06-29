@@ -149,6 +149,7 @@ TEMPLATES = [
                 'core.context_processors.seo_context',
                 'core.context_processors.footer_links',
                 'core.context_processors.user_role_context',
+                'core.context_processors.tracer_study_banner_context',
             ],
         },
     },

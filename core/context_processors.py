@@ -22,6 +22,41 @@ def user_role_context(request):
     return context
 
 
+def tracer_study_banner_context(request):
+    if not getattr(request, 'user', None) or not request.user.is_authenticated:
+        return {'show_tracer_study_banner': False}
+
+    if request.user.is_staff or request.user.is_superuser:
+        return {'show_tracer_study_banner': False}
+
+    if getattr(getattr(request, 'resolver_match', None), 'url_name', '') == 'tracer_study_alumni':
+        return {'show_tracer_study_banner': False}
+
+    try:
+        profile = request.user.profile
+        if profile.is_alumni_coordinator or not profile.has_completed_registration:
+            return {'show_tracer_study_banner': False}
+
+        alumni = request.user.alumni
+        from django.utils import timezone
+        from surveys.models import Survey, SurveyResponse
+
+        now = timezone.now()
+        survey = Survey.objects.filter(
+            title='NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)',
+            status='active',
+            start_date__lte=now,
+            end_date__gte=now,
+        ).first()
+        show_banner = bool(survey and not SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists())
+        return {
+            'show_tracer_study_banner': show_banner,
+            'tracer_study_banner_survey': survey,
+        }
+    except Exception:
+        return {'show_tracer_study_banner': False}
+
+
 def recaptcha_context(request):
     """
     Add reCAPTCHA configuration to template context

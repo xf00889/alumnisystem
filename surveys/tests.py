@@ -1,15 +1,17 @@
 import json
 from datetime import timedelta
 from io import BytesIO
+from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.management import call_command
-from django.test import TestCase, override_settings
+from django.test import RequestFactory, TestCase, override_settings
 from django.urls import reverse
 from django.utils import timezone
 
 from alumni_directory.models import Alumni
+from core.context_processors import tracer_study_banner_context
 from surveys.management.commands.seed_tracer_study import ALUMNI_TITLE
 from surveys.models import Survey, SurveyResponse
 
@@ -123,3 +125,44 @@ class TracerStudyReportResponseStatusTests(TestCase):
         self.assertNotIn("Nico Missing", responded_values)
         self.assertIn("Nico Missing", missing_values)
         self.assertNotIn("Rina Responded", missing_values)
+
+
+class TracerStudyBannerContextTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.user = User.objects.create_user("alumni", "alumni@example.com", "pass")
+        self.user.profile.has_completed_registration = True
+        self.user.profile.save(update_fields=["has_completed_registration"])
+        self.alumni = Alumni.objects.create(
+            user=self.user,
+            college="CAS",
+            campus="MAIN",
+            graduation_year=2026,
+            course="BSINT",
+            gender="M",
+            province="Negros Oriental",
+            city="Dumaguete",
+            address="A",
+        )
+        self.survey = Survey.objects.create(
+            title=ALUMNI_TITLE,
+            description="Tracer",
+            created_by=self.user,
+            start_date=timezone.now(),
+            end_date=timezone.now() + timedelta(days=7),
+            status="active",
+        )
+        self.factory = RequestFactory()
+
+    def request_for_user(self):
+        request = self.factory.get("/")
+        request.user = self.user
+        request.resolver_match = SimpleNamespace(url_name="home")
+        return request
+
+    def test_banner_disappears_after_tracer_response(self):
+        self.assertTrue(tracer_study_banner_context(self.request_for_user())["show_tracer_study_banner"])
+
+        SurveyResponse.objects.create(survey=self.survey, alumni=self.alumni)
+
+        self.assertFalse(tracer_study_banner_context(self.request_for_user())["show_tracer_study_banner"])
