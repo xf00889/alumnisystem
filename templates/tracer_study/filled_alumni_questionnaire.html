@@ -1,0 +1,508 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Filled Alumni Tracer Study{% endblock %}
+
+{% block extra_css %}
+<style>
+  .filled-toolbar {
+    max-width: 900px;
+    margin: 0 auto 16px;
+    padding: 0 20px;
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+  }
+  .filled-page {
+    max-width: 900px;
+    margin: 24px auto;
+    background: #fff;
+    padding: 36px 48px 48px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+    font-family: "Calibri", "Segoe UI", Arial, Helvetica, sans-serif;
+    color: #1a1a1a;
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .letterhead {
+    text-align: center;
+    margin-bottom: 18px;
+    border-bottom: 2px solid #142a6b;
+    padding-bottom: 10px;
+  }
+  .letterhead img {
+    width: 100%;
+    height: auto;
+    max-width: 760px;
+  }
+  .appendix-label {
+    text-align: right;
+    font-weight: bold;
+    margin: 0 0 4px;
+  }
+  .doc-title {
+    text-align: center;
+    font-size: 17px;
+    font-weight: bold;
+    margin: 0 0 20px;
+  }
+  .intro-box {
+    border: 1.5px solid #1a1a1a;
+    padding: 14px 18px;
+    margin-bottom: 22px;
+    font-style: italic;
+    background: #fcfcfa;
+  }
+  .intro-box p { margin: 0 0 10px; }
+  .part-title {
+    font-size: 15px;
+    font-weight: bold;
+    margin: 28px 0 10px;
+    padding-bottom: 4px;
+    border-bottom: 1.5px solid #1a1a1a;
+  }
+  .section-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin: 16px 0 8px;
+  }
+  .field-row {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .field-row.stacked {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .field-row.sub-row { margin-left: 22px; }
+  .field-label {
+    font-weight: 500;
+    flex: 0 0 auto;
+  }
+  .field-row:not(.stacked) .field-label { min-width: 230px; }
+  .field-input {
+    flex: 1 1 220px;
+    min-width: 140px;
+    border: none;
+    border-bottom: 1px solid #444;
+    background: transparent;
+    padding: 3px 4px;
+    font: inherit;
+    color: #1a1a1a;
+  }
+  .field-input.inline-specify {
+    flex: 1 1 180px;
+    min-width: 120px;
+  }
+  .field-textarea {
+    width: 100%;
+    resize: vertical;
+    border: 1px solid #999;
+    border-radius: 2px;
+    padding: 8px;
+    font: inherit;
+    color: #1a1a1a;
+    background: transparent;
+  }
+  .choice-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 18px;
+    flex: 1 1 auto;
+  }
+  .choice-grid { row-gap: 8px; }
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    font-weight: normal;
+  }
+  .choice input {
+    margin: 0;
+    accent-color: #142a6b;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+  }
+  .note-italic {
+    font-style: italic;
+    color: #444;
+    margin: 4px 0 14px;
+    font-size: 13px;
+  }
+  .skip-note {
+    font-weight: bold;
+    margin: -4px 0 14px;
+    font-size: 13.5px;
+  }
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 20px;
+  }
+  .data-table th,
+  .data-table td {
+    border: 1px solid #1a1a1a;
+    padding: 6px 10px;
+    text-align: left;
+    vertical-align: middle;
+  }
+  .data-table th {
+    background: #f0f0ec;
+    font-weight: bold;
+  }
+  .rating-table th {
+    text-align: center;
+    font-size: 13px;
+    line-height: 1.3;
+  }
+  .rating-item-col {
+    text-align: left !important;
+    width: 56%;
+  }
+  .rating-table td:not(:first-child) {
+    text-align: center;
+    width: 8.8%;
+  }
+  .rating-table td input {
+    width: 16px;
+    height: 16px;
+    accent-color: #142a6b;
+    margin: 0;
+  }
+  .scale-legend {
+    margin: 0 0 16px;
+    padding-left: 20px;
+    font-size: 13px;
+  }
+  .thankyou {
+    text-align: center;
+    font-weight: bold;
+    margin-top: 30px;
+    font-size: 14.5px;
+  }
+  @media print {
+    .no-print, .sidebar, .navbar, .messages { display: none !important; }
+    body { background: #fff; }
+    .content-wrapper { margin: 0 !important; padding: 0 !important; }
+    .filled-page {
+      box-shadow: none;
+      margin: 0;
+      padding: 20px 30px;
+      max-width: none;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="filled-toolbar no-print">
+  <a href="{% url 'surveys:tracer_study_report' survey.id %}" class="btn btn-outline-secondary btn-sm">
+    <i class="fas fa-arrow-left me-1"></i> Back to Report
+  </a>
+  <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+    <i class="fas fa-print me-1"></i> Print / Save as PDF
+  </button>
+</div>
+
+<form class="filled-page">
+  <header class="letterhead">
+    <img src="{% static 'images/norsu-header.png' %}" alt="Negros Oriental State University letterhead">
+  </header>
+
+  <p class="appendix-label">Appendix A</p>
+  <h1 class="doc-title">NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)</h1>
+
+  <div class="intro-box">
+    <p><strong>Dear Graduates:</strong></p>
+    <p>Please complete this <strong>Graduate Tracer Study (GTS)</strong> questionnaire as accurately and honestly as possible by checking the box corresponding to your response or providing the best information. This tracer study aims to gather graduate data for profiling of NORSU graduates and research purposes in order to assess graduate employability and improve course offerings in Negros Oriental State University.</p>
+    <p>The Alumni Affairs Office of Negros Oriental State University, in line with the Data Privacy Act of 2012, is committed to protect and secure personal information obtained in the process of its mandate.</p>
+    <p><strong>Alumni Affairs Office</strong></p>
+  </div>
+
+  <h2 class="part-title">PART I - PERSONAL INFORMATION</h2>
+  <h3 class="section-title">1. Background of Respondents</h3>
+
+  <div class="field-row"><label class="field-label">1.1. Name of Respondent:</label><input class="field-input" value="{{ filled.p1_name }}" readonly></div>
+  <div class="field-row"><label class="field-label">1.2. Current/Permanent Address:</label><input class="field-input" value="{{ filled.p1_address }}" readonly></div>
+  <div class="field-row"><label class="field-label">1.3. Email Address:</label><input class="field-input" value="{{ filled.p1_email }}" readonly></div>
+  <div class="field-row"><label class="field-label">1.4. Contact Number (Mobile):</label><input class="field-input" value="{{ filled.p1_contact }}" readonly></div>
+  <div class="field-row"><label class="field-label">1.5. Age:</label><input class="field-input" value="{{ filled.p1_age }}" readonly></div>
+
+  <div class="field-row">
+    <span class="field-label">1.6. Gender:</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.gender_male %}checked{% endif %} disabled> Male</label>
+      <label class="choice"><input type="radio" {% if filled.gender_female %}checked{% endif %} disabled> Female</label>
+      <label class="choice"><input type="radio" {% if filled.gender_other %}checked{% endif %} disabled> Other (please specify)</label>
+      <input class="field-input inline-specify" value="{{ filled.gender_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">1.7. Marital Status:</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.marital_single %}checked{% endif %} disabled> Single</label>
+      <label class="choice"><input type="radio" {% if filled.marital_married %}checked{% endif %} disabled> Married</label>
+      <label class="choice"><input type="radio" {% if filled.marital_other %}checked{% endif %} disabled> Other (please specify)</label>
+      <input class="field-input inline-specify" value="{{ filled.marital_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">1.8. Social Media Account:</span>
+    <span class="choice-group">
+      Facebook: <input class="field-input inline-specify" value="{{ filled.p1_fb }}" readonly>
+      Twitter: <input class="field-input inline-specify" value="{{ filled.p1_twitter }}" readonly>
+    </span>
+  </div>
+
+  <h2 class="part-title">PART II - EDUCATIONAL BACKGROUND</h2>
+  <h3 class="section-title">A. Educational Attainment (Baccalaureate Degree at NORSU)</h3>
+
+  <div class="field-row"><label class="field-label">1.1. Course and Major taken:</label><input class="field-input" value="{{ filled.p2_course }}" readonly></div>
+  <div class="field-row"><label class="field-label">1.2. Year Graduated:</label><input class="field-input" value="{{ filled.p2_year }}" readonly></div>
+  <div class="field-row">
+    <span class="field-label">1.3. Campus:</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="radio" {% if filled.campus_main1 %}checked{% endif %} disabled> Main Campus I</label>
+      <label class="choice"><input type="radio" {% if filled.campus_guihulngan %}checked{% endif %} disabled> Guihulngan Campus</label>
+      <label class="choice"><input type="radio" {% if filled.campus_main2 %}checked{% endif %} disabled> Main Campus II</label>
+      <label class="choice"><input type="radio" {% if filled.campus_bais %}checked{% endif %} disabled> Bais Campuses</label>
+      <label class="choice"><input type="radio" {% if filled.campus_bayawan %}checked{% endif %} disabled> Bayawan-Sta. Catalina Campus</label>
+      <label class="choice"><input type="radio" {% if filled.campus_mabinay %}checked{% endif %} disabled> Mabinay Campus</label>
+      <label class="choice"><input type="radio" {% if filled.campus_siaton %}checked{% endif %} disabled> Siaton Campus</label>
+      <label class="choice"><input type="radio" {% if filled.campus_pamplona %}checked{% endif %} disabled> Pamplona Campus</label>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">1.4. Honor(s) or Awards Received:</span>
+    <span class="choice-group">
+      <label class="choice"><input type="checkbox" {% if filled.honor_academic %}checked{% endif %} disabled> Academic Honor</label>
+      <label class="choice"><input type="checkbox" {% if filled.honor_leadership %}checked{% endif %} disabled> Leadership Award</label>
+      <label class="choice"><input type="checkbox" {% if filled.honor_special %}checked{% endif %} disabled> Special Academic Award</label>
+      <label class="choice"><input type="checkbox" {% if filled.honor_other %}checked{% endif %} disabled> Other Awards, please specify:</label>
+      <input class="field-input inline-specify" value="{{ filled.honor_other_text }}" readonly>
+    </span>
+  </div>
+
+  <h3 class="section-title">B. Professional Examinations/National Certifications Passed:</h3>
+  <table class="data-table">
+    <thead><tr><th>Name of Examination/NC</th><th>Year Passed</th></tr></thead>
+    <tbody><tr><td>{{ filled.p2_exam_name|default:"" }}</td><td>{{ filled.p2_exam_year|default:"" }}</td></tr></tbody>
+  </table>
+
+  <h2 class="part-title">PART III - EMPLOYMENT DATA</h2>
+  <p class="note-italic">(Employment here means any type of work performed or services rendered in exchange for compensation under a contract of hire.)</p>
+
+  <div class="field-row">
+    <span class="field-label">2.1. Are you presently employed?</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.employed_yes %}checked{% endif %} disabled> Yes</label>
+      <label class="choice"><input type="radio" {% if filled.employed_no %}checked{% endif %} disabled> No</label>
+      <label class="choice"><input type="radio" {% if filled.employed_never %}checked{% endif %} disabled> Never Employed</label>
+      <label class="choice"><input type="radio" {% if filled.employed_other %}checked{% endif %} disabled> Other</label>
+      <input class="field-input inline-specify" value="{{ filled.employed_other_text }}" readonly>
+    </span>
+  </div>
+
+  <p class="skip-note">If NO or NEVER BEEN EMPLOYED, proceed to Questions 2.2. If YES, proceed to Questions 2.3.</p>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.2. Please state the reason(s) why you are not yet employed.</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_study %}checked{% endif %} disabled> Advance or further study</label>
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_experience %}checked{% endif %} disabled> Lack of work experience</label>
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_family %}checked{% endif %} disabled> Family concern</label>
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_opportunity %}checked{% endif %} disabled> No job opportunity</label>
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_health %}checked{% endif %} disabled> Health-related reason(s)</label>
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_no_look %}checked{% endif %} disabled> Did not look for a job</label>
+      <label class="choice"><input type="checkbox" {% if filled.unemployed_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.unemployed_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.3. Present Employment Status</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="radio" {% if filled.status_regular %}checked{% endif %} disabled> Regular or Permanent</label>
+      <label class="choice"><input type="radio" {% if filled.status_contractual %}checked{% endif %} disabled> Contractual</label>
+      <label class="choice"><input type="radio" {% if filled.status_temporary %}checked{% endif %} disabled> Temporary</label>
+      <label class="choice"><input type="radio" {% if filled.status_self %}checked{% endif %} disabled> Self-employed</label>
+      <label class="choice"><input type="radio" {% if filled.status_casual %}checked{% endif %} disabled> Casual</label>
+      <label class="choice"><input type="radio" {% if filled.status_other %}checked{% endif %} disabled> Others:</label>
+      <input class="field-input inline-specify" value="{{ filled.status_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row"><label class="field-label">2.4. Present Occupation/Position/Rank</label><input class="field-input" value="{{ filled.p3_position }}" readonly></div>
+  <div class="field-row sub-row"><label class="field-label">2.4.1. Name of Company or Organization:</label><input class="field-input" value="{{ filled.p3_company }}" readonly></div>
+  <div class="field-row sub-row"><label class="field-label">2.4.2. Address of the Company or Organization:</label><input class="field-input" value="{{ filled.p3_company_address }}" readonly></div>
+
+  <div class="field-row">
+    <span class="field-label">2.5. Type of Organization</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.org_government %}checked{% endif %} disabled> Government</label>
+      <label class="choice"><input type="radio" {% if filled.org_private %}checked{% endif %} disabled> Private</label>
+    </span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">2.6. Place of Work:</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.place_local %}checked{% endif %} disabled> Local</label>
+      <label class="choice"><input type="radio" {% if filled.place_abroad %}checked{% endif %} disabled> Abroad</label>
+    </span>
+  </div>
+  <div class="field-row">
+    <span class="field-label">2.7. Is this your first job after college?</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.first_job_yes %}checked{% endif %} disabled> Yes</label>
+      <label class="choice"><input type="radio" {% if filled.first_job_no %}checked{% endif %} disabled> No</label>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.7. What are the reason(s) for staying on the job?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="checkbox" {% if filled.stay_salary %}checked{% endif %} disabled> Salaries and benefits</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_proximity %}checked{% endif %} disabled> Proximity to residence</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_challenge %}checked{% endif %} disabled> Career challenge</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_peer %}checked{% endif %} disabled> Peer influence</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_skill %}checked{% endif %} disabled> Related to special skill</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_family %}checked{% endif %} disabled> Family influence</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_course %}checked{% endif %} disabled> Related to course or program of study</label>
+      <label class="choice"><input type="checkbox" {% if filled.stay_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.stay_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">2.8. Is your first job related to the course you took up in college?</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.related_yes %}checked{% endif %} disabled> Yes</label>
+      <label class="choice"><input type="radio" {% if filled.related_no %}checked{% endif %} disabled> No</label>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.9. What were your reasons for accepting the job?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="checkbox" {% if filled.accept_salary %}checked{% endif %} disabled> Salaries and benefits</label>
+      <label class="choice"><input type="checkbox" {% if filled.accept_skill %}checked{% endif %} disabled> Related to special skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.accept_challenge %}checked{% endif %} disabled> Career challenge</label>
+      <label class="choice"><input type="checkbox" {% if filled.accept_proximity %}checked{% endif %} disabled> Proximity to residence</label>
+      <label class="choice"><input type="checkbox" {% if filled.accept_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.accept_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.10. What were your reason(s) for changing jobs?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="checkbox" {% if filled.change_salary %}checked{% endif %} disabled> Salaries and benefits</label>
+      <label class="choice"><input type="checkbox" {% if filled.change_skill %}checked{% endif %} disabled> Related to special skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.change_challenge %}checked{% endif %} disabled> Career challenge</label>
+      <label class="choice"><input type="checkbox" {% if filled.change_proximity %}checked{% endif %} disabled> Proximity to residence</label>
+      <label class="choice"><input type="checkbox" {% if filled.change_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.change_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.11. How long did you stay in your first job?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="radio" {% if filled.duration_lt_1m %}checked{% endif %} disabled> Less than a month</label>
+      <label class="choice"><input type="radio" {% if filled.duration_1_6m %}checked{% endif %} disabled> 1 to 6 months</label>
+      <label class="choice"><input type="radio" {% if filled.duration_7_11m %}checked{% endif %} disabled> 7 to 11 months</label>
+      <label class="choice"><input type="radio" {% if filled.duration_1_2y %}checked{% endif %} disabled> 1 year to less than 2 years</label>
+      <label class="choice"><input type="radio" {% if filled.duration_2_3y %}checked{% endif %} disabled> 2 years to less than 3 years</label>
+      <label class="choice"><input type="radio" {% if filled.duration_3_4y %}checked{% endif %} disabled> 3 years to less than 4 years</label>
+      <label class="choice"><input type="radio" {% if filled.duration_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.duration_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.12. How did you find your first job?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="radio" {% if filled.find_ad %}checked{% endif %} disabled> Response to an advertisement</label>
+      <label class="choice"><input type="radio" {% if filled.find_school %}checked{% endif %} disabled> Arranged by school's job placement officer</label>
+      <label class="choice"><input type="radio" {% if filled.find_walkin %}checked{% endif %} disabled> As walk-in applicant</label>
+      <label class="choice"><input type="radio" {% if filled.find_family %}checked{% endif %} disabled> Family business</label>
+      <label class="choice"><input type="radio" {% if filled.find_referral %}checked{% endif %} disabled> Recommended by someone</label>
+      <label class="choice"><input type="radio" {% if filled.find_jobfair %}checked{% endif %} disabled> Job Fair or PESO</label>
+      <label class="choice"><input type="radio" {% if filled.find_friends %}checked{% endif %} disabled> Information from friends</label>
+      <label class="choice"><input type="radio" {% if filled.find_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.find_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.13. How long did it take you to land your first job?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="radio" {% if filled.land_lt_1m %}checked{% endif %} disabled> Less than a month</label>
+      <label class="choice"><input type="radio" {% if filled.land_1_6m %}checked{% endif %} disabled> 1 to 6 months</label>
+      <label class="choice"><input type="radio" {% if filled.land_7_11m %}checked{% endif %} disabled> 7 to 11 months</label>
+      <label class="choice"><input type="radio" {% if filled.land_1_2y %}checked{% endif %} disabled> 1 year to less than 2 years</label>
+      <label class="choice"><input type="radio" {% if filled.land_2_3y %}checked{% endif %} disabled> 2 years to less than 3 years</label>
+      <label class="choice"><input type="radio" {% if filled.land_3_4y %}checked{% endif %} disabled> 3 years to less than 4 years</label>
+      <label class="choice"><input type="radio" {% if filled.land_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.land_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row">
+    <span class="field-label">2.14. Was the curriculum you had in college relevant to your job?</span>
+    <span class="choice-group">
+      <label class="choice"><input type="radio" {% if filled.curriculum_yes %}checked{% endif %} disabled> Yes</label>
+      <label class="choice"><input type="radio" {% if filled.curriculum_no %}checked{% endif %} disabled> No</label>
+    </span>
+  </div>
+
+  <div class="field-row stacked">
+    <span class="field-label">2.15. If YES, what competencies learned in college did you find very useful in your job?</span>
+    <span class="choice-group choice-grid">
+      <label class="choice"><input type="checkbox" {% if filled.competency_communication %}checked{% endif %} disabled> Communication skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.competency_problem %}checked{% endif %} disabled> Problem-solving skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.competency_human %}checked{% endif %} disabled> Human Relations skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.competency_critical %}checked{% endif %} disabled> Critical Thinking skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.competency_entrepreneurial %}checked{% endif %} disabled> Entrepreneurial skills</label>
+      <label class="choice"><input type="checkbox" {% if filled.competency_other %}checked{% endif %} disabled> Other:</label>
+      <input class="field-input inline-specify" value="{{ filled.competency_other_text }}" readonly>
+    </span>
+  </div>
+
+  <div class="field-row stacked"><label class="field-label">2.16. In what way are you able to apply the things learned during your bachelor years?</label><textarea class="field-textarea" rows="2" readonly>{{ filled.p3_apply_learning }}</textarea></div>
+  <div class="field-row stacked"><label class="field-label">2.17. What do you suggest to further improve the quality of NORSU's course offerings?</label><textarea class="field-textarea" rows="2" readonly>{{ filled.p3_suggestions }}</textarea></div>
+
+  <h2 class="part-title">PART IV - EXTENT OF MANIFESTATION</h2>
+  <p class="note-italic">Please rate your manifestation of the following using the scale below.</p>
+  <ul class="scale-legend">
+    <li><strong>5 - Very High Manifestation</strong></li>
+    <li><strong>4 - High Manifestation</strong></li>
+    <li><strong>3 - Moderate Manifestation</strong></li>
+    <li><strong>2 - Low Manifestation</strong></li>
+    <li><strong>1 - Very Low Manifestation</strong></li>
+  </ul>
+
+  <table class="data-table rating-table">
+    <thead><tr><th class="rating-item-col">Manifestation of the:</th><th>5<br>VHM</th><th>4<br>HM</th><th>3<br>MM</th><th>2<br>LM</th><th>1<br>VLM</th></tr></thead>
+    <tbody>
+      <tr><td>Negros Oriental State University <strong>VISION</strong></td><td><input type="radio" {% if filled.p4_vision_5 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_vision_4 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_vision_3 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_vision_2 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_vision_1 %}checked{% endif %} disabled></td></tr>
+      <tr><td>Negros Oriental State University <strong>MISSION</strong></td><td><input type="radio" {% if filled.p4_mission_5 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_mission_4 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_mission_3 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_mission_2 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_mission_1 %}checked{% endif %} disabled></td></tr>
+      <tr><td>Negros Oriental State University <strong>GOALS</strong></td><td><input type="radio" {% if filled.p4_goals_5 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_goals_4 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_goals_3 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_goals_2 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_goals_1 %}checked{% endif %} disabled></td></tr>
+      <tr><td>NORSU Corporate Values/Core Values/Graduate Attributes</td><td><input type="radio" {% if filled.p4_core_values_5 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_core_values_4 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_core_values_3 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_core_values_2 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_core_values_1 %}checked{% endif %} disabled></td></tr>
+      <tr><td>Course/Program Objectives</td><td><input type="radio" {% if filled.p4_program_objectives_5 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_program_objectives_4 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_program_objectives_3 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_program_objectives_2 %}checked{% endif %} disabled></td><td><input type="radio" {% if filled.p4_program_objectives_1 %}checked{% endif %} disabled></td></tr>
+    </tbody>
+  </table>
+
+  <p class="thankyou">Thank you for taking the time out to fill out this questionnaire!</p>
+</form>
+{% endblock %}

@@ -19,6 +19,7 @@ from events.models import Event, EventRSVP
 from jobs.models import JobPosting, JobApplication
 from accounts.models import MentorshipRequest, Mentor
 from surveys.models import Survey, SurveyResponse
+from surveys import tracer_study
 from announcements.models import Announcement
 from feedback.models import Feedback
 from alumni_directory.models import Alumni
@@ -29,6 +30,15 @@ from .export_utils import ExportMixin
 
 # Import permission helper
 from .decorators import is_admin_user
+
+
+def _tracer_study_survey():
+    return Survey.objects.filter(title=tracer_study.ALUMNI_TITLE).first()
+
+
+def _tracer_study_response_count():
+    survey = _tracer_study_survey()
+    return SurveyResponse.objects.filter(survey=survey).count() if survey else 0
 
 @login_required
 def admin_dashboard(request):
@@ -106,6 +116,7 @@ def admin_dashboard(request):
     total_surveys = Survey.objects.count()
     active_surveys = Survey.objects.filter(status='active').count()
     total_responses = SurveyResponse.objects.count()
+    tracer_study_responses = _tracer_study_response_count()
     
     # Feedback Statistics
     total_feedback = Feedback.objects.count()
@@ -177,6 +188,7 @@ def admin_dashboard(request):
         'total_surveys': total_surveys,
         'active_surveys': active_surveys,
         'total_responses': total_responses,
+        'tracer_study_responses': tracer_study_responses,
         
         # Feedback stats
         'total_feedback': total_feedback,
@@ -484,6 +496,20 @@ def export_surveys(request, format_type='csv'):
     return export_queryset(queryset, format_type, 'surveys', export_config)
 
 @login_required
+def export_tracer_study(request, format_type='excel'):
+    """Export tracer study response status."""
+    if not is_admin_user(request.user):
+        messages.error(request, _('You do not have permission to access this page.'))
+        return redirect('core:home')
+
+    survey = _tracer_study_survey()
+    if not survey:
+        messages.error(request, _('Tracer Study survey was not found.'))
+        return redirect('core:admin_dashboard')
+
+    return tracer_study.tracer_study_report_export(request, survey.id, format_type)
+
+@login_required
 def export_all_data(request, format_type='csv'):
     """Export all data in specified format"""
     if not is_admin_user(request.user):
@@ -513,6 +539,7 @@ def bulk_export_interface(request):
         'total_announcements': Announcement.objects.count(),
         'total_feedback': Feedback.objects.count(),
         'total_surveys': Survey.objects.count(),
+        'tracer_study_responses': _tracer_study_response_count(),
     }
     
     return render(request, 'admin/bulk_export.html', context)
@@ -565,6 +592,19 @@ def bulk_export_process(request):
                     
                     for model_name in selected_models:
                         try:
+                            if model_name == 'tracer_study':
+                                survey = _tracer_study_survey()
+                                if not survey:
+                                    failed_count += 1
+                                    failed_models.append(model_name)
+                                    continue
+                                response = tracer_study.tracer_study_report_export(request, survey.id, format_type)
+                                ext = 'xlsx' if format_type == 'excel' else format_type
+                                filename = f"tracer_study_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+                                zip_file.writestr(filename, response.content)
+                                exported_count += 1
+                                continue
+
                             # Get the appropriate queryset and config based on model
                             if model_name == 'alumni':
                                 queryset = Alumni.objects.select_related('user').all()

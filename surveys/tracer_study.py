@@ -12,6 +12,7 @@ URLs:
                                 thereafter)
 """
 from datetime import date
+import csv
 import json
 import logging
 
@@ -69,8 +70,177 @@ def _alumni_response_rows(survey):
             "graduation_year": alumni.graduation_year,
             "status": "Responded" if response else "Not Responded",
             "submitted_at": response.submitted_at if response else None,
+            "response_id": response.id if response else None,
         })
     return rows
+
+
+def _answer_key(question):
+    try:
+        meta = json.loads(question.help_text) if question.help_text else {}
+    except (ValueError, TypeError):
+        meta = {}
+    return meta.get("key") or str(question.id)
+
+
+def _filled_alumni_answers(response):
+    by_key = {}
+    for answer in response.answers.select_related("question", "selected_option"):
+        key = _answer_key(answer.question)
+        item = by_key.setdefault(key, {"text": "", "rating": "", "selected": set(), "other": ""})
+        if answer.text_answer:
+            item["text"] = answer.text_answer
+        if answer.rating_value:
+            item["rating"] = str(answer.rating_value)
+        if answer.selected_option:
+            item["selected"].add(answer.selected_option.option_text.lower())
+        if answer.custom_text:
+            item["other"] = answer.custom_text
+
+    def text(key):
+        return by_key.get(key, {}).get("text", "")
+
+    def other(key):
+        return by_key.get(key, {}).get("other", "")
+
+    def checked(key, *needles):
+        selected = by_key.get(key, {}).get("selected", set())
+        return any(any(needle.lower() in value for value in selected) for needle in needles)
+
+    def rating(key, value):
+        return by_key.get(key, {}).get("rating") == str(value)
+
+    alumni = response.alumni
+    source = _alumni_prefill_source(alumni)
+    dob = alumni.date_of_birth or getattr(getattr(alumni.user, "profile", None), "birth_date", None)
+
+    return {
+        "p1_name": text("p1_name") or source.get("p1_name") or "",
+        "p1_address": text("p1_address") or source.get("p1_address") or "",
+        "p1_email": text("p1_email") or source.get("p1_email") or "",
+        "p1_contact": text("p1_contact") or source.get("p1_contact") or "",
+        "p1_age": _compute_age(dob) or "",
+        "p1_fb": text("p1_fb") or source.get("p1_fb") or "",
+        "p1_twitter": text("p1_twitter") or source.get("p1_twitter") or "",
+        "gender_male": checked("p1_gender", "male"),
+        "gender_female": checked("p1_gender", "female"),
+        "gender_other": checked("p1_gender", "other"),
+        "gender_other_text": other("p1_gender"),
+        "marital_single": checked("p1_marital", "single"),
+        "marital_married": checked("p1_marital", "married"),
+        "marital_other": checked("p1_marital", "other"),
+        "marital_other_text": other("p1_marital"),
+        "p2_course": text("p2_course") or source.get("p2_course") or "",
+        "p2_year": text("p2_year") or source.get("p2_year") or "",
+        "campus_main1": checked("p2_campus", "main campus i"),
+        "campus_main2": checked("p2_campus", "main campus ii"),
+        "campus_bayawan": checked("p2_campus", "bayawan"),
+        "campus_siaton": checked("p2_campus", "siaton"),
+        "campus_guihulngan": checked("p2_campus", "guihulngan"),
+        "campus_bais": checked("p2_campus", "bais"),
+        "campus_mabinay": checked("p2_campus", "mabinay"),
+        "campus_pamplona": checked("p2_campus", "pamplona"),
+        "honor_academic": checked("p2_honors", "academic"),
+        "honor_leadership": checked("p2_honors", "leadership"),
+        "honor_special": checked("p2_honors", "special"),
+        "honor_other": checked("p2_honors", "other"),
+        "honor_other_text": other("p2_honors"),
+        "p2_exam_name": text("p2_exam_name"),
+        "p2_exam_year": text("p2_exam_year"),
+        "employed_yes": checked("p3_employed", "yes"),
+        "employed_no": checked("p3_employed", "no"),
+        "employed_never": checked("p3_employed", "never"),
+        "employed_other": checked("p3_employed", "other"),
+        "employed_other_text": other("p3_employed"),
+        "unemployed_study": checked("p3_reasons_unemployed", "study", "further"),
+        "unemployed_experience": checked("p3_reasons_unemployed", "experience"),
+        "unemployed_family": checked("p3_reasons_unemployed", "family"),
+        "unemployed_opportunity": checked("p3_reasons_unemployed", "opportunity"),
+        "unemployed_health": checked("p3_reasons_unemployed", "health"),
+        "unemployed_no_look": checked("p3_reasons_unemployed", "did not look"),
+        "unemployed_other": checked("p3_reasons_unemployed", "other"),
+        "unemployed_other_text": other("p3_reasons_unemployed"),
+        "status_regular": checked("p3_status", "regular", "permanent"),
+        "status_contractual": checked("p3_status", "contractual"),
+        "status_temporary": checked("p3_status", "temporary"),
+        "status_self": checked("p3_status", "self"),
+        "status_casual": checked("p3_status", "casual"),
+        "status_other": checked("p3_status", "other"),
+        "status_other_text": other("p3_status"),
+        "p3_position": text("p3_position"),
+        "p3_company": text("p3_company"),
+        "p3_company_address": text("p3_company_address"),
+        "org_government": checked("p3_org_type", "government"),
+        "org_private": checked("p3_org_type", "private"),
+        "place_local": checked("p3_place", "local"),
+        "place_abroad": checked("p3_place", "abroad"),
+        "first_job_yes": checked("p3_first_job", "yes"),
+        "first_job_no": checked("p3_first_job", "no"),
+        "stay_salary": checked("p3_reasons_stay", "salar"),
+        "stay_proximity": checked("p3_reasons_stay", "proximity"),
+        "stay_challenge": checked("p3_reasons_stay", "challenge"),
+        "stay_peer": checked("p3_reasons_stay", "peer"),
+        "stay_skill": checked("p3_reasons_stay", "skill"),
+        "stay_family": checked("p3_reasons_stay", "family"),
+        "stay_course": checked("p3_reasons_stay", "course"),
+        "stay_other": checked("p3_reasons_stay", "other"),
+        "stay_other_text": other("p3_reasons_stay"),
+        "related_yes": checked("p3_related_course", "yes"),
+        "related_no": checked("p3_related_course", "no"),
+        "accept_salary": checked("p3_reasons_accept", "salar"),
+        "accept_skill": checked("p3_reasons_accept", "skill"),
+        "accept_challenge": checked("p3_reasons_accept", "challenge"),
+        "accept_proximity": checked("p3_reasons_accept", "proximity"),
+        "accept_other": checked("p3_reasons_accept", "other"),
+        "accept_other_text": other("p3_reasons_accept"),
+        "change_salary": checked("p3_reasons_change", "salar"),
+        "change_skill": checked("p3_reasons_change", "skill"),
+        "change_challenge": checked("p3_reasons_change", "challenge"),
+        "change_proximity": checked("p3_reasons_change", "proximity"),
+        "change_other": checked("p3_reasons_change", "other"),
+        "change_other_text": other("p3_reasons_change"),
+        "duration_lt_1m": checked("p3_first_job_duration", "less than a month"),
+        "duration_1_6m": checked("p3_first_job_duration", "1-6", "1 to 6"),
+        "duration_7_11m": checked("p3_first_job_duration", "7-11", "7 to 11"),
+        "duration_1_2y": checked("p3_first_job_duration", "1-2", "1 year"),
+        "duration_2_3y": checked("p3_first_job_duration", "2-3", "2 years"),
+        "duration_3_4y": checked("p3_first_job_duration", "3-4", "3 years"),
+        "duration_other": checked("p3_first_job_duration", "other"),
+        "duration_other_text": other("p3_first_job_duration"),
+        "find_ad": checked("p3_find_first_job", "advert"),
+        "find_school": checked("p3_find_first_job", "school"),
+        "find_walkin": checked("p3_find_first_job", "walk"),
+        "find_family": checked("p3_find_first_job", "family"),
+        "find_referral": checked("p3_find_first_job", "recommended"),
+        "find_jobfair": checked("p3_find_first_job", "job fair", "peso"),
+        "find_friends": checked("p3_find_first_job", "friends"),
+        "find_other": checked("p3_find_first_job", "other"),
+        "find_other_text": other("p3_find_first_job"),
+        "land_lt_1m": checked("p3_time_to_first_job", "less than a month"),
+        "land_1_6m": checked("p3_time_to_first_job", "1-6", "1 to 6"),
+        "land_7_11m": checked("p3_time_to_first_job", "7-11", "7 to 11"),
+        "land_1_2y": checked("p3_time_to_first_job", "1-2", "1 year"),
+        "land_2_3y": checked("p3_time_to_first_job", "2-3", "2 years"),
+        "land_3_4y": checked("p3_time_to_first_job", "3-4", "3 years"),
+        "land_other": checked("p3_time_to_first_job", "other"),
+        "land_other_text": other("p3_time_to_first_job"),
+        "curriculum_yes": checked("p3_curriculum_relevant", "yes"),
+        "curriculum_no": checked("p3_curriculum_relevant", "no"),
+        "competency_communication": checked("p3_useful_competencies", "communication"),
+        "competency_problem": checked("p3_useful_competencies", "problem"),
+        "competency_human": checked("p3_useful_competencies", "human"),
+        "competency_critical": checked("p3_useful_competencies", "critical"),
+        "competency_entrepreneurial": checked("p3_useful_competencies", "entrepreneurial"),
+        "competency_other": checked("p3_useful_competencies", "other"),
+        "competency_other_text": other("p3_useful_competencies"),
+        "p3_apply_learning": text("p3_apply_learning"),
+        "p3_suggestions": text("p3_suggestions"),
+        **{f"p4_vision_{i}": rating("p4_vision", i) for i in range(1, 6)},
+        **{f"p4_mission_{i}": rating("p4_mission", i) for i in range(1, 6)},
+        **{f"p4_goals_{i}": rating("p4_goals", i) for i in range(1, 6)},
+        **{f"p4_core_values_{i}": rating("p4_core_values", i) for i in range(1, 6)},
+        **{f"p4_program_objectives_{i}": rating("p4_program_objectives", i) for i in range(1, 6)},
+    }
 
 
 def _get_active_survey(title):
@@ -810,7 +980,27 @@ def tracer_study_report(request, survey_id):
 
 
 @login_required
-def tracer_study_report_export(request, survey_id):
+def tracer_study_filled_alumni_response(request, response_id):
+    if not _can_view_tracer_reports(request.user):
+        return redirect("surveys:tracer_study_alumni")
+
+    response = get_object_or_404(
+        SurveyResponse.objects.select_related("survey", "alumni__user").prefetch_related(
+            "answers__question",
+            "answers__selected_option",
+        ),
+        pk=response_id,
+        survey__title=ALUMNI_TITLE,
+    )
+    return render(
+        request,
+        "tracer_study/filled_alumni_questionnaire.html",
+        {"response": response, "survey": response.survey, "filled": _filled_alumni_answers(response)},
+    )
+
+
+@login_required
+def tracer_study_report_export(request, survey_id, format_type=None):
     if not _can_view_tracer_reports(request.user):
         return redirect("surveys:tracer_study_alumni")
 
@@ -818,9 +1008,81 @@ def tracer_study_report_export(request, survey_id):
     if survey.title != ALUMNI_TITLE:
         raise Http404
 
+    format_type = (format_type or request.GET.get("format") or "excel").lower()
+    if format_type == "xlsx":
+        format_type = "excel"
+
     rows = _alumni_response_rows(survey)
     responded_rows = [row for row in rows if row["submitted_at"]]
     missing_rows = [row for row in rows if not row["submitted_at"]]
+    headers = ["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"]
+
+    def row_values(row):
+        return [
+            row["id"],
+            row["name"],
+            row["email"],
+            row["course"],
+            row["graduation_year"],
+            row["status"],
+            row["submitted_at"].strftime("%Y-%m-%d %H:%M:%S") if row["submitted_at"] else "",
+        ]
+
+    if format_type == "csv":
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["Tracer Study Response Status"])
+        writer.writerow(["Survey", survey.title])
+        writer.writerow(["Generated", timezone.now().strftime("%Y-%m-%d %H:%M:%S")])
+        writer.writerow(["Responded", len(responded_rows), "No Response", len(missing_rows)])
+        writer.writerow([])
+        for title, sheet_rows in (("Alumni Who Responded", responded_rows), ("Alumni With No Response", missing_rows)):
+            writer.writerow([title])
+            writer.writerow(headers)
+            writer.writerows(row_values(row) for row in sheet_rows)
+            writer.writerow([])
+        return response
+
+    if format_type == "pdf":
+        from core.export_utils import LogoHeaderService
+        from reportlab.lib import colors
+        from reportlab.lib.pagesizes import landscape, A4
+        from reportlab.lib.styles import getSampleStyleSheet
+        from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+
+        response = HttpResponse(content_type="application/pdf")
+        response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.pdf"'
+        doc = SimpleDocTemplate(response, pagesize=landscape(A4), topMargin=90)
+        styles = getSampleStyleSheet()
+        story = [
+            Paragraph("Tracer Study Response Status", styles["Title"]),
+            Paragraph(f"Survey: {survey.title}", styles["Normal"]),
+            Paragraph(f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]),
+            Paragraph(f"Responded: {len(responded_rows)} | No Response: {len(missing_rows)}", styles["Normal"]),
+            Spacer(1, 12),
+        ]
+        table_style = TableStyle([
+            ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2b3c6b")),
+            ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
+            ("GRID", (0, 0), (-1, -1), 0.25, colors.grey),
+            ("FONTSIZE", (0, 0), (-1, -1), 8),
+        ])
+        for title, table_rows in (("Alumni Who Responded", responded_rows), ("Alumni With No Response", missing_rows)):
+            story.append(Paragraph(title, styles["Heading2"]))
+            data = [headers] + [row_values(row) for row in table_rows]
+            table = Table(data or [headers], repeatRows=1)
+            table.setStyle(table_style)
+            story.extend([table, Spacer(1, 12)])
+        doc.build(
+            story,
+            onFirstPage=lambda canvas, doc: LogoHeaderService.add_pdf_header(canvas, doc, LogoHeaderService.get_logo_path(), "Tracer Study Response Status"),
+            onLaterPages=lambda canvas, doc: LogoHeaderService.add_pdf_header(canvas, doc, LogoHeaderService.get_logo_path(), "Tracer Study Response Status"),
+        )
+        return response
+
+    if format_type != "excel":
+        raise Http404
 
     from core.export_utils import LogoHeaderService
     from openpyxl import Workbook
@@ -828,7 +1090,6 @@ def tracer_study_report_export(request, survey_id):
     from openpyxl.utils import get_column_letter
 
     wb = Workbook()
-    headers = ["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"]
     header_fill = PatternFill(start_color="2b3c6b", end_color="2b3c6b", fill_type="solid")
     header_font = Font(bold=True, color="FFFFFF")
     title_font = Font(bold=True, size=14, color="2b3c6b")
@@ -860,15 +1121,7 @@ def tracer_study_report_export(request, survey_id):
             cell.alignment = Alignment(horizontal="center")
         ws.freeze_panes = f"A{header_row + 1}"
         for row in sheet_rows:
-            ws.append([
-                row["id"],
-                row["name"],
-                row["email"],
-                row["course"],
-                row["graduation_year"],
-                row["status"],
-                row["submitted_at"].strftime("%Y-%m-%d %H:%M:%S") if row["submitted_at"] else "",
-            ])
+            ws.append(row_values(row))
         for col_num in range(1, len(headers) + 1):
             max_length = max(len(str(ws.cell(row_num, col_num).value or "")) for row_num in range(1, ws.max_row + 1))
             ws.column_dimensions[get_column_letter(col_num)].width = min(max_length + 2, 45)

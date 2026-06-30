@@ -12,6 +12,7 @@ urlpatterns = [
     path('tracer-study/employer/', tracer_study.tracer_study_employer, name='tracer_study_employer'),
     path('tracer-study/reports/', tracer_study.tracer_study_reports, name='tracer_study_reports'),
     path('tracer-study/report/<int:survey_id>/', tracer_study.tracer_study_report, name='tracer_study_report'),
+    path('tracer-study/response/<int:response_id>/filled-form/', tracer_study.tracer_study_filled_alumni_response, name='tracer_study_filled_alumni_response'),
     path('tracer-study/report/<int:survey_id>/export/', tracer_study.tracer_study_report_export, name='tracer_study_report_export'),
 
     # Admin Survey Management URLs

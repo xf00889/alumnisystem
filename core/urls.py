@@ -43,6 +43,7 @@ urlpatterns = [
     path('export/announcements/<str:format_type>/', admin_views.export_announcements, name='export_announcements'),
     path('export/feedback/<str:format_type>/', admin_views.export_feedback, name='export_feedback'),
     path('export/surveys/<str:format_type>/', admin_views.export_surveys, name='export_surveys'),
+    path('export/tracer-study/<str:format_type>/', admin_views.export_tracer_study, name='export_tracer_study'),
     path('export/all/<str:format_type>/', admin_views.export_all_data, name='export_all_data'),
     
     # Bulk Export URLs
