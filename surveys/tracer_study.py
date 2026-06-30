@@ -110,6 +110,14 @@ def _response_id_from_token(response_token):
 
 def _question_key_from_text(question_text):
     text_key = (question_text or "").strip().lower()
+    if "contact number" in text_key or "mobile" in text_key:
+        return "p1_contact"
+    if "date of birth" in text_key or text_key == "birthdate":
+        return "p1_dob"
+    if "facebook" in text_key:
+        return "p1_fb"
+    if "twitter" in text_key or "x / twitter" in text_key:
+        return "p1_twitter"
     if "presently employed" in text_key:
         return "p3_employed"
     if "employment status" in text_key:
@@ -195,9 +203,22 @@ def _filled_alumni_answers(response):
     def rating(key, value):
         return by_key.get(key, {}).get("rating") == str(value)
 
+    def birth_date():
+        submitted_dob = text("p1_dob")
+        if submitted_dob:
+            try:
+                return date.fromisoformat(submitted_dob)
+            except ValueError:
+                pass
+        return response.alumni.date_of_birth or getattr(
+            getattr(response.alumni.user, "profile", None),
+            "birth_date",
+            None,
+        )
+
     alumni = response.alumni
     source = _alumni_prefill_source(alumni)
-    dob = alumni.date_of_birth or getattr(getattr(alumni.user, "profile", None), "birth_date", None)
+    dob = birth_date()
 
     return {
         "p1_name": text("p1_name") or source.get("p1_name") or "",
