@@ -18,6 +18,36 @@ from surveys.models import Survey, SurveyResponse
 
 
 class TracerStudySeedTests(TestCase):
+    def test_alumni_required_and_conditional_questions_are_reachable(self):
+        get_user_model().objects.create_superuser(
+            username="admin",
+            email="admin@example.com",
+            password="password",
+        )
+
+        call_command("seed_tracer_study", verbosity=0)
+
+        survey = Survey.objects.get(title=ALUMNI_TITLE)
+        questions = {str(question.id): question for question in survey.questions.prefetch_related("options")}
+
+        for question in questions.values():
+            meta = json.loads(question.help_text)
+            if question.is_required:
+                self.assertEqual(meta["show_when"], {}, question.question_text)
+
+            for trigger_id, allowed_values in meta["show_when"].items():
+                trigger = questions[trigger_id]
+                self.assertEqual(trigger.question_type, "multiple_choice")
+                labels = [
+                    option.option_text.lower()
+                    for option in trigger.options.all()
+                ]
+                for allowed in allowed_values:
+                    self.assertTrue(
+                        any(str(allowed).lower() in label for label in labels),
+                        f"{question.question_text}: {allowed} not in {labels}",
+                    )
+
     def test_change_job_reason_requires_employed_and_not_first_job(self):
         get_user_model().objects.create_superuser(
             username="admin",

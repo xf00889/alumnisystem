@@ -331,22 +331,27 @@
         var triggers = document.querySelectorAll(
             'input[type="radio"][data-option-id], input[type="checkbox"][data-other-toggle]'
         );
-        triggers.forEach(function(input) {
-            function sync() {
-                var optId = input.getAttribute('data-option-id') || input.getAttribute('data-other-toggle');
-                var text = document.getElementById('other-' + optId);
-                if (!text) return;
-                if (input.checked) {
-                    text.classList.remove('d-none');
-                    text.setAttribute('required', '');
-                } else {
-                    text.classList.add('d-none');
-                    text.removeAttribute('required');
-                    text.value = '';
-                }
+        function syncInput(input) {
+            var optId = input.getAttribute('data-option-id') || input.getAttribute('data-other-toggle');
+            var text = document.getElementById('other-' + optId);
+            if (!text) return;
+            if (input.checked) {
+                text.classList.remove('d-none');
+                text.setAttribute('required', '');
+            } else {
+                text.classList.add('d-none');
+                text.removeAttribute('required');
+                text.value = '';
             }
-            input.addEventListener('change', sync);
-            sync();
+        }
+        function syncRadioGroup(name) {
+            document.querySelectorAll('input[type="radio"][name="' + name + '"][data-option-id]').forEach(syncInput);
+        }
+        triggers.forEach(function(input) {
+            input.addEventListener('change', function() {
+                if (input.type === 'radio') syncRadioGroup(input.name); else syncInput(input);
+            });
+            if (input.type === 'radio') syncRadioGroup(input.name); else syncInput(input);
         });
     }
 
