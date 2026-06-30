@@ -12,10 +12,13 @@ URLs:
                                 thereafter)
 """
 from datetime import date
+from pathlib import Path
+import base64
 import csv
 import json
 import logging
 
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
@@ -44,6 +47,22 @@ from .models import (
 
 ALUMNI_TITLE = "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
 EMPLOYER_TITLE = "NORSU Graduate Tracer Study (EMPLOYER QUESTIONNAIRE)"
+logger = logging.getLogger(__name__)
+_NORSU_HEADER_DATA_URI = None
+
+
+def _norsu_header_data_uri():
+    global _NORSU_HEADER_DATA_URI
+    if _NORSU_HEADER_DATA_URI is not None:
+        return _NORSU_HEADER_DATA_URI
+
+    header_path = Path(settings.BASE_DIR) / "static" / "images" / "norsu-header.png"
+    try:
+        _NORSU_HEADER_DATA_URI = "data:image/png;base64," + base64.b64encode(header_path.read_bytes()).decode("ascii")
+    except OSError:
+        logger.warning("NORSU tracer letterhead image not found: %s", header_path)
+        _NORSU_HEADER_DATA_URI = ""
+    return _NORSU_HEADER_DATA_URI
 
 
 def _can_view_tracer_reports(user):
@@ -995,7 +1014,12 @@ def tracer_study_filled_alumni_response(request, response_id):
     return render(
         request,
         "tracer_study/filled_alumni_questionnaire.html",
-        {"response": response, "survey": response.survey, "filled": _filled_alumni_answers(response)},
+        {
+            "response": response,
+            "survey": response.survey,
+            "filled": _filled_alumni_answers(response),
+            "header_data_uri": _norsu_header_data_uri(),
+        },
     )
 
 
