@@ -47,6 +47,20 @@ from .models import (
 
 ALUMNI_TITLE = "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
 EMPLOYER_TITLE = "NORSU Graduate Tracer Study (EMPLOYER QUESTIONNAIRE)"
+PART_IV_EXTENT_KEYS = {
+    "p4_vision",
+    "p4_mission",
+    "p4_goals",
+    "p4_core_values",
+    "p4_program_objectives",
+}
+PART_IV_EXTENT_LABELS = {
+    "p4_vision": "Negros Oriental State University VISION",
+    "p4_mission": "Negros Oriental State University MISSION",
+    "p4_goals": "Negros Oriental State University GOALS",
+    "p4_core_values": "NORSU Corporate Values/Core Values/Graduate Attributes",
+    "p4_program_objectives": "Course/Program Objectives",
+}
 logger = logging.getLogger(__name__)
 _NORSU_HEADER_DATA_URI = None
 
@@ -653,14 +667,31 @@ def tracer_study_alumni(request):
             {"survey": survey, "audience": "alumni"},
         )
 
-    questions = survey.questions.all().prefetch_related("options")
+    questions = list(survey.questions.all().prefetch_related("options"))
+    form_questions = []
+    extent_questions = []
+    for question in questions:
+        try:
+            meta = json.loads(question.help_text) if question.help_text else {}
+        except (TypeError, ValueError):
+            meta = {}
+        key = meta.get("key")
+        if key in PART_IV_EXTENT_KEYS:
+            extent_questions.append({
+                "question": question,
+                "label": PART_IV_EXTENT_LABELS.get(key, question.question_text),
+            })
+        else:
+            form_questions.append(question)
     prefill_answers = _build_prefill_for_alumni(alumni, survey)
     return render(
         request,
         "tracer_study/alumni_form.html",
         {
             "survey": survey,
-            "questions": questions,
+            "questions": form_questions,
+            "extent_questions": extent_questions,
+            "question_count": len(questions),
             "alumni": alumni,
             "prefill_answers": prefill_answers,
         },

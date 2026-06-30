@@ -4,7 +4,49 @@
 
 {% block title %}{{ survey.title }}{% endblock %}
 
-{% block extra_css %}{% include 'tracer_study/_design.html' %}{% endblock %}
+{% block extra_css %}
+{% include 'tracer_study/_design.html' %}
+<style>
+    .extent-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+        background: #fff;
+    }
+    .extent-table th,
+    .extent-table td {
+        border: 1px solid var(--ui-border);
+        padding: 0.85rem;
+        vertical-align: middle;
+    }
+    .extent-table th {
+        background: var(--ui-hover);
+        color: var(--primary-color);
+        font-weight: 700;
+        text-align: center;
+    }
+    .extent-table th:first-child,
+    .extent-table td:first-child {
+        text-align: left;
+        width: 56%;
+    }
+    .extent-table td:not(:first-child) {
+        text-align: center;
+    }
+    .extent-table input {
+        width: 18px;
+        height: 18px;
+        accent-color: var(--primary-color);
+    }
+    @media (max-width: 768px) {
+        .extent-table th,
+        .extent-table td {
+            padding: 0.6rem 0.35rem;
+            font-size: 0.82rem;
+        }
+    }
+</style>
+{% endblock %}
 
 {% block content %}
 <div class="tracer-interface">
@@ -40,8 +82,8 @@
                 </div>
                 <p style="margin: 0; color: var(--text-secondary); font-size: 0.8rem;">
                     <i class="far fa-calendar me-1"></i> Available until {{ survey.end_date|date:"F d, Y" }}
-                    &middot; <i class="fas fa-question-circle me-1"></i> {{ questions.count }} question{{ questions.count|pluralize }}
-                    &middot; <i class="fas fa-clock me-1"></i> Estimated time: {% if questions.count <= 20 %}15{% elif questions.count <= 30 %}20{% else %}25{% endif %} min
+                    &middot; <i class="fas fa-question-circle me-1"></i> {{ question_count }} question{{ question_count|pluralize }}
+                    &middot; <i class="fas fa-clock me-1"></i> Estimated time: {% if question_count <= 20 %}15{% elif question_count <= 30 %}20{% else %}25{% endif %} min
                     {% if prefill_answers %}
                     &middot; <i class="fas fa-magic me-1"></i> {{ prefill_answers|length }} field{{ prefill_answers|length|pluralize:" was,s were" }} pre-filled from your profile (editable)
                     {% endif %}
@@ -195,6 +237,51 @@
             </div>
             {% endwith %}
             {% endfor %}
+
+            {% if extent_questions %}
+            <div class="tracer-part-header">
+                <h3>
+                    <i class="fas fa-bookmark me-1"></i>
+                    <span>PART IV - EXTENT OF MANIFESTATION</span>
+                </h3>
+            </div>
+            <div class="dashboard-card">
+                <div class="card-body">
+                    <p class="mb-2 text-muted"><em>Please rate your manifestation of the following using the scale below.</em></p>
+                    <ul class="mb-3">
+                        <li><strong>5 - Very High Manifestation</strong></li>
+                        <li><strong>4 - High Manifestation</strong></li>
+                        <li><strong>3 - Moderate Manifestation</strong></li>
+                        <li><strong>2 - Low Manifestation</strong></li>
+                        <li><strong>1 - Very Low Manifestation</strong></li>
+                    </ul>
+                    <table class="extent-table">
+                        <thead>
+                            <tr>
+                                <th>Manifestation of the:</th>
+                                <th>5<br><small>VHM</small></th>
+                                <th>4<br><small>HM</small></th>
+                                <th>3<br><small>MM</small></th>
+                                <th>2<br><small>LM</small></th>
+                                <th>1<br><small>VLM</small></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in extent_questions %}
+                            <tr>
+                                <td>{{ row.label }}</td>
+                                <td><input type="radio" name="question_{{ row.question.id }}" value="5" aria-label="{{ row.label }} - Very High Manifestation" {% if row.question.is_required %}required{% endif %}></td>
+                                <td><input type="radio" name="question_{{ row.question.id }}" value="4" aria-label="{{ row.label }} - High Manifestation"></td>
+                                <td><input type="radio" name="question_{{ row.question.id }}" value="3" aria-label="{{ row.label }} - Moderate Manifestation"></td>
+                                <td><input type="radio" name="question_{{ row.question.id }}" value="2" aria-label="{{ row.label }} - Low Manifestation"></td>
+                                <td><input type="radio" name="question_{{ row.question.id }}" value="1" aria-label="{{ row.label }} - Very Low Manifestation"></td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            {% endif %}
 
             <div class="submit-section">
                 <h5 style="color: var(--text-primary); font-weight: 600; margin-bottom: 0.5rem;">
