@@ -6,7 +6,7 @@ from types import SimpleNamespace
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.management import call_command
-from django.test import RequestFactory, TestCase, override_settings
+from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
@@ -15,6 +15,22 @@ from alumni_directory.models import Alumni
 from core.context_processors import tracer_study_banner_context
 from surveys.management.commands.seed_tracer_study import ALUMNI_TITLE
 from surveys.models import Survey, SurveyResponse
+from surveys.tracer_study import _answer_key
+
+
+class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
+    def test_part_iv_question_text_maps_to_filled_form_keys_without_metadata(self):
+        cases = {
+            "Vision (Extent of manifestation in your professional practice)": "p4_vision",
+            "Mission (Extent of manifestation in your professional practice)": "p4_mission",
+            "Goals (Extent of manifestation in your professional practice)": "p4_goals",
+            "Core Values (Extent of manifestation in your professional practice)": "p4_core_values",
+            "Program Objectives (Extent of manifestation in your professional practice)": "p4_program_objectives",
+        }
+
+        for text, expected in cases.items():
+            question = SimpleNamespace(id=99, question_text=text, help_text="")
+            self.assertEqual(_answer_key(question), expected)
 
 
 class TracerStudySeedTests(TestCase):

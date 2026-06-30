@@ -108,6 +108,25 @@ def _response_id_from_token(response_token):
     raise Http404
 
 
+def _question_key_from_text(question_text):
+    text_key = (question_text or "").strip().lower()
+    if "presently employed" in text_key:
+        return "p3_employed"
+    if "employment status" in text_key:
+        return "p3_status"
+    if "vision" in text_key and "extent" in text_key:
+        return "p4_vision"
+    if "mission" in text_key and "extent" in text_key:
+        return "p4_mission"
+    if "goals" in text_key and "extent" in text_key:
+        return "p4_goals"
+    if "core values" in text_key and "extent" in text_key:
+        return "p4_core_values"
+    if "program objectives" in text_key and "extent" in text_key:
+        return "p4_program_objectives"
+    return ""
+
+
 def _alumni_response_rows(survey):
     responses = {
         response.alumni_id: response
@@ -135,14 +154,9 @@ def _answer_key(question):
         meta = json.loads(question.help_text) if question.help_text else {}
     except (ValueError, TypeError):
         meta = {}
-    text_key = (question.question_text or "").strip().lower()
     if meta.get("key"):
         return meta["key"]
-    if "presently employed" in text_key:
-        return "p3_employed"
-    if "employment status" in text_key:
-        return "p3_status"
-    return str(question.id)
+    return _question_key_from_text(question.question_text) or str(question.id)
 
 
 def _filled_alumni_answers(response):
@@ -453,7 +467,7 @@ def _build_prefill_for_alumni(alumni, survey):
             meta = json.loads(question.help_text) if question.help_text else {}
         except (ValueError, TypeError):
             meta = {}
-        key = meta.get("key")
+        key = meta.get("key") or _question_key_from_text(question.question_text)
         if not key or key not in source:
             continue
         value = source[key]
