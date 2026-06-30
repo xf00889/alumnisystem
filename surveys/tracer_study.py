@@ -27,6 +27,7 @@ from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.crypto import constant_time_compare, salted_hmac
 from django.utils.decorators import method_decorator
 from django.views.decorators.http import require_http_methods
 from django.views.generic import View
@@ -63,6 +64,7 @@ PART_IV_EXTENT_LABELS = {
 }
 logger = logging.getLogger(__name__)
 _NORSU_HEADER_DATA_URI = None
+_FILLED_RESPONSE_SALT = "tracer-study-filled-response"
 
 
 def _norsu_header_data_uri():
@@ -87,6 +89,25 @@ def _can_view_tracer_reports(user):
     )
 
 
+def _hashed_response_id(response_id):
+    digest = salted_hmac(
+        _FILLED_RESPONSE_SALT,
+        str(response_id),
+        algorithm="sha256",
+    ).hexdigest()
+    return f"r-{digest}"
+
+
+def _response_id_from_token(response_token):
+    response_ids = SurveyResponse.objects.filter(
+        survey__title=ALUMNI_TITLE,
+    ).values_list("id", flat=True)
+    for response_id in response_ids:
+        if constant_time_compare(_hashed_response_id(response_id), response_token):
+            return response_id
+    raise Http404
+
+
 def _alumni_response_rows(survey):
     responses = {
         response.alumni_id: response
@@ -104,6 +125,7 @@ def _alumni_response_rows(survey):
             "status": "Responded" if response else "Not Responded",
             "submitted_at": response.submitted_at if response else None,
             "response_id": response.id if response else None,
+            "response_token": _hashed_response_id(response.id) if response else None,
         })
     return rows
 
@@ -1046,10 +1068,19 @@ def tracer_study_report(request, survey_id):
 
 
 @login_required
-def tracer_study_filled_alumni_response(request, response_id):
+def tracer_study_filled_alumni_response_legacy(request, response_id):
+    return redirect(
+        "surveys:tracer_study_filled_alumni_response",
+        response_token=_hashed_response_id(response_id),
+    )
+
+
+@login_required
+def tracer_study_filled_alumni_response(request, response_token):
     if not _can_view_tracer_reports(request.user):
         return redirect("surveys:tracer_study_alumni")
 
+    response_id = _response_id_from_token(response_token)
     response = get_object_or_404(
         SurveyResponse.objects.select_related("survey", "alumni__user").prefetch_related(
             "answers__question",
