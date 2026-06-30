@@ -113,7 +113,14 @@ def _answer_key(question):
         meta = json.loads(question.help_text) if question.help_text else {}
     except (ValueError, TypeError):
         meta = {}
-    return meta.get("key") or str(question.id)
+    text_key = (question.question_text or "").strip().lower()
+    if meta.get("key"):
+        return meta["key"]
+    if "presently employed" in text_key:
+        return "p3_employed"
+    if "employment status" in text_key:
+        return "p3_status"
+    return str(question.id)
 
 
 def _filled_alumni_answers(response):
@@ -139,6 +146,15 @@ def _filled_alumni_answers(response):
     def checked(key, *needles):
         selected = by_key.get(key, {}).get("selected", set())
         return any(any(needle.lower() in value for value in selected) for needle in needles)
+
+    def checked_or_source(key, source_value, *needles):
+        if checked(key, *needles):
+            return True
+        selected = by_key.get(key, {}).get("selected", set())
+        if selected:
+            return False
+        source_value = (source_value or "").lower()
+        return any(needle.lower() in source_value for needle in needles)
 
     def rating(key, value):
         return by_key.get(key, {}).get("rating") == str(value)
@@ -180,10 +196,10 @@ def _filled_alumni_answers(response):
         "honor_other_text": other("p2_honors"),
         "p2_exam_name": text("p2_exam_name"),
         "p2_exam_year": text("p2_exam_year"),
-        "employed_yes": checked("p3_employed", "yes"),
-        "employed_no": checked("p3_employed", "no"),
-        "employed_never": checked("p3_employed", "never"),
-        "employed_other": checked("p3_employed", "other"),
+        "employed_yes": checked_or_source("p3_employed", source.get("p3_employed"), "yes"),
+        "employed_no": checked_or_source("p3_employed", source.get("p3_employed"), "no"),
+        "employed_never": checked_or_source("p3_employed", source.get("p3_employed"), "never"),
+        "employed_other": checked_or_source("p3_employed", source.get("p3_employed"), "other"),
         "employed_other_text": other("p3_employed"),
         "unemployed_study": checked("p3_reasons_unemployed", "study", "further"),
         "unemployed_experience": checked("p3_reasons_unemployed", "experience"),
