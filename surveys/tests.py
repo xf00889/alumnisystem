@@ -3,6 +3,7 @@ import zipfile
 import base64
 from datetime import date, timedelta
 from io import BytesIO
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -18,7 +19,14 @@ from alumni_directory.models import Alumni
 from core.context_processors import tracer_study_banner_context
 from surveys.management.commands.seed_tracer_study import ALUMNI_TITLE
 from surveys.models import QuestionOption, ResponseAnswer, Survey, SurveyQuestion, SurveyResponse
-from surveys.tracer_study import _answer_key, _filled_alumni_answers, _save_alumni_response, _tracer_browser_driver, _tracer_response_drawn_form_pdf_bytes, _tracer_response_template_pdf_bytes
+from surveys.tracer_study import (
+    _answer_key,
+    _filled_alumni_answers,
+    _save_alumni_response,
+    _tracer_browser_driver,
+    _tracer_response_chrome_cli_pdf_bytes,
+    _tracer_response_template_pdf_bytes,
+)
 
 
 class _AnswerList(list):
@@ -187,7 +195,7 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
             driver.commands,
         )
 
-    def test_drawn_form_pdf_export_works_without_browser(self):
+    def test_chrome_cli_pdf_export_uses_filled_template_without_url_footer(self):
         user = SimpleNamespace(
             get_full_name=lambda: "Test Alumni",
             username="test",
@@ -212,9 +220,21 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         )
         response = SimpleNamespace(survey=SimpleNamespace(id=1), alumni=alumni, answers=_AnswerList([]))
 
-        pdf = _tracer_response_drawn_form_pdf_bytes(response)
+        def write_fake_pdf(command, capture_output, timeout):
+            pdf_arg = next(arg for arg in command if arg.startswith("--print-to-pdf="))
+            Path(pdf_arg.split("=", 1)[1]).write_bytes(b"%PDF-1.4")
+            return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+
+        with (
+            patch("surveys.tracer_study._tracer_chrome_binary", return_value="/usr/bin/chromium"),
+            patch("surveys.tracer_study.subprocess.run", side_effect=write_fake_pdf) as run,
+        ):
+            pdf = _tracer_response_chrome_cli_pdf_bytes(response)
 
         self.assertTrue(pdf.startswith(b"%PDF"))
+        command = run.call_args.args[0]
+        self.assertIn("--print-to-pdf-no-header", command)
+        self.assertTrue(command[-1].startswith("file://"))
 
     def test_browser_driver_downloads_managed_chrome_when_missing(self):
         with (
