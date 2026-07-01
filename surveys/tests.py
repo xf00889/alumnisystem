@@ -124,6 +124,8 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         self.assertIn("https://facebook.com/full.profile.url", html)
         self.assertIn("checked", vision_row)
         self.assertIn("checked", mission_row)
+        self.assertIn(".rating-table td input:checked", html)
+        self.assertIn("radial-gradient(circle at center, #000", html)
 
 
 class TracerStudySeedTests(TestCase):
