@@ -12,13 +12,13 @@ URLs:
                                 thereafter)
 """
 from datetime import date
-from html import escape
 from io import BytesIO
 from pathlib import Path
 import base64
 import csv
 import json
 import logging
+import os
 import re
 import tempfile
 import zipfile
@@ -382,19 +382,6 @@ def _tracer_response_pdf_filename(response):
     return f"TracerStudy_{last_name}_{first_name}_{college}.pdf"
 
 
-def _tracer_answer_text(answer):
-    if answer.text_answer:
-        return answer.text_answer
-    if answer.rating_value:
-        return str(answer.rating_value)
-    if answer.selected_option:
-        value = answer.selected_option.option_text
-        if answer.custom_text:
-            value = f"{value}: {answer.custom_text}"
-        return value
-    return answer.custom_text or ""
-
-
 def _tracer_browser_driver():
     from selenium import webdriver
     from selenium.webdriver.chrome.options import Options
@@ -404,6 +391,12 @@ def _tracer_browser_driver():
     options.add_argument("--disable-gpu")
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
+    chrome_binary = os.getenv("CHROME_BIN") or os.getenv("GOOGLE_CHROME_BIN")
+    if chrome_binary:
+        options.binary_location = chrome_binary
+    remote_url = os.getenv("SELENIUM_REMOTE_URL")
+    if remote_url:
+        return webdriver.Remote(command_executor=remote_url, options=options)
     return webdriver.Chrome(options=options)
 
 
@@ -441,57 +434,6 @@ def _tracer_response_template_pdf_bytes(response, driver):
                 pass
 
 
-def _tracer_response_fallback_pdf_bytes(response, questions):
-    from reportlab.lib.pagesizes import letter
-    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
-    from reportlab.lib.units import inch
-    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
-
-    answers = {}
-    for answer in response.answers.all():
-        answers.setdefault(answer.question_id, []).append(_tracer_answer_text(answer))
-
-    buffer = BytesIO()
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=letter,
-        leftMargin=0.55 * inch,
-        rightMargin=0.55 * inch,
-        topMargin=0.55 * inch,
-        bottomMargin=0.55 * inch,
-    )
-    styles = getSampleStyleSheet()
-    question_style = ParagraphStyle("TracerQuestion", parent=styles["Normal"], fontName="Helvetica-Bold", spaceBefore=6)
-    answer_style = ParagraphStyle("TracerAnswer", parent=styles["Normal"], leftIndent=12, spaceAfter=3)
-    section_style = ParagraphStyle("TracerSection", parent=styles["Heading2"], spaceBefore=12, spaceAfter=4)
-    alumni = response.alumni
-    story = [
-        Paragraph("NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)", styles["Title"]),
-        Paragraph(f"Name: {escape(alumni.full_name or alumni.user.username)}", styles["Normal"]),
-        Paragraph(f"College: {escape(alumni.college or '')}", styles["Normal"]),
-        Paragraph(f"Program: {escape(alumni.course or '')}", styles["Normal"]),
-        Paragraph(f"Campus: {escape(_tracer_campus_folder(alumni))}", styles["Normal"]),
-        Paragraph(f"Submitted: {response.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]),
-        Spacer(1, 8),
-    ]
-    current_part = None
-    for question in questions:
-        try:
-            meta = json.loads(question.help_text) if question.help_text else {}
-        except (TypeError, ValueError):
-            meta = {}
-        part = meta.get("part") or "Tracer Study"
-        if part != current_part:
-            story.append(Paragraph(escape(part), section_style))
-            current_part = part
-        value = "; ".join(filter(None, answers.get(question.id, []))) or " "
-        story.append(Paragraph(escape(question.question_text), question_style))
-        story.append(Paragraph(escape(value).replace("\n", "<br/>"), answer_style))
-
-    doc.build(story)
-    return buffer.getvalue()
-
-
 def _tracer_study_forms_zip_response(survey):
     responses = (
         SurveyResponse.objects.filter(survey=survey)
@@ -499,14 +441,17 @@ def _tracer_study_forms_zip_response(survey):
         .prefetch_related("answers__question", "answers__selected_option")
         .order_by("alumni__campus", "alumni__college", "alumni__course", "alumni__user__last_name", "alumni__user__first_name")
     )
-    questions = list(survey.questions.all().order_by("display_order"))
     buffer = BytesIO()
     used_paths = set()
-    driver = None
     try:
         driver = _tracer_browser_driver()
     except Exception as exc:
-        logger.warning("Tracer filled-form PDF browser renderer unavailable; using fallback PDFs: %s", exc)
+        logger.exception("Tracer filled-form PDF browser renderer unavailable")
+        return HttpResponse(
+            "Tracer Study filled-form ZIP export requires Chrome/Chromium or SELENIUM_REMOTE_URL on the server.",
+            status=503,
+            content_type="text/plain",
+        )
 
     try:
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -523,12 +468,7 @@ def _tracer_study_forms_zip_response(survey):
                     path = f"{base}_{counter}{ext}"
                     counter += 1
                 used_paths.add(path.lower())
-                pdf = (
-                    _tracer_response_template_pdf_bytes(response, driver)
-                    if driver
-                    else _tracer_response_fallback_pdf_bytes(response, questions)
-                )
-                zip_file.writestr(path, pdf)
+                zip_file.writestr(path, _tracer_response_template_pdf_bytes(response, driver))
 
             if not used_paths:
                 zip_file.writestr("README.txt", "No tracer study responses found.")

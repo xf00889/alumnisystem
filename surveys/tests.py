@@ -4,6 +4,7 @@ import base64
 from datetime import date, timedelta
 from io import BytesIO
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.conf import settings
@@ -406,10 +407,23 @@ class TracerStudyReportResponseStatusTests(TestCase):
     def test_export_filled_forms_zip_groups_by_campus_college_program(self):
         self.client.force_login(self.admin)
 
-        export = self.client.get(
-            reverse("surveys:tracer_study_report_export", args=[self.survey.id]),
-            {"format": "zip"},
-        )
+        class Driver:
+            def get(self, url):
+                pass
+
+            def execute_cdp_cmd(self, name, params):
+                if name == "Page.printToPDF":
+                    return {"data": base64.b64encode(b"%PDF-1.4").decode("ascii")}
+                return {}
+
+            def quit(self):
+                pass
+
+        with patch("surveys.tracer_study._tracer_browser_driver", return_value=Driver()):
+            export = self.client.get(
+                reverse("surveys:tracer_study_report_export", args=[self.survey.id]),
+                {"format": "zip"},
+            )
 
         self.assertEqual(export["Content-Type"], "application/zip")
         with zipfile.ZipFile(BytesIO(export.content)) as archive:
