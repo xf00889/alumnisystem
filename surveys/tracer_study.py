@@ -12,11 +12,15 @@ URLs:
                                 thereafter)
 """
 from datetime import date
+from html import escape
+from io import BytesIO
 from pathlib import Path
 import base64
 import csv
 import json
 import logging
+import re
+import zipfile
 
 from django.conf import settings
 from django.contrib import messages
@@ -347,6 +351,132 @@ def _filled_alumni_answers(response):
         **{f"p4_core_values_{i}": rating("p4_core_values", i) for i in range(1, 6)},
         **{f"p4_program_objectives_{i}": rating("p4_program_objectives", i) for i in range(1, 6)},
     }
+
+
+def _safe_export_name(value, fallback):
+    value = re.sub(r'[<>:"/\\|?*\x00-\x1f]+', "_", str(value or "").strip())
+    value = re.sub(r"\s+", " ", value).strip(" ._")
+    return value or fallback
+
+
+def _tracer_campus_folder(alumni):
+    return {
+        "MAIN": "NORSU MAIN",
+        "BAIS1": "NORSU BAIS",
+        "BAIS2": "NORSU BAIS",
+        "BSC": "NORSU-BSC",
+        "PAM": "NORSU PAMPLONA",
+        "SIATON": "NORSU SIATON",
+        "GUI": "NORSU GUIHULNGAN",
+        "MAB": "NORSU MABINAY",
+    }.get(alumni.campus, alumni.get_campus_display() or "UNKNOWN CAMPUS")
+
+
+def _tracer_response_pdf_filename(response):
+    user = response.alumni.user
+    last_name = _safe_export_name(user.last_name or user.username, "LastName")
+    first_name = _safe_export_name(user.first_name or user.username, "FirstName")
+    college = _safe_export_name(response.alumni.college, "College")
+    return f"TracerStudy_{last_name}_{first_name}_{college}.pdf"
+
+
+def _tracer_answer_text(answer):
+    if answer.text_answer:
+        return answer.text_answer
+    if answer.rating_value:
+        return str(answer.rating_value)
+    if answer.selected_option:
+        value = answer.selected_option.option_text
+        if answer.custom_text:
+            value = f"{value}: {answer.custom_text}"
+        return value
+    return answer.custom_text or ""
+
+
+def _tracer_response_pdf_bytes(response, questions):
+    from reportlab.lib.pagesizes import letter
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer
+
+    answers = {}
+    for answer in response.answers.all():
+        answers.setdefault(answer.question_id, []).append(_tracer_answer_text(answer))
+
+    buffer = BytesIO()
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=0.55 * inch,
+        rightMargin=0.55 * inch,
+        topMargin=0.55 * inch,
+        bottomMargin=0.55 * inch,
+    )
+    styles = getSampleStyleSheet()
+    question_style = ParagraphStyle("TracerQuestion", parent=styles["Normal"], fontName="Helvetica-Bold", spaceBefore=6)
+    answer_style = ParagraphStyle("TracerAnswer", parent=styles["Normal"], leftIndent=12, spaceAfter=3)
+    section_style = ParagraphStyle("TracerSection", parent=styles["Heading2"], spaceBefore=12, spaceAfter=4)
+    alumni = response.alumni
+    story = [
+        Paragraph("NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)", styles["Title"]),
+        Paragraph(f"Name: {escape(alumni.full_name or alumni.user.username)}", styles["Normal"]),
+        Paragraph(f"College: {escape(alumni.college or '')}", styles["Normal"]),
+        Paragraph(f"Program: {escape(alumni.course or '')}", styles["Normal"]),
+        Paragraph(f"Campus: {escape(_tracer_campus_folder(alumni))}", styles["Normal"]),
+        Paragraph(f"Submitted: {response.submitted_at.strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]),
+        Spacer(1, 8),
+    ]
+    current_part = None
+    for question in questions:
+        try:
+            meta = json.loads(question.help_text) if question.help_text else {}
+        except (TypeError, ValueError):
+            meta = {}
+        part = meta.get("part") or "Tracer Study"
+        if part != current_part:
+            story.append(Paragraph(escape(part), section_style))
+            current_part = part
+        value = "; ".join(filter(None, answers.get(question.id, []))) or " "
+        story.append(Paragraph(escape(question.question_text), question_style))
+        story.append(Paragraph(escape(value).replace("\n", "<br/>"), answer_style))
+
+    doc.build(story)
+    return buffer.getvalue()
+
+
+def _tracer_study_forms_zip_response(survey):
+    responses = (
+        SurveyResponse.objects.filter(survey=survey)
+        .select_related("alumni__user")
+        .prefetch_related("answers__question", "answers__selected_option")
+        .order_by("alumni__campus", "alumni__college", "alumni__course", "alumni__user__last_name", "alumni__user__first_name")
+    )
+    questions = list(survey.questions.all().order_by("display_order"))
+    buffer = BytesIO()
+    used_paths = set()
+
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+        for response in responses:
+            alumni = response.alumni
+            campus = _safe_export_name(_tracer_campus_folder(alumni), "UNKNOWN CAMPUS")
+            college = _safe_export_name(alumni.college, "UNKNOWN COLLEGE")
+            program = _safe_export_name(alumni.course, "UNKNOWN PROGRAM")
+            filename = _tracer_response_pdf_filename(response)
+            path = f"{campus}/{college}/{program}/{filename}"
+            base, ext = path[:-4], ".pdf"
+            counter = 2
+            while path.lower() in used_paths:
+                path = f"{base}_{counter}{ext}"
+                counter += 1
+            used_paths.add(path.lower())
+            zip_file.writestr(path, _tracer_response_pdf_bytes(response, questions))
+
+        if not used_paths:
+            zip_file.writestr("README.txt", "No tracer study responses found.")
+
+    response = HttpResponse(buffer.getvalue(), content_type="application/zip")
+    response["Content-Disposition"] = 'attachment; filename="tracer-study-filled-forms.zip"'
+    return response
 
 
 def _get_active_survey(title):
@@ -1148,6 +1278,9 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     format_type = (format_type or request.GET.get("format") or "excel").lower()
     if format_type == "xlsx":
         format_type = "excel"
+
+    if format_type == "zip":
+        return _tracer_study_forms_zip_response(survey)
 
     rows = _alumni_response_rows(survey)
     responded_rows = [row for row in rows if row["submitted_at"]]

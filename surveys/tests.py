@@ -1,4 +1,5 @@
 import json
+import zipfile
 from datetime import date, timedelta
 from io import BytesIO
 from types import SimpleNamespace
@@ -303,7 +304,19 @@ class TracerStudyReportResponseStatusTests(TestCase):
             city="Dumaguete",
             address="B",
         )
-        SurveyResponse.objects.create(survey=self.survey, alumni=self.respondent)
+        self.response = SurveyResponse.objects.create(survey=self.survey, alumni=self.respondent)
+        self.question = SurveyQuestion.objects.create(
+            survey=self.survey,
+            question_text="Contact Number (Mobile)",
+            question_type="phone",
+            display_order=1,
+            help_text=json.dumps({"key": "p1_contact", "part": "PART I - Personal Information"}),
+        )
+        ResponseAnswer.objects.create(
+            response=self.response,
+            question=self.question,
+            text_answer="+63 917 000 0000",
+        )
 
     def test_report_shows_and_exports_response_status(self):
         self.client.force_login(self.admin)
@@ -333,6 +346,21 @@ class TracerStudyReportResponseStatusTests(TestCase):
         self.assertNotIn("Nico Missing", responded_values)
         self.assertIn("Nico Missing", missing_values)
         self.assertNotIn("Rina Responded", missing_values)
+
+    def test_export_filled_forms_zip_groups_by_campus_college_program(self):
+        self.client.force_login(self.admin)
+
+        export = self.client.get(
+            reverse("surveys:tracer_study_report_export", args=[self.survey.id]),
+            {"format": "zip"},
+        )
+
+        self.assertEqual(export["Content-Type"], "application/zip")
+        with zipfile.ZipFile(BytesIO(export.content)) as archive:
+            names = archive.namelist()
+            expected = "NORSU MAIN/CAS/BSINT/TracerStudy_Responded_Rina_CAS.pdf"
+            self.assertIn(expected, names)
+            self.assertTrue(archive.read(expected).startswith(b"%PDF"))
 
 
 class TracerStudyBannerContextTests(TestCase):

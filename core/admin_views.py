@@ -553,6 +553,11 @@ def bulk_export_process(request):
     if request.method == 'POST':
         selected_models = request.POST.getlist('models')
         format_type = request.POST.get('format_type', 'csv')
+        if selected_models == ['tracer_study'] and format_type == 'zip':
+            survey = _tracer_study_survey()
+            if not survey:
+                return JsonResponse({'error': 'Tracer Study survey was not found.'}, status=404)
+            return tracer_study.tracer_study_report_export(request, survey.id, 'zip')
         
         # Log bulk export start
         logger.info(
