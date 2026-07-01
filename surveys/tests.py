@@ -220,7 +220,8 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         )
         response = SimpleNamespace(survey=SimpleNamespace(id=1), alumni=alumni, answers=_AnswerList([]))
 
-        def write_fake_pdf(command, capture_output, timeout):
+        def write_fake_pdf(command, capture_output, timeout, env):
+            self.assertIn("/usr/bin", env["PATH"])
             pdf_arg = next(arg for arg in command if arg.startswith("--print-to-pdf="))
             pdf_path = pdf_arg.split("=", 1)[1]
             Path(pdf_path).write_bytes(b"generated pdf bytes")

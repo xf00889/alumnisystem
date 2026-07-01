@@ -488,6 +488,13 @@ def _tracer_chrome_binary():
     return ""
 
 
+def _tracer_chrome_env():
+    env = os.environ.copy()
+    default_paths = "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
+    env["PATH"] = f"{env.get('PATH', '')}:{default_paths}" if env.get("PATH") else default_paths
+    return env
+
+
 def _tracer_response_chrome_cli_pdf_bytes(response):
     chrome_binary = _tracer_chrome_binary()
     if not chrome_binary:
@@ -515,7 +522,7 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
                 f"--print-to-pdf={pdf_path}",
                 file_url,
             ]
-            result = subprocess.run(command, capture_output=True, timeout=90)
+            result = subprocess.run(command, capture_output=True, timeout=90, env=_tracer_chrome_env())
             output = ((result.stderr or b"") + (result.stdout or b"")).decode("utf-8", errors="replace")
             written_path = re.search(r"\d+\s+bytes written to file\s+(.+?\.pdf)", output)
             for candidate in {pdf_path, written_path.group(1) if written_path else ""}:
