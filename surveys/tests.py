@@ -122,6 +122,7 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
 
         self.assertIn('value="+63 917 123 4567"', html)
         self.assertIn("https://facebook.com/full.profile.url", html)
+        self.assertIn('class="url-value"', html)
         self.assertIn("checked", vision_row)
         self.assertIn("checked", mission_row)
         self.assertIn(".rating-table td input:checked", html)
