@@ -516,8 +516,10 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
                 file_url,
             ]
             result = subprocess.run(command, capture_output=True, timeout=90)
-            if result.returncode == 0 and Path(pdf_path).exists() and Path(pdf_path).stat().st_size:
-                return Path(pdf_path).read_bytes()
+            if Path(pdf_path).exists() and Path(pdf_path).stat().st_size:
+                pdf = Path(pdf_path).read_bytes()
+                if pdf.startswith(b"%PDF"):
+                    return pdf
             last_error = (result.stderr or result.stdout or b"").decode("utf-8", errors="replace")
         raise RuntimeError(last_error or "Chrome/Chromium PDF export failed")
     finally:

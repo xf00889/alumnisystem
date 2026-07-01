@@ -223,7 +223,7 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         def write_fake_pdf(command, capture_output, timeout):
             pdf_arg = next(arg for arg in command if arg.startswith("--print-to-pdf="))
             Path(pdf_arg.split("=", 1)[1]).write_bytes(b"%PDF-1.4")
-            return SimpleNamespace(returncode=0, stdout=b"", stderr=b"")
+            return SimpleNamespace(returncode=1, stdout=b"", stderr=b"xdg-settings: not found")
 
         with (
             patch("surveys.tracer_study._tracer_chrome_binary", return_value="/usr/bin/chromium"),
