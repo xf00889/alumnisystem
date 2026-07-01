@@ -18,7 +18,7 @@ from alumni_directory.models import Alumni
 from core.context_processors import tracer_study_banner_context
 from surveys.management.commands.seed_tracer_study import ALUMNI_TITLE
 from surveys.models import QuestionOption, ResponseAnswer, Survey, SurveyQuestion, SurveyResponse
-from surveys.tracer_study import _answer_key, _filled_alumni_answers, _save_alumni_response, _tracer_response_template_pdf_bytes
+from surveys.tracer_study import _answer_key, _filled_alumni_answers, _save_alumni_response, _tracer_browser_driver, _tracer_response_template_pdf_bytes
 
 
 class _AnswerList(list):
@@ -186,6 +186,27 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
             ),
             driver.commands,
         )
+
+    def test_browser_driver_downloads_managed_chrome_when_missing(self):
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("selenium.webdriver.common.selenium_manager.SeleniumManager") as manager,
+            patch("selenium.webdriver.chrome.service.Service") as service,
+            patch("selenium.webdriver.Chrome") as chrome,
+        ):
+            manager.return_value.binary_paths.return_value = {
+                "browser_path": "/tmp/chrome",
+                "driver_path": "/tmp/chromedriver",
+            }
+            chrome.return_value = "driver"
+
+            driver = _tracer_browser_driver()
+
+        self.assertEqual(driver, "driver")
+        manager.return_value.binary_paths.assert_called_once()
+        service.assert_called_once_with(executable_path="/tmp/chromedriver")
+        options = chrome.call_args.kwargs["options"]
+        self.assertEqual(options.binary_location, "/tmp/chrome")
 
 
 class TracerStudySeedTests(TestCase):

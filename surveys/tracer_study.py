@@ -384,7 +384,9 @@ def _tracer_response_pdf_filename(response):
 
 def _tracer_browser_driver():
     from selenium import webdriver
+    from selenium.webdriver.chrome.service import Service
     from selenium.webdriver.chrome.options import Options
+    from selenium.webdriver.common.selenium_manager import SeleniumManager
 
     options = Options()
     options.add_argument("--headless=new")
@@ -397,7 +399,17 @@ def _tracer_browser_driver():
     remote_url = os.getenv("SELENIUM_REMOTE_URL")
     if remote_url:
         return webdriver.Remote(command_executor=remote_url, options=options)
-    return webdriver.Chrome(options=options)
+    service = None
+    if not chrome_binary:
+        paths = SeleniumManager().binary_paths([
+            "--browser",
+            "chrome",
+            "--browser-version",
+            os.getenv("SELENIUM_BROWSER_VERSION", "stable"),
+        ])
+        options.binary_location = paths["browser_path"]
+        service = Service(executable_path=paths["driver_path"])
+    return webdriver.Chrome(service=service, options=options)
 
 
 def _tracer_response_template_pdf_bytes(response, driver):
@@ -448,7 +460,7 @@ def _tracer_study_forms_zip_response(survey):
     except Exception as exc:
         logger.exception("Tracer filled-form PDF browser renderer unavailable")
         return HttpResponse(
-            "Tracer Study filled-form ZIP export requires Chrome/Chromium or SELENIUM_REMOTE_URL on the server.",
+            "Tracer Study filled-form ZIP export could not start the PDF browser renderer. Please try again; if it persists, check server outbound access for Selenium Manager or set SELENIUM_REMOTE_URL.",
             status=503,
             content_type="text/plain",
         )
