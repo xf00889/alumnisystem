@@ -517,10 +517,12 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
             ]
             result = subprocess.run(command, capture_output=True, timeout=90)
             output = ((result.stderr or b"") + (result.stdout or b"")).decode("utf-8", errors="replace")
-            if Path(pdf_path).exists() and Path(pdf_path).stat().st_size:
-                pdf = Path(pdf_path).read_bytes()
-                if b"%PDF" in pdf[:1024] or "bytes written to file" in output:
-                    return pdf
+            written_path = re.search(r"\d+\s+bytes written to file\s+(.+?\.pdf)", output)
+            for candidate in {pdf_path, written_path.group(1) if written_path else ""}:
+                if candidate and Path(candidate).exists() and Path(candidate).stat().st_size:
+                    pdf = Path(candidate).read_bytes()
+                    if b"%PDF" in pdf[:1024] or written_path:
+                        return pdf
             last_error = output
         raise RuntimeError(last_error or "Chrome/Chromium PDF export failed")
     finally:

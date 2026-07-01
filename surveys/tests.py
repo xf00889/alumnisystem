@@ -222,8 +222,13 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
 
         def write_fake_pdf(command, capture_output, timeout):
             pdf_arg = next(arg for arg in command if arg.startswith("--print-to-pdf="))
-            Path(pdf_arg.split("=", 1)[1]).write_bytes(b"generated pdf bytes")
-            return SimpleNamespace(returncode=1, stdout=b"", stderr=b"xdg-settings: not found\n17 bytes written to file")
+            pdf_path = pdf_arg.split("=", 1)[1]
+            Path(pdf_path).write_bytes(b"generated pdf bytes")
+            return SimpleNamespace(
+                returncode=1,
+                stdout=b"",
+                stderr=f"xdg-settings: not found\n17 bytes written to file {pdf_path}".encode("utf-8"),
+            )
 
         with (
             patch("surveys.tracer_study._tracer_chrome_binary", return_value="/usr/bin/chromium"),
