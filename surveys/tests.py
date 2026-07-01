@@ -1,5 +1,6 @@
 import json
 import zipfile
+import base64
 from datetime import date, timedelta
 from io import BytesIO
 from types import SimpleNamespace
@@ -16,7 +17,7 @@ from alumni_directory.models import Alumni
 from core.context_processors import tracer_study_banner_context
 from surveys.management.commands.seed_tracer_study import ALUMNI_TITLE
 from surveys.models import QuestionOption, ResponseAnswer, Survey, SurveyQuestion, SurveyResponse
-from surveys.tracer_study import _answer_key, _filled_alumni_answers, _save_alumni_response
+from surveys.tracer_study import _answer_key, _filled_alumni_answers, _save_alumni_response, _tracer_response_template_pdf_bytes
 
 
 class _AnswerList(list):
@@ -129,6 +130,61 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         self.assertIn(".rating-table td input:checked", html)
         self.assertIn("radial-gradient(circle at center, #000", html)
         self.assertIn("border-width: 3.5pt", html)
+
+    def test_template_pdf_export_omits_browser_url_footer(self):
+        class Driver:
+            def __init__(self):
+                self.commands = []
+
+            def get(self, url):
+                self.url = url
+
+            def execute_cdp_cmd(self, name, params):
+                self.commands.append((name, params))
+                if name == "Page.printToPDF":
+                    return {"data": base64.b64encode(b"%PDF-1.4").decode("ascii")}
+                return {}
+
+        user = SimpleNamespace(
+            get_full_name=lambda: "Test Alumni",
+            username="test",
+            email="test@example.com",
+        )
+        alumni = SimpleNamespace(
+            user=user,
+            date_of_birth=None,
+            phone_number="",
+            address="",
+            city="",
+            province="",
+            country=None,
+            course="",
+            major="",
+            gender="",
+            campus="",
+            graduation_year=None,
+            employment_status="",
+            job_title="",
+            current_company="",
+        )
+        response = SimpleNamespace(survey=SimpleNamespace(id=1), alumni=alumni, answers=_AnswerList([]))
+        driver = Driver()
+
+        pdf = _tracer_response_template_pdf_bytes(response, driver)
+
+        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertIn(("Emulation.setEmulatedMedia", {"media": "print"}), driver.commands)
+        self.assertIn(
+            (
+                "Page.printToPDF",
+                {
+                    "printBackground": True,
+                    "preferCSSPageSize": True,
+                    "displayHeaderFooter": False,
+                },
+            ),
+            driver.commands,
+        )
 
 
 class TracerStudySeedTests(TestCase):

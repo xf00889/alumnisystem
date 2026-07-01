@@ -20,6 +20,7 @@ import csv
 import json
 import logging
 import re
+import tempfile
 import zipfile
 
 from django.conf import settings
@@ -29,6 +30,7 @@ from django.db import transaction
 from django.db.models import Count, Q
 from django.http import Http404, HttpResponse, HttpResponseRedirect
 from django.shortcuts import get_object_or_404, redirect, render
+from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
 from django.utils.crypto import constant_time_compare, salted_hmac
@@ -393,7 +395,53 @@ def _tracer_answer_text(answer):
     return answer.custom_text or ""
 
 
-def _tracer_response_pdf_bytes(response, questions):
+def _tracer_browser_driver():
+    from selenium import webdriver
+    from selenium.webdriver.chrome.options import Options
+
+    options = Options()
+    options.add_argument("--headless=new")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    return webdriver.Chrome(options=options)
+
+
+def _tracer_response_template_pdf_bytes(response, driver):
+    html = render_to_string(
+        "tracer_study/filled_alumni_questionnaire.html",
+        {
+            "response": response,
+            "survey": response.survey,
+            "filled": _filled_alumni_answers(response),
+            "header_data_uri": _norsu_header_data_uri(),
+        },
+    )
+    tmp_path = None
+    try:
+        with tempfile.NamedTemporaryFile("w", suffix=".html", encoding="utf-8", delete=False) as tmp:
+            tmp.write(html)
+            tmp_path = tmp.name
+        driver.get(Path(tmp_path).resolve().as_uri())
+        driver.execute_cdp_cmd("Emulation.setEmulatedMedia", {"media": "print"})
+        pdf = driver.execute_cdp_cmd(
+            "Page.printToPDF",
+            {
+                "printBackground": True,
+                "preferCSSPageSize": True,
+                "displayHeaderFooter": False,
+            },
+        )
+        return base64.b64decode(pdf["data"])
+    finally:
+        if tmp_path:
+            try:
+                Path(tmp_path).unlink()
+            except OSError:
+                pass
+
+
+def _tracer_response_fallback_pdf_bytes(response, questions):
     from reportlab.lib.pagesizes import letter
     from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
     from reportlab.lib.units import inch
@@ -454,25 +502,39 @@ def _tracer_study_forms_zip_response(survey):
     questions = list(survey.questions.all().order_by("display_order"))
     buffer = BytesIO()
     used_paths = set()
+    driver = None
+    try:
+        driver = _tracer_browser_driver()
+    except Exception as exc:
+        logger.warning("Tracer filled-form PDF browser renderer unavailable; using fallback PDFs: %s", exc)
 
-    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
-        for response in responses:
-            alumni = response.alumni
-            campus = _safe_export_name(_tracer_campus_folder(alumni), "UNKNOWN CAMPUS")
-            college = _safe_export_name(alumni.college, "UNKNOWN COLLEGE")
-            program = _safe_export_name(alumni.course, "UNKNOWN PROGRAM")
-            filename = _tracer_response_pdf_filename(response)
-            path = f"{campus}/{college}/{program}/{filename}"
-            base, ext = path[:-4], ".pdf"
-            counter = 2
-            while path.lower() in used_paths:
-                path = f"{base}_{counter}{ext}"
-                counter += 1
-            used_paths.add(path.lower())
-            zip_file.writestr(path, _tracer_response_pdf_bytes(response, questions))
+    try:
+        with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
+            for response in responses:
+                alumni = response.alumni
+                campus = _safe_export_name(_tracer_campus_folder(alumni), "UNKNOWN CAMPUS")
+                college = _safe_export_name(alumni.college, "UNKNOWN COLLEGE")
+                program = _safe_export_name(alumni.course, "UNKNOWN PROGRAM")
+                filename = _tracer_response_pdf_filename(response)
+                path = f"{campus}/{college}/{program}/{filename}"
+                base, ext = path[:-4], ".pdf"
+                counter = 2
+                while path.lower() in used_paths:
+                    path = f"{base}_{counter}{ext}"
+                    counter += 1
+                used_paths.add(path.lower())
+                pdf = (
+                    _tracer_response_template_pdf_bytes(response, driver)
+                    if driver
+                    else _tracer_response_fallback_pdf_bytes(response, questions)
+                )
+                zip_file.writestr(path, pdf)
 
-        if not used_paths:
-            zip_file.writestr("README.txt", "No tracer study responses found.")
+            if not used_paths:
+                zip_file.writestr("README.txt", "No tracer study responses found.")
+    finally:
+        if driver:
+            driver.quit()
 
     response = HttpResponse(buffer.getvalue(), content_type="application/zip")
     response["Content-Disposition"] = 'attachment; filename="tracer-study-filled-forms.zip"'
