@@ -222,8 +222,8 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
 
         def write_fake_pdf(command, capture_output, timeout):
             pdf_arg = next(arg for arg in command if arg.startswith("--print-to-pdf="))
-            Path(pdf_arg.split("=", 1)[1]).write_bytes(b"%PDF-1.4")
-            return SimpleNamespace(returncode=1, stdout=b"", stderr=b"xdg-settings: not found")
+            Path(pdf_arg.split("=", 1)[1]).write_bytes(b"generated pdf bytes")
+            return SimpleNamespace(returncode=1, stdout=b"", stderr=b"xdg-settings: not found\n17 bytes written to file")
 
         with (
             patch("surveys.tracer_study._tracer_chrome_binary", return_value="/usr/bin/chromium"),
@@ -231,7 +231,7 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         ):
             pdf = _tracer_response_chrome_cli_pdf_bytes(response)
 
-        self.assertTrue(pdf.startswith(b"%PDF"))
+        self.assertEqual(pdf, b"generated pdf bytes")
         command = run.call_args.args[0]
         self.assertIn("--print-to-pdf-no-header", command)
         self.assertTrue(command[-1].startswith("file://"))
