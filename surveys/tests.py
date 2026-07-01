@@ -126,6 +126,7 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         self.assertIn("checked", mission_row)
         self.assertIn(".rating-table td input:checked", html)
         self.assertIn("radial-gradient(circle at center, #000", html)
+        self.assertIn("border-width: 3.5pt", html)
 
 
 class TracerStudySeedTests(TestCase):
