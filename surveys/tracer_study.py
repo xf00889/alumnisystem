@@ -446,6 +446,165 @@ def _tracer_response_template_pdf_bytes(response, driver):
                 pass
 
 
+def _tracer_response_drawn_form_pdf_bytes(response):
+    from reportlab.lib.pagesizes import legal
+    from reportlab.lib.utils import ImageReader
+    from reportlab.pdfgen import canvas
+
+    filled = _filled_alumni_answers(response)
+    buffer = BytesIO()
+    width, height = legal
+    margin = 42
+    c = canvas.Canvas(buffer, pagesize=legal)
+    y = height - margin
+
+    def page():
+        nonlocal y
+        c.showPage()
+        y = height - margin
+
+    def need(points):
+        if y - points < margin:
+            page()
+
+    def txt(value, x, yy, size=8, bold=False, italic=False):
+        font = "Helvetica-BoldOblique" if bold and italic else "Helvetica-Bold" if bold else "Helvetica-Oblique" if italic else "Helvetica"
+        c.setFont(font, size)
+        c.drawString(x, yy, str(value or ""))
+
+    def center(value, yy, size=9):
+        c.setFont("Helvetica-Bold", size)
+        c.drawCentredString(width / 2, yy, value)
+
+    def line_value(label, value="", label_width=175):
+        nonlocal y
+        need(18)
+        txt(label, margin, y, 8)
+        x = margin + label_width
+        c.line(x, y - 2, width - margin, y - 2)
+        txt(value, x + 3, y + 1, 8)
+        y -= 16
+
+    def part(title):
+        nonlocal y
+        need(30)
+        y -= 6
+        center(title, y, 9)
+        y -= 18
+
+    def section(title):
+        nonlocal y
+        need(18)
+        txt(title, margin, y, 8, bold=True)
+        y -= 14
+
+    def mark(x, yy, checked=False, radio=False):
+        if radio:
+            c.circle(x + 3.5, yy + 3.5, 3.5)
+            if checked:
+                c.circle(x + 3.5, yy + 3.5, 2, fill=1)
+        else:
+            c.rect(x, yy, 7, 7)
+            if checked:
+                c.setLineWidth(1.25)
+                c.line(x + 1, yy + 4, x + 3, yy + 1)
+                c.line(x + 3, yy + 1, x + 6, yy + 6)
+                c.setLineWidth(1)
+
+    def choices(label, items, radio=False):
+        nonlocal y
+        need(34)
+        txt(label, margin, y, 8)
+        y -= 14
+        x = margin + 12
+        for item_label, checked in items:
+            step = min(150, max(70, len(item_label) * 4.5 + 20))
+            if x + step > width - margin:
+                x = margin + 12
+                y -= 14
+                need(14)
+            mark(x, y - 1, checked, radio)
+            txt(item_label, x + 11, y, 8)
+            x += step
+        y -= 17
+
+    def textarea(label, value):
+        nonlocal y
+        need(54)
+        txt(label, margin, y, 8)
+        y -= 12
+        c.rect(margin, y - 28, width - margin * 2, 34)
+        txt(value, margin + 4, y - 5, 8)
+        y -= 44
+
+    header_path = Path(settings.BASE_DIR) / "static" / "images" / "norsu-header.png"
+    if header_path.exists():
+        c.drawImage(ImageReader(str(header_path)), margin, y - 70, width - margin * 2, 52, preserveAspectRatio=True, anchor="c")
+        y -= 84
+
+    txt("Appendix A", width - margin - 48, y, 9, bold=True)
+    y -= 18
+    center("NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)", y, 10)
+    y -= 24
+    txt("Dear Graduates:", margin, y, 8, bold=True, italic=True)
+    y -= 14
+    txt("Please complete this Graduate Tracer Study (GTS) questionnaire as accurately and honestly as possible.", margin, y, 8, italic=True)
+    y -= 22
+
+    part("PART I - PERSONAL INFORMATION")
+    section("1. Background of Respondents")
+    line_value("1.1. Name of Respondent:", filled["p1_name"])
+    line_value("1.2. Current/Permanent Address:", filled["p1_address"])
+    line_value("1.3. Email Address:", filled["p1_email"])
+    line_value("1.4. Contact Number (Mobile):", filled["p1_contact"])
+    line_value("1.5. Age:", filled["p1_age"])
+    choices("1.6. Gender:", [("Male", filled["gender_male"]), ("Female", filled["gender_female"]), ("Other (please specify)", filled["gender_other"])], True)
+    choices("1.7. Marital Status:", [("Single", filled["marital_single"]), ("Married", filled["marital_married"]), ("Other (please specify)", filled["marital_other"])], True)
+    line_value("1.8. Facebook:", filled["p1_fb"], 70)
+    line_value("     Twitter:", filled["p1_twitter"], 70)
+
+    part("PART II - EDUCATIONAL BACKGROUND")
+    section("A. Educational Attainment (Baccalaureate Degree at NORSU)")
+    line_value("1.1. Course and Major taken:", filled["p2_course"])
+    line_value("1.2. Year Graduated:", filled["p2_year"])
+    choices("1.3. Campus:", [("Main Campus I", filled["campus_main1"]), ("Guihulngan Campus", filled["campus_guihulngan"]), ("Main Campus II", filled["campus_main2"]), ("Bais Campuses", filled["campus_bais"]), ("Bayawan-Sta. Catalina Campus", filled["campus_bayawan"]), ("Mabinay Campus", filled["campus_mabinay"]), ("Siaton Campus", filled["campus_siaton"]), ("Pamplona Campus", filled["campus_pamplona"])], True)
+    choices("1.4. Honor(s) or Awards Received:", [("Academic Honor", filled["honor_academic"]), ("Leadership Award", filled["honor_leadership"]), ("Special Academic Award", filled["honor_special"]), ("Other Awards", filled["honor_other"])])
+    line_value("B. Examination/NC - Name:", filled["p2_exam_name"])
+    line_value("   Year Passed:", filled["p2_exam_year"])
+
+    part("PART III - EMPLOYMENT DATA")
+    choices("2.1. Are you presently employed?", [("Yes", filled["employed_yes"]), ("No", filled["employed_no"]), ("Never Employed", filled["employed_never"]), ("Other", filled["employed_other"])], True)
+    choices("2.2. Reason(s) why not yet employed:", [("Advance/further study", filled["unemployed_study"]), ("Lack of work experience", filled["unemployed_experience"]), ("Family concern", filled["unemployed_family"]), ("No job opportunity", filled["unemployed_opportunity"]), ("Health-related", filled["unemployed_health"]), ("Did not look for a job", filled["unemployed_no_look"]), ("Other", filled["unemployed_other"])])
+    choices("2.3. Present Employment Status:", [("Regular/Permanent", filled["status_regular"]), ("Contractual", filled["status_contractual"]), ("Temporary", filled["status_temporary"]), ("Self-employed", filled["status_self"]), ("Casual", filled["status_casual"]), ("Other", filled["status_other"])], True)
+    line_value("2.4. Present Occupation/Position/Rank:", filled["p3_position"])
+    line_value("2.4.1. Name of Company/Organization:", filled["p3_company"])
+    line_value("2.4.2. Address of Company/Organization:", filled["p3_company_address"])
+    choices("2.5. Type of Organization:", [("Government", filled["org_government"]), ("Private", filled["org_private"])], True)
+    choices("2.6. Place of Work:", [("Local", filled["place_local"]), ("Abroad", filled["place_abroad"])], True)
+    choices("2.7. Is this your first job after college?", [("Yes", filled["first_job_yes"]), ("No", filled["first_job_no"])], True)
+    choices("2.9. Reasons for accepting the job:", [("Salaries and benefits", filled["accept_salary"]), ("Related to special skills", filled["accept_skill"]), ("Career challenge", filled["accept_challenge"]), ("Proximity to residence", filled["accept_proximity"]), ("Other", filled["accept_other"])])
+    choices("2.11. How long did you stay in your first job?", [("Less than a month", filled["duration_lt_1m"]), ("1 to 6 months", filled["duration_1_6m"]), ("7 to 11 months", filled["duration_7_11m"]), ("1 year to less than 2 years", filled["duration_1_2y"]), ("2 years to less than 3 years", filled["duration_2_3y"]), ("3 years to less than 4 years", filled["duration_3_4y"]), ("Other", filled["duration_other"])], True)
+    choices("2.14. Was the curriculum relevant to your job?", [("Yes", filled["curriculum_yes"]), ("No", filled["curriculum_no"])], True)
+    choices("2.15. Useful competencies:", [("Communication skills", filled["competency_communication"]), ("Problem-solving skills", filled["competency_problem"]), ("Human Relations skills", filled["competency_human"]), ("Critical Thinking skills", filled["competency_critical"]), ("Entrepreneurial skills", filled["competency_entrepreneurial"]), ("Other", filled["competency_other"])])
+    textarea("2.16. How are you able to apply the things learned during your bachelor years?", filled["p3_apply_learning"])
+    textarea("2.17. Suggestions to improve NORSU's course offerings?", filled["p3_suggestions"])
+
+    part("PART IV - EXTENT OF MANIFESTATION")
+    for label, key in [("Negros Oriental State University VISION", "p4_vision"), ("Negros Oriental State University MISSION", "p4_mission"), ("Negros Oriental State University GOALS", "p4_goals"), ("NORSU Corporate Values/Core Values/Graduate Attributes", "p4_core_values"), ("Course/Program Objectives", "p4_program_objectives")]:
+        need(18)
+        txt(label, margin, y, 8)
+        x = width - margin - 170
+        for score in [5, 4, 3, 2, 1]:
+            mark(x, y - 1, filled[f"{key}_{score}"], True)
+            txt(str(score), x + 11, y, 8)
+            x += 32
+        y -= 18
+    y -= 12
+    center("Thank you for taking the time out to fill out this questionnaire!", y, 9)
+    c.save()
+    return buffer.getvalue()
+
+
 def _tracer_study_forms_zip_response(survey):
     responses = (
         SurveyResponse.objects.filter(survey=survey)
@@ -455,15 +614,11 @@ def _tracer_study_forms_zip_response(survey):
     )
     buffer = BytesIO()
     used_paths = set()
+    driver = None
     try:
         driver = _tracer_browser_driver()
     except Exception as exc:
-        logger.exception("Tracer filled-form PDF browser renderer unavailable")
-        return HttpResponse(
-            "Tracer Study filled-form ZIP export could not start the PDF browser renderer. Please try again; if it persists, check server outbound access for Selenium Manager or set SELENIUM_REMOTE_URL.",
-            status=503,
-            content_type="text/plain",
-        )
+        logger.warning("Tracer filled-form PDF browser renderer unavailable; using drawn form PDFs: %s", exc)
 
     try:
         with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
@@ -480,7 +635,12 @@ def _tracer_study_forms_zip_response(survey):
                     path = f"{base}_{counter}{ext}"
                     counter += 1
                 used_paths.add(path.lower())
-                zip_file.writestr(path, _tracer_response_template_pdf_bytes(response, driver))
+                pdf = (
+                    _tracer_response_template_pdf_bytes(response, driver)
+                    if driver
+                    else _tracer_response_drawn_form_pdf_bytes(response)
+                )
+                zip_file.writestr(path, pdf)
 
             if not used_paths:
                 zip_file.writestr("README.txt", "No tracer study responses found.")
