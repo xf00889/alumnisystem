@@ -122,15 +122,15 @@ def _question_key_from_text(question_text):
         return "p3_employed"
     if "employment status" in text_key:
         return "p3_status"
-    if "vision" in text_key and "extent" in text_key:
+    if "vision" in text_key:
         return "p4_vision"
-    if "mission" in text_key and "extent" in text_key:
+    if "mission" in text_key:
         return "p4_mission"
-    if "goals" in text_key and "extent" in text_key:
+    if "goals" in text_key:
         return "p4_goals"
-    if "core values" in text_key and "extent" in text_key:
+    if "core values" in text_key or "graduate attributes" in text_key:
         return "p4_core_values"
-    if "program objectives" in text_key and "extent" in text_key:
+    if "program objectives" in text_key or "course/program objectives" in text_key:
         return "p4_program_objectives"
     return ""
 
@@ -748,7 +748,7 @@ def tracer_study_alumni(request):
             meta = json.loads(question.help_text) if question.help_text else {}
         except (TypeError, ValueError):
             meta = {}
-        key = meta.get("key")
+        key = meta.get("key") or _question_key_from_text(question.question_text)
         if key in PART_IV_EXTENT_KEYS:
             extent_questions.append({
                 "question": question,

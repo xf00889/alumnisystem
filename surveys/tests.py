@@ -34,6 +34,11 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
             "Goals (Extent of manifestation in your professional practice)": "p4_goals",
             "Core Values (Extent of manifestation in your professional practice)": "p4_core_values",
             "Program Objectives (Extent of manifestation in your professional practice)": "p4_program_objectives",
+            "Negros Oriental State University VISION": "p4_vision",
+            "Negros Oriental State University MISSION": "p4_mission",
+            "Negros Oriental State University GOALS": "p4_goals",
+            "NORSU Corporate Values/Core Values/Graduate Attributes": "p4_core_values",
+            "Course/Program Objectives": "p4_program_objectives",
         }
 
         for text, expected in cases.items():
@@ -89,8 +94,8 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
                 answer(question("Facebook Account"), text="https://facebook.com/full.profile.url"),
                 answer(question("Reasons for accepting job", "p3_reasons_accept"), option="Salaries and benefits"),
                 answer(question("How long did you stay in your first job?", "p3_first_job_duration"), option="1-2 years"),
-                answer(question("Vision (Extent of manifestation in your professional practice)"), rating=5),
-                answer(question("Mission (Extent of manifestation in your professional practice)"), rating=4),
+                answer(question("Negros Oriental State University VISION"), rating=5),
+                answer(question("Negros Oriental State University MISSION"), rating=4),
             ]),
         )
 
@@ -103,6 +108,22 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
         self.assertTrue(filled["duration_1_2y"])
         self.assertTrue(filled["p4_vision_5"])
         self.assertTrue(filled["p4_mission_4"])
+
+        html = render_to_string(
+            "tracer_study/filled_alumni_questionnaire.html",
+            {
+                "survey": SimpleNamespace(id=1),
+                "filled": filled,
+                "header_data_uri": "",
+            },
+        )
+        vision_row = html.split("Negros Oriental State University <strong>VISION</strong>", 1)[1].split("</tr>", 1)[0]
+        mission_row = html.split("Negros Oriental State University <strong>MISSION</strong>", 1)[1].split("</tr>", 1)[0]
+
+        self.assertIn('value="+63 917 123 4567"', html)
+        self.assertIn("https://facebook.com/full.profile.url", html)
+        self.assertIn("checked", vision_row)
+        self.assertIn("checked", mission_row)
 
 
 class TracerStudySeedTests(TestCase):
