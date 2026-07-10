@@ -14,6 +14,7 @@ URLs:
 from datetime import date
 from io import BytesIO
 from pathlib import Path
+import asyncio
 import base64
 import csv
 import json
@@ -23,6 +24,8 @@ import re
 import shutil
 import subprocess
 import tempfile
+import time
+import urllib.request
 import zipfile
 
 from django.conf import settings
@@ -519,10 +522,139 @@ def _tracer_chrome_work_root():
     return None
 
 
+def _tracer_chrome_pdf_env(work_path, runtime_dir):
+    env = _tracer_chrome_env()
+    env.setdefault("HOME", str(work_path))
+    env["XDG_RUNTIME_DIR"] = str(runtime_dir)
+    return env
+
+
+def _tracer_chrome_base_args(chrome_binary, headless_arg, user_data_dir):
+    return [
+        chrome_binary,
+        headless_arg,
+        "--disable-gpu",
+        "--no-sandbox",
+        "--disable-setuid-sandbox",
+        "--disable-dev-shm-usage",
+        "--no-first-run",
+        "--no-default-browser-check",
+        f"--user-data-dir={user_data_dir}",
+    ]
+
+
+async def _tracer_chrome_cdp_print_pdf(websocket_url):
+    import websockets
+
+    next_id = 0
+
+    async with websockets.connect(websocket_url) as websocket:
+        async def command(method, params=None):
+            nonlocal next_id
+            next_id += 1
+            request_id = next_id
+            await websocket.send(json.dumps({"id": request_id, "method": method, "params": params or {}}))
+            while True:
+                message = json.loads(await websocket.recv())
+                if message.get("id") != request_id:
+                    continue
+                if "error" in message:
+                    raise RuntimeError(message["error"])
+                return message.get("result", {})
+
+        await command("Page.enable")
+        for _ in range(50):
+            result = await command("Runtime.evaluate", {"expression": "document.readyState", "returnByValue": True})
+            if result.get("result", {}).get("value") == "complete":
+                break
+            await asyncio.sleep(0.1)
+        await command("Emulation.setEmulatedMedia", {"media": "print"})
+        pdf = await command(
+            "Page.printToPDF",
+            {
+                "printBackground": True,
+                "preferCSSPageSize": True,
+                "displayHeaderFooter": False,
+            },
+        )
+        return base64.b64decode(pdf["data"])
+
+
+def _tracer_response_chrome_cdp_pdf_bytes(response):
+    chrome_binary = _tracer_chrome_binary()
+    if not chrome_binary:
+        raise RuntimeError("Chrome/Chromium binary not found")
+
+    with tempfile.TemporaryDirectory(dir=_tracer_chrome_work_root()) as work_dir:
+        work_path = Path(work_dir)
+        html_path = work_path / "response.html"
+        user_data_dir = work_path / "chrome-profile"
+        runtime_dir = work_path / "xdg-runtime"
+        runtime_dir.mkdir(mode=0o700)
+        html_path.write_text(_tracer_response_filled_form_html(response), encoding="utf-8")
+
+        file_url = html_path.resolve().as_uri()
+        last_error = None
+        for headless_arg in ("--headless=new", "--headless"):
+            command = _tracer_chrome_base_args(chrome_binary, headless_arg, user_data_dir) + [
+                "--remote-debugging-port=0",
+                file_url,
+            ]
+            process = subprocess.Popen(
+                command,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                env=_tracer_chrome_pdf_env(work_path, runtime_dir),
+            )
+            try:
+                port_file = user_data_dir / "DevToolsActivePort"
+                for _ in range(100):
+                    if process.poll() is not None:
+                        break
+                    if port_file.exists():
+                        break
+                    time.sleep(0.1)
+
+                if not port_file.exists():
+                    if process.poll() is not None and process.stderr:
+                        stderr = process.stderr.read().decode("utf-8", errors="replace")
+                        last_error = stderr or "Chrome DevTools port was not created"
+                    else:
+                        last_error = "Chrome DevTools port was not created"
+                    continue
+
+                port = port_file.read_text(encoding="utf-8").splitlines()[0].strip()
+                with urllib.request.urlopen(f"http://127.0.0.1:{port}/json/list", timeout=10) as response_file:
+                    targets = json.loads(response_file.read().decode("utf-8"))
+                page = next((target for target in targets if target.get("type") == "page"), None)
+                if not page or not page.get("webSocketDebuggerUrl"):
+                    last_error = "Chrome DevTools page target was not available"
+                    continue
+
+                pdf = asyncio.run(_tracer_chrome_cdp_print_pdf(page["webSocketDebuggerUrl"]))
+                if b"%PDF" in pdf[:1024]:
+                    return pdf
+                last_error = "Chrome DevTools PDF output was not a PDF"
+            finally:
+                if process.poll() is None:
+                    process.terminate()
+                    try:
+                        process.wait(timeout=5)
+                    except subprocess.TimeoutExpired:
+                        process.kill()
+
+        raise RuntimeError(last_error or "Chrome DevTools PDF export failed")
+
+
 def _tracer_response_chrome_cli_pdf_bytes(response):
     chrome_binary = _tracer_chrome_binary()
     if not chrome_binary:
         raise RuntimeError("Chrome/Chromium binary not found")
+
+    try:
+        return _tracer_response_chrome_cdp_pdf_bytes(response)
+    except Exception as exc:
+        logger.warning("Tracer filled-form PDF Chrome DevTools renderer unavailable; using Chrome CLI renderer: %s", exc)
 
     with tempfile.TemporaryDirectory(dir=_tracer_chrome_work_root()) as work_dir:
         work_path = Path(work_dir)
@@ -538,25 +670,13 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
         file_url = Path(html_path).resolve().as_uri()
         last_error = None
         for headless_arg in ("--headless=new", "--headless"):
-            command = [
-                chrome_binary,
-                headless_arg,
-                "--disable-gpu",
-                "--no-sandbox",
-                "--disable-setuid-sandbox",
-                "--disable-dev-shm-usage",
-                "--no-first-run",
-                "--no-default-browser-check",
-                f"--user-data-dir={user_data_dir}",
+            command = _tracer_chrome_base_args(chrome_binary, headless_arg, user_data_dir) + [
                 "--no-pdf-header-footer",
                 "--print-to-pdf-no-header",
                 f"--print-to-pdf={pdf_path}",
                 file_url,
             ]
-            env = _tracer_chrome_env()
-            env.setdefault("HOME", str(work_path))
-            env["XDG_RUNTIME_DIR"] = str(runtime_dir)
-            result = subprocess.run(command, capture_output=True, timeout=90, env=env)
+            result = subprocess.run(command, capture_output=True, timeout=90, env=_tracer_chrome_pdf_env(work_path, runtime_dir))
             output = ((result.stderr or b"") + (result.stdout or b"")).decode("utf-8", errors="replace")
             written_path = re.search(r"\d+\s+bytes written to file\s+(.+?\.pdf)", output)
             for candidate in {pdf_path, written_path.group(1) if written_path else ""}:
