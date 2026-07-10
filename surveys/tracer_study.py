@@ -548,6 +548,7 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
                 "--no-first-run",
                 "--no-default-browser-check",
                 f"--user-data-dir={user_data_dir}",
+                "--no-pdf-header-footer",
                 "--print-to-pdf-no-header",
                 f"--print-to-pdf={pdf_path}",
                 file_url,
