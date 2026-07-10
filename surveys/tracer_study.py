@@ -1267,6 +1267,44 @@ SCALE_LABELS_FBR = {
 }
 
 
+TRACER_CHART_COLORS = [
+    "#2b3c6b",
+    "#0f766e",
+    "#b45309",
+    "#7c3aed",
+    "#be123c",
+    "#2563eb",
+    "#15803d",
+    "#a16207",
+]
+
+
+def _tracer_question_chart(question, aggregation):
+    """Build Chart.js-friendly data for closed-ended tracer questions."""
+    if aggregation.get("kind") not in {"choice", "checkbox", "rating"}:
+        return None
+
+    rows = aggregation.get("rows") or []
+    labels = [row["label"] for row in rows]
+    values = [row["count"] for row in rows]
+    if not any(values):
+        return None
+
+    if aggregation["kind"] == "choice":
+        chart_type = "doughnut"
+    else:
+        chart_type = "bar"
+
+    return {
+        "id": f"chart-q-{question.id}",
+        "kind": aggregation["kind"],
+        "type": chart_type,
+        "labels": labels,
+        "values": values,
+        "colors": [TRACER_CHART_COLORS[i % len(TRACER_CHART_COLORS)] for i in range(len(labels))],
+    }
+
+
 def _aggregate_question(survey, question, alumni_model, employer_model):
     """Return an aggregation dict for a single question.
 
@@ -1463,6 +1501,7 @@ def tracer_study_report(request, survey_id):
     )
     import json
     sections = []
+    chart_payload = []
     current = None
     for q in questions:
         try:
@@ -1474,9 +1513,13 @@ def tracer_study_report(request, survey_id):
             current = {"part": part, "questions": []}
             sections.append(current)
         agg = _aggregate_question(survey, q, SurveyResponse, EmployerResponse)
+        chart = _tracer_question_chart(q, agg)
+        if chart:
+            chart_payload.append(chart)
         current["questions"].append({
             "question": q,
             "aggregation": agg,
+            "chart": chart,
         })
 
     return render(
@@ -1491,6 +1534,7 @@ def tracer_study_report(request, survey_id):
             "missing_rows": missing_rows,
             "response_rate": response_rate,
             "sections": sections,
+            "chart_payload": chart_payload,
             "report": report,
         },
     )

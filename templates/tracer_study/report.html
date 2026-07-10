@@ -219,46 +219,54 @@
                         <div class="form-label" style="margin-bottom: 1rem;">{{ q.question_text }}</div>
 
                         {% if agg.kind == "choice" or agg.kind == "checkbox" %}
-                            <table class="table table-sm mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Option</th>
-                                        <th class="text-end" style="width: 80px;">Count</th>
-                                        <th class="text-end" style="width: 90px;">%</th>
-                                        <th style="width: 30%;">Distribution</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in agg.rows %}
-                                    <tr>
-                                        <td>{{ row.label }}</td>
-                                        <td class="text-end">{{ row.count }}</td>
-                                        <td class="text-end">
-                                            {% if agg.kind == 'choice' %}
-                                                {% if agg.total_selections %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
-                                            {% else %}
-                                                {% if agg.total_responses %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="ts-bar">
-                                                <span style="width: {% if agg.kind == 'choice' %}{% if agg.total_selections %}{{ row.percent }}{% else %}0{% endif %}{% else %}{% if agg.total_responses %}{{ row.percent }}{% else %}0{% endif %}{% endif %}%;"></span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% if row.other %}
-                                    <tr>
-                                        <td colspan="4" style="background: var(--ui-hover);">
-                                            <small class="text-muted">Free-text responses:</small>
-                                            {% for t in row.other %}
-                                                <div class="ts-text-answer">"{{ t }}"</div>
-                                            {% endfor %}
-                                        </td>
-                                    </tr>
+                            <div class="question-visual-grid">
+                                <div class="question-chart-box">
+                                    {% if item.chart %}
+                                        <canvas id="chart-q-{{ q.id }}" class="question-chart"></canvas>
+                                    {% else %}
+                                        <div class="chart-empty">
+                                            <i class="fas fa-chart-pie"></i>
+                                            <span>No selections yet</span>
+                                        </div>
                                     {% endif %}
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                                </div>
+                                <div class="question-breakdown">
+                                    <table class="table table-sm mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Option</th>
+                                                <th class="text-end" style="width: 80px;">Count</th>
+                                                <th class="text-end" style="width: 90px;">%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in agg.rows %}
+                                            <tr>
+                                                <td>{{ row.label }}</td>
+                                                <td class="text-end">{{ row.count }}</td>
+                                                <td class="text-end">
+                                                    {% if agg.kind == 'choice' %}
+                                                        {% if agg.total_selections %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
+                                                    {% else %}
+                                                        {% if agg.total_responses %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
+                                            {% if row.other %}
+                                            <tr>
+                                                <td colspan="3" style="background: var(--ui-hover);">
+                                                    <small class="text-muted">Free-text responses:</small>
+                                                    {% for t in row.other %}
+                                                        <div class="ts-text-answer">"{{ t }}"</div>
+                                                    {% endfor %}
+                                                </td>
+                                            </tr>
+                                            {% endif %}
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
                             <small class="text-muted d-block mt-2">
                                 {% if agg.kind == 'choice' %}
                                     Based on {{ agg.total_selections }} selection{{ agg.total_selections|pluralize }} from {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
@@ -281,37 +289,48 @@
                                     <div style="font-size: 1.5rem; font-weight: 600; color: var(--primary-color);">{{ agg.count }}</div>
                                 </div>
                             </div>
-                            <table class="table table-sm mb-0">
-                                <thead>
-                                    <tr>
-                                        <th>Rating</th>
-                                        <th class="text-end" style="width: 80px;">Count</th>
-                                        <th class="text-end" style="width: 90px;">%</th>
-                                        <th style="width: 30%;">Distribution</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for row in agg.rows %}
-                                    <tr>
-                                        <td>{{ row.label }}</td>
-                                        <td class="text-end">{{ row.count }}</td>
-                                        <td class="text-end">
-                                            {% if agg.count %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
-                                        </td>
-                                        <td>
-                                            <div class="ts-bar">
-                                                <span style="width: {% if agg.count %}{{ row.percent }}{% else %}0{% endif %}%;"></span>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
+                            <div class="question-visual-grid">
+                                <div class="question-chart-box wide">
+                                    {% if item.chart %}
+                                        <canvas id="chart-q-{{ q.id }}" class="question-chart"></canvas>
+                                    {% else %}
+                                        <div class="chart-empty">
+                                            <i class="fas fa-chart-bar"></i>
+                                            <span>No ratings yet</span>
+                                        </div>
+                                    {% endif %}
+                                </div>
+                                <div class="question-breakdown">
+                                    <table class="table table-sm mb-0">
+                                        <thead>
+                                            <tr>
+                                                <th>Rating</th>
+                                                <th class="text-end" style="width: 80px;">Count</th>
+                                                <th class="text-end" style="width: 90px;">%</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {% for row in agg.rows %}
+                                            <tr>
+                                                <td>{{ row.label }}</td>
+                                                <td class="text-end">{{ row.count }}</td>
+                                                <td class="text-end">
+                                                    {% if agg.count %}{{ row.percent|floatformat:1 }}%{% else %}—{% endif %}
+                                                </td>
+                                            </tr>
+                                            {% endfor %}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
 
                         {% elif agg.kind == "text" %}
                             <p class="text-muted mb-2" style="font-size: 0.8rem;">
                                 {{ agg.count }} response{{ agg.count|pluralize }} of {{ agg.total_responses }} respondent{{ agg.total_responses|pluralize }}.
                             </p>
+                            <div class="text-response-meter" aria-label="{{ agg.count }} text responses out of {{ agg.total_responses }} respondents">
+                                <span style="width: {% if agg.total_responses %}{% widthratio agg.count agg.total_responses 100 %}{% else %}0{% endif %}%;"></span>
+                            </div>
                             {% if agg.answers %}
                                 <div style="max-height: 320px; overflow-y: auto;">
                                     {% for a in agg.answers %}
@@ -330,4 +349,93 @@
         {% endif %}
     </div>
 </div>
+{{ chart_payload|json_script:"tracer-chart-payload" }}
 {% endblock %}
+
+{% block extra_js %}
+{{ block.super }}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const payloadEl = document.getElementById('tracer-chart-payload');
+    if (!payloadEl || typeof Chart === 'undefined') {
+        return;
+    }
+
+    const charts = JSON.parse(payloadEl.textContent || '[]');
+    const truncate = function (label, maxLength) {
+        if (!label) return '';
+        return label.length > maxLength ? label.slice(0, maxLength - 1) + '...' : label;
+    };
+
+    charts.forEach(function (item) {
+        const canvas = document.getElementById(item.id);
+        if (!canvas) return;
+
+        const isDoughnut = item.type === 'doughnut';
+        const config = {
+            type: item.type,
+            data: {
+                labels: item.labels,
+                datasets: [{
+                    data: item.values,
+                    backgroundColor: item.colors,
+                    borderColor: '#ffffff',
+                    borderWidth: isDoughnut ? 2 : 0,
+                    borderRadius: isDoughnut ? 0 : 5,
+                    maxBarThickness: 28
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                indexAxis: isDoughnut ? 'x' : 'y',
+                plugins: {
+                    legend: {
+                        display: isDoughnut,
+                        position: 'bottom',
+                        labels: {
+                            boxWidth: 12,
+                            color: '#4a5568',
+                            font: { size: 11 },
+                            generateLabels: function (chart) {
+                                return Chart.defaults.plugins.legend.labels.generateLabels(chart).map(function (label) {
+                                    label.text = truncate(label.text, 28);
+                                    return label;
+                                });
+                            }
+                        }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function (context) {
+                                const value = context.parsed.x ?? context.parsed ?? 0;
+                                return context.label + ': ' + value;
+                            }
+                        }
+                    }
+                },
+                scales: isDoughnut ? {} : {
+                    x: {
+                        beginAtZero: true,
+                        ticks: { precision: 0, color: '#718096' },
+                        grid: { color: 'rgba(113, 128, 150, 0.18)' }
+                    },
+                    y: {
+                        ticks: {
+                            color: '#4a5568',
+                            callback: function (value) {
+                                return truncate(this.getLabelForValue(value), 24);
+                            }
+                        },
+                        grid: { display: false }
+                    }
+                },
+                cutout: isDoughnut ? '62%' : undefined
+            }
+        };
+
+        new Chart(canvas, config);
+    });
+});
+</script>
+{% endblock extra_js %}
