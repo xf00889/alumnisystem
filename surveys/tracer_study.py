@@ -495,19 +495,45 @@ def _tracer_chrome_env():
     return env
 
 
+def _tracer_chrome_work_root():
+    configured = os.getenv("TRACER_PDF_WORK_DIR")
+    candidates = [Path(configured)] if configured else []
+    candidates.extend(
+        [
+            Path(os.getenv("HOME", str(Path.home()))) / "norsu-tracer-pdf",
+            Path(settings.BASE_DIR) / "tmp" / "tracer-pdf",
+        ]
+    )
+
+    for root in candidates:
+        try:
+            root.mkdir(parents=True, exist_ok=True)
+            probe = root / ".write-test"
+            probe.write_text("", encoding="utf-8")
+            probe.unlink()
+            return root
+        except OSError:
+            continue
+
+    logger.warning("Tracer PDF work directories are not writable; falling back to system temp")
+    return None
+
+
 def _tracer_response_chrome_cli_pdf_bytes(response):
     chrome_binary = _tracer_chrome_binary()
     if not chrome_binary:
         raise RuntimeError("Chrome/Chromium binary not found")
 
-    html_path = None
-    pdf_path = None
-    try:
-        with tempfile.NamedTemporaryFile("w", suffix=".html", encoding="utf-8", delete=False) as html_file:
+    with tempfile.TemporaryDirectory(dir=_tracer_chrome_work_root()) as work_dir:
+        work_path = Path(work_dir)
+        html_path = work_path / "response.html"
+        pdf_path = work_path / "response.pdf"
+        user_data_dir = work_path / "chrome-profile"
+        runtime_dir = work_path / "xdg-runtime"
+        runtime_dir.mkdir(mode=0o700)
+
+        with html_path.open("w", encoding="utf-8") as html_file:
             html_file.write(_tracer_response_filled_form_html(response))
-            html_path = html_file.name
-        with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as pdf_file:
-            pdf_path = pdf_file.name
 
         file_url = Path(html_path).resolve().as_uri()
         last_error = None
@@ -517,12 +543,19 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
                 headless_arg,
                 "--disable-gpu",
                 "--no-sandbox",
+                "--disable-setuid-sandbox",
                 "--disable-dev-shm-usage",
+                "--no-first-run",
+                "--no-default-browser-check",
+                f"--user-data-dir={user_data_dir}",
                 "--print-to-pdf-no-header",
                 f"--print-to-pdf={pdf_path}",
                 file_url,
             ]
-            result = subprocess.run(command, capture_output=True, timeout=90, env=_tracer_chrome_env())
+            env = _tracer_chrome_env()
+            env.setdefault("HOME", str(work_path))
+            env["XDG_RUNTIME_DIR"] = str(runtime_dir)
+            result = subprocess.run(command, capture_output=True, timeout=90, env=env)
             output = ((result.stderr or b"") + (result.stdout or b"")).decode("utf-8", errors="replace")
             written_path = re.search(r"\d+\s+bytes written to file\s+(.+?\.pdf)", output)
             for candidate in {pdf_path, written_path.group(1) if written_path else ""}:
@@ -532,13 +565,6 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
                         return pdf
             last_error = output
         raise RuntimeError(last_error or "Chrome/Chromium PDF export failed")
-    finally:
-        for path in (html_path, pdf_path):
-            if path:
-                try:
-                    Path(path).unlink()
-                except OSError:
-                    pass
 
 
 def _tracer_study_forms_zip_response(survey):
