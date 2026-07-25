@@ -477,15 +477,9 @@
                     </div>
                 </div>
             </div>
-            <div class="modal-footer d-flex gap-2 flex-wrap">
-                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel('full')">
-                    <i class="fas fa-file-excel me-1"></i> Full Report
-                </button>
-                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel('status')">
-                    <i class="fas fa-table me-1"></i> Response Status
-                </button>
-                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel('summary')">
-                    <i class="fas fa-chart-bar me-1"></i> Summary Report
+            <div class="modal-footer">
+                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel()">
+                    <i class="fas fa-file-excel me-1"></i> Export
                 </button>
             </div>
         </div>
@@ -606,7 +600,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <script>
-function exportExcel(reportType) {
+function exportExcel() {
     var exportUrl = '{% url "surveys:tracer_study_report_export" survey.id %}';
     var params = new URLSearchParams();
     var campus = document.getElementById('export-campus').value;
@@ -624,7 +618,7 @@ function exportExcel(reportType) {
     if (yearTo) params.set('year_to', yearTo);
     if (startDate) params.set('start_date', startDate);
     if (endDate) params.set('end_date', endDate);
-    params.set('report_type', reportType);
+    params.set('report_type', 'full');
 
     window.location.href = exportUrl + '?' + params.toString();
 }
