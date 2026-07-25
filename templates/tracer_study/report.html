@@ -188,53 +188,9 @@
                             <p class="text-muted mb-0">{{ response_rate|floatformat:1 }}% response rate</p>
                         </div>
                         <div class="d-flex gap-2 flex-wrap no-print">
-                            <div class="btn-group btn-group-sm">
-                                <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=full" class="btn btn-outline-success">
-                                    <i class="fas fa-file-excel me-1"></i> Export Excel
-                                </a>
-                                <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" data-bs-auto-close="true">
-                                    <span class="visually-hidden">Toggle Dropdown</span>
-                                </button>
-                                <ul class="dropdown-menu dropdown-menu-end export-dropdown">
-                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=full">
-                                        <i class="fas fa-file-excel me-1"></i> Full Report
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=status">
-                                        <i class="fas fa-table me-1"></i> Response Status
-                                    </a></li>
-                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=summary">
-                                        <i class="fas fa-chart-bar me-1"></i> Summary Report
-                                    </a></li>
-                                    <li><hr class="dropdown-divider"></li>
-                                    <li class="dropdown-submenu">
-                                        <a class="dropdown-item dropdown-toggle" href="#">
-                                            <i class="fas fa-map-marker-alt me-1"></i> By Campus
-                                        </a>
-                                        <ul class="dropdown-menu">
-                                            {% for c_code, c_data in export_hierarchy.items %}
-                                            <li class="dropdown-submenu">
-                                                <a class="dropdown-item dropdown-toggle" href="#">{{ c_data.label }}</a>
-                                                <ul class="dropdown-menu">
-                                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?campus={{ c_code }}&report_type=full">All Colleges</a></li>
-                                                    <li><hr class="dropdown-divider"></li>
-                                                    {% for col_code, col_data in c_data.colleges.items %}
-                                                    <li class="dropdown-submenu">
-                                                        <a class="dropdown-item dropdown-toggle" href="#">{{ col_data.label }}</a>
-                                                        <ul class="dropdown-menu">
-                                                            <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?campus={{ c_code }}&college={{ col_code }}&report_type=full">All Programs</a></li>
-                                                            {% for prog in col_data.programs %}
-                                                            <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?campus={{ c_code }}&college={{ col_code }}&program={{ prog }}&report_type=full">{{ prog }}</a></li>
-                                                            {% endfor %}
-                                                        </ul>
-                                                    </li>
-                                                    {% endfor %}
-                                                </ul>
-                                            </li>
-                                            {% endfor %}
-                                        </ul>
-                                    </li>
-                                </ul>
-                            </div>
+                            <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
+                                <i class="fas fa-file-excel me-1"></i> Export Excel
+                            </button>
                             <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-file-archive me-1"></i> Export Filled Forms ZIP
                             </a>
@@ -459,6 +415,83 @@
     </div>
 </div>
 {{ chart_payload|json_script:"tracer-chart-payload" }}
+
+<!-- Export Modal -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="exportModalLabel">
+                    <i class="fas fa-file-excel me-2"></i>Export Excel Report
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">Campus</label>
+                        <select id="export-campus" name="campus" class="form-select form-select-sm"
+                                hx-get="{% url 'surveys:tracer_study_colleges' %}"
+                                hx-trigger="change"
+                                hx-target="#export-college"
+                                hx-include="[name='campus']"
+                                hx-swap="innerHTML">
+                            <option value="">All Campuses</option>
+                            {% for code, name in Alumni.CAMPUS_CHOICES %}
+                                <option value="{{ code }}">{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">College</label>
+                        <select id="export-college" name="college" class="form-select form-select-sm"
+                                hx-get="{% url 'surveys:tracer_study_programs' %}"
+                                hx-trigger="change"
+                                hx-target="#export-program"
+                                hx-include="#export-campus,#export-college"
+                                hx-swap="innerHTML">
+                            <option value="">All Colleges</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">Program</label>
+                        <select id="export-program" class="form-select form-select-sm">
+                            <option value="">All Programs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">Graduation Year</label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" id="export-year-from" class="form-control" placeholder="From" min="1900" max="2099">
+                            <span class="input-group-text">–</span>
+                            <input type="number" id="export-year-to" class="form-control" placeholder="To" min="1900" max="2099">
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">Start Date</label>
+                        <input type="date" id="export-start-date" class="form-control form-control-sm">
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label small text-muted mb-1">End Date</label>
+                        <input type="date" id="export-end-date" class="form-control form-control-sm">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel('full')">
+                    <i class="fas fa-file-excel me-1"></i> Full Report
+                </button>
+                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel('status')">
+                    <i class="fas fa-table me-1"></i> Response Status
+                </button>
+                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel('summary')">
+                    <i class="fas fa-chart-bar me-1"></i> Summary Report
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
 {% endblock %}
 
 {% block extra_js %}
@@ -567,9 +600,33 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 
     // On page load: if college is selected, load programs and pre-select
-    if (collegeSelect.value) {
+    if (collegeSelect && collegeSelect.value) {
         htmx.trigger(collegeSelect, 'change');
     }
 });
+</script>
+<script>
+function exportExcel(reportType) {
+    var exportUrl = '{% url "surveys:tracer_study_report_export" survey.id %}';
+    var params = new URLSearchParams();
+    var campus = document.getElementById('export-campus').value;
+    var college = document.getElementById('export-college').value;
+    var program = document.getElementById('export-program').value;
+    var yearFrom = document.getElementById('export-year-from').value;
+    var yearTo = document.getElementById('export-year-to').value;
+    var startDate = document.getElementById('export-start-date').value;
+    var endDate = document.getElementById('export-end-date').value;
+
+    if (campus) params.set('campus', campus);
+    if (college) params.set('college', college);
+    if (program) params.set('program', program);
+    if (yearFrom) params.set('year_from', yearFrom);
+    if (yearTo) params.set('year_to', yearTo);
+    if (startDate) params.set('start_date', startDate);
+    if (endDate) params.set('end_date', endDate);
+    params.set('report_type', reportType);
+
+    window.location.href = exportUrl + '?' + params.toString();
+}
 </script>
 {% endblock extra_js %}
