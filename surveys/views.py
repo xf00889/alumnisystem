@@ -2424,7 +2424,7 @@ def report_export_pdf(request, pk):
                 'report_title': report.title,
                 'report_type': report.report_type,
                 'user_id': request.user.id,
-                'filename': filename,
+                'export_filename': filename,
                 'export_time': elapsed_time,
                 'action': 'pdf_export_complete'
             }
