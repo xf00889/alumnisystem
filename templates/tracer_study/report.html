@@ -20,6 +20,55 @@
             </p>
         </div>
 
+        {% if audience == 'alumni' %}
+        <div class="dashboard-card mb-3 no-print">
+            <div class="card-body">
+                <form method="get" class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Start Date</label>
+                        <input type="date" name="start_date" class="form-control form-control-sm"
+                               value="{{ filter_start_date }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">End Date</label>
+                        <input type="date" name="end_date" class="form-control form-control-sm"
+                               value="{{ filter_end_date }}">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">College</label>
+                        <select name="college" id="filter-college" class="form-select form-select-sm"
+                                hx-get="{% url 'surveys:tracer_study_programs' %}"
+                                hx-trigger="change"
+                                hx-target="#program-select"
+                                hx-include="[name='college']"
+                                hx-swap="innerHTML">
+                            <option value="">All Colleges</option>
+                            {% for code, name in Alumni.COLLEGE_CHOICES %}
+                                <option value="{{ code }}" {% if filter_college == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted mb-1">Program</label>
+                        <select name="program" id="program-select" class="form-select form-select-sm">
+                            <option value="">All Programs</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="submit" class="btn btn-primary btn-sm me-2">
+                            <i class="fas fa-filter me-1"></i> Apply
+                        </button>
+                        <a href="{% url 'surveys:tracer_study_report' survey.id %}" class="btn btn-outline-secondary btn-sm">
+                            Clear
+                        </a>
+                    </div>
+                </form>
+            </div>
+        </div>
+        {% endif %}
+
         <div class="row g-3 mb-3">
             <div class="col-md-3 col-6">
                 <div class="stat-card">
@@ -123,10 +172,10 @@
                             <p class="text-muted mb-0">{{ response_rate|floatformat:1 }}% response rate</p>
                         </div>
                         <div class="d-flex gap-2 flex-wrap no-print">
-                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}" class="btn btn-outline-success btn-sm">
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}" class="btn btn-outline-success btn-sm">
                                 <i class="fas fa-file-excel me-1"></i> Export Excel
                             </a>
-                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip" class="btn btn-outline-primary btn-sm">
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-file-archive me-1"></i> Export Filled Forms ZIP
                             </a>
                         </div>
@@ -436,6 +485,31 @@ document.addEventListener('DOMContentLoaded', function () {
 
         new Chart(canvas, config);
     });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var collegeSelect = document.getElementById('filter-college');
+    var programSelect = document.getElementById('program-select');
+    var selectedProgram = '{{ filter_program|escapejs }}';
+
+    // When college changes, pre-select program after HTMX swap
+    document.body.addEventListener('htmx:afterSwap', function(e) {
+        if (e.detail.target && e.detail.target.id === 'program-select' && selectedProgram) {
+            var opts = e.detail.target.options;
+            for (var i = 0; i < opts.length; i++) {
+                if (opts[i].value === selectedProgram) {
+                    opts[i].selected = true;
+                    break;
+                }
+            }
+        }
+    });
+
+    // On page load: if college is selected, load programs and pre-select
+    if (collegeSelect.value) {
+        htmx.trigger(collegeSelect, 'change');
+    }
 });
 </script>
 {% endblock extra_js %}

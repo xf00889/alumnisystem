@@ -11,7 +11,7 @@ URLs:
                                 record on first submission and reuses it
                                 thereafter)
 """
-from datetime import date
+from datetime import date, datetime as _datetime, timedelta
 from io import BytesIO
 from pathlib import Path
 import asyncio
@@ -98,6 +98,67 @@ def _can_view_tracer_reports(user):
         or user.is_superuser
         or (hasattr(user, "profile") and user.profile.is_alumni_coordinator)
     )
+
+
+def _parse_date_str(value):
+    """Parse a ``YYYY-MM-DD`` date string; return a date or None."""
+    if not value:
+        return None
+    try:
+        return _datetime.strptime(value, "%Y-%m-%d").date()
+    except (ValueError, TypeError):
+        return None
+
+
+def _filtered_alumni_responses(survey, start_date=None, end_date=None, college=None, program=None):
+    """Return a ``SurveyResponse`` queryset filtered by date range, college, and program."""
+    qs = SurveyResponse.objects.filter(survey=survey).select_related(
+        "alumni__user"
+    ).prefetch_related("answers__question", "answers__selected_option")
+    if start_date:
+        qs = qs.filter(submitted_at__gte=start_date)
+    if end_date:
+        qs = qs.filter(submitted_at__lt=end_date + timedelta(days=1))
+    if college:
+        qs = qs.filter(alumni__college=college)
+    if program:
+        qs = qs.filter(alumni__course=program)
+    return qs
+
+
+def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, college=None, program=None):
+    """Return response rows scoped by the same filters used in reports."""
+    responses = {
+        response.alumni_id: response
+        for response in _filtered_alumni_responses(
+            survey, start_date=start_date, end_date=end_date, college=college, program=program
+        )
+    }
+    alumni_qs = Alumni.objects.select_related("user").order_by(
+        "user__last_name", "user__first_name"
+    )
+    if college:
+        alumni_qs = alumni_qs.filter(college=college)
+    if program:
+        alumni_qs = alumni_qs.filter(course=program)
+    rows = []
+    for alumni in alumni_qs:
+        response = responses.get(alumni.id)
+        rows.append(
+            {
+                "id": alumni.id,
+                "name": alumni.full_name or alumni.user.username,
+                "email": alumni.user.email,
+                "course": alumni.course,
+                "graduation_year": alumni.graduation_year,
+                "college": alumni.get_college_display(),
+                "status": "Responded" if response else "Not Responded",
+                "submitted_at": response.submitted_at if response else None,
+                "response_id": response.id if response else None,
+                "response_token": _hashed_response_id(response.id) if response else None,
+            }
+        )
+    return rows
 
 
 def _hashed_response_id(response_id):
@@ -688,13 +749,21 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
         raise RuntimeError(last_error or "Chrome/Chromium PDF export failed")
 
 
-def _tracer_study_forms_zip_response(survey):
+def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, college=None, program=None):
     responses = (
         SurveyResponse.objects.filter(survey=survey)
         .select_related("alumni__user")
         .prefetch_related("answers__question", "answers__selected_option")
         .order_by("alumni__campus", "alumni__college", "alumni__course", "alumni__user__last_name", "alumni__user__first_name")
     )
+    if start_date:
+        responses = responses.filter(submitted_at__gte=start_date)
+    if end_date:
+        responses = responses.filter(submitted_at__lt=end_date + datetime.timedelta(days=1))
+    if college:
+        responses = responses.filter(alumni__college=college)
+    if program:
+        responses = responses.filter(alumni__course=program)
     buffer = BytesIO()
     used_paths = set()
     driver = None
@@ -1305,19 +1374,25 @@ def _tracer_question_chart(question, aggregation):
     }
 
 
-def _aggregate_question(survey, question, alumni_model, employer_model):
+def _aggregate_question(survey, question, alumni_model, employer_model, response_ids=None):
     """Return an aggregation dict for a single question.
 
     Dispatches on ``question.question_type`` and uses the appropriate answer
     table (``ResponseAnswer`` for alumni, ``EmployerResponseAnswer`` for
-    employer).
+    employer). When *response_ids* is provided, aggregation is restricted
+    to those responses only.
     """
     audience = "alumni" if survey.title == ALUMNI_TITLE else "employer"
     answer_model = ResponseAnswer if audience == "alumni" else EmployerResponseAnswer
     response_model = SurveyResponse if audience == "alumni" else EmployerResponse
 
     qs = answer_model.objects.filter(question=question)
-    total_responses = response_model.objects.filter(survey=survey).count()
+    if response_ids is not None:
+        qs = qs.filter(response_id__in=response_ids)
+    total_qs = response_model.objects.filter(survey=survey)
+    if response_ids is not None:
+        total_qs = total_qs.filter(id__in=response_ids)
+    total_responses = total_qs.count()
 
     type_label = {
         "text": "Text", "email": "Email", "number": "Number",
@@ -1429,6 +1504,25 @@ def _aggregate_question(survey, question, alumni_model, employer_model):
 
 
 @login_required
+def tracer_study_programs(request):
+    """Return distinct program options for a college as an HTMX fragment."""
+    college = request.GET.get("college", "").strip()
+    if not college:
+        return HttpResponse('<option value="">All Programs</option>')
+    programs = (
+        Alumni.objects.filter(college=college)
+        .values_list("course", flat=True)
+        .distinct()
+        .order_by("course")
+    )
+    options = ['<option value="">All Programs</option>']
+    for p in programs:
+        if p:
+            options.append(f'<option value="{p}">{p}</option>')
+    return HttpResponse("\n".join(options))
+
+
+@login_required
 def tracer_study_reports(request):
     """Landing page for the two tracer study reports."""
     if not _can_view_tracer_reports(request.user):
@@ -1462,6 +1556,11 @@ def tracer_study_report(request, survey_id):
     survey = _tracer_study_survey_or_404(survey_id)
     audience = "alumni" if survey.title == ALUMNI_TITLE else "employer"
 
+    start_date = _parse_date_str(request.GET.get("start_date"))
+    end_date = _parse_date_str(request.GET.get("end_date"))
+    college = request.GET.get("college", "").strip() or None
+    program = request.GET.get("program", "").strip() or None
+
     # Upsert a Report row so this report also appears in the admin Reports
     # list and can be exported in future. parameters={"survey_id": X} is the
     # tag the existing Survey Feedback report logic uses to scope by survey.
@@ -1488,10 +1587,21 @@ def tracer_study_report(request, survey_id):
     missing_rows = []
     response_rate = None
     if audience == "alumni":
-        response_rows = _alumni_response_rows(survey)
+        response_rows = _filtered_alumni_response_rows(
+            survey, start_date=start_date, end_date=end_date, college=college, program=program
+        )
         responded_rows = [row for row in response_rows if row["submitted_at"]]
         missing_rows = [row for row in response_rows if not row["submitted_at"]]
         response_rate = (len(responded_rows) / len(response_rows) * 100) if response_rows else 0
+
+    # Collect the IDs of the filtered responses so aggregation can be scoped.
+    filtered_response_ids = None
+    if audience == "alumni" and (start_date or end_date or college or program):
+        filtered_response_ids = set(
+            _filtered_alumni_responses(
+                survey, start_date=start_date, end_date=end_date, college=college, program=program
+            ).values_list("id", flat=True)
+        )
 
     # Group questions by part (stored in help_text JSON)
     questions = (
@@ -1512,7 +1622,10 @@ def tracer_study_report(request, survey_id):
         if current is None or current["part"] != part:
             current = {"part": part, "questions": []}
             sections.append(current)
-        agg = _aggregate_question(survey, q, SurveyResponse, EmployerResponse)
+        agg = _aggregate_question(
+            survey, q, SurveyResponse, EmployerResponse,
+            response_ids=filtered_response_ids,
+        )
         chart = _tracer_question_chart(q, agg)
         if chart:
             chart_payload.append(chart)
@@ -1536,6 +1649,11 @@ def tracer_study_report(request, survey_id):
             "sections": sections,
             "chart_payload": chart_payload,
             "report": report,
+            "Alumni": Alumni,
+            "filter_start_date": request.GET.get("start_date", ""),
+            "filter_end_date": request.GET.get("end_date", ""),
+            "filter_college": college or "",
+            "filter_program": program or "",
         },
     )
 
@@ -1587,10 +1705,19 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     if format_type == "xlsx":
         format_type = "excel"
 
-    if format_type == "zip":
-        return _tracer_study_forms_zip_response(survey)
+    start_date = _parse_date_str(request.GET.get("start_date"))
+    end_date = _parse_date_str(request.GET.get("end_date"))
+    college = request.GET.get("college", "").strip() or None
+    program = request.GET.get("program", "").strip() or None
 
-    rows = _alumni_response_rows(survey)
+    if format_type == "zip":
+        return _tracer_study_forms_zip_response(
+            survey, start_date=start_date, end_date=end_date, college=college, program=program
+        )
+
+    rows = _filtered_alumni_response_rows(
+        survey, start_date=start_date, end_date=end_date, college=college, program=program
+    )
     responded_rows = [row for row in rows if row["submitted_at"]]
     missing_rows = [row for row in rows if not row["submitted_at"]]
     headers = ["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"]
@@ -1708,6 +1835,121 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     ws.title = "Responded"
     write_sheet(ws, responded_rows, "Alumni Who Responded")
     write_sheet(wb.create_sheet("No Response"), missing_rows, "Alumni With No Response")
+
+    # --- Summary sheet with per-question aggregated data ---
+    import json as _json
+    audience_label = "alumni" if survey.title == ALUMNI_TITLE else "employer"
+    filtered_ids = None
+    if audience_label == "alumni" and (start_date or end_date or college or program):
+        filtered_ids = set(
+            _filtered_alumni_responses(
+                survey, start_date=start_date, end_date=end_date,
+                college=college, program=program,
+            ).values_list("id", flat=True)
+        )
+    questions = survey.questions.all().prefetch_related("options").order_by("display_order")
+    meta_font = Font(bold=True, size=11, color="2b3c6b")
+    q_font = Font(bold=True, size=10)
+    small_font = Font(size=9)
+    avg_font = Font(bold=True, size=10, color="2b3c6b")
+
+    sws = wb.create_sheet("Summary")
+    sws.column_dimensions["A"].width = 50
+    sws.column_dimensions["B"].width = 18
+    sws.column_dimensions["C"].width = 12
+
+    LogoHeaderService.add_excel_header(sws, LogoHeaderService.get_logo_path(), title="Tracer Study Summary")
+    r = sws.max_row + 1
+    sws.cell(r, 1, "Tracer Study Summary").font = title_font
+    sws.cell(r, 1).alignment = Alignment(horizontal="center")
+    r += 1
+    sws.cell(r, 1, f"Survey: {survey.title}")
+    r += 1
+    filter_desc = []
+    if start_date:
+        filter_desc.append(f"From: {start_date}")
+    if end_date:
+        filter_desc.append(f"To: {end_date}")
+    if college:
+        filter_desc.append(f"College: {college}")
+    if program:
+        filter_desc.append(f"Program: {program}")
+    if filter_desc:
+        r += 1
+        sws.cell(r, 1, "Filters: " + " | ".join(filter_desc))
+    r += 1
+    sws.cell(r, 1, f"Total Responses: {len(responded_rows)}")
+    sws.cell(r, 2, f"No Response: {len(missing_rows)}")
+    r += 1
+    sws.cell(r, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    r += 2
+
+    current_part = None
+    for q in questions:
+        try:
+            meta = _json.loads(q.help_text) if q.help_text else {}
+        except (ValueError, TypeError):
+            meta = {}
+        part = meta.get("part") or ""
+        if part and part != current_part:
+            current_part = part
+            sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
+            sws.cell(r, 1, part).font = section_font
+            sws.cell(r, 1).fill = PatternFill(start_color="e8edf5", end_color="e8edf5", fill_type="solid")
+            r += 1
+
+        agg = _aggregate_question(survey, q, SurveyResponse, EmployerResponse, response_ids=filtered_ids)
+        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
+        sws.cell(r, 1, f"Q{q.display_order}: {q.question_text}").font = q_font
+        r += 1
+        sws.cell(r, 1, f"Type: {agg['type_label']}").font = small_font
+        r += 1
+
+        if agg["kind"] in ("choice", "checkbox"):
+            for col_num, hdr in enumerate(["Option", "Count", "Percent"], 1):
+                cell = sws.cell(r, col_num, hdr)
+                cell.fill = header_fill
+                cell.font = header_font
+            r += 1
+            for row in agg.get("rows", []):
+                sws.cell(r, 1, row["label"]).font = small_font
+                sws.cell(r, 2, row["count"]).font = small_font
+                sws.cell(r, 3, f"{row['percent']:.1f}%").font = small_font
+                r += 1
+                # Show "Other" free-text answers if present
+                if row.get("other"):
+                    for txt in row["other"][:20]:
+                        sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
+                        r += 1
+            sws.cell(r, 1, f"Total selections: {agg.get('total_selections', 0)}").font = small_font
+            r += 2
+
+        elif agg["kind"] == "rating":
+            for col_num, hdr in enumerate(["Rating", "Count", "Percent"], 1):
+                cell = sws.cell(r, col_num, hdr)
+                cell.fill = header_fill
+                cell.font = header_font
+            r += 1
+            for row in agg.get("rows", []):
+                sws.cell(r, 1, row["label"]).font = small_font
+                sws.cell(r, 2, row["count"]).font = small_font
+                sws.cell(r, 3, f"{row['percent']:.1f}%").font = small_font
+                r += 1
+            sws.cell(r, 1, f"Average: {agg.get('average', 0):.2f} / 5").font = avg_font
+            r += 1
+            sws.cell(r, 1, f"Responses: {agg.get('count', 0)}").font = small_font
+            r += 2
+
+        elif agg["kind"] == "text":
+            sws.cell(r, 1, f"Responses: {agg.get('count', 0)} / {agg.get('total_responses', 0)}").font = small_font
+            r += 1
+            for txt in agg.get("answers", [])[:50]:
+                sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
+                r += 1
+            r += 1
+
+        else:
+            r += 1
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"

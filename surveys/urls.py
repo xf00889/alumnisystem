@@ -15,6 +15,7 @@ urlpatterns = [
     path('tracer-study/response/<int:response_id>/filled-form/', tracer_study.tracer_study_filled_alumni_response_legacy, name='tracer_study_filled_alumni_response_legacy'),
     path('tracer-study/response/<str:response_token>/filled-form/', tracer_study.tracer_study_filled_alumni_response, name='tracer_study_filled_alumni_response'),
     path('tracer-study/report/<int:survey_id>/export/', tracer_study.tracer_study_report_export, name='tracer_study_report_export'),
+    path('tracer-study/programs/', tracer_study.tracer_study_programs, name='tracer_study_programs'),
 
     # Admin Survey Management URLs
     path('admin/surveys/', views.SurveyListView.as_view(), name='survey_list'),
