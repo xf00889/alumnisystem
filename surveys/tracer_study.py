@@ -1709,6 +1709,9 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     end_date = _parse_date_str(request.GET.get("end_date"))
     college = request.GET.get("college", "").strip() or None
     program = request.GET.get("program", "").strip() or None
+    report_type = (request.GET.get("report_type") or "full").lower()
+    if report_type not in ("full", "status", "summary"):
+        report_type = "full"
 
     if format_type == "zip":
         return _tracer_study_forms_zip_response(
@@ -1832,124 +1835,127 @@ def tracer_study_report_export(request, survey_id, format_type=None):
             ws.column_dimensions[get_column_letter(col_num)].width = min(max_length + 2, 45)
 
     ws = wb.active
-    ws.title = "Responded"
-    write_sheet(ws, responded_rows, "Alumni Who Responded")
-    write_sheet(wb.create_sheet("No Response"), missing_rows, "Alumni With No Response")
 
-    # --- Summary sheet with per-question aggregated data ---
-    import json as _json
-    audience_label = "alumni" if survey.title == ALUMNI_TITLE else "employer"
-    filtered_ids = None
-    if audience_label == "alumni" and (start_date or end_date or college or program):
-        filtered_ids = set(
-            _filtered_alumni_responses(
-                survey, start_date=start_date, end_date=end_date,
-                college=college, program=program,
-            ).values_list("id", flat=True)
-        )
-    questions = survey.questions.all().prefetch_related("options").order_by("display_order")
-    meta_font = Font(bold=True, size=11, color="2b3c6b")
-    q_font = Font(bold=True, size=10)
-    small_font = Font(size=9)
-    avg_font = Font(bold=True, size=10, color="2b3c6b")
+    if report_type in ("full", "status"):
+        ws.title = "Responded"
+        write_sheet(ws, responded_rows, "Alumni Who Responded")
+        write_sheet(wb.create_sheet("No Response"), missing_rows, "Alumni With No Response")
+    else:
+        ws.title = "Summary"
 
-    sws = wb.create_sheet("Summary")
-    sws.column_dimensions["A"].width = 50
-    sws.column_dimensions["B"].width = 18
-    sws.column_dimensions["C"].width = 12
+    if report_type in ("full", "summary"):
+        import json as _json
+        audience_label = "alumni" if survey.title == ALUMNI_TITLE else "employer"
+        filtered_ids = None
+        if audience_label == "alumni" and (start_date or end_date or college or program):
+            filtered_ids = set(
+                _filtered_alumni_responses(
+                    survey, start_date=start_date, end_date=end_date,
+                    college=college, program=program,
+                ).values_list("id", flat=True)
+            )
+        questions = survey.questions.all().prefetch_related("options").order_by("display_order")
+        meta_font = Font(bold=True, size=11, color="2b3c6b")
+        q_font = Font(bold=True, size=10)
+        small_font = Font(size=9)
+        avg_font = Font(bold=True, size=10, color="2b3c6b")
 
-    LogoHeaderService.add_excel_header(sws, LogoHeaderService.get_logo_path(), title="Tracer Study Summary")
-    r = sws.max_row + 1
-    sws.cell(r, 1, "Tracer Study Summary").font = title_font
-    sws.cell(r, 1).alignment = Alignment(horizontal="center")
-    r += 1
-    sws.cell(r, 1, f"Survey: {survey.title}")
-    r += 1
-    filter_desc = []
-    if start_date:
-        filter_desc.append(f"From: {start_date}")
-    if end_date:
-        filter_desc.append(f"To: {end_date}")
-    if college:
-        filter_desc.append(f"College: {college}")
-    if program:
-        filter_desc.append(f"Program: {program}")
-    if filter_desc:
+        sws = wb.create_sheet("Summary")
+        sws.column_dimensions["A"].width = 50
+        sws.column_dimensions["B"].width = 18
+        sws.column_dimensions["C"].width = 12
+
+        LogoHeaderService.add_excel_header(sws, LogoHeaderService.get_logo_path(), title="Tracer Study Summary")
+        r = sws.max_row + 1
+        sws.cell(r, 1, "Tracer Study Summary").font = title_font
+        sws.cell(r, 1).alignment = Alignment(horizontal="center")
         r += 1
-        sws.cell(r, 1, "Filters: " + " | ".join(filter_desc))
-    r += 1
-    sws.cell(r, 1, f"Total Responses: {len(responded_rows)}")
-    sws.cell(r, 2, f"No Response: {len(missing_rows)}")
-    r += 1
-    sws.cell(r, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    r += 2
+        sws.cell(r, 1, f"Survey: {survey.title}")
+        r += 1
+        filter_desc = []
+        if start_date:
+            filter_desc.append(f"From: {start_date}")
+        if end_date:
+            filter_desc.append(f"To: {end_date}")
+        if college:
+            filter_desc.append(f"College: {college}")
+        if program:
+            filter_desc.append(f"Program: {program}")
+        if filter_desc:
+            r += 1
+            sws.cell(r, 1, "Filters: " + " | ".join(filter_desc))
+        r += 1
+        sws.cell(r, 1, f"Total Responses: {len(responded_rows)}")
+        sws.cell(r, 2, f"No Response: {len(missing_rows)}")
+        r += 1
+        sws.cell(r, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        r += 2
 
-    current_part = None
-    for q in questions:
-        try:
-            meta = _json.loads(q.help_text) if q.help_text else {}
-        except (ValueError, TypeError):
-            meta = {}
-        part = meta.get("part") or ""
-        if part and part != current_part:
-            current_part = part
+        current_part = None
+        for q in questions:
+            try:
+                meta = _json.loads(q.help_text) if q.help_text else {}
+            except (ValueError, TypeError):
+                meta = {}
+            part = meta.get("part") or ""
+            if part and part != current_part:
+                current_part = part
+                sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
+                sws.cell(r, 1, part).font = section_font
+                sws.cell(r, 1).fill = PatternFill(start_color="e8edf5", end_color="e8edf5", fill_type="solid")
+                r += 1
+
+            agg = _aggregate_question(survey, q, SurveyResponse, EmployerResponse, response_ids=filtered_ids)
             sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-            sws.cell(r, 1, part).font = section_font
-            sws.cell(r, 1).fill = PatternFill(start_color="e8edf5", end_color="e8edf5", fill_type="solid")
+            sws.cell(r, 1, f"Q{q.display_order}: {q.question_text}").font = q_font
+            r += 1
+            sws.cell(r, 1, f"Type: {agg['type_label']}").font = small_font
             r += 1
 
-        agg = _aggregate_question(survey, q, SurveyResponse, EmployerResponse, response_ids=filtered_ids)
-        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        sws.cell(r, 1, f"Q{q.display_order}: {q.question_text}").font = q_font
-        r += 1
-        sws.cell(r, 1, f"Type: {agg['type_label']}").font = small_font
-        r += 1
-
-        if agg["kind"] in ("choice", "checkbox"):
-            for col_num, hdr in enumerate(["Option", "Count", "Percent"], 1):
-                cell = sws.cell(r, col_num, hdr)
-                cell.fill = header_fill
-                cell.font = header_font
-            r += 1
-            for row in agg.get("rows", []):
-                sws.cell(r, 1, row["label"]).font = small_font
-                sws.cell(r, 2, row["count"]).font = small_font
-                sws.cell(r, 3, f"{row['percent']:.1f}%").font = small_font
+            if agg["kind"] in ("choice", "checkbox"):
+                for col_num, hdr in enumerate(["Option", "Count", "Percent"], 1):
+                    cell = sws.cell(r, col_num, hdr)
+                    cell.fill = header_fill
+                    cell.font = header_font
                 r += 1
-                # Show "Other" free-text answers if present
-                if row.get("other"):
-                    for txt in row["other"][:20]:
-                        sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
-                        r += 1
-            sws.cell(r, 1, f"Total selections: {agg.get('total_selections', 0)}").font = small_font
-            r += 2
+                for row in agg.get("rows", []):
+                    sws.cell(r, 1, row["label"]).font = small_font
+                    sws.cell(r, 2, row["count"]).font = small_font
+                    sws.cell(r, 3, f"{row['percent']:.1f}%").font = small_font
+                    r += 1
+                    if row.get("other"):
+                        for txt in row["other"][:20]:
+                            sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
+                            r += 1
+                sws.cell(r, 1, f"Total selections: {agg.get('total_selections', 0)}").font = small_font
+                r += 2
 
-        elif agg["kind"] == "rating":
-            for col_num, hdr in enumerate(["Rating", "Count", "Percent"], 1):
-                cell = sws.cell(r, col_num, hdr)
-                cell.fill = header_fill
-                cell.font = header_font
-            r += 1
-            for row in agg.get("rows", []):
-                sws.cell(r, 1, row["label"]).font = small_font
-                sws.cell(r, 2, row["count"]).font = small_font
-                sws.cell(r, 3, f"{row['percent']:.1f}%").font = small_font
+            elif agg["kind"] == "rating":
+                for col_num, hdr in enumerate(["Rating", "Count", "Percent"], 1):
+                    cell = sws.cell(r, col_num, hdr)
+                    cell.fill = header_fill
+                    cell.font = header_font
                 r += 1
-            sws.cell(r, 1, f"Average: {agg.get('average', 0):.2f} / 5").font = avg_font
-            r += 1
-            sws.cell(r, 1, f"Responses: {agg.get('count', 0)}").font = small_font
-            r += 2
-
-        elif agg["kind"] == "text":
-            sws.cell(r, 1, f"Responses: {agg.get('count', 0)} / {agg.get('total_responses', 0)}").font = small_font
-            r += 1
-            for txt in agg.get("answers", [])[:50]:
-                sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
+                for row in agg.get("rows", []):
+                    sws.cell(r, 1, row["label"]).font = small_font
+                    sws.cell(r, 2, row["count"]).font = small_font
+                    sws.cell(r, 3, f"{row['percent']:.1f}%").font = small_font
+                    r += 1
+                sws.cell(r, 1, f"Average: {agg.get('average', 0):.2f} / 5").font = avg_font
                 r += 1
-            r += 1
+                sws.cell(r, 1, f"Responses: {agg.get('count', 0)}").font = small_font
+                r += 2
 
-        else:
-            r += 1
+            elif agg["kind"] == "text":
+                sws.cell(r, 1, f"Responses: {agg.get('count', 0)} / {agg.get('total_responses', 0)}").font = small_font
+                r += 1
+                for txt in agg.get("answers", [])[:50]:
+                    sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
+                    r += 1
+                r += 1
+
+            else:
+                r += 1
 
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
