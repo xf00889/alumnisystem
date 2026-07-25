@@ -110,8 +110,8 @@ def _parse_date_str(value):
         return None
 
 
-def _filtered_alumni_responses(survey, start_date=None, end_date=None, college=None, program=None):
-    """Return a ``SurveyResponse`` queryset filtered by date range, college, and program."""
+def _filtered_alumni_responses(survey, start_date=None, end_date=None, campus=None, college=None, program=None):
+    """Return a ``SurveyResponse`` queryset filtered by date range, campus, college, and program."""
     qs = SurveyResponse.objects.filter(survey=survey).select_related(
         "alumni__user"
     ).prefetch_related("answers__question", "answers__selected_option")
@@ -119,6 +119,8 @@ def _filtered_alumni_responses(survey, start_date=None, end_date=None, college=N
         qs = qs.filter(submitted_at__gte=start_date)
     if end_date:
         qs = qs.filter(submitted_at__lt=end_date + timedelta(days=1))
+    if campus:
+        qs = qs.filter(alumni__campus=campus)
     if college:
         qs = qs.filter(alumni__college=college)
     if program:
@@ -126,17 +128,20 @@ def _filtered_alumni_responses(survey, start_date=None, end_date=None, college=N
     return qs
 
 
-def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, college=None, program=None):
+def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, campus=None, college=None, program=None):
     """Return response rows scoped by the same filters used in reports."""
     responses = {
         response.alumni_id: response
         for response in _filtered_alumni_responses(
-            survey, start_date=start_date, end_date=end_date, college=college, program=program
+            survey, start_date=start_date, end_date=end_date,
+            campus=campus, college=college, program=program,
         )
     }
     alumni_qs = Alumni.objects.select_related("user").order_by(
         "user__last_name", "user__first_name"
     )
+    if campus:
+        alumni_qs = alumni_qs.filter(campus=campus)
     if college:
         alumni_qs = alumni_qs.filter(college=college)
     if program:
@@ -152,6 +157,7 @@ def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, colle
                 "course": alumni.course,
                 "graduation_year": alumni.graduation_year,
                 "college": alumni.get_college_display(),
+                "campus": alumni.get_campus_display(),
                 "status": "Responded" if response else "Not Responded",
                 "submitted_at": response.submitted_at if response else None,
                 "response_id": response.id if response else None,
@@ -749,7 +755,7 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
         raise RuntimeError(last_error or "Chrome/Chromium PDF export failed")
 
 
-def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, college=None, program=None):
+def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, campus=None, college=None, program=None):
     responses = (
         SurveyResponse.objects.filter(survey=survey)
         .select_related("alumni__user")
@@ -760,6 +766,8 @@ def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, col
         responses = responses.filter(submitted_at__gte=start_date)
     if end_date:
         responses = responses.filter(submitted_at__lt=end_date + datetime.timedelta(days=1))
+    if campus:
+        responses = responses.filter(alumni__campus=campus)
     if college:
         responses = responses.filter(alumni__college=college)
     if program:
@@ -1504,17 +1512,41 @@ def _aggregate_question(survey, question, alumni_model, employer_model, response
 
 
 @login_required
-def tracer_study_programs(request):
-    """Return distinct program options for a college as an HTMX fragment."""
-    college = request.GET.get("college", "").strip()
-    if not college:
-        return HttpResponse('<option value="">All Programs</option>')
-    programs = (
-        Alumni.objects.filter(college=college)
-        .values_list("course", flat=True)
+def tracer_study_colleges(request):
+    """Return distinct college options for a campus as an HTMX fragment."""
+    campus = request.GET.get("campus", "").strip()
+    if not campus:
+        options = ['<option value="">All Colleges</option>']
+        for code, name in Alumni.COLLEGE_CHOICES:
+            options.append(f'<option value="{code}">{name}</option>')
+        return HttpResponse("\n".join(options))
+    colleges = (
+        Alumni.objects.filter(campus=campus)
+        .values_list("college", flat=True)
         .distinct()
-        .order_by("course")
+        .order_by("college")
     )
+    college_map = dict(Alumni.COLLEGE_CHOICES)
+    options = ['<option value="">All Colleges</option>']
+    for c in colleges:
+        if c:
+            options.append(f'<option value="{c}">{college_map.get(c, c)}</option>')
+    return HttpResponse("\n".join(options))
+
+
+@login_required
+def tracer_study_programs(request):
+    """Return distinct program options for a campus+college as an HTMX fragment."""
+    campus = request.GET.get("campus", "").strip()
+    college = request.GET.get("college", "").strip()
+    if not campus and not college:
+        return HttpResponse('<option value="">All Programs</option>')
+    qs = Alumni.objects.all()
+    if campus:
+        qs = qs.filter(campus=campus)
+    if college:
+        qs = qs.filter(college=college)
+    programs = qs.values_list("course", flat=True).distinct().order_by("course")
     options = ['<option value="">All Programs</option>']
     for p in programs:
         if p:
@@ -1558,6 +1590,7 @@ def tracer_study_report(request, survey_id):
 
     start_date = _parse_date_str(request.GET.get("start_date"))
     end_date = _parse_date_str(request.GET.get("end_date"))
+    campus = request.GET.get("campus", "").strip() or None
     college = request.GET.get("college", "").strip() or None
     program = request.GET.get("program", "").strip() or None
 
@@ -1588,7 +1621,8 @@ def tracer_study_report(request, survey_id):
     response_rate = None
     if audience == "alumni":
         response_rows = _filtered_alumni_response_rows(
-            survey, start_date=start_date, end_date=end_date, college=college, program=program
+            survey, start_date=start_date, end_date=end_date,
+            campus=campus, college=college, program=program,
         )
         responded_rows = [row for row in response_rows if row["submitted_at"]]
         missing_rows = [row for row in response_rows if not row["submitted_at"]]
@@ -1596,10 +1630,11 @@ def tracer_study_report(request, survey_id):
 
     # Collect the IDs of the filtered responses so aggregation can be scoped.
     filtered_response_ids = None
-    if audience == "alumni" and (start_date or end_date or college or program):
+    if audience == "alumni" and (start_date or end_date or campus or college or program):
         filtered_response_ids = set(
             _filtered_alumni_responses(
-                survey, start_date=start_date, end_date=end_date, college=college, program=program
+                survey, start_date=start_date, end_date=end_date,
+                campus=campus, college=college, program=program,
             ).values_list("id", flat=True)
         )
 
@@ -1635,6 +1670,37 @@ def tracer_study_report(request, survey_id):
             "chart": chart,
         })
 
+    # Build campus → college → program hierarchy for export dropdown.
+    export_hierarchy = {}
+    if audience == "alumni":
+        campus_college_programs = (
+            Alumni.objects
+            .filter(campus__in=Alumni.objects.values_list("campus", flat=True).distinct())
+            .values_list("campus", "college", "course")
+            .distinct()
+        )
+        campus_map = dict(Alumni.CAMPUS_CHOICES)
+        college_map = dict(Alumni.COLLEGE_CHOICES)
+        for c_code, col_code, prog in campus_college_programs:
+            if not c_code or not col_code:
+                continue
+            if c_code not in export_hierarchy:
+                export_hierarchy[c_code] = {"label": campus_map.get(c_code, c_code), "colleges": {}}
+            if col_code not in export_hierarchy[c_code]["colleges"]:
+                export_hierarchy[c_code]["colleges"][col_code] = {
+                    "label": college_map.get(col_code, col_code),
+                    "programs": [],
+                }
+            if prog and prog not in export_hierarchy[c_code]["colleges"][col_code]["programs"]:
+                export_hierarchy[c_code]["colleges"][col_code]["programs"].append(prog)
+        # Sort programs within each college
+        for c_data in export_hierarchy.values():
+            for col_data in c_data["colleges"].values():
+                col_data["programs"].sort()
+
+    year_from = request.GET.get("year_from", "").strip()
+    year_to = request.GET.get("year_to", "").strip()
+
     return render(
         request,
         "tracer_study/report.html",
@@ -1652,8 +1718,12 @@ def tracer_study_report(request, survey_id):
             "Alumni": Alumni,
             "filter_start_date": request.GET.get("start_date", ""),
             "filter_end_date": request.GET.get("end_date", ""),
+            "filter_campus": campus or "",
             "filter_college": college or "",
             "filter_program": program or "",
+            "filter_year_from": year_from,
+            "filter_year_to": year_to,
+            "export_hierarchy": export_hierarchy,
         },
     )
 
@@ -1707,6 +1777,7 @@ def tracer_study_report_export(request, survey_id, format_type=None):
 
     start_date = _parse_date_str(request.GET.get("start_date"))
     end_date = _parse_date_str(request.GET.get("end_date"))
+    campus = request.GET.get("campus", "").strip() or None
     college = request.GET.get("college", "").strip() or None
     program = request.GET.get("program", "").strip() or None
     report_type = (request.GET.get("report_type") or "full").lower()
@@ -1715,11 +1786,13 @@ def tracer_study_report_export(request, survey_id, format_type=None):
 
     if format_type == "zip":
         return _tracer_study_forms_zip_response(
-            survey, start_date=start_date, end_date=end_date, college=college, program=program
+            survey, start_date=start_date, end_date=end_date,
+            campus=campus, college=college, program=program,
         )
 
     rows = _filtered_alumni_response_rows(
-        survey, start_date=start_date, end_date=end_date, college=college, program=program
+        survey, start_date=start_date, end_date=end_date,
+        campus=campus, college=college, program=program,
     )
     responded_rows = [row for row in rows if row["submitted_at"]]
     missing_rows = [row for row in rows if not row["submitted_at"]]
@@ -1847,11 +1920,11 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         import json as _json
         audience_label = "alumni" if survey.title == ALUMNI_TITLE else "employer"
         filtered_ids = None
-        if audience_label == "alumni" and (start_date or end_date or college or program):
+        if audience_label == "alumni" and (start_date or end_date or campus or college or program):
             filtered_ids = set(
                 _filtered_alumni_responses(
                     survey, start_date=start_date, end_date=end_date,
-                    college=college, program=program,
+                    campus=campus, college=college, program=program,
                 ).values_list("id", flat=True)
             )
         questions = survey.questions.all().prefetch_related("options").order_by("display_order")
@@ -1873,14 +1946,17 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         sws.cell(r, 1, f"Survey: {survey.title}")
         r += 1
         filter_desc = []
-        if start_date:
-            filter_desc.append(f"From: {start_date}")
-        if end_date:
-            filter_desc.append(f"To: {end_date}")
+        if campus:
+            campus_label = dict(Alumni.CAMPUS_CHOICES).get(campus, campus)
+            filter_desc.append(f"Campus: {campus_label}")
         if college:
             filter_desc.append(f"College: {college}")
         if program:
             filter_desc.append(f"Program: {program}")
+        if start_date:
+            filter_desc.append(f"From: {start_date}")
+        if end_date:
+            filter_desc.append(f"To: {end_date}")
         if filter_desc:
             r += 1
             sws.cell(r, 1, "Filters: " + " | ".join(filter_desc))

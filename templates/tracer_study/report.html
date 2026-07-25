@@ -24,23 +24,39 @@
         <div class="dashboard-card mb-3 no-print">
             <div class="card-body">
                 <form method="get" class="row g-3 align-items-end">
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small text-muted mb-1">Start Date</label>
                         <input type="date" name="start_date" class="form-control form-control-sm"
                                value="{{ filter_start_date }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small text-muted mb-1">End Date</label>
                         <input type="date" name="end_date" class="form-control form-control-sm"
                                value="{{ filter_end_date }}">
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted mb-1">Campus</label>
+                        <select name="campus" id="filter-campus" class="form-select form-select-sm"
+                                hx-get="{% url 'surveys:tracer_study_colleges' %}"
+                                hx-trigger="change"
+                                hx-target="#filter-college"
+                                hx-include="[name='campus']"
+                                hx-swap="innerHTML">
+                            <option value="">All Campuses</option>
+                            {% for code, name in Alumni.CAMPUS_CHOICES %}
+                                <option value="{{ code }}" {% if filter_campus == code %}selected{% endif %}>
+                                    {{ name }}
+                                </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
                         <label class="form-label small text-muted mb-1">College</label>
                         <select name="college" id="filter-college" class="form-select form-select-sm"
                                 hx-get="{% url 'surveys:tracer_study_programs' %}"
                                 hx-trigger="change"
                                 hx-target="#program-select"
-                                hx-include="[name='college']"
+                                hx-include="[name='campus'],[name='college']"
                                 hx-swap="innerHTML">
                             <option value="">All Colleges</option>
                             {% for code, name in Alumni.COLLEGE_CHOICES %}
@@ -50,13 +66,13 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <label class="form-label small text-muted mb-1">Program</label>
                         <select name="program" id="program-select" class="form-select form-select-sm">
                             <option value="">All Programs</option>
                         </select>
                     </div>
-                    <div class="col-md-3">
+                    <div class="col-md-2">
                         <button type="submit" class="btn btn-primary btn-sm me-2">
                             <i class="fas fa-filter me-1"></i> Apply
                         </button>
@@ -173,25 +189,53 @@
                         </div>
                         <div class="d-flex gap-2 flex-wrap no-print">
                             <div class="btn-group btn-group-sm">
-                                <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=full" class="btn btn-outline-success">
+                                <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=full" class="btn btn-outline-success">
                                     <i class="fas fa-file-excel me-1"></i> Export Excel
                                 </a>
                                 <button type="button" class="btn btn-outline-success dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" data-bs-auto-close="true">
                                     <span class="visually-hidden">Toggle Dropdown</span>
                                 </button>
-                                <ul class="dropdown-menu dropdown-menu-end">
-                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=full">
+                                <ul class="dropdown-menu dropdown-menu-end export-dropdown">
+                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=full">
                                         <i class="fas fa-file-excel me-1"></i> Full Report
                                     </a></li>
-                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=status">
+                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=status">
                                         <i class="fas fa-table me-1"></i> Response Status
                                     </a></li>
-                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=summary">
+                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}&report_type=summary">
                                         <i class="fas fa-chart-bar me-1"></i> Summary Report
                                     </a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li class="dropdown-submenu">
+                                        <a class="dropdown-item dropdown-toggle" href="#">
+                                            <i class="fas fa-map-marker-alt me-1"></i> By Campus
+                                        </a>
+                                        <ul class="dropdown-menu">
+                                            {% for c_code, c_data in export_hierarchy.items %}
+                                            <li class="dropdown-submenu">
+                                                <a class="dropdown-item dropdown-toggle" href="#">{{ c_data.label }}</a>
+                                                <ul class="dropdown-menu">
+                                                    <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?campus={{ c_code }}&report_type=full">All Colleges</a></li>
+                                                    <li><hr class="dropdown-divider"></li>
+                                                    {% for col_code, col_data in c_data.colleges.items %}
+                                                    <li class="dropdown-submenu">
+                                                        <a class="dropdown-item dropdown-toggle" href="#">{{ col_data.label }}</a>
+                                                        <ul class="dropdown-menu">
+                                                            <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?campus={{ c_code }}&college={{ col_code }}&report_type=full">All Programs</a></li>
+                                                            {% for prog in col_data.programs %}
+                                                            <li><a class="dropdown-item" href="{% url 'surveys:tracer_study_report_export' survey.id %}?campus={{ c_code }}&college={{ col_code }}&program={{ prog }}&report_type=full">{{ prog }}</a></li>
+                                                            {% endfor %}
+                                                        </ul>
+                                                    </li>
+                                                    {% endfor %}
+                                                </ul>
+                                            </li>
+                                            {% endfor %}
+                                        </ul>
+                                    </li>
                                 </ul>
                             </div>
-                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&college={{ filter_college }}&program={{ filter_program }}" class="btn btn-outline-primary btn-sm">
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-file-archive me-1"></i> Export Filled Forms ZIP
                             </a>
                         </div>
