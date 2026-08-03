@@ -1,6 +1,7 @@
 """
 Context processors for adding global template variables
 """
+from django.utils import timezone
 
 def user_role_context(request):
     """
@@ -38,17 +39,16 @@ def tracer_study_banner_context(request):
             return {'show_tracer_study_banner': False}
 
         alumni = request.user.alumni
-        from django.utils import timezone
         from surveys.models import Survey, SurveyResponse
+        from surveys.tracer_study import ALUMNI_TITLE, _get_active_survey
 
         now = timezone.now()
-        survey = Survey.objects.filter(
-            title='NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)',
-            status='active',
-            start_date__lte=now,
-            end_date__gte=now,
-        ).order_by('-created_at').first()
-        show_banner = bool(survey and not SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists())
+        survey = _get_active_survey(ALUMNI_TITLE, alumni)
+        show_banner = bool(
+            survey
+            and survey.start_date <= now <= survey.end_date
+            and not SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists()
+        )
         return {
             'show_tracer_study_banner': show_banner,
             'tracer_study_banner_survey': survey,

@@ -20,8 +20,8 @@
         <h4><i class="fas fa-clipboard-list me-2"></i>Create New Tracer Study Form</h4>
         <p class="text-muted">
             Creates a fresh alumni and employer tracer study questionnaire with the
-            standard questions. The current active form will be closed (its responses
-            are kept for reporting) and the new form goes live immediately.
+            standard questions. New cycles go live alongside any existing active
+            form; alumni are matched to a cycle by their college.
         </p>
 
         <form method="post" novalidate>
@@ -50,13 +50,33 @@
             </div>
 
             <div class="mb-3">
+                <label class="form-label">Visibility</label>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="visibility" id="id_vis_all"
+                           value="all" {% if form.visibility != 'restricted' %}checked{% endif %}>
+                    <label class="form-check-label" for="id_vis_all">
+                        Display to all alumni
+                    </label>
+                </div>
+                <div class="form-check">
+                    <input class="form-check-input" type="radio" name="visibility" id="id_vis_restricted"
+                           value="restricted" {% if form.visibility == 'restricted' %}checked{% endif %}>
+                    <label class="form-check-label" for="id_vis_restricted">
+                        Only alumni of the requesting college
+                    </label>
+                </div>
+                <div class="form-hint">Restricted cycles are shown only to alumni whose college matches the one below.</div>
+            </div>
+
+            <div class="mb-3" id="college-field">
                 <label class="form-label" for="id_college">Requesting College</label>
                 <select id="id_college" name="college" class="form-select">
-                    <option value="">Select college (optional)</option>
+                    <option value="">Select college</option>
                     {% for code, name in college_choices %}
                         <option value="{{ code }}" {% if form.college == code %}selected{% endif %}>{{ name }}</option>
                     {% endfor %}
                 </select>
+                <div class="form-hint">Required when the cycle is restricted to a college.</div>
             </div>
 
             <div class="mb-4">
@@ -64,16 +84,30 @@
                 <input type="text" id="id_program" name="program" class="form-control"
                        placeholder="e.g. BS Computer Science (optional)"
                        value="{{ form.program|default_if_none:'' }}">
-                <div class="form-hint">Specific program or office that requested this study.</div>
+                <div class="form-hint">Specific program or office that requested this study (for display only).</div>
             </div>
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-create">
                     <i class="fas fa-plus-circle me-1"></i>Create Tracer Study
                 </button>
-                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+                <a href="{% url 'surveys:tracer_study_reports' %}" class="btn btn-outline-secondary">Cancel</a>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const restricted = document.getElementById('id_vis_restricted');
+        const college = document.getElementById('id_college');
+        function syncCollege() {
+            college.required = restricted.checked;
+            document.getElementById('college-field').style.opacity = restricted.checked ? '1' : '0.5';
+        }
+        restricted.addEventListener('change', syncCollege);
+        document.getElementById('id_vis_all').addEventListener('change', syncCollege);
+        syncCollege();
+    });
+</script>
 {% endblock %}

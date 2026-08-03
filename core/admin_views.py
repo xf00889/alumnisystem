@@ -560,15 +560,20 @@ def create_tracer_study(request):
 
         college_code = request.POST.get('college', '').strip()
         program = request.POST.get('program', '').strip()
+        visibility = request.POST.get('visibility', 'all')
+        display_to_all = visibility != 'restricted'
+        if not display_to_all and not college_code:
+            messages.error(request, _('Select the requesting college when restricting visibility.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': request.POST,
+            })
+
         college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, '')
         requested_by = " — ".join(filter(None, [college_name, program])) or 'NORSU Alumni Affairs Office'
 
         try:
             with transaction.atomic():
-                Survey.objects.filter(
-                    title__in=[tracer_study.ALUMNI_TITLE, tracer_study.EMPLOYER_TITLE],
-                ).exclude(status='closed').update(status='closed')
-
                 for title, description, questions in (
                     (tracer_study.ALUMNI_TITLE, ALUMNI_DESCRIPTION, ALUMNI_QUESTIONS),
                     (tracer_study.EMPLOYER_TITLE, EMPLOYER_DESCRIPTION, EMPLOYER_QUESTIONS),
@@ -582,6 +587,10 @@ def create_tracer_study(request):
                         created_by=request.user,
                         is_external=False,
                         requested_by=requested_by,
+                        # Only the alumni questionnaire can be college-scoped;
+                        # the employer form is public (no college to match).
+                        target_college=college_code if not display_to_all and title == tracer_study.ALUMNI_TITLE else '',
+                        display_to_all=display_to_all or title == tracer_study.EMPLOYER_TITLE,
                     )
                     _apply_questions(survey, questions)
         except Exception as exc:
@@ -593,7 +602,7 @@ def create_tracer_study(request):
             })
 
         messages.success(request, _('New tracer study form created and activated.'))
-        return redirect('core:admin_dashboard')
+        return redirect('surveys:tracer_study_reports')
 
     return render(request, 'admin/tracer_study_create.html', {
         'college_choices': Alumni.COLLEGE_CHOICES,

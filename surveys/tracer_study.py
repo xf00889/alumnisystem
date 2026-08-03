@@ -820,8 +820,21 @@ def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, cam
     return response
 
 
-def _get_active_survey(title):
-    return get_object_or_404(Survey, title=title, status="active")
+def _get_active_survey(title, alumni=None):
+    """Return the active survey for ``title``, scoped to ``alumni``.
+
+    With multiple concurrent cycles, prefer a cycle restricted to the
+    alumni's college; otherwise fall back to the newest all-alumni cycle.
+    Returns ``None`` when nothing is eligible (the caller decides how to
+    respond instead of relying on a 404).
+    """
+    qs = Survey.objects.filter(title=title, status="active").order_by("-created_at")
+    if alumni is not None:
+        scoped = qs.filter(display_to_all=False, target_college=alumni.college).first()
+        if scoped:
+            return scoped
+        return qs.filter(display_to_all=True).first()
+    return qs.first()
 
 
 # ---------------------------------------------------------------------------
@@ -1163,7 +1176,6 @@ def _save_employer_response(request, survey, employer):
 @require_http_methods(["GET", "POST"])
 @login_required
 def tracer_study_alumni(request):
-    survey = _get_active_survey(ALUMNI_TITLE)
     # Authed users without an alumni profile fall into one of two cases:
     #   * Staff / superuser / alumni coordinator without an Alumni row —
     #     they have no business taking the survey themselves; send them
@@ -1186,6 +1198,14 @@ def tracer_study_alumni(request):
         )
         return redirect("accounts:post_registration")
     alumni = Alumni.objects.get(user=request.user)
+
+    survey = _get_active_survey(ALUMNI_TITLE, alumni)
+    if survey is None:
+        messages.info(
+            request,
+            "The Tracer Study is not currently available for your college.",
+        )
+        return redirect("core:home")
 
     if _already_submitted_alumni(survey, alumni):
         return render(
@@ -1245,6 +1265,12 @@ def tracer_study_alumni(request):
 @require_http_methods(["GET", "POST"])
 def tracer_study_employer(request):
     survey = _get_active_survey(EMPLOYER_TITLE)
+    if survey is None:
+        messages.info(
+            request,
+            "The Employer Tracer Study is not currently open.",
+        )
+        return redirect("core:home")
 
     if request.method == "POST":
         company = request.POST.get("company_name", "").strip()
@@ -1568,7 +1594,15 @@ def tracer_study_reports(request):
                 count = SurveyResponse.objects.filter(survey=s).count()
             else:
                 count = EmployerResponse.objects.filter(survey=s).count()
-            surveys.append({"survey": s, "audience": audience, "count": count})
+            # Cycle label is stored as the description prefix ("SY 2026-2027 — …").
+            prefix = s.description.split(" — ", 1)[0] if " — " in s.description else ""
+            cycle_label = prefix if len(prefix) < 80 else ""
+            surveys.append({
+                "survey": s,
+                "audience": audience,
+                "count": count,
+                "cycle_label": cycle_label,
+            })
             if s.status == "active" and active_survey is None:
                 active_survey = s
 

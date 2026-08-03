@@ -21,6 +21,8 @@ class Survey(models.Model):
     is_external = models.BooleanField(default=False)
     external_url = models.URLField(blank=True, null=True)
     requested_by = models.CharField(max_length=200, blank=True, default='')
+    target_college = models.CharField(max_length=10, choices=Alumni.COLLEGE_CHOICES, blank=True, default='')
+    display_to_all = models.BooleanField(default=True)
     
     def __str__(self):
         return self.title
