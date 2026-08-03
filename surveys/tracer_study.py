@@ -1561,6 +1561,7 @@ def tracer_study_reports(request):
         return redirect("surveys:tracer_study_alumni")
 
     surveys = []
+    active_survey = None
     for title, audience in ((ALUMNI_TITLE, "alumni"), (EMPLOYER_TITLE, "employer")):
         for s in Survey.objects.filter(title=title).order_by("-created_at"):
             if audience == "alumni":
@@ -1568,11 +1569,13 @@ def tracer_study_reports(request):
             else:
                 count = EmployerResponse.objects.filter(survey=s).count()
             surveys.append({"survey": s, "audience": audience, "count": count})
+            if s.status == "active" and active_survey is None:
+                active_survey = s
 
     return render(
         request,
         "tracer_study/reports_index.html",
-        {"surveys": surveys},
+        {"surveys": surveys, "active_survey": active_survey},
     )
 
 

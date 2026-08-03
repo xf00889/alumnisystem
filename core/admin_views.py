@@ -122,7 +122,6 @@ def admin_dashboard(request):
     active_surveys = Survey.objects.filter(status='active').count()
     total_responses = SurveyResponse.objects.count()
     tracer_study_responses = _tracer_study_response_count()
-    tracer_study_survey = _tracer_study_survey()
     
     # Feedback Statistics
     total_feedback = Feedback.objects.count()
@@ -195,7 +194,6 @@ def admin_dashboard(request):
         'active_surveys': active_surveys,
         'total_responses': total_responses,
         'tracer_study_responses': tracer_study_responses,
-        'tracer_study_survey': tracer_study_survey,
         
         # Feedback stats
         'total_feedback': total_feedback,
