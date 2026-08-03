@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
@@ -607,6 +607,154 @@ def create_tracer_study(request):
     return render(request, 'admin/tracer_study_create.html', {
         'college_choices': Alumni.COLLEGE_CHOICES,
         'form': None,
+    })
+
+
+def _cycle_label(description):
+    """Extract the cycle label from a description of the form 'Label — …'."""
+    if description and ' — ' in description:
+        return description.split(' — ', 1)[0]
+    return ''
+
+
+def _split_cycle_description(description):
+    """Return (label, suffix). For legacy descriptions without a prefix the
+    whole description is the suffix and the label is empty."""
+    if description and ' — ' in description:
+        label, suffix = description.split(' — ', 1)
+        return label, suffix
+    return '', description or ''
+
+
+def _parse_date_field(value, default):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return getattr(default, 'date', lambda: default)()
+
+
+@login_required
+def edit_tracer_study(request, survey_id):
+    """Edit a tracer study cycle's metadata (label, dates, requester,
+    visibility, status). Keeps the alumni/employer pair in sync by matching
+    the other title with the same cycle label and start date."""
+    if not is_admin_user(request.user):
+        messages.error(request, _('You do not have permission to access this page.'))
+        return redirect('core:home')
+
+    from alumni_directory.models import Alumni
+
+    survey = get_object_or_404(Survey, id=survey_id)
+    is_employer = survey.title == tracer_study.EMPLOYER_TITLE
+    if request.method == 'POST':
+        form = request.POST
+        label = form.get('label', '').strip()
+        if not label:
+            messages.error(request, _('Cycle label is required, e.g. "SY 2026-2027".'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': form,
+                'survey': survey,
+                'survey_is_employer': is_employer,
+            })
+
+        start_date = _parse_date_field(form.get('start_date'), survey.start_date)
+        end_date = _parse_date_field(form.get('end_date'), survey.end_date)
+        if end_date <= start_date:
+            messages.error(request, _('End date must be after the start date.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': form,
+                'survey': survey,
+                'survey_is_employer': is_employer,
+            })
+
+        college_code = form.get('college', '').strip()
+        program = form.get('program', '').strip()
+        visibility = form.get('visibility', 'all')
+        display_to_all = visibility != 'restricted'
+        if not display_to_all and not college_code:
+            messages.error(request, _('Select the requesting college when restricting visibility.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': form,
+                'survey': survey,
+                'survey_is_employer': is_employer,
+            })
+        if not display_to_all and is_employer:
+            messages.error(request, _('Only the alumni questionnaire can be restricted by college; the employer form stays visible to all.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': form,
+                'survey': survey,
+                'survey_is_employer': is_employer,
+            })
+
+        old_label, old_suffix = _split_cycle_description(survey.description)
+        college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, '')
+        requested_by = " — ".join(filter(None, [college_name, program])) or 'NORSU Alumni Affairs Office'
+
+        other_title = (tracer_study.EMPLOYER_TITLE if survey.title == tracer_study.ALUMNI_TITLE
+                       else tracer_study.ALUMNI_TITLE)
+        counterpart_qs = Survey.objects.filter(
+            title=other_title, start_date=survey.start_date
+        ).exclude(id=survey.id)
+        if old_label:
+            counterpart_qs = counterpart_qs.filter(description__startswith=f"{old_label} — ")
+        counterpart = counterpart_qs.order_by('id').first()
+
+        try:
+            with transaction.atomic():
+                survey.description = f"{label} — {old_suffix}" if old_suffix else label
+                survey.start_date = start_date
+                survey.end_date = end_date
+                survey.requested_by = requested_by
+                survey.target_college = college_code if not display_to_all else ''
+                survey.display_to_all = display_to_all or survey.title != tracer_study.ALUMNI_TITLE
+                survey.status = form.get('status', survey.status)
+                survey.save(update_fields=[
+                    'description', 'start_date', 'end_date', 'requested_by',
+                    'target_college', 'display_to_all', 'status',
+                ])
+
+                if counterpart:
+                    c_label, c_suffix = _split_cycle_description(counterpart.description)
+                    counterpart.description = f"{label} — {c_suffix}" if c_suffix else label
+                    counterpart.start_date = start_date
+                    counterpart.end_date = end_date
+                    counterpart.requested_by = requested_by
+                    counterpart.status = survey.status
+                    counterpart.save(update_fields=[
+                        'description', 'start_date', 'end_date',
+                        'requested_by', 'status',
+                    ])
+        except Exception as exc:
+            logger.error(f"Tracer study edit failed: {exc}", exc_info=True)
+            messages.error(request, _('An error occurred while saving the tracer study. Please try again.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': form,
+                'survey': survey,
+                'survey_is_employer': is_employer,
+            })
+
+        messages.success(request, _('Tracer study cycle updated.'))
+        return redirect('surveys:tracer_study_reports')
+
+    form = {
+        'label': _cycle_label(survey.description),
+        'start_date': survey.start_date.strftime('%Y-%m-%d'),
+        'end_date': survey.end_date.strftime('%Y-%m-%d'),
+        'college': survey.target_college,
+        'program': survey.requested_by.split(' — ')[-1] if ' — ' in survey.requested_by else '',
+        'visibility': 'restricted' if not survey.display_to_all else 'all',
+        'status': survey.status,
+    }
+    return render(request, 'admin/tracer_study_create.html', {
+        'college_choices': Alumni.COLLEGE_CHOICES,
+        'form': form,
+        'survey': survey,
+        'survey_is_employer': is_employer,
     })
 
 @login_required

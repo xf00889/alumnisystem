@@ -1,7 +1,7 @@
 {% extends 'base.html' %}
 {% load static %}
 
-{% block title %}Create Tracer Study Form - Admin{% endblock %}
+{% block title %}{% if survey %}Edit{% else %}Create{% endif %} Tracer Study Form - Admin{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -17,14 +17,20 @@
 {% block content %}
 <div class="container py-4 tracer-create-wrap">
     <div class="tracer-create-card">
-        <h4><i class="fas fa-clipboard-list me-2"></i>Create New Tracer Study Form</h4>
+        <h4><i class="fas fa-{% if survey %}edit{% else %}clipboard-list{% endif %} me-2"></i>
+            {% if survey %}Edit{% else %}Create New{% endif %} Tracer Study Form</h4>
         <p class="text-muted">
-            Creates a fresh alumni and employer tracer study questionnaire with the
-            standard questions. New cycles go live alongside any existing active
-            form; alumni are matched to a cycle by their college.
+            {% if survey %}
+                Updates this cycle's metadata (label, period, requester, visibility and
+                status). Edits are mirrored to its paired alumni/employer survey.
+            {% else %}
+                Creates a fresh alumni and employer tracer study questionnaire with the
+                standard questions. New cycles go live alongside any existing active
+                form; alumni are matched to a cycle by their college.
+            {% endif %}
         </p>
 
-        <form method="post" novalidate>
+        <form method="post" action="{% if survey %}{% url 'core:edit_tracer_study' survey.id %}{% else %}{% url 'core:create_tracer_study' %}{% endif %}" novalidate>
             {% csrf_token %}
             <div class="mb-3">
                 <label class="form-label" for="id_label">Cycle Label</label>
@@ -58,6 +64,9 @@
                         Display to all alumni
                     </label>
                 </div>
+                {% if survey_is_employer %}
+                    <div class="form-hint">The employer questionnaire is always visible to all; only the alumni form can be college-scoped.</div>
+                {% else %}
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="visibility" id="id_vis_restricted"
                            value="restricted" {% if form.visibility == 'restricted' %}checked{% endif %}>
@@ -66,9 +75,10 @@
                     </label>
                 </div>
                 <div class="form-hint">Restricted cycles are shown only to alumni whose college matches the one below.</div>
+                {% endif %}
             </div>
 
-            <div class="mb-3" id="college-field">
+            <div class="mb-3" id="college-field" {% if survey_is_employer %}style="display:none"{% endif %}>
                 <label class="form-label" for="id_college">Requesting College</label>
                 <select id="id_college" name="college" class="form-select">
                     <option value="">Select college</option>
@@ -87,9 +97,20 @@
                 <div class="form-hint">Specific program or office that requested this study (for display only).</div>
             </div>
 
+            {% if survey %}
+            <div class="mb-4">
+                <label class="form-label" for="id_status">Status</label>
+                <select id="id_status" name="status" class="form-select">
+                    <option value="active" {% if form.status == 'active' %}selected{% endif %}>Active — open to responses</option>
+                    <option value="closed" {% if form.status == 'closed' %}selected{% endif %}>Closed — no longer accepting responses</option>
+                </select>
+                <div class="form-hint">Closing stops new responses for this cycle. Reopen it anytime by switching back to Active.</div>
+            </div>
+            {% endif %}
+
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-create">
-                    <i class="fas fa-plus-circle me-1"></i>Create Tracer Study
+                    {% if survey %}<i class="fas fa-save me-1"></i>Save Changes{% else %}<i class="fas fa-plus-circle me-1"></i>Create Tracer Study{% endif %}
                 </button>
                 <a href="{% url 'surveys:tracer_study_reports' %}" class="btn btn-outline-secondary">Cancel</a>
             </div>
@@ -102,11 +123,14 @@
         const restricted = document.getElementById('id_vis_restricted');
         const college = document.getElementById('id_college');
         function syncCollege() {
+            if (!restricted) return;
             college.required = restricted.checked;
             document.getElementById('college-field').style.opacity = restricted.checked ? '1' : '0.5';
         }
-        restricted.addEventListener('change', syncCollege);
-        document.getElementById('id_vis_all').addEventListener('change', syncCollege);
+        if (restricted) {
+            restricted.addEventListener('change', syncCollege);
+            document.getElementById('id_vis_all').addEventListener('change', syncCollege);
+        }
         syncCollege();
     });
 </script>

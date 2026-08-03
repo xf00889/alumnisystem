@@ -45,6 +45,7 @@ urlpatterns = [
     path('export/surveys/<str:format_type>/', admin_views.export_surveys, name='export_surveys'),
     path('export/tracer-study/<str:format_type>/', admin_views.export_tracer_study, name='export_tracer_study'),
     path('admin-dashboard/tracer-study/create/', admin_views.create_tracer_study, name='create_tracer_study'),
+    path('admin-dashboard/tracer-study/<int:survey_id>/edit/', admin_views.edit_tracer_study, name='edit_tracer_study'),
     path('export/all/<str:format_type>/', admin_views.export_all_data, name='export_all_data'),
     
     # Bulk Export URLs
