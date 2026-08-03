@@ -47,7 +47,7 @@ def tracer_study_banner_context(request):
             status='active',
             start_date__lte=now,
             end_date__gte=now,
-        ).first()
+        ).order_by('-created_at').first()
         show_banner = bool(survey and not SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists())
         return {
             'show_tracer_study_banner': show_banner,

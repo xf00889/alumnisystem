@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Count, Sum, Q
+from django.db import transaction
 from django.utils import timezone
 from datetime import datetime, timedelta
 from django.http import JsonResponse
@@ -33,7 +34,11 @@ from .decorators import is_admin_user
 
 
 def _tracer_study_survey():
-    return Survey.objects.filter(title=tracer_study.ALUMNI_TITLE).first()
+    return Survey.objects.filter(
+        title=tracer_study.ALUMNI_TITLE, status='active'
+    ).order_by('-created_at').first() or Survey.objects.filter(
+        title=tracer_study.ALUMNI_TITLE
+    ).order_by('-created_at').first()
 
 
 def _tracer_study_response_count():
@@ -117,6 +122,7 @@ def admin_dashboard(request):
     active_surveys = Survey.objects.filter(status='active').count()
     total_responses = SurveyResponse.objects.count()
     tracer_study_responses = _tracer_study_response_count()
+    tracer_study_survey = _tracer_study_survey()
     
     # Feedback Statistics
     total_feedback = Feedback.objects.count()
@@ -189,6 +195,7 @@ def admin_dashboard(request):
         'active_surveys': active_surveys,
         'total_responses': total_responses,
         'tracer_study_responses': tracer_study_responses,
+        'tracer_study_survey': tracer_study_survey,
         
         # Feedback stats
         'total_feedback': total_feedback,
@@ -508,6 +515,92 @@ def export_tracer_study(request, format_type='excel'):
         return redirect('core:admin_dashboard')
 
     return tracer_study.tracer_study_report_export(request, survey.id, format_type)
+
+
+def _parse_date_input(value, default):
+    try:
+        return datetime.strptime(value, "%Y-%m-%d").date()
+    except (TypeError, ValueError):
+        return default
+
+
+@login_required
+def create_tracer_study(request):
+    """Create a new tracer study cycle (alumni + employer surveys).
+
+    Closes the previous cycle's surveys so the new one is the only active
+    tracer study; old responses stay attached to their own survey rows.
+    """
+    if not is_admin_user(request.user):
+        messages.error(request, _('You do not have permission to access this page.'))
+        return redirect('core:home')
+
+    from surveys.management.commands.seed_tracer_study import (
+        ALUMNI_QUESTIONS, EMPLOYER_QUESTIONS,
+        ALUMNI_DESCRIPTION, EMPLOYER_DESCRIPTION, _apply_questions,
+    )
+    from alumni_directory.models import Alumni
+
+    if request.method == 'POST':
+        label = request.POST.get('label', '').strip()
+        if not label:
+            messages.error(request, _('Cycle label is required, e.g. "SY 2026-2027".'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': request.POST,
+            })
+
+        now = timezone.now()
+        start_date = _parse_date_input(request.POST.get('start_date'), now - timedelta(days=1))
+        end_date = _parse_date_input(request.POST.get('end_date'), now + timedelta(days=365))
+        if end_date <= start_date:
+            messages.error(request, _('End date must be after the start date.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': request.POST,
+            })
+
+        college_code = request.POST.get('college', '').strip()
+        program = request.POST.get('program', '').strip()
+        college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, '')
+        requested_by = " — ".join(filter(None, [college_name, program])) or 'NORSU Alumni Affairs Office'
+
+        try:
+            with transaction.atomic():
+                Survey.objects.filter(
+                    title__in=[tracer_study.ALUMNI_TITLE, tracer_study.EMPLOYER_TITLE],
+                ).exclude(status='closed').update(status='closed')
+
+                for title, description, questions in (
+                    (tracer_study.ALUMNI_TITLE, ALUMNI_DESCRIPTION, ALUMNI_QUESTIONS),
+                    (tracer_study.EMPLOYER_TITLE, EMPLOYER_DESCRIPTION, EMPLOYER_QUESTIONS),
+                ):
+                    survey = Survey.objects.create(
+                        title=title,
+                        description=f"{label} — {description}",
+                        start_date=start_date,
+                        end_date=end_date,
+                        status='active',
+                        created_by=request.user,
+                        is_external=False,
+                        requested_by=requested_by,
+                    )
+                    _apply_questions(survey, questions)
+        except Exception as exc:
+            logger.error(f"Tracer study creation failed: {exc}", exc_info=True)
+            messages.error(request, _('An error occurred while creating the tracer study. Please try again.'))
+            return render(request, 'admin/tracer_study_create.html', {
+                'college_choices': Alumni.COLLEGE_CHOICES,
+                'form': request.POST,
+            })
+
+        messages.success(request, _('New tracer study form created and activated.'))
+        return redirect('core:admin_dashboard')
+
+    return render(request, 'admin/tracer_study_create.html', {
+        'college_choices': Alumni.COLLEGE_CHOICES,
+        'form': None,
+    })
 
 @login_required
 def export_all_data(request, format_type='csv'):

@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block title %}Create Tracer Study Form - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .tracer-create-wrap { max-width: 720px; margin: 0 auto; }
+    .tracer-create-card { background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e2e8f0); border-radius: 12px; padding: 2rem; }
+    .tracer-create-card h4 { color: var(--primary-color, #2b3c6b); margin-bottom: 1.5rem; }
+    .form-label { font-weight: 600; }
+    .form-hint { font-size: 0.8rem; color: var(--text-muted, #a0aec0); }
+    .btn-create { background: var(--primary-color, #2b3c6b); border-color: var(--primary-color, #2b3c6b); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="container py-4 tracer-create-wrap">
+    <div class="tracer-create-card">
+        <h4><i class="fas fa-clipboard-list me-2"></i>Create New Tracer Study Form</h4>
+        <p class="text-muted">
+            Creates a fresh alumni and employer tracer study questionnaire with the
+            standard questions. The current active form will be closed (its responses
+            are kept for reporting) and the new form goes live immediately.
+        </p>
+
+        <form method="post" novalidate>
+            {% csrf_token %}
+            <div class="mb-3">
+                <label class="form-label" for="id_label">Cycle Label</label>
+                <input type="text" id="id_label" name="label" class="form-control" required
+                       placeholder="e.g. SY 2026-2027"
+                       value="{{ form.label|default_if_none:'' }}">
+                <div class="form-hint">Identifies this study period, e.g. the school year.</div>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="id_start_date">Period Start</label>
+                    <input type="date" id="id_start_date" name="start_date" class="form-control"
+                           value="{{ form.start_date|default_if_none:'' }}">
+                    <div class="form-hint">When responses will open. Blank = now.</div>
+                </div>
+                <div class="col-md-6 mb-3">
+                    <label class="form-label" for="id_end_date">Period End</label>
+                    <input type="date" id="id_end_date" name="end_date" class="form-control"
+                           value="{{ form.end_date|default_if_none:'' }}">
+                    <div class="form-hint">When responses close. Blank = 1 year from now.</div>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label" for="id_college">Requesting College</label>
+                <select id="id_college" name="college" class="form-select">
+                    <option value="">Select college (optional)</option>
+                    {% for code, name in college_choices %}
+                        <option value="{{ code }}" {% if form.college == code %}selected{% endif %}>{{ name }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label" for="id_program">Requesting Program / Unit</label>
+                <input type="text" id="id_program" name="program" class="form-control"
+                       placeholder="e.g. BS Computer Science (optional)"
+                       value="{{ form.program|default_if_none:'' }}">
+                <div class="form-hint">Specific program or office that requested this study.</div>
+            </div>
+
+            <div class="d-flex gap-2">
+                <button type="submit" class="btn btn-primary btn-create">
+                    <i class="fas fa-plus-circle me-1"></i>Create Tracer Study
+                </button>
+                <a href="{% url 'core:admin_dashboard' %}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

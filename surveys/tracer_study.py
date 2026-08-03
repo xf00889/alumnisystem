@@ -1562,15 +1562,12 @@ def tracer_study_reports(request):
 
     surveys = []
     for title, audience in ((ALUMNI_TITLE, "alumni"), (EMPLOYER_TITLE, "employer")):
-        try:
-            s = Survey.objects.get(title=title)
-        except Survey.DoesNotExist:
-            continue
-        if audience == "alumni":
-            count = SurveyResponse.objects.filter(survey=s).count()
-        else:
-            count = EmployerResponse.objects.filter(survey=s).count()
-        surveys.append({"survey": s, "audience": audience, "count": count})
+        for s in Survey.objects.filter(title=title).order_by("-created_at"):
+            if audience == "alumni":
+                count = SurveyResponse.objects.filter(survey=s).count()
+            else:
+                count = EmployerResponse.objects.filter(survey=s).count()
+            surveys.append({"survey": s, "audience": audience, "count": count})
 
     return render(
         request,
@@ -1598,7 +1595,7 @@ def tracer_study_report(request, survey_id):
     # list and can be exported in future. parameters={"survey_id": X} is the
     # tag the existing Survey Feedback report logic uses to scope by survey.
     report, _ = Report.objects.get_or_create(
-        title=f"Tracer Study Report — {audience.title()}",
+        title=f"Tracer Study Report — {audience.title()} (Survey #{survey.id})",
         report_type="feedback",
         created_by=request.user,
         defaults={"parameters": {"survey_id": survey.id, "audience": audience}},

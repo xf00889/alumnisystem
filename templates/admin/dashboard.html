@@ -1605,6 +1605,16 @@
                                 <h6>Tracer Study</h6>
                                 <small class="text-muted">{{ tracer_study_responses|default:0 }} responses</small>
                             </div>
+                            {% if tracer_study_survey %}
+                            <div class="small text-muted mb-2">
+                                <div><i class="fas fa-calendar-alt me-1"></i>
+                                    {{ tracer_study_survey.start_date|date:"M d, Y" }} – {{ tracer_study_survey.end_date|date:"M d, Y" }}
+                                </div>
+                                {% if tracer_study_survey.requested_by %}
+                                <div><i class="fas fa-building me-1"></i>{{ tracer_study_survey.requested_by }}</div>
+                                {% endif %}
+                            </div>
+                            {% endif %}
                             <div class="export-formats">
                                 <button onclick="handleSingleExport('{% url 'core:export_tracer_study' 'csv' %}', 'Tracer Study', 'csv')" class="export-btn export-csv">
                                     <i class="fas fa-file-csv"></i> CSV
@@ -1618,6 +1628,11 @@
                                 <button onclick="handleSingleExport('{% url 'core:export_tracer_study' 'zip' %}', 'Tracer Study Filled Forms', 'zip')" class="export-btn export-pdf">
                                     <i class="fas fa-file-archive"></i> ZIP
                                 </button>
+                            </div>
+                            <div class="mt-2">
+                                <a href="{% url 'core:create_tracer_study' %}" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-plus-circle me-1"></i>Create New Tracer Study Form
+                                </a>
                             </div>
                         </div>
                     </div>

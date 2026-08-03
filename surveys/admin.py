@@ -16,9 +16,9 @@ class SurveyQuestionInline(admin.TabularInline):
 
 @admin.register(Survey)
 class SurveyAdmin(admin.ModelAdmin):
-    list_display = ('title', 'status', 'start_date', 'end_date', 'created_by')
+    list_display = ('title', 'status', 'start_date', 'end_date', 'requested_by', 'created_by')
     list_filter = ('status', 'created_at', 'start_date', 'end_date')
-    search_fields = ('title', 'description')
+    search_fields = ('title', 'description', 'requested_by')
     date_hierarchy = 'created_at'
     inlines = [SurveyQuestionInline]
 
