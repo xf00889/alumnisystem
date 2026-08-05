@@ -1,6 +1,7 @@
 import json
 import zipfile
 import base64
+import tempfile
 from datetime import date, timedelta
 from io import BytesIO
 from pathlib import Path
@@ -222,8 +223,11 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
 
         def write_fake_pdf(command, capture_output, timeout, env):
             self.assertIn("/usr/bin", env["PATH"])
+            self.assertIn("XDG_RUNTIME_DIR", env)
             pdf_arg = next(arg for arg in command if arg.startswith("--print-to-pdf="))
             pdf_path = pdf_arg.split("=", 1)[1]
+            self.assertEqual(Path(pdf_path).name, "response.pdf")
+            self.assertTrue(any(arg.startswith("--user-data-dir=") for arg in command))
             Path(pdf_path).write_bytes(b"generated pdf bytes")
             return SimpleNamespace(
                 returncode=1,
@@ -231,11 +235,13 @@ class TracerStudyQuestionKeyFallbackTests(SimpleTestCase):
                 stderr=f"xdg-settings: not found\n17 bytes written to file {pdf_path}".encode("utf-8"),
             )
 
-        with (
-            patch("surveys.tracer_study._tracer_chrome_binary", return_value="/usr/bin/chromium"),
-            patch("surveys.tracer_study.subprocess.run", side_effect=write_fake_pdf) as run,
-        ):
-            pdf = _tracer_response_chrome_cli_pdf_bytes(response)
+        with tempfile.TemporaryDirectory() as work_root:
+            with (
+                patch.dict("os.environ", {"TRACER_PDF_WORK_DIR": work_root}),
+                patch("surveys.tracer_study._tracer_chrome_binary", return_value="/usr/bin/chromium"),
+                patch("surveys.tracer_study.subprocess.run", side_effect=write_fake_pdf) as run,
+            ):
+                pdf = _tracer_response_chrome_cli_pdf_bytes(response)
 
         self.assertEqual(pdf, b"generated pdf bytes")
         command = run.call_args.args[0]
@@ -507,6 +513,38 @@ class TracerStudyReportResponseStatusTests(TestCase):
             expected = "NORSU MAIN/CAS/BSINT/TracerStudy_Responded_Rina_CAS.pdf"
             self.assertIn(expected, names)
             self.assertTrue(archive.read(expected).startswith(b"%PDF"))
+
+
+class TracerStudyToggleVisibilityTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_user("admin", "admin@example.com", "pass", is_staff=True)
+        self.user = User.objects.create_user("alumni", "alumni@example.com", "pass")
+        self.survey = Survey.objects.create(
+            title=ALUMNI_TITLE,
+            description="Tracer",
+            created_by=self.admin,
+            start_date=timezone.now(),
+            end_date=timezone.now() + timedelta(days=7),
+            status="active",
+        )
+        self.url = reverse("surveys:tracer_study_toggle_visibility", args=[self.survey.id])
+
+    def test_toggle_requires_tracer_report_access(self):
+        self.client.force_login(self.user)
+        response = self.client.post(self.url)
+        self.assertEqual(response.status_code, 404)
+
+    def test_toggle_flips_status_and_redirects(self):
+        self.client.force_login(self.admin)
+        response = self.client.post(self.url)
+        self.survey.refresh_from_db()
+        self.assertRedirects(response, reverse("surveys:tracer_study_reports"))
+        self.assertEqual(self.survey.status, "closed")
+
+        self.client.post(self.url)
+        self.survey.refresh_from_db()
+        self.assertEqual(self.survey.status, "active")
 
 
 class TracerStudyBannerContextTests(TestCase):

@@ -1613,6 +1613,21 @@ def tracer_study_reports(request):
     )
 
 
+@require_http_methods(["POST"])
+def tracer_study_toggle_visibility(request, survey_id):
+    """Flip a tracer study cycle between visible (active) and hidden (closed)."""
+    if not _can_view_tracer_reports(request.user):
+        raise Http404
+    survey = _tracer_study_survey_or_404(survey_id)
+    survey.status = "closed" if survey.status == "active" else "active"
+    survey.save(update_fields=["status"])
+    if survey.status == "active":
+        messages.success(request, f"Tracer study cycle \"{survey}\" is now visible to users.")
+    else:
+        messages.success(request, f"Tracer study cycle \"{survey}\" is hidden from users.")
+    return redirect("surveys:tracer_study_reports")
+
+
 @login_required
 def tracer_study_report(request, survey_id):
     """Aggregate report for a tracer study survey."""
