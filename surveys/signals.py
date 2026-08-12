@@ -1,3 +1,7 @@
+import logging
+from datetime import date as date_class
+from datetime import datetime
+
 from django.contrib.contenttypes.models import ContentType
 from django.db.models.signals import post_save
 from django.dispatch import receiver
@@ -8,6 +12,8 @@ from alumni_directory.models import Alumni
 from core.models.notifications import Notification
 from .models import Survey
 
+logger = logging.getLogger(__name__)
+
 
 def _tracer_cycle_label(description):
     if description and " — " in description:
@@ -17,10 +23,24 @@ def _tracer_cycle_label(description):
 
 @receiver(post_save, sender=Survey)
 def notify_alumni_tracer_survey_active(sender, instance, **kwargs):
+    # Type-safe date comparison: normalize both sides to compare dates
+    start = instance.start_date
+    if start is None:
+        return
+    
+    # Check if start date is in the future (whether date or datetime)
+    if isinstance(start, date_class) and not isinstance(start, datetime):
+        # Plain date object: compare with localdate
+        if start > timezone.localdate():
+            return
+    else:
+        # Datetime object: compare with now
+        if start > timezone.now():
+            return
+    
     if (
         instance.title != "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
         or instance.status != "active"
-        or instance.start_date > timezone.now()
     ):
         return
 
@@ -44,17 +64,22 @@ def notify_alumni_tracer_survey_active(sender, instance, **kwargs):
     if not instance.display_to_all:
         alumni_qs = alumni_qs.filter(college=instance.target_college)
 
-    Notification.objects.bulk_create(
-        [
-            Notification(
-                recipient_id=user_id,
-                notification_type="survey",
-                title=title,
-                message=message,
-                content_type=content_type,
-                object_id=instance.pk,
-                action_url=action_url,
-            )
-            for user_id in alumni_qs.values_list("user_id", flat=True)
-        ]
-    )
+    try:
+        Notification.objects.bulk_create(
+            [
+                Notification(
+                    recipient_id=user_id,
+                    notification_type="survey",
+                    title=title,
+                    message=message,
+                    content_type=content_type,
+                    object_id=instance.pk,
+                    action_url=action_url,
+                )
+                for user_id in alumni_qs.values_list("user_id", flat=True)
+            ]
+        )
+    except Exception as exc:
+        logger.exception(
+            f"Failed to create notifications for survey {instance.pk}: {exc}"
+        )
