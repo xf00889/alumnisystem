@@ -595,7 +595,8 @@ def create_tracer_study(request):
                     _apply_questions(survey, questions)
         except Exception as exc:
             logger.error(f"Tracer study creation failed: {exc}", exc_info=True)
-            messages.error(request, _('An error occurred while creating the tracer study. Please try again.'))
+            error_msg = f"An error occurred while creating the tracer study: {str(exc)}"
+            messages.error(request, _(error_msg))
             return render(request, 'admin/tracer_study_create.html', {
                 'college_choices': Alumni.COLLEGE_CHOICES,
                 'form': request.POST,
@@ -730,7 +731,8 @@ def edit_tracer_study(request, survey_id):
                     ])
         except Exception as exc:
             logger.error(f"Tracer study edit failed: {exc}", exc_info=True)
-            messages.error(request, _('An error occurred while saving the tracer study. Please try again.'))
+            error_msg = f"An error occurred while saving the tracer study: {str(exc)}"
+            messages.error(request, _(error_msg))
             return render(request, 'admin/tracer_study_create.html', {
                 'college_choices': Alumni.COLLEGE_CHOICES,
                 'form': form,
