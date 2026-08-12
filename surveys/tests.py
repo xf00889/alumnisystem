@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from alumni_directory.models import Alumni
 from core.context_processors import tracer_study_banner_context
+from core.models.notifications import Notification
 from surveys.management.commands.seed_tracer_study import ALUMNI_TITLE
 from surveys.models import QuestionOption, ResponseAnswer, Survey, SurveyQuestion, SurveyResponse
 from surveys.tracer_study import (
@@ -545,6 +546,67 @@ class TracerStudyToggleVisibilityTests(TestCase):
         self.client.post(self.url)
         self.survey.refresh_from_db()
         self.assertEqual(self.survey.status, "active")
+
+
+class TracerStudyActivationNotificationTests(TestCase):
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_user("admin", "admin@example.com", "pass", is_staff=True)
+        self.alumni_cas = User.objects.create_user("cas_alumni", "cas@example.com", "pass")
+        self.alumni_cot = User.objects.create_user("cot_alumni", "cot@example.com", "pass")
+        Alumni.objects.create(
+            user=self.alumni_cas, college="CAS", campus="MAIN",
+            graduation_year=2026, course="BSINT", gender="M",
+            province="Negros Oriental", city="Dumaguete", address="A",
+        )
+        Alumni.objects.create(
+            user=self.alumni_cot, college="COT", campus="MAIN",
+            graduation_year=2026, course="BSCS", gender="M",
+            province="Negros Oriental", city="Dumaguete", address="A",
+        )
+
+    def _create_survey(self, **kwargs):
+        defaults = dict(
+            title=ALUMNI_TITLE,
+            description="SY 2026-2027 — Tracer",
+            created_by=self.admin,
+            start_date=timezone.now() - timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=7),
+            status="active",
+            display_to_all=True,
+        )
+        defaults.update(kwargs)
+        return Survey.objects.create(**defaults)
+
+    def _notifications_for(self, survey):
+        from django.contrib.contenttypes.models import ContentType
+        return Notification.objects.filter(
+            content_type=ContentType.objects.get_for_model(Survey),
+            object_id=survey.pk,
+            notification_type="survey",
+        )
+
+    def test_activation_notifies_all_alumni_once(self):
+        survey = self._create_survey()
+        notifications = self._notifications_for(survey)
+        self.assertEqual(notifications.count(), 2)
+        for notif in notifications:
+            self.assertFalse(notif.is_read)
+            self.assertEqual(notif.action_url, reverse("surveys:tracer_study_alumni"))
+
+        survey.save()
+        self.assertEqual(notifications.count(), 2)
+
+    def test_college_scoped_cycle_only_notifies_that_college(self):
+        survey = self._create_survey(display_to_all=False, target_college="CAS")
+        notified = set(
+            self._notifications_for(survey).values_list("recipient_id", flat=True)
+        )
+        self.assertEqual(notified, {self.alumni_cas.id})
+
+    def test_closed_cycle_does_not_notify(self):
+        survey = self._create_survey(status="closed")
+        self.assertFalse(self._notifications_for(survey).exists())
 
 
 class TracerStudyBannerContextTests(TestCase):
