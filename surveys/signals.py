@@ -29,14 +29,19 @@ def notify_alumni_tracer_survey_active(sender, instance, **kwargs):
         return
     
     # Check if start date is in the future (whether date or datetime)
+    # Normalize to naive datetime for safe comparison
     if isinstance(start, date_class) and not isinstance(start, datetime):
-        # Plain date object: compare with localdate
-        if start > timezone.localdate():
-            return
+        # Plain date object: convert to naive datetime at midnight
+        start_cmp = datetime.combine(start, datetime.min.time())
     else:
-        # Datetime object: compare with now
-        if start > timezone.now():
-            return
+        # Datetime object: strip timezone if present for naive comparison
+        start_cmp = start.replace(tzinfo=None) if start.tzinfo else start
+    
+    # Compare with naive now
+    now_cmp = timezone.now().replace(tzinfo=None)
+    
+    if start_cmp > now_cmp:
+        return
     
     if (
         instance.title != "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
