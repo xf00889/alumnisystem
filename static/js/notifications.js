@@ -212,7 +212,7 @@ class NotificationManager {
         if (badge) {
             if (this.notificationCount > 0) {
                 badge.textContent = this.notificationCount > 99 ? '99+' : this.notificationCount;
-                badge.style.display = 'inline-block';
+                badge.style.display = 'inline-flex';
             } else {
                 badge.style.display = 'none';
             }
