@@ -211,9 +211,17 @@ class NotificationManager {
         const badge = document.getElementById('notification-count');
         if (badge) {
             if (this.notificationCount > 0) {
-                badge.textContent = this.notificationCount > 99 ? '99+' : this.notificationCount;
-                badge.style.display = 'inline-flex';
+                const label = `${this.notificationCount} unread notification${this.notificationCount === 1 ? '' : 's'}`;
+                badge.textContent = '';
+                badge.setAttribute('aria-label', label);
+                badge.setAttribute('title', label);
+                badge.setAttribute('aria-hidden', 'false');
+                badge.style.display = 'block';
             } else {
+                badge.textContent = '';
+                badge.removeAttribute('aria-label');
+                badge.removeAttribute('title');
+                badge.setAttribute('aria-hidden', 'true');
                 badge.style.display = 'none';
             }
         }
