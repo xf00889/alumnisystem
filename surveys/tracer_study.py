@@ -218,8 +218,12 @@ def tracer_study_public_list(request):
         "tracer_study/public_list.html",
         {
             "public_studies": studies,
+            "published_study_count": len(studies),
             "open_study_count": sum(
                 study["availability_state"] == "Open" for study in studies
+            ),
+            "scheduled_study_count": sum(
+                study["availability_state"] == "Scheduled" for study in studies
             ),
         },
     )

@@ -32,20 +32,19 @@ def tracer_study_banner_context(request):
     )
 
     # The public announcement is intentionally independent from alumni
-    # eligibility. Its destination explains which forms require alumni login.
-    if current_url_name != 'tracer_study_public_list':
-        try:
-            from surveys.tracer_study import public_tracer_banner_queryset
+    # eligibility. On the public index its action becomes an in-page link.
+    try:
+        from surveys.tracer_study import public_tracer_banner_queryset
 
-            public_count = public_tracer_banner_queryset().count()
-            context.update({
-                'show_public_tracer_study_banner': public_count > 0,
-                'public_tracer_study_count': public_count,
-            })
-        except Exception:
-            # Fail closed during migrations or when the surveys table is not
-            # available (for example, first-time setup).
-            pass
+        public_count = public_tracer_banner_queryset().count()
+        context.update({
+            'show_public_tracer_study_banner': public_count > 0,
+            'public_tracer_study_count': public_count,
+        })
+    except Exception:
+        # Fail closed during migrations or when the surveys table is not
+        # available (for example, first-time setup).
+        pass
 
     if not getattr(request, 'user', None) or not request.user.is_authenticated:
         return context
