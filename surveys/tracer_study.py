@@ -1480,7 +1480,11 @@ def tracer_study_employer(request):
             return render(
                 request,
                 "tracer_study/already_submitted.html",
-                {"survey": survey, "audience": "employer"},
+                {
+                    "survey": survey,
+                    "audience": "employer",
+                    "base_template": "base_landingpage.html",
+                },
             )
 
         try:
@@ -1493,7 +1497,11 @@ def tracer_study_employer(request):
                     return render(
                         request,
                         "tracer_study/already_submitted.html",
-                        {"survey": survey, "audience": "employer"},
+                        {
+                            "survey": survey,
+                            "audience": "employer",
+                            "base_template": "base_landingpage.html",
+                        },
                     )
                 _save_employer_response(request, survey, employer)
         except Exception as exc:  # pragma: no cover - defensive
@@ -1512,7 +1520,11 @@ def tracer_study_employer(request):
         return render(
             request,
             "tracer_study/thank_you.html",
-            {"survey": survey, "audience": "employer"},
+            {
+                "survey": survey,
+                "audience": "employer",
+                "base_template": "base_landingpage.html",
+            },
         )
 
     questions = survey.questions.all().prefetch_related("options")
