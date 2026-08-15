@@ -49,7 +49,7 @@
                         </thead>
                         <tbody>
                             {% for s in surveys %}
-                            <tr {% if s.survey.status == 'active' %}class="table-primary"{% endif %}>
+                            <tr {% if s.is_open %}class="table-primary"{% endif %}>
                                 <td>
                                     <div class="fw-semibold">
                                         {% if s.audience == 'alumni' %}
@@ -63,18 +63,16 @@
                                 </td>
                                 <td>{{ s.survey.requested_by|default:"—" }}</td>
                                 <td>
-                                    {% if s.survey.display_to_all %}
-                                        <span class="badge bg-success">All Alumni</span>
-                                    {% else %}
-                                        <span class="badge bg-info text-dark">{{ s.survey.get_target_college_display }}</span>
-                                    {% endif %}
+                                    <span class="badge {% if s.survey.display_to_all %}bg-success{% else %}bg-info text-dark{% endif %}">
+                                        {{ s.visibility_summary }}
+                                    </span>
                                 </td>
                                 <td class="text-nowrap">
                                     {{ s.survey.start_date|date:"M d, Y" }} – {{ s.survey.end_date|date:"M d, Y" }}
                                 </td>
                                 <td>
-                                    <span class="badge {% if s.survey.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
-                                        {{ s.survey.get_status_display }}
+                                    <span class="badge {{ s.state_class }}">
+                                        {{ s.availability_state }}
                                     </span>
                                 </td>
                                 <td>{{ s.count }}</td>

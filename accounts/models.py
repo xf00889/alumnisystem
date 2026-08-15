@@ -227,7 +227,9 @@ class Education(models.Model):
     ]
 
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='education')
-    program = models.CharField(max_length=10, choices=PROGRAM_CHOICES, null=True, blank=True)
+    # The registration registry is the canonical choice source. Keeping model
+    # choices here rejected valid newer and legacy codes during profile edits.
+    program = models.CharField(max_length=50, null=True, blank=True)
     major = models.CharField(max_length=100, blank=True)
     school = models.CharField(max_length=10, choices=SCHOOL_CHOICES, null=True, blank=True)
     graduation_year = models.IntegerField(null=True, blank=True)
@@ -238,7 +240,7 @@ class Education(models.Model):
 
     def __str__(self):
         if self.program and self.school:
-            return f"{self.get_program_display()} - {self.get_school_display()} ({self.graduation_year})"
+            return f"{self.program} - {self.get_school_display()} ({self.graduation_year})"
         return "Education Record"
 
     class Meta:
@@ -268,7 +270,7 @@ class Experience(models.Model):
     profile = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='experience')
     company = models.CharField(max_length=100)
     position = models.CharField(max_length=100)
-    location = models.CharField(max_length=100)
+    location = models.CharField(max_length=100, blank=True)
     start_date = models.DateField()
     end_date = models.DateField(null=True, blank=True)
     is_current = models.BooleanField(default=False)

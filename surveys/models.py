@@ -1,5 +1,6 @@
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.utils import timezone
 from alumni_directory.models import Alumni
 from core.models.contact import Address
@@ -22,6 +23,10 @@ class Survey(models.Model):
     external_url = models.URLField(blank=True, null=True)
     requested_by = models.CharField(max_length=200, blank=True, default='')
     target_college = models.CharField(max_length=10, choices=Alumni.COLLEGE_CHOICES, blank=True, default='')
+    target_campus = models.CharField(max_length=10, choices=Alumni.CAMPUS_CHOICES, blank=True, default='')
+    target_program = models.CharField(max_length=200, blank=True, default='')
+    target_graduation_year_from = models.PositiveSmallIntegerField(null=True, blank=True)
+    target_graduation_year_to = models.PositiveSmallIntegerField(null=True, blank=True)
     display_to_all = models.BooleanField(default=True)
     
     def __str__(self):
@@ -33,6 +38,43 @@ class Survey(models.Model):
     def is_active(self):
         now = timezone.now()
         return self.status == 'active' and self.start_date <= now <= self.end_date
+
+    def availability_state(self):
+        """Return the effective response state without mutating stored status."""
+        if self.status != 'active':
+            return 'Manually Closed' if self.status == 'closed' else 'Draft'
+        now = timezone.now()
+        if now < self.start_date:
+            return 'Scheduled'
+        if now > self.end_date:
+            return 'Expired'
+        return 'Open'
+
+    def clean(self):
+        super().clean()
+        errors = {}
+        if not self.display_to_all:
+            targets = (
+                self.target_campus,
+                self.target_college,
+                self.target_program,
+                self.target_graduation_year_from,
+                self.target_graduation_year_to,
+            )
+            if not any(value not in (None, '') for value in targets):
+                errors['display_to_all'] = 'Select at least one audience restriction.'
+            if self.target_program and not self.target_college:
+                errors['target_program'] = 'Select a target college before selecting a program.'
+            if bool(self.target_graduation_year_from) != bool(self.target_graduation_year_to):
+                errors['target_graduation_year_from'] = 'Supply both graduation-year endpoints.'
+            if (
+                self.target_graduation_year_from is not None
+                and self.target_graduation_year_to is not None
+                and self.target_graduation_year_from > self.target_graduation_year_to
+            ):
+                errors['target_graduation_year_to'] = 'The ending year cannot precede the starting year.'
+        if errors:
+            raise ValidationError(errors)
 
 
 class SurveyQuestion(models.Model):

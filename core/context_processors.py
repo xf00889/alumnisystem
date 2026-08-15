@@ -1,8 +1,6 @@
 """
 Context processors for adding global template variables
 """
-from django.utils import timezone
-
 def user_role_context(request):
     """
     Add user role information to template context
@@ -42,11 +40,9 @@ def tracer_study_banner_context(request):
         from surveys.models import Survey, SurveyResponse
         from surveys.tracer_study import ALUMNI_TITLE, _get_active_survey
 
-        now = timezone.now()
         survey = _get_active_survey(ALUMNI_TITLE, alumni)
         show_banner = bool(
             survey
-            and survey.start_date <= now <= survey.end_date
             and not SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists()
         )
         return {

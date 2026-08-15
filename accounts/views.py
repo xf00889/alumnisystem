@@ -17,6 +17,7 @@ from .models import (
 )
 from alumni_groups.models import AlumniGroup, GroupMembership
 from alumni_directory.models import Alumni, Achievement, AlumniDocument, ProfessionalExperience
+from alumni_directory.academic import to_alumni_campus
 from .forms import (
     ProfileUpdateForm, 
     EducationFormSet, 
@@ -66,17 +67,6 @@ from core.models.notifications import Notification
 
 @email_verified_required
 def post_registration(request):
-    campus_mapping = {
-        'NORSU-MAIN': 'MAIN',
-        'NORSU-BAIS': 'BAIS1',
-        'NORSU-GUI': 'GUI',
-        'NORSU-MAB': 'MAB',
-        'NORSU-BSC': 'BSC',
-        'NORSU-SIA': 'SIATON',
-        'NORSU-PAM': 'PAM',
-        'OTHER': 'MAIN',
-    }
-
     # First, ensure the user has a profile
     try:
         profile = request.user.profile
@@ -108,7 +98,7 @@ def post_registration(request):
                     course = form.cleaned_data.get('course_graduated', '').strip()
                     campus = form.cleaned_data.get('campus', '').strip()
                     graduation_year = form.cleaned_data.get('graduation_year')
-                    alumni_campus = campus_mapping.get(campus, 'MAIN')
+                    alumni_campus = to_alumni_campus(campus)
 
                     duplicate_exists = Alumni.objects.filter(
                         user__first_name__iexact=first_name,
@@ -221,22 +211,6 @@ def profile_detail(request, username=None):
                 profile = Profile.objects.create(user=request.user)
             
         education_list = profile.education.all().order_by('-graduation_year')
-        
-        # Ensure current position is in experience list
-        if profile.current_position and profile.current_employer:
-            current_exp = profile.experience.filter(is_current=True).first()
-            if not current_exp:
-                # Create a current experience record if it doesn't exist
-                import datetime
-                current_exp = Experience.objects.create(
-                    profile=profile,
-                    position=profile.current_position,
-                    company=profile.current_employer,
-                    location=profile.city or '',
-                    start_date=datetime.date.today(),
-                    is_current=True,
-                    career_significance='REGULAR'
-                )
         
         # Get all experience entries, appropriately sorted
         experience_list = profile.experience.all().order_by('-is_current', '-start_date')
@@ -516,30 +490,41 @@ def profile_update(request):
                         'message': f'An error occurred while saving your profile: {str(e)}'
                     }, status=500)
             else:
-                errors = {}
-                # Handle form errors
-                for form_name, form in [
-                    ('user', user_form),
-                    ('profile', profile_form)
-                ]:
-                    if not form.is_valid():
-                        errors[form_name] = form.errors
+                errors = []
 
-                # Handle formset errors
-                for formset_name, formset in [
+                def append_form_errors(section, form, row=None):
+                    for field_name, field_errors in form.errors.items():
+                        field = form.fields.get(field_name)
+                        label = field.label if field else "General"
+                        errors.append({
+                            'section': section,
+                            'row': row,
+                            'field': field_name,
+                            'label': label,
+                            'messages': [str(message) for message in field_errors],
+                        })
+
+                for form_name, bound_form in (
+                    ('user', user_form),
+                    ('profile', profile_form),
+                ):
+                    append_form_errors(form_name, bound_form)
+
+                for formset_name, bound_formset in (
                     ('education', education_formset),
                     ('experience', experience_formset),
-                    ('skill', skill_formset)
-                ]:
-                    if not formset.is_valid():
-                        formset_errors = []
-                        for form in formset:
-                            if form.errors:
-                                formset_errors.append(form.errors)
-                        if formset.non_form_errors():
-                            formset_errors.append(formset.non_form_errors())
-                        if formset_errors:
-                            errors[formset_name] = formset_errors
+                    ('skill', skill_formset),
+                ):
+                    for index, bound_form in enumerate(bound_formset.forms):
+                        append_form_errors(formset_name, bound_form, index)
+                    for message in bound_formset.non_form_errors():
+                        errors.append({
+                            'section': formset_name,
+                            'row': None,
+                            'field': '__all__',
+                            'label': 'General',
+                            'messages': [str(message)],
+                        })
 
                 return JsonResponse({
                     'status': 'error',
@@ -2740,17 +2725,7 @@ def check_duplicate_alumni(request):
         except (ValueError, TypeError):
             return JsonResponse({'duplicate_found': False, 'message': 'Invalid graduation year.'})
 
-        campus_mapping = {
-            'NORSU-MAIN': 'MAIN',
-            'NORSU-BAIS': 'BAIS1',
-            'NORSU-GUI': 'GUI',
-            'NORSU-MAB': 'MAB',
-            'NORSU-BSC': 'BSC',
-            'NORSU-SIA': 'SIATON',
-            'NORSU-PAM': 'PAM',
-            'OTHER': 'MAIN',
-        }
-        alumni_campus = campus_mapping.get(campus, 'MAIN')
+        alumni_campus = to_alumni_campus(campus)
 
         duplicate = Alumni.objects.filter(
             user__first_name__iexact=first_name,

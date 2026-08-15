@@ -110,9 +110,65 @@ def _parse_date_str(value):
         return None
 
 
-def _filtered_alumni_responses(survey, start_date=None, end_date=None, campus=None, college=None, program=None):
-    """Return a ``SurveyResponse`` queryset filtered by date range, campus, college, and program."""
-    qs = SurveyResponse.objects.filter(survey=survey).select_related(
+def _parse_year_str(value):
+    if value in (None, ""):
+        return None
+    try:
+        year = int(value)
+    except (TypeError, ValueError):
+        return None
+    return year if 1900 <= year <= 2099 else None
+
+
+def survey_accepting_responses(survey, at=None):
+    """Return whether a cycle is effectively open at the supplied local time."""
+    at = at or timezone.now()
+    return bool(
+        survey
+        and survey.status == "active"
+        and survey.start_date <= at <= survey.end_date
+    )
+
+
+def eligible_alumni_queryset(survey, queryset=None):
+    """Return the canonical alumni cohort configured for ``survey``."""
+    qs = queryset if queryset is not None else Alumni.objects.all()
+    if survey.display_to_all:
+        return qs
+
+    targets = (
+        survey.target_campus,
+        survey.target_college,
+        survey.target_program,
+        survey.target_graduation_year_from,
+        survey.target_graduation_year_to,
+    )
+    if not any(value not in (None, "") for value in targets):
+        return qs.none()
+    if survey.target_campus:
+        qs = qs.filter(campus=survey.target_campus)
+    if survey.target_college:
+        qs = qs.filter(college=survey.target_college)
+    if survey.target_program:
+        qs = qs.filter(course=survey.target_program)
+    if survey.target_graduation_year_from is not None:
+        qs = qs.filter(graduation_year__gte=survey.target_graduation_year_from)
+    if survey.target_graduation_year_to is not None:
+        qs = qs.filter(graduation_year__lte=survey.target_graduation_year_to)
+    return qs
+
+
+def alumni_is_eligible(survey, alumni):
+    return eligible_alumni_queryset(survey).filter(pk=alumni.pk).exists()
+
+
+def _filtered_alumni_responses(
+    survey, start_date=None, end_date=None, campus=None, college=None,
+    program=None, year_from=None, year_to=None,
+):
+    """Return official responses from the eligible, optionally filtered cohort."""
+    eligible_ids = eligible_alumni_queryset(survey).values_list("id", flat=True)
+    qs = SurveyResponse.objects.filter(survey=survey, alumni_id__in=eligible_ids).select_related(
         "alumni__user"
     ).prefetch_related("answers__question", "answers__selected_option")
     if start_date:
@@ -125,19 +181,29 @@ def _filtered_alumni_responses(survey, start_date=None, end_date=None, campus=No
         qs = qs.filter(alumni__college=college)
     if program:
         qs = qs.filter(alumni__course=program)
+    if year_from is not None:
+        qs = qs.filter(alumni__graduation_year__gte=year_from)
+    if year_to is not None:
+        qs = qs.filter(alumni__graduation_year__lte=year_to)
     return qs
 
 
-def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, campus=None, college=None, program=None):
+def _filtered_alumni_response_rows(
+    survey, start_date=None, end_date=None, campus=None, college=None,
+    program=None, year_from=None, year_to=None,
+):
     """Return response rows scoped by the same filters used in reports."""
     responses = {
         response.alumni_id: response
         for response in _filtered_alumni_responses(
             survey, start_date=start_date, end_date=end_date,
             campus=campus, college=college, program=program,
+            year_from=year_from, year_to=year_to,
         )
     }
-    alumni_qs = Alumni.objects.select_related("user").order_by(
+    alumni_qs = eligible_alumni_queryset(
+        survey, Alumni.objects.select_related("user")
+    ).order_by(
         "user__last_name", "user__first_name"
     )
     if campus:
@@ -146,6 +212,10 @@ def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, campu
         alumni_qs = alumni_qs.filter(college=college)
     if program:
         alumni_qs = alumni_qs.filter(course=program)
+    if year_from is not None:
+        alumni_qs = alumni_qs.filter(graduation_year__gte=year_from)
+    if year_to is not None:
+        alumni_qs = alumni_qs.filter(graduation_year__lte=year_to)
     rows = []
     for alumni in alumni_qs:
         response = responses.get(alumni.id)
@@ -165,6 +235,50 @@ def _filtered_alumni_response_rows(survey, start_date=None, end_date=None, campu
             }
         )
     return rows
+
+
+def _eligibility_mismatch_reason(survey, alumni):
+    reasons = []
+    if survey.target_campus and alumni.campus != survey.target_campus:
+        reasons.append("Campus")
+    if survey.target_college and alumni.college != survey.target_college:
+        reasons.append("College")
+    if survey.target_program and alumni.course != survey.target_program:
+        reasons.append("Program")
+    if (
+        survey.target_graduation_year_from is not None
+        and alumni.graduation_year < survey.target_graduation_year_from
+    ):
+        reasons.append("Graduation year")
+    if (
+        survey.target_graduation_year_to is not None
+        and alumni.graduation_year > survey.target_graduation_year_to
+        and "Graduation year" not in reasons
+    ):
+        reasons.append("Graduation year")
+    return ", ".join(reasons) or "No configured target"
+
+
+def _out_of_scope_response_rows(survey):
+    if survey.display_to_all:
+        return []
+    eligible_ids = eligible_alumni_queryset(survey).values_list("id", flat=True)
+    responses = (
+        SurveyResponse.objects.filter(survey=survey)
+        .exclude(alumni_id__in=eligible_ids)
+        .select_related("alumni__user")
+        .order_by("-submitted_at")
+    )
+    return [
+        {
+            "name": response.alumni.full_name or response.alumni.user.username,
+            "course": response.alumni.course,
+            "graduation_year": response.alumni.graduation_year,
+            "submitted_at": response.submitted_at,
+            "reason": _eligibility_mismatch_reason(survey, response.alumni),
+        }
+        for response in responses
+    ]
 
 
 def _hashed_response_id(response_id):
@@ -211,28 +325,6 @@ def _question_key_from_text(question_text):
     if "program objectives" in text_key or "course/program objectives" in text_key:
         return "p4_program_objectives"
     return ""
-
-
-def _alumni_response_rows(survey):
-    responses = {
-        response.alumni_id: response
-        for response in SurveyResponse.objects.filter(survey=survey).select_related("alumni__user")
-    }
-    rows = []
-    for alumni in Alumni.objects.select_related("user").order_by("user__last_name", "user__first_name"):
-        response = responses.get(alumni.id)
-        rows.append({
-            "id": alumni.id,
-            "name": alumni.full_name or alumni.user.username,
-            "email": alumni.user.email,
-            "course": alumni.course,
-            "graduation_year": alumni.graduation_year,
-            "status": "Responded" if response else "Not Responded",
-            "submitted_at": response.submitted_at if response else None,
-            "response_id": response.id if response else None,
-            "response_token": _hashed_response_id(response.id) if response else None,
-        })
-    return rows
 
 
 def _answer_key(question):
@@ -755,23 +847,23 @@ def _tracer_response_chrome_cli_pdf_bytes(response):
         raise RuntimeError(last_error or "Chrome/Chromium PDF export failed")
 
 
-def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, campus=None, college=None, program=None):
-    responses = (
-        SurveyResponse.objects.filter(survey=survey)
-        .select_related("alumni__user")
-        .prefetch_related("answers__question", "answers__selected_option")
-        .order_by("alumni__campus", "alumni__college", "alumni__course", "alumni__user__last_name", "alumni__user__first_name")
+def _tracer_study_forms_zip_response(
+    survey, start_date=None, end_date=None, campus=None, college=None,
+    program=None, year_from=None, year_to=None,
+):
+    responses = _filtered_alumni_responses(
+        survey,
+        start_date=start_date,
+        end_date=end_date,
+        campus=campus,
+        college=college,
+        program=program,
+        year_from=year_from,
+        year_to=year_to,
+    ).order_by(
+        "alumni__campus", "alumni__college", "alumni__course",
+        "alumni__user__last_name", "alumni__user__first_name",
     )
-    if start_date:
-        responses = responses.filter(submitted_at__gte=start_date)
-    if end_date:
-        responses = responses.filter(submitted_at__lt=end_date + datetime.timedelta(days=1))
-    if campus:
-        responses = responses.filter(alumni__campus=campus)
-    if college:
-        responses = responses.filter(alumni__college=college)
-    if program:
-        responses = responses.filter(alumni__course=program)
     buffer = BytesIO()
     used_paths = set()
     driver = None
@@ -823,16 +915,23 @@ def _tracer_study_forms_zip_response(survey, start_date=None, end_date=None, cam
 def _get_active_survey(title, alumni=None):
     """Return the active survey for ``title``, scoped to ``alumni``.
 
-    With multiple concurrent cycles, prefer a cycle restricted to the
-    alumni's college; otherwise fall back to the newest all-alumni cycle.
+    With multiple concurrent cycles, prefer the newest restricted cycle that
+    matches every configured audience condition; otherwise fall back to the
+    newest all-alumni cycle.
     Returns ``None`` when nothing is eligible (the caller decides how to
     respond instead of relying on a 404).
     """
-    qs = Survey.objects.filter(title=title, status="active").order_by("-created_at")
+    now = timezone.now()
+    qs = Survey.objects.filter(
+        title=title,
+        status="active",
+        start_date__lte=now,
+        end_date__gte=now,
+    ).order_by("-created_at")
     if alumni is not None:
-        scoped = qs.filter(display_to_all=False, target_college=alumni.college).first()
-        if scoped:
-            return scoped
+        for scoped in qs.filter(display_to_all=False):
+            if alumni_is_eligible(scoped, alumni):
+                return scoped
         return qs.filter(display_to_all=True).first()
     return qs.first()
 
@@ -1203,7 +1302,7 @@ def tracer_study_alumni(request):
     if survey is None:
         messages.info(
             request,
-            "The Tracer Study is not currently available for your college.",
+            "The Tracer Study is not currently available for your alumni profile.",
         )
         return redirect("core:home")
 
@@ -1440,10 +1539,17 @@ def _aggregate_question(survey, question, alumni_model, employer_model, response
             qs.exclude(Q(text_answer__isnull=True) | Q(text_answer=""))
             .values_list("text_answer", flat=True)
         )
+        answer_counts = list(
+            qs.exclude(Q(text_answer__isnull=True) | Q(text_answer=""))
+            .values("text_answer")
+            .annotate(count=Count("id"))
+            .order_by("-count", "text_answer")
+        )
         return {
             "kind": "text",
             "type_label": type_label,
             "answers": rows,
+            "answer_counts": answer_counts,
             "count": len(rows),
             "total_responses": total_responses,
         }
@@ -1591,9 +1697,31 @@ def tracer_study_reports(request):
     for title, audience in ((ALUMNI_TITLE, "alumni"), (EMPLOYER_TITLE, "employer")):
         for s in Survey.objects.filter(title=title).order_by("-created_at"):
             if audience == "alumni":
-                count = SurveyResponse.objects.filter(survey=s).count()
+                count = _filtered_alumni_responses(s).count()
             else:
                 count = EmployerResponse.objects.filter(survey=s).count()
+            if s.display_to_all:
+                visibility_summary = "All Alumni" if audience == "alumni" else "Public"
+            else:
+                targets = []
+                if s.target_campus:
+                    targets.append(s.get_target_campus_display())
+                if s.target_college:
+                    targets.append(s.get_target_college_display())
+                if s.target_program:
+                    targets.append(s.target_program)
+                if s.target_graduation_year_from is not None:
+                    targets.append(
+                        f"Class {s.target_graduation_year_from}–{s.target_graduation_year_to}"
+                    )
+                visibility_summary = " · ".join(targets) or "No eligible alumni"
+            availability_state = s.availability_state()
+            state_class = {
+                "Open": "bg-success",
+                "Scheduled": "bg-info text-dark",
+                "Expired": "bg-secondary",
+                "Manually Closed": "bg-warning text-dark",
+            }.get(availability_state, "bg-secondary")
             # Cycle label is stored as the description prefix ("SY 2026-2027 — …").
             prefix = s.description.split(" — ", 1)[0] if " — " in s.description else ""
             cycle_label = prefix if len(prefix) < 80 else ""
@@ -1602,8 +1730,12 @@ def tracer_study_reports(request):
                 "audience": audience,
                 "count": count,
                 "cycle_label": cycle_label,
+                "visibility_summary": visibility_summary,
+                "availability_state": availability_state,
+                "state_class": state_class,
+                "is_open": survey_accepting_responses(s),
             })
-            if s.status == "active" and active_survey is None:
+            if survey_accepting_responses(s) and active_survey is None:
                 active_survey = s
 
     return render(
@@ -1642,6 +1774,8 @@ def tracer_study_report(request, survey_id):
     campus = request.GET.get("campus", "").strip() or None
     college = request.GET.get("college", "").strip() or None
     program = request.GET.get("program", "").strip() or None
+    year_from = _parse_year_str(request.GET.get("year_from"))
+    year_to = _parse_year_str(request.GET.get("year_to"))
 
     # Upsert a Report row so this report also appears in the admin Reports
     # list and can be exported in future. parameters={"survey_id": X} is the
@@ -1667,23 +1801,28 @@ def tracer_study_report(request, survey_id):
     response_rows = []
     responded_rows = []
     missing_rows = []
+    out_of_scope_rows = []
     response_rate = None
     if audience == "alumni":
         response_rows = _filtered_alumni_response_rows(
             survey, start_date=start_date, end_date=end_date,
             campus=campus, college=college, program=program,
+            year_from=year_from, year_to=year_to,
         )
         responded_rows = [row for row in response_rows if row["submitted_at"]]
         missing_rows = [row for row in response_rows if not row["submitted_at"]]
+        out_of_scope_rows = _out_of_scope_response_rows(survey)
+        total_responses = len(responded_rows)
         response_rate = (len(responded_rows) / len(response_rows) * 100) if response_rows else 0
 
     # Collect the IDs of the filtered responses so aggregation can be scoped.
     filtered_response_ids = None
-    if audience == "alumni" and (start_date or end_date or campus or college or program):
+    if audience == "alumni":
         filtered_response_ids = set(
             _filtered_alumni_responses(
                 survey, start_date=start_date, end_date=end_date,
                 campus=campus, college=college, program=program,
+                year_from=year_from, year_to=year_to,
             ).values_list("id", flat=True)
         )
 
@@ -1747,9 +1886,6 @@ def tracer_study_report(request, survey_id):
             for col_data in c_data["colleges"].values():
                 col_data["programs"].sort()
 
-    year_from = request.GET.get("year_from", "").strip()
-    year_to = request.GET.get("year_to", "").strip()
-
     return render(
         request,
         "tracer_study/report.html",
@@ -1760,6 +1896,7 @@ def tracer_study_report(request, survey_id):
             "total_expected": len(response_rows),
             "responded_rows": responded_rows,
             "missing_rows": missing_rows,
+            "out_of_scope_rows": out_of_scope_rows,
             "response_rate": response_rate,
             "sections": sections,
             "chart_payload": chart_payload,
@@ -1770,8 +1907,8 @@ def tracer_study_report(request, survey_id):
             "filter_campus": campus or "",
             "filter_college": college or "",
             "filter_program": program or "",
-            "filter_year_from": year_from,
-            "filter_year_to": year_to,
+            "filter_year_from": request.GET.get("year_from", ""),
+            "filter_year_to": request.GET.get("year_to", ""),
             "export_hierarchy": export_hierarchy,
         },
     )
@@ -1829,6 +1966,8 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     campus = request.GET.get("campus", "").strip() or None
     college = request.GET.get("college", "").strip() or None
     program = request.GET.get("program", "").strip() or None
+    year_from = _parse_year_str(request.GET.get("year_from"))
+    year_to = _parse_year_str(request.GET.get("year_to"))
     report_type = (request.GET.get("report_type") or "full").lower()
     if report_type not in ("full", "status", "summary"):
         report_type = "full"
@@ -1837,11 +1976,13 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         return _tracer_study_forms_zip_response(
             survey, start_date=start_date, end_date=end_date,
             campus=campus, college=college, program=program,
+            year_from=year_from, year_to=year_to,
         )
 
     rows = _filtered_alumni_response_rows(
         survey, start_date=start_date, end_date=end_date,
         campus=campus, college=college, program=program,
+        year_from=year_from, year_to=year_to,
     )
     responded_rows = [row for row in rows if row["submitted_at"]]
     missing_rows = [row for row in rows if not row["submitted_at"]]
@@ -1969,11 +2110,12 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         import json as _json
         audience_label = "alumni" if survey.title == ALUMNI_TITLE else "employer"
         filtered_ids = None
-        if audience_label == "alumni" and (start_date or end_date or campus or college or program):
+        if audience_label == "alumni":
             filtered_ids = set(
                 _filtered_alumni_responses(
                     survey, start_date=start_date, end_date=end_date,
                     campus=campus, college=college, program=program,
+                    year_from=year_from, year_to=year_to,
                 ).values_list("id", flat=True)
             )
         questions = survey.questions.all().prefetch_related("options").order_by("display_order")
@@ -1982,42 +2124,54 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         small_font = Font(size=9)
         avg_font = Font(bold=True, size=10, color="2b3c6b")
 
-        sws = wb.create_sheet("Summary")
+        sws = wb.create_sheet("Summary") if report_type == "full" else ws
         sws.column_dimensions["A"].width = 50
-        sws.column_dimensions["B"].width = 18
+        sws.column_dimensions["B"].width = 24
         sws.column_dimensions["C"].width = 12
 
         LogoHeaderService.add_excel_header(sws, LogoHeaderService.get_logo_path(), title="Tracer Study Summary")
         r = sws.max_row + 1
+        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
         sws.cell(r, 1, "Tracer Study Summary").font = title_font
         sws.cell(r, 1).alignment = Alignment(horizontal="center")
         r += 1
+        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
         sws.cell(r, 1, f"Survey: {survey.title}")
+        sws.cell(r, 1).alignment = Alignment(horizontal="center", wrap_text=True)
         r += 1
         filter_desc = []
         if campus:
             campus_label = dict(Alumni.CAMPUS_CHOICES).get(campus, campus)
             filter_desc.append(f"Campus: {campus_label}")
         if college:
-            filter_desc.append(f"College: {college}")
+            college_label = dict(Alumni.COLLEGE_CHOICES).get(college, college)
+            filter_desc.append(f"College: {college_label}")
         if program:
             filter_desc.append(f"Program: {program}")
+        if year_from is not None:
+            filter_desc.append(f"Graduation year from: {year_from}")
+        if year_to is not None:
+            filter_desc.append(f"Graduation year to: {year_to}")
         if start_date:
-            filter_desc.append(f"From: {start_date}")
+            filter_desc.append(f"Submitted from: {start_date}")
         if end_date:
-            filter_desc.append(f"To: {end_date}")
+            filter_desc.append(f"Submitted to: {end_date}")
         if filter_desc:
             r += 1
+            sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
             sws.cell(r, 1, "Filters: " + " | ".join(filter_desc))
+            sws.cell(r, 1).alignment = Alignment(horizontal="center", wrap_text=True)
         r += 1
         sws.cell(r, 1, f"Total Responses: {len(responded_rows)}")
         sws.cell(r, 2, f"No Response: {len(missing_rows)}")
         r += 1
+        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
         sws.cell(r, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
+        sws.cell(r, 1).alignment = Alignment(horizontal="center", wrap_text=True)
         r += 2
 
         current_part = None
-        for q in questions:
+        for question_number, q in enumerate(questions, 1):
             try:
                 meta = _json.loads(q.help_text) if q.help_text else {}
             except (ValueError, TypeError):
@@ -2032,7 +2186,8 @@ def tracer_study_report_export(request, survey_id, format_type=None):
 
             agg = _aggregate_question(survey, q, SurveyResponse, EmployerResponse, response_ids=filtered_ids)
             sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-            sws.cell(r, 1, f"Q{q.display_order}: {q.question_text}").font = q_font
+            sws.cell(r, 1, f"Q{question_number}: {q.question_text}").font = q_font
+            sws.cell(r, 1).alignment = Alignment(wrap_text=True)
             r += 1
             sws.cell(r, 1, f"Type: {agg['type_label']}").font = small_font
             r += 1
@@ -2074,8 +2229,15 @@ def tracer_study_report_export(request, survey_id, format_type=None):
             elif agg["kind"] == "text":
                 sws.cell(r, 1, f"Responses: {agg.get('count', 0)} / {agg.get('total_responses', 0)}").font = small_font
                 r += 1
-                for txt in agg.get("answers", [])[:50]:
-                    sws.cell(r, 1, f"  - {txt}").font = Font(size=8, italic=True, color="666666")
+                for col_num, hdr in enumerate(["Response", "Count"], 1):
+                    cell = sws.cell(r, col_num, hdr)
+                    cell.fill = header_fill
+                    cell.font = header_font
+                r += 1
+                for item in agg.get("answer_counts", [])[:50]:
+                    sws.cell(r, 1, item["text_answer"]).font = Font(size=8, color="666666")
+                    sws.cell(r, 1).alignment = Alignment(wrap_text=True, vertical="top")
+                    sws.cell(r, 2, item["count"]).font = small_font
                     r += 1
                 r += 1
 

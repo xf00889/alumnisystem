@@ -858,6 +858,16 @@ class SurveyTakeView(LoginRequiredMixin, DetailView):
     model = Survey
     template_name = 'surveys/take_survey.html'
     context_object_name = 'survey'
+
+    def get_queryset(self):
+        # Tracer studies have stricter schedule and audience authorization in
+        # their dedicated endpoints. Never allow their IDs to bypass those
+        # checks through the generic survey URL.
+        from .tracer_study import ALUMNI_TITLE, EMPLOYER_TITLE
+
+        return super().get_queryset().exclude(
+            title__in=(ALUMNI_TITLE, EMPLOYER_TITLE)
+        )
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

@@ -1,11 +1,13 @@
 from django import forms
 from django.forms import inlineformset_factory
+from django.forms.models import BaseInlineFormSet
 from .models import (
     Profile, Education, Experience, Skill, Document,
     MentorApplication, Mentor, EmailVerification
 )
 from django.contrib.auth.models import User
 from alumni_directory.models import Alumni
+from alumni_directory.academic import to_alumni_campus, to_registration_campus
 import datetime
 from django_countries.fields import CountryField
 from django_countries import countries
@@ -939,18 +941,7 @@ class PostRegistrationForm(forms.Form):
         if not college:
             college = 'CAS'  # Default to CAS if still undetermined
 
-        # Map campus code to Alumni model campus format
-        campus_mapping = {
-            'NORSU-MAIN': 'MAIN',
-            'NORSU-BAIS': 'BAIS1',
-            'NORSU-GUI': 'GUI',
-            'NORSU-MAB': 'MAB',
-            'NORSU-BSC': 'BSC',
-            'NORSU-SIA': 'SIATON',
-            'NORSU-PAM': 'PAM',
-            'OTHER': 'MAIN',  # Default to main for other
-        }
-        alumni_campus = campus_mapping.get(campus, 'MAIN')
+        alumni_campus = to_alumni_campus(campus)
 
         # Layer 3: Registry verification / alumni linkage.
         # If an imported placeholder alumni record matches, attach that record to
@@ -1202,7 +1193,7 @@ class EducationForm(forms.ModelForm):
     
     class Meta:
         model = Education
-        fields = ['program', 'major', 'school', 'graduation_year', 'achievements']
+        fields = ['campus', 'college', 'program', 'major', 'graduation_year', 'achievements']
         widgets = {
             'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),
         }
@@ -1217,7 +1208,13 @@ class EducationForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         # Map the school field to campus for consistency
         if self.instance and self.instance.pk:
-            self.fields['campus'].initial = self.instance.school
+            self.fields['campus'].initial = to_registration_campus(self.instance.school)
+
+            current_programs = dict(self.fields['program'].choices)
+            if self.instance.program and self.instance.program not in current_programs:
+                self.fields['program'].choices = list(self.fields['program'].choices) + [
+                    (self.instance.program, self.instance.program)
+                ]
             
             # Try to get college from Alumni model
             try:
@@ -1226,25 +1223,48 @@ class EducationForm(forms.ModelForm):
                     self.fields['college'].initial = alumni.college
             except:
                 pass
+
+        self.order_fields([
+            'campus', 'college', 'program', 'major',
+            'graduation_year', 'achievements',
+        ])
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if self.instance.is_primary:
+            if not cleaned_data.get('college'):
+                self.add_error('college', 'College is required for primary education.')
+            if cleaned_data.get('graduation_year') is None:
+                self.add_error(
+                    'graduation_year',
+                    'Graduation year is required for primary education.',
+                )
+        return cleaned_data
     
     def save(self, commit=True):
         instance = super().save(commit=False)
         # Map campus back to school field
         instance.school = self.cleaned_data.get('campus')
-        
-        # Update Alumni college if provided
-        college = self.cleaned_data.get('college')
-        if college and commit:
-            try:
-                from alumni_directory.models import Alumni
-                alumni, created = Alumni.objects.get_or_create(user=instance.profile.user)
-                alumni.college = college
-                alumni.save(update_fields=['college'])
-            except:
-                pass
-        
+
         if commit:
             instance.save()
+
+            # Only the primary NORSU education record defines the canonical
+            # academic fields used by eligibility, reports, and directories.
+            if instance.is_primary:
+                college = (
+                    self.cleaned_data.get('college')
+                    or PostRegistrationForm.COURSE_COLLEGE_MAPPING.get(instance.program, '')
+                )
+                academic_values = {
+                    'course': instance.program or '',
+                    'major': instance.major or '',
+                    'campus': to_alumni_campus(instance.school),
+                    'graduation_year': instance.graduation_year,
+                }
+                if college:
+                    academic_values['college'] = college
+                Alumni.objects.filter(user=instance.profile.user).update(**academic_values)
         return instance
 
 class ExperienceForm(forms.ModelForm):
@@ -1287,6 +1307,24 @@ class ExperienceForm(forms.ModelForm):
             raise forms.ValidationError("End date cannot be earlier than start date.")
 
         return cleaned_data
+
+
+class BaseEducationFormSet(BaseInlineFormSet):
+    """Keep the canonical primary education record from being removed."""
+
+    def clean(self):
+        super().clean()
+        if any(self.errors):
+            return
+        for form in self.forms:
+            if (
+                form.cleaned_data.get('DELETE')
+                and form.instance.pk
+                and form.instance.is_primary
+            ):
+                raise forms.ValidationError(
+                    "Primary education cannot be deleted. Update its academic details instead."
+                )
 
 class SkillForm(forms.ModelForm):
     skill_type = forms.ChoiceField(
@@ -1390,9 +1428,10 @@ EducationFormSet = inlineformset_factory(
     Profile,
     Education,
     form=EducationForm,
+    formset=BaseEducationFormSet,
     extra=0,
     can_delete=True,
-    fields=['program', 'major', 'school', 'graduation_year', 'achievements'],
+    fields=['campus', 'college', 'program', 'major', 'graduation_year', 'achievements'],
     widgets={
         'major': forms.TextInput(attrs={'class': 'form-control'}),
         'achievements': forms.Textarea(attrs={'rows': 3, 'class': 'form-control'}),

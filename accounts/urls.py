@@ -6,8 +6,8 @@ from . import security_views
 app_name = 'accounts'
 urlpatterns = [
     path('profile/', views.profile_detail, name='profile_detail'),
-    path('profile/<str:username>/', views.profile_detail, name='profile_detail'),
     path('profile/update/', views.profile_update, name='profile_update'),
+    path('profile/<str:username>/', views.profile_detail, name='profile_detail'),
     path('post-registration/', views.post_registration, name='post_registration'),
     path('api/search-users/', views.search_users_api, name='search_users_api'),
     path('api/search-connected-users/', views.search_connected_users_api, name='search_connected_users_api'),

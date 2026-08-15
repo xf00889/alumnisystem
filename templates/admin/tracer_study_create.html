@@ -26,7 +26,8 @@
             {% else %}
                 Creates a fresh alumni and employer tracer study questionnaire with the
                 standard questions. New cycles go live alongside any existing active
-                form; alumni are matched to a cycle by their college.
+                form. Restricted alumni cycles can target campus, college, program, and
+                graduation years; every selected condition must match.
             {% endif %}
         </p>
 
@@ -51,7 +52,7 @@
                     <label class="form-label" for="id_end_date">Period End</label>
                     <input type="date" id="id_end_date" name="end_date" class="form-control"
                            value="{{ form.end_date|default_if_none:'' }}">
-                    <div class="form-hint">When responses close. Blank = 1 year from now.</div>
+                    <div class="form-hint">Responses remain open through the end of this date. Blank = 1 year from now.</div>
                 </div>
             </div>
 
@@ -65,37 +66,71 @@
                     </label>
                 </div>
                 {% if survey_is_employer %}
-                    <div class="form-hint">The employer questionnaire is always visible to all; only the alumni form can be college-scoped.</div>
+                    <div class="form-hint">The employer questionnaire is public. Configure alumni targeting on its paired alumni questionnaire.</div>
                 {% else %}
                 <div class="form-check">
                     <input class="form-check-input" type="radio" name="visibility" id="id_vis_restricted"
                            value="restricted" {% if form.visibility == 'restricted' %}checked{% endif %}>
                     <label class="form-check-label" for="id_vis_restricted">
-                        Only alumni of the requesting college
+                        Restrict to a selected alumni audience
                     </label>
                 </div>
-                <div class="form-hint">Restricted cycles are shown only to alumni whose college matches the one below.</div>
+                <div class="form-hint">Choose at least one condition below. When several are selected, an alumnus must match all of them.</div>
                 {% endif %}
             </div>
 
-            <div class="mb-3" id="college-field" {% if survey_is_employer %}style="display:none"{% endif %}>
-                <label class="form-label" for="id_college">Requesting College</label>
-                <select id="id_college" name="college" class="form-select">
-                    <option value="">Select college</option>
-                    {% for code, name in college_choices %}
-                        <option value="{{ code }}" {% if form.college == code %}selected{% endif %}>{{ name }}</option>
-                    {% endfor %}
-                </select>
-                <div class="form-hint">Required when the cycle is restricted to a college.</div>
-            </div>
+            {% if not survey_is_employer %}
+            <div id="targeting-fields" class="border rounded p-3 mb-4">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="id_campus">Campus</label>
+                        <select id="id_campus" name="campus" class="form-select target-control">
+                            <option value="">Any campus</option>
+                            {% for code, name in campus_choices %}
+                                <option value="{{ code }}" {% if form.campus == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label class="form-label" for="id_college">College</label>
+                        <select id="id_college" name="college" class="form-select target-control">
+                            <option value="">Any college</option>
+                            {% for code, name in college_choices %}
+                                <option value="{{ code }}" {% if form.college == code %}selected{% endif %}>{{ name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </div>
 
-            <div class="mb-4">
-                <label class="form-label" for="id_program">Requesting Program / Unit</label>
-                <input type="text" id="id_program" name="program" class="form-control"
-                       placeholder="e.g. BS Computer Science (optional)"
-                       value="{{ form.program|default_if_none:'' }}">
-                <div class="form-hint">Specific program or office that requested this study (for display only).</div>
+                <div class="mb-3">
+                    <label class="form-label" for="id_program">Program</label>
+                    <select id="id_program" name="program" class="form-select target-control">
+                        <option value="">Any program</option>
+                        {% for choice in program_choices %}
+                            <option value="{{ choice.code }}" data-college="{{ choice.college }}"
+                                    {% if form.program == choice.code %}selected{% endif %}>{{ choice.label }} ({{ choice.code }})</option>
+                        {% endfor %}
+                    </select>
+                    <div class="form-hint">Select a college first. The list includes registration programs and legacy codes already recorded for that college.</div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" for="id_graduation_year_from">Graduation Year From</label>
+                        <input type="number" id="id_graduation_year_from" name="graduation_year_from"
+                               class="form-control target-control" min="1900" max="2099"
+                               value="{{ form.graduation_year_from|default_if_none:'' }}" placeholder="e.g. 2000">
+                    </div>
+                    <div class="col-md-6 mb-2">
+                        <label class="form-label" for="id_graduation_year_to">Graduation Year To</label>
+                        <input type="number" id="id_graduation_year_to" name="graduation_year_to"
+                               class="form-control target-control" min="1900" max="2099"
+                               value="{{ form.graduation_year_to|default_if_none:'' }}" placeholder="e.g. 2003">
+                    </div>
+                </div>
+                <div class="form-hint">Graduation-year endpoints are inclusive and must be supplied together.</div>
             </div>
+            {% endif %}
 
             {% if survey %}
             <div class="mb-4">
@@ -121,17 +156,41 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const restricted = document.getElementById('id_vis_restricted');
+        const allAlumni = document.getElementById('id_vis_all');
+        const targetingFields = document.getElementById('targeting-fields');
         const college = document.getElementById('id_college');
-        function syncCollege() {
-            if (!restricted) return;
-            college.required = restricted.checked;
-            document.getElementById('college-field').style.opacity = restricted.checked ? '1' : '0.5';
+        const program = document.getElementById('id_program');
+        const targetControls = Array.from(document.querySelectorAll('.target-control'));
+
+        function syncProgram(clearInvalid) {
+            if (!program || !college || !restricted) return;
+            const selectedCollege = college.value;
+            let selectedIsValid = !program.value;
+            Array.from(program.options).forEach(function (option) {
+                if (!option.value) return;
+                const matches = option.dataset.college === selectedCollege;
+                option.hidden = !matches;
+                option.disabled = !matches || !restricted.checked;
+                if (option.selected && matches) selectedIsValid = true;
+            });
+            if (clearInvalid && !selectedIsValid) program.value = '';
+            program.disabled = !restricted.checked || !selectedCollege;
         }
+
+        function syncTargetFields(clearInvalid) {
+            if (!restricted || !targetingFields) return;
+            const enabled = restricted.checked;
+            targetingFields.style.opacity = enabled ? '1' : '0.5';
+            targetControls.forEach(function (control) { control.disabled = !enabled; });
+            syncProgram(clearInvalid);
+        }
+
         if (restricted) {
-            restricted.addEventListener('change', syncCollege);
-            document.getElementById('id_vis_all').addEventListener('change', syncCollege);
+            restricted.addEventListener('change', function () { syncTargetFields(false); });
+            allAlumni.addEventListener('change', function () { syncTargetFields(false); });
+            college.addEventListener('change', function () { syncTargetFields(true); });
         }
-        syncCollege();
+        syncTargetFields(false);
     });
 </script>
 {% endblock %}

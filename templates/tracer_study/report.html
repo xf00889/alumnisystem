@@ -25,12 +25,12 @@
             <div class="card-body">
                 <form method="get" class="row g-3 align-items-end">
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Start Date</label>
+                        <label class="form-label small text-muted mb-1">Submitted From</label>
                         <input type="date" name="start_date" class="form-control form-control-sm"
                                value="{{ filter_start_date }}">
                     </div>
                     <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">End Date</label>
+                        <label class="form-label small text-muted mb-1">Submitted To</label>
                         <input type="date" name="end_date" class="form-control form-control-sm"
                                value="{{ filter_end_date }}">
                     </div>
@@ -73,6 +73,16 @@
                         </select>
                     </div>
                     <div class="col-md-2">
+                        <label class="form-label small text-muted mb-1">Graduation Year From</label>
+                        <input type="number" name="year_from" class="form-control form-control-sm"
+                               min="1900" max="2099" value="{{ filter_year_from }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted mb-1">Graduation Year To</label>
+                        <input type="number" name="year_to" class="form-control form-control-sm"
+                               min="1900" max="2099" value="{{ filter_year_to }}">
+                    </div>
+                    <div class="col-md-2">
                         <button type="submit" class="btn btn-primary btn-sm me-2">
                             <i class="fas fa-filter me-1"></i> Apply
                         </button>
@@ -109,8 +119,8 @@
                     <div>
                         <div class="stat-label">Status</div>
                         <div class="stat-value" style="font-size: 1rem; padding-top: 0.5rem;">
-                            <span class="badge {% if survey.status == 'active' %}bg-success{% else %}bg-secondary{% endif %}">
-                                {{ survey.get_status_display }}
+                            <span class="badge {% if survey.availability_state == 'Open' %}bg-success{% elif survey.availability_state == 'Scheduled' %}bg-info text-dark{% elif survey.availability_state == 'Expired' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                {{ survey.availability_state }}
                             </span>
                         </div>
                     </div>
@@ -191,7 +201,7 @@
                             <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
                                 <i class="fas fa-file-excel me-1"></i> Export Excel
                             </button>
-                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}" class="btn btn-outline-primary btn-sm">
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-file-archive me-1"></i> Export Filled Forms ZIP
                             </a>
                         </div>
@@ -257,6 +267,31 @@
                     </div>
                 </div>
             </div>
+
+            {% if out_of_scope_rows %}
+            <div class="dashboard-card mb-3 border-warning">
+                <div class="card-body">
+                    <h5 class="mb-1 text-warning"><i class="fas fa-exclamation-triangle me-1"></i>Out-of-scope responses</h5>
+                    <p class="text-muted small">Preserved for audit only. These {{ out_of_scope_rows|length }} response{{ out_of_scope_rows|length|pluralize }} are excluded from every official total and export.</p>
+                    <div class="table-responsive">
+                        <table class="table table-sm align-middle mb-0">
+                            <thead><tr><th>Name</th><th>Program</th><th>Graduation Year</th><th>Submitted</th><th>Mismatch</th></tr></thead>
+                            <tbody>
+                                {% for row in out_of_scope_rows %}
+                                <tr>
+                                    <td>{{ row.name }}</td>
+                                    <td>{{ row.course|default:"-" }}</td>
+                                    <td>{{ row.graduation_year|default:"-" }}</td>
+                                    <td>{{ row.submitted_at|date:"M d, Y h:i A" }}</td>
+                                    <td>{{ row.reason }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
         {% endif %}
 
         {% if total_responses == 0 %}
@@ -438,7 +473,7 @@
                                 hx-swap="innerHTML">
                             <option value="">All Campuses</option>
                             {% for code, name in Alumni.CAMPUS_CHOICES %}
-                                <option value="{{ code }}">{{ name }}</option>
+                                <option value="{{ code }}" {% if filter_campus == code %}selected{% endif %}>{{ name }}</option>
                             {% endfor %}
                         </select>
                     </div>
@@ -451,29 +486,31 @@
                                 hx-include="#export-campus,#export-college"
                                 hx-swap="innerHTML">
                             <option value="">All Colleges</option>
+                            {% if filter_college %}<option value="{{ filter_college }}" selected>{{ filter_college }}</option>{% endif %}
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small text-muted mb-1">Program</label>
                         <select id="export-program" class="form-select form-select-sm">
                             <option value="">All Programs</option>
+                            {% if filter_program %}<option value="{{ filter_program }}" selected>{{ filter_program }}</option>{% endif %}
                         </select>
                     </div>
                     <div class="col-md-6">
                         <label class="form-label small text-muted mb-1">Graduation Year</label>
                         <div class="input-group input-group-sm">
-                            <input type="number" id="export-year-from" class="form-control" placeholder="From" min="1900" max="2099">
+                        <input type="number" id="export-year-from" class="form-control" placeholder="From" min="1900" max="2099" value="{{ filter_year_from }}">
                             <span class="input-group-text">–</span>
-                            <input type="number" id="export-year-to" class="form-control" placeholder="To" min="1900" max="2099">
+                            <input type="number" id="export-year-to" class="form-control" placeholder="To" min="1900" max="2099" value="{{ filter_year_to }}">
                         </div>
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Start Date</label>
-                        <input type="date" id="export-start-date" class="form-control form-control-sm">
+                        <label class="form-label small text-muted mb-1">Submitted From</label>
+                        <input type="date" id="export-start-date" class="form-control form-control-sm" value="{{ filter_start_date }}">
                     </div>
                     <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">End Date</label>
-                        <input type="date" id="export-end-date" class="form-control form-control-sm">
+                        <label class="form-label small text-muted mb-1">Submitted To</label>
+                        <input type="date" id="export-end-date" class="form-control form-control-sm" value="{{ filter_end_date }}">
                     </div>
                 </div>
             </div>

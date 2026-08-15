@@ -1203,7 +1203,7 @@
             <div class="col-lg-10">
                 <form method="post" enctype="multipart/form-data" id="profileForm" novalidate>
                     {% csrf_token %}
-                    
+
                     {% if form.errors %}
                     <div class="alert alert-danger alert-dismissible fade show" role="alert">
                         <h5 class="alert-heading"><i class="fas fa-exclamation-triangle me-2"></i>Please correct the following errors:</h5>
@@ -1220,7 +1220,7 @@
 
                     <!-- Accordion for Form Sections -->
                     <div class="accordion" id="profileAccordion">
-                        
+
                         <!-- Personal Information (Always Expanded) -->
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="headingPersonal">
@@ -1243,7 +1243,7 @@
                                                 </div>
                                             {% endif %}
                                         </div>
-                                        
+
                                         <div class="avatar-controls">
                                             <label for="id_avatar" class="btn btn-primary me-2">
                                                 <i class="fas fa-camera me-2"></i>Change Picture
@@ -1255,7 +1255,7 @@
                                             {% endif %}
                                             <input type="hidden" name="remove_avatar" id="removeAvatarInput" value="false">
                                         </div>
-                                        
+
                                         <!-- Hidden file input -->
                                         <div style="display: none;">
                                             {{ profile_form.avatar }}
@@ -1263,7 +1263,11 @@
                                     </div>
 
                                     {{ user_form|crispy }}
-                                    {{ profile_form|crispy }}
+                                    {% for field in profile_form %}
+                                        {% if field.name != 'avatar' %}
+                                            {{ field|as_crispy_field }}
+                                        {% endif %}
+                                    {% endfor %}
                                 </div>
                             </div>
                         </div>
@@ -1282,16 +1286,34 @@
                                     {{ education_formset.management_form }}
                                     <div id="education-forms">
                                         {% for form in education_formset %}
-                                            <div class="formset-item">
-                                                {{ form|crispy }}
-                                                {% if form.instance.pk %}
-                                                    <div class="delete-row">
-                                                        {{ form.DELETE|crispy }}
-                                                    </div>
+                                            <div class="formset-item" data-form-index="{{ forloop.counter0 }}">
+                                                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                                {% for field in form.visible_fields %}
+                                                    {% if field.name != 'DELETE' %}{{ field|as_crispy_field }}{% endif %}
+                                                {% endfor %}
+                                                <div class="d-none">{{ form.DELETE }}</div>
+                                                {% if form.instance.is_primary %}
+                                                    <span class="badge bg-primary">Primary education</span>
+                                                {% else %}
+                                                    <button type="button" class="btn btn-outline-danger btn-sm delete-formset-row">
+                                                        <i class="fas fa-trash-alt me-1"></i>Remove education
+                                                    </button>
                                                 {% endif %}
                                             </div>
                                         {% endfor %}
                                     </div>
+                                    <template id="education-empty-form">
+                                        <div class="formset-item" data-form-index="__prefix__">
+                                            {% for hidden in education_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                            {% for field in education_formset.empty_form.visible_fields %}
+                                                {% if field.name != 'DELETE' %}{{ field|as_crispy_field }}{% endif %}
+                                            {% endfor %}
+                                            <div class="d-none">{{ education_formset.empty_form.DELETE }}</div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-formset-row">
+                                                <i class="fas fa-trash-alt me-1"></i>Remove education
+                                            </button>
+                                        </div>
+                                    </template>
                                     <a href="#" class="add-form" id="add-education">
                                         <i class="fas fa-plus-circle"></i> Add Education
                                     </a>
@@ -1313,16 +1335,30 @@
                                     {{ experience_formset.management_form }}
                                     <div id="experience-forms">
                                         {% for form in experience_formset %}
-                                            <div class="formset-item">
-                                                {{ form|crispy }}
-                                                {% if form.instance.pk %}
-                                                    <div class="delete-row">
-                                                        {{ form.DELETE|crispy }}
-                                                    </div>
-                                                {% endif %}
+                                            <div class="formset-item" data-form-index="{{ forloop.counter0 }}">
+                                                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                                {% for field in form.visible_fields %}
+                                                    {% if field.name != 'DELETE' %}{{ field|as_crispy_field }}{% endif %}
+                                                {% endfor %}
+                                                <div class="d-none">{{ form.DELETE }}</div>
+                                                <button type="button" class="btn btn-outline-danger btn-sm delete-formset-row">
+                                                    <i class="fas fa-trash-alt me-1"></i>Remove experience
+                                                </button>
                                             </div>
                                         {% endfor %}
                                     </div>
+                                    <template id="experience-empty-form">
+                                        <div class="formset-item" data-form-index="__prefix__">
+                                            {% for hidden in experience_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                            {% for field in experience_formset.empty_form.visible_fields %}
+                                                {% if field.name != 'DELETE' %}{{ field|as_crispy_field }}{% endif %}
+                                            {% endfor %}
+                                            <div class="d-none">{{ experience_formset.empty_form.DELETE }}</div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-formset-row">
+                                                <i class="fas fa-trash-alt me-1"></i>Remove experience
+                                            </button>
+                                        </div>
+                                    </template>
                                     <a href="#" class="add-form" id="add-experience">
                                         <i class="fas fa-plus-circle"></i> Add Experience
                                     </a>
@@ -1344,16 +1380,30 @@
                                     {{ skill_formset.management_form }}
                                     <div id="skill-forms">
                                         {% for form in skill_formset %}
-                                            <div class="formset-item">
-                                                {{ form|crispy }}
-                                                {% if form.instance.pk %}
-                                                    <div class="delete-row">
-                                                        {{ form.DELETE|crispy }}
-                                                    </div>
-                                                {% endif %}
+                                            <div class="formset-item" data-form-index="{{ forloop.counter0 }}">
+                                                {% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+                                                {% for field in form.visible_fields %}
+                                                    {% if field.name != 'DELETE' %}{{ field|as_crispy_field }}{% endif %}
+                                                {% endfor %}
+                                                <div class="d-none">{{ form.DELETE }}</div>
+                                                <button type="button" class="btn btn-outline-danger btn-sm delete-formset-row">
+                                                    <i class="fas fa-trash-alt me-1"></i>Remove skill
+                                                </button>
                                             </div>
                                         {% endfor %}
                                     </div>
+                                    <template id="skill-empty-form">
+                                        <div class="formset-item" data-form-index="__prefix__">
+                                            {% for hidden in skill_formset.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+                                            {% for field in skill_formset.empty_form.visible_fields %}
+                                                {% if field.name != 'DELETE' %}{{ field|as_crispy_field }}{% endif %}
+                                            {% endfor %}
+                                            <div class="d-none">{{ skill_formset.empty_form.DELETE }}</div>
+                                            <button type="button" class="btn btn-outline-danger btn-sm delete-formset-row">
+                                                <i class="fas fa-trash-alt me-1"></i>Remove skill
+                                            </button>
+                                        </div>
+                                    </template>
                                     <a href="#" class="add-form" id="add-skill">
                                         <i class="fas fa-plus-circle"></i> Add Skill
                                     </a>
@@ -1460,12 +1510,13 @@
 
 {% block extra_js %}
 <script>
-    // Function to handle dynamic formsets
-    function initFormset(addButtonId, formsetPrefix) {
+    // Retained only as historical reference; the server-rendered formset
+    // implementation below is the active path.
+    function legacyInitFormset(addButtonId, formsetPrefix) {
         const addButton = document.getElementById(addButtonId);
         const totalForms = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
         const container = document.getElementById(`${formsetPrefix}-forms`);
-        
+
         // Function to update count badge
         function updateCountBadge() {
             const countBadge = document.getElementById(`${formsetPrefix}Count`);
@@ -1474,13 +1525,13 @@
                 countBadge.textContent = visibleForms;
             }
         }
-        
+
         addButton.addEventListener('click', function(e) {
             e.preventDefault();
-            
+
             // Show confirmation dialog for adding new form
             const formsetTypeName = formsetPrefix.charAt(0).toUpperCase() + formsetPrefix.slice(1);
-            
+
             Swal.fire({
                 title: `Add New ${formsetTypeName}?`,
                 text: `Do you want to add a new ${formsetPrefix} entry?`,
@@ -1495,10 +1546,10 @@
                 if (!result.isConfirmed) {
                     return;
                 }
-            
+
             const formCount = parseInt(totalForms.value);
                 const existingForm = container.querySelector('.formset-item');
-            
+
             // Check if there's an existing form to clone, otherwise create a new one
             let newForm;
             if (existingForm) {
@@ -1507,7 +1558,7 @@
                 // Create a new form element if no existing form to clone
                 newForm = document.createElement('div');
                 newForm.className = 'formset-item';
-                
+
                 // Define options based on formset type
                 let skillTypeOptions = '';
                 let proficiencyOptions = '';
@@ -1515,7 +1566,7 @@
                 let schoolOptions = '';
                 let careerSignificanceOptions = '';
                 let salaryRangeOptions = '';
-                
+
                 if (formsetPrefix === 'skill') {
                     skillTypeOptions = `
                         <option value="">---------</option>
@@ -1580,10 +1631,10 @@
                         <option value="100K+">Above ₱100,000</option>
                     `;
                 }
-                
+
                 // Generate form HTML based on formset type
                 let formHTML = '';
-                
+
                 if (formsetPrefix === 'skill') {
                     formHTML = `
                         <div class="delete-row"></div>
@@ -1678,41 +1729,41 @@
                         </div>
                     `;
                 }
-                
+
                 newForm.innerHTML = formHTML;
             }
-            
+
             // Update form index
             newForm.innerHTML = newForm.innerHTML.replaceAll(
                 new RegExp(`${formsetPrefix}-\\d+`, 'g'),
                 `${formsetPrefix}-${formCount}`
             );
-            
+
             // Clear form values
             newForm.querySelectorAll('input:not([type=hidden])').forEach(input => input.value = '');
             newForm.querySelectorAll('textarea').forEach(textarea => textarea.value = '');
             newForm.querySelectorAll('select').forEach(select => select.selectedIndex = 0);
-            
+
             // Add animation class
             newForm.style.opacity = '0';
             newForm.style.transform = 'translateY(20px)';
-            
+
             // Insert new form
             container.appendChild(newForm);
-            
+
             // Trigger animation
             setTimeout(() => {
                 newForm.style.transition = 'all 0.3s ease';
                 newForm.style.opacity = '1';
                 newForm.style.transform = 'translateY(0)';
             }, 50);
-            
+
             // Update total forms count
             totalForms.value = formCount + 1;
-            
+
             // Update count badge
             updateCountBadge();
-            
+
             // Show success message
             Swal.fire({
                 title: 'Added!',
@@ -1730,15 +1781,15 @@
             if (e.target.closest('.delete-row')) {
                 e.preventDefault();
                 e.stopPropagation();
-                
+
                 const deleteRow = e.target.closest('.delete-row');
                 const formsetItem = deleteRow.closest('.formset-item');
                 const checkbox = deleteRow.querySelector('input[type="checkbox"]');
-                
+
                 // Get formset type for better confirmation message
                 const formsetType = formsetItem.closest('[id$="-forms"]').id.replace('-forms', '');
                 const formsetTypeName = formsetType.charAt(0).toUpperCase() + formsetType.slice(1);
-                
+
                 Swal.fire({
                     title: `Delete ${formsetTypeName}?`,
                     text: `Are you sure you want to delete this ${formsetType} entry? This action cannot be undone.`,
@@ -1754,24 +1805,24 @@
                 if (checkbox) {
                     checkbox.checked = true;
                         }
-                        
+
                         // Animate deletion
                     formsetItem.style.transition = 'all 0.3s ease';
                     formsetItem.style.opacity = '0';
                     formsetItem.style.transform = 'translateY(-20px)';
-                        
+
                     setTimeout(() => {
                         formsetItem.style.height = '0';
                         formsetItem.style.margin = '0';
                         formsetItem.style.padding = '0';
                         formsetItem.style.overflow = 'hidden';
-                        
+
                         // Update count badge after deletion animation
                         setTimeout(() => {
                             updateCountBadge();
                         }, 300);
                     }, 300);
-                        
+
                         // Show success message
                         Swal.fire({
                             title: 'Deleted!',
@@ -1785,8 +1836,72 @@
                 });
             }
         });
-        
+
         // Initialize count badge on page load
+        updateCountBadge();
+    }
+
+    function initFormset(addButtonId, formsetPrefix) {
+        const addButton = document.getElementById(addButtonId);
+        const totalForms = document.getElementById(`id_${formsetPrefix}-TOTAL_FORMS`);
+        const container = document.getElementById(`${formsetPrefix}-forms`);
+        const emptyTemplate = document.getElementById(`${formsetPrefix}-empty-form`);
+        const label = formsetPrefix.charAt(0).toUpperCase() + formsetPrefix.slice(1);
+
+        if (!addButton || !totalForms || !container || !emptyTemplate) return;
+
+        function updateCountBadge() {
+            const badge = document.getElementById(`${formsetPrefix}Count`);
+            if (badge) {
+                badge.textContent = container.querySelectorAll(
+                    '.formset-item:not([data-deleted="true"])'
+                ).length;
+            }
+        }
+
+        addButton.addEventListener('click', function(event) {
+            event.preventDefault();
+            Swal.fire({
+                title: `Add New ${label}?`,
+                text: `Add another ${formsetPrefix} entry to your profile?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#2b3c6b',
+                confirmButtonText: 'Add entry'
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                const index = Number.parseInt(totalForms.value, 10);
+                container.insertAdjacentHTML(
+                    'beforeend',
+                    emptyTemplate.innerHTML.replace(/__prefix__/g, String(index))
+                );
+                totalForms.value = index + 1;
+                updateCountBadge();
+            });
+        });
+
+        container.addEventListener('click', function(event) {
+            const removeButton = event.target.closest('.delete-formset-row');
+            if (!removeButton) return;
+            event.preventDefault();
+            const item = removeButton.closest('.formset-item');
+            Swal.fire({
+                title: `Remove ${label}?`,
+                text: 'This entry will be removed when you save your profile.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#e53e3e',
+                confirmButtonText: 'Remove entry'
+            }).then((result) => {
+                if (!result.isConfirmed) return;
+                const deleteInput = item.querySelector('input[name$="-DELETE"]');
+                if (deleteInput) deleteInput.checked = true;
+                item.dataset.deleted = 'true';
+                item.hidden = true;
+                updateCountBadge();
+            });
+        });
+
         updateCountBadge();
     }
 
@@ -1794,7 +1909,7 @@
     function initMobileOptimizations() {
         // Detect if user is on mobile
         const isMobile = window.innerWidth <= 768;
-        
+
         if (isMobile) {
             // Auto-scroll to opened accordion section
             const accordionButtons = document.querySelectorAll('.accordion-button');
@@ -1865,7 +1980,7 @@
                     animation: bounce 2s infinite;
                 `;
                 container.insertBefore(hint, container.firstChild);
-                
+
                 // Remove hint after first scroll
                 window.addEventListener('scroll', function removeHint() {
                     if (window.scrollY > 50) {
@@ -1934,6 +2049,8 @@
         // Remove existing error messages when form is submitted
         function clearErrors() {
             form.querySelectorAll('.alert').forEach(alert => alert.remove());
+            form.querySelectorAll('.is-invalid').forEach(field => field.classList.remove('is-invalid'));
+            form.querySelectorAll('.dynamic-validation-error').forEach(error => error.remove());
         }
 
         // Show field-specific validation errors
@@ -1982,7 +2099,7 @@
                         const birthDate = new Date(date);
                         const today = new Date();
                         const age = today.getFullYear() - birthDate.getFullYear();
-                        
+
                         if (age < 16) {
                             showFieldError('Birth Date', 'You must be at least 16 years old to use this service');
                             this.focus();
@@ -1996,9 +2113,9 @@
         }
 
         // Display error messages using SweetAlert
-        function displayErrors(errors) {
+        function legacyDisplayErrors(errors) {
             clearErrors();
-            
+
             // Format errors for SweetAlert
             let errorList = '';
             Object.entries(errors).forEach(([field, error]) => {
@@ -2027,19 +2144,19 @@
                 } else {
                     errorText = String(error);
                 }
-                
+
                 // Clean up error text to be more user-friendly
                 errorText = errorText.replace(/\[object Object\]/g, 'Please check your input');
                 errorText = errorText.replace(/This field is required\./g, 'This field is required');
                 errorText = errorText.replace(/Enter a valid email address\./g, 'Please enter a valid email address');
                 errorText = errorText.replace(/Enter a valid date\./g, 'Please enter a valid date');
                 errorText = errorText.replace(/Enter a valid number\./g, 'Please enter a valid number');
-                
+
                 // Format field name for better readability
                 const fieldName = getFieldDisplayName(field);
                 errorList += `<li><strong>${fieldName}:</strong> ${errorText}</li>`;
             });
-            
+
             // Show SweetAlert with formatted errors
             Swal.fire({
                 icon: 'error',
@@ -2054,6 +2171,84 @@
                 confirmButtonColor: '#e53e3e',
                 customClass: {
                     htmlContainer: 'text-start'
+                }
+            });
+        }
+
+        function displayErrors(errors) {
+            clearErrors();
+            const sectionLabels = {
+                user: 'Personal Information',
+                profile: 'Personal Information',
+                education: 'Education',
+                experience: 'Work Experience',
+                skill: 'Skills'
+            };
+            const sectionTargets = {
+                user: 'collapsePersonal',
+                profile: 'collapsePersonal',
+                education: 'collapseEducation',
+                experience: 'collapseExperience',
+                skill: 'collapseSkills'
+            };
+            const escapeHtml = (value) => String(value || '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+
+            let items = errors;
+            if (!Array.isArray(items)) {
+                items = Object.entries(items || {}).map(([field, message]) => ({
+                    section: 'profile',
+                    row: null,
+                    field,
+                    label: field,
+                    messages: [message || 'Please check your input.']
+                }));
+            }
+
+            let firstField = null;
+            const listHtml = items.map((item) => {
+                const section = item.section || 'profile';
+                const messages = Array.isArray(item.messages) ? item.messages : [item.messages];
+                const rowLabel = Number.isInteger(item.row) ? ` #${item.row + 1}` : '';
+                let field = null;
+                if (item.field && item.field !== '__all__') {
+                    const name = Number.isInteger(item.row)
+                        ? `${section}-${item.row}-${item.field}`
+                        : item.field;
+                    field = form.querySelector(`[name="${name}"]`);
+                }
+                if (field) {
+                    field.classList.add('is-invalid');
+                    const feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback dynamic-validation-error d-block';
+                    feedback.textContent = messages.join(' ');
+                    field.insertAdjacentElement('afterend', feedback);
+                    if (!firstField) firstField = field;
+                }
+
+                const collapseId = sectionTargets[section];
+                const collapse = collapseId && document.getElementById(collapseId);
+                if (collapse && window.bootstrap) {
+                    bootstrap.Collapse.getOrCreateInstance(collapse, {toggle: false}).show();
+                }
+
+                return `<li><strong>${escapeHtml(sectionLabels[section] || section)}${rowLabel} — ${escapeHtml(item.label || item.field)}:</strong> ${escapeHtml(messages.join(' '))}</li>`;
+            }).join('');
+
+            Swal.fire({
+                icon: 'error',
+                title: 'Please Fix These Issues',
+                html: `<div class="text-start"><p class="mb-3">Review the highlighted fields:</p><ul class="mb-0">${listHtml}</ul></div>`,
+                confirmButtonText: 'Review fields',
+                confirmButtonColor: '#e53e3e'
+            }).then(() => {
+                if (firstField) {
+                    firstField.scrollIntoView({behavior: 'smooth', block: 'center'});
+                    firstField.focus({preventScroll: true});
                 }
             });
         }
@@ -2088,7 +2283,7 @@
                 'skill_name': 'Skill Name',
                 'proficiency_level': 'Proficiency Level'
             };
-            
+
             return fieldNames[field] || field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
         }
 
@@ -2096,7 +2291,7 @@
         form.addEventListener('submit', async function(e) {
             e.preventDefault();
             clearErrors();
-            
+
             // Validate form
             if (!form.checkValidity()) {
                 // Show SweetAlert for validation errors
@@ -2122,7 +2317,7 @@
                 confirmButtonText: 'Yes, update it!',
                 cancelButtonText: 'Cancel'
             });
-            
+
             if (!result.isConfirmed) {
                 return;
             }
@@ -2193,11 +2388,11 @@
 
             } catch (error) {
                 console.error('Error:', error);
-                
+
                 // Determine error message based on error type
                 let errorMessage = 'An error occurred while updating your profile. Please try again.';
                 let errorTitle = 'Update Failed!';
-                
+
                 if (error.message === 'Failed to fetch') {
                     errorTitle = 'Connection Error';
                     errorMessage = 'Unable to connect to the server. Please check your internet connection and try again.';
@@ -2210,7 +2405,7 @@
                 } else if (error.message) {
                     errorMessage = error.message;
                 }
-                
+
                 // Show error alert
                 Swal.fire({
                     icon: 'error',
@@ -2230,9 +2425,9 @@
 
         // Avatar preview functionality
         const avatarInput = document.getElementById('id_avatar');
-        const avatarPreview = document.getElementById('avatarPreview');
         const removeAvatarBtn = document.getElementById('removeAvatar');
         const removeAvatarInput = document.getElementById('removeAvatarInput');
+        const getAvatarPreview = () => document.getElementById('avatarPreview');
 
         // Handle file selection
         avatarInput.addEventListener('change', function(e) {
@@ -2267,6 +2462,7 @@
                 // Create preview
                 const reader = new FileReader();
                 reader.onload = function(e) {
+                    const avatarPreview = getAvatarPreview();
                     if (avatarPreview.tagName === 'IMG') {
                         avatarPreview.src = e.target.result;
                     } else {
@@ -2309,32 +2505,23 @@
                     if (result.isConfirmed) {
                         // Clear file input
                         avatarInput.value = '';
-                        
+
                         // Set remove flag
                         removeAvatarInput.value = 'true';
-                        
+
                         // Replace img with no-avatar div
                         const noAvatar = document.createElement('div');
                         noAvatar.className = 'no-avatar';
                         noAvatar.id = 'avatarPreview';
                         noAvatar.innerHTML = '<i class="fas fa-user"></i>';
-                        
+
                         const currentPreview = document.getElementById('avatarPreview');
                         currentPreview.parentNode.replaceChild(noAvatar, currentPreview);
-                        
+
                         // Remove the remove button
                         btn.remove();
-                        
-                        // Show success message
-                        Swal.fire({
-                            icon: 'success',
-                            title: 'Profile Picture Removed!',
-                            text: 'Your profile picture has been removed successfully.',
-                            confirmButtonText: 'OK',
-                            confirmButtonColor: '#2b3c6b',
-                            timer: 2000,
-                            timerProgressBar: true
-                        });
+
+                        // The removal is pending until the full profile form is saved.
                     }
                 });
             });
@@ -2347,4 +2534,4 @@
     });
 </script>
 {% endblock %}
-{% endblock %} 
+{% endblock %}
