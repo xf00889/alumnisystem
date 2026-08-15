@@ -27,7 +27,7 @@ class FeedbackForm(forms.ModelForm):
                         'data-error-callback': 'onRecaptchaError',
                     }
                 ),
-                label='Security Verification'
+                label=''
             )
     
     def clean_attachment(self):
@@ -105,4 +105,4 @@ class FeedbackAdminForm(forms.ModelForm):
                 'data-bs-toggle': 'tooltip',
                 'title': 'Add internal notes visible only to administrators'
             })
-        } 
+        }

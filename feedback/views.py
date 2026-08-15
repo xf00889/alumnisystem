@@ -7,12 +7,23 @@ from .models import Feedback
 from .forms import FeedbackForm, FeedbackAdminForm
 from core.models import UserEngagement
 from core.decorators import staff_or_coordinator_required
+from core.rate_limiters import rate_limit_authenticated_form
 
 @login_required
+@rate_limit_authenticated_form()
 def submit_feedback(request):
     """View for users to submit feedback"""
     if request.method == 'POST':
         form = FeedbackForm(request.POST, request.FILES)
+        if getattr(request, 'limited', False):
+            response = render(
+                request,
+                'feedback/submit_feedback.html',
+                {'form': form, 'rate_limited': True},
+                status=429,
+            )
+            response['Retry-After'] = '60'
+            return response
         if form.is_valid():
             feedback = form.save(commit=False)
             feedback.user = request.user

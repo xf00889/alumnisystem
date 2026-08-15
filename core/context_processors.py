@@ -55,13 +55,13 @@ def tracer_study_banner_context(request):
             # available (for example, first-time setup).
             pass
 
+    if current_url_name in TRACER_STUDY_PAGE_NAMES:
+        return context
+
     if not getattr(request, 'user', None) or not request.user.is_authenticated:
         return context
 
     if request.user.is_staff or request.user.is_superuser:
-        return context
-
-    if current_url_name == 'tracer_study_alumni':
         return context
 
     try:

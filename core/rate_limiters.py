@@ -12,6 +12,24 @@ from django_ratelimit.decorators import ratelimit
 PUBLIC_FORM_HONEYPOT_FIELD = "office_website"
 
 
+def _rate_limit_form(view_func, *, key, burst_rate, sustained_rate):
+    group = f"{view_func.__module__}.{view_func.__qualname__}"
+    limited_view = ratelimit(
+        group=f"{group}:sustained",
+        key=key,
+        rate=sustained_rate,
+        method="POST",
+        block=False,
+    )(view_func)
+    return ratelimit(
+        group=f"{group}:burst",
+        key=key,
+        rate=burst_rate,
+        method="POST",
+        block=False,
+    )(limited_view)
+
+
 def rate_limit_public_form(burst_rate="10/m", sustained_rate="50/h"):
     """Apply soft per-IP POST limits suitable for anonymous public forms.
 
@@ -20,21 +38,25 @@ def rate_limit_public_form(burst_rate="10/m", sustained_rate="50/h"):
     refreshing a form remains unrestricted.
     """
     def decorator(view_func):
-        group = f"{view_func.__module__}.{view_func.__qualname__}"
-        limited_view = ratelimit(
-            group=f"{group}:sustained",
+        return _rate_limit_form(
+            view_func,
             key="ip",
-            rate=sustained_rate,
-            method="POST",
-            block=False,
-        )(view_func)
-        return ratelimit(
-            group=f"{group}:burst",
-            key="ip",
-            rate=burst_rate,
-            method="POST",
-            block=False,
-        )(limited_view)
+            burst_rate=burst_rate,
+            sustained_rate=sustained_rate,
+        )
+
+    return decorator
+
+
+def rate_limit_authenticated_form(burst_rate="5/m", sustained_rate="20/h"):
+    """Apply soft per-account POST limits to authenticated forms."""
+    def decorator(view_func):
+        return _rate_limit_form(
+            view_func,
+            key="user",
+            burst_rate=burst_rate,
+            sustained_rate=sustained_rate,
+        )
 
     return decorator
 
