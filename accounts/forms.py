@@ -1095,7 +1095,12 @@ class ProfileUpdateForm(forms.ModelForm):
             'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
             'bio': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
-            'phone_number': forms.TextInput(attrs={'placeholder': '+639519021544', 'class': 'form-control'}),
+            'phone_number': forms.TextInput(attrs={
+                'placeholder': '+639171234567',
+                'class': 'form-control',
+                'inputmode': 'tel',
+                'autocomplete': 'tel',
+            }),
             'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g. 123 Rizal Street, Barangay Poblacion', 'class': 'form-control'}),
             'city': forms.TextInput(attrs={'placeholder': 'e.g. Bayawan City', 'class': 'form-control'}),
             'state': forms.TextInput(attrs={'placeholder': 'e.g. Negros Oriental', 'class': 'form-control'}),
@@ -1129,7 +1134,7 @@ class ProfileUpdateForm(forms.ModelForm):
         }
         help_texts = {
             'gender': 'Select your gender (optional)',
-            'phone_number': 'Your mobile number (e.g. +639519021544)',
+            'phone_number': 'Your mobile number (e.g. +639171234567)',
             'address': 'Your full address (optional)',
             'city': 'Your city (optional)',
             'state': 'Your state or province (optional)',
@@ -1141,6 +1146,11 @@ class ProfileUpdateForm(forms.ModelForm):
             'salary_range': 'This information will be kept private and used for statistical purposes only.',
             'employment_status': 'Select your current employment status',
             'industry': 'Enter the industry you currently work in',
+        }
+        error_messages = {
+            'phone_number': {
+                'invalid': 'Enter a valid phone number (e.g. +639171234567).',
+            },
         }
 
     def __init__(self, *args, **kwargs):
