@@ -12,6 +12,7 @@ from alumni_directory.models import Alumni
 from feedback.models import Feedback
 from core.models import UserEngagement, EngagementScore, Post, Comment, Reaction, Notification
 from .recaptcha_utils import get_recaptcha_public_key
+from .rate_limiters import public_form_honeypot_triggered, rate_limit_public_form
 from django.http import JsonResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.views.decorators.csrf import csrf_exempt, csrf_protect
@@ -36,6 +37,7 @@ logger = logging.getLogger(__name__)
 def is_superuser(user):
     return user.is_authenticated and user.is_superuser
 
+@rate_limit_public_form(burst_rate="5/m", sustained_rate="20/h")
 def home(request):
     # Add cache-busting headers to prevent caching issues
     response = None
@@ -217,13 +219,20 @@ def home(request):
 
     # Initialize feedback form
     feedback_form = None
+    feedback_rate_limited = False
     if request.method == 'POST' and 'feedback_submit' in request.POST:
         try:
             from feedback.forms import FeedbackForm
             feedback_form = FeedbackForm(request.POST, request.FILES)
-            if feedback_form.is_valid():
+            if getattr(request, 'limited', False):
+                feedback_rate_limited = True
+                messages.error(request, 'Too many feedback submissions. Please wait a moment and try again.')
+            elif public_form_honeypot_triggered(request):
+                messages.success(request, 'Thank you for your feedback! We will review it and get back to you soon.')
+                return redirect('core:home')
+            elif feedback_form.is_valid():
                 feedback = feedback_form.save(commit=False)
-                feedback.submitted_by = request.user if request.user.is_authenticated else None
+                feedback.user = request.user if request.user.is_authenticated else None
                 feedback.save()
                 from django.contrib import messages
                 messages.success(request, 'Thank you for your feedback! We will review it and get back to you soon.')
@@ -285,11 +294,19 @@ def home(request):
         'vmgo_section': vmgo_section,
         'breadcrumbs': breadcrumbs,
         'feedback_form': feedback_form,
+        'feedback_rate_limited': feedback_rate_limited,
         # Hero section data
         **hero_data,
     }
 
-    response = render(request, 'home.html', context)
+    response = render(
+        request,
+        'home.html',
+        context,
+        status=429 if feedback_rate_limited else 200,
+    )
+    if feedback_rate_limited:
+        response['Retry-After'] = '60'
     # Add cache-busting headers
     response['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     response['Pragma'] = 'no-cache'
@@ -757,6 +774,7 @@ def get_unread_count(request):
 
 # Landing Page Views for Unauthenticated Users
 
+@rate_limit_public_form(burst_rate="5/m", sustained_rate="20/h")
 def landing_events(request):
     """
     Display published events, public campaigns, and public announcements for unauthenticated users with pagination
@@ -854,13 +872,20 @@ def landing_events(request):
 
     # Initialize feedback form
     feedback_form = None
+    feedback_rate_limited = False
     if request.method == 'POST' and 'feedback_submit' in request.POST:
         try:
             from feedback.forms import FeedbackForm
             feedback_form = FeedbackForm(request.POST, request.FILES)
-            if feedback_form.is_valid():
+            if getattr(request, 'limited', False):
+                feedback_rate_limited = True
+                messages.error(request, 'Too many feedback submissions. Please wait a moment and try again.')
+            elif public_form_honeypot_triggered(request):
+                messages.success(request, 'Thank you for your feedback! We will review it and get back to you soon.')
+                return redirect('core:landing_events')
+            elif feedback_form.is_valid():
                 feedback = feedback_form.save(commit=False)
-                feedback.submitted_by = request.user if request.user.is_authenticated else None
+                feedback.user = request.user if request.user.is_authenticated else None
                 feedback.save()
                 messages.success(request, 'Thank you for your feedback! We will review it and get back to you soon.')
                 return redirect('core:landing_events')
@@ -889,10 +914,19 @@ def landing_events(request):
         'page_title': 'Events & Campaigns',
         'page_subtitle': 'Discover exciting events and fundraising campaigns in the NORSU alumni community',
         'feedback_form': feedback_form,
+        'feedback_rate_limited': feedback_rate_limited,
         'breadcrumbs': breadcrumbs,
     }
 
-    return render(request, 'landing/events.html', context)
+    response = render(
+        request,
+        'landing/events.html',
+        context,
+        status=429 if feedback_rate_limited else 200,
+    )
+    if feedback_rate_limited:
+        response['Retry-After'] = '60'
+    return response
 
 
 def landing_announcements(request):
