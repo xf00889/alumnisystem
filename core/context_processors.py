@@ -22,19 +22,44 @@ def user_role_context(request):
 
 
 def tracer_study_banner_context(request):
+    context = {
+        'show_tracer_study_banner': False,
+        'show_public_tracer_study_banner': False,
+        'public_tracer_study_count': 0,
+    }
+    current_url_name = getattr(
+        getattr(request, 'resolver_match', None), 'url_name', ''
+    )
+
+    # The public announcement is intentionally independent from alumni
+    # eligibility. Its destination explains which forms require alumni login.
+    if current_url_name != 'tracer_study_public_list':
+        try:
+            from surveys.tracer_study import public_tracer_banner_queryset
+
+            public_count = public_tracer_banner_queryset().count()
+            context.update({
+                'show_public_tracer_study_banner': public_count > 0,
+                'public_tracer_study_count': public_count,
+            })
+        except Exception:
+            # Fail closed during migrations or when the surveys table is not
+            # available (for example, first-time setup).
+            pass
+
     if not getattr(request, 'user', None) or not request.user.is_authenticated:
-        return {'show_tracer_study_banner': False}
+        return context
 
     if request.user.is_staff or request.user.is_superuser:
-        return {'show_tracer_study_banner': False}
+        return context
 
-    if getattr(getattr(request, 'resolver_match', None), 'url_name', '') == 'tracer_study_alumni':
-        return {'show_tracer_study_banner': False}
+    if current_url_name == 'tracer_study_alumni':
+        return context
 
     try:
         profile = request.user.profile
         if profile.is_alumni_coordinator or not profile.has_completed_registration:
-            return {'show_tracer_study_banner': False}
+            return context
 
         alumni = request.user.alumni
         from surveys.models import Survey, SurveyResponse
@@ -45,12 +70,13 @@ def tracer_study_banner_context(request):
             survey
             and not SurveyResponse.objects.filter(survey=survey, alumni=alumni).exists()
         )
-        return {
+        context.update({
             'show_tracer_study_banner': show_banner,
             'tracer_study_banner_survey': survey,
-        }
+        })
+        return context
     except Exception:
-        return {'show_tracer_study_banner': False}
+        return context
 
 
 def recaptcha_context(request):

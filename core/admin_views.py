@@ -736,6 +736,9 @@ def create_tracer_study(request):
                     target_graduation_year_from=targeting["target_graduation_year_from"],
                     target_graduation_year_to=targeting["target_graduation_year_to"],
                     display_to_all=targeting["display_to_all"],
+                    show_on_public_page=(
+                        is_employer or bool(request.POST.get('show_on_public_page'))
+                    ),
                 )
                 _apply_questions(survey, questions)
         except Exception as exc:
@@ -867,12 +870,15 @@ def edit_tracer_study(request, survey_id):
                 survey.target_graduation_year_from = targeting["target_graduation_year_from"]
                 survey.target_graduation_year_to = targeting["target_graduation_year_to"]
                 survey.display_to_all = targeting["display_to_all"] or survey.title != tracer_study.ALUMNI_TITLE
+                survey.show_on_public_page = (
+                    is_employer or bool(form.get('show_on_public_page'))
+                )
                 survey.status = form.get('status', survey.status)
                 survey.save(update_fields=[
                     'description', 'start_date', 'end_date', 'requested_by',
                     'target_campus', 'target_college', 'target_program',
                     'target_graduation_year_from', 'target_graduation_year_to',
-                    'display_to_all', 'status',
+                    'display_to_all', 'show_on_public_page', 'status',
                 ])
 
         except Exception as exc:
@@ -898,6 +904,7 @@ def edit_tracer_study(request, survey_id):
         'graduation_year_from': survey.target_graduation_year_from or '',
         'graduation_year_to': survey.target_graduation_year_to or '',
         'visibility': 'restricted' if not survey.display_to_all else 'all',
+        'show_on_public_page': survey.show_on_public_page,
         'status': survey.status,
     }
     return render(

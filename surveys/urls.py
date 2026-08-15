@@ -8,6 +8,7 @@ app_name = 'surveys'
 urlpatterns = [
     # Dedicated Graduate Tracer Study (NOT routed through the generic survey
     # views or the public survey list).
+    path('tracer-study/public/', tracer_study.tracer_study_public_list, name='tracer_study_public_list'),
     path('tracer-study/', tracer_study.tracer_study_alumni, name='tracer_study_alumni'),
     path('tracer-study/employer/', tracer_study.tracer_study_employer, name='tracer_study_employer'),
     path('tracer-study/reports/', tracer_study.tracer_study_reports, name='tracer_study_reports'),

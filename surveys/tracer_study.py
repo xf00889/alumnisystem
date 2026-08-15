@@ -10,6 +10,7 @@ URLs:
 * ``/tracer-study/employer/`` - Employers (public; auto-creates an Employer
                                 record on first submission and reuses it
                                 thereafter)
+* ``/tracer-study/public/``  - Public index of discoverable tracer studies
 """
 from datetime import date, datetime as _datetime, timedelta
 from io import BytesIO
@@ -127,6 +128,100 @@ def survey_accepting_responses(survey, at=None):
         survey
         and survey.status == "active"
         and survey.start_date <= at <= survey.end_date
+    )
+
+
+def public_tracer_studies_queryset(queryset=None):
+    """Return tracer studies that are intentionally discoverable publicly.
+
+    Employer questionnaires are public by definition, including legacy rows
+    created before the explicit public-listing field existed. Alumni studies
+    must be opted in by an administrator.
+    """
+    qs = queryset if queryset is not None else Survey.objects.all()
+    return qs.filter(
+        Q(title=EMPLOYER_TITLE)
+        | Q(title=ALUMNI_TITLE, show_on_public_page=True)
+    )
+
+
+def public_tracer_banner_queryset(at=None):
+    """Return public cycles worth announcing (scheduled or currently open)."""
+    at = at or timezone.now()
+    return public_tracer_studies_queryset().filter(
+        status="active",
+        end_date__gte=at,
+    )
+
+
+def tracer_study_public_list(request):
+    """Show all public alumni and employer tracer-study cycles."""
+    studies = []
+    for survey in public_tracer_studies_queryset().order_by("-created_at"):
+        is_employer = survey.title == EMPLOYER_TITLE
+        availability_state = survey.availability_state()
+        cycle_label = ""
+        if survey.description and " — " in survey.description:
+            cycle_label = survey.description.split(" — ", 1)[0].strip()
+
+        if availability_state == "Open":
+            action_url = reverse(
+                "surveys:tracer_study_employer"
+                if is_employer
+                else "surveys:tracer_study_alumni"
+            )
+            if is_employer:
+                action_label = "Answer as Employer"
+            elif request.user.is_authenticated:
+                action_label = "Open Alumni Form"
+            else:
+                action_label = "Sign In to Respond"
+        else:
+            action_url = ""
+            action_label = {
+                "Scheduled": "Opens Soon",
+                "Expired": "Response Period Ended",
+                "Manually Closed": "Study Closed",
+                "Draft": "Not Yet Available",
+            }.get(availability_state, "Unavailable")
+
+        studies.append(
+            {
+                "survey": survey,
+                "cycle_label": cycle_label or f"Cycle {survey.created_at:%Y}",
+                "audience": "Employer" if is_employer else "Alumni",
+                "is_employer": is_employer,
+                "availability_state": availability_state,
+                "state_class": {
+                    "Open": "open",
+                    "Scheduled": "scheduled",
+                    "Expired": "expired",
+                    "Manually Closed": "closed",
+                    "Draft": "draft",
+                }.get(availability_state, "draft"),
+                "audience_scope": (
+                    "Public employer questionnaire"
+                    if is_employer
+                    else (
+                        "Open to all alumni"
+                        if survey.display_to_all
+                        else "Selected alumni audience"
+                    )
+                ),
+                "action_url": action_url,
+                "action_label": action_label,
+            }
+        )
+
+    return render(
+        request,
+        "tracer_study/public_list.html",
+        {
+            "public_studies": studies,
+            "open_study_count": sum(
+                study["availability_state"] == "Open" for study in studies
+            ),
+        },
     )
 
 

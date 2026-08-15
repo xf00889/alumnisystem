@@ -20,10 +20,10 @@ class SurveyAdmin(admin.ModelAdmin):
         'title', 'status', 'start_date', 'end_date', 'requested_by',
         'target_campus', 'target_college', 'target_program',
         'target_graduation_year_from', 'target_graduation_year_to',
-        'display_to_all', 'created_by',
+        'display_to_all', 'show_on_public_page', 'created_by',
     )
     list_filter = (
-        'status', 'display_to_all', 'target_campus', 'target_college',
+        'status', 'display_to_all', 'show_on_public_page', 'target_campus', 'target_college',
         'target_program', 'created_at', 'start_date', 'end_date',
     )
     search_fields = ('title', 'description', 'requested_by')

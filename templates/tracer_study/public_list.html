@@ -1,0 +1,83 @@
+{% extends 'base_landingpage.html' %}
+
+{% block title %}Public Tracer Studies - NORSU Alumni{% endblock %}
+
+{% block content %}
+<section class="public-tracer-index">
+    <div class="container">
+        <header class="public-tracer-index__hero">
+            <div>
+                <span class="public-tracer-index__eyebrow">
+                    <i class="fas fa-chart-line" aria-hidden="true"></i>
+                    NORSU Alumni Affairs
+                </span>
+                <h1>Tracer studies open to our community</h1>
+                <p>
+                    Choose the questionnaire that applies to you. Employer forms are public;
+                    alumni forms require sign-in and may be limited to a selected alumni group.
+                </p>
+            </div>
+            <div class="public-tracer-index__count" aria-label="Open tracer study count">
+                <strong>{{ open_study_count }}</strong>
+                <span>currently open</span>
+            </div>
+        </header>
+
+        <div class="public-tracer-notice">
+            <i class="fas fa-shield-alt" aria-hidden="true"></i>
+            <p>
+                Public visibility does not change alumni access rules. Alumni must sign in and
+                match the study's configured campus, college, program, and graduation-year criteria.
+            </p>
+        </div>
+
+        <div class="public-tracer-list">
+            {% for study in public_studies %}
+            <article class="public-tracer-item">
+                <div>
+                    <span class="public-tracer-item__audience">
+                        <i class="fas fa-{% if study.is_employer %}building{% else %}user-graduate{% endif %}" aria-hidden="true"></i>
+                        {{ study.audience }} questionnaire
+                    </span>
+                    <h2>{{ study.cycle_label }}</h2>
+                    <p class="public-tracer-item__scope">{{ study.audience_scope }}</p>
+                </div>
+
+                <div>
+                    <span class="public-tracer-item__meta-label">Response period</span>
+                    <span class="public-tracer-item__meta-value">
+                        {{ study.survey.start_date|date:'M d, Y' }} – {{ study.survey.end_date|date:'M d, Y' }}
+                    </span>
+                </div>
+
+                <div>
+                    <span class="public-tracer-item__meta-label">Status</span>
+                    <span class="public-tracer-state public-tracer-state--{{ study.state_class }}">
+                        <i class="fas fa-circle" aria-hidden="true"></i>
+                        {{ study.availability_state }}
+                    </span>
+                </div>
+
+                <div>
+                    {% if study.action_url %}
+                    <a class="public-tracer-item__action" href="{{ study.action_url }}">
+                        {{ study.action_label }}
+                        <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                    {% else %}
+                    <span class="public-tracer-item__action public-tracer-item__action--disabled" aria-disabled="true">
+                        {{ study.action_label }}
+                    </span>
+                    {% endif %}
+                </div>
+            </article>
+            {% empty %}
+            <div class="public-tracer-empty">
+                <i class="far fa-clipboard" aria-hidden="true"></i>
+                <strong>No public tracer studies have been posted yet.</strong>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endblock %}

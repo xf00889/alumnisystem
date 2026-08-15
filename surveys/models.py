@@ -28,6 +28,13 @@ class Survey(models.Model):
     target_graduation_year_from = models.PositiveSmallIntegerField(null=True, blank=True)
     target_graduation_year_to = models.PositiveSmallIntegerField(null=True, blank=True)
     display_to_all = models.BooleanField(default=True)
+    show_on_public_page = models.BooleanField(
+        default=False,
+        help_text=(
+            'List this alumni questionnaire on the public tracer-study page. '
+            'Employer questionnaires are public automatically.'
+        ),
+    )
     
     def __str__(self):
         return self.title

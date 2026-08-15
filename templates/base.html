@@ -34,6 +34,7 @@
     <link rel="stylesheet" href="{% static 'css/sidebar.css' %}">
     <link rel="stylesheet" href="{% static 'css/toasts.css' %}">
     <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
+    <link rel="stylesheet" href="{% static 'css/public_tracer_studies.css' %}">
     <link rel="stylesheet" href="{% static 'css/footer.css' %}">
     {% if recaptcha_enabled %}
     <!-- reCAPTCHA Mobile Fix -->
@@ -576,6 +577,7 @@
 
             <!-- Navbar Content -->
             <div class="collapse navbar-collapse" id="navbarNav">
+                {% if user.is_authenticated and user.alumni %}
                 <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                     <!-- Home -->
                     <li class="nav-item">
@@ -787,6 +789,7 @@
 
 
                 </ul>
+                {% endif %}
 
                 <!-- Authentication Section -->
                 <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
@@ -902,8 +905,12 @@
     </div>
     {% endif %}
 
+    {% if show_public_tracer_study_banner and not user.is_authenticated %}
+        {% include 'tracer_study/_public_banner.html' with banner_variant='fixed' %}
+    {% endif %}
+
     <!-- Main Content -->
-    <main class="content-wrapper {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: {% if show_tracer_study_banner %}138px{% else %}76px{% endif %};"{% endif %}>
+    <main class="content-wrapper {% if user.is_superuser or user.is_staff or user.is_authenticated and user.profile.is_alumni_coordinator %}with-sidebar{% endif %}" {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}style="margin-top: {% if show_tracer_study_banner or show_public_tracer_study_banner and not user.is_authenticated %}138px{% else %}76px{% endif %};"{% endif %}>
 
         {% if messages %}
             <!-- Django messages container - hidden and processed by ToastUtils -->
@@ -1023,7 +1030,7 @@
     {% block extra_js %}{% endblock extra_js %}
 
     <!-- Mobile Bottom Navigation (Only for regular authenticated users on mobile, not for admin/staff) -->
-    {% if user.is_authenticated and not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator %}
+    {% if user.is_authenticated and user.alumni and not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator %}
     <nav class="mobile-bottom-nav">
         <!-- Home -->
         <div class="nav-item">
