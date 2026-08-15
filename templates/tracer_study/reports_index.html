@@ -13,37 +13,41 @@
             <p>Aggregated results from the NORSU Graduate Tracer Study</p>
         </div>
 
-        <div class="d-flex flex-wrap justify-content-between align-items-center mb-4 p-3 bg-light rounded border">
-            {% if active_survey %}
-            <div>
-                <span class="badge bg-success mb-1">Active Cycle</span>
-                <div class="small text-muted">
-                    <i class="fas fa-calendar-alt me-1"></i>
-                    {{ active_survey.start_date|date:"M d, Y" }} – {{ active_survey.end_date|date:"M d, Y" }}
-                    {% if active_survey.requested_by %}
-                    &nbsp;&middot;&nbsp;<i class="fas fa-building me-1"></i>{{ active_survey.requested_by }}
-                    {% endif %}
-                </div>
-            </div>
-            {% else %}
-            <div>
-                <span class="badge bg-secondary mb-1">No Open Cycle</span>
-                <div class="small text-muted">Create a new tracer study or reopen an existing cycle.</div>
-            </div>
-            {% endif %}
-            <a href="{% url 'core:create_tracer_study' %}" class="btn btn-primary">
-                <i class="fas fa-plus-circle me-1"></i>Create New Tracer Study Form
-            </a>
-        </div>
-
-        {% if surveys %}
         <div class="dashboard-card">
-            <div class="card-body">
+            <div class="tracer-list-toolbar">
+                <div>
+                    <div class="tracer-list-eyebrow">Survey registry</div>
+                    <div class="tracer-list-title-row">
+                        <h2>Tracer study cycles</h2>
+                        {% if active_survey %}
+                        <span class="cycle-state cycle-state-open">
+                            <i class="fas fa-circle" aria-hidden="true"></i> Active cycle
+                        </span>
+                        {% else %}
+                        <span class="cycle-state cycle-state-closed">
+                            <i class="fas fa-circle" aria-hidden="true"></i> No open cycle
+                        </span>
+                        {% endif %}
+                    </div>
+                    <p>{{ surveys|length }} questionnaire{{ surveys|length|pluralize }} available</p>
+                </div>
+                <a href="{% url 'core:create_tracer_study' %}"
+                   class="tracer-icon-action tracer-icon-action-primary tracer-create-action"
+                   aria-label="Create a new tracer study" title="Create a new tracer study">
+                    <i class="fas fa-plus" aria-hidden="true"></i>
+                    <span class="visually-hidden">Create a new tracer study</span>
+                </a>
+            </div>
+
+            {% if surveys %}
+            <div class="card-body tracer-list-body">
                 <div class="table-responsive tracer-table">
                     <table class="table table-hover">
+                        <caption class="visually-hidden">Alumni and employer tracer study questionnaires</caption>
                         <thead>
                             <tr>
-                                <th>Cycle</th>
+                                <th scope="col" class="text-start">Cycle</th>
+                                <th scope="col">Audience</th>
                                 <th>Requested by</th>
                                 <th>Visibility</th>
                                 <th>Study Period</th>
@@ -55,16 +59,19 @@
                         <tbody>
                             {% for s in surveys %}
                             <tr {% if s.is_open %}class="table-primary"{% endif %}>
+                                <td class="tracer-cycle-cell text-start">
+                                    <div class="fw-semibold">{% if s.cycle_label %}{{ s.cycle_label }}{% else %}Untitled cycle{% endif %}</div>
+                                    <div class="small text-muted">Questionnaire #{{ s.survey.id }}</div>
+                                </td>
                                 <td>
-                                    <div class="fw-semibold">
+                                    <span class="audience-indicator audience-{{ s.audience }}">
                                         {% if s.audience == 'alumni' %}
-                                            <i class="fas fa-user-graduate text-primary me-2"></i>
+                                            <i class="fas fa-user-graduate" aria-hidden="true"></i>
                                         {% else %}
-                                            <i class="fas fa-building text-primary me-2"></i>
+                                            <i class="fas fa-building" aria-hidden="true"></i>
                                         {% endif %}
-                                        {% if s.cycle_label %}{{ s.cycle_label }}{% else %}{{ s.audience|title }}{% endif %}
-                                    </div>
-                                    <div class="small text-muted">{{ s.audience|title }} questionnaire</div>
+                                        {{ s.audience|title }}
+                                    </span>
                                 </td>
                                 <td>{{ s.survey.requested_by|default:"—" }}</td>
                                 <td>
@@ -80,29 +87,39 @@
                                         {{ s.availability_state }}
                                     </span>
                                 </td>
-                                <td>{{ s.count }}</td>
+                                <td class="tracer-response-count">{{ s.count }}</td>
                                 <td>
-                                    <a href="{% url 'surveys:tracer_study_report' s.survey.id %}"
-                                       class="btn btn-primary btn-action">
-                                        <i class="fas fa-chart-pie me-1"></i> Report
-                                    </a>
-                                    <a href="{% url 'core:edit_tracer_study' s.survey.id %}"
-                                       class="btn btn-outline-secondary btn-action">
-                                        <i class="fas fa-edit me-1"></i> Edit
-                                    </a>
-                                    <form method="post" action="{% url 'surveys:tracer_study_toggle_visibility' s.survey.id %}"
-                                          class="d-inline" onsubmit="return confirm('Are you sure?');">
-                                        {% csrf_token %}
-                                        {% if s.survey.status == 'active' %}
-                                        <button type="submit" class="btn btn-outline-warning btn-action">
-                                            <i class="fas fa-eye-slash me-1"></i> Hide from Users
-                                        </button>
-                                        {% else %}
-                                        <button type="submit" class="btn btn-outline-success btn-action">
-                                            <i class="fas fa-eye me-1"></i> Make Visible
-                                        </button>
-                                        {% endif %}
-                                    </form>
+                                    <div class="tracer-actions" role="group" aria-label="Actions for questionnaire {{ s.survey.id }}">
+                                        <a href="{% url 'surveys:tracer_study_report' s.survey.id %}"
+                                           class="tracer-icon-action tracer-icon-action-primary"
+                                           aria-label="View report" title="View report">
+                                            <i class="fas fa-chart-pie" aria-hidden="true"></i>
+                                            <span class="visually-hidden">View report</span>
+                                        </a>
+                                        <a href="{% url 'core:edit_tracer_study' s.survey.id %}"
+                                           class="tracer-icon-action"
+                                           aria-label="Edit questionnaire" title="Edit questionnaire">
+                                            <i class="fas fa-pen-to-square" aria-hidden="true"></i>
+                                            <span class="visually-hidden">Edit questionnaire</span>
+                                        </a>
+                                        <form method="post" action="{% url 'surveys:tracer_study_toggle_visibility' s.survey.id %}"
+                                              onsubmit="return confirm('Are you sure?');">
+                                            {% csrf_token %}
+                                            {% if s.survey.status == 'active' %}
+                                            <button type="submit" class="tracer-icon-action tracer-icon-action-warning"
+                                                    aria-label="Hide from users" title="Hide from users">
+                                                <i class="fas fa-eye-slash" aria-hidden="true"></i>
+                                                <span class="visually-hidden">Hide from users</span>
+                                            </button>
+                                            {% else %}
+                                            <button type="submit" class="tracer-icon-action tracer-icon-action-success"
+                                                    aria-label="Make visible" title="Make visible">
+                                                <i class="fas fa-eye" aria-hidden="true"></i>
+                                                <span class="visually-hidden">Make visible</span>
+                                            </button>
+                                            {% endif %}
+                                        </form>
+                                    </div>
                                 </td>
                             </tr>
                             {% endfor %}
@@ -110,14 +127,14 @@
                     </table>
                 </div>
             </div>
+            {% else %}
+            <div class="tracer-list-empty">
+                <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                <h3>No tracer study cycles yet</h3>
+                <p>Use the plus button above to create the first alumni and employer questionnaires.</p>
+            </div>
+            {% endif %}
         </div>
-        {% else %}
-        <div class="alert alert-warning">
-            <i class="fas fa-exclamation-triangle me-1"></i>
-            No tracer study surveys found. Run
-            <code>python manage.py seed_tracer_study</code> to create them.
-        </div>
-        {% endif %}
     </div>
 </div>
 {% endblock %}
