@@ -37,8 +37,24 @@
             </div>
         </div>
 
+        {% if rate_limited %}
+        <div class="alert alert-warning" role="alert">
+            <strong>Too many submission attempts.</strong>
+            Please wait a few minutes, then submit the form again.
+        </div>
+        {% endif %}
+
         <form method="post" id="tracer-study-form" novalidate>
             {% csrf_token %}
+            <div class="tracer-form-honeypot" aria-hidden="true">
+                <label for="id_{{ honeypot_field_name }}">Leave this field blank</label>
+                <input type="text"
+                       id="id_{{ honeypot_field_name }}"
+                       name="{{ honeypot_field_name }}"
+                       value=""
+                       tabindex="-1"
+                       autocomplete="off">
+            </div>
 
             {% for question in questions %}
             {% with qmeta=question.help_text|load_question_meta %}

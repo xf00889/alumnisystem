@@ -6,6 +6,42 @@ from django.core.cache import cache
 from django.http import JsonResponse
 from django.contrib import messages
 from django.shortcuts import redirect
+from django_ratelimit.decorators import ratelimit
+
+
+PUBLIC_FORM_HONEYPOT_FIELD = "office_website"
+
+
+def rate_limit_public_form(burst_rate="10/m", sustained_rate="50/h"):
+    """Apply soft per-IP POST limits suitable for anonymous public forms.
+
+    ``block=False`` lets the protected view return a useful HTTP 429 page by
+    checking ``request.limited``. GET requests are never counted, so opening or
+    refreshing a form remains unrestricted.
+    """
+    def decorator(view_func):
+        group = f"{view_func.__module__}.{view_func.__qualname__}"
+        limited_view = ratelimit(
+            group=f"{group}:sustained",
+            key="ip",
+            rate=sustained_rate,
+            method="POST",
+            block=False,
+        )(view_func)
+        return ratelimit(
+            group=f"{group}:burst",
+            key="ip",
+            rate=burst_rate,
+            method="POST",
+            block=False,
+        )(limited_view)
+
+    return decorator
+
+
+def public_form_honeypot_triggered(request):
+    """Return whether an automated client filled the hidden trap field."""
+    return bool(request.POST.get(PUBLIC_FORM_HONEYPOT_FIELD, "").strip())
 
 
 def rate_limit_messages(max_messages=10, time_window=60):

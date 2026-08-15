@@ -1,6 +1,15 @@
 """
 Context processors for adding global template variables
 """
+
+
+TRACER_STUDY_PAGE_NAMES = frozenset({
+    'tracer_study_public_list',
+    'tracer_study_alumni',
+    'tracer_study_employer',
+})
+
+
 def user_role_context(request):
     """
     Add user role information to template context
@@ -30,21 +39,21 @@ def tracer_study_banner_context(request):
     current_url_name = getattr(
         getattr(request, 'resolver_match', None), 'url_name', ''
     )
+    # The public announcement belongs on discovery pages, not on the tracer
+    # study index or questionnaires where it would duplicate the page purpose.
+    if current_url_name not in TRACER_STUDY_PAGE_NAMES:
+        try:
+            from surveys.tracer_study import public_tracer_banner_queryset
 
-    # The public announcement is intentionally independent from alumni
-    # eligibility. On the public index its action becomes an in-page link.
-    try:
-        from surveys.tracer_study import public_tracer_banner_queryset
-
-        public_count = public_tracer_banner_queryset().count()
-        context.update({
-            'show_public_tracer_study_banner': public_count > 0,
-            'public_tracer_study_count': public_count,
-        })
-    except Exception:
-        # Fail closed during migrations or when the surveys table is not
-        # available (for example, first-time setup).
-        pass
+            public_count = public_tracer_banner_queryset().count()
+            context.update({
+                'show_public_tracer_study_banner': public_count > 0,
+                'public_tracer_study_count': public_count,
+            })
+        except Exception:
+            # Fail closed during migrations or when the surveys table is not
+            # available (for example, first-time setup).
+            pass
 
     if not getattr(request, 'user', None) or not request.user.is_authenticated:
         return context

@@ -45,6 +45,11 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import View
 
 from alumni_directory.models import Alumni
+from core.rate_limiters import (
+    PUBLIC_FORM_HONEYPOT_FIELD,
+    public_form_honeypot_triggered,
+    rate_limit_public_form,
+)
 from .models import (
     Employer,
     EmployerResponse,
@@ -1461,6 +1466,7 @@ def tracer_study_alumni(request):
 
 
 @require_http_methods(["GET", "POST"])
+@rate_limit_public_form()
 def tracer_study_employer(request):
     survey = _get_active_survey(EMPLOYER_TITLE)
     if survey is None:
@@ -1471,6 +1477,37 @@ def tracer_study_employer(request):
         return redirect("core:home")
 
     if request.method == "POST":
+        if getattr(request, "limited", False):
+            logger.warning(
+                "Employer tracer-study submission rate limited from %s",
+                request.META.get("REMOTE_ADDR", "unknown"),
+            )
+            questions = survey.questions.all().prefetch_related("options")
+            response = render(
+                request,
+                "tracer_study/employer_form.html",
+                {
+                    "survey": survey,
+                    "questions": questions,
+                    "rate_limited": True,
+                    "honeypot_field_name": PUBLIC_FORM_HONEYPOT_FIELD,
+                },
+                status=429,
+            )
+            response["Retry-After"] = "60"
+            return response
+
+        if public_form_honeypot_triggered(request):
+            logger.warning(
+                "Employer tracer-study honeypot triggered from %s",
+                request.META.get("REMOTE_ADDR", "unknown"),
+            )
+            return render(
+                request,
+                "tracer_study/thank_you.html",
+                {"survey": survey, "audience": "employer"},
+            )
+
         company = request.POST.get("company_name", "").strip()
         position = request.POST.get("position", "").strip()
         if not company or not position:
@@ -1532,7 +1569,11 @@ def tracer_study_employer(request):
     return render(
         request,
         "tracer_study/employer_form.html",
-        {"survey": survey, "questions": questions},
+        {
+            "survey": survey,
+            "questions": questions,
+            "honeypot_field_name": PUBLIC_FORM_HONEYPOT_FIELD,
+        },
     )
 
 
