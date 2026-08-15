@@ -1527,18 +1527,6 @@
                                 title="Share via Email">
                             <i class="fas fa-envelope"></i>
                         </button>
-                        <button class="modal-share-button" 
-                                style="background: var(--primary-color);" 
-                                data-share-action="copyToClipboard" 
-                                title="Copy Link">
-                            <i class="fas fa-copy"></i>
-                        </button>
-                        <button class="modal-share-button" 
-                                style="background: var(--feedback-warning);" 
-                                data-share-action="testShareFunctionality" 
-                                title="Test Share">
-                            <i class="fas fa-bug"></i>
-                        </button>
                     </div>
                 </div>
             </div>
@@ -2141,56 +2129,6 @@ function shareViaEmail(event) {
     
     const mailtoUrl = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
     window.location.href = mailtoUrl;
-}
-
-// Copy to clipboard function
-function copyToClipboard(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
-    if (!currentAnnouncementData) {
-        SweetAlertUtils.error('Error', 'No announcement data available for copying');
-        return;
-    }
-    
-    const url = window.location.origin + `/announcements/${currentAnnouncementData.id}/`;
-    const text = `Check out this announcement: ${currentAnnouncementData.title}\n\n${url}`;
-    
-    navigator.clipboard.writeText(text).then(() => {
-        SweetAlertUtils.success('Copied!', 'Announcement link copied to clipboard');
-    }).catch(() => {
-        // Fallback for older browsers
-        const textArea = document.createElement('textarea');
-        textArea.value = text;
-        document.body.appendChild(textArea);
-        textArea.select();
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        SweetAlertUtils.success('Copied!', 'Announcement link copied to clipboard');
-    });
-}
-
-// Test function to verify share functionality
-function testShareFunctionality(event) {
-    if (event) {
-        event.preventDefault();
-        event.stopPropagation();
-    }
-    
-    console.log('Testing share functionality...');
-    console.log('Current announcement data:', currentAnnouncementData);
-    
-    if (!currentAnnouncementData) {
-        console.error('No announcement data available');
-        SweetAlertUtils.error('Test Failed', 'No announcement data available');
-        return false;
-    }
-    
-    console.log('Share functionality test passed');
-    SweetAlertUtils.success('Test Passed', 'Share functionality is working correctly!');
-    return true;
 }
 
 // Delete announcement functionality with SweetAlert and AJAX
