@@ -553,6 +553,15 @@ def _tracer_program_choices():
 
 
 def _tracer_form_context(form=None, survey=None, survey_is_employer=False):
+    if survey is not None:
+        selected_audience = (
+            "employer" if survey.title == tracer_study.EMPLOYER_TITLE else "alumni"
+        )
+    else:
+        selected_audience = (form.get("audience", "alumni") if form else "alumni")
+        if selected_audience not in ("alumni", "employer"):
+            selected_audience = "alumni"
+    survey_is_employer = survey_is_employer or selected_audience == "employer"
     return {
         "college_choices": Alumni.COLLEGE_CHOICES,
         "campus_choices": Alumni.CAMPUS_CHOICES,
@@ -560,6 +569,7 @@ def _tracer_form_context(form=None, survey=None, survey_is_employer=False):
         "form": form,
         "survey": survey,
         "survey_is_employer": survey_is_employer,
+        "selected_audience": selected_audience,
     }
 
 
@@ -623,10 +633,10 @@ def _tracer_targeting_from_form(form, is_employer=False):
 
 @login_required
 def create_tracer_study(request):
-    """Create a new tracer study cycle (alumni + employer surveys).
+    """Create one alumni or employer tracer study questionnaire.
 
-    Existing cycles and their responses remain intact. Audience selection
-    chooses the newest eligible restricted cycle when open cycles overlap.
+    Existing cycles and their responses remain intact. Alumni questionnaires
+    may use profile-based targeting; employer questionnaires remain public.
     """
     if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
@@ -639,6 +649,16 @@ def create_tracer_study(request):
     from alumni_directory.models import Alumni
 
     if request.method == 'POST':
+        audience = request.POST.get('audience', 'alumni').strip().lower()
+        if audience not in ('alumni', 'employer'):
+            messages.error(request, _('Select either Alumni or Employer questionnaire.'))
+            return render(
+                request,
+                'admin/tracer_study_create.html',
+                _tracer_form_context(form=request.POST),
+            )
+        is_employer = audience == 'employer'
+
         label = request.POST.get('label', '').strip()
         if not label:
             messages.error(request, _('Cycle label is required, e.g. "SY 2026-2027".'))
@@ -664,7 +684,9 @@ def create_tracer_study(request):
             )
 
         try:
-            targeting = _tracer_targeting_from_form(request.POST)
+            targeting = _tracer_targeting_from_form(
+                request.POST, is_employer=is_employer
+            )
         except ValidationError as exc:
             messages.error(request, exc.message)
             return render(
@@ -673,43 +695,49 @@ def create_tracer_study(request):
                 _tracer_form_context(form=request.POST),
             )
 
-        college_code = targeting["target_college"]
-        program = targeting["target_program"]
-        college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, '')
-        program_name = next(
-            (
-                choice["label"] for choice in _tracer_program_choices()
-                if choice["college"] == college_code and choice["code"] == program
-            ),
-            program,
-        )
-        requested_by = " — ".join(filter(None, [college_name, program_name])) or 'NORSU Alumni Affairs Office'
+        if is_employer:
+            title = tracer_study.EMPLOYER_TITLE
+            description = EMPLOYER_DESCRIPTION
+            questions = EMPLOYER_QUESTIONS
+            requested_by = 'NORSU Alumni Affairs Office'
+        else:
+            title = tracer_study.ALUMNI_TITLE
+            description = ALUMNI_DESCRIPTION
+            questions = ALUMNI_QUESTIONS
+            college_code = targeting["target_college"]
+            program = targeting["target_program"]
+            college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, '')
+            program_name = next(
+                (
+                    choice["label"] for choice in _tracer_program_choices()
+                    if choice["college"] == college_code and choice["code"] == program
+                ),
+                program,
+            )
+            requested_by = (
+                " — ".join(filter(None, [college_name, program_name]))
+                or 'NORSU Alumni Affairs Office'
+            )
 
         try:
             with transaction.atomic():
-                for title, description, questions in (
-                    (tracer_study.ALUMNI_TITLE, ALUMNI_DESCRIPTION, ALUMNI_QUESTIONS),
-                    (tracer_study.EMPLOYER_TITLE, EMPLOYER_DESCRIPTION, EMPLOYER_QUESTIONS),
-                ):
-                    survey = Survey.objects.create(
-                        title=title,
-                        description=f"{label} — {description}",
-                        start_date=start_date,
-                        end_date=end_date,
-                        status='active',
-                        created_by=request.user,
-                        is_external=False,
-                        requested_by=requested_by,
-                        # Only the alumni questionnaire has profile-based
-                        # targeting; the employer form remains public.
-                        target_campus=targeting["target_campus"] if title == tracer_study.ALUMNI_TITLE else '',
-                        target_college=targeting["target_college"] if title == tracer_study.ALUMNI_TITLE else '',
-                        target_program=targeting["target_program"] if title == tracer_study.ALUMNI_TITLE else '',
-                        target_graduation_year_from=targeting["target_graduation_year_from"] if title == tracer_study.ALUMNI_TITLE else None,
-                        target_graduation_year_to=targeting["target_graduation_year_to"] if title == tracer_study.ALUMNI_TITLE else None,
-                        display_to_all=targeting["display_to_all"] or title == tracer_study.EMPLOYER_TITLE,
-                    )
-                    _apply_questions(survey, questions)
+                survey = Survey.objects.create(
+                    title=title,
+                    description=f"{label} — {description}",
+                    start_date=start_date,
+                    end_date=end_date,
+                    status='active',
+                    created_by=request.user,
+                    is_external=False,
+                    requested_by=requested_by,
+                    target_campus=targeting["target_campus"],
+                    target_college=targeting["target_college"],
+                    target_program=targeting["target_program"],
+                    target_graduation_year_from=targeting["target_graduation_year_from"],
+                    target_graduation_year_to=targeting["target_graduation_year_to"],
+                    display_to_all=targeting["display_to_all"],
+                )
+                _apply_questions(survey, questions)
         except Exception as exc:
             logger.error(f"Tracer study creation failed: {exc}", exc_info=True)
             error_msg = f"An error occurred while creating the tracer study: {str(exc)}"
@@ -720,7 +748,11 @@ def create_tracer_study(request):
                 _tracer_form_context(form=request.POST),
             )
 
-        messages.success(request, _('New tracer study form created and activated.'))
+        messages.success(
+            request,
+            _('New %(audience)s tracer study form created and activated.')
+            % {'audience': audience.title()},
+        )
         return redirect('surveys:tracer_study_reports')
 
     return render(
@@ -765,8 +797,7 @@ def _parse_end_date_field(value, default):
 @login_required
 def edit_tracer_study(request, survey_id):
     """Edit a tracer study cycle's metadata (label, dates, requester,
-    visibility, status). Keeps the alumni/employer pair in sync by matching
-    the other title with the same cycle label and start date."""
+    visibility, and status without changing another questionnaire."""
     if not is_admin_user(request.user):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
@@ -806,7 +837,7 @@ def edit_tracer_study(request, survey_id):
                 _tracer_form_context(form=form, survey=survey, survey_is_employer=is_employer),
             )
 
-        old_label, old_suffix = _split_cycle_description(survey.description)
+        _old_label, old_suffix = _split_cycle_description(survey.description)
         college_code = targeting["target_college"]
         program = targeting["target_program"]
         college_name = dict(Alumni.COLLEGE_CHOICES).get(college_code, '')
@@ -823,15 +854,6 @@ def edit_tracer_study(request, survey_id):
             else " — ".join(filter(None, [college_name, program_name]))
             or 'NORSU Alumni Affairs Office'
         )
-
-        other_title = (tracer_study.EMPLOYER_TITLE if survey.title == tracer_study.ALUMNI_TITLE
-                       else tracer_study.ALUMNI_TITLE)
-        counterpart_qs = Survey.objects.filter(
-            title=other_title, start_date=survey.start_date
-        ).exclude(id=survey.id)
-        if old_label:
-            counterpart_qs = counterpart_qs.filter(description__startswith=f"{old_label} — ")
-        counterpart = counterpart_qs.order_by('id').first()
 
         try:
             with transaction.atomic():
@@ -853,17 +875,6 @@ def edit_tracer_study(request, survey_id):
                     'display_to_all', 'status',
                 ])
 
-                if counterpart:
-                    c_label, c_suffix = _split_cycle_description(counterpart.description)
-                    counterpart.description = f"{label} — {c_suffix}" if c_suffix else label
-                    counterpart.start_date = start_date
-                    counterpart.end_date = end_date
-                    counterpart.requested_by = requested_by
-                    counterpart.status = survey.status
-                    counterpart.save(update_fields=[
-                        'description', 'start_date', 'end_date',
-                        'requested_by', 'status',
-                    ])
         except Exception as exc:
             logger.error(f"Tracer study edit failed: {exc}", exc_info=True)
             error_msg = f"An error occurred while saving the tracer study: {str(exc)}"

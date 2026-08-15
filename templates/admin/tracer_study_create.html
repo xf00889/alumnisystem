@@ -5,12 +5,26 @@
 
 {% block extra_css %}
 <style>
-    .tracer-create-wrap { max-width: 720px; margin: 0 auto; }
-    .tracer-create-card { background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e2e8f0); border-radius: 12px; padding: 2rem; }
-    .tracer-create-card h4 { color: var(--primary-color, #2b3c6b); margin-bottom: 1.5rem; }
+    .tracer-create-wrap { max-width: 820px; margin: 0 auto; }
+    .tracer-create-card { background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e2e8f0); border-radius: 12px; padding: 2rem; box-shadow: 0 10px 30px rgba(43, 60, 107, 0.08); }
+    .tracer-create-card h4 { color: var(--primary-color, #2b3c6b); margin-bottom: 0.5rem; letter-spacing: -0.02em; }
     .form-label { font-weight: 600; }
     .form-hint { font-size: 0.8rem; color: var(--text-muted, #a0aec0); }
     .btn-create { background: var(--primary-color, #2b3c6b); border-color: var(--primary-color, #2b3c6b); }
+    .audience-select-panel { padding: 1rem; margin-bottom: 1.25rem; background: #f5f7fb; border: 1px solid #dce3ef; border-radius: 8px; }
+    .audience-select-panel .form-select { min-height: 46px; border-color: #cbd5e1; font-weight: 500; }
+    .audience-readonly { display: flex; align-items: center; gap: 0.65rem; padding: 0.85rem 1rem; margin-bottom: 1.25rem; color: #2b3c6b; background: #f5f7fb; border: 1px solid #dce3ef; border-radius: 8px; font-weight: 600; }
+    .conditional-section[hidden] { display: none !important; }
+    .section-heading { margin: 0 0 0.35rem; color: #2b3c6b; font-size: 1rem; font-weight: 600; }
+    .section-copy { margin: 0 0 1rem; color: #64748b; font-size: 0.82rem; }
+    .alumni-settings-panel { padding: 1.1rem; margin-bottom: 1.5rem; border: 1px solid #dce3ef; border-radius: 8px; }
+    .targeting-fields { padding: 1rem; background: #fbfcfe; border: 1px solid #e2e8f0; border-radius: 7px; transition: opacity 0.2s ease; }
+    .employer-access-panel { display: flex; gap: 0.9rem; padding: 1rem; margin-bottom: 1.5rem; color: #285f50; background: #eef8f5; border: 1px solid #cce8de; border-radius: 8px; }
+    .employer-access-panel > i { margin-top: 0.15rem; font-size: 1.1rem; }
+    .employer-access-panel strong { display: block; margin-bottom: 0.2rem; color: #1f5547; }
+    @media (max-width: 576px) {
+        .tracer-create-card { padding: 1.25rem; }
+    }
 </style>
 {% endblock %}
 
@@ -21,18 +35,43 @@
             {% if survey %}Edit{% else %}Create New{% endif %} Tracer Study Form</h4>
         <p class="text-muted">
             {% if survey %}
-                Updates this cycle's metadata (label, period, requester, visibility and
-                status). Edits are mirrored to its paired alumni/employer survey.
+                Update this questionnaire's label, response period, access, and status.
+                Other tracer study questionnaires will not be changed.
             {% else %}
-                Creates a fresh alumni and employer tracer study questionnaire with the
-                standard questions. New cycles go live alongside any existing active
-                form. Restricted alumni cycles can target campus, college, program, and
-                graduation years; every selected condition must match.
+                Choose the questionnaire audience first. Alumni studies can target a
+                specific cohort, while employer studies use a public response form.
             {% endif %}
         </p>
 
-        <form method="post" action="{% if survey %}{% url 'core:edit_tracer_study' survey.id %}{% else %}{% url 'core:create_tracer_study' %}{% endif %}" novalidate>
+        <form method="post" action="{% if survey %}{% url 'core:edit_tracer_study' survey.id %}{% else %}{% url 'core:create_tracer_study' %}{% endif %}"
+              data-audience="{{ selected_audience }}" novalidate>
             {% csrf_token %}
+
+            {% if not survey %}
+            <div class="audience-select-panel">
+                <label class="form-label" for="id_audience">Questionnaire audience</label>
+                <select id="id_audience" name="audience" class="form-select" required>
+                    <option value="alumni" {% if selected_audience == 'alumni' %}selected{% endif %}>Alumni questionnaire</option>
+                    <option value="employer" {% if selected_audience == 'employer' %}selected{% endif %}>Employer questionnaire</option>
+                </select>
+                <div class="form-hint mt-2" id="audience-help">
+                    {% if selected_audience == 'employer' %}
+                        Creates a public evaluation form for employers and HR representatives.
+                    {% else %}
+                        Creates a questionnaire for all alumni or a selected alumni cohort.
+                    {% endif %}
+                </div>
+            </div>
+            {% else %}
+            <div class="audience-readonly">
+                {% if survey_is_employer %}
+                    <i class="fas fa-building" aria-hidden="true"></i> Employer questionnaire
+                {% else %}
+                    <i class="fas fa-user-graduate" aria-hidden="true"></i> Alumni questionnaire
+                {% endif %}
+            </div>
+            {% endif %}
+
             <div class="mb-3">
                 <label class="form-label" for="id_label">Cycle Label</label>
                 <input type="text" id="id_label" name="label" class="form-control" required
@@ -56,31 +95,26 @@
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label class="form-label">Visibility</label>
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="visibility" id="id_vis_all"
-                           value="all" {% if form.visibility != 'restricted' %}checked{% endif %}>
-                    <label class="form-check-label" for="id_vis_all">
-                        Display to all alumni
-                    </label>
+            {% if not survey or not survey_is_employer %}
+            <section id="alumni-settings" class="conditional-section alumni-settings-panel"
+                     {% if selected_audience == 'employer' %}hidden{% endif %}>
+                <h5 class="section-heading">Alumni access</h5>
+                <p class="section-copy">Choose whether every alumnus can respond or limit the study to a defined cohort.</p>
+                <div class="mb-3">
+                    <div class="form-check">
+                        <input class="form-check-input alumni-access-control" type="radio" name="visibility" id="id_vis_all"
+                               value="all" {% if form.visibility != 'restricted' %}checked{% endif %}>
+                        <label class="form-check-label" for="id_vis_all">Display to all alumni</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input alumni-access-control" type="radio" name="visibility" id="id_vis_restricted"
+                               value="restricted" {% if form.visibility == 'restricted' %}checked{% endif %}>
+                        <label class="form-check-label" for="id_vis_restricted">Restrict to a selected alumni audience</label>
+                    </div>
+                    <div class="form-hint">Every selected restriction below must match the alumnus's primary academic record.</div>
                 </div>
-                {% if survey_is_employer %}
-                    <div class="form-hint">The employer questionnaire is public. Configure alumni targeting on its paired alumni questionnaire.</div>
-                {% else %}
-                <div class="form-check">
-                    <input class="form-check-input" type="radio" name="visibility" id="id_vis_restricted"
-                           value="restricted" {% if form.visibility == 'restricted' %}checked{% endif %}>
-                    <label class="form-check-label" for="id_vis_restricted">
-                        Restrict to a selected alumni audience
-                    </label>
-                </div>
-                <div class="form-hint">Choose at least one condition below. When several are selected, an alumnus must match all of them.</div>
-                {% endif %}
-            </div>
 
-            {% if not survey_is_employer %}
-            <div id="targeting-fields" class="border rounded p-3 mb-4">
+            <div id="targeting-fields" class="targeting-fields">
                 <div class="row">
                     <div class="col-md-6 mb-3">
                         <label class="form-label" for="id_campus">Campus</label>
@@ -130,6 +164,18 @@
                 </div>
                 <div class="form-hint">Graduation-year endpoints are inclusive and must be supplied together.</div>
             </div>
+            </section>
+            {% endif %}
+
+            {% if not survey or survey_is_employer %}
+            <section id="employer-settings" class="conditional-section employer-access-panel"
+                     {% if selected_audience != 'employer' %}hidden{% endif %}>
+                <i class="fas fa-globe" aria-hidden="true"></i>
+                <div>
+                    <strong>Public employer form</strong>
+                    Employers and HR representatives can respond without an alumni account. Campus, college, program, and graduation-year targeting do not apply.
+                </div>
+            </section>
             {% endif %}
 
             {% if survey %}
@@ -145,7 +191,11 @@
 
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-primary btn-create">
-                    {% if survey %}<i class="fas fa-save me-1"></i>Save Changes{% else %}<i class="fas fa-plus-circle me-1"></i>Create Tracer Study{% endif %}
+                    {% if survey %}
+                        <i class="fas fa-save me-1"></i>Save Changes
+                    {% else %}
+                        <i class="fas fa-plus-circle me-1"></i><span id="create-button-label">Create {% if selected_audience == 'employer' %}Employer{% else %}Alumni{% endif %} Study</span>
+                    {% endif %}
                 </button>
                 <a href="{% url 'surveys:tracer_study_reports' %}" class="btn btn-outline-secondary">Cancel</a>
             </div>
@@ -155,12 +205,25 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
+        const tracerForm = document.querySelector('form[data-audience]');
+        const audience = document.getElementById('id_audience');
+        const audienceHelp = document.getElementById('audience-help');
+        const alumniSettings = document.getElementById('alumni-settings');
+        const employerSettings = document.getElementById('employer-settings');
+        const createButtonLabel = document.getElementById('create-button-label');
         const restricted = document.getElementById('id_vis_restricted');
         const allAlumni = document.getElementById('id_vis_all');
         const targetingFields = document.getElementById('targeting-fields');
         const college = document.getElementById('id_college');
         const program = document.getElementById('id_program');
         const targetControls = Array.from(document.querySelectorAll('.target-control'));
+        const alumniAccessControls = Array.from(document.querySelectorAll('.alumni-access-control'));
+
+        function alumniSelected() {
+            return audience
+                ? audience.value === 'alumni'
+                : !tracerForm || tracerForm.dataset.audience !== 'employer';
+        }
 
         function syncProgram(clearInvalid) {
             if (!program || !college || !restricted) return;
@@ -170,19 +233,37 @@
                 if (!option.value) return;
                 const matches = option.dataset.college === selectedCollege;
                 option.hidden = !matches;
-                option.disabled = !matches || !restricted.checked;
+                option.disabled = !matches || !restricted.checked || !alumniSelected();
                 if (option.selected && matches) selectedIsValid = true;
             });
             if (clearInvalid && !selectedIsValid) program.value = '';
-            program.disabled = !restricted.checked || !selectedCollege;
+            program.disabled = !alumniSelected() || !restricted.checked || !selectedCollege;
         }
 
         function syncTargetFields(clearInvalid) {
             if (!restricted || !targetingFields) return;
-            const enabled = restricted.checked;
+            const enabled = alumniSelected() && restricted.checked;
             targetingFields.style.opacity = enabled ? '1' : '0.5';
             targetControls.forEach(function (control) { control.disabled = !enabled; });
             syncProgram(clearInvalid);
+        }
+
+        function syncAudience() {
+            const isAlumni = alumniSelected();
+            if (alumniSettings) alumniSettings.hidden = !isAlumni;
+            if (employerSettings) employerSettings.hidden = isAlumni;
+            alumniAccessControls.forEach(function (control) { control.disabled = !isAlumni; });
+            if (audienceHelp) {
+                audienceHelp.textContent = isAlumni
+                    ? 'Creates a questionnaire for all alumni or a selected alumni cohort.'
+                    : 'Creates a public evaluation form for employers and HR representatives.';
+            }
+            if (createButtonLabel) {
+                createButtonLabel.textContent = isAlumni
+                    ? 'Create Alumni Study'
+                    : 'Create Employer Study';
+            }
+            syncTargetFields(false);
         }
 
         if (restricted) {
@@ -190,7 +271,8 @@
             allAlumni.addEventListener('change', function () { syncTargetFields(false); });
             college.addEventListener('change', function () { syncTargetFields(true); });
         }
-        syncTargetFields(false);
+        if (audience) audience.addEventListener('change', syncAudience);
+        syncAudience();
     });
 </script>
 {% endblock %}
