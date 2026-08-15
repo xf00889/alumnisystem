@@ -30,13 +30,86 @@
                                 <i class="fas fa-home me-1"></i> Back to Home
                             </a>
                         {% endif %}
-                        <a href="{% url 'surveys:tracer_study_employer' %}" class="btn btn-outline-secondary">
-                            <i class="fas fa-share-alt me-1"></i> Share Employer Link
-                        </a>
+                        <button
+                            type="button"
+                            class="btn btn-outline-secondary"
+                            id="shareEmployerLink"
+                            data-share-url="{% url 'surveys:tracer_study_employer' %}"
+                        >
+                            <i class="fas fa-share-alt me-1" aria-hidden="true"></i>
+                            <span class="share-label">Share Employer Link</span>
+                        </button>
                     </div>
+                    <p id="shareEmployerStatus" class="result-contact mt-2 mb-0" role="status" aria-live="polite"></p>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const shareButton = document.getElementById('shareEmployerLink');
+    const shareStatus = document.getElementById('shareEmployerStatus');
+
+    if (!shareButton) {
+        return;
+    }
+
+    const shareUrl = new URL(shareButton.dataset.shareUrl, window.location.origin).href;
+    const shareData = {
+        title: 'NORSU Employer Tracer Study',
+        text: 'Please answer the NORSU Employer Tracer Study.',
+        url: shareUrl
+    };
+
+    function showCopiedState() {
+        const label = shareButton.querySelector('.share-label');
+        label.textContent = 'Link Copied';
+        shareStatus.textContent = 'Employer tracer study link copied to your clipboard.';
+        window.setTimeout(function () {
+            label.textContent = 'Share Employer Link';
+            shareStatus.textContent = '';
+        }, 3000);
+    }
+
+    async function copyShareUrl() {
+        if (navigator.clipboard && window.isSecureContext) {
+            await navigator.clipboard.writeText(shareUrl);
+        } else {
+            const temporaryInput = document.createElement('textarea');
+            temporaryInput.value = shareUrl;
+            temporaryInput.setAttribute('readonly', '');
+            temporaryInput.style.position = 'fixed';
+            temporaryInput.style.opacity = '0';
+            document.body.appendChild(temporaryInput);
+            temporaryInput.select();
+            document.execCommand('copy');
+            temporaryInput.remove();
+        }
+        showCopiedState();
+    }
+
+    shareButton.addEventListener('click', async function () {
+        shareStatus.textContent = '';
+        try {
+            if (navigator.share) {
+                await navigator.share(shareData);
+                return;
+            }
+            await copyShareUrl();
+        } catch (error) {
+            if (error.name !== 'AbortError') {
+                try {
+                    await copyShareUrl();
+                } catch (copyError) {
+                    shareStatus.textContent = 'Unable to share automatically. Please try again.';
+                }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}
