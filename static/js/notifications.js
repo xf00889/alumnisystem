@@ -212,11 +212,11 @@ class NotificationManager {
         if (badge) {
             if (this.notificationCount > 0) {
                 const label = `${this.notificationCount} unread notification${this.notificationCount === 1 ? '' : 's'}`;
-                badge.textContent = '';
+                badge.textContent = this.notificationCount > 99 ? '99+' : String(this.notificationCount);
                 badge.setAttribute('aria-label', label);
                 badge.setAttribute('title', label);
                 badge.setAttribute('aria-hidden', 'false');
-                badge.style.display = 'block';
+                badge.style.display = 'inline-flex';
             } else {
                 badge.textContent = '';
                 badge.removeAttribute('aria-label');
