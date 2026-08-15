@@ -1483,7 +1483,6 @@ def tracer_study_employer(request):
                 {
                     "survey": survey,
                     "audience": "employer",
-                    "base_template": "base_landingpage.html",
                 },
             )
 
@@ -1500,7 +1499,6 @@ def tracer_study_employer(request):
                         {
                             "survey": survey,
                             "audience": "employer",
-                            "base_template": "base_landingpage.html",
                         },
                     )
                 _save_employer_response(request, survey, employer)
@@ -1523,7 +1521,6 @@ def tracer_study_employer(request):
             {
                 "survey": survey,
                 "audience": "employer",
-                "base_template": "base_landingpage.html",
             },
         )
 
