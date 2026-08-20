@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
         },
 
         // Effects
-        speed: 400,
+        speed: 200,
         effect: 'slide',
 
         // Auto height
@@ -142,18 +142,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Add intersection observer for animations
-    const observer = new IntersectionObserver((entries) => {
-        entries.forEach(entry => {
-            if (entry.isIntersecting) {
-                sliderContainer.classList.add('in-view');
-                observer.unobserve(entry.target);
-            }
-        });
-    }, {
-        threshold: 0.2,
-        rootMargin: '0px 0px -50px 0px'
-    });
-
-    observer.observe(sliderContainer);
+    // Keep the content visible immediately; navigation remains touch-enabled.
+    sliderContainer.classList.add('in-view');
 });

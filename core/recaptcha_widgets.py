@@ -9,6 +9,7 @@ class DatabaseReCaptchaV3(ReCaptchaV3):
     """
     Custom reCAPTCHA v3 widget that uses database configuration
     """
+    template_name = 'core/widgets/lazy_recaptcha_v3.html'
     
     def __init__(self, *args, **kwargs):
         # Get the public key from database configuration
@@ -22,6 +23,20 @@ class DatabaseReCaptchaV3(ReCaptchaV3):
         kwargs['attrs']['data-sitekey'] = public_key
         
         super().__init__(*args, **kwargs)
+
+        # The upstream g-recaptcha class triggers an additional visible widget
+        # when Google's API scans the page. Use a dedicated hook for the lazy
+        # v3 controller so only one invisible verification flow is created.
+        classes = self.attrs.get('class', '').split()
+        classes = [name for name in classes if name != 'g-recaptcha']
+        if 'norsu-recaptcha-v3' not in classes:
+            classes.append('norsu-recaptcha-v3')
+        self.attrs['class'] = ' '.join(classes)
+
+    def build_attrs(self, base_attrs, extra_attrs=None):
+        attrs = super().build_attrs(base_attrs, extra_attrs)
+        attrs.pop('data-size', None)
+        return attrs
     
     def render(self, name, value, attrs=None, renderer=None):
         # Only render if reCAPTCHA is enabled and has a valid key
