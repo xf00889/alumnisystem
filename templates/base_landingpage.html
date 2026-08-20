@@ -17,7 +17,11 @@
     <link rel="apple-touch-icon" href="{% static 'images/alumni_logo.png' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    {% if request.resolver_match.url_name == 'home' and site_config.hero_background_image %}
+    <link rel="preload" href="{{ site_config.hero_background_image.url }}" as="image" fetchpriority="high">
+    {% else %}
     <link rel="preload" href="{% static 'images/bg.webp' %}" as="image" type="image/webp" fetchpriority="high">
+    {% endif %}
     
     <!-- Google Fonts - Poppins -->
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -83,7 +87,7 @@
             line-height: 1.5;
             color: var(--text-primary);
             background-color: var(--ui-background);
-            padding-top: 150px; /* Adjusted for header + navbar */
+            padding-top: 140px; /* Compact masthead + public navigation */
         }
 
         /* Modern Design Overrides */
@@ -177,7 +181,7 @@
             padding: 0.875rem 0;
             box-shadow: 0 2px 16px rgba(43, 60, 107, 0.15);
             position: fixed;
-            top: var(--university-header-height, 88px);
+            top: var(--university-header-height, 76px);
             left: 0;
             right: 0;
             z-index: 1040;
@@ -189,34 +193,6 @@
         .landing-navbar.scrolled {
             padding: 0.875rem 0;
             box-shadow: 0 6px 25px rgba(43, 60, 107, 0.2);
-        }
-
-        .landing-navbar .navbar-brand {
-            font-size: 1rem;
-            font-weight: 600;
-            color: var(--text-light) !important;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            text-decoration: none;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            letter-spacing: -0.025em;
-        }
-
-        .landing-navbar .navbar-brand:hover {
-            color: rgba(255, 255, 255, 0.95) !important;
-            transform: translateY(-2px);
-        }
-
-        .landing-navbar .navbar-brand img {
-            height: 32px;
-            width: auto;
-            filter: brightness(1.1) drop-shadow(0 2px 4px rgba(0, 0, 0, 0.15));
-            transition: all 0.3s ease;
-        }
-
-        .landing-navbar .navbar-brand:hover img {
-            transform: scale(1.05);
         }
 
         /* Enhanced Navigation Links */
@@ -644,14 +620,6 @@
                 padding: 1rem 0;
             }
 
-            .landing-navbar .navbar-brand {
-                font-size: 0.9rem;
-            }
-
-            .landing-navbar .navbar-brand img {
-                height: 28px;
-            }
-
             .landing-navbar .navbar-nav .nav-link {
                 padding: 0.5rem 0.875rem !important;
                 font-size: 0.8rem;
@@ -699,14 +667,6 @@
         }
 
         @media (max-width: 576px) {
-            .landing-navbar .navbar-brand {
-                font-size: 1.25rem;
-            }
-
-            .landing-navbar .navbar-brand img {
-                height: 32px;
-            }
-
             .landing-navbar .navbar-nav .nav-link {
                 padding: 0.5rem 0.75rem !important;
                 font-size: 0.875rem;
@@ -723,21 +683,19 @@
     <link rel="stylesheet" href="{% static 'css/university_header.css' %}">
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
+    <link rel="stylesheet" href="{% static 'css/public_redesign.css' %}">
     <link rel="stylesheet" href="{% static 'css/landing-performance.css' %}">
 </head>
 <body class="public-landing">
+    {% if request.resolver_match.url_name != 'home' %}
+    <a class="public-skip-link" href="#public-main-content">Skip to page content</a>
+    {% endif %}
     <!-- University Header -->
     {% include 'components/university_header.html' %}
     
     <!-- Landing Page Navbar -->
-    <nav class="navbar navbar-expand-lg landing-navbar">
-        <div class="container-fluid" style="padding-left: 1.5rem; padding-right: 1.5rem;">
-            <!-- Brand -->
-            <a class="navbar-brand" href="{% url 'core:home' %}">
-                <img src="{% static 'images/alumni_logo.webp' %}" alt="NORSU Alumni Logo" width="256" height="245" decoding="async">
-                NORSU Alumni
-            </a>
-
+    <nav class="navbar navbar-expand-lg landing-navbar" aria-label="Primary navigation">
+        <div class="container-fluid landing-navbar-shell">
             <!-- Navbar Toggler -->
             <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#landingNavbar" aria-controls="landingNavbar" aria-expanded="false" aria-label="Toggle navigation">
                 <span class="navbar-toggler-icon">
@@ -753,38 +711,44 @@
                 <ul class="navbar-nav main-nav ms-auto">
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'home' %}active{% endif %}" href="{% url 'core:home' %}">
-                            <i class="fas fa-home"></i>
+                            <i class="fas fa-home" aria-hidden="true"></i>
                             <span>Home</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'about_us' %}active{% endif %}" href="{% url 'core:about_us' %}">
-                            <i class="fas fa-university"></i>
+                            <i class="fas fa-university" aria-hidden="true"></i>
                             <span>About</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'landing_events' %}active{% endif %}" href="{% url 'core:landing_events' %}">
-                            <i class="fas fa-calendar-alt"></i>
+                            <i class="fas fa-calendar-alt" aria-hidden="true"></i>
                             <span>Events</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'tracer_study_public_list' or request.resolver_match.url_name == 'tracer_study_alumni' or request.resolver_match.url_name == 'tracer_study_employer' %}active{% endif %}"
                            href="{% url 'surveys:tracer_study_public_list' %}">
-                            <i class="fas fa-clipboard-list"></i>
+                            <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                             <span>Tracer Studies</span>
+                            {% if show_public_tracer_study_badge %}
+                            <span class="tracer-nav-badge"
+                                  aria-label="{{ public_tracer_study_count }} open tracer stud{{ public_tracer_study_count|pluralize:'y,ies' }}">
+                                {{ public_tracer_study_count }}
+                            </span>
+                            {% endif %}
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'careers' %}active{% endif %}" href="{% url 'jobs:careers' %}">
-                            <i class="fas fa-briefcase"></i>
+                            <i class="fas fa-briefcase" aria-hidden="true"></i>
                             <span>Careers</span>
                         </a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link {% if request.resolver_match.url_name == 'contact_us' %}active{% endif %}" href="{% url 'core:contact_us' %}">
-                            <i class="fas fa-envelope"></i>
+                            <i class="fas fa-envelope" aria-hidden="true"></i>
                             <span>Contact</span>
                         </a>
                     </li>
@@ -794,7 +758,7 @@
                 <ul class="navbar-nav auth-buttons">
                     <li class="nav-item">
                         <a class="nav-link btn-login" href="{% url 'account_login' %}">
-                            <i class="fas fa-sign-in-alt"></i>
+                            <i class="fas fa-sign-in-alt" aria-hidden="true"></i>
                             <span>Login</span>
                         </a>
                     </li>
@@ -803,12 +767,8 @@
         </div>
     </nav>
 
-    {% if show_public_tracer_study_banner %}
-        {% include 'tracer_study/_public_banner.html' with banner_variant='landing' %}
-    {% endif %}
-
     <!-- Main Content -->
-    <main class="main-content">
+    <main class="main-content" id="public-main-content" tabindex="-1">
         <!-- Django Messages Container (Hidden, processed by JavaScript) -->
         {% if messages %}
         <div class="messages" style="display: none;">

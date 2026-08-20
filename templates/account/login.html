@@ -685,8 +685,10 @@
             box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.1);
         }
     </style>
+    {% include 'components/auth_public_head.html' %}
 </head>
-<body>
+<body class="auth-public">
+    {% include 'components/university_header.html' %}
     <div class="auth-container">
         <!-- Header -->
         <div class="auth-header">
@@ -694,8 +696,8 @@
                 <div class="logo-glow"></div>
                 <img src="{% static 'images/alumni_logo.png' %}" alt="NORSU Alumni Logo" class="logo">
             </div>
-            <h1 class="auth-title">NORSU Alumni Network</h1>
-            <p class="auth-subtitle">Connect with fellow alumni and stay updated</p>
+            <h1 class="auth-title">NORSU alumni, connected.</h1>
+            <p class="auth-subtitle">Access your profile, community, tracer studies, and opportunities through one alumni network.</p>
         </div>
 
         <!-- Card -->
@@ -722,12 +724,14 @@
                     </div>
                     
                     <div class="form-group">
-                        <input type="email" class="form-input" name="login" placeholder="Email Address" required id="loginEmail">
+                        <label class="form-label" for="loginEmail">Email address</label>
+                        <input type="email" class="form-input" name="login" placeholder="you@example.com" autocomplete="email" required id="loginEmail">
                     </div>
 
                     <div class="form-group password-field">
-                        <input type="password" class="form-input" name="password" placeholder="Password" required id="loginPassword">
-                        <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)">
+                        <label class="form-label" for="loginPassword">Password</label>
+                        <input type="password" class="form-input" name="password" placeholder="Enter your password" autocomplete="current-password" required id="loginPassword">
+                        <button type="button" class="password-toggle" onclick="togglePassword('loginPassword', this)" aria-label="Show or hide password">
                             <i class="far fa-eye"></i>
                         </button>
                     </div>
@@ -780,20 +784,24 @@
                     {% csrf_token %}
                     
                     <div class="form-group">
-                        <input type="text" class="form-input" name="first_name" placeholder="First Name" required id="signupFirstName">
+                        <label class="form-label" for="signupFirstName">First name</label>
+                        <input type="text" class="form-input" name="first_name" placeholder="First name" autocomplete="given-name" required id="signupFirstName">
                     </div>
 
                     <div class="form-group">
-                        <input type="text" class="form-input" name="last_name" placeholder="Last Name" required id="signupLastName">
+                        <label class="form-label" for="signupLastName">Last name</label>
+                        <input type="text" class="form-input" name="last_name" placeholder="Last name" autocomplete="family-name" required id="signupLastName">
                     </div>
 
                     <div class="form-group">
-                        <input type="email" class="form-input" name="email" placeholder="Email Address" required id="signupEmail">
+                        <label class="form-label" for="signupEmail">Email address</label>
+                        <input type="email" class="form-input" name="email" placeholder="you@example.com" autocomplete="email" required id="signupEmail">
                     </div>
 
                     <div class="form-group password-field">
-                        <input type="password" class="form-input" name="password1" placeholder="Password" required id="signupPassword1">
-                        <button type="button" class="password-toggle" onclick="togglePassword('signupPassword1', this)">
+                        <label class="form-label" for="signupPassword1">Password</label>
+                        <input type="password" class="form-input" name="password1" placeholder="Create a password" autocomplete="new-password" required id="signupPassword1">
+                        <button type="button" class="password-toggle" onclick="togglePassword('signupPassword1', this)" aria-label="Show or hide password">
                             <i class="far fa-eye"></i>
                         </button>
                     </div>
@@ -843,8 +851,9 @@
                     </div>
 
                     <div class="form-group password-field">
-                        <input type="password" class="form-input" name="password2" placeholder="Confirm Password" required id="signupPassword2">
-                        <button type="button" class="password-toggle" onclick="togglePassword('signupPassword2', this)">
+                        <label class="form-label" for="signupPassword2">Confirm password</label>
+                        <input type="password" class="form-input" name="password2" placeholder="Repeat your password" autocomplete="new-password" required id="signupPassword2">
+                        <button type="button" class="password-toggle" onclick="togglePassword('signupPassword2', this)" aria-label="Show or hide password">
                             <i class="far fa-eye"></i>
                         </button>
                     </div>
@@ -989,31 +998,64 @@
         // Terms Popup
         function showTermsPopup() {
             Swal.fire({
-                title: '<strong>Terms of Service and Privacy Policy</strong>',
+                title: 'Terms of service & privacy',
                 html: `
-                    <div style="text-align: left; max-height: 400px; overflow-y: auto; padding: 20px; font-size: 0.875rem; line-height: 1.6;">
-                        <p style="margin-bottom: 1rem;"><strong>Effective Date:</strong> February 12, 2026</p>
-                        
-                        <h6 style="color: #2b3c6b; margin: 1.5rem 0 0.75rem 0; font-size: 1rem;">1. Acceptance of Terms</h6>
-                        <p>By accessing and using the NORSU Alumni Network platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and Privacy Policy.</p>
-                        
-                        <h6 style="color: #2b3c6b; margin: 1.5rem 0 0.75rem 0; font-size: 1rem;">2. Account Security</h6>
-                        <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
-                        
-                        <h6 style="color: #2b3c6b; margin: 1.5rem 0 0.75rem 0; font-size: 1rem;">3. Privacy and Data Protection</h6>
-                        <p>We collect and process personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173). Your data will be used exclusively for facilitating alumni connections, university updates, and career development opportunities.</p>
-                        
-                        <h6 style="color: #2b3c6b; margin: 1.5rem 0 0.75rem 0; font-size: 1rem;">4. Acceptable Use</h6>
-                        <p>Users must maintain professional and respectful communication. Prohibited activities include posting offensive content, harassment, spam, or attempting to compromise platform security.</p>
-                        
-                        <p style="margin-top: 1.5rem; font-weight: 600;">By proceeding, you acknowledge that you have read and agree to these terms.</p>
-                    </div>
+                    <article class="terms-modal-content">
+                        <div class="terms-modal-meta">
+                            <span>NORSU Alumni Network</span>
+                            <time datetime="2026-02-12">Effective February 12, 2026</time>
+                        </div>
+                        <p class="terms-modal-lede">These terms explain how to use the alumni network responsibly and how the university handles your information.</p>
+
+                        <section class="terms-modal-section">
+                            <span class="terms-modal-number" aria-hidden="true">01</span>
+                            <div>
+                                <h3>Acceptance of terms</h3>
+                                <p>By accessing and using the NORSU Alumni Network platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and Privacy Policy.</p>
+                            </div>
+                        </section>
+
+                        <section class="terms-modal-section">
+                            <span class="terms-modal-number" aria-hidden="true">02</span>
+                            <div>
+                                <h3>Account security</h3>
+                                <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
+                            </div>
+                        </section>
+
+                        <section class="terms-modal-section">
+                            <span class="terms-modal-number" aria-hidden="true">03</span>
+                            <div>
+                                <h3>Privacy and data protection</h3>
+                                <p>We collect and process personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173). Your data will be used exclusively for facilitating alumni connections, university updates, and career development opportunities.</p>
+                            </div>
+                        </section>
+
+                        <section class="terms-modal-section">
+                            <span class="terms-modal-number" aria-hidden="true">04</span>
+                            <div>
+                                <h3>Acceptable use</h3>
+                                <p>Users must maintain professional and respectful communication. Prohibited activities include posting offensive content, harassment, spam, or attempting to compromise platform security.</p>
+                            </div>
+                        </section>
+
+                        <p class="terms-modal-note"><i class="fas fa-check" aria-hidden="true"></i> Creating an account confirms that you have read and agree to these terms.</p>
+                    </article>
                 `,
-                width: '600px',
-                confirmButtonText: 'I Understand',
-                confirmButtonColor: '#2b3c6b',
+                width: 'min(46rem, calc(100vw - 2rem))',
+                showCloseButton: true,
+                confirmButtonText: 'I understand',
+                buttonsStyling: false,
+                focusConfirm: true,
+                showClass: { popup: '' },
+                hideClass: { popup: '' },
                 customClass: {
-                    popup: 'terms-popup'
+                    popup: 'terms-popup',
+                    title: 'terms-modal-title',
+                    htmlContainer: 'terms-modal-html',
+                    actions: 'terms-modal-actions',
+                    confirmButton: 'terms-modal-confirm',
+                    closeButton: 'terms-modal-close'
                 }
             });
         }
@@ -1232,6 +1274,9 @@
             
             // Check for login errors in URL parameters (from server-side validation)
             const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('tab') === 'signup') {
+                switchTab('signup');
+            }
             const loginError = urlParams.get('error');
             if (loginError) {
                 const errorMessage = document.getElementById('loginErrorMessage');

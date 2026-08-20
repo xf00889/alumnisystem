@@ -229,8 +229,10 @@
         }
     }
 </style>
+{% include 'components/auth_public_head.html' %}
 </head>
-<body>
+<body class="auth-public">
+{% include 'components/university_header.html' %}
 <div class="verification-container">
     <div class="verification-card">
         <div class="verification-header">
@@ -245,33 +247,29 @@
             
             <!-- Check Your Email Message -->
             {% if user_email %}
-            <div class="alert alert-info" style="background: rgba(59, 130, 246, 0.1); color: var(--info-color); border-color: rgba(59, 130, 246, 0.2); margin-bottom: 1.5rem;">
-                <div style="display: flex; align-items: start; gap: 0.75rem;">
-                    <i class="fas fa-info-circle" style="font-size: 1.25rem; margin-top: 0.125rem;"></i>
+            <div class="alert auth-email-notice">
+                <i class="fas fa-info-circle"></i>
                     <div>
-                        <strong>Check your email!</strong>
-                        <p style="margin: 0.5rem 0 0 0; font-size: 0.875rem;">
+                        <strong>Check your email</strong>
+                        <p>
                             We've sent a verification code to <strong>{{ user_email }}</strong>
                         </p>
                     </div>
-                </div>
             </div>
             {% endif %}
             
             <!-- Troubleshooting Tips -->
-            <div class="alert" style="background: rgba(245, 158, 11, 0.1); color: var(--warning-color); border: 1px solid rgba(245, 158, 11, 0.2); border-radius: var(--radius-md); padding: 1rem; margin-bottom: 1.5rem;">
-                <div style="display: flex; align-items: start; gap: 0.75rem;">
-                    <i class="fas fa-lightbulb" style="font-size: 1.25rem; margin-top: 0.125rem;"></i>
+            <div class="alert auth-help-note">
+                <i class="fas fa-lightbulb"></i>
                     <div>
                         <strong>Didn't receive the email?</strong>
-                        <ul style="margin: 0.5rem 0 0 0; padding-left: 1.25rem; font-size: 0.875rem; line-height: 1.6;">
+                        <ul>
                             <li>Check your spam or junk folder</li>
                             <li>Make sure you entered the correct email address</li>
                             <li>Wait a few minutes - emails can take time to arrive</li>
                             <li>Click "Resend Code" below if you still don't see it</li>
                         </ul>
                     </div>
-                </div>
             </div>
             
             {% if messages %}
@@ -314,6 +312,10 @@
                     <i class="fas fa-redo"></i> Resend Code
                 </button>
             </div>
+
+            <div class="auth-links">
+                <a href="{% url 'account_login' %}">Back to sign in</a>
+            </div>
         </div>
     </div>
 </div>
@@ -331,7 +333,7 @@
                     {% csrf_token %}
                     <div class="form-group">
                         <label class="form-label">Email Address</label>
-                        <div id="resendEmailDisplay" class="form-control" style="background-color: #f8f9fa; color: #495057; cursor: not-allowed; font-weight: 500;">
+                        <div id="resendEmailDisplay" class="form-control">
                             {% if user_email %}
                                 {{ user_email }}
                             {% else %}

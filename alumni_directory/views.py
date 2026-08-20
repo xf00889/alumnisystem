@@ -14,7 +14,6 @@ from django.http import Http404
 from django.core.mail import send_mail
 from django.urls import reverse
 from django.conf import settings
-from accounts.decorators import paginate
 from django.contrib import messages
 from accounts.models import Profile, Experience
 from .forms import AlumniForm, AlumniFilterForm, AlumniSearchForm, AlumniDocumentForm
@@ -158,7 +157,6 @@ def is_admin(user):
     return user.is_superuser or user.is_staff or is_coordinator
 
 @login_required
-@paginate(per_page=12)  # Show 12 alumni per page
 def alumni_list(request):
     import time
     from django.db import connection
@@ -286,12 +284,14 @@ def alumni_list(request):
         if not show_alumni_results:
             queryset = Alumni.objects.none()
         
-        # Get total counts
+        # Get total counts and paginate the directory results.
         total_alumni = Alumni.objects.count()
         total_registered = queryset.count()
+        paginator = Paginator(queryset, 12)
+        alumni_page = paginator.get_page(request.GET.get('page'))
         
         context = {
-            'alumni_list': queryset,  # The decorator will paginate this
+            'alumni_list': alumni_page,
             'graduation_years': graduation_years,
             'courses': courses,
             'all_programs': all_programs,

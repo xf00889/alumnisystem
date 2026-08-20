@@ -33,27 +33,25 @@ def user_role_context(request):
 def tracer_study_banner_context(request):
     context = {
         'show_tracer_study_banner': False,
-        'show_public_tracer_study_banner': False,
+        'show_public_tracer_study_badge': False,
         'public_tracer_study_count': 0,
     }
     current_url_name = getattr(
         getattr(request, 'resolver_match', None), 'url_name', ''
     )
-    # The public announcement belongs on discovery pages, not on the tracer
-    # study index or questionnaires where it would duplicate the page purpose.
-    if current_url_name not in TRACER_STUDY_PAGE_NAMES:
-        try:
-            from surveys.tracer_study import public_tracer_banner_queryset
+    # Keep the public availability signal compact and persistent in navigation.
+    try:
+        from surveys.tracer_study import public_tracer_banner_queryset
 
-            public_count = public_tracer_banner_queryset().count()
-            context.update({
-                'show_public_tracer_study_banner': public_count > 0,
-                'public_tracer_study_count': public_count,
-            })
-        except Exception:
-            # Fail closed during migrations or when the surveys table is not
-            # available (for example, first-time setup).
-            pass
+        public_count = public_tracer_banner_queryset().count()
+        context.update({
+            'show_public_tracer_study_badge': public_count > 0,
+            'public_tracer_study_count': public_count,
+        })
+    except Exception:
+        # Fail closed during migrations or when the surveys table is not
+        # available (for example, first-time setup).
+        pass
 
     if current_url_name in TRACER_STUDY_PAGE_NAMES:
         return context

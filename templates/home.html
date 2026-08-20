@@ -1,2316 +1,473 @@
 {% extends 'base_landingpage.html' %}
-{% load static %}
+{% load static cms_tags %}
 
 {% block title %}{{ seo.title|default:"Welcome to NORSU Alumni" }}{% endblock title %}
 
-{% block page_header %}
-{% if user.is_authenticated and not user.is_superuser %}
-<div class="container">
-    <div class="row align-items-center">
-        <div class="col-12">
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="{% url 'core:home' %}">
-                            <i class="fas fa-home"></i>
-                        </a>
-                    </li>
-                    <li class="breadcrumb-item active">Home</li>
-                </ol>
-            </nav>
-            <p class="page-title">Welcome, {{ user.get_full_name }}</p>
-        </div>
-    </div>
-</div>
-{% endif %}
-{% endblock %}
-
 {% block extra_css %}
-<!-- Swiper CSS -->
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-<link rel="stylesheet" href="{% static 'css/hero_section.css' %}">
-<link rel="stylesheet" href="{% static 'css/vmgo_section.css' %}">
-<link rel="stylesheet" href="{% static 'css/officials_slider.css' %}">
-<style>
-    /* Minimalist Professional Design - NORSU Alumni System */
-    :root {
-        --primary-color: #2b3c6b;
-        --secondary-color: #4a5568;
-
-        /* Professional Icon Color Palette */
-        --icon-networking: #2b3c6b;      /* Primary NORSU blue - networking/connections */
-        --icon-achievement: #c8a882;     /* Institutional gold - achievements/success */
-        --icon-growth: #28a745;          /* Success green - growth/progress */
-        --icon-info: #6c757d;            /* Neutral gray - informational */
-
-        /* UI Colors */
-        --ui-background: #f7fafc;
-        --ui-surface: #ffffff;
-        --ui-border: #e2e8f0;
-        --ui-hover: #edf2f7;
-
-        /* Text Colors */
-        --text-primary: #2d3748;
-        --text-secondary: #718096;
-        --text-muted: #a0aec0;
-        --text-light: #ffffff;
-
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
-
-        /* Enhanced Shadows for Depth */
-        --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.06);
-        --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
-        --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.12);
-
-        /* Border Radius - Modern Reduced Values */
-        --radius-sm: 0.25rem;
-        --radius-md: 0.375rem;
-        --radius-lg: 0.5rem;
-        --radius-xl: 0.75rem;
-    }
-
-    body {
-        background-color: var(--ui-background);
-        font-size: 0.8rem;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.5;
-    }
-
-    /* Modern Features Section */
-    .features-section {
-        padding: 3rem 0;
-        background: linear-gradient(135deg, var(--ui-background) 0%, #ffffff 100%);
-        font-family: 'Poppins', sans-serif;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .features-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="features-pattern" x="0" y="0" width="200" height="200" patternUnits="userSpaceOnUse"><circle cx="100" cy="100" r="2" fill="%232b3c6b" opacity="0.03"/><circle cx="50" cy="50" r="1" fill="%232b3c6b" opacity="0.02"/><circle cx="150" cy="150" r="1" fill="%232b3c6b" opacity="0.02"/></pattern></defs><rect width="1000" height="1000" fill="url(%23features-pattern)"/></svg>') repeat;
-        pointer-events: none;
-    }
-
-    .section-heading {
-        text-align: center;
-        margin-bottom: 3rem;
-        position: relative;
-        z-index: 1;
-    }
-
-    .section-badge {
-        display: inline-block;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        color: var(--text-light);
-        padding: 0.625rem 1.75rem;
-        border-radius: 50px;
-        font-size: 0.8125rem;
-        font-weight: 600;
-        margin-bottom: 2rem;
-        text-transform: uppercase;
-        letter-spacing: 1.5px;
-    }
-
-    .section-title {
-        font-size: 2rem;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-bottom: 1.5rem;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.3;
-        letter-spacing: -0.02em;
-    }
-
-    .section-subtitle {
-        font-size: 1.125rem;
-        color: var(--text-secondary);
-        max-width: 700px;
-        margin: 0 auto;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.7;
-        font-weight: 400;
-    }
-
-    .feature-card {
-        text-align: center;
-        padding: 3.5rem 2.5rem;
-        border-radius: var(--radius-xl);
-        background: var(--ui-surface);
-        box-shadow: var(--shadow-md);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        opacity: 1; /* Ensure cards are visible */
-        transform: translateY(0); /* Reset transform for immediate visibility */
-        height: 100%;
-        border: 1px solid var(--ui-border);
-        font-family: 'Poppins', sans-serif;
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Animation class for scroll-triggered animations */
-    .feature-card.animate-on-scroll {
-        opacity: 1; /* Make immediately visible for debugging */
-        transform: translateY(0); /* Remove initial transform for debugging */
-    }
-
-    .feature-card.animate-on-scroll.visible {
-        opacity: 1;
-        transform: translateY(0);
-    }
-
-    /* Temporary: Force feature cards to be visible for testing */
-    .features-section .feature-card {
-        opacity: 1 !important;
-        transform: translateY(0) !important;
-    }
-
-    .feature-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        transform: scaleX(0);
-        transition: transform 0.3s ease;
-    }
-
-    .feature-card:hover {
-        transform: translateY(-8px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .feature-card:hover::before {
-        transform: scaleX(1);
-    }
-
-    /* Clean feature icon styling - single icon display */
-    .feature-icon {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        margin: 0 auto 2.5rem !important;
-        position: relative;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s ease;
-        opacity: 1 !important;
-        visibility: visible !important;
-        overflow: visible !important;
-    }
-
-    /* Professional Icon Colors */
-    .feature-icon.networking {
-        background-color: #2b3c6b !important; /* NORSU Blue */
-    }
-
-    .feature-icon.achievement {
-        background-color: #c8a882 !important; /* Institutional Gold */
-    }
-
-    .feature-icon.growth {
-        background-color: #28a745 !important; /* Success Green */
-    }
-
-    .feature-icon.info {
-        background-color: #6c757d !important; /* Neutral Gray */
-    }
-
-    /* Font Awesome icons - primary display method */
-    .feature-icon i {
-        font-size: 2rem !important;
-        color: #ffffff !important;
-        font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 5 Free", "FontAwesome" !important;
-        font-weight: 900 !important;
-        line-height: 1;
-        display: inline-block !important;
-        position: relative;
-        z-index: 2;
-    }
-    
-    /* Ensure Font Awesome icons render properly */
-    .feature-icon i::before {
-        display: inline-block;
-    }
-
-    /* CSS-only fallback detection */
-    .feature-icon i:before {
-        position: relative;
-        z-index: 3;
-    }
-
-    /* Emoji fallbacks - positioned absolutely to avoid overlap */
-    .feature-icon.networking::after {
-        content: "🌐";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        line-height: 1;
-        display: none; /* Hidden by default */
-        z-index: 1;
-    }
-
-    .feature-icon.achievement::after {
-        content: "🏆";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        line-height: 1;
-        display: none; /* Hidden by default */
-        z-index: 1;
-    }
-
-    .feature-icon.growth::after {
-        content: "🚀";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        line-height: 1;
-        display: none; /* Hidden by default */
-        z-index: 1;
-    }
-
-    .feature-icon.info::after {
-        content: "💡";
-        position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 2rem;
-        line-height: 1;
-        display: none; /* Hidden by default */
-        z-index: 1;
-    }
-
-    /* Show emoji fallback only when Font Awesome fails */
-    .feature-icon.fa-fallback i {
-        display: none !important;
-    }
-
-    .feature-icon.fa-fallback::after {
-        display: block !important;
-    }
-
-    .feature-icon:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-    }
-
-    /* Clean up - remove debug styles */
-
-    .feature-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 1.5rem;
-        color: var(--text-primary);
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.3;
-    }
-
-    .feature-description {
-        color: var(--text-secondary);
-        font-family: 'Poppins', sans-serif;
-        font-size: 0.9375rem;
-        line-height: 1.7;
-        margin-bottom: 2rem;
-    }
-
-    .feature-link {
-        color: var(--primary-color);
-        font-weight: 600;
-        text-decoration: none;
-        font-size: 0.875rem;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-        transition: color 0.3s ease;
-    }
-
-    .feature-link:hover {
-        color: var(--secondary-color);
-    }
-
-    /* Removed pulse animation for minimalist design */
-
-    /* Minimalist Announcements Section */
-    .announcements-section {
-        padding: 3rem 0;
-        background-color: var(--ui-surface);
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .announcement-card {
-        background-color: var(--ui-surface);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-sm);
-        transition: all 0.3s ease;
-        height: 100%;
-        display: flex;
-        flex-direction: column;
-        border: 1px solid var(--ui-border);
-        font-family: 'Poppins', sans-serif;
-        overflow: hidden;
-    }
-
-    .announcement-card:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-md);
-    }
-
-    .announcement-header {
-        padding: 2rem 2rem 1.5rem;
-        border-bottom: 1px solid var(--ui-border);
-    }
-
-    .announcement-category {
-        display: inline-block;
-        padding: 0.375rem 1rem;
-        border-radius: var(--radius-md);
-        background-color: rgba(43, 60, 107, 0.08);
-        color: var(--primary-color);
-        font-size: 0.75rem;
-        font-weight: 600;
-        margin-bottom: 1.25rem;
-        font-family: 'Poppins', sans-serif;
-        text-transform: uppercase;
-        letter-spacing: 0.5px;
-    }
-
-    .announcement-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
-        color: var(--text-primary);
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.4;
-    }
-
-    .announcement-date {
-        font-size: 0.8125rem;
-        color: var(--text-muted);
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500;
-    }
-
-    .announcement-body {
-        padding: 2rem;
-        flex-grow: 1;
-    }
-
-    .announcement-text {
-        font-size: 0.9375rem;
-        color: var(--text-secondary);
-        margin-bottom: 2rem;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.7;
-    }
-
-    .announcement-text.expanded {
-        max-height: none;
-        transition: max-height 0.3s ease;
-    }
-
-    .announcement-text.collapsed {
-        max-height: 80px;
-        overflow: hidden;
-        transition: max-height 0.3s ease;
-    }
-
-    .announcement-footer {
-        padding: 1.5rem 2rem 2rem;
-        border-top: 1px solid var(--ui-border);
-    }
-
-    .d-none {
-        display: none !important;
-    }
-
-    /* Empty State Styling */
-    .empty-state {
-        text-align: center;
-        padding: 5rem 2rem;
-        background: var(--ui-surface);
-        border-radius: var(--radius-xl);
-        border: 2px dashed var(--ui-border);
-        max-width: 600px;
-        margin: 0 auto;
-        transition: all 0.3s ease;
-    }
-
-    .empty-state:hover {
-        border-color: rgba(43, 60, 107, 0.3);
-        box-shadow: var(--shadow-sm);
-    }
-
-    .empty-state-icon {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        background: linear-gradient(135deg, rgba(43, 60, 107, 0.08), rgba(43, 60, 107, 0.12));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        margin: 0 auto 2rem;
-        transition: all 0.3s ease;
-    }
-
-    .empty-state:hover .empty-state-icon {
-        transform: scale(1.05);
-        background: linear-gradient(135deg, rgba(43, 60, 107, 0.12), rgba(43, 60, 107, 0.16));
-    }
-
-    .empty-state-icon i {
-        font-size: 2.5rem;
-        color: var(--primary-color);
-        opacity: 0.6;
-    }
-
-    .empty-state-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 1rem;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .empty-state-text {
-        font-size: 1rem;
-        color: var(--text-secondary);
-        margin-bottom: 2rem;
-        line-height: 1.7;
-        max-width: 450px;
-        margin-left: auto;
-        margin-right: auto;
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .empty-state .btn {
-        padding: 0.75rem 2rem;
-        font-size: 0.9375rem;
-        border-radius: var(--radius-md);
-        transition: all 0.3s ease;
-    }
-
-    .empty-state .btn:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-
-
-
-
-
-    /* Minimalist Testimonials Section */
-    .testimonials-section {
-        padding: 3rem 0;
-        background: linear-gradient(135deg, var(--ui-surface) 0%, var(--ui-background) 100%);
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .testimonial-card {
-        background: var(--ui-surface);
-        border-radius: var(--radius-xl);
-        padding: 3rem 2.5rem;
-        box-shadow: var(--shadow-md);
-        transition: all 0.3s ease;
-        height: 100%;
-        border: 1px solid var(--ui-border);
-        position: relative;
-    }
-
-    .testimonial-card:hover {
-        transform: translateY(-3px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .testimonial-quote {
-        font-size: 1rem;
-        line-height: 1.7;
-        color: var(--text-secondary);
-        margin-bottom: 2.5rem;
-        font-style: italic;
-        position: relative;
-        font-weight: 400;
-    }
-
-    .testimonial-quote::before {
-        content: '"';
-        font-size: 3rem;
-        color: rgba(43, 60, 107, 0.08);
-        position: absolute;
-        top: -0.75rem;
-        left: -0.75rem;
-        font-family: serif;
-    }
-
-    .testimonial-author {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .testimonial-avatar {
-        width: 60px;
-        height: 60px;
-        border-radius: 50%;
-        overflow: hidden;
-        border: 3px solid var(--primary-color);
-    }
-
-    .testimonial-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .testimonial-info h4 {
-        font-size: 1rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-        line-height: 1.4;
-    }
-
-    .testimonial-info p {
-        font-size: 0.8125rem;
-        color: var(--text-secondary);
-        margin: 0;
-        font-weight: 500;
-    }
-
-    /* Statistics Section */
-    .statistics-section {
-        padding: 3rem 0;
-        background-color: var(--ui-background);
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .stat-card {
-        background: var(--ui-surface);
-        border-radius: 8px;
-        padding: 2rem 1.5rem;
-        text-align: center;
-        box-shadow: 0 8px 32px rgba(43, 60, 107, 0.08);
-        border: 1px solid var(--ui-border);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-        height: 100%;
-    }
-
-    .stat-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(90deg, var(--primary-color), var(--icon-achievement));
-        transform: scaleX(0);
-        transition: transform 0.4s ease;
-    }
-
-    .stat-card:hover {
-        transform: translateY(-10px);
-        box-shadow: 0 20px 60px rgba(43, 60, 107, 0.15);
-    }
-
-    .stat-card:hover::before {
-        transform: scaleX(1);
-    }
-
-    .stat-icon {
-        margin-bottom: 20px;
-    }
-
-    .stat-icon i {
-        font-size: 2.5rem;
-        transition: all 0.3s ease;
-    }
-
-    .stat-card:hover .stat-icon i {
-        transform: scale(1.1);
-    }
-
-    .stat-number {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
-        margin-bottom: 8px;
-        line-height: 1.2;
-    }
-
-    .stat-label {
-        font-size: 0.9rem;
-        color: var(--text-secondary);
-        margin: 0;
-        font-weight: 500;
-    }
-
-    /* Staff Section */
-    .staff-section {
-        padding: 3rem 0;
-        background-color: var(--ui-surface);
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .staff-card {
-        background: var(--ui-surface);
-        border-radius: var(--radius-xl);
-        padding: 2.5rem 2rem;
-        box-shadow: var(--shadow-md);
-        transition: all 0.3s ease;
-        height: 100%;
-        border: 1px solid var(--ui-border);
-        text-align: center;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .staff-card:hover {
-        transform: translateY(-5px);
-        box-shadow: var(--shadow-lg);
-    }
-
-    .staff-card::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 4px;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        transform: scaleX(0);
-        transition: transform 0.3s ease;
-    }
-
-    .staff-card:hover::before {
-        transform: scaleX(1);
-    }
-
-    .staff-avatar {
-        width: 100px;
-        height: 100px;
-        border-radius: 50%;
-        margin: 0 auto 1.5rem;
-        overflow: hidden;
-        border: 4px solid var(--primary-color);
-        position: relative;
-    }
-
-    .staff-avatar img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .staff-avatar-placeholder {
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: var(--text-light);
-        font-size: 2.5rem;
-    }
-
-    .staff-name {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin-bottom: 0.5rem;
-        color: var(--text-primary);
-        font-family: 'Poppins', sans-serif;
-    }
-
-    .staff-position {
-        color: var(--primary-color);
-        font-weight: 500;
-        margin-bottom: 0.25rem;
-        font-size: 0.9rem;
-    }
-
-    .staff-department {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-    }
-
-    .staff-bio {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        line-height: 1.6;
-        margin-bottom: 1.5rem;
-    }
-
-    .staff-contact .btn {
-        padding: 0.5rem 1rem;
-        font-size: 0.875rem;
-        border-radius: 6px;
-    }
-
-    /* Minimalist Call to Action Section */
-    .cta-section {
-        padding: 3rem 0;
-        background: linear-gradient(rgba(43, 60, 107, 0.92), rgba(26, 37, 68, 0.96)),
-                    url('{% static "images/bg.webp" %}') no-repeat center center;
-        background-size: cover;
-        background-attachment: fixed;
-        color: var(--text-light);
-        text-align: center;
-        font-family: 'Poppins', sans-serif;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .cta-section::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000"><defs><pattern id="cta-pattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse"><circle cx="50" cy="50" r="1" fill="%23ffffff" opacity="0.1"/></pattern></defs><rect width="1000" height="1000" fill="url(%23cta-pattern)"/></svg>') repeat;
-        pointer-events: none;
-    }
-
-    .cta-content {
-        position: relative;
-        z-index: 1;
-        max-width: 800px;
-        margin: 0 auto;
-    }
-
-    .cta-badge {
-        display: inline-block;
-        background: rgba(255, 255, 255, 0.15);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        border-radius: 50px;
-        padding: 0.75rem 1.5rem;
-        margin-bottom: 2rem;
-        font-size: 0.875rem;
-        font-weight: 600;
-        text-transform: uppercase;
-        letter-spacing: 1px;
-    }
-
-    .cta-title {
-        font-size: 3rem;
-        font-weight: 600;
-        margin-bottom: 2rem;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.3;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-        letter-spacing: -0.02em;
-    }
-
-    .cta-text {
-        font-size: 1.125rem;
-        max-width: 600px;
-        margin: 0 auto 3rem;
-        opacity: 0.95;
-        font-family: 'Poppins', sans-serif;
-        line-height: 1.7;
-        font-weight: 400;
-    }
-
-    .cta-buttons {
-        display: flex;
-        justify-content: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-bottom: 2rem;
-    }
-
-    .hero-btn {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0.875rem 2rem;
-        font-size: 1rem;
-        font-weight: 600;
-        border-radius: var(--radius-md);
-        text-decoration: none;
-        transition: all 0.3s ease;
-        cursor: pointer;
-        border: 2px solid transparent;
-        font-family: 'Poppins', sans-serif;
-        min-height: 48px;
-        position: relative;
-        overflow: hidden;
-    }
-
-    .hero-btn::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: -100%;
-        width: 100%;
-        height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-        transition: left 0.5s;
-    }
-
-    .hero-btn:hover::before {
-        left: 100%;
-    }
-
-    .hero-btn-primary {
-        background-color: #ffffff;
-        color: var(--primary-color);
-        border-color: #ffffff;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-
-    .hero-btn-primary:hover {
-        background-color: rgba(255, 255, 255, 0.95);
-        color: var(--primary-color);
-        transform: translateY(-3px);
-        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    }
-
-    .hero-btn-outline {
-        background-color: rgba(255, 255, 255, 0.1);
-        color: #ffffff;
-        border-color: rgba(255, 255, 255, 0.6);
-        backdrop-filter: blur(4px);
-    }
-
-    .hero-btn-outline:hover {
-        background-color: rgba(255, 255, 255, 0.25);
-        color: #ffffff;
-        border-color: rgba(255, 255, 255, 0.9);
-        transform: translateY(-3px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-    }
-
-    .cta-urgency {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 0.875rem;
-        color: rgba(255, 255, 255, 0.9);
-        background: rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.15);
-        border-radius: 50px;
-        padding: 0.75rem 1.5rem;
-        margin-top: 2rem;
-        font-weight: 500;
-        line-height: 1.5;
-    }
-
-    .cta-urgency i {
-        opacity: 0.8;
-    }
-
-    /* Feedback Form Styles */
-    .feedback-section {
-        background-color: var(--ui-background);
-    }
-    
-    .feedback-form-container {
-        background: var(--ui-surface);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-md);
-        padding: 2rem;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .feedback-form .form-label {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-    }
-    
-    .feedback-form .form-control,
-    .feedback-form .form-select {
-        border: 2px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        padding: 0.75rem 1rem;
-        font-size: 0.9rem;
-        transition: all 0.3s ease;
-    }
-    
-    .feedback-form .form-control:focus,
-    .feedback-form .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.25);
-    }
-    
-    .feedback-form .btn-primary {
-        background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-        border: none;
-        padding: 0.75rem 2rem;
-        font-weight: 600;
-        border-radius: 50px;
-        transition: all 0.3s ease;
-    }
-    
-    .feedback-form .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(43, 60, 107, 0.3);
-    }
-    
-    .feedback-form .form-text {
-        font-size: 0.8rem;
-        color: var(--text-muted);
-        margin-top: 0.25rem;
-    }
-    
-    /* reCAPTCHA styling */
-    .feedback-form .g-recaptcha {
-        margin: 1rem 0;
-    }
-    
-    .feedback-form .g-recaptcha > div {
-        margin: 0 auto;
-    }
-
-    /* FAQ Section Styles */
-    .faq-section {
-        background: linear-gradient(135deg, var(--ui-surface) 0%, var(--ui-background) 100%);
-    }
-    
-    .faq-container {
-        background: var(--ui-surface);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-md);
-        padding: 2rem;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .faq-section .accordion-button {
-        font-weight: 500;
-        color: var(--text-primary);
-        border-radius: var(--radius-md) !important;
-        border: 1px solid var(--ui-border);
-        margin-bottom: 0.5rem;
-        font-size: 0.9375rem;
-        padding: 1rem 1.25rem;
-    }
-    
-    .faq-section .accordion-button:not(.collapsed) {
-        background: linear-gradient(135deg, rgba(43, 60, 107, 0.1), rgba(43, 60, 107, 0.05));
-        color: var(--primary-color);
-        border-color: var(--primary-color);
-    }
-    
-    .faq-section .accordion-button:focus {
-        box-shadow: 0 0 0 0.25rem rgba(43, 60, 107, 0.15);
-    }
-    
-    .faq-section .accordion-item {
-        border: none;
-        margin-bottom: 0.5rem;
-    }
-    
-    .faq-section .accordion-body {
-        padding: 1.25rem 1.5rem;
-        color: var(--text-secondary);
-        line-height: 1.7;
-        font-size: 0.9rem;
-    }
-
-    .animate-on-scroll {
-        opacity: 1;
-        transform: none;
-        transition: none;
-    }
-
-    .animate-on-scroll.visible {
-        opacity: 1;
-        transform: none;
-    }
-
-    /* Minimalist Responsive Styles */
-    /* Tablet breakpoint */
-    @media (max-width: 991px) {
-        body {
-            font-size: 0.75rem !important;
-        }
-        
-        .features-section,
-        .announcements-section,
-        .testimonials-section,
-        .cta-section {
-            padding: 2.5rem 0 !important;
-        }
-
-        .hero-stats {
-            gap: 2rem !important;
-        }
-
-        .hero-stat-number {
-            font-size: 1.75rem !important;
-        }
-
-        .section-title {
-            font-size: 1.875rem !important;
-        }
-
-        .section-subtitle {
-            font-size: 1rem !important;
-        }
-
-        .section-heading {
-            margin-bottom: 3.5rem !important;
-        }
-        
-        .feature-title {
-            font-size: 1.375rem !important;
-        }
-        
-        .feature-description {
-            font-size: 0.875rem !important;
-        }
-    }
-
-    /* Mobile breakpoint */
-    @media (max-width: 768px) {
-        body {
-            font-size: 0.6875rem !important;
-        }
-        
-        .features-section,
-        .announcements-section,
-        .testimonials-section,
-        .statistics-section,
-        .staff-section,
-        .cta-section {
-            padding: 2rem 0 !important;
-        }
-
-        .hero-section {
-            padding: 3rem 0 !important;
-            min-height: 80vh !important;
-        }
-
-        .hero-logo {
-            width: 60px !important;
-            height: 60px !important;
-            margin-bottom: 1.25rem !important;
-        }
-        
-        .hero-badge {
-            font-size: 0.75rem !important;
-            padding: 0.625rem 1.25rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .hero-title {
-            font-size: 1.75rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .hero-subtitle {
-            font-size: 0.875rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .hero-btn {
-            padding: 0.625rem 1.25rem !important;
-            font-size: 0.8125rem !important;
-            margin: 0.25rem 0.125rem !important;
-        }
-        
-        .hero-buttons {
-            gap: 0.625rem !important;
-        }
-
-        .hero-stats {
-            flex-direction: column;
-            gap: 1.25rem !important;
-            margin-top: 1.75rem !important;
-        }
-
-        .hero-stat {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.875rem !important;
-        }
-
-        .hero-stat-number {
-            font-size: 1.375rem !important;
-            margin-bottom: 0 !important;
-        }
-        
-        .hero-stat-label {
-            font-size: 0.75rem !important;
-        }
-        
-        .section-badge {
-            font-size: 0.75rem !important;
-            padding: 0.5rem 1.5rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .section-title {
-            font-size: 1.5rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .section-subtitle {
-            font-size: 0.9375rem !important;
-        }
-
-        .section-heading {
-            margin-bottom: 2.5rem !important;
-        }
-
-        .feature-card {
-            padding: 2rem 1.5rem !important;
-        }
-
-        .feature-icon {
-            width: 60px !important;
-            height: 60px !important;
-            margin-bottom: 1.75rem !important;
-        }
-
-        .feature-icon i {
-            font-size: 1.5rem !important;
-        }
-
-        .feature-title {
-            font-size: 1.125rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-        
-        .feature-description {
-            font-size: 0.8125rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-        
-        .feature-link {
-            font-size: 0.75rem !important;
-        }
-        
-        .announcement-card {
-            margin-bottom: 1.25rem !important;
-        }
-        
-        .announcement-header {
-            padding: 1.5rem 1.5rem 1.25rem !important;
-        }
-        
-        .announcement-category {
-            font-size: 0.6875rem !important;
-            padding: 0.3125rem 0.875rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .announcement-title {
-            font-size: 1rem !important;
-            margin-bottom: 0.625rem !important;
-        }
-        
-        .announcement-date {
-            font-size: 0.75rem !important;
-        }
-        
-        .announcement-body {
-            padding: 1.5rem !important;
-        }
-        
-        .announcement-text {
-            font-size: 0.8125rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-        
-        .announcement-footer {
-            padding: 1.25rem 1.5rem 1.5rem !important;
-        }
-
-        .empty-state {
-            padding: 3rem 1.5rem !important;
-        }
-
-        .empty-state-icon {
-            width: 80px !important;
-            height: 80px !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .empty-state-icon i {
-            font-size: 2rem !important;
-        }
-
-        .empty-state-title {
-            font-size: 1.25rem !important;
-            margin-bottom: 0.875rem !important;
-        }
-
-        .empty-state-text {
-            font-size: 0.875rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .empty-state .btn {
-            padding: 0.625rem 1.5rem !important;
-            font-size: 0.8125rem !important;
-        }
-
-        .testimonial-card {
-            padding: 1.75rem 1.25rem !important;
-        }
-
-        .testimonial-quote {
-            font-size: 0.875rem !important;
-            margin-bottom: 2rem !important;
-        }
-        
-        .testimonial-avatar {
-            width: 50px !important;
-            height: 50px !important;
-        }
-        
-        .testimonial-info h4 {
-            font-size: 0.875rem !important;
-        }
-        
-        .testimonial-info p {
-            font-size: 0.75rem !important;
-        }
-
-        .staff-card {
-            padding: 1.75rem 1.25rem !important;
-        }
-
-        .staff-avatar {
-            width: 70px !important;
-            height: 70px !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .staff-name {
-            font-size: 1rem !important;
-            margin-bottom: 0.375rem !important;
-        }
-        
-        .staff-position {
-            font-size: 0.8125rem !important;
-        }
-        
-        .staff-department {
-            font-size: 0.75rem !important;
-        }
-        
-        .staff-bio {
-            font-size: 0.75rem !important;
-        }
-
-        .stat-card {
-            padding: 1.5rem 1.25rem !important;
-        }
-        
-        .stat-icon i {
-            font-size: 2rem !important;
-        }
-
-        .stat-number {
-            font-size: 1.75rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-
-        .stat-label {
-            font-size: 0.8125rem !important;
-        }
-        
-        .cta-badge {
-            font-size: 0.75rem !important;
-            padding: 0.625rem 1.25rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .cta-title {
-            font-size: 2rem !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .cta-text {
-            font-size: 0.9375rem !important;
-            margin-bottom: 2.5rem !important;
-        }
-
-        .cta-buttons {
-            flex-direction: column;
-            align-items: center;
-            gap: 0.75rem !important;
-        }
-        
-        .cta-urgency {
-            font-size: 0.75rem !important;
-            margin-top: 1.5rem !important;
-        }
-    }
-
-    /* Small mobile breakpoint */
-    @media (max-width: 576px) {
-        body {
-            font-size: 0.625rem !important;
-        }
-        
-        .features-section,
-        .announcements-section,
-        .testimonials-section,
-        .statistics-section,
-        .staff-section,
-        .cta-section {
-            padding: 2.5rem 0 !important;
-        }
-        
-        .hero-section {
-            padding: 2.5rem 0 !important;
-            min-height: 75vh !important;
-        }
-        
-        .hero-logo {
-            width: 55px !important;
-            height: 55px !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .hero-badge {
-            font-size: 0.6875rem !important;
-            padding: 0.5rem 1rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .hero-title {
-            font-size: 1.5rem !important;
-            margin-bottom: 1rem !important;
-        }
-
-        .hero-subtitle {
-            font-size: 0.8125rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .hero-btn {
-            padding: 0.5rem 1rem !important;
-            font-size: 0.75rem !important;
-        }
-        
-        .hero-buttons {
-            flex-direction: column;
-            gap: 0.5rem !important;
-        }
-        
-        .hero-stats {
-            gap: 1rem !important;
-            margin-top: 1.5rem !important;
-        }
-        
-        .hero-stat-number {
-            font-size: 1.25rem !important;
-        }
-        
-        .hero-stat-label {
-            font-size: 0.6875rem !important;
-        }
-        
-        .section-badge {
-            font-size: 0.6875rem !important;
-            padding: 0.4375rem 1.25rem !important;
-        }
-
-        .section-title {
-            font-size: 1.375rem !important;
-            margin-bottom: 1rem !important;
-        }
-
-        .section-subtitle {
-            font-size: 0.875rem !important;
-        }
-        
-        .section-heading {
-            margin-bottom: 2rem !important;
-        }
-
-        .feature-card {
-            padding: 1.5rem 1.25rem !important;
-        }
-        
-        .feature-icon {
-            width: 55px !important;
-            height: 55px !important;
-            margin-bottom: 1.5rem !important;
-        }
-        
-        .feature-icon i {
-            font-size: 1.375rem !important;
-        }
-        
-        .feature-title {
-            font-size: 1rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .feature-description {
-            font-size: 0.75rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-        
-        .feature-link {
-            font-size: 0.6875rem !important;
-        }
-        
-        .announcement-header {
-            padding: 1.25rem 1.25rem 1rem !important;
-        }
-        
-        .announcement-category {
-            font-size: 0.625rem !important;
-            padding: 0.25rem 0.75rem !important;
-        }
-        
-        .announcement-title {
-            font-size: 0.9375rem !important;
-        }
-        
-        .announcement-date {
-            font-size: 0.6875rem !important;
-        }
-        
-        .announcement-body {
-            padding: 1.25rem !important;
-        }
-        
-        .announcement-text {
-            font-size: 0.75rem !important;
-        }
-        
-        .announcement-footer {
-            padding: 1rem 1.25rem 1.25rem !important;
-        }
-
-        .empty-state {
-            padding: 2.5rem 1.25rem !important;
-        }
-
-        .empty-state-icon {
-            width: 70px !important;
-            height: 70px !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .empty-state-icon i {
-            font-size: 1.75rem !important;
-        }
-
-        .empty-state-title {
-            font-size: 1.125rem !important;
-            margin-bottom: 0.75rem !important;
-        }
-
-        .empty-state-text {
-            font-size: 0.8125rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .empty-state .btn {
-            padding: 0.5rem 1.25rem !important;
-            font-size: 0.75rem !important;
-        }
-        
-        .testimonial-card {
-            padding: 1.5rem 1rem !important;
-        }
-        
-        .testimonial-quote {
-            font-size: 0.8125rem !important;
-            margin-bottom: 1.75rem !important;
-        }
-        
-        .testimonial-avatar {
-            width: 45px !important;
-            height: 45px !important;
-        }
-        
-        .testimonial-info h4 {
-            font-size: 0.8125rem !important;
-        }
-        
-        .testimonial-info p {
-            font-size: 0.6875rem !important;
-        }
-        
-        .staff-card {
-            padding: 1.5rem 1rem !important;
-        }
-        
-        .staff-avatar {
-            width: 65px !important;
-            height: 65px !important;
-        }
-        
-        .staff-name {
-            font-size: 0.9375rem !important;
-        }
-        
-        .staff-position {
-            font-size: 0.75rem !important;
-        }
-        
-        .staff-department,
-        .staff-bio {
-            font-size: 0.6875rem !important;
-        }
-        
-        .stat-card {
-            padding: 1.25rem 1rem !important;
-        }
-        
-        .stat-icon i {
-            font-size: 1.75rem !important;
-        }
-        
-        .stat-number {
-            font-size: 1.5rem !important;
-        }
-        
-        .stat-label {
-            font-size: 0.75rem !important;
-        }
-        
-        .cta-badge {
-            font-size: 0.6875rem !important;
-            padding: 0.5rem 1rem !important;
-        }
-
-        .cta-title {
-            font-size: 1.75rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .cta-text {
-            font-size: 0.875rem !important;
-            margin-bottom: 2rem !important;
-        }
-        
-        .cta-urgency {
-            font-size: 0.6875rem !important;
-        }
-    }
-    
-    /* Extra small mobile breakpoint */
-    @media (max-width: 375px) {
-        body {
-            font-size: 0.5625rem !important;
-        }
-        
-        .hero-logo {
-            width: 50px !important;
-            height: 50px !important;
-        }
-        
-        .hero-badge {
-            font-size: 0.625rem !important;
-            padding: 0.4375rem 0.875rem !important;
-        }
-        
-        .hero-title {
-            font-size: 1.375rem !important;
-        }
-        
-        .hero-subtitle {
-            font-size: 0.75rem !important;
-        }
-        
-        .hero-btn {
-            font-size: 0.6875rem !important;
-            padding: 0.4375rem 0.875rem !important;
-        }
-        
-        .hero-stat-number {
-            font-size: 1.125rem !important;
-        }
-        
-        .hero-stat-label {
-            font-size: 0.625rem !important;
-        }
-        
-        .section-badge {
-            font-size: 0.625rem !important;
-        }
-        
-        .section-title {
-            font-size: 1.25rem !important;
-        }
-        
-        .section-subtitle {
-            font-size: 0.8125rem !important;
-        }
-        
-        .feature-card {
-            padding: 1.25rem 1rem !important;
-        }
-        
-        .feature-icon {
-            width: 50px !important;
-            height: 50px !important;
-        }
-        
-        .feature-icon i {
-            font-size: 1.25rem !important;
-        }
-        
-        .feature-title {
-            font-size: 0.9375rem !important;
-        }
-        
-        .feature-description {
-            font-size: 0.6875rem !important;
-        }
-        
-        .feature-link {
-            font-size: 0.625rem !important;
-        }
-        
-        .announcement-title {
-            font-size: 0.875rem !important;
-        }
-        
-        .testimonial-quote {
-            font-size: 0.75rem !important;
-        }
-        
-        .staff-avatar {
-            width: 60px !important;
-            height: 60px !important;
-        }
-        
-        .staff-name {
-            font-size: 0.875rem !important;
-        }
-        
-        .stat-number {
-            font-size: 1.375rem !important;
-        }
-        
-        .stat-label {
-            font-size: 0.6875rem !important;
-        }
-        
-        .cta-title {
-            font-size: 1.5rem !important;
-        }
-        
-        .cta-text {
-            font-size: 0.8125rem !important;
-        }
-    }
-</style>
+<link rel="stylesheet" href="{% static 'css/home_redesign.css' %}">
 {% endblock extra_css %}
 
 {% block content %}
 {% if not user.is_authenticated %}
-<!-- Hero Section Component -->
-{% include 'components/hero_section.html' with site_config=site_config hero_headline=hero_headline hero_subheadline=hero_subheadline cta_primary_text=cta_primary_text cta_secondary_text=cta_secondary_text hero_microcopy=hero_microcopy alumni_count=alumni_count opportunities_count=opportunities_count countries_count=countries_count %}
+{% url 'account_login' as alumni_login_url %}
+<div class="home-redesign" id="home-main">
+    <a class="home-skip-link" href="#home-content">Skip to homepage content</a>
 
-<!-- VMGO Section Component -->
-{% include 'components/vmgo_section.html' with vmgo_section=vmgo_section %}
-
-<!-- Enhanced Features Section -->
-<section class="features-section">
-    <div class="container">
-        <div class="section-heading">
-            <div class="section-badge">Why Choose NORSU Alumni</div>
-            <h2 class="section-title">Your Professional Success Platform</h2>
-            <p class="section-subtitle">Four key benefits that accelerate your career growth and expand your professional network.</p>
-        </div>
-
-        <div class="row g-5">
-            {% if features %}
-                {% for feature in features %}
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card animate-on-scroll">
-                        <div class="feature-icon {{ feature.icon_class|default:'info' }}" title="{{ feature.title }} Icon">
-                            <i class="{{ feature.icon|default:'fas fa-lightbulb' }}" aria-hidden="true"></i>
-                        </div>
-                        <h3 class="feature-title">{{ feature.title }}</h3>
-                        <div class="feature-description dynamic-content">
-                            {{ feature.content|safe }}
-                        </div>
-                        <a href="{{ feature.link_url|default:'#' }}" class="feature-link">{{ feature.link_text|default:'Learn More' }} →</a>
-                    </div>
-                </div>
-                {% endfor %}
+    <section class="home-hero hero-section" aria-labelledby="home-hero-title">
+        <div class="home-hero-media" aria-hidden="true">
+            {% if site_config.hero_background_image %}
+                <img
+                    src="{{ site_config.hero_background_image.url }}"
+                    alt=""
+                    width="1920"
+                    height="1080"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
+                >
             {% else %}
-                <!-- Default features if no dynamic content is available -->
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card animate-on-scroll">
-                        <div class="feature-icon growth" title="Career Growth Icon">
-                            <i class="fas fa-rocket" aria-hidden="true"></i>
-                        </div>
-                        <h3 class="feature-title">Career Growth</h3>
-                        <p class="feature-description">
-                            • Exclusive job opportunities<br>
-                            • Professional development resources<br>
-                            • Industry leader connections
-                        </p>
-                        <a href="{% url 'account_login' %}" class="feature-link">Explore Opportunities →</a>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card animate-on-scroll">
-                        <div class="feature-icon networking" title="Global Network Icon">
-                            <i class="fas fa-network-wired" aria-hidden="true"></i>
-                        </div>
-                        <h3 class="feature-title">Global Network</h3>
-                        <p class="feature-description">
-                            • 5,000+ active alumni worldwide<br>
-                            • 25+ industry groups<br>
-                            • Fortune 500 connections
-                        </p>
-                        <a href="{% url 'account_login' %}" class="feature-link">Join Network →</a>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card animate-on-scroll">
-                        <div class="feature-icon info" title="Expert Mentorship Icon">
-                            <i class="fas fa-lightbulb" aria-hidden="true"></i>
-                        </div>
-                        <h3 class="feature-title">Expert Mentorship</h3>
-                        <p class="feature-description">
-                            • Personalized career guidance<br>
-                            • Experienced professional mentors<br>
-                            • Strategic career planning
-                        </p>
-                        <a href="{% url 'account_login' %}" class="feature-link">Find Mentors →</a>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-3">
-                    <div class="feature-card animate-on-scroll">
-                        <div class="feature-icon achievement" title="Premium Events Icon">
-                            <i class="fas fa-trophy" aria-hidden="true"></i>
-                        </div>
-                        <h3 class="feature-title">Premium Events</h3>
-                        <p class="feature-description">
-                            • Exclusive networking events<br>
-                            • Industry conferences<br>
-                            • Professional gatherings
-                        </p>
-                        <a href="{% url 'account_login' %}" class="feature-link">View Events →</a>
-                    </div>
-                </div>
+                <img
+                    src="{% static 'images/bg.webp' %}"
+                    alt=""
+                    width="1920"
+                    height="1197"
+                    loading="eager"
+                    fetchpriority="high"
+                    decoding="async"
+                >
             {% endif %}
         </div>
-    </div>
-</section>
-
-<!-- Announcements Section -->
-<section class="announcements-section">
-    <div class="container">
-        <div class="section-heading">
-            <h2 class="section-title">Latest Updates</h2>
-            <p class="section-subtitle">Essential news and announcements from the NORSU community</p>
-        </div>
-        
-        <div class="row g-5">
-            {% for announcement in announcements %}
-            <div class="col-md-6 col-lg-4">
-                <div class="announcement-card" id="announcement-card-{{ announcement.id }}">
-                    <div class="announcement-header">
-                        <span class="announcement-category">{{ announcement.category.name }}</span>
-                        <h3 class="announcement-title">{{ announcement.title }}</h3>
-                        <div class="announcement-date">
-                            <i class="fas fa-calendar-alt me-1"></i>
-                            {{ announcement.date_posted|date:"F j, Y" }}
-                        </div>
-                    </div>
-                    <div class="announcement-body">
-                        <div class="announcement-text collapsed" id="announcement-text-{{ announcement.id }}">
-                            {{ announcement.content|truncatewords:20 }}
-                        </div>
-                        <div class="announcement-text expanded d-none" id="announcement-full-{{ announcement.id }}">
-                            {{ announcement.content }}
-                        </div>
-                    </div>
-                    <div class="announcement-footer">
-                        <button class="btn btn-sm btn-primary read-more-btn" data-id="{{ announcement.id }}">Read More</button>
-                    </div>
-                </div>
+        <div class="home-shell home-hero-inner">
+            <div class="home-hero-copy">
+                <p class="home-kicker">NORSU alumni network</p>
+                <h1 class="home-hero-title hero-headline" id="home-hero-title">
+                    {{ hero_headline|default:"Where NORSU graduates move forward together" }}
+                </h1>
+                <p class="home-hero-summary hero-subheadline">
+                    {{ hero_subheadline|default:"Find opportunities, reconnect with your community, and stay part of the university long after graduation." }}
+                </p>
+                <a href="{{ alumni_login_url }}" class="home-button home-button-hero">
+                    {{ cta_primary_text|default:"Access the alumni network" }}
+                    <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
             </div>
-            {% empty %}
-            <div class="col-12">
-                <div class="empty-state">
-                    <div class="empty-state-icon">
-                        <i class="fas fa-bullhorn" aria-hidden="true"></i>
-                    </div>
-                    <h3 class="empty-state-title">No Announcements Yet</h3>
-                    <p class="empty-state-text">
-                        There are no announcements available at the moment. Check back soon for updates from the NORSU community.
-                    </p>
-                    <a href="{% url 'core:landing_announcements' %}" class="btn btn-outline-primary">
-                        <i class="fas fa-bell me-2"></i>View All Announcements
-                    </a>
-                </div>
-            </div>
-            {% endfor %}
-            
-            {% if announcements %}
-            <div class="col-12 text-center mt-4">
-                <a href="{% url 'core:landing_announcements' %}" class="btn btn-outline-primary">View All Announcements</a>
-            </div>
-            {% endif %}
         </div>
-    </div>
-</section>
+    </section>
 
-
-
-
-
-<!-- Testimonials Section -->
-<section class="testimonials-section">
-    <div class="container">
-        <div class="section-heading">
-            <div class="section-badge">Success Stories</div>
-            <h2 class="section-title">Alumni Achievements</h2>
-            <p class="section-subtitle">Real career transformations through our professional network.</p>
+    <nav class="home-pathways" aria-label="Popular alumni destinations">
+        <div class="home-shell home-pathways-grid">
+            <p class="home-pathways-label">Start here</p>
+            <a href="{% url 'jobs:careers' %}">
+                <span>Career opportunities</span>
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            <a href="{% url 'core:landing_events' %}">
+                <span>University events</span>
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            <a href="{% url 'surveys:tracer_study_public_list' %}">
+                <span>Graduate tracer studies</span>
+                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
         </div>
+    </nav>
 
-        <div class="row g-5">
-            {% if testimonials %}
-                {% for testimonial in testimonials %}
-                <div class="col-md-6 col-lg-4">
-                    <div class="testimonial-card">
-                        <div class="testimonial-quote">
-                            "{{ testimonial.quote }}"
-                        </div>
-                        <div class="testimonial-author">
-                            <div class="testimonial-avatar">
-                                {% if testimonial.image %}
-                                    <img src="{{ testimonial.image.url }}" alt="{{ testimonial.name }}" loading="lazy" decoding="async">
-                                {% else %}
-                                    <img src="{% static 'images/default-avatar.png' %}" alt="{{ testimonial.name }}" loading="lazy" decoding="async">
-                                {% endif %}
-                            </div>
-                            <div class="testimonial-info">
-                                <h4>{{ testimonial.name }}</h4>
-                                <p>{{ testimonial.position }}{% if testimonial.company %}, {{ testimonial.company }}{% endif %}</p>
-                            </div>
-                        </div>
+    <div id="home-content" tabindex="-1">
+        <section class="home-section home-opportunities" aria-labelledby="opportunities-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split">
+                    <div>
+                        <p class="home-eyebrow">Your alumni advantage</p>
+                        <h2 class="home-section-title" id="opportunities-title">A network designed for what comes next.</h2>
                     </div>
-                </div>
-                {% endfor %}
-            {% else %}
-                <div class="col-md-6 col-lg-4">
-                    <div class="testimonial-card">
-                        <div class="testimonial-quote">
-                            "Connected with a mentor who helped me transition into tech and land my dream job at Microsoft."
-                        </div>
-                        <div class="testimonial-author">
-                            <div class="testimonial-avatar">
-                                <img src="{% static 'images/default-avatar.png' %}" alt="Maria Santos" loading="lazy" decoding="async">
-                            </div>
-                            <div class="testimonial-info">
-                                <h4>Maria Santos</h4>
-                                <p>Software Engineer, Microsoft</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="testimonial-card">
-                        <div class="testimonial-quote">
-                            "Alumni connections helped me secure funding and grow my startup from idea to successful business."
-                        </div>
-                        <div class="testimonial-author">
-                            <div class="testimonial-avatar">
-                                <img src="{% static 'images/default-avatar.png' %}" alt="John Dela Cruz" loading="lazy" decoding="async">
-                            </div>
-                            <div class="testimonial-info">
-                                <h4>John Dela Cruz</h4>
-                                <p>CEO, TechStart Philippines</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-6 col-lg-4">
-                    <div class="testimonial-card">
-                        <div class="testimonial-quote">
-                            "Professional development resources and networking events advanced my career by two positions in one year."
-                        </div>
-                        <div class="testimonial-author">
-                            <div class="testimonial-avatar">
-                                <img src="{% static 'images/default-avatar.png' %}" alt="Ana Rodriguez" loading="lazy" decoding="async">
-                            </div>
-                            <div class="testimonial-info">
-                                <h4>Ana Rodriguez</h4>
-                                <p>Marketing Director, Globe Telecom</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</section>
+                    <p>Career support, professional relationships, and university programs—organized around the moments that matter after graduation.</p>
+                </header>
 
-<!-- Alumni Network Statistics Section -->
-{% if alumni_statistics %}
-<section class="statistics-section">
-    <div class="container">
-        <div class="section-heading">
-            <div class="section-badge">Our Impact</div>
-            <h2 class="section-title">Alumni Network Statistics</h2>
-            <p class="section-subtitle">Discover the strength and reach of our growing alumni community.</p>
-        </div>
-
-        <div class="row g-4">
-            {% for stat in alumni_statistics %}
-            <div class="col-lg-3 col-md-6">
-                <div class="stat-card">
-                    <div class="stat-icon">
-                        <i class="{{ stat.icon }}" style="color: {{ stat.icon_color }}"></i>
-                    </div>
-                    <h3 class="stat-number">{{ stat.value }}</h3>
-                    <p class="stat-label">{{ stat.label }}</p>
-                </div>
-            </div>
-            {% endfor %}
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- Staff Section - Modern Swiper Slider -->
-{% if staff_members %}
-<section class="officials-slider-section">
-    <div class="container">
-        <div class="section-heading">
-            <div class="section-badge">Meet Our Team</div>
-            <h2 class="section-title">Office of the University Alumni Affairs Officials</h2>
-            <p class="section-subtitle">Connect with the dedicated officials managing NORSU's alumni relations, fostering lifelong connections and supporting your continued success.</p>
-        </div>
-
-        <!-- Swiper Slider -->
-        <div class="swiper officials-swiper">
-            <div class="swiper-wrapper">
-                {% for staff in staff_members %}
-                <div class="swiper-slide">
-                    <div class="staff-card">
-                        <div class="staff-avatar">
-                            {% if staff.image %}
-                                <img src="{{ staff.image.url }}" alt="{{ staff.name }}" loading="lazy">
+                <div class="home-feature-grid">
+                    {% if features %}
+                        {% for feature in features %}
+                        <article class="home-feature-item">
+                            <div class="home-feature-index">0{{ forloop.counter }}</div>
+                            <div class="home-feature-icon" aria-hidden="true">
+                                <i class="{{ feature.icon|default:'fas fa-compass' }}"></i>
+                            </div>
+                            <h3>{{ feature.title }}</h3>
+                            <div class="home-feature-copy">{{ feature.content|safe }}</div>
+                            {% if feature.title == "Career Opportunities" %}
+                            <a href="{% url 'jobs:careers' %}">
                             {% else %}
-                                <img src="{% static 'images/default-avatar.png' %}" alt="Default Avatar" id="default-avatar" loading="lazy">
+                            <a href="{{ feature.link_url|default:alumni_login_url }}">
                             {% endif %}
-                        </div>
-                        <h5 class="staff-name">{{ staff.name }}</h5>
-                        <p class="staff-position">{{ staff.position }}</p>
-                        {% if staff.department %}
-                            <p class="staff-department">{{ staff.department }}</p>
-                        {% endif %}
-                        {% if staff.bio %}
-                            <p class="staff-bio">{{ staff.bio|truncatechars:80 }}</p>
-                        {% endif %}
-                        {% if staff.email %}
-                            <div class="staff-contact">
-                                <a href="mailto:{{ staff.email }}" class="btn btn-sm btn-outline-primary">
-                                    <i class="fas fa-envelope me-1" aria-hidden="true"></i>Contact
-                                </a>
-                            </div>
-                        {% endif %}
+                                {{ feature.link_text|default:"Learn more" }}
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </a>
+                        </article>
+                        {% endfor %}
+                    {% else %}
+                        <article class="home-feature-item">
+                            <div class="home-feature-index">01</div>
+                            <div class="home-feature-icon" aria-hidden="true"><i class="fas fa-briefcase"></i></div>
+                            <h3>Career momentum</h3>
+                            <p class="home-feature-copy">Discover openings shared for NORSU graduates and practical resources for your next professional move.</p>
+                            <a href="{% url 'jobs:careers' %}">Browse careers <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        </article>
+                        <article class="home-feature-item">
+                            <div class="home-feature-index">02</div>
+                            <div class="home-feature-icon" aria-hidden="true"><i class="fas fa-people-group"></i></div>
+                            <h3>Community connections</h3>
+                            <p class="home-feature-copy">Reconnect with classmates, meet alumni in your field, and build relationships across generations.</p>
+                            <a href="{{ alumni_login_url }}">Enter the network <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        </article>
+                        <article class="home-feature-item">
+                            <div class="home-feature-index">03</div>
+                            <div class="home-feature-icon" aria-hidden="true"><i class="fas fa-compass"></i></div>
+                            <h3>Guidance that travels</h3>
+                            <p class="home-feature-copy">Learn from graduates who understand the transition from university life to professional practice.</p>
+                            <a href="{{ alumni_login_url }}">Find guidance <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        </article>
+                        <article class="home-feature-item">
+                            <div class="home-feature-index">04</div>
+                            <div class="home-feature-icon" aria-hidden="true"><i class="fas fa-calendar-check"></i></div>
+                            <h3>Reasons to return</h3>
+                            <p class="home-feature-copy">Join reunions, learning sessions, and university gatherings that keep the NORSU community close.</p>
+                            <a href="{% url 'core:landing_events' %}">See events <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                        </article>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+
+        <section class="home-section home-updates" id="community-updates" aria-labelledby="updates-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split home-section-header-light">
+                    <div>
+                        <p class="home-eyebrow">From the university</p>
+                        <h2 class="home-section-title" id="updates-title">Stay close to what is happening.</h2>
                     </div>
-                </div>
-                {% endfor %}
-            </div>
-            
-            <!-- Navigation Arrows -->
-            <div class="swiper-button-prev"></div>
-            <div class="swiper-button-next"></div>
-            
-            <!-- Pagination Dots -->
-            <div class="swiper-pagination"></div>
-        </div>
-    </div>
-</section>
-{% endif %}
+                    <a href="{% url 'core:landing_announcements' %}" class="home-section-link">
+                        All announcements <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                </header>
 
-<!-- Feedback & Suggestions Section -->
-{% if feedback_form %}
-<section class="feedback-section" style="padding: 4rem 0; background-color: var(--ui-background);">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-8">
-                <div class="section-header text-center mb-4">
-                    <div class="section-badge">Share Your Thoughts</div>
-                    <h2 class="section-title">Feedback & Suggestions</h2>
-                    <p class="section-subtitle">Help us improve our platform by sharing your feedback and suggestions</p>
-                </div>
-                
-                <div class="feedback-form-container">
-                    <form method="post" enctype="multipart/form-data" class="feedback-form">
-                        {% csrf_token %}
-                        <input type="hidden" name="feedback_submit" value="1">
-                        <div class="visually-hidden" aria-hidden="true">
-                            <label for="feedback-office-website">Leave this field empty</label>
-                            <input id="feedback-office-website" type="text" name="office_website" tabindex="-1" autocomplete="off">
-                        </div>
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ feedback_form.category.id_for_label }}" class="form-label">Category</label>
-                                {{ feedback_form.category }}
-                                {% if feedback_form.category.errors %}
-                                    <div class="text-danger small">{{ feedback_form.category.errors.0 }}</div>
-                                {% endif %}
+                <div class="home-updates-layout">
+                    <div class="home-announcement-list">
+                        {% for announcement in announcements %}
+                        <article class="home-announcement-item">
+                            <div class="home-announcement-meta">
+                                <span>{{ announcement.category.name|default:"University update" }}</span>
+                                <time datetime="{{ announcement.date_posted|date:'Y-m-d' }}">{{ announcement.date_posted|date:"M j, Y" }}</time>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label for="{{ feedback_form.priority.id_for_label }}" class="form-label">Priority</label>
-                                {{ feedback_form.priority }}
-                                {% if feedback_form.priority.errors %}
-                                    <div class="text-danger small">{{ feedback_form.priority.errors.0 }}</div>
-                                {% endif %}
-                            </div>
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ feedback_form.subject.id_for_label }}" class="form-label">Subject</label>
-                            {{ feedback_form.subject }}
-                            {% if feedback_form.subject.errors %}
-                                <div class="text-danger small">{{ feedback_form.subject.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ feedback_form.message.id_for_label }}" class="form-label">Message</label>
-                            {{ feedback_form.message }}
-                            {% if feedback_form.message.errors %}
-                                <div class="text-danger small">{{ feedback_form.message.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        
-                        <div class="mb-3">
-                            <label for="{{ feedback_form.attachment.id_for_label }}" class="form-label">Attachment (Optional)</label>
-                            {{ feedback_form.attachment }}
-                            {% if feedback_form.attachment.errors %}
-                                <div class="text-danger small">{{ feedback_form.attachment.errors.0 }}</div>
-                            {% endif %}
-                            <div class="form-text">Accepted formats: PDF, DOC, DOCX, TXT, PNG, JPG, JPEG (max 5MB)</div>
-                        </div>
-                        
-                        {% if feedback_form.captcha %}
-                        <div class="mb-3">
-                            {{ feedback_form.captcha }}
-                            {% if feedback_form.captcha.errors %}
-                                <div class="text-danger small">{{ feedback_form.captcha.errors.0 }}</div>
-                            {% endif %}
-                        </div>
-                        {% endif %}
-                        
-                        <div class="text-center">
-                            <button type="submit" class="btn btn-primary btn-lg">
-                                <i class="fas fa-paper-plane me-2"></i>
-                                Submit Feedback
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
-{% endif %}
-
-<!-- FAQ Section -->
-{% if faqs %}
-<section class="faq-section" style="padding: 4rem 0; background-color: var(--ui-surface);">
-    <div class="container">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
-                <div class="section-header text-center mb-4">
-                    <div class="section-badge">Have Questions?</div>
-                    <h2 class="section-title">Frequently Asked Questions</h2>
-                    <p class="section-subtitle">Find answers to common questions about the NORSU Alumni Network</p>
-                </div>
-                
-                <div class="faq-container">
-                    <div class="accordion" id="faqAccordion">
-                        {% for faq in faqs %}
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="faq{{ forloop.counter }}">
-                                <button class="accordion-button {% if not forloop.first %}collapsed{% endif %}" type="button" data-bs-toggle="collapse" data-bs-target="#collapse{{ forloop.counter }}" aria-expanded="{% if forloop.first %}true{% else %}false{% endif %}" aria-controls="collapse{{ forloop.counter }}">
-                                    {{ faq.question }}
-                                </button>
-                            </h2>
-                            <div id="collapse{{ forloop.counter }}" class="accordion-collapse collapse {% if forloop.first %}show{% endif %}" aria-labelledby="faq{{ forloop.counter }}" data-bs-parent="#faqAccordion">
-                                <div class="accordion-body">
-                                    {{ faq.answer|linebreaks }}
-                                </div>
+                            <h3>{{ announcement.title }}</h3>
+                            <p>{{ announcement.content|truncatewords:24 }}</p>
+                            <details class="home-update-details">
+                                <summary>Read the full update</summary>
+                                <div>{{ announcement.content|linebreaks }}</div>
+                            </details>
+                        </article>
+                        {% empty %}
+                        <div class="home-empty-state">
+                            <i class="fas fa-bullhorn" aria-hidden="true"></i>
+                            <div>
+                                <h3>No new announcements</h3>
+                                <p>University updates will appear here as soon as they are published.</p>
                             </div>
                         </div>
                         {% endfor %}
                     </div>
+
+                    <aside class="home-events-panel" aria-labelledby="upcoming-events-title">
+                        <div class="home-events-heading">
+                            <p class="home-eyebrow">Save the date</p>
+                            <h3 id="upcoming-events-title">Upcoming events</h3>
+                        </div>
+                        <div class="home-events-list">
+                            {% for event in upcoming_events %}
+                            <article class="home-event-item">
+                                <time datetime="{{ event.start_date|date:'c' }}" class="home-event-date">
+                                    <strong>{{ event.start_date|date:"d" }}</strong>
+                                    <span>{{ event.start_date|date:"M" }}</span>
+                                </time>
+                                <div>
+                                    <h4>{{ event.title }}</h4>
+                                    <p><i class="fas fa-location-dot" aria-hidden="true"></i> {{ event.location }}</p>
+                                </div>
+                            </article>
+                            {% empty %}
+                            <p class="home-events-empty">No upcoming events are scheduled yet.</p>
+                            {% endfor %}
+                        </div>
+                        <a href="{% url 'core:landing_events' %}" class="home-button home-button-light">
+                            View the events calendar <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                        </a>
+                    </aside>
                 </div>
             </div>
-        </div>
+        </section>
+
+        {% if vmgo_section and vmgo_section.is_active %}
+        <section class="home-section home-foundation" aria-labelledby="foundation-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split">
+                    <div>
+                        <p class="home-eyebrow">Our shared foundation</p>
+                        <h2 class="home-section-title" id="foundation-title">{{ vmgo_section.section_title }}</h2>
+                    </div>
+                    <p>{{ vmgo_section.about_content|truncatewords:38 }}</p>
+                </header>
+
+                <div class="home-vm-grid">
+                    <article>
+                        <span>01 / Vision</span>
+                        <h3>{{ vmgo_section.vision_title }}</h3>
+                        <div>{{ vmgo_section.vision|linebreaks }}</div>
+                    </article>
+                    <article>
+                        <span>02 / Mission</span>
+                        <h3>{{ vmgo_section.mission_title }}</h3>
+                        <div>{{ vmgo_section.mission|linebreaks }}</div>
+                    </article>
+                </div>
+
+                <details class="home-framework-details">
+                    <summary>
+                        <span>Read the complete institutional framework</span>
+                        <i class="fas fa-plus" aria-hidden="true"></i>
+                    </summary>
+                    <div class="home-framework-content">
+                        <section aria-labelledby="home-goals-title">
+                            <h3 id="home-goals-title">{{ vmgo_section.goals_title }}</h3>
+                            <div class="home-acronym-grid">{{ vmgo_section.goals|format_acronym }}</div>
+                        </section>
+                        <section aria-labelledby="home-values-title">
+                            <h3 id="home-values-title">{{ vmgo_section.values_title }}</h3>
+                            <div class="home-acronym-grid">{{ vmgo_section.core_values|format_acronym }}</div>
+                        </section>
+                        {% if vmgo_section.quality_policy %}
+                        <section aria-labelledby="home-quality-policy-title">
+                            <h3 id="home-quality-policy-title">Quality policy</h3>
+                            <div>{{ vmgo_section.quality_policy|linebreaks }}</div>
+                        </section>
+                        {% endif %}
+                        <section aria-labelledby="home-quality-objectives-title">
+                            <h3 id="home-quality-objectives-title">{{ vmgo_section.quality_objectives_title }}</h3>
+                            <ol class="home-objectives-list">
+                                <li><strong>O</strong><span>{{ vmgo_section.quality_objective_1 }}</span></li>
+                                <li><strong>D</strong><span>{{ vmgo_section.quality_objective_2 }}</span></li>
+                                <li><strong>A</strong><span>{{ vmgo_section.quality_objective_3 }}</span></li>
+                                <li><strong>A</strong><span>{{ vmgo_section.quality_objective_4 }}</span></li>
+                            </ol>
+                            <p class="home-objectives-footer">{{ vmgo_section.quality_objectives_footer }}</p>
+                        </section>
+                    </div>
+                </details>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if alumni_statistics %}
+        <section class="home-impact" aria-labelledby="impact-title">
+            <div class="home-shell home-impact-layout">
+                <div class="home-impact-intro">
+                    <p class="home-eyebrow">The network in numbers</p>
+                    <h2 class="home-section-title" id="impact-title">NORSU connections extend far beyond campus.</h2>
+                </div>
+                <dl class="home-impact-grid">
+                    {% for stat in alumni_statistics %}
+                    <div>
+                        <dt>{{ stat.value }}</dt>
+                        <dd>{{ stat.label }}</dd>
+                    </div>
+                    {% endfor %}
+                </dl>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if testimonials %}
+        <section class="home-section home-stories" aria-labelledby="stories-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split">
+                    <div>
+                        <p class="home-eyebrow">Alumni voices</p>
+                        <h2 class="home-section-title" id="stories-title">The value of staying connected.</h2>
+                    </div>
+                    <p>Stories from graduates who continue to learn, lead, and support the NORSU community.</p>
+                </header>
+
+                <div class="home-story-grid">
+                    {% for testimonial in testimonials %}
+                    <figure class="home-story-item">
+                        <blockquote>“{{ testimonial.quote }}”</blockquote>
+                        <figcaption>
+                            {% if testimonial.image %}
+                                <img src="{{ testimonial.image.url }}" alt="Portrait of {{ testimonial.name }}" width="64" height="64" loading="lazy" decoding="async">
+                            {% else %}
+                                <img src="{% static 'images/default-avatar.png' %}" alt="Portrait placeholder for {{ testimonial.name }}" width="64" height="64" loading="lazy" decoding="async">
+                            {% endif %}
+                            <span>
+                                <strong>{{ testimonial.name }}</strong>
+                                <small>{{ testimonial.position }}{% if testimonial.company %}, {{ testimonial.company }}{% endif %}</small>
+                            </span>
+                        </figcaption>
+                    </figure>
+                    {% endfor %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if staff_members %}
+        <section class="home-section home-team" aria-labelledby="team-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split home-section-header-light home-team-heading">
+                    <div>
+                        <p class="home-eyebrow">People behind the network</p>
+                        <h2 class="home-section-title" id="team-title">Your Alumni Affairs team.</h2>
+                    </div>
+                    <div class="home-team-intro">
+                        <p>Meet the people who help graduates stay connected to NORSU and to one another.</p>
+                        <div class="home-team-controls" aria-label="Alumni Affairs gallery controls">
+                            <button type="button" data-team-previous aria-controls="alumni-team-gallery" aria-label="Show previous Alumni Affairs team member" disabled>
+                                <i class="fas fa-arrow-left" aria-hidden="true"></i>
+                            </button>
+                            <button type="button" data-team-next aria-controls="alumni-team-gallery" aria-label="Show next Alumni Affairs team member">
+                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </div>
+                    </div>
+                </header>
+
+                <div class="home-team-gallery" data-team-gallery>
+                    <div class="home-team-track" id="alumni-team-gallery" tabindex="0" aria-label="Alumni Affairs team gallery">
+                    {% for staff in staff_members %}
+                    <article class="home-team-member">
+                        {% if staff.image %}
+                            <img src="{{ staff.image.url }}" alt="Portrait of {{ staff.name }}" width="252" height="265" loading="lazy" decoding="async">
+                        {% else %}
+                            <img src="{% static 'images/default-avatar.png' %}" alt="Portrait placeholder for {{ staff.name }}" width="252" height="265" loading="lazy" decoding="async">
+                        {% endif %}
+                        <div>
+                            <h3>{{ staff.name }}</h3>
+                            <p>{{ staff.position }}</p>
+                            {% if staff.department %}<small>{{ staff.department }}</small>{% endif %}
+                            {% if staff.email %}
+                                <a href="mailto:{{ staff.email }}" aria-label="Email {{ staff.name }}">
+                                    <i class="fas fa-envelope" aria-hidden="true"></i>
+                                </a>
+                            {% endif %}
+                        </div>
+                    </article>
+                    {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if feedback_form or faqs %}
+        <section class="home-section home-help" aria-labelledby="help-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split">
+                    <div>
+                        <p class="home-eyebrow">Questions and feedback</p>
+                        <h2 class="home-section-title" id="help-title">Help us serve alumni better.</h2>
+                    </div>
+                    <p>Find quick answers or tell the Alumni Affairs team what would make this network more useful to you.</p>
+                </header>
+
+                <div class="home-help-layout {% if not feedback_form or not faqs %}home-help-layout-single{% endif %}">
+                    {% if faqs %}
+                    <div class="home-faq-list" aria-label="Frequently asked questions">
+                        {% for faq in faqs %}
+                        <details {% if forloop.first %}open{% endif %}>
+                            <summary>
+                                <span>{{ faq.question }}</span>
+                                <i class="fas fa-plus" aria-hidden="true"></i>
+                            </summary>
+                            <div>{{ faq.answer|linebreaks }}</div>
+                        </details>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    {% if feedback_form %}
+                    <aside class="home-feedback-panel" aria-labelledby="feedback-title">
+                        <p class="home-eyebrow">Send a note</p>
+                        <h3 id="feedback-title">Feedback and suggestions</h3>
+                        <p>Messages go directly to the team for review.</p>
+
+                        <form method="post" enctype="multipart/form-data" class="home-feedback-form">
+                            {% csrf_token %}
+                            <input type="hidden" name="feedback_submit" value="1">
+                            <div class="visually-hidden" aria-hidden="true">
+                                <label for="feedback-office-website">Leave this field empty</label>
+                                <input id="feedback-office-website" type="text" name="office_website" tabindex="-1" autocomplete="off">
+                            </div>
+
+                            <div class="home-form-grid">
+                                <div>
+                                    <label for="{{ feedback_form.category.id_for_label }}">Category</label>
+                                    {{ feedback_form.category }}
+                                    {% if feedback_form.category.errors %}<div class="home-form-error">{{ feedback_form.category.errors.0 }}</div>{% endif %}
+                                </div>
+                                <div>
+                                    <label for="{{ feedback_form.priority.id_for_label }}">Priority</label>
+                                    {{ feedback_form.priority }}
+                                    {% if feedback_form.priority.errors %}<div class="home-form-error">{{ feedback_form.priority.errors.0 }}</div>{% endif %}
+                                </div>
+                            </div>
+                            <div>
+                                <label for="{{ feedback_form.subject.id_for_label }}">Subject</label>
+                                {{ feedback_form.subject }}
+                                {% if feedback_form.subject.errors %}<div class="home-form-error">{{ feedback_form.subject.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div>
+                                <label for="{{ feedback_form.message.id_for_label }}">Message</label>
+                                {{ feedback_form.message }}
+                                {% if feedback_form.message.errors %}<div class="home-form-error">{{ feedback_form.message.errors.0 }}</div>{% endif %}
+                            </div>
+                            <div>
+                                <label for="{{ feedback_form.attachment.id_for_label }}">Attachment <span>(optional)</span></label>
+                                {{ feedback_form.attachment }}
+                                {% if feedback_form.attachment.errors %}<div class="home-form-error">{{ feedback_form.attachment.errors.0 }}</div>{% endif %}
+                                <small>PDF, DOC, DOCX, TXT, PNG, or JPG up to 5 MB.</small>
+                            </div>
+                            {% if feedback_form.captcha %}
+                            <div>
+                                {{ feedback_form.captcha }}
+                                {% if feedback_form.captcha.errors %}<div class="home-form-error">{{ feedback_form.captcha.errors.0 }}</div>{% endif %}
+                            </div>
+                            {% endif %}
+                            <button type="submit" class="home-button home-button-primary">
+                                Submit feedback <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                            </button>
+                        </form>
+                    </aside>
+                    {% endif %}
+                </div>
+            </div>
+        </section>
+        {% endif %}
+
+        <section class="home-cta" aria-labelledby="home-cta-title">
+            <div class="home-shell home-cta-layout">
+                <div>
+                    <p class="home-eyebrow">Your NORSU story continues</p>
+                    <h2 class="home-section-title" id="home-cta-title">Come back to the community that helped you begin.</h2>
+                </div>
+                <div class="home-cta-action">
+                    <p>Sign in to reach alumni resources, opportunities, and connections.</p>
+                    <a href="{{ alumni_login_url }}" class="home-button home-button-gold">
+                        Access the alumni network <i class="fas fa-arrow-right" aria-hidden="true"></i>
+                    </a>
+                </div>
+            </div>
+        </section>
     </div>
-</section>
-{% endif %}
-
-<!-- Enhanced Call to Action Section -->
-<section class="cta-section">
-    <div class="container">
-        <div class="cta-content">
-            <div class="cta-badge">
-                <i class="fas fa-star me-2"></i>
-                Join {{ alumni_count_display|default:"5,000+" }} Successful Alumni
-            </div>
-            <h2 class="cta-title">Start Your Success Story</h2>
-            <p class="cta-text">Join the most powerful professional network of NORSU graduates. Access career-changing opportunities, industry insights, and lifelong connections.</p>
-            <div class="cta-buttons">
-                <a href="{% url 'account_login' %}" class="btn hero-btn hero-btn-primary">
-                    <i class="fas fa-rocket me-2"></i>
-                    Start Your Journey
-                </a>
-                <a href="{% url 'account_login' %}" class="btn hero-btn hero-btn-outline">
-                    <i class="fas fa-sign-in-alt me-2"></i>
-                    Member Access
-                </a>
-            </div>
-            <div class="cta-urgency">
-                <i class="fas fa-clock me-2"></i>
-                Join today and get immediate access to our exclusive job board and networking events
-            </div>
-        </div>
-    </div>
-</section>
-
-<!-- Add JavaScript for animations and icon fallback -->
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Enhanced Font Awesome detection with debugging
-        function checkFontAwesome() {
-            // Method 1: Check if Font Awesome CSS is loaded
-            const testElement = document.createElement('i');
-            testElement.className = 'fas fa-home';
-            testElement.style.position = 'absolute';
-            testElement.style.left = '-9999px';
-            testElement.style.visibility = 'hidden';
-            document.body.appendChild(testElement);
-
-            const computedStyle = window.getComputedStyle(testElement, ':before');
-            const content = computedStyle.getPropertyValue('content');
-            const fontFamily = computedStyle.getPropertyValue('font-family');
-
-            document.body.removeChild(testElement);
-
-            // Check if Font Awesome is properly loaded
-            const isFontAwesomeLoaded = (
-                (content && content !== 'none' && content !== '""') ||
-                (fontFamily && fontFamily.includes('Font Awesome'))
-            );
-
-            console.log('Font Awesome Detection:', {
-                loaded: isFontAwesomeLoaded,
-                content: content,
-                fontFamily: fontFamily
-            });
-
-            return isFontAwesomeLoaded;
-        }
-
-        // Apply fallback only if Font Awesome fails to load
-        function applyIconFallback() {
-            if (!checkFontAwesome()) {
-                console.warn('Font Awesome not detected, using emoji fallbacks');
-                const featureIcons = document.querySelectorAll('.feature-icon');
-                featureIcons.forEach(icon => {
-                    icon.classList.add('fa-fallback');
-                });
-            } else {
-                console.log('Font Awesome loaded successfully - using Font Awesome icons');
-                // Ensure fallback class is removed if Font Awesome loads
-                const featureIcons = document.querySelectorAll('.feature-icon');
-                featureIcons.forEach(icon => {
-                    icon.classList.remove('fa-fallback');
-                });
-
-                // Per-icon fallback: if a configured icon class is invalid, replace it.
-                const fallbackIcons = [
-                    'fas fa-users',
-                    'fas fa-calendar-alt',
-                    'fas fa-briefcase',
-                    'fas fa-user-graduate'
-                ];
-                featureIcons.forEach((icon, index) => {
-                    const iconElement = icon.querySelector('i');
-                    if (!iconElement) return;
-                    const computed = window.getComputedStyle(iconElement, ':before').getPropertyValue('content');
-                    if (!computed || computed === 'none' || computed === '""') {
-                        iconElement.className = fallbackIcons[index % fallbackIcons.length];
-                    }
-                });
-            }
-        }
-
-        // Run once after the first paint instead of repeatedly forcing style checks.
-        window.requestAnimationFrame(applyIconFallback);
-
-        // Force show feature cards immediately for debugging
-        const featureCards = document.querySelectorAll('.feature-card');
-        featureCards.forEach(card => {
-            card.style.opacity = '1';
-            card.style.transform = 'translateY(0)';
-        });
-
-        // Announcement card expansion
-        const readMoreButtons = document.querySelectorAll('.read-more-btn');
-        readMoreButtons.forEach(button => {
-            button.addEventListener('click', function() {
-                const announcementId = this.getAttribute('data-id');
-                const collapsedText = document.getElementById(`announcement-text-${announcementId}`);
-                const expandedText = document.getElementById(`announcement-full-${announcementId}`);
-
-                if (collapsedText.classList.contains('d-none')) {
-                    // Collapse the announcement
-                    collapsedText.classList.remove('d-none');
-                    expandedText.classList.add('d-none');
-                    this.textContent = 'Read More';
-                } else {
-                    // Expand the announcement
-                    collapsedText.classList.add('d-none');
-                    expandedText.classList.remove('d-none');
-                    this.textContent = 'Show Less';
-                }
-            });
-        });
-    });
-</script>
+</div>
 {% endif %}
 {% endblock content %}
 
 {% block extra_js %}
-<!-- Swiper JS -->
-<script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
-<!-- Officials Slider Script -->
-<script src="{% static 'js/officials_slider.js' %}"></script>
+<script src="{% static 'js/home_gallery.js' %}" defer></script>
 {% endblock extra_js %}
-
-
-
-
