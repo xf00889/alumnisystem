@@ -964,7 +964,7 @@
 
 <!-- Job Details Modal -->
 <div class="modal fade" id="jobDetailsModal" tabindex="-1" aria-labelledby="jobDetailsModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable job-details-dialog">
         <div class="modal-content">
             <div class="modal-header">
                 <h5 class="modal-title" id="jobDetailsModalLabel">
@@ -984,19 +984,19 @@
                 <div id="modal-content" style="display: none;">
                     <!-- Job Header -->
                     <div class="job-modal-header mb-4">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
-                            <div>
+                        <div class="job-modal-summary">
+                            <div class="job-modal-summary__identity">
                                 <h5 id="modal-company-name" class="text-primary mb-1"></h5>
                                 <h4 id="modal-job-title-full" class="h4 mb-2"></h4>
-                                <div class="d-flex align-items-center text-muted">
+                                <div class="job-modal-location text-muted">
                                     <i class="fas fa-map-marker-alt me-2"></i>
                                     <span id="modal-location"></span>
                                 </div>
                             </div>
-                            <div class="text-end">
+                            <div class="job-modal-badges" aria-label="Job classification">
                                 <span id="modal-job-type" class="badge bg-primary"></span>
-                                <span id="modal-experience-level" class="badge bg-secondary ms-1"></span>
-                                <div id="modal-featured-badge" class="badge bg-warning mt-1" style="display: none;">Featured</div>
+                                <span id="modal-experience-level" class="badge bg-secondary"></span>
+                                <span id="modal-featured-badge" class="badge bg-warning" style="display: none;">Featured</span>
                             </div>
                         </div>
                         
@@ -1120,7 +1120,7 @@
                     <i class="fas fa-times me-2"></i>
                     Close
                 </button>
-                <a id="modal-apply-link" href="#" class="btn btn-primary" target="_blank" style="display: none;">
+                <a id="modal-apply-link" href="#" class="btn btn-primary" target="_blank" rel="noopener noreferrer" style="display: none;">
                     <i class="fas fa-external-link-alt me-2"></i>
                     Apply Now
                 </a>
@@ -1134,83 +1134,201 @@
 </div>
 
 <style>
-    /* Modal Styles */
-    .job-modal-header {
-        border-bottom: 2px solid var(--ui-border);
-        padding-bottom: 1.5rem;
+    /* Job details modal */
+    #jobDetailsModal .job-details-dialog {
+        width: min(calc(100% - 2rem), 56rem);
+        max-width: 56rem;
+        padding-right: 0;
     }
 
-    .job-section {
-        border-left: 3px solid var(--primary-color);
-        padding-left: 1rem;
-    }
-    
-    /* Internal job notice styling */
-    #modal-login-notice .alert {
-        border: 2px solid #e3f2fd;
-        border-radius: 12px;
-        background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
-        box-shadow: 0 4px 12px rgba(43, 60, 107, 0.1);
-    }
-    
-    #modal-login-notice .alert-heading {
-        font-size: 1.1rem;
-        margin-bottom: 0.75rem;
-    }
-    
-    #modal-login-notice .btn {
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-    }
-    
-    #modal-login-notice .btn:hover {
-        transform: translateY(-1px);
-        box-shadow: 0 4px 8px rgba(43, 60, 107, 0.2);
-    }
-
-    .section-title {
-        color: var(--primary-color);
-        font-weight: 600;
-        margin-bottom: 1rem;
-        font-size: 1.1rem;
-    }
-
-    .job-content {
-        color: var(--text-secondary);
-        line-height: 1.6;
-        white-space: pre-wrap;
-    }
-
-    .job-meta-item {
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-    }
-
-    .modal-content {
+    #jobDetailsModal .modal-content {
+        min-width: 0;
+        max-width: 100%;
+        max-height: calc(100dvh - 2.5rem);
+        overflow: hidden;
         border: none;
         border-radius: var(--radius-lg);
         box-shadow: var(--shadow-lg);
     }
 
-    .modal-header {
+    #jobDetailsModal .modal-header {
+        flex: 0 0 auto;
+        gap: 1rem;
         background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
         color: white;
         border-bottom: none;
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     }
 
-    .modal-header .btn-close {
+    #jobDetailsModal .modal-title {
+        min-width: 0;
+        max-width: calc(100% - 3rem);
+        overflow-wrap: anywhere;
+        font-weight: 600;
+        line-height: 1.2;
+    }
+
+    #jobDetailsModal .modal-header .btn-close {
+        flex: 0 0 auto;
         filter: invert(1);
     }
 
-    .modal-title {
-        font-weight: 600;
+    #jobDetailsModal .modal-body {
+        min-width: 0;
+        max-width: 100%;
+        max-height: none;
+        overflow-x: hidden;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+        scrollbar-gutter: stable;
     }
 
-    .badge {
+    #jobDetailsModal #modal-content,
+    #jobDetailsModal .job-modal-header,
+    #jobDetailsModal .job-modal-summary__identity,
+    #jobDetailsModal .job-modal-location,
+    #jobDetailsModal .job-section,
+    #jobDetailsModal .job-content {
+        min-width: 0;
+        max-width: 100%;
+    }
+
+    #jobDetailsModal .job-modal-header {
+        border-bottom: 2px solid var(--ui-border);
+        padding-bottom: 1.5rem;
+    }
+
+    #jobDetailsModal .job-modal-summary {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: start;
+        gap: 1.25rem;
+        margin-bottom: 1rem;
+    }
+
+    #jobDetailsModal .job-modal-location {
+        display: flex;
+        align-items: flex-start;
+    }
+
+    #jobDetailsModal .job-modal-location span,
+    #jobDetailsModal #modal-job-title-full,
+    #jobDetailsModal .job-meta-item,
+    #jobDetailsModal .job-content {
+        overflow-wrap: anywhere;
+        word-break: normal;
+    }
+
+    #jobDetailsModal .job-modal-badges {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+        align-items: flex-start;
+        gap: 0.5rem;
+        max-width: 14rem;
+        padding-top: 0.25rem;
+    }
+
+    #jobDetailsModal .job-modal-badges .badge {
+        max-width: 100%;
+        margin: 0 !important;
+        white-space: normal;
+        line-height: 1.25;
+        text-align: center;
+    }
+
+    body.public-landing #jobDetailsModal .job-section {
+        padding: 1.15rem 1.25rem;
+        border-left: 3px solid var(--public-gold) !important;
+    }
+    
+    /* Internal job notice styling */
+    #jobDetailsModal #modal-login-notice .alert {
+        border: 2px solid #e3f2fd;
+        border-radius: 12px;
+        background: linear-gradient(135deg, #f8fbff 0%, #e3f2fd 100%);
+        box-shadow: 0 4px 12px rgba(43, 60, 107, 0.1);
+    }
+    
+    #jobDetailsModal #modal-login-notice .alert-heading {
+        font-size: 1.1rem;
+        margin-bottom: 0.75rem;
+    }
+    
+    #jobDetailsModal #modal-login-notice .btn {
+        border-radius: 8px;
+        font-weight: 500;
+        transition: all 0.3s ease;
+    }
+    
+    #jobDetailsModal #modal-login-notice .btn:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 4px 8px rgba(43, 60, 107, 0.2);
+    }
+
+    #jobDetailsModal .section-title {
+        color: var(--primary-color);
+        font-weight: 600;
+        margin-bottom: 1rem;
+        font-size: 1.1rem;
+    }
+
+    #jobDetailsModal .job-content {
+        color: var(--text-secondary);
+        line-height: 1.6;
+        white-space: pre-wrap;
+    }
+
+    #jobDetailsModal .job-meta-item {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+    }
+
+    #jobDetailsModal .badge {
         font-size: 0.75rem;
         padding: 0.5rem 0.75rem;
+    }
+
+    #jobDetailsModal .modal-footer {
+        position: relative;
+        z-index: 1;
+        flex: 0 0 auto;
+        flex-wrap: wrap;
+    }
+
+    @media (max-width: 575.98px) {
+        #jobDetailsModal .job-details-dialog {
+            width: auto;
+            max-width: none;
+            margin: 0.5rem;
+        }
+
+        #jobDetailsModal .modal-content {
+            max-height: calc(100dvh - 1rem);
+        }
+
+        #jobDetailsModal .modal-header {
+            padding: 1rem !important;
+        }
+
+        #jobDetailsModal .modal-body {
+            padding: 1rem !important;
+        }
+
+        #jobDetailsModal .job-modal-summary {
+            grid-template-columns: minmax(0, 1fr);
+            gap: 0.85rem;
+        }
+
+        #jobDetailsModal .job-modal-badges {
+            justify-content: flex-start;
+            max-width: 100%;
+            padding-top: 0;
+        }
+
+        body.public-landing #jobDetailsModal .job-section {
+            padding: 1rem;
+        }
     }
 
     .btn-apply {

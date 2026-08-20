@@ -423,6 +423,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            touch-action: manipulation;
         }
 
         /* Hide navbar toggler on desktop */
@@ -441,14 +442,17 @@
             outline: none;
         }
 
+        .landing-navbar .navbar-toggler:focus-visible {
+            outline: 2px solid rgba(240, 216, 173, 0.9);
+            outline-offset: 2px;
+        }
+
         /* Hamburger icon - Simple 3 line approach */
         .landing-navbar .navbar-toggler-icon {
             display: block;
             width: 26px;
             height: 20px;
             position: relative;
-            transform: rotate(0deg);
-            transition: 0.5s ease-in-out;
         }
 
         .landing-navbar .navbar-toggler-icon span {
@@ -459,37 +463,38 @@
             background: white;
             border-radius: 2px;
             opacity: 1;
+            top: 50%;
             left: 0;
-            transform: rotate(0deg);
-            transition: 0.25s ease-in-out;
+            margin-top: -1.5px;
+            transform-origin: center;
+            transition: transform 0.18s cubic-bezier(0.2, 0.7, 0.2, 1), opacity 0.12s ease-out;
+            will-change: transform, opacity;
         }
 
         .landing-navbar .navbar-toggler-icon span:nth-child(1) {
-            top: 0px;
+            transform: translateY(-8px);
         }
 
         .landing-navbar .navbar-toggler-icon span:nth-child(2) {
-            top: 8px;
+            transform: translateY(0);
         }
 
         .landing-navbar .navbar-toggler-icon span:nth-child(3) {
-            top: 16px;
+            transform: translateY(8px);
         }
 
         /* Animated state when menu is open */
         .landing-navbar .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(1) {
-            top: 8px;
-            transform: rotate(135deg);
+            transform: rotate(45deg);
         }
 
         .landing-navbar .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(2) {
             opacity: 0;
-            width: 0;
+            transform: scaleX(0);
         }
 
         .landing-navbar .navbar-toggler[aria-expanded="true"] .navbar-toggler-icon span:nth-child(3) {
-            top: 8px;
-            transform: rotate(-135deg);
+            transform: rotate(-45deg);
         }
 
         /* Hover effect */
@@ -697,7 +702,7 @@
     <nav class="navbar navbar-expand-lg landing-navbar" aria-label="Primary navigation">
         <div class="container-fluid landing-navbar-shell">
             <!-- Navbar Toggler -->
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#landingNavbar" aria-controls="landingNavbar" aria-expanded="false" aria-label="Toggle navigation">
+            <button class="navbar-toggler" type="button" aria-controls="landingNavbar" aria-expanded="false" aria-label="Open navigation">
                 <span class="navbar-toggler-icon">
                     <span></span>
                     <span></span>
@@ -805,39 +810,63 @@
             }
             
             const navbar = document.querySelector('.landing-navbar');
-            const navbarToggler = document.querySelector('.navbar-toggler');
-            const navbarCollapse = document.querySelector('.navbar-collapse');
-            let lastScrollTop = 0;
+            const navbarToggler = navbar ? navbar.querySelector('.navbar-toggler') : null;
+            const navbarCollapse = document.getElementById('landingNavbar');
+            const mobileNavQuery = window.matchMedia('(max-width: 991.98px)');
 
-            // Ensure hamburger icon is properly initialized
-            if (navbarToggler) {
-                // Force initial state
-                navbarToggler.setAttribute('aria-expanded', 'false');
-                
-                // Listen for Bootstrap collapse events
-                if (navbarCollapse) {
-                    navbarCollapse.addEventListener('show.bs.collapse', function() {
-                        navbarToggler.setAttribute('aria-expanded', 'true');
-                    });
-                    
-                    navbarCollapse.addEventListener('hide.bs.collapse', function() {
-                        navbarToggler.setAttribute('aria-expanded', 'false');
-                    });
+            function setMobileMenuState(expanded, returnFocus) {
+                if (!navbarToggler || !navbarCollapse) {
+                    return;
+                }
+
+                navbarCollapse.classList.toggle('show', expanded);
+                navbarToggler.setAttribute('aria-expanded', String(expanded));
+                navbarToggler.setAttribute(
+                    'aria-label',
+                    expanded ? 'Close navigation' : 'Open navigation'
+                );
+
+                if (!expanded && returnFocus) {
+                    navbarToggler.focus();
                 }
             }
 
-            // Navbar scroll effect
-            window.addEventListener('scroll', function() {
-                const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (navbarToggler && navbarCollapse) {
+                navbarToggler.addEventListener('click', function() {
+                    const expanded = navbarToggler.getAttribute('aria-expanded') === 'true';
+                    setMobileMenuState(!expanded, false);
+                });
 
-                if (scrollTop > 50) {
-                    navbar.classList.add('scrolled');
+                document.addEventListener('keydown', function(event) {
+                    if (
+                        event.key === 'Escape' &&
+                        mobileNavQuery.matches &&
+                        navbarCollapse.classList.contains('show')
+                    ) {
+                        setMobileMenuState(false, true);
+                    }
+                });
+
+                document.addEventListener('click', function(event) {
+                    if (
+                        mobileNavQuery.matches &&
+                        navbarCollapse.classList.contains('show') &&
+                        !navbar.contains(event.target)
+                    ) {
+                        setMobileMenuState(false, false);
+                    }
+                });
+
+                const resetMobileMenu = function() {
+                    setMobileMenuState(false, false);
+                };
+
+                if (typeof mobileNavQuery.addEventListener === 'function') {
+                    mobileNavQuery.addEventListener('change', resetMobileMenu);
                 } else {
-                    navbar.classList.remove('scrolled');
+                    mobileNavQuery.addListener(resetMobileMenu);
                 }
-
-                lastScrollTop = scrollTop;
-            });
+            }
 
             // Smooth scroll for anchor links
             document.querySelectorAll('a[href^="#"]').forEach(anchor => {
@@ -849,7 +878,7 @@
                         const target = document.querySelector(href);
                         if (target) {
                             target.scrollIntoView({
-                                behavior: 'smooth',
+                                behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
                                 block: 'start'
                             });
                         }
@@ -862,9 +891,12 @@
 
             navLinks.forEach(link => {
                 link.addEventListener('click', () => {
-                    if (navbarCollapse && navbarCollapse.classList.contains('show')) {
-                        const bsCollapse = new bootstrap.Collapse(navbarCollapse);
-                        bsCollapse.hide();
+                    if (
+                        mobileNavQuery.matches &&
+                        navbarCollapse &&
+                        navbarCollapse.classList.contains('show')
+                    ) {
+                        setMobileMenuState(false, false);
                     }
                 });
             });
