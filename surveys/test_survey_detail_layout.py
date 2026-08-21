@@ -123,6 +123,11 @@ class SurveyAdminPresentationTests(TestCase):
             response,
             "grid-template-columns: repeat(2, minmax(0, 1fr));",
         )
+        self.assertContains(response, self.now.strftime("%m/%d/%Y"))
+        self.assertContains(
+            response,
+            ".tracer-table .table th:nth-child(8) { width: 13%; }",
+        )
         self.assertNotContains(response, "min-width: 1080px;")
 
     def test_report_modal_removes_only_the_duplicate_body_export(self):
