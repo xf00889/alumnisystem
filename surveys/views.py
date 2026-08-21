@@ -30,6 +30,7 @@ from .models import (
     EmployerResponse, EmployerResponseAnswer,
 )
 from .tracer_metadata import (
+    TRACER_TITLES,
     build_tracer_metadata,
     resolve_report_survey,
 )
@@ -100,7 +101,9 @@ class SurveyListView(ListView):
     context_object_name = 'surveys'
 
     def get_queryset(self):
-        return super().get_queryset().annotate(
+        return super().get_queryset().exclude(
+            title__in=TRACER_TITLES
+        ).annotate(
             alumni_response_count=Count('responses', distinct=True),
             employer_response_count=Count('employer_responses', distinct=True),
         )
