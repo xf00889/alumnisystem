@@ -597,6 +597,13 @@
                                         <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
                                             {{ survey.title }}
                                         </a>
+                                        {% if survey.management_metadata.is_tracer %}
+                                            <div class="d-flex flex-wrap gap-1 mt-2 small">
+                                                <span class="badge bg-light text-dark border">Cycle: {{ survey.management_metadata.cycle_label }}</span>
+                                                <span class="badge bg-light text-dark border">Audience: {{ survey.management_metadata.audience_label }}</span>
+                                                <span class="badge bg-light text-dark border">Target: {{ survey.management_metadata.target_college }} · {{ survey.management_metadata.target_program }}</span>
+                                            </div>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if survey.status == 'draft' %}
@@ -613,7 +620,7 @@
                                             {{ survey.start_date|date:"M d" }} - {{ survey.end_date|date:"M d, Y" }}
                                         </small>
                                     </td>
-                                    <td class="text-center">{{ survey.responses.count }}</td>
+                                    <td class="text-center">{{ survey.management_response_count }}</td>
                                     <td>
                                         <div class="btn-group float-end">
                                             <a href="{% url 'surveys:survey_detail' survey.id %}" class="btn btn-sm btn-outline-primary">
@@ -673,6 +680,13 @@
                                         <a href="{% url 'surveys:survey_detail' survey.id %}" class="text-decoration-none">
                                             {{ survey.title }}
                                         </a>
+                                        {% if survey.metadata.is_tracer %}
+                                            <div class="d-flex flex-wrap gap-1 mt-2 small">
+                                                <span class="badge bg-light text-dark border">Cycle: {{ survey.metadata.cycle_label }}</span>
+                                                <span class="badge bg-light text-dark border">Audience: {{ survey.metadata.audience_label }}</span>
+                                                <span class="badge bg-light text-dark border">Target: {{ survey.metadata.target_college }} · {{ survey.metadata.target_program }}</span>
+                                            </div>
+                                        {% endif %}
                                     </td>
                                     <td>
                                         {% if survey.status == 'draft' %}
@@ -690,12 +704,16 @@
                                     </td>
                                     <td class="text-center">{{ survey.responses_count }}</td>
                                     <td>
+                                        {% if survey.response_rate_available %}
                                         <div class="d-flex align-items-center justify-content-center">
                                             <div class="progress flex-grow-1 mx-2" style="max-width: 150px;">
                                                 <div class="progress-bar" role="progressbar" style="width: {{ survey.response_rate }}%"></div>
                                             </div>
                                             <span class="text-muted small" style="width: 45px;">{{ survey.response_rate }}%</span>
                                         </div>
+                                        {% else %}
+                                            <div class="text-center text-muted small">Not applicable</div>
+                                        {% endif %}
                                     </td>
                                 </tr>
                                 {% endfor %}
@@ -921,4 +939,4 @@
         }
     });
 </script>
-{% endblock %} 
+{% endblock %}

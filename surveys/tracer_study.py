@@ -61,10 +61,13 @@ from .models import (
     SurveyQuestion,
     SurveyResponse,
 )
+from .tracer_metadata import (
+    ALUMNI_TITLE,
+    EMPLOYER_TITLE,
+    build_tracer_metadata,
+)
 
 
-ALUMNI_TITLE = "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
-EMPLOYER_TITLE = "NORSU Graduate Tracer Study (EMPLOYER QUESTIONNAIRE)"
 PART_IV_EXTENT_KEYS = {
     "p4_vision",
     "p4_mission",
@@ -163,11 +166,9 @@ def tracer_study_public_list(request):
     """Show all public alumni and employer tracer-study cycles."""
     studies = []
     for survey in public_tracer_studies_queryset().order_by("-created_at"):
-        is_employer = survey.title == EMPLOYER_TITLE
+        metadata = build_tracer_metadata(survey)
+        is_employer = metadata["audience"] == "employer"
         availability_state = survey.availability_state()
-        cycle_label = ""
-        if survey.description and " — " in survey.description:
-            cycle_label = survey.description.split(" — ", 1)[0].strip()
 
         if availability_state == "Open":
             action_url = reverse(
@@ -193,8 +194,8 @@ def tracer_study_public_list(request):
         studies.append(
             {
                 "survey": survey,
-                "cycle_label": cycle_label or f"Cycle {survey.created_at:%Y}",
-                "audience": "Employer" if is_employer else "Alumni",
+                "cycle_label": metadata["cycle_label"],
+                "audience": metadata["audience_label"],
                 "is_employer": is_employer,
                 "availability_state": availability_state,
                 "state_class": {
@@ -1845,6 +1846,7 @@ def tracer_study_reports(request):
     active_survey = None
     for title, audience in ((ALUMNI_TITLE, "alumni"), (EMPLOYER_TITLE, "employer")):
         for s in Survey.objects.filter(title=title).order_by("-created_at"):
+            metadata = build_tracer_metadata(s)
             if audience == "alumni":
                 count = _filtered_alumni_responses(s).count()
             else:
@@ -1871,14 +1873,11 @@ def tracer_study_reports(request):
                 "Expired": "bg-secondary",
                 "Manually Closed": "bg-warning text-dark",
             }.get(availability_state, "bg-secondary")
-            # Cycle label is stored as the description prefix ("SY 2026-2027 — …").
-            prefix = s.description.split(" — ", 1)[0] if " — " in s.description else ""
-            cycle_label = prefix if len(prefix) < 80 else ""
             surveys.append({
                 "survey": s,
                 "audience": audience,
                 "count": count,
-                "cycle_label": cycle_label,
+                "cycle_label": metadata["cycle_label"],
                 "visibility_summary": visibility_summary,
                 "availability_state": availability_state,
                 "state_class": state_class,
@@ -2097,6 +2096,46 @@ def tracer_study_filled_alumni_response(request, response_token):
     )
 
 
+def _tracer_export_metadata_rows(survey):
+    metadata = build_tracer_metadata(survey)
+    return [
+        ("Survey", survey.title),
+        ("Cycle Label", metadata["cycle_label"]),
+        ("Audience", metadata["audience_label"]),
+        ("Target College", metadata["target_college"]),
+        ("Target Program", metadata["target_program"]),
+        ("Graduation Years", metadata["graduation_year_range"]),
+        ("Study Period", metadata["study_period"]),
+        ("Status", metadata["status"]),
+    ]
+
+
+def _tracer_export_filter_labels(
+    *, start_date=None, end_date=None, campus=None, college=None,
+    program=None, year_from=None, year_to=None,
+):
+    labels = []
+    if campus:
+        labels.append(
+            f"Campus: {dict(Alumni.CAMPUS_CHOICES).get(campus, campus)}"
+        )
+    if college:
+        labels.append(
+            f"College: {dict(Alumni.COLLEGE_CHOICES).get(college, college)}"
+        )
+    if program:
+        labels.append(f"Program: {program}")
+    if year_from is not None:
+        labels.append(f"Graduation year from: {year_from}")
+    if year_to is not None:
+        labels.append(f"Graduation year to: {year_to}")
+    if start_date:
+        labels.append(f"Submitted from: {start_date}")
+    if end_date:
+        labels.append(f"Submitted to: {end_date}")
+    return labels
+
+
 @login_required
 def tracer_study_report_export(request, survey_id, format_type=None):
     if not _can_view_tracer_reports(request.user):
@@ -2136,6 +2175,18 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     responded_rows = [row for row in rows if row["submitted_at"]]
     missing_rows = [row for row in rows if not row["submitted_at"]]
     headers = ["Alumni ID", "Name", "Email", "Program", "Graduation Year", "Status", "Submitted At"]
+    generated_at = timezone.now().strftime("%Y-%m-%d %H:%M:%S")
+    metadata_rows = _tracer_export_metadata_rows(survey)
+    applied_filters = _tracer_export_filter_labels(
+        start_date=start_date,
+        end_date=end_date,
+        campus=campus,
+        college=college,
+        program=program,
+        year_from=year_from,
+        year_to=year_to,
+    )
+    applied_filters_text = " | ".join(applied_filters) if applied_filters else "None"
 
     def row_values(row):
         return [
@@ -2153,8 +2204,10 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.csv"'
         writer = csv.writer(response)
         writer.writerow(["Tracer Study Response Status"])
-        writer.writerow(["Survey", survey.title])
-        writer.writerow(["Generated", timezone.now().strftime("%Y-%m-%d %H:%M:%S")])
+        for label, value in metadata_rows:
+            writer.writerow([label, value])
+        writer.writerow(["Generated", generated_at])
+        writer.writerow(["Applied Filters", applied_filters_text])
         writer.writerow(["Responded", len(responded_rows), "No Response", len(missing_rows)])
         writer.writerow([])
         for title, sheet_rows in (("Alumni Who Responded", responded_rows), ("Alumni With No Response", missing_rows)):
@@ -2170,6 +2223,7 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         from reportlab.lib.pagesizes import landscape, A4
         from reportlab.lib.styles import getSampleStyleSheet
         from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, Table, TableStyle
+        from xml.sax.saxutils import escape
 
         response = HttpResponse(content_type="application/pdf")
         response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.pdf"'
@@ -2177,11 +2231,25 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         styles = getSampleStyleSheet()
         story = [
             Paragraph("Tracer Study Response Status", styles["Title"]),
-            Paragraph(f"Survey: {survey.title}", styles["Normal"]),
-            Paragraph(f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}", styles["Normal"]),
-            Paragraph(f"Responded: {len(responded_rows)} | No Response: {len(missing_rows)}", styles["Normal"]),
-            Spacer(1, 12),
         ]
+        for label, value in metadata_rows:
+            story.append(Paragraph(
+                f"<b>{escape(str(label))}:</b> {escape(str(value))}",
+                styles["Normal"],
+            ))
+        story.extend([
+            Paragraph(f"<b>Generated:</b> {generated_at}", styles["Normal"]),
+            Paragraph(
+                f"<b>Applied Filters:</b> {escape(applied_filters_text)}",
+                styles["Normal"],
+            ),
+            Paragraph(
+                f"<b>Responded:</b> {len(responded_rows)} | "
+                f"<b>No Response:</b> {len(missing_rows)}",
+                styles["Normal"],
+            ),
+            Spacer(1, 12),
+        ])
         table_style = TableStyle([
             ("BACKGROUND", (0, 0), (-1, 0), colors.HexColor("#2b3c6b")),
             ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
@@ -2214,6 +2282,45 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     header_font = Font(bold=True, color="FFFFFF")
     title_font = Font(bold=True, size=14, color="2b3c6b")
     section_font = Font(bold=True, size=12, color="2b3c6b")
+    metadata_label_font = Font(bold=True, size=10, color="2b3c6b")
+
+    def write_metadata_block(ws, start_row, end_column, title):
+        ws.merge_cells(
+            start_row=start_row,
+            start_column=1,
+            end_row=start_row,
+            end_column=end_column,
+        )
+        ws.cell(start_row, 1, title).font = title_font
+        ws.cell(start_row, 1).alignment = Alignment(horizontal="center")
+
+        row_number = start_row + 1
+        for label, value in metadata_rows + [
+            ("Generated", generated_at),
+            ("Applied Filters", applied_filters_text),
+        ]:
+            ws.cell(row_number, 1, label).font = metadata_label_font
+            if end_column > 2:
+                ws.merge_cells(
+                    start_row=row_number,
+                    start_column=2,
+                    end_row=row_number,
+                    end_column=end_column,
+                )
+            ws.cell(row_number, 2, value)
+            ws.cell(row_number, 2).alignment = Alignment(wrap_text=True)
+            row_number += 1
+
+        ws.cell(row_number, 1, "Responded").font = metadata_label_font
+        ws.cell(row_number, 2, len(responded_rows))
+        if end_column >= 4:
+            ws.cell(row_number, 3, "No Response").font = metadata_label_font
+            ws.cell(row_number, 4, len(missing_rows))
+        else:
+            row_number += 1
+            ws.cell(row_number, 1, "No Response").font = metadata_label_font
+            ws.cell(row_number, 2, len(missing_rows))
+        return row_number + 2
 
     def write_sheet(ws, sheet_rows, sheet_title):
         start_row = LogoHeaderService.add_excel_header(
@@ -2221,15 +2328,12 @@ def tracer_study_report_export(request, survey_id, format_type=None):
             LogoHeaderService.get_logo_path(),
             title="Tracer Study Response Status",
         )
-        ws.merge_cells(start_row=start_row, start_column=1, end_row=start_row, end_column=len(headers))
-        ws.cell(start_row, 1, "Tracer Study Response Status").font = title_font
-        ws.cell(start_row, 1).alignment = Alignment(horizontal="center")
-        ws.cell(start_row + 1, 1, f"Survey: {survey.title}")
-        ws.cell(start_row + 2, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        ws.cell(start_row + 3, 1, f"Responded: {len(responded_rows)}")
-        ws.cell(start_row + 3, 2, f"No Response: {len(missing_rows)}")
-
-        table_title_row = start_row + 5
+        table_title_row = write_metadata_block(
+            ws,
+            start_row,
+            len(headers),
+            "Tracer Study Response Status",
+        )
         ws.merge_cells(start_row=table_title_row, start_column=1, end_row=table_title_row, end_column=len(headers))
         ws.cell(table_title_row, 1, sheet_title).font = section_font
 
@@ -2278,46 +2382,17 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         sws.column_dimensions["B"].width = 24
         sws.column_dimensions["C"].width = 12
 
-        LogoHeaderService.add_excel_header(sws, LogoHeaderService.get_logo_path(), title="Tracer Study Summary")
-        r = sws.max_row + 1
-        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        sws.cell(r, 1, "Tracer Study Summary").font = title_font
-        sws.cell(r, 1).alignment = Alignment(horizontal="center")
-        r += 1
-        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        sws.cell(r, 1, f"Survey: {survey.title}")
-        sws.cell(r, 1).alignment = Alignment(horizontal="center", wrap_text=True)
-        r += 1
-        filter_desc = []
-        if campus:
-            campus_label = dict(Alumni.CAMPUS_CHOICES).get(campus, campus)
-            filter_desc.append(f"Campus: {campus_label}")
-        if college:
-            college_label = dict(Alumni.COLLEGE_CHOICES).get(college, college)
-            filter_desc.append(f"College: {college_label}")
-        if program:
-            filter_desc.append(f"Program: {program}")
-        if year_from is not None:
-            filter_desc.append(f"Graduation year from: {year_from}")
-        if year_to is not None:
-            filter_desc.append(f"Graduation year to: {year_to}")
-        if start_date:
-            filter_desc.append(f"Submitted from: {start_date}")
-        if end_date:
-            filter_desc.append(f"Submitted to: {end_date}")
-        if filter_desc:
-            r += 1
-            sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-            sws.cell(r, 1, "Filters: " + " | ".join(filter_desc))
-            sws.cell(r, 1).alignment = Alignment(horizontal="center", wrap_text=True)
-        r += 1
-        sws.cell(r, 1, f"Total Responses: {len(responded_rows)}")
-        sws.cell(r, 2, f"No Response: {len(missing_rows)}")
-        r += 1
-        sws.merge_cells(start_row=r, start_column=1, end_row=r, end_column=3)
-        sws.cell(r, 1, f"Generated: {timezone.now().strftime('%Y-%m-%d %H:%M:%S')}")
-        sws.cell(r, 1).alignment = Alignment(horizontal="center", wrap_text=True)
-        r += 2
+        summary_start_row = LogoHeaderService.add_excel_header(
+            sws,
+            LogoHeaderService.get_logo_path(),
+            title="Tracer Study Summary",
+        )
+        r = write_metadata_block(
+            sws,
+            summary_start_row,
+            3,
+            "Tracer Study Summary",
+        )
 
         current_part = None
         for question_number, q in enumerate(questions, 1):

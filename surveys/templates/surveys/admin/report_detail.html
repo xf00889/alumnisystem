@@ -66,18 +66,58 @@
                 <p>{{ report.description|linebreaks }}</p>
             </div>
         {% endif %}
+
+        {% if report_context %}
+                    <div class="context-section">
+                        <h6>{% translate 'Survey Context' %}</h6>
+                        <div class="parameters-grid">
+                            <div class="parameter-item">
+                                <label>{% translate 'Survey:' %}</label>
+                                <span>{{ report_context.survey_title }}</span>
+                            </div>
+                            {% if report_context.is_tracer %}
+                            <div class="parameter-item">
+                                <label>{% translate 'Cycle Label:' %}</label>
+                                <span>{{ report_context.cycle_label }}</span>
+                            </div>
+                            <div class="parameter-item">
+                                <label>{% translate 'Audience:' %}</label>
+                                <span>{{ report_context.audience_label }}</span>
+                            </div>
+                            <div class="parameter-item">
+                                <label>{% translate 'Target College:' %}</label>
+                                <span>{{ report_context.target_college }}</span>
+                            </div>
+                            <div class="parameter-item">
+                                <label>{% translate 'Target Program:' %}</label>
+                                <span>{{ report_context.target_program }}</span>
+                            </div>
+                            <div class="parameter-item">
+                                <label>{% translate 'Graduation Years:' %}</label>
+                                <span>{{ report_context.graduation_year_range }}</span>
+                            </div>
+                            {% endif %}
+                            <div class="parameter-item">
+                                <label>{% translate 'Study Period:' %}</label>
+                                <span>{{ report_context.study_period }}</span>
+                            </div>
+                            <div class="parameter-item">
+                                <label>{% translate 'Status:' %}</label>
+                                <span>{{ report_context.status }}</span>
+                            </div>
+                        </div>
+                    </div>
+        {% endif %}
         
-        {% if report.parameters %}
+        {% if display_parameters %}
                     <div class="parameters-section">
                         <h6>{% translate 'Parameters' %}</h6>
                 <div class="parameters-grid">
-                    {% for key, value in report.parameters.items %}
-                                {% if value %}
+                    {% for key, value in display_parameters.items %}
                         <div class="parameter-item">
                             <label>{{ key|title }}:</label>
                             <span>{{ value }}</span>
                         </div>
-                                {% endif %}
                     {% endfor %}
                         </div>
                     </div>
@@ -441,26 +481,29 @@
                                 <h5 class="section-title">
                                     <i class="fas fa-table me-2"></i>
                                     {% translate 'Textual Feedback' %}
+                                    {% if feedback_page %}
+                                        <span class="ms-auto text-muted small">{{ feedback_page.paginator.count }} entr{{ feedback_page.paginator.count|pluralize:"y,ies" }}</span>
+                                    {% endif %}
                                 </h5>
                                 <div class="table-wrapper">
-                                    <table class="data-table table-responsive">
+                                    <table class="data-table feedback-table">
                                         <thead>
                                             <tr>
-                                                <th>{% translate 'Survey' %}</th>
-                                                <th>{% translate 'Question' %}</th>
-                                                <th>{% translate 'Answer' %}</th>
-                                                <th>{% translate 'Alumni' %}</th>
-                                                <th>{% translate 'Date' %}</th>
+                                                {% if not report_data.is_survey_scoped %}<th class="feedback-survey">{% translate 'Survey' %}</th>{% endif %}
+                                                <th class="feedback-question">{% translate 'Question' %}</th>
+                                                <th class="feedback-answer">{% translate 'Answer' %}</th>
+                                                <th class="feedback-respondent">{{ report_data.respondent_label }}</th>
+                                                <th class="feedback-date">{% translate 'Date' %}</th>
                                             </tr>
                                         </thead>
                                         <tbody>
                                             {% for feedback in report_data.table_data %}
                                                 <tr>
-                                                    <td>{{ feedback.survey|default:"-" }}</td>
-                                                    <td>{{ feedback.question|truncatewords:10|default:"-" }}</td>
-                                                    <td>{{ feedback.answer|truncatewords:15|default:"-" }}</td>
-                                                    <td>{{ feedback.alumni|default:"-" }}</td>
-                                                    <td>
+                                                    {% if not report_data.is_survey_scoped %}<td class="feedback-survey">{{ feedback.survey|default:"-" }}</td>{% endif %}
+                                                    <td class="feedback-question">{{ feedback.question|default:"-" }}</td>
+                                                    <td class="feedback-answer">{{ feedback.answer|default:"-" }}</td>
+                                                    <td class="feedback-respondent">{{ feedback.respondent|default:"-" }}</td>
+                                                    <td class="feedback-date">
                                                         {% if feedback.date %}
                                                             {{ feedback.date|date:"M d, Y" }}
                                                         {% else %}
@@ -472,6 +515,23 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                {% if feedback_page.has_other_pages %}
+                                <nav class="mt-3" aria-label="{% translate 'Textual feedback pages' %}">
+                                    <ul class="pagination pagination-sm justify-content-center mb-0">
+                                        {% if feedback_page.has_previous %}
+                                            <li class="page-item"><a class="page-link" href="?feedback_page={{ feedback_page.previous_page_number }}">{% translate 'Previous' %}</a></li>
+                                        {% endif %}
+                                        {% for page_number in feedback_page.paginator.page_range %}
+                                            <li class="page-item {% if page_number == feedback_page.number %}active{% endif %}">
+                                                <a class="page-link" href="?feedback_page={{ page_number }}">{{ page_number }}</a>
+                                            </li>
+                                        {% endfor %}
+                                        {% if feedback_page.has_next %}
+                                            <li class="page-item"><a class="page-link" href="?feedback_page={{ feedback_page.next_page_number }}">{% translate 'Next' %}</a></li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                                {% endif %}
                             </div>
                         {% endif %}
                         
@@ -1005,6 +1065,7 @@
     }
 
     .description-section,
+    .context-section,
     .parameters-section {
         margin-top: 1.5rem;
         padding-top: 1.5rem;
@@ -1012,6 +1073,7 @@
     }
 
     .description-section h6,
+    .context-section h6,
     .parameters-section h6 {
         color: var(--text-primary);
         font-weight: 600;
@@ -1111,6 +1173,25 @@
     text-align: left;
         border-bottom: 1px solid var(--ui-border);
 }
+
+    .feedback-table {
+        table-layout: fixed;
+        min-width: 760px;
+    }
+
+    .feedback-table th,
+    .feedback-table td {
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
+        vertical-align: top;
+    }
+
+    .feedback-survey { width: 18%; }
+    .feedback-question { width: 24%; }
+    .feedback-answer { width: 34%; }
+    .feedback-respondent { width: 16%; }
+    .feedback-date { width: 100px; }
 
 .data-table th {
         background: var(--primary-color);

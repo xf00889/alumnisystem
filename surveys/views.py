@@ -9,7 +9,8 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.utils.decorators import method_decorator
 from django.contrib import messages
-from django.http import HttpResponseRedirect, JsonResponse, HttpResponse
+from django.core.paginator import Paginator
+from django.http import Http404, HttpResponseRedirect, JsonResponse, HttpResponse
 from django.forms import modelformset_factory
 from django.db.models import Count, Avg, Q, Sum
 from django.db.models.functions import TruncDate
@@ -24,8 +25,13 @@ from donations.models import Donation, Campaign
 from accounts.models import Mentor
 from alumni_groups.models import AlumniGroup
 from .models import (
-    Survey, SurveyQuestion, QuestionOption, SurveyResponse, 
-    ResponseAnswer, EmploymentRecord, Achievement, Report
+    Survey, SurveyQuestion, QuestionOption, SurveyResponse,
+    ResponseAnswer, EmploymentRecord, Achievement, Report,
+    EmployerResponse, EmployerResponseAnswer,
+)
+from .tracer_metadata import (
+    build_tracer_metadata,
+    resolve_report_survey,
 )
 from .forms import (
     SurveyForm, SurveyQuestionForm, QuestionOptionForm, ResponseAnswerForm,
@@ -35,6 +41,10 @@ from .forms import (
 
 # Logger instance for surveys app
 logger = logging.getLogger(__name__)
+
+
+class ReferencedSurveyUnavailable(Http404):
+    """Raised when a report points to a survey that no longer exists."""
 
 
 def staff_or_coordinator_required(view_func):
@@ -88,6 +98,12 @@ class SurveyListView(ListView):
     model = Survey
     template_name = 'surveys/admin/survey_list.html'
     context_object_name = 'surveys'
+
+    def get_queryset(self):
+        return super().get_queryset().annotate(
+            alumni_response_count=Count('responses', distinct=True),
+            employer_response_count=Count('employer_responses', distinct=True),
+        )
     
     def get_context_data(self, **kwargs):
         import time
@@ -107,6 +123,8 @@ class SurveyListView(ListView):
         )
         
         context = super().get_context_data(**kwargs)
+        surveys = list(context['surveys'])
+        context['surveys'] = surveys
         
         # Get basic counts
         total_alumni = Alumni.objects.count()
@@ -157,11 +175,28 @@ class SurveyListView(ListView):
         
         # Get survey-specific response data
         survey_data = []
-        for survey in self.get_queryset():
-            responses_count = survey.responses.count()
-            response_rate = 0
-            if total_alumni > 0:
-                response_rate = round((responses_count / total_alumni) * 100, 1)
+        from .tracer_study import _filtered_alumni_responses, eligible_alumni_queryset
+
+        for survey in surveys:
+            metadata = build_tracer_metadata(survey)
+            if metadata['audience'] == 'employer':
+                responses_count = survey.employer_response_count
+                response_rate = None
+            else:
+                responses_count = survey.alumni_response_count
+                denominator = total_alumni
+                if metadata['audience'] == 'alumni':
+                    responses_count = _filtered_alumni_responses(
+                        survey
+                    ).values('alumni_id').distinct().count()
+                    denominator = eligible_alumni_queryset(survey).count()
+                response_rate = (
+                    round((responses_count / denominator) * 100, 1)
+                    if denominator > 0 else 0
+                )
+
+            survey.management_metadata = metadata
+            survey.management_response_count = responses_count
             
             survey_data.append({
                 'id': survey.id,
@@ -170,7 +205,9 @@ class SurveyListView(ListView):
                 'start_date': survey.start_date,
                 'end_date': survey.end_date,
                 'responses_count': responses_count,
-                'response_rate': response_rate
+                'response_rate': response_rate,
+                'response_rate_available': response_rate is not None,
+                'metadata': metadata,
             })
         
         # Add all data to context
@@ -1213,6 +1250,11 @@ class ReportDetailView(DetailView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         report = self.get_object()
+        context['display_parameters'] = {
+            key: value
+            for key, value in (report.parameters or {}).items()
+            if key not in {'survey_id', 'audience'} and value not in (None, '')
+        }
         
         # Log report access
         logger.info(
@@ -1228,7 +1270,14 @@ class ReportDetailView(DetailView):
         # Generate report data based on type
         try:
             report_data = self.generate_report_data(report)
+            if report.report_type == 'feedback':
+                feedback_page = Paginator(
+                    report_data.get('table_data', []), 25
+                ).get_page(self.request.GET.get('feedback_page'))
+                report_data['table_data'] = list(feedback_page.object_list)
+                context['feedback_page'] = feedback_page
             context['report_data'] = report_data
+            context['report_context'] = report_data.get('survey_context')
             context['report_error'] = None
             
             # Update last_run timestamp only if successful
@@ -1283,7 +1332,10 @@ class ReportDetailView(DetailView):
                 'type': report.report_type,
                 'chart_data': {},
                 'table_data': [],
-                'summary': {}
+                'summary': {},
+                'survey_context': None,
+                'is_survey_scoped': False,
+                'respondent_label': 'Alumni',
             }
         except Exception as e:
             logger.error(
@@ -1488,82 +1540,189 @@ class ReportDetailView(DetailView):
             }
             
         elif report.report_type == 'feedback':
-            # Survey feedback report
-            surveys = Survey.objects.all()
-            survey_responses = SurveyResponse.objects.all()
-            
-            # Get survey completion rate
-            total_alumni = Alumni.objects.count()
-            response_counts = survey_responses.values('survey').annotate(
-                count=Count('alumni', distinct=True)
-            )
-            
-            completion_rates = []
-            for response in response_counts:
-                survey = Survey.objects.get(id=response['survey'])
-                completion_rates.append({
-                    'survey': survey.title,
-                    'responses': response['count'],
-                    'rate': round((response['count'] / total_alumni) * 100, 1) if total_alumni > 0 else 0
-                })
-            
-            # Create combined list for easier template iteration
-            completion_list = [{'label': item['survey'], 'rate': item['rate']} for item in completion_rates]
-            data['chart_data']['completion'] = {
-                'labels': [item['survey'] for item in completion_rates],
-                'data': [item['rate'] for item in completion_rates],
-                'items': completion_list,  # Combined structure for templates
-            }
-            
-            # Get rating averages for rating questions
-            rating_questions = SurveyQuestion.objects.filter(question_type='rating')
-            rating_averages = []
-            
-            for question in rating_questions:
-                avg_rating = ResponseAnswer.objects.filter(
-                    question=question,
-                    rating_value__isnull=False
-                ).aggregate(avg=Avg('rating_value'))
-                
-                if avg_rating['avg']:
-                    rating_averages.append({
-                        'question': question.question_text,
-                        'survey': question.survey.title,
-                        'average': round(avg_rating['avg'], 2)
-                    })
-            
-            data['chart_data']['ratings'] = {
-                'labels': [f"{item['survey']}: {item['question'][:30]}..." for item in rating_averages],
-                'data': [item['average'] for item in rating_averages],
-            }
-            
-            # Table data - recent textual feedback
-            text_answers = ResponseAnswer.objects.filter(
-                text_answer__isnull=False
-            ).exclude(
-                text_answer=''
-            ).select_related(
-                'question', 'response__alumni', 'response__survey'
-            ).order_by('-response__submitted_at')[:30]
-            
-            data['table_data'] = [
-                {
-                    'survey': answer.response.survey.title,
-                    'question': answer.question.question_text,
-                    'answer': answer.text_answer,
-                    'alumni': f"{answer.response.alumni.user.first_name} {answer.response.alumni.user.last_name}",
-                    'date': answer.response.submitted_at
+            scoped_survey, has_reference, missing_reference = resolve_report_survey(report)
+            if missing_reference:
+                raise ReferencedSurveyUnavailable(
+                    'The survey referenced by this report is no longer available.'
+                )
+
+            if has_reference:
+                data['is_survey_scoped'] = True
+                data['survey_context'] = build_tracer_metadata(scoped_survey)
+                audience = (
+                    data['survey_context']['audience']
+                    or (report.parameters or {}).get('audience')
+                    or 'alumni'
+                )
+                rating_questions = scoped_survey.questions.filter(
+                    question_type='rating'
+                )
+
+                if audience == 'employer':
+                    responses = EmployerResponse.objects.filter(
+                        survey=scoped_survey
+                    )
+                    answer_model = EmployerResponseAnswer
+                    text_answers = answer_model.objects.filter(
+                        response__in=responses,
+                        text_answer__isnull=False,
+                    ).exclude(text_answer='').select_related(
+                        'question', 'response__employer', 'response__survey'
+                    ).order_by('-response__submitted_at')
+                    data['respondent_label'] = 'Employer'
+                    data['summary'] = {
+                        'total_responses': responses.count(),
+                        'total_questions': scoped_survey.questions.count(),
+                    }
+                    data['table_data'] = [
+                        {
+                            'survey': answer.response.survey.title,
+                            'question': answer.question.question_text,
+                            'answer': answer.text_answer,
+                            'respondent': answer.response.employer.company_name,
+                            'date': answer.response.submitted_at,
+                        }
+                        for answer in text_answers
+                    ]
+                else:
+                    from .tracer_study import (
+                        _filtered_alumni_responses,
+                        eligible_alumni_queryset,
+                    )
+
+                    if data['survey_context']['is_tracer']:
+                        responses = _filtered_alumni_responses(scoped_survey)
+                        expected_respondents = eligible_alumni_queryset(
+                            scoped_survey
+                        ).count()
+                    else:
+                        responses = SurveyResponse.objects.filter(
+                            survey=scoped_survey
+                        )
+                        expected_respondents = Alumni.objects.count()
+
+                    answer_model = ResponseAnswer
+                    response_count = responses.values('alumni_id').distinct().count()
+                    response_rate = (
+                        round(response_count / expected_respondents * 100, 1)
+                        if expected_respondents else 0
+                    )
+                    text_answers = answer_model.objects.filter(
+                        response__in=responses,
+                        text_answer__isnull=False,
+                    ).exclude(text_answer='').select_related(
+                        'question', 'response__alumni__user', 'response__survey'
+                    ).order_by('-response__submitted_at')
+                    data['summary'] = {
+                        'total_responses': response_count,
+                        'expected_respondents': expected_respondents,
+                        'no_response': max(expected_respondents - response_count, 0),
+                        'response_rate': f'{response_rate:.1f}%',
+                    }
+                    data['chart_data']['completion'] = {
+                        'labels': [scoped_survey.title],
+                        'data': [response_rate],
+                        'items': [{
+                            'label': scoped_survey.title,
+                            'rate': response_rate,
+                        }],
+                    }
+                    data['table_data'] = [
+                        {
+                            'survey': answer.response.survey.title,
+                            'question': answer.question.question_text,
+                            'answer': answer.text_answer,
+                            'respondent': answer.response.alumni.user.get_full_name()
+                                or answer.response.alumni.user.username,
+                            'date': answer.response.submitted_at,
+                        }
+                        for answer in text_answers
+                    ]
+
+                rating_averages = []
+                for question in rating_questions:
+                    average = answer_model.objects.filter(
+                        question=question,
+                        response__in=responses,
+                        rating_value__isnull=False,
+                    ).aggregate(avg=Avg('rating_value'))['avg']
+                    if average is not None:
+                        rating_averages.append({
+                            'question': question.question_text,
+                            'survey': scoped_survey.title,
+                            'average': round(average, 2),
+                        })
+            else:
+                surveys = Survey.objects.all()
+                survey_responses = SurveyResponse.objects.all()
+                total_alumni = Alumni.objects.count()
+                response_counts = survey_responses.values('survey').annotate(
+                    count=Count('alumni', distinct=True)
+                )
+                survey_titles = Survey.objects.in_bulk(
+                    item['survey'] for item in response_counts
+                )
+                completion_rates = [
+                    {
+                        'survey': survey_titles[item['survey']].title,
+                        'responses': item['count'],
+                        'rate': round(item['count'] / total_alumni * 100, 1)
+                            if total_alumni else 0,
+                    }
+                    for item in response_counts
+                    if item['survey'] in survey_titles
+                ]
+                data['chart_data']['completion'] = {
+                    'labels': [item['survey'] for item in completion_rates],
+                    'data': [item['rate'] for item in completion_rates],
+                    'items': [
+                        {'label': item['survey'], 'rate': item['rate']}
+                        for item in completion_rates
+                    ],
                 }
-                for answer in text_answers
-            ]
-            
-            # Summary statistics
-            data['summary'] = {
-                'total_surveys': surveys.count(),
-                'total_responses': survey_responses.count(),
-                'avg_completion_rate': round(
-                    sum(item['rate'] for item in completion_rates) / len(completion_rates), 1
-                ) if completion_rates else 0,
+                rating_averages = []
+                for question in SurveyQuestion.objects.filter(question_type='rating'):
+                    average = ResponseAnswer.objects.filter(
+                        question=question,
+                        rating_value__isnull=False,
+                    ).aggregate(avg=Avg('rating_value'))['avg']
+                    if average is not None:
+                        rating_averages.append({
+                            'question': question.question_text,
+                            'survey': question.survey.title,
+                            'average': round(average, 2),
+                        })
+                text_answers = ResponseAnswer.objects.filter(
+                    text_answer__isnull=False
+                ).exclude(text_answer='').select_related(
+                    'question', 'response__alumni__user', 'response__survey'
+                ).order_by('-response__submitted_at')
+                data['table_data'] = [
+                    {
+                        'survey': answer.response.survey.title,
+                        'question': answer.question.question_text,
+                        'answer': answer.text_answer,
+                        'respondent': answer.response.alumni.user.get_full_name()
+                            or answer.response.alumni.user.username,
+                        'date': answer.response.submitted_at,
+                    }
+                    for answer in text_answers
+                ]
+                data['summary'] = {
+                    'total_surveys': surveys.count(),
+                    'total_responses': survey_responses.count(),
+                    'avg_completion_rate': round(
+                        sum(item['rate'] for item in completion_rates)
+                        / len(completion_rates), 1
+                    ) if completion_rates else 0,
+                }
+
+            data['chart_data']['ratings'] = {
+                'labels': [
+                    f"{item['survey']}: {item['question'][:30]}..."
+                    for item in rating_averages
+                ],
+                'data': [item['average'] for item in rating_averages],
             }
             
         elif report.report_type == 'donations':
@@ -1967,6 +2126,7 @@ def report_export_pdf(request, pk):
     Export report as PDF
     """
     import time
+    from xml.sax.saxutils import escape
     start_time = time.time()
     
     from reportlab.lib import colors
@@ -1975,7 +2135,6 @@ def report_export_pdf(request, pk):
     from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
     from reportlab.lib.units import inch
     from reportlab.lib.enums import TA_CENTER, TA_LEFT
-    from reportlab.pdfgen import canvas
     from core.export_utils import LogoHeaderService
     
     report = get_object_or_404(Report, pk=pk)
@@ -2006,25 +2165,28 @@ def report_export_pdf(request, pk):
         filename = f"{report.title.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
-        # Create custom canvas class with logo header
-        class HeaderCanvas(canvas.Canvas):
-            def __init__(self, *args, **kwargs):
-                canvas.Canvas.__init__(self, *args, **kwargs)
-            
-            def showPage(self):
-                # Add logo header to each page
-                LogoHeaderService.add_pdf_header(
-                    self, 
-                    None,  # doc parameter not needed for this implementation
-                    logo_path,
-                    title="NORSU Alumni System - Survey Report"
-                )
-                canvas.Canvas.showPage(self)
-        
-        # Create PDF document with increased top margin
+        page_size = landscape(A4) if report.report_type == 'feedback' else A4
+
+        def draw_page_header_and_number(canvas_obj, document_obj):
+            LogoHeaderService.add_pdf_header(
+                canvas_obj,
+                document_obj,
+                logo_path,
+                title="NORSU Alumni System - Survey Report",
+            )
+            canvas_obj.saveState()
+            canvas_obj.setFont('Helvetica', 8)
+            canvas_obj.setFillColor(colors.HexColor('#4a5568'))
+            canvas_obj.drawRightString(
+                page_size[0] - 30,
+                18,
+                f"Page {canvas_obj.getPageNumber()}",
+            )
+            canvas_obj.restoreState()
+
         doc = SimpleDocTemplate(
             response,
-            pagesize=A4,
+            pagesize=page_size,
             rightMargin=30,
             leftMargin=30,
             topMargin=80,  # Increased from 30 to 80 for logo header
@@ -2062,8 +2224,32 @@ def report_export_pdf(request, pk):
             ['Created at:', report.created_at.strftime('%Y-%m-%d %H:%M')],
             ['Last run:', report.last_run.strftime('%Y-%m-%d %H:%M') if report.last_run else 'Never'],
         ]
-        
-        info_table = Table(info_data, colWidths=[2*inch, 4*inch])
+
+        survey_context = report_data.get('survey_context')
+        if survey_context:
+            info_data.extend([
+                ['Survey:', survey_context['survey_title']],
+                ['Study period:', survey_context['study_period']],
+                ['Status:', survey_context['status']],
+            ])
+            if survey_context['is_tracer']:
+                info_data.extend([
+                    ['Cycle label:', survey_context['cycle_label']],
+                    ['Audience:', survey_context['audience_label']],
+                    ['Target college:', survey_context['target_college']],
+                    ['Target program:', survey_context['target_program']],
+                    ['Graduation years:', survey_context['graduation_year_range']],
+                ])
+
+        info_width = page_size[0] - 60
+        info_table = Table(
+            [
+                [Paragraph(escape(str(label)), styles['Normal']),
+                 Paragraph(escape(str(value)), styles['Normal'])]
+                for label, value in info_data
+            ],
+            colWidths=[1.7*inch, info_width - 1.7*inch],
+        )
         info_table.setStyle(TableStyle([
             ('BACKGROUND', (0, 0), (0, -1), colors.HexColor('#f0f0f0')),
             ('TEXTCOLOR', (0, 0), (-1, -1), colors.black),
@@ -2188,9 +2374,16 @@ def report_export_pdf(request, pk):
                     elements.append(Paragraph('Survey Completion Rates', heading_style))
                     completion_data = [['Survey', 'Completion Rate (%)']]
                     for item in chart_data['completion']['items']:
-                        completion_data.append([item['label'], f"{item['rate']:.1f}%"])
+                        completion_data.append([
+                            Paragraph(escape(str(item['label'])), styles['BodyText']),
+                            Paragraph(f"{item['rate']:.1f}%", styles['BodyText']),
+                        ])
                     
-                    completion_table = Table(completion_data, colWidths=[4*inch, 2*inch])
+                    completion_table = Table(
+                        completion_data,
+                        colWidths=[info_width * 0.76, info_width * 0.24],
+                        repeatRows=1,
+                    )
                     completion_table.setStyle(TableStyle([
                         ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
                         ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -2321,14 +2514,43 @@ def report_export_pdf(request, pk):
                     ])
             
             elif report.report_type == 'feedback':
-                table_headers = [['Survey', 'Question', 'Answer', 'Alumni', 'Date']]
-                for record in report_data['table_data'][:30]:  # Limit to 30 rows
+                feedback_scoped = report_data.get('is_survey_scoped', False)
+                feedback_headers = (
+                    ['Question', 'Answer', report_data.get('respondent_label', 'Alumni'), 'Date']
+                    if feedback_scoped
+                    else ['Survey', 'Question', 'Answer', report_data.get('respondent_label', 'Alumni'), 'Date']
+                )
+                body_style = ParagraphStyle(
+                    'FeedbackBody',
+                    parent=styles['BodyText'],
+                    fontSize=7.5,
+                    leading=9.5,
+                    wordWrap='CJK',
+                )
+                header_cell_style = ParagraphStyle(
+                    'FeedbackHeader',
+                    parent=body_style,
+                    fontName='Helvetica-Bold',
+                    textColor=colors.whitesmoke,
+                )
+                table_headers = [[
+                    Paragraph(escape(str(header)), header_cell_style)
+                    for header in feedback_headers
+                ]]
+                for record in report_data['table_data']:
+                    values = []
+                    if not feedback_scoped:
+                        values.append(record.get('survey', '-'))
+                    values.extend([
+                        record.get('question', '-'),
+                        record.get('answer', '-'),
+                        record.get('respondent', '-'),
+                        record.get('date').strftime('%Y-%m-%d')
+                            if record.get('date') else '-',
+                    ])
                     table_headers.append([
-                        str(record.get('survey', '-'))[:25],
-                        str(record.get('question', '-'))[:30],
-                        str(record.get('answer', '-'))[:40],
-                        str(record.get('alumni', '-'))[:25],
-                        str(record.get('date', '-'))[:10] if record.get('date') else '-'
+                        Paragraph(escape(str(value)), body_style)
+                        for value in values
                     ])
             
             elif report.report_type == 'donations':
@@ -2385,19 +2607,24 @@ def report_export_pdf(request, pk):
                         table_headers.append([str(record.get(k, '-'))[:30] for k in keys])
             
             if len(table_headers) > 1:  # Only create table if there's data
-                # Use landscape for wide tables
-                use_landscape = len(table_headers[0]) > 4
-                
-                # Calculate column widths
                 num_cols = len(table_headers[0])
-                if use_landscape:
-                    available_width = landscape(A4)[0] - 60  # Account for margins
+                available_width = page_size[0] - 60
+                if report.report_type == 'feedback':
+                    if report_data.get('is_survey_scoped'):
+                        width_ratios = [0.25, 0.39, 0.23, 0.13]
+                    else:
+                        width_ratios = [0.16, 0.22, 0.34, 0.17, 0.11]
+                    col_widths = [available_width * ratio for ratio in width_ratios]
                 else:
-                    available_width = A4[0] - 60
-                col_width = available_width / num_cols
-                col_widths = [col_width] * num_cols
+                    col_width = available_width / num_cols
+                    col_widths = [col_width] * num_cols
                 
-                data_table = Table(table_headers, colWidths=col_widths)
+                data_table = Table(
+                    table_headers,
+                    colWidths=col_widths,
+                    repeatRows=1,
+                    splitInRow=1 if report.report_type == 'feedback' else 0,
+                )
                 data_table.setStyle(TableStyle([
                     ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#417690')),
                     ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
@@ -2413,15 +2640,18 @@ def report_export_pdf(request, pk):
                 ]))
                 elements.append(data_table)
                 
-                if len(report_data['table_data']) > 50:
+                if report.report_type != 'feedback' and len(report_data['table_data']) > 50:
                     elements.append(Spacer(1, 10))
                     elements.append(Paragraph(
                         f"Note: Showing first 50 records of {len(report_data['table_data'])} total.",
                         styles['Normal']
                     ))
     
-        # Build PDF with custom canvas
-        doc.build(elements, canvasmaker=HeaderCanvas)
+        doc.build(
+            elements,
+            onFirstPage=draw_page_header_and_number,
+            onLaterPages=draw_page_header_and_number,
+        )
         
         # Calculate export time
         elapsed_time = time.time() - start_time

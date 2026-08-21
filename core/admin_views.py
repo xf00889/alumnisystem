@@ -22,6 +22,7 @@ from jobs.models import JobPosting, JobApplication
 from accounts.models import MentorshipRequest, Mentor
 from surveys.models import Survey, SurveyResponse
 from surveys import tracer_study
+from surveys.tracer_metadata import extract_cycle_label
 from announcements.models import Announcement
 from feedback.models import Feedback
 from alumni_directory.models import Alumni
@@ -765,13 +766,6 @@ def create_tracer_study(request):
     )
 
 
-def _cycle_label(description):
-    """Extract the cycle label from a description of the form 'Label — …'."""
-    if description and ' — ' in description:
-        return description.split(' — ', 1)[0]
-    return ''
-
-
 def _split_cycle_description(description):
     """Return (label, suffix). For legacy descriptions without a prefix the
     whole description is the suffix and the label is empty."""
@@ -895,7 +889,7 @@ def edit_tracer_study(request, survey_id):
         return redirect('surveys:tracer_study_reports')
 
     form = {
-        'label': _cycle_label(survey.description),
+        'label': extract_cycle_label(survey.description),
         'start_date': survey.start_date.strftime('%Y-%m-%d'),
         'end_date': survey.end_date.strftime('%Y-%m-%d'),
         'campus': survey.target_campus,

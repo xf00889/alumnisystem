@@ -25,12 +25,9 @@ from datetime import timedelta
 from surveys.models import (
     Survey, SurveyQuestion, QuestionOption, Employer,
 )
+from surveys.tracer_metadata import ALUMNI_TITLE, EMPLOYER_TITLE
 
 User = get_user_model()
-
-
-ALUMNI_TITLE = "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)"
-EMPLOYER_TITLE = "NORSU Graduate Tracer Study (EMPLOYER QUESTIONNAIRE)"
 
 
 ALUMNI_DESCRIPTION = (

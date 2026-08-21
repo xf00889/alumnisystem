@@ -6,20 +6,15 @@ from django.dispatch import receiver
 from django.urls import reverse
 from core.models.notifications import Notification
 from .models import Survey
+from .tracer_metadata import ALUMNI_TITLE, extract_cycle_label
 
 logger = logging.getLogger(__name__)
-
-
-def _tracer_cycle_label(description):
-    if description and " — " in description:
-        return description.split(" — ", 1)[0]
-    return ""
 
 
 @receiver(post_save, sender=Survey)
 def notify_alumni_tracer_survey_active(sender, instance, **kwargs):
     start = instance.start_date
-    if start is None or instance.title != "NORSU Graduate Tracer Study (ALUMNI QUESTIONNAIRE)":
+    if start is None or instance.title != ALUMNI_TITLE:
         return
 
     content_type = ContentType.objects.get_for_model(Survey)
@@ -37,7 +32,7 @@ def notify_alumni_tracer_survey_active(sender, instance, **kwargs):
         notification_qs.delete()
         return
 
-    label = _tracer_cycle_label(instance.description)
+    label = extract_cycle_label(instance.description)
     title = f"Tracer Study {label} is Now Open" if label else "Tracer Study is Now Open"
     message = (
         "The NORSU Graduate Tracer Study is now accepting responses. "
