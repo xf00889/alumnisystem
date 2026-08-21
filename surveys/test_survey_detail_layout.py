@@ -106,3 +106,57 @@ class SurveyAdminPresentationTests(TestCase):
         )
         self.assertContains(response, ".report-results-header")
         self.assertContains(response, "width: 100%;")
+
+    def test_tracer_report_list_wraps_without_horizontal_scrolling(self):
+        self.make_survey(
+            ALUMNI_TITLE,
+            "SY 2025–2026 — Alumni tracer questionnaire",
+        )
+
+        response = self.client.get(reverse("surveys:tracer_study_reports"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'data-label="Visibility"')
+        self.assertContains(response, 'data-label="Study Period"')
+        self.assertContains(response, "table-layout: fixed;")
+        self.assertContains(
+            response,
+            "grid-template-columns: repeat(2, minmax(0, 1fr));",
+        )
+        self.assertNotContains(response, "min-width: 1080px;")
+
+    def test_report_modal_removes_only_the_duplicate_body_export(self):
+        report = Report.objects.create(
+            title="Tracer Study Report",
+            description="Tracer report modal regression test",
+            report_type="feedback",
+            parameters={},
+            created_by=self.admin,
+        )
+
+        detail_response = self.client.get(
+            reverse("surveys:report_detail", args=[report.pk])
+        )
+        list_response = self.client.get(reverse("surveys:report_list"))
+
+        self.assertEqual(detail_response.status_code, 200)
+        self.assertContains(detail_response, "report-results-export")
+        self.assertEqual(list_response.status_code, 200)
+        self.assertContains(
+            list_response,
+            "cardClone.querySelectorAll('.report-results-export')",
+        )
+        self.assertContains(
+            list_response,
+            '/surveys/admin/reports/${reportId}/export-pdf/',
+        )
+
+    def test_tracer_form_part_headers_use_white_text(self):
+        response = self.client.get(reverse("surveys:tracer_study_reports"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(
+            response,
+            "#tracer-study-form .tracer-part-header h3 span",
+        )
+        self.assertContains(response, "color: var(--text-light);")

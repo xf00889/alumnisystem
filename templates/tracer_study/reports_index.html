@@ -59,11 +59,11 @@
                         <tbody>
                             {% for s in surveys %}
                             <tr {% if s.is_open %}class="table-primary"{% endif %}>
-                                <td class="tracer-cycle-cell text-start">
+                                <td class="tracer-cycle-cell text-start" data-label="Cycle">
                                     <div class="fw-semibold">{% if s.cycle_label %}{{ s.cycle_label }}{% else %}Untitled cycle{% endif %}</div>
                                     <div class="small text-muted">Questionnaire #{{ s.survey.id }}</div>
                                 </td>
-                                <td>
+                                <td data-label="Audience">
                                     <span class="audience-indicator audience-{{ s.audience }}">
                                         {% if s.audience == 'alumni' %}
                                             <i class="fas fa-user-graduate" aria-hidden="true"></i>
@@ -73,22 +73,22 @@
                                         {{ s.audience|title }}
                                     </span>
                                 </td>
-                                <td>{{ s.survey.requested_by|default:"—" }}</td>
-                                <td>
+                                <td data-label="Requested by">{{ s.survey.requested_by|default:"—" }}</td>
+                                <td data-label="Visibility">
                                     <span class="badge {% if s.survey.display_to_all %}bg-success{% else %}bg-info text-dark{% endif %}">
                                         {{ s.visibility_summary }}
                                     </span>
                                 </td>
-                                <td class="text-nowrap">
+                                <td class="text-nowrap" data-label="Study Period">
                                     {{ s.survey.start_date|date:"M d, Y" }} – {{ s.survey.end_date|date:"M d, Y" }}
                                 </td>
-                                <td>
+                                <td data-label="Status">
                                     <span class="badge {{ s.state_class }}">
                                         {{ s.availability_state }}
                                     </span>
                                 </td>
-                                <td class="tracer-response-count">{{ s.count }}</td>
-                                <td>
+                                <td class="tracer-response-count" data-label="Responses">{{ s.count }}</td>
+                                <td data-label="Actions">
                                     <div class="tracer-actions" role="group" aria-label="Actions for questionnaire {{ s.survey.id }}">
                                         <a href="{% url 'surveys:tracer_study_report' s.survey.id %}"
                                            class="tracer-icon-action tracer-icon-action-primary"

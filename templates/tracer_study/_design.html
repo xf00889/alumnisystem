@@ -130,6 +130,15 @@ in its extra_css block so visual changes only need to be made once.
         align-items: center;
         gap: 0.5rem;
     }
+    #tracer-study-form .tracer-part-header {
+        background: var(--primary-color);
+        border-left-color: #7da2e8;
+    }
+    #tracer-study-form .tracer-part-header h3,
+    #tracer-study-form .tracer-part-header h3 i,
+    #tracer-study-form .tracer-part-header h3 span {
+        color: var(--text-light);
+    }
     .tracer-part-header .part-num {
         background: var(--primary-color);
         color: var(--text-light);
@@ -503,12 +512,23 @@ in its extra_css block so visual changes only need to be made once.
     .tracer-table.table-responsive {
         border: 1px solid var(--ui-border);
         border-radius: var(--radius-sm);
+        max-width: 100%;
+        overflow-x: visible;
     }
     .tracer-table .table {
+        width: 100%;
         margin-bottom: 0;
         font-size: 0.875rem;
-        min-width: 1080px;
+        table-layout: fixed;
     }
+    .tracer-table .table th:nth-child(1) { width: 12%; }
+    .tracer-table .table th:nth-child(2) { width: 10%; }
+    .tracer-table .table th:nth-child(3) { width: 15%; }
+    .tracer-table .table th:nth-child(4) { width: 23%; }
+    .tracer-table .table th:nth-child(5) { width: 15%; }
+    .tracer-table .table th:nth-child(6) { width: 8%; }
+    .tracer-table .table th:nth-child(7) { width: 7%; }
+    .tracer-table .table th:nth-child(8) { width: 10%; }
     .tracer-table .table thead th {
         background: #f2f5fa;
         color: #485875;
@@ -519,7 +539,8 @@ in its extra_css block so visual changes only need to be made once.
         text-align: center;
         font-size: 0.75rem;
         letter-spacing: 0.025em;
-        white-space: nowrap;
+        line-height: 1.3;
+        white-space: normal;
     }
     .tracer-table .table tbody td {
         padding: 0.9rem;
@@ -528,6 +549,14 @@ in its extra_css block so visual changes only need to be made once.
         text-align: center;
         color: var(--text-primary);
         font-size: 0.82rem;
+        overflow-wrap: anywhere;
+    }
+    .tracer-table .table tbody td.text-nowrap { white-space: normal !important; }
+    .tracer-table .table .badge {
+        max-width: 100%;
+        line-height: 1.35;
+        overflow-wrap: anywhere;
+        white-space: normal;
     }
     .tracer-table .table tbody tr:last-child td { border-bottom: 0; }
     .tracer-table .table tbody tr {
@@ -537,7 +566,7 @@ in its extra_css block so visual changes only need to be made once.
         background-color: #f7f9fc;
         box-shadow: inset 3px 0 0 var(--primary-color);
     }
-    .tracer-cycle-cell { min-width: 9.5rem; }
+    .tracer-cycle-cell { min-width: 0; }
     .tracer-cycle-cell .fw-semibold {
         color: #17213a;
         font-size: 0.86rem;
@@ -548,7 +577,8 @@ in its extra_css block so visual changes only need to be made once.
         align-items: center;
         justify-content: center;
         gap: 0.4rem;
-        min-width: 6.5rem;
+        width: 100%;
+        min-width: 0;
         padding: 0.4rem 0.55rem;
         border: 1px solid transparent;
         border-radius: var(--radius-sm);
@@ -652,6 +682,65 @@ in its extra_css block so visual changes only need to be made once.
         font-size: 0.8rem;
     }
 
+    /* Switch dense report rows to labeled cards before the table can overflow. */
+    @media (max-width: 1199.98px) {
+        .tracer-table.table-responsive {
+            border: 0;
+            border-radius: 0;
+            overflow: visible;
+        }
+        .tracer-table .table,
+        .tracer-table .table tbody {
+            display: block;
+            width: 100%;
+        }
+        .tracer-table .table thead { display: none; }
+        .tracer-table .table tbody {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 1rem;
+        }
+        .tracer-table .table tbody tr,
+        .tracer-table .table tbody tr:last-child {
+            display: block;
+            min-width: 0;
+            overflow: hidden;
+            border: 1px solid var(--ui-border);
+            border-radius: var(--radius-sm);
+            background: var(--ui-surface);
+        }
+        .tracer-table .table tbody tr:hover {
+            background-color: #f7f9fc;
+            box-shadow: inset 3px 0 0 var(--primary-color);
+        }
+        .tracer-table .table tbody td,
+        .tracer-table .table tbody tr:last-child td {
+            display: grid;
+            grid-template-columns: minmax(6.75rem, 36%) minmax(0, 1fr);
+            gap: 0.75rem;
+            align-items: center;
+            width: 100%;
+            padding: 0.65rem 0.8rem;
+            border-bottom: 1px solid var(--ui-border);
+            text-align: left;
+        }
+        .tracer-table .table tbody td:last-child { border-bottom: 0; }
+        .tracer-table .table tbody td::before {
+            content: attr(data-label);
+            color: #66758f;
+            font-size: 0.7rem;
+            font-weight: 600;
+            letter-spacing: 0.025em;
+            text-transform: uppercase;
+        }
+        .tracer-table .audience-indicator {
+            width: auto;
+            justify-self: start;
+        }
+        .tracer-table .table .badge { justify-self: start; }
+        .tracer-table .tracer-actions { justify-self: start; }
+    }
+
     /* Responsive - keep the existing breakpoints from the surveys app */
     @media (max-width: 768px) {
         .tracer-interface { padding: 0.75rem; }
@@ -678,6 +767,7 @@ in its extra_css block so visual changes only need to be made once.
         }
         .rating-option input { margin: 0 0.75rem 0 0; }
         .rating-option label { margin: 0; font-size: 0.9rem; }
+        .tracer-table .table tbody { grid-template-columns: 1fr; }
     }
     @media (max-width: 576px) {
         .tracer-interface { padding: 0.5rem; }
