@@ -54,7 +54,7 @@
         types: [
             {
                 type: 'success',
-                backgroundColor: '#28a745',
+                background: '#146c43',
                 icon: {
                     className: 'notyf__icon--success',
                     tagName: 'i'
@@ -62,7 +62,7 @@
             },
             {
                 type: 'error',
-                backgroundColor: '#dc3545',
+                background: '#b42335',
                 icon: {
                     className: 'notyf__icon--error',
                     tagName: 'i'
@@ -70,18 +70,20 @@
             },
             {
                 type: 'warning',
-                backgroundColor: '#ffc107',
+                background: '#7a4b00',
                 icon: {
                     className: 'notyf__icon--warning',
-                    tagName: 'i'
+                    tagName: 'i',
+                    color: '#fff'
                 }
             },
             {
                 type: 'info',
-                backgroundColor: '#17a2b8',
+                background: '#1f5a78',
                 icon: {
                     className: 'notyf__icon--info',
-                    tagName: 'i'
+                    tagName: 'i',
+                    color: '#fff'
                 }
             }
         ]
@@ -318,6 +320,11 @@
                     if (!dismissButton.hasAttribute('role')) {
                         dismissButton.setAttribute('role', 'button');
                     }
+                }
+
+                const icon = toast.querySelector('.notyf__icon');
+                if (icon && !icon.hasAttribute('aria-hidden')) {
+                    icon.setAttribute('aria-hidden', 'true');
                 }
             });
         } catch (error) {
