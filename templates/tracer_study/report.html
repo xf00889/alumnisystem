@@ -20,81 +20,6 @@
             </p>
         </div>
 
-        {% if audience == 'alumni' %}
-        <div class="dashboard-card mb-3 no-print">
-            <div class="card-body">
-                <form method="get" class="row g-3 align-items-end">
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Submitted From</label>
-                        <input type="date" name="start_date" class="form-control form-control-sm"
-                               value="{{ filter_start_date }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Submitted To</label>
-                        <input type="date" name="end_date" class="form-control form-control-sm"
-                               value="{{ filter_end_date }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Campus</label>
-                        <select name="campus" id="filter-campus" class="form-select form-select-sm"
-                                hx-get="{% url 'surveys:tracer_study_colleges' %}"
-                                hx-trigger="change"
-                                hx-target="#filter-college"
-                                hx-include="[name='campus']"
-                                hx-swap="innerHTML">
-                            <option value="">All Campuses</option>
-                            {% for code, name in Alumni.CAMPUS_CHOICES %}
-                                <option value="{{ code }}" {% if filter_campus == code %}selected{% endif %}>
-                                    {{ name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">College</label>
-                        <select name="college" id="filter-college" class="form-select form-select-sm"
-                                hx-get="{% url 'surveys:tracer_study_programs' %}"
-                                hx-trigger="change"
-                                hx-target="#program-select"
-                                hx-include="[name='campus'],[name='college']"
-                                hx-swap="innerHTML">
-                            <option value="">All Colleges</option>
-                            {% for code, name in Alumni.COLLEGE_CHOICES %}
-                                <option value="{{ code }}" {% if filter_college == code %}selected{% endif %}>
-                                    {{ name }}
-                                </option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Program</label>
-                        <select name="program" id="program-select" class="form-select form-select-sm">
-                            <option value="">All Programs</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Graduation Year From</label>
-                        <input type="number" name="year_from" class="form-control form-control-sm"
-                               min="1900" max="2099" value="{{ filter_year_from }}">
-                    </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted mb-1">Graduation Year To</label>
-                        <input type="number" name="year_to" class="form-control form-control-sm"
-                               min="1900" max="2099" value="{{ filter_year_to }}">
-                    </div>
-                    <div class="col-md-2">
-                        <button type="submit" class="btn btn-primary btn-sm me-2">
-                            <i class="fas fa-filter me-1"></i> Apply
-                        </button>
-                        <a href="{% url 'surveys:tracer_study_report' survey.id %}" class="btn btn-outline-secondary btn-sm">
-                            Clear
-                        </a>
-                    </div>
-                </form>
-            </div>
-        </div>
-        {% endif %}
-
         <div class="row g-3 mb-3">
             <div class="col-md-3 col-6">
                 <div class="stat-card">
@@ -142,21 +67,9 @@
         </div>
 
         <div class="d-flex gap-2 mb-3 flex-wrap no-print">
-            <button type="button" class="btn btn-outline-primary btn-sm" onclick="window.print()">
-                <i class="fas fa-print me-1"></i> Print / Save as PDF
-            </button>
             <a href="{% url 'surveys:tracer_study_reports' %}" class="btn btn-outline-secondary btn-sm">
                 <i class="fas fa-arrow-left me-1"></i> All Tracer Reports
             </a>
-            {% if audience == 'alumni' %}
-                <a href="{% url 'surveys:tracer_study_alumni' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-external-link-alt me-1"></i> Open Alumni Form
-                </a>
-            {% else %}
-                <a href="{% url 'surveys:tracer_study_employer' %}" class="btn btn-outline-secondary btn-sm">
-                    <i class="fas fa-external-link-alt me-1"></i> Open Employer Form
-                </a>
-            {% endif %}
         </div>
 
         {% if audience == 'alumni' %}
@@ -198,10 +111,10 @@
                             <p class="text-muted mb-0">{{ response_rate|floatformat:1 }}% response rate</p>
                         </div>
                         <div class="d-flex gap-2 flex-wrap no-print">
-                            <button type="button" class="btn btn-outline-success btn-sm" data-bs-toggle="modal" data-bs-target="#exportModal">
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?report_type=full" class="btn btn-outline-success btn-sm">
                                 <i class="fas fa-file-excel me-1"></i> Export Excel
-                            </button>
-                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip&start_date={{ filter_start_date }}&end_date={{ filter_end_date }}&campus={{ filter_campus }}&college={{ filter_college }}&program={{ filter_program }}&year_from={{ filter_year_from }}&year_to={{ filter_year_to }}" class="btn btn-outline-primary btn-sm">
+                            </a>
+                            <a href="{% url 'surveys:tracer_study_report_export' survey.id %}?format=zip" class="btn btn-outline-primary btn-sm">
                                 <i class="fas fa-file-archive me-1"></i> Export Filled Forms ZIP
                             </a>
                         </div>
@@ -451,77 +364,6 @@
 </div>
 {{ chart_payload|json_script:"tracer-chart-payload" }}
 
-<!-- Export Modal -->
-<div class="modal fade" id="exportModal" tabindex="-1" aria-labelledby="exportModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="exportModalLabel">
-                    <i class="fas fa-file-excel me-2"></i>Export Excel Report
-                </h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Campus</label>
-                        <select id="export-campus" name="campus" class="form-select form-select-sm"
-                                hx-get="{% url 'surveys:tracer_study_colleges' %}"
-                                hx-trigger="change"
-                                hx-target="#export-college"
-                                hx-include="[name='campus']"
-                                hx-swap="innerHTML">
-                            <option value="">All Campuses</option>
-                            {% for code, name in Alumni.CAMPUS_CHOICES %}
-                                <option value="{{ code }}" {% if filter_campus == code %}selected{% endif %}>{{ name }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">College</label>
-                        <select id="export-college" name="college" class="form-select form-select-sm"
-                                hx-get="{% url 'surveys:tracer_study_programs' %}"
-                                hx-trigger="change"
-                                hx-target="#export-program"
-                                hx-include="#export-campus,#export-college"
-                                hx-swap="innerHTML">
-                            <option value="">All Colleges</option>
-                            {% if filter_college %}<option value="{{ filter_college }}" selected>{{ filter_college }}</option>{% endif %}
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Program</label>
-                        <select id="export-program" class="form-select form-select-sm">
-                            <option value="">All Programs</option>
-                            {% if filter_program %}<option value="{{ filter_program }}" selected>{{ filter_program }}</option>{% endif %}
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Graduation Year</label>
-                        <div class="input-group input-group-sm">
-                        <input type="number" id="export-year-from" class="form-control" placeholder="From" min="1900" max="2099" value="{{ filter_year_from }}">
-                            <span class="input-group-text">–</span>
-                            <input type="number" id="export-year-to" class="form-control" placeholder="To" min="1900" max="2099" value="{{ filter_year_to }}">
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Submitted From</label>
-                        <input type="date" id="export-start-date" class="form-control form-control-sm" value="{{ filter_start_date }}">
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label small text-muted mb-1">Submitted To</label>
-                        <input type="date" id="export-end-date" class="form-control form-control-sm" value="{{ filter_end_date }}">
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-success btn-sm" onclick="exportExcel()">
-                    <i class="fas fa-file-excel me-1"></i> Export
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 {% endblock %}
 
@@ -610,54 +452,5 @@ document.addEventListener('DOMContentLoaded', function () {
         new Chart(canvas, config);
     });
 });
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    var collegeSelect = document.getElementById('filter-college');
-    var programSelect = document.getElementById('program-select');
-    var selectedProgram = '{{ filter_program|escapejs }}';
-
-    // When college changes, pre-select program after HTMX swap
-    document.body.addEventListener('htmx:afterSwap', function(e) {
-        if (e.detail.target && e.detail.target.id === 'program-select' && selectedProgram) {
-            var opts = e.detail.target.options;
-            for (var i = 0; i < opts.length; i++) {
-                if (opts[i].value === selectedProgram) {
-                    opts[i].selected = true;
-                    break;
-                }
-            }
-        }
-    });
-
-    // On page load: if college is selected, load programs and pre-select
-    if (collegeSelect && collegeSelect.value) {
-        htmx.trigger(collegeSelect, 'change');
-    }
-});
-</script>
-<script>
-function exportExcel() {
-    var exportUrl = '{% url "surveys:tracer_study_report_export" survey.id %}';
-    var params = new URLSearchParams();
-    var campus = document.getElementById('export-campus').value;
-    var college = document.getElementById('export-college').value;
-    var program = document.getElementById('export-program').value;
-    var yearFrom = document.getElementById('export-year-from').value;
-    var yearTo = document.getElementById('export-year-to').value;
-    var startDate = document.getElementById('export-start-date').value;
-    var endDate = document.getElementById('export-end-date').value;
-
-    if (campus) params.set('campus', campus);
-    if (college) params.set('college', college);
-    if (program) params.set('program', program);
-    if (yearFrom) params.set('year_from', yearFrom);
-    if (yearTo) params.set('year_to', yearTo);
-    if (startDate) params.set('start_date', startDate);
-    if (endDate) params.set('end_date', endDate);
-    params.set('report_type', 'full');
-
-    window.location.href = exportUrl + '?' + params.toString();
-}
 </script>
 {% endblock extra_js %}

@@ -1889,7 +1889,11 @@ def tracer_study_reports(request):
     return render(
         request,
         "tracer_study/reports_index.html",
-        {"surveys": surveys, "active_survey": active_survey},
+        {
+            "surveys": surveys,
+            "active_survey": active_survey,
+            "employer_share_url": request.build_absolute_uri(reverse("surveys:tracer_study_employer")),
+        },
     )
 
 
