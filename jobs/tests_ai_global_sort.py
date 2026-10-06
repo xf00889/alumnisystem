@@ -10,10 +10,34 @@ from django.test import TestCase
 from django.urls import reverse
 from django.utils import timezone
 
+from accounts.models import Education
+from jobs.ai_matching import build_user_profile
 from jobs.ai_global_sort import is_ai_score_stale, rank_jobs_for_queryset
 from jobs.models import JobPosting, UserJobAIScore
 
 User = get_user_model()
+
+
+class AIProfileBuildingTests(TestCase):
+    def test_education_program_without_model_choices_is_supported(self):
+        user = User.objects.create_user(
+            username="ai_profile_user",
+            email="ai_profile_user@example.com",
+            password="testpass123",
+        )
+        Education.objects.create(
+            profile=user.profile,
+            program="BSCS",
+            school="NORSU-G",
+            graduation_year=2020,
+        )
+
+        profile_data = build_user_profile(user)
+
+        self.assertEqual(
+            profile_data["education"],
+            ["BSCS, NORSU Guihulngan, 2020"],
+        )
 
 
 class UserJobAIScoreModelTests(TestCase):

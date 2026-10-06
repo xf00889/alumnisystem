@@ -58,7 +58,7 @@ def build_user_profile(user):
         for e in profile.education.all():
             parts = []
             if e.program:
-                parts.append(e.get_program_display())
+                parts.append(e.program)
             if e.school:
                 parts.append(e.get_school_display())
             if e.graduation_year:
