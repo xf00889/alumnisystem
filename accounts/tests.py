@@ -1,13 +1,28 @@
-from django.test import TestCase, RequestFactory
+from django.test import RequestFactory, SimpleTestCase, TestCase
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
-from accounts.models import Profile
+from accounts.forms import EducationForm, ProfileUpdateForm
+from accounts.models import Education, Profile
 from accounts.decorators import post_registration_required
 from alumni_directory.models import Alumni
 
 User = get_user_model()
+
+
+class ProfileValidationTestCase(SimpleTestCase):
+    def test_philippine_phone_formats_and_primary_required_fields(self):
+        for phone_number in ('09171234567', '+639171234567'):
+            form = ProfileUpdateForm(data={'phone_number': phone_number})
+            self.assertTrue(form.is_valid(), form.errors)
+            self.assertEqual(form.cleaned_data['phone_number'], '+639171234567')
+
+        self.assertFalse(ProfileUpdateForm(data={'phone_number': '0917'}).is_valid())
+
+        form = EducationForm(instance=Education(is_primary=True))
+        self.assertTrue(form.fields['college'].required)
+        self.assertTrue(form.fields['graduation_year'].required)
 
 
 class ProfileSignalTestCase(TestCase):

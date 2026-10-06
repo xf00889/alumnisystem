@@ -222,6 +222,8 @@ USE_I18N = True
 
 USE_TZ = False  # Disable timezone support to handle dates in local time
 
+PHONENUMBER_DEFAULT_REGION = 'PH'
+
 
 # Static files (CSS, JavaScript, Images)
 # https://docs.djangoproject.com/en/5.0/howto/static-files/

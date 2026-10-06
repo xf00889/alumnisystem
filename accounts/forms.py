@@ -1096,7 +1096,7 @@ class ProfileUpdateForm(forms.ModelForm):
             'bio': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
             'phone_number': forms.TextInput(attrs={
-                'placeholder': '+639171234567',
+                'placeholder': '09171234567 or +639171234567',
                 'class': 'form-control',
                 'inputmode': 'tel',
                 'autocomplete': 'tel',
@@ -1134,7 +1134,7 @@ class ProfileUpdateForm(forms.ModelForm):
         }
         help_texts = {
             'gender': 'Select your gender (optional)',
-            'phone_number': 'Your mobile number (e.g. +639171234567)',
+            'phone_number': 'Your mobile number (e.g. 09171234567 or +639171234567)',
             'address': 'Your full address (optional)',
             'city': 'Your city (optional)',
             'state': 'Your state or province (optional)',
@@ -1149,7 +1149,7 @@ class ProfileUpdateForm(forms.ModelForm):
         }
         error_messages = {
             'phone_number': {
-                'invalid': 'Enter a valid phone number (e.g. +639171234567).',
+                'invalid': 'Enter a valid phone number (e.g. 09171234567 or +639171234567).',
             },
         }
 
@@ -1234,23 +1234,15 @@ class EducationForm(forms.ModelForm):
             except:
                 pass
 
+        if self.instance.is_primary:
+            self.fields['college'].required = True
+            self.fields['graduation_year'].required = True
+
         self.order_fields([
             'campus', 'college', 'program', 'major',
             'graduation_year', 'achievements',
         ])
 
-    def clean(self):
-        cleaned_data = super().clean()
-        if self.instance.is_primary:
-            if not cleaned_data.get('college'):
-                self.add_error('college', 'College is required for primary education.')
-            if cleaned_data.get('graduation_year') is None:
-                self.add_error(
-                    'graduation_year',
-                    'Graduation year is required for primary education.',
-                )
-        return cleaned_data
-    
     def save(self, commit=True):
         instance = super().save(commit=False)
         # Map campus back to school field
