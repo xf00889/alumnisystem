@@ -53,9 +53,19 @@ class LegalPageTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, '<h2>Safe heading</h2>', html=True)
-        legal_content = BeautifulSoup(response.content, 'html.parser').select_one('.legal-content')
+        page = BeautifulSoup(response.content, 'html.parser')
+        legal_content = page.select_one('.legal-content')
         self.assertIsNone(legal_content.find('script'))
         self.assertNotIn('javascript:', str(legal_content))
+        self.assertEqual(page.select_one('.legal-page-header h1').get_text(strip=True), 'Terms of Use')
+        self.assertEqual(page.select_one('.legal-nav [aria-current="page"]').get_text(strip=True), 'Terms of Use')
+
+        footer_legal = page.select_one('.footer-legal')
+        self.assertEqual(
+            [link.get_text(strip=True) for link in footer_legal.select('a')],
+            list(LegalPage.objects.values_list('title', flat=True)),
+        )
+        self.assertIsNone(page.select_one('.footer-bottom nav[aria-label="Legal"]'))
 
     def test_hidden_page_returns_404(self):
         LegalPage.objects.filter(page_type='terms').update(is_published=False)

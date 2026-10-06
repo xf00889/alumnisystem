@@ -3,47 +3,49 @@
 
 {% block title %}{{ legal_page.title }} - NORSU Alumni Network{% endblock %}
 
-{% block extra_css %}
-<style>
-    .legal-shell { max-width: 920px; margin: 2rem auto 4rem; padding: 0 1rem; }
-    .legal-header { background: #2b3c6b; color: #fff; padding: 2.5rem; border-radius: .5rem .5rem 0 0; }
-    .legal-header h1 { margin: 0 0 .75rem; }
-    .legal-header p { margin: 0; max-width: 70ch; opacity: .9; font-size: .95rem; }
-    .legal-meta { display: block; margin-top: 1rem; font-size: .78rem; opacity: .8; }
-    .legal-content { background: #fff; border: 1px solid #e2e8f0; border-top: 0; padding: 2.5rem; border-radius: 0 0 .5rem .5rem; }
-    .legal-content h2 { color: #2b3c6b; margin: 2rem 0 .75rem; font-size: 1.35rem !important; }
-    .legal-content h2:first-child { margin-top: 0; }
-    .legal-content h3 { color: #2d3748; margin: 1.5rem 0 .5rem; font-size: 1.05rem !important; }
-    .legal-content p, .legal-content li { color: #4a5568; font-size: .9rem; line-height: 1.75; }
-    .legal-content ul, .legal-content ol { padding-left: 1.4rem; margin-bottom: 1rem; }
-    .legal-content a { color: #2b3c6b; }
-    .legal-nav { display: flex; flex-wrap: wrap; gap: .75rem 1.25rem; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid #e2e8f0; }
-    .legal-nav a { font-weight: 600; text-decoration: none; }
-    @media (max-width: 576px) {
-        .legal-header, .legal-content { padding: 1.5rem; }
-    }
-</style>
-{% endblock %}
-
 {% block content %}
-<div class="legal-shell">
-    <article>
-        <header class="legal-header">
-            <h1>{{ legal_page.title }}</h1>
-            {% if legal_page.summary %}<p>{{ legal_page.summary }}</p>{% endif %}
-            <time class="legal-meta" datetime="{{ legal_page.effective_date|date:'Y-m-d' }}">Effective {{ legal_page.effective_date|date:"F j, Y" }} · Last updated {{ legal_page.modified|date:"F j, Y" }}</time>
-        </header>
-        <div class="legal-content">
-            {{ legal_page.rendered_content }}
-
-            {% get_site_config as site_config %}
-            <nav class="legal-nav" aria-label="Other legal pages">
-                {% for page in legal_pages %}
-                    {% if page.pk != legal_page.pk %}<a href="{{ page.get_absolute_url }}">{{ page.title }}</a>{% endif %}
-                {% endfor %}
-                <a href="mailto:{{ site_config.contact_email }}">Contact {{ site_config.contact_email }}</a>
-            </nav>
+<div class="legal-page">
+    <header class="page-header legal-page-header" aria-labelledby="legal-page-title">
+        <div class="container">
+            <div class="row">
+                <div class="col-lg-9">
+                    <p class="legal-eyebrow">Policies and notices</p>
+                    <h1 class="page-title" id="legal-page-title">{{ legal_page.title }}</h1>
+                    {% if legal_page.summary %}<p class="page-subtitle">{{ legal_page.summary }}</p>{% endif %}
+                    <time class="legal-meta" datetime="{{ legal_page.effective_date|date:'Y-m-d' }}">
+                        Effective {{ legal_page.effective_date|date:"F j, Y" }}
+                        <span aria-hidden="true">·</span>
+                        Updated {{ legal_page.modified|date:"F j, Y" }}
+                    </time>
+                </div>
+            </div>
         </div>
-    </article>
+    </header>
+
+    <section class="legal-document-section" aria-label="{{ legal_page.title }} document">
+        <div class="container">
+            <div class="legal-document-layout">
+                <article class="legal-content">
+                    {{ legal_page.rendered_content }}
+                </article>
+
+                <aside class="legal-directory" aria-labelledby="legal-directory-title">
+                    <p class="legal-directory-kicker">Legal information</p>
+                    <h2 id="legal-directory-title">Related pages</h2>
+                    <nav class="legal-nav" aria-label="Legal pages">
+                        {% for page in legal_pages %}
+                        <a href="{{ page.get_absolute_url }}"{% if page.pk == legal_page.pk %} aria-current="page"{% endif %}>{{ page.title }}</a>
+                        {% endfor %}
+                    </nav>
+
+                    {% get_site_config as site_config %}
+                    <a class="legal-contact" href="mailto:{{ site_config.contact_email }}">
+                        <span>Questions about this page?</span>
+                        {{ site_config.contact_email }}
+                    </a>
+                </aside>
+            </div>
+        </div>
+    </section>
 </div>
 {% endblock %}
