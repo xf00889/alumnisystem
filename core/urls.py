@@ -9,6 +9,7 @@ from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
 from . import views
+from cms.views import LegalPageDetailView
 # Import user management views from view_handlers
 from .view_handlers import user_management_views
 # Import SEO management views from view_handlers
@@ -27,6 +28,7 @@ urlpatterns = [
     path('about-us/', views.about_us, name='about_us'),
     path('contact-us/', views.contact_us, name='contact_us'),
     path('contact-us/submit/', views.contact_us_submit, name='contact_us_submit'),
+    path('legal/<str:page_type>/', LegalPageDetailView.as_view(), name='legal_page'),
 
     # Admin Dashboard
     path('admin-dashboard/', admin_views.admin_dashboard, name='admin_dashboard'),

@@ -2,19 +2,54 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.utils.decorators import method_decorator
-from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView
+from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, DetailView
 from django.contrib import messages
 from django.urls import reverse_lazy
 from .models import (
     SiteConfig, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AlumniStatistic, NORSUVMGOHistory
+    AlumniStatistic, NORSUVMGOHistory, LegalPage
 )
 from .forms import (
     SiteConfigForm, HeroSectionForm, StaffMemberForm,
     TimelineItemForm, ContactInfoForm, FAQForm, FeatureForm, TestimonialForm,
-    AlumniStatisticForm, VMGOSectionForm
+    AlumniStatisticForm, VMGOSectionForm, LegalPageForm
 )
+
+
+class LegalPageDetailView(DetailView):
+    model = LegalPage
+    template_name = 'legal/legal_page_detail.html'
+    context_object_name = 'legal_page'
+    slug_field = 'page_type'
+    slug_url_kwarg = 'page_type'
+
+    def get_queryset(self):
+        return LegalPage.objects.filter(is_published=True)
+
+
+class StaffCMSMixin(LoginRequiredMixin, UserPassesTestMixin):
+    raise_exception = True
+
+    def test_func(self):
+        return self.request.user.is_staff or self.request.user.is_superuser
+
+
+class LegalPageListView(StaffCMSMixin, ListView):
+    model = LegalPage
+    template_name = 'cms/legal_page_list.html'
+    context_object_name = 'legal_pages'
+
+
+class LegalPageUpdateView(StaffCMSMixin, UpdateView):
+    model = LegalPage
+    form_class = LegalPageForm
+    template_name = 'cms/legal_page_edit.html'
+    success_url = reverse_lazy('cms:legal_page_list')
+
+    def form_valid(self, form):
+        messages.success(self.request, f'{form.instance.title} updated successfully!')
+        return super().form_valid(form)
 
 
 @method_decorator(login_required, name='dispatch')
@@ -37,6 +72,7 @@ class CMSDashboardView(TemplateView):
             'features_count': Feature.objects.filter(is_active=True).count(),
             'testimonials_count': Testimonial.objects.filter(is_active=True).count(),
             'alumni_statistics_count': AlumniStatistic.objects.filter(is_active=True).count(),
+            'legal_pages_count': LegalPage.objects.filter(is_published=True).count(),
         })
         
         # Get recent content for quick access
@@ -430,4 +466,3 @@ class AlumniStatisticDeleteView(DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, 'Alumni statistic deleted successfully!')
         return super().delete(request, *args, **kwargs)
-

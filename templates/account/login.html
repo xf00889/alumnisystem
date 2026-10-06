@@ -775,6 +775,12 @@
                     <a href="{% url 'account_reset_password' %}" class="forgot-password">
                         Forgot your password?
                     </a>
+
+                    {% if legal_terms_page or legal_privacy_page %}
+                    <div class="terms-link">
+                        <small>Review our {% if legal_terms_page %}<a href="{{ legal_terms_page.get_absolute_url }}" target="_blank" rel="noopener">{{ legal_terms_page.title }}</a>{% endif %}{% if legal_terms_page and legal_privacy_page %} and {% endif %}{% if legal_privacy_page %}<a href="{{ legal_privacy_page.get_absolute_url }}" target="_blank" rel="noopener">{{ legal_privacy_page.title }}</a>{% endif %}.</small>
+                    </div>
+                    {% endif %}
                 </form>
             </div>
 
@@ -889,9 +895,11 @@
                     </a>
                     {% endif %}
 
+                    {% if legal_terms_page or legal_privacy_page %}
                     <div class="terms-link">
-                        <small>By creating an account, you agree to our <a href="javascript:void(0)" onclick="showTermsPopup()">Terms of Service and Privacy Policy</a>.</small>
+                        <small>{% if legal_terms_page %}By creating an account, you agree to our <a href="{{ legal_terms_page.get_absolute_url }}" target="_blank" rel="noopener">{{ legal_terms_page.title }}</a>{% endif %}{% if legal_terms_page and legal_privacy_page %} and acknowledge our {% elif legal_privacy_page %}Review our {% endif %}{% if legal_privacy_page %}<a href="{{ legal_privacy_page.get_absolute_url }}" target="_blank" rel="noopener">{{ legal_privacy_page.title }}</a>{% endif %}.</small>
                     </div>
+                    {% endif %}
                 </form>
             </div>
         </div>
@@ -993,71 +1001,6 @@
                 strengthText.classList.add('strong');
                 strengthText.textContent = 'Strong';
             }
-        }
-
-        // Terms Popup
-        function showTermsPopup() {
-            Swal.fire({
-                title: 'Terms of service & privacy',
-                html: `
-                    <article class="terms-modal-content">
-                        <div class="terms-modal-meta">
-                            <span>NORSU Alumni Network</span>
-                            <time datetime="2026-02-12">Effective February 12, 2026</time>
-                        </div>
-                        <p class="terms-modal-lede">These terms explain how to use the alumni network responsibly and how the university handles your information.</p>
-
-                        <section class="terms-modal-section">
-                            <span class="terms-modal-number" aria-hidden="true">01</span>
-                            <div>
-                                <h3>Acceptance of terms</h3>
-                                <p>By accessing and using the NORSU Alumni Network platform, you acknowledge that you have read, understood, and agree to be bound by these Terms of Service and Privacy Policy.</p>
-                            </div>
-                        </section>
-
-                        <section class="terms-modal-section">
-                            <span class="terms-modal-number" aria-hidden="true">02</span>
-                            <div>
-                                <h3>Account security</h3>
-                                <p>You are responsible for maintaining the confidentiality of your account credentials and for all activities that occur under your account.</p>
-                            </div>
-                        </section>
-
-                        <section class="terms-modal-section">
-                            <span class="terms-modal-number" aria-hidden="true">03</span>
-                            <div>
-                                <h3>Privacy and data protection</h3>
-                                <p>We collect and process personal information in accordance with the Data Privacy Act of 2012 (Republic Act No. 10173). Your data will be used exclusively for facilitating alumni connections, university updates, and career development opportunities.</p>
-                            </div>
-                        </section>
-
-                        <section class="terms-modal-section">
-                            <span class="terms-modal-number" aria-hidden="true">04</span>
-                            <div>
-                                <h3>Acceptable use</h3>
-                                <p>Users must maintain professional and respectful communication. Prohibited activities include posting offensive content, harassment, spam, or attempting to compromise platform security.</p>
-                            </div>
-                        </section>
-
-                        <p class="terms-modal-note"><i class="fas fa-check" aria-hidden="true"></i> Creating an account confirms that you have read and agree to these terms.</p>
-                    </article>
-                `,
-                width: 'min(46rem, calc(100vw - 2rem))',
-                showCloseButton: true,
-                confirmButtonText: 'I understand',
-                buttonsStyling: false,
-                focusConfirm: true,
-                showClass: { popup: '' },
-                hideClass: { popup: '' },
-                customClass: {
-                    popup: 'terms-popup',
-                    title: 'terms-modal-title',
-                    htmlContainer: 'terms-modal-html',
-                    actions: 'terms-modal-actions',
-                    confirmButton: 'terms-modal-confirm',
-                    closeButton: 'terms-modal-close'
-                }
-            });
         }
 
         // Handle Django messages

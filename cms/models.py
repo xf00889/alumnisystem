@@ -3,6 +3,10 @@ from django.utils.translation import gettext_lazy as _
 from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+from django.urls import reverse
+from django.utils.safestring import mark_safe
+import bleach
+import markdown
 from core.models import TimeStampedModel
 
 
@@ -619,17 +623,70 @@ class FooterLink(TimeStampedModel):
         # If it starts with http:// or https://, it's an external URL
         if self.url.startswith('http://') or self.url.startswith('https://'):
             return self.url
-        
+
         # If it starts with /, it's a direct path
         if self.url.startswith('/'):
             return self.url
-        
+
         # Try to reverse it as a Django URL name
         try:
             return reverse(self.url)
         except NoReverseMatch:
             # If reverse fails, return as-is
             return self.url
+
+
+class LegalPage(TimeStampedModel):
+    """Editable public legal documents with stable URLs."""
+
+    PAGE_TYPES = [
+        ('terms', _('Terms of Use')),
+        ('privacy', _('Privacy Notice')),
+        ('community-guidelines', _('Community Guidelines')),
+        ('data-privacy-request', _('Data Privacy Request')),
+    ]
+
+    page_type = models.CharField(max_length=40, choices=PAGE_TYPES, unique=True)
+    title = models.CharField(max_length=200)
+    summary = models.TextField(blank=True)
+    content = models.TextField(
+        help_text=_("Page content in Markdown. HTML is sanitized before display.")
+    )
+    effective_date = models.DateField()
+    is_published = models.BooleanField(default=True)
+    order = models.PositiveIntegerField(default=0)
+
+    class Meta:
+        ordering = ['order', 'title']
+        verbose_name = _('Legal Page')
+        verbose_name_plural = _('Legal Pages')
+
+    def __str__(self):
+        return self.title
+
+    def get_absolute_url(self):
+        return reverse('core:legal_page', kwargs={'page_type': self.page_type})
+
+    @property
+    def rendered_content(self):
+        html = markdown.markdown(self.content, extensions=['extra', 'sane_lists'])
+        allowed_tags = set(bleach.sanitizer.ALLOWED_TAGS) | {
+            'p', 'h2', 'h3', 'h4', 'hr', 'br', 'table', 'thead', 'tbody',
+            'tr', 'th', 'td',
+        }
+        cleaned = bleach.clean(
+            html,
+            tags=allowed_tags,
+            attributes={
+                'a': ['href', 'title'],
+                'ol': ['start'],
+                'th': ['scope', 'colspan', 'rowspan'],
+                'td': ['colspan', 'rowspan'],
+            },
+            protocols=['http', 'https', 'mailto'],
+            strip=True,
+        )
+        return mark_safe(cleaned)
 
 
 # Signal to automatically sync site config tagline with hero section title

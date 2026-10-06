@@ -15,6 +15,10 @@ urlpatterns = [
     
     # VMGO Section
     path('vmgo-section/', views.VMGOSectionUpdateView.as_view(), name='vmgo-section-edit'),
+
+    # Legal Pages
+    path('legal-pages/', views.LegalPageListView.as_view(), name='legal_page_list'),
+    path('legal-pages/<int:pk>/edit/', views.LegalPageUpdateView.as_view(), name='legal_page_edit'),
     
     # Staff Members
     path('staff-members/', views.StaffMemberListView.as_view(), name='staff_member_list'),

@@ -201,12 +201,19 @@ def footer_links(request):
     Add footer links to template context
     """
     try:
-        from cms.models import FooterLink
+        from cms.models import FooterLink, LegalPage
         links = FooterLink.objects.filter(is_active=True).order_by('order')
+        legal_pages = list(LegalPage.objects.filter(is_published=True))
         return {
             'footer_links': links,
+            'legal_pages': legal_pages,
+            'legal_terms_page': next((page for page in legal_pages if page.page_type == 'terms'), None),
+            'legal_privacy_page': next((page for page in legal_pages if page.page_type == 'privacy'), None),
         }
     except Exception:
         return {
             'footer_links': [],
+            'legal_pages': [],
+            'legal_terms_page': None,
+            'legal_privacy_page': None,
         }

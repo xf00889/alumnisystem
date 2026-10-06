@@ -5,7 +5,7 @@ from crispy_forms.layout import Layout, Fieldset, Row, Column, Submit
 from .models import (
     SiteConfig, StaffMember, 
     TimelineItem, ContactInfo, FAQ, Feature, Testimonial,
-    AlumniStatistic, NORSUVMGOHistory
+    AlumniStatistic, NORSUVMGOHistory, LegalPage
 )
 
 
@@ -71,6 +71,24 @@ class SiteConfigForm(ModelForm):
                 'class': 'form-control',
                 'placeholder': 'Enter login button text'
             }),
+        }
+
+
+class LegalPageForm(ModelForm):
+    class Meta:
+        model = LegalPage
+        fields = ['title', 'summary', 'content', 'effective_date', 'is_published', 'order']
+        widgets = {
+            'title': forms.TextInput(attrs={'class': 'form-control'}),
+            'summary': forms.Textarea(attrs={'class': 'form-control', 'rows': 3}),
+            'content': forms.Textarea(attrs={
+                'class': 'form-control font-monospace',
+                'rows': 28,
+                'spellcheck': 'true',
+            }),
+            'effective_date': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
+            'is_published': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
+            'order': forms.NumberInput(attrs={'class': 'form-control', 'min': 0}),
         }
 
 
