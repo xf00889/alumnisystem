@@ -1,5 +1,6 @@
 {% extends 'base.html' %}
 {% load static %}
+{% load string_filters %}
 
 {% block title %}Mentor List - Admin{% endblock %}
 
@@ -373,6 +374,7 @@
         }
     }
 </style>
+<link rel="stylesheet" href="{% static 'css/admin/mentor-management.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -493,32 +495,69 @@
 
         <!-- Filter Section -->
         <div class="filter-section">
-            <div class="row align-items-center">
-                <div class="col-md-6">
-                    <h5><i class="fas fa-filter me-2"></i>Filter Mentors</h5>
+            <div class="row align-items-center g-3">
+                <div class="col-12">
+                    <h5><i class="fas fa-filter me-2"></i>Find and group mentors</h5>
+                    <p class="text-muted small mb-0">Browse by expertise area, graduating batch, or mentor status.</p>
                 </div>
-                <div class="col-md-6">
-                    <form method="get" class="d-flex justify-content-end align-items-center" style="gap: var(--space-sm);">
-                        <select name="sort" id="sort" class="form-select" onchange="this.form.submit()" style="width: auto;">
+                <div class="col-12">
+                    <form method="get" class="mentor-directory-filters">
+                        <label class="visually-hidden" for="mentorSearch">Search mentors</label>
+                        <input class="form-control" type="search" name="q" id="mentorSearch" value="{{ search_query }}" placeholder="Search name, email or expertise">
+                        <label class="visually-hidden" for="expertiseFilter">Expertise area</label>
+                        <select name="expertise" id="expertiseFilter" class="form-select">
+                            <option value="">All expertise areas</option>
+                            {% for value, label, count in expertise_options %}
+                            <option value="{{ value }}" {% if expertise_filter == value %}selected{% endif %}>{{ label }} ({{ count }})</option>
+                            {% endfor %}
+                        </select>
+                        <label class="visually-hidden" for="batchFilter">Graduating batch</label>
+                        <select name="batch" id="batchFilter" class="form-select">
+                            <option value="">All batches</option>
+                            {% for batch, count in batch_options %}
+                            <option value="{{ batch }}" {% if batch_filter == batch|stringformat:'s' %}selected{% endif %}>Class of {{ batch }} ({{ count }})</option>
+                            {% endfor %}
+                        </select>
+                        <label class="visually-hidden" for="mentorStatusFilter">Mentor status</label>
+                        <select name="status" id="mentorStatusFilter" class="form-select">
+                            <option value="">All statuses</option>
+                            <option value="accepting" {% if status_filter == 'accepting' %}selected{% endif %}>Accepting mentees</option>
+                            <option value="active" {% if status_filter == 'active' %}selected{% endif %}>Active</option>
+                            <option value="inactive" {% if status_filter == 'inactive' %}selected{% endif %}>Disabled</option>
+                        </select>
+                        <label class="visually-hidden" for="sort">Sort mentors</label>
+                        <select name="sort" id="sort" class="form-select">
                             <option value="name" {% if sort_by == 'name' %}selected{% endif %}>Sort by Name</option>
                             <option value="availability" {% if sort_by == 'availability' %}selected{% endif %}>Sort by Availability</option>
                             <option value="mentees" {% if sort_by == 'mentees' %}selected{% endif %}>Sort by Number of Mentees</option>
                             <option value="verification" {% if sort_by == 'verification' %}selected{% endif %}>Sort by Verification Status</option>
+                            <option value="batch" {% if sort_by == 'batch' %}selected{% endif %}>Newest Batch</option>
                         </select>
-                        <button type="submit" class="btn btn-primary">Apply</button>
+                        <button type="submit" class="btn btn-primary">Apply filters</button>
+                        {% if is_filtered %}<a href="{% url 'accounts:admin_mentor_list' %}" class="btn btn-outline-secondary">Clear</a>{% endif %}
                     </form>
                 </div>
             </div>
         </div>
 
-        <!-- Mentor Cards -->
-        <div class="row">
+        {% if expertise_options %}
+        <nav class="mentor-expertise-groups" aria-label="Browse mentors by expertise">
+            <span class="mentor-expertise-groups__label">Expertise groups</span>
+            <a href="{% url 'accounts:admin_mentor_list' %}" class="mentor-expertise-groups__chip {% if not expertise_filter %}is-active{% endif %}">All mentors <span>{{ total_mentors }}</span></a>
+            {% for value, label, count in expertise_options|slice:':8' %}
+            <a href="?expertise={{ value|urlencode }}" class="mentor-expertise-groups__chip {% if expertise_filter == value %}is-active{% endif %}">{{ label }} <span>{{ count }}</span></a>
+            {% endfor %}
+        </nav>
+        {% endif %}
+        <!-- Compact mentor directory; keeps status and actions alongside each mentor. -->
+        <div class="mentor-directory-summary" role="status">Showing {{ filtered_count }} of {{ total_mentors }} mentors</div>
+        <div class="row mentor-directory-rows">
             {% if mentors %}
                 {% for mentor in mentors %}
-                <div class="col-lg-6 mb-4">
-                    <div class="mentor-card">
+                <div class="col-12 mb-3">
+                    <div class="mentor-card mentor-directory-row">
                         <div class="mentor-card-header d-flex justify-content-between align-items-center">
-                            <h5>Mentor Profile</h5>
+                            <h5>Mentor overview</h5>
                             <div style="display: flex; gap: var(--space-xs);">
                                 <span class="status-badge
                                     {% if mentor.availability_status == 'AVAILABLE' %}status-available
@@ -546,7 +585,7 @@
                                 </div>
                             </div>
 
-                            <div class="row mb-3">
+                            <div class="row mb-2 mentor-directory-meta">
                                 <div class="col-md-6">
                                     <p style="font-size: 0.8rem; color: var(--text-primary); margin-bottom: var(--space-xs);">
                                         <strong>Mentees:</strong> {{ mentor.current_mentees }} / {{ mentor.max_mentees }}
@@ -560,7 +599,7 @@
                                         <strong>Active:</strong> {% if mentor.is_active %}Yes{% else %}No{% endif %}
                                     </p>
                                     <p style="font-size: 0.8rem; color: var(--text-primary); margin-bottom: var(--space-xs);">
-                                        <strong>Joined:</strong> {{ mentor.created_at|date:"M d, Y" }}
+                                        <strong>Batch:</strong> {% if mentor.graduation_batch %}Class of {{ mentor.graduation_batch }}{% else %}Not specified{% endif %}
                                     </p>
                                 </div>
                             </div>
@@ -570,7 +609,7 @@
                                     Expertise Areas:
                                 </p>
                                 <div>
-                                    {% for area in mentor.expertise_areas.split %}
+                                    {% for area in mentor.expertise_labels %}
                                     <span class="expertise-tag">{{ area }}</span>
                                     {% endfor %}
                                 </div>

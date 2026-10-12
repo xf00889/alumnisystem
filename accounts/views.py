@@ -1625,6 +1625,16 @@ def review_mentor_application(request, application_id):
     
     if request.method == 'POST':
         action = request.POST.get('action')
+        if application.status != 'PENDING':
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'message': 'This application has already been reviewed.'}, status=409)
+            messages.error(request, 'This application has already been reviewed.')
+            return redirect('accounts:review_mentor_applications')
+        if action not in {'approve', 'reject'}:
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'status': 'error', 'message': 'Choose Approve or Reject before submitting.'}, status=400)
+            messages.error(request, 'Choose Approve or Reject before submitting.')
+            return redirect('accounts:review_mentor_applications')
         review_notes = request.POST.get('review_notes', '')
         
         application.review_notes = review_notes
@@ -1774,54 +1784,109 @@ def mentor_reactivation_request_detail_modal(request, request_id):
 
 @login_required
 def admin_mentor_list(request):
+    """Mentor directory for staff, with expertise and alumni-batch filters.
+
+    Expertise is stored as comma-separated phrases, not individual words. Grouping
+    is derived from that data and existing Alumni/Education records; no schema change.
     """
-    Custom view to display a list of mentors for administrators
-    """
-    # Check if the user is a superuser, staff, or alumni coordinator
-    if not (request.user.is_superuser or request.user.is_staff or 
-            (hasattr(request.user, 'profile') and request.user.profile.is_alumni_coordinator)):
+    if not can_manage_mentors(request.user):
         messages.error(request, "You don't have permission to access this page.")
         return redirect('core:home')
-        
-    # Get all mentors
-    mentors = Mentor.objects.all().select_related('user')
-    
-    # Add sorting options
+
+    from collections import Counter
+
+    mentors = list(Mentor.objects.select_related('user', 'user__profile').all())
+    mentor_user_ids = [mentor.user_id for mentor in mentors]
+    alumni_batches = dict(Alumni.objects.filter(
+        user_id__in=mentor_user_ids
+    ).values_list('user_id', 'graduation_year'))
+    # Fall back to the user's primary education record when no Alumni row exists.
+    education_batches = {}
+    for user_id, year, is_primary in Education.objects.filter(
+        profile__user_id__in=mentor_user_ids,
+        graduation_year__isnull=False,
+    ).order_by('-is_primary', '-graduation_year').values_list(
+        'profile__user_id', 'graduation_year', 'is_primary'
+    ):
+        education_batches.setdefault(user_id, year)
+
+    all_expertise = Counter()
+    all_batches = Counter()
+    for mentor in mentors:
+        seen = set()
+        mentor.expertise_labels = []
+        for area in (mentor.expertise_areas or '').split(','):
+            label = area.strip()
+            key = label.casefold()
+            if label and key not in seen:
+                mentor.expertise_labels.append(label)
+                all_expertise[key] += 1
+                seen.add(key)
+        mentor.graduation_batch = alumni_batches.get(mentor.user_id) or education_batches.get(mentor.user_id)
+        if mentor.graduation_batch:
+            all_batches[mentor.graduation_batch] += 1
+
+    expertise_filter = request.GET.get('expertise', '').strip().casefold()[:150]
+    batch_filter = request.GET.get('batch', '').strip()
+    status_filter = request.GET.get('status', '').strip()
+    search = request.GET.get('q', '').strip()[:100]
     sort_by = request.GET.get('sort', 'name')
-    if sort_by == 'name':
-        mentors = mentors.order_by('user__first_name', 'user__last_name')
-    elif sort_by == 'availability':
-        mentors = mentors.order_by('availability_status')
-    elif sort_by == 'mentees':
-        mentors = mentors.order_by('-current_mentees')
-    elif sort_by == 'verification':
-        mentors = mentors.order_by('-is_verified')
-    else:
-        mentors = mentors.order_by('user__first_name', 'user__last_name')
-    
-    # Get mentorship statistics
-    total_mentors = mentors.count()
-    active_mentors = mentors.filter(is_active=True, accepting_mentees=True).count()
-    verified_mentors = mentors.filter(is_verified=True).count()
-    total_mentees = sum(mentor.current_mentees for mentor in mentors)
-    
-    # Get pending applications count
-    pending_applications = MentorApplication.objects.filter(status='PENDING').count()
-    
-    # Get pending reactivation requests count
-    pending_reactivation_requests = MentorReactivationRequest.objects.filter(status='PENDING').count()
-    
-    context = {
-        'mentors': mentors,
-        'total_mentors': total_mentors,
-        'active_mentors': active_mentors,
-        'verified_mentors': verified_mentors,
-        'total_mentees': total_mentees,
-        'pending_applications': pending_applications,
-        'pending_reactivation_requests': pending_reactivation_requests,
-        'sort_by': sort_by,
+
+    filtered = []
+    for mentor in mentors:
+        if expertise_filter and not any(area.casefold() == expertise_filter for area in mentor.expertise_labels):
+            continue
+        if batch_filter and str(mentor.graduation_batch or '') != batch_filter:
+            continue
+        if status_filter == 'active' and not mentor.is_active:
+            continue
+        if status_filter == 'inactive' and mentor.is_active:
+            continue
+        if status_filter == 'accepting' and not (mentor.is_active and mentor.accepting_mentees):
+            continue
+        if search:
+            searchable = ' '.join((mentor.user.get_full_name(), mentor.user.email, mentor.expertise_areas or ''))
+            if search.casefold() not in searchable.casefold():
+                continue
+        filtered.append(mentor)
+
+    def display_name(mentor):
+        return (mentor.user.get_full_name() or mentor.user.username).casefold()
+
+    sorting = {
+        'name': lambda mentor: display_name(mentor),
+        'availability': lambda mentor: (mentor.availability_status != 'AVAILABLE', display_name(mentor)),
+        'mentees': lambda mentor: (-mentor.current_mentees, display_name(mentor)),
+        'verification': lambda mentor: (not mentor.is_verified, display_name(mentor)),
+        'batch': lambda mentor: (-(mentor.graduation_batch or 0), display_name(mentor)),
     }
-    return render(request, 'accounts/admin_mentor_list.html', context)
+    filtered.sort(key=sorting.get(sort_by, sorting['name']))
+
+    # Human-readable casing for filter options is taken from actual model values.
+    expertise_labels = {}
+    for mentor in mentors:
+        for label in mentor.expertise_labels:
+            expertise_labels.setdefault(label.casefold(), label)
+
+    return render(request, 'accounts/admin_mentor_list.html', {
+        'mentors': filtered,
+        'total_mentors': len(mentors),
+        'filtered_count': len(filtered),
+        'active_mentors': sum(m.is_active and m.accepting_mentees for m in mentors),
+        'verified_mentors': sum(m.is_verified for m in mentors),
+        'total_mentees': sum(m.current_mentees for m in mentors),
+        'pending_applications': MentorApplication.objects.filter(status='PENDING').count(),
+        'pending_reactivation_requests': MentorReactivationRequest.objects.filter(status='PENDING').count(),
+        'sort_by': sort_by,
+        'search_query': search,
+        'status_filter': status_filter,
+        'expertise_filter': expertise_filter,
+        'batch_filter': batch_filter,
+        'expertise_options': [(key, expertise_labels[key], count) for key, count in
+                              sorted(all_expertise.items(), key=lambda item: (-item[1], item[0]))],
+        'batch_options': sorted(all_batches.items(), reverse=True),
+        'is_filtered': bool(search or expertise_filter or batch_filter or status_filter),
+    })
 
 @user_passes_test(can_manage_mentors)
 @require_POST

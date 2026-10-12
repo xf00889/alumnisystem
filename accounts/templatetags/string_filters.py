@@ -9,7 +9,7 @@ def split(value, delimiter=','):
     Usage: {{ value|split:"," }}
     """
     if value:
-        return value.split(delimiter)
+        return [part.strip() for part in str(value).split(delimiter) if part.strip()]
     return []
 
 @register.filter

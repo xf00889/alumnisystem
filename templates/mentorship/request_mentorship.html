@@ -1,5 +1,6 @@
 {% extends alumni_page_base|default:'base.html' %}
 {% load static %}
+{% load string_filters %}
 
 {% block title %}Request Mentorship - {{ mentor.user.get_full_name }}{% endblock %}
 
@@ -11,6 +12,7 @@
 <link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/mentorship.css' %}">
 {% endif %}
+<link rel="stylesheet" href="{% static 'css/alumni/mentorship-experience.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -66,8 +68,8 @@
                             Areas of Expertise
                         </h6>
                         <div class="expertise-container">
-                            {% for area in mentor.expertise_areas.split|slice:":6" %}
-                                <span class="expertise-badge">{{ area|title }}</span>
+                            {% for area in mentor.expertise_areas|split:","|slice:":6" %}
+                                <span class="expertise-badge">{{ area|strip }}</span>
                             {% empty %}
                                 <span class="text-muted small">No expertise areas specified</span>
                             {% endfor %}

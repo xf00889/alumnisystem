@@ -7,6 +7,7 @@
 {% block extra_css %}
 <script>document.documentElement.classList.add("fe-page--accounts-review-mentor-reactivation-requests-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/accounts.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin/mentor-management.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -160,37 +161,6 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Process Django messages with SweetAlert2
-    const messages = document.querySelectorAll('.alert');
-    messages.forEach(alert => {
-        const alertType = alert.classList.contains('alert-success') ? 'success' :
-                         alert.classList.contains('alert-danger') ? 'error' :
-                         alert.classList.contains('alert-warning') ? 'warning' :
-                         alert.classList.contains('alert-info') ? 'info' : 'info';
-        
-        const messageText = alert.textContent.trim();
-        if (messageText) {
-            Swal.fire({
-                title: alertType === 'success' ? 'Success!' : 
-                       alertType === 'error' ? 'Error!' :
-                       alertType === 'warning' ? 'Warning!' : 'Info',
-                text: messageText,
-                icon: alertType,
-                confirmButtonColor: alertType === 'success' ? '#10b981' :
-                                   alertType === 'error' ? '#ef4444' :
-                                   alertType === 'warning' ? '#f59e0b' : '#4299e1',
-                confirmButtonText: 'OK',
-                timer: alertType === 'success' ? 3000 : 5000,
-                timerProgressBar: true
-            });
-            
-            // Remove the alert after showing SweetAlert
-            setTimeout(() => {
-                alert.remove();
-            }, 100);
-        }
-    });
-    
     // Get CSRF token
     function getCookie(name) {
         let cookieValue = null;
@@ -266,7 +236,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 modalContent.innerHTML = `
                     <div class="alert alert-danger">
                         <i class="fas fa-exclamation-triangle me-2"></i>
-                        Error loading request details: ${error.message}
+                        Unable to load request details. Please close and try again.
                     </div>
                 `;
                 
