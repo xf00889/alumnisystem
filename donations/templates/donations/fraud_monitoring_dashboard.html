@@ -1,469 +1,86 @@
-{% extends 'donations/base.html' %}
-{% load static %}
-{% load humanize %}
-{% load i18n %}
-
-{% block title %}{% trans "Fraud Monitoring Dashboard" %} - NORSU Alumni{% endblock %}
-
-{% block extra_css %}
-{{ block.super }}
-<script>document.documentElement.classList.add("fe-page--app-donations-donations-fraud-monitoring-dashboard-html");</script>
-<link rel="stylesheet" href="{% static 'css/modules/donations-app.css' %}">
+{% extends 'base.html' %}
+{% load static humanize i18n %}
+{% block title %}Donation Fraud Monitoring - NORSU Alumni{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/donation-intelligence.css' %}">{% endblock %}
+{% block content %}
+<main class="donation-intelligence donation-fraud container-fluid py-3 py-lg-4" aria-label="Donation fraud monitoring">
+  <header class="admin-page-header donation-intelligence__header"><div><p class="admin-page-header__eyebrow">ADMINISTRATION / DONATIONS & FUNDRAISING</p>
+    <h1 class="admin-page-header__title">Fraud Monitoring</h1>
+    <p class="admin-page-header__subtitle">Review automated flags, document decisions and maintain the screening blacklist.</p></div>
+    <a href="{% url 'donations:export_fraud_alerts' %}?days={{ days }}" class="btn btn-outline-light"><i class="fas fa-download me-2" aria-hidden="true"></i>Export alerts CSV</a>
+  </header>
+  {% include "donations/components/admin_navigation.html" %}
+  <section class="donation-intelligence__period"><div><strong>Detection activity</strong><p class="mb-0">Alerts created in the last {{ days }} days. Unresolved alerts below span all dates.</p></div>
+    <div class="donation-intelligence__filters" role="group" aria-label="Fraud report period">
+      <a href="?days=7" {% if days == 7 %}class="active" aria-current="true"{% endif %}>7 days</a>
+      <a href="?days=30" {% if days == 30 %}class="active" aria-current="true"{% endif %}>30 days</a>
+      <a href="?days=90" {% if days == 90 %}class="active" aria-current="true"{% endif %}>90 days</a>
+    </div>
+  </section>
+  <section class="donation-intelligence__metrics" aria-label="Fraud-monitoring summary">
+    <article class="donation-intelligence__metric"><span>New fraud alerts</span><strong>{{ fraud_summary.total_alerts }}</strong><small>Last {{ days }} days</small></article>
+    <article class="donation-intelligence__metric"><span>Requiring review</span><strong>{{ pending_alerts.count }}</strong><small>Pending or under investigation · all time</small></article>
+    <article class="donation-intelligence__metric"><span>Flagged donations</span><strong>{{ high_risk_donations.count }}</strong><small>Distinct, unresolved high/critical risk</small></article>
+    <article class="donation-intelligence__metric"><span>Active blacklist entries</span><strong>{{ blacklisted_count }}</strong><small>Not expired</small></article>
+  </section>
+  <section class="donation-intelligence__charts" aria-label="Fraud review workspace">
+    <article class="donation-intelligence__panel donation-intelligence__panel--wide"><header><div><h2>Outstanding alerts</h2><p>Review evidence and record a decision. An alert is a warning, not proof of fraud.</p></div><a href="{% url 'donations:verification_dashboard' %}" class="btn btn-outline-secondary btn-sm">Verification queue</a></header>
+      {% if pending_alerts %}<div class="donation-intelligence__alert-list">
+        {% for alert in pending_alerts %}<div class="donation-intelligence__alert">
+          <div class="donation-intelligence__alert-main"><div class="donation-intelligence__alert-title"><strong>{{ alert.get_alert_type_display }}</strong>
+            <span class="donation-intelligence__severity donation-intelligence__severity--{{ alert.severity }}">{{ alert.get_severity_display }}</span>
+            {% if alert.status == 'investigating' %}<span class="donation-intelligence__status">Investigating</span>{% endif %}</div>
+            <p>{{ alert.description }}</p><small>{{ alert.donation.campaign.name }} · Donation #{{ alert.donation_id }} · ₱{{ alert.donation.amount|floatformat:2|intcomma }} · {{ alert.created_at|date:'M j, Y g:i A' }}</small></div>
+          <div class="donation-intelligence__alert-actions"><button type="button" class="btn btn-outline-primary btn-sm" data-review-alert="{{ alert.id }}" data-review-url="{% url 'donations:resolve_fraud_alert' alert.id %}" data-review-label="{{ alert.get_alert_type_display }}">Review alert</button>
+            <a class="btn btn-outline-secondary btn-sm" href="{% url 'donations:manage_donations' %}?search={{ alert.donation.reference_number|urlencode }}">Donation record</a></div>
+        </div>{% endfor %}
+      </div>{% else %}<div class="donation-intelligence__empty">No unresolved fraud alerts. New alerts appear after payment-proof screening.</div>{% endif %}
+    </article>
+    <article class="donation-intelligence__panel"><header><div><h2>Severity breakdown</h2><p>Alerts created in the selected time window</p></div></header>
+      <dl class="donation-intelligence__stats"><div><dt>Critical</dt><dd>{{ fraud_summary.by_severity.critical|default:0 }}</dd></div>
+        <div><dt>High</dt><dd>{{ fraud_summary.by_severity.high|default:0 }}</dd></div>
+        <div><dt>Medium</dt><dd>{{ fraud_summary.by_severity.medium|default:0 }}</dd></div>
+        <div><dt>Low</dt><dd>{{ fraud_summary.by_severity.low|default:0 }}</dd></div></dl>
+      <p class="donation-intelligence__note">Threshold-based screening is advisory. Final approval requires staff verification of the actual GCash transfer and receipt.</p>
+    </article>
+  </section>
+  <section class="donation-intelligence__charts" aria-label="Blacklist and history">
+    <article class="donation-intelligence__panel"><header><div><h2>Screening blacklist</h2><p>Active entries only. Use precise, verified identifiers.</p></div></header>
+      <details class="donation-intelligence__blacklist-form"><summary><i class="fas fa-plus-circle me-2" aria-hidden="true"></i>Add or update entry</summary>
+        <form method="post" action="{% url 'donations:create_blacklisted_entity' %}" class="row g-2 mt-2">{% csrf_token %}
+          <div class="col-12"><label class="form-label" for="blacklist-type">Identifier type</label><select class="form-select" id="blacklist-type" name="entity_type" required>
+            <option value="email">Email</option><option value="ip">IP address</option><option value="name">Exact name</option>
+          </select></div>
+          <div class="col-12"><label class="form-label" for="blacklist-value">Value</label><input id="blacklist-value" name="value" class="form-control" maxlength="255" required></div>
+          <div class="col-12"><label class="form-label" for="blacklist-reason">Reason / evidence</label><textarea id="blacklist-reason" name="reason" class="form-control" rows="2" required></textarea></div>
+          <div class="col-12"><button class="btn btn-primary" type="submit">Save blacklist entry</button></div>
+        </form>
+      </details>
+      {% for entry in blacklisted_entities %}<div class="donation-intelligence__blacklist-entry"><div><strong>{{ entry.get_entity_type_display }}</strong><p class="mb-0">{{ entry.value }}</p><small>{{ entry.reason|truncatechars:100 }}</small></div>
+        <form method="post" action="{% url 'donations:deactivate_blacklisted_entity' entry.id %}">{% csrf_token %}<button type="submit" class="btn btn-outline-secondary btn-sm">Deactivate</button></form></div>
+      {% empty %}<div class="donation-intelligence__empty">No active blacklist entries.</div>{% endfor %}
+      {% if blacklisted_count > 10 %}<p class="donation-intelligence__note">Showing the 10 most recent active entries of {{ blacklisted_count }}.</p>{% endif %}
+    </article>
+    <article class="donation-intelligence__panel donation-intelligence__panel--wide"><header><div><h2>Recent review history</h2><p>Latest 20 alerts; includes decisions and reviewer names</p></div></header>
+      {% if recent_alerts %}<div class="table-responsive"><table class="table donation-intelligence__table"><thead><tr><th scope="col">Alert</th><th scope="col">Risk</th><th scope="col">Status</th><th scope="col">Reviewer</th><th scope="col">Created</th></tr></thead><tbody>
+        {% for alert in recent_alerts %}<tr><td>{{ alert.get_alert_type_display }}<small class="d-block">Donation #{{ alert.donation_id }}</small></td>
+          <td><span class="donation-intelligence__severity donation-intelligence__severity--{{ alert.severity }}">{{ alert.get_severity_display }}</span></td>
+          <td>{{ alert.get_status_display }}</td><td>{{ alert.reviewed_by.get_full_name|default:alert.reviewed_by.username|default:'—' }}</td><td>{{ alert.created_at|date:'M j, Y' }}</td></tr>{% endfor %}
+      </tbody></table></div>{% else %}<div class="donation-intelligence__empty">No fraud-review history yet.</div>{% endif %}
+    </article>
+  </section>
+</main>
+<dialog class="donation-intelligence__dialog" id="fraud-review-dialog" aria-labelledby="fraud-dialog-title">
+  <form method="dialog" id="fraud-review-form"><div class="donation-intelligence__dialog-heading"><h2 id="fraud-dialog-title">Review donation alert</h2><button type="button" class="btn-close" id="fraud-review-close" aria-label="Close"></button></div>
+    <p id="fraud-review-subtitle"></p>
+    <label class="form-label" for="fraud-review-status">Decision</label><select id="fraud-review-status" name="status" class="form-select" required>
+      <option value="investigating">Mark as investigating</option><option value="resolved">Resolved after review</option><option value="false_positive">False positive</option>
+    </select>
+    <label class="form-label mt-3" for="fraud-review-notes">Review evidence and rationale</label>
+    <textarea id="fraud-review-notes" class="form-control" name="notes" rows="4" required placeholder="Document what was checked and why you chose this outcome"></textarea>
+    <div role="alert" id="fraud-review-error" class="donation-intelligence__error" hidden></div>
+    <div class="donation-intelligence__dialog-actions"><button class="btn btn-outline-secondary" type="button" id="fraud-review-cancel">Cancel</button><button class="btn btn-primary" type="submit" id="fraud-review-submit">Save decision</button></div>
+  </form>
+</dialog>
 {% endblock %}
-
-{% block donations_content %}
-<div class="container-fluid">
-    <!-- Header Section (Matching Alumni List Style) -->
-    <div class="directory-header admin-page-header">
-        <p class="admin-page-header__eyebrow">ADMINISTRATION / DONATIONS</p>
-        <h1 class="directory-title admin-page-header__title">{% trans "Fraud Detection & Monitoring Dashboard" %}</h1>
-        <p class="directory-subtitle admin-page-header__subtitle">{% trans "Comprehensive fraud detection, monitoring, and risk assessment system" %}</p>
-    </div>
-
-    <!-- Date Range Filter -->
-    <div class="dashboard-card">
-        <div class="card-header">
-            <h5 class="card-title">
-                <i class="fas fa-calendar-alt me-2"></i>
-                {% trans "Time Range Selection" %}
-            </h5>
-        </div>
-        <div class="card-body">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <small class="text-muted">
-                        {% trans "Monitoring fraud patterns and suspicious activities" %}
-                    </small>
-                </div>
-                <div class="btn-group" role="group">
-                    <a href="?days=7" class="btn btn-outline-primary {% if days == 7 %}active{% endif %}">{% trans "7 Days" %}</a>
-                    <a href="?days=30" class="btn btn-outline-primary {% if days == 30 %}active{% endif %}">{% trans "30 Days" %}</a>
-                    <a href="?days=90" class="btn btn-outline-primary {% if days == 90 %}active{% endif %}">{% trans "90 Days" %}</a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Quick Actions -->
-    <div class="dashboard-card mb-4">
-        <div class="card-body">
-            <h6 class="mb-3"><i class="fas fa-bolt me-2"></i>{% trans "Quick Actions" %}</h6>
-            <div class="row g-2">
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'donations:manage_donations' %}" class="quick-action-card">
-                        <div class="quick-action-icon">
-                            <i class="fas fa-list"></i>
-                        </div>
-                        <div class="quick-action-title">{% trans "All Donations" %}</div>
-                    </a>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                    <button class="quick-action-card w-100" onclick="refreshDashboard()" style="border: none; cursor: pointer;">
-                        <div class="quick-action-icon">
-                            <i class="fas fa-sync-alt"></i>
-                        </div>
-                        <div class="quick-action-title">{% trans "Refresh Data" %}</div>
-                    </button>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                    <button class="quick-action-card w-100" onclick="exportAlerts()" style="border: none; cursor: pointer;">
-                        <div class="quick-action-icon">
-                            <i class="fas fa-download"></i>
-                        </div>
-                        <div class="quick-action-title">{% trans "Export Alerts" %}</div>
-                    </button>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                    <button class="quick-action-card w-100" onclick="showBlacklistModal()" style="border: none; cursor: pointer;">
-                        <div class="quick-action-icon">
-                            <i class="fas fa-ban"></i>
-                        </div>
-                        <div class="quick-action-title">{% trans "Manage Blacklist" %}</div>
-                    </button>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'donations:analytics_dashboard' %}" class="quick-action-card">
-                        <div class="quick-action-icon">
-                            <i class="fas fa-chart-bar"></i>
-                        </div>
-                        <div class="quick-action-title">{% trans "Analytics" %}</div>
-                    </a>
-                </div>
-                <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                    <a href="{% url 'donations:campaign_list' %}" class="quick-action-card">
-                        <div class="quick-action-icon">
-                            <i class="fas fa-hand-holding-usd"></i>
-                        </div>
-                        <div class="quick-action-title">{% trans "Campaigns" %}</div>
-                    </a>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Fraud Statistics Cards -->
-    <div class="row mb-4">
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="metric-card bg-danger">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h3>{{ fraud_summary.total_alerts|default:0 }}</h3>
-                        <p>{% trans "Total Alerts" %}</p>
-                        <small>{% trans "Last" %} {{ days }} {% trans "days" %}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-exclamation-triangle fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="metric-card bg-warning">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h3>{{ pending_alerts.count }}</h3>
-                        <p>{% trans "Pending Review" %}</p>
-                        <small>{% trans "Requires Action" %}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-clock fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="metric-card bg-info">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h3>{{ high_risk_donations.count }}</h3>
-                        <p>{% trans "High Risk" %}</p>
-                        <small>{% trans "Donations Flagged" %}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-flag fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <div class="col-lg-3 col-md-6 mb-3">
-            <div class="metric-card bg-secondary">
-                <div class="d-flex justify-content-between">
-                    <div>
-                        <h3>{{ blacklisted_entities.count }}</h3>
-                        <p>{% trans "Blacklisted" %}</p>
-                        <small>{% trans "Active Entries" %}</small>
-                    </div>
-                    <div class="align-self-center">
-                        <i class="fas fa-ban fa-2x"></i>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Pending Alerts Section -->
-    <div class="dashboard-card">
-        <div class="card-header">
-            <h5 class="card-title">
-                <i class="fas fa-exclamation-circle me-2"></i>
-                {% trans "Pending Fraud Alerts" %}
-                <span class="badge bg-warning ms-2">{{ pending_alerts.count }}</span>
-            </h5>
-        </div>
-        <div class="card-body">
-            {% if pending_alerts %}
-                <div class="row">
-                    {% for alert in pending_alerts %}
-                    <div class="col-lg-6 mb-3">
-                        <div class="alert-card card severity-{{ alert.severity }}">
-                            <div class="card-body">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <h6 class="card-title mb-0">
-                                        <span class="risk-indicator risk-{{ alert.severity }}"></span>
-                                        {{ alert.get_alert_type_display }}
-                                    </h6>
-                                    <span class="badge bg-{{ alert.severity|yesno:'danger,warning,success' }} status-badge">
-                                        {{ alert.get_severity_display }}
-                                    </span>
-                                </div>
-                                <p class="card-text text-muted small mb-2">
-                                    <strong>{% trans "Donation" %}:</strong> {{ alert.donation.reference_number }}<br>
-                                    <strong>{% trans "Campaign" %}:</strong> {{ alert.donation.campaign.name|truncatechars:40 }}<br>
-                                    <strong>{% trans "Amount" %}:</strong> ₱{{ alert.donation.amount|floatformat:2|intcomma }}
-                                </p>
-                                <p class="card-text">{{ alert.description|truncatechars:100 }}</p>
-                                <div class="d-flex justify-content-between align-items-center">
-                                    <small class="text-muted">
-                                        <i class="fas fa-clock me-1"></i>
-                                        {{ alert.created_at|timesince }} {% trans "ago" %}
-                                    </small>
-                                    <div class="btn-group btn-group-sm">
-                                        <button class="btn btn-outline-success btn-sm" 
-                                                onclick="resolveAlert({{ alert.id }}, 'resolved')">
-                                            <i class="fas fa-check"></i> {% trans "Resolve" %}
-                                        </button>
-                                        <button class="btn btn-outline-secondary btn-sm" 
-                                                onclick="resolveAlert({{ alert.id }}, 'false_positive')">
-                                            <i class="fas fa-times"></i> {% trans "False Positive" %}
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    {% endfor %}
-                </div>
-            {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
-                    <h5 class="text-muted">{% trans "No Pending Alerts" %}</h5>
-                    <p class="text-muted">{% trans "All fraud alerts have been reviewed." %}</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-
-    <!-- High Risk Donations and Blacklisted Entities -->
-    <div class="row mb-4">
-        <div class="col-lg-8 mb-4">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title">
-                        <i class="fas fa-flag me-2"></i>
-                        {% trans "High Risk Donations" %}
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if high_risk_donations %}
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>{% trans "Reference" %}</th>
-                                        <th>{% trans "Campaign" %}</th>
-                                        <th>{% trans "Amount" %}</th>
-                                        <th>{% trans "Risk Level" %}</th>
-                                        <th>{% trans "Date" %}</th>
-                                        <th>{% trans "Actions" %}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for donation in high_risk_donations %}
-                                    <tr>
-                                        <td>
-                                            <code>{{ donation.reference_number }}</code>
-                                        </td>
-                                        <td>{{ donation.campaign.name|truncatechars:30 }}</td>
-                                        <td>₱{{ donation.amount|floatformat:2|intcomma }}</td>
-                                        <td>
-                                            {% for alert in donation.fraud_alerts.all %}
-                                                {% if alert.status == 'pending' %}
-                                                    <span class="badge bg-{{ alert.severity|yesno:'danger,warning,success' }}">
-                                                        {{ alert.get_severity_display }}
-                                                    </span>
-                                                {% endif %}
-                                            {% endfor %}
-                                        </td>
-                                        <td>{{ donation.created_at|date:"M d, Y" }}</td>
-                                        <td>
-                                            <a href="{% url 'donations:manage_donations' %}?search={{ donation.reference_number }}" 
-                                               class="btn btn-sm btn-outline-primary">
-                                                <i class="fas fa-eye"></i> {% trans "Review" %}
-                                            </a>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-shield-check fa-3x text-success mb-3"></i>
-                            <h5 class="text-muted">{% trans "No High Risk Donations" %}</h5>
-                            <p class="text-muted">{% trans "All donations are within normal risk parameters." %}</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-        
-        <!-- Blacklisted Entities -->
-        <div class="col-lg-4 mb-4">
-            <div class="dashboard-card">
-                <div class="card-header">
-                    <h5 class="card-title">
-                        <i class="fas fa-ban me-2"></i>
-                        {% trans "Recent Blacklist" %}
-                    </h5>
-                </div>
-                <div class="card-body">
-                    {% if blacklisted_entities %}
-                        {% for entity in blacklisted_entities %}
-                        <div class="blacklist-item">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <div>
-                                    <strong>{{ entity.get_entity_type_display }}</strong><br>
-                                    <code class="small">{{ entity.value|truncatechars:25 }}</code><br>
-                                    <small class="text-muted">{{ entity.reason|truncatechars:50 }}</small>
-                                </div>
-                                <small class="text-muted">
-                                    {{ entity.created_at|date:"M d" }}
-                                </small>
-                            </div>
-                        </div>
-                        {% endfor %}
-                        <div class="text-center mt-3">
-                            <a href="#" class="btn btn-sm btn-outline-secondary">
-                                {% trans "View All" %}
-                            </a>
-                        </div>
-                    {% else %}
-                        <div class="text-center py-4">
-                            <i class="fas fa-list fa-2x text-muted mb-3"></i>
-                            <p class="text-muted">{% trans "No blacklisted entities" %}</p>
-                        </div>
-                    {% endif %}
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Recent Alerts History -->
-    <div class="dashboard-card">
-        <div class="card-header">
-            <h5 class="card-title">
-                <i class="fas fa-history me-2"></i>
-                {% trans "Recent Alert History" %}
-            </h5>
-        </div>
-        <div class="card-body">
-            {% if recent_alerts %}
-                <div class="table-responsive">
-                    <table class="table table-sm">
-                        <thead>
-                            <tr>
-                                <th>{% trans "Alert Type" %}</th>
-                                <th>{% trans "Donation" %}</th>
-                                <th>{% trans "Severity" %}</th>
-                                <th>{% trans "Status" %}</th>
-                                <th>{% trans "Reviewed By" %}</th>
-                                <th>{% trans "Date" %}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for alert in recent_alerts %}
-                            <tr>
-                                <td>{{ alert.get_alert_type_display }}</td>
-                                <td>
-                                    <code class="small">{{ alert.donation.reference_number }}</code>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{{ alert.severity|yesno:'danger,warning,success' }}">
-                                        {{ alert.get_severity_display }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <span class="badge bg-{% if alert.status == 'resolved' %}success{% elif alert.status == 'false_positive' %}secondary{% elif alert.status == 'investigating' %}warning{% else %}danger{% endif %}">
-                                        {{ alert.get_status_display }}
-                                    </span>
-                                </td>
-                                <td>
-                                    {% if alert.reviewed_by %}
-                                        {{ alert.reviewed_by.get_full_name|default:alert.reviewed_by.username }}
-                                    {% else %}
-                                        <span class="text-muted">{% trans "Pending" %}</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ alert.created_at|date:"M d, Y H:i" }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            {% else %}
-                <div class="text-center py-4">
-                    <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
-                    <h5 class="text-muted">{% trans "No Recent Alerts" %}</h5>
-                    <p class="text-muted">{% trans "No fraud alerts have been generated recently." %}</p>
-                </div>
-            {% endif %}
-        </div>
-    </div>
-</div>
-{% endblock %}
-
-{% block extra_js %}
-<script>
-function resolveAlert(alertId, status) {
-    if (!confirm('{% trans "Are you sure you want to " %}' + status + '{% trans " this alert?" %}')) {
-        return;
-    }
-
-    const notes = prompt('{% trans "Add resolution notes (optional):" %}');
-
-    fetch(`/donations/fraud-alerts/${alertId}/resolve/`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/x-www-form-urlencoded',
-            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
-        },
-        body: `status=${status}&notes=${encodeURIComponent(notes || '')}`
-    })
-    .then(response => {
-        // Check if response is ok and content type is JSON
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        const contentType = response.headers.get('content-type');
-        if (!contentType || !contentType.includes('application/json')) {
-            throw new Error('Response is not JSON');
-        }
-        
-        return response.json();
-    })
-    .then(data => {
-        if (data.status === 'success') {
-            location.reload();
-        } else {
-            alert('{% trans "Error: " %}' + data.message);
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        alert('{% trans "An error occurred while resolving the alert." %}');
-    });
-}
-
-function refreshDashboard() {
-    location.reload();
-}
-
-function exportAlerts() {
-    // TODO: Implement alert export functionality
-    alert('{% trans "Export functionality will be implemented soon." %}');
-}
-
-function showBlacklistModal() {
-    // TODO: Implement blacklist management modal
-    alert('{% trans "Blacklist management will be implemented soon." %}');
-}
-
-// Auto-refresh every 5 minutes
-setInterval(function() {
-    const lastRefresh = localStorage.getItem('fraudDashboardLastRefresh');
-    const now = Date.now();
-
-    if (!lastRefresh || (now - parseInt(lastRefresh)) > 300000) { // 5 minutes
-        localStorage.setItem('fraudDashboardLastRefresh', now.toString());
-        location.reload();
-    }
-}, 300000);
-
-// Store last refresh time
-localStorage.setItem('fraudDashboardLastRefresh', Date.now().toString());
-</script>
-{% endblock %}
+{% block page_specific_js %}<script src="{% static 'js/admin/donation-fraud-review.js' %}" defer></script>{% endblock %}

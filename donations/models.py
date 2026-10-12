@@ -281,40 +281,37 @@ class Donation(models.Model):
         return reference
     
     def save(self, *args, **kwargs):
-        # Reference number is now provided by user from GCash receipt
+        """Keep campaign totals reconciled with completed donation records.
 
-        # If this is a completed donation and it's a new record or the status has changed
-        is_new = self.pk is None
-        if not is_new:
-            old_status = Donation.objects.get(pk=self.pk).status
-            status_changed = old_status != self.status
-        else:
-            status_changed = False
+        In addition to status transitions, editing a completed amount or
+        moving a completed donation must update both affected campaigns.
+        This is the displayed fundraising progress cache, not a payment event.
+        """
+        from decimal import Decimal
 
-        # Set verification date when status changes to completed
-        if self.status == 'completed' and (is_new or status_changed) and not self.verification_date:
+        previous = (Donation.objects.filter(pk=self.pk)
+                    .values('status', 'amount', 'campaign_id').first()) if self.pk else None
+        entering_completed = self.status == 'completed' and (
+            previous is None or previous['status'] != 'completed'
+        )
+        if entering_completed and not self.verification_date:
             self.verification_date = timezone.now()
 
         super().save(*args, **kwargs)
 
-        # Update campaign amount if status is completed
-        if self.status == 'completed' and (is_new or status_changed):
-            self.campaign.current_amount = self.campaign.donations.filter(
-                status='completed'
-            ).aggregate(
-                total=models.Sum('amount')
-            )['total'] or 0
-            self.campaign.save()
+        changed = (previous is None or previous['status'] != self.status or
+                   previous['amount'] != self.amount or previous['campaign_id'] != self.campaign_id)
+        if not changed or not (self.status == 'completed' or (
+                previous and previous['status'] == 'completed')):
+            return
+        affected = {self.campaign_id}
+        if previous:
+            affected.add(previous['campaign_id'])
+        for campaign_id in affected:
+            total = (Donation.objects.filter(campaign_id=campaign_id, status='completed')
+                     .aggregate(value=models.Sum('amount'))['value'] or Decimal('0.00'))
+            Campaign.objects.filter(pk=campaign_id).update(current_amount=total)
 
-        # If status changed from completed to something else, recalculate
-        if not is_new and status_changed and old_status == 'completed' and self.status != 'completed':
-            self.campaign.current_amount = self.campaign.donations.filter(
-                status='completed'
-            ).aggregate(
-                total=models.Sum('amount')
-            )['total'] or 0
-            self.campaign.save()
-    
     def get_absolute_url(self):
         return reverse('donations:donation_confirmation', kwargs={'pk': self.pk})
 

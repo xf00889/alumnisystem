@@ -5,7 +5,7 @@ Donation.save(), so the post_save receiver covers every supported change.
 """
 import logging
 from django.db import transaction
-from django.db.models.signals import post_save, pre_save
+from django.db.models.signals import post_save, pre_save, post_delete
 from django.dispatch import receiver
 
 from .models import Donation
@@ -82,3 +82,15 @@ def store_old_status(sender, instance, **kwargs):
                                 .values_list('status', flat=True).first())
     else:
         instance._old_status = None
+
+
+@receiver(post_delete, sender=Donation, dispatch_uid='donations_recalculate_after_delete')
+def recalculate_campaign_on_donation_delete(sender, instance, **kwargs):
+    """Include deletions via Django Admin and bulk QuerySet.delete()."""
+    from decimal import Decimal
+    from django.db.models import Sum
+    from .models import Campaign
+
+    total = (Donation.objects.filter(campaign_id=instance.campaign_id, status='completed')
+             .aggregate(value=Sum('amount'))['value'] or Decimal('0.00'))
+    Campaign.objects.filter(pk=instance.campaign_id).update(current_amount=total)

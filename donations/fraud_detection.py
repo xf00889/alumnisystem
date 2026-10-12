@@ -80,14 +80,15 @@ class FraudDetectionService:
         """Check if donation involves blacklisted entities"""
         checks = []
         
-        # Check email
-        if donation.donor_email:
+        # Guest email or verified account email for registered alumni.
+        donor_email = donation.donor_email or (donation.donor.email if donation.donor_id else '')
+        if donor_email:
             if BlacklistedEntity.objects.filter(
                 entity_type='email',
-                value__iexact=donation.donor_email,
+                value__iexact=donor_email,
                 is_active=True
-            ).exists():
-                checks.append(f"Email {donation.donor_email} is blacklisted")
+            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).exists():
+                checks.append(f"Email {donor_email} is blacklisted")
         
         # Check IP address
         if ip_address:
@@ -95,18 +96,18 @@ class FraudDetectionService:
                 entity_type='ip',
                 value=ip_address,
                 is_active=True
-            ).exists():
+            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now())).exists():
                 checks.append(f"IP address {ip_address} is blacklisted")
         
-        # Check name patterns
+        # Check exact names (an untrusted regex must not be executed).
         if donation.donor_name:
             blacklisted_names = BlacklistedEntity.objects.filter(
                 entity_type='name',
-                is_active=True
-            )
+                is_active=True,
+                value__iexact=donation.donor_name.strip(),
+            ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
             for blacklisted in blacklisted_names:
-                if re.search(blacklisted.value, donation.donor_name, re.IGNORECASE):
-                    checks.append(f"Name matches blacklisted pattern: {blacklisted.value}")
+                checks.append(f"Name matches listed name: {blacklisted.value}")
         
         return "; ".join(checks) if checks else None
     
@@ -117,14 +118,16 @@ class FraudDetectionService:
         )
         
         # Check by email
-        if donation.donor_email:
+        donor_email = donation.donor_email or (donation.donor.email if donation.donor_id else '')
+        if donor_email:
             email_count = Donation.objects.filter(
-                donor_email=donation.donor_email,
-                created_at__gte=time_threshold
+                Q(donor_email__iexact=donor_email) | Q(donor__email__iexact=donor_email),
+                created_at__gte=time_threshold,
+                status__in=('pending_verification', 'completed'),
             ).count()
             
             if email_count >= self.risk_thresholds['rapid_donations_count']:
-                return f"Email {donation.donor_email} made {email_count} donations in {self.risk_thresholds['rapid_donations_minutes']} minutes"
+                return f"Email {donor_email} made {email_count} donations in {self.risk_thresholds['rapid_donations_minutes']} minutes"
         
         # Check by IP (if available)
         if ip_address:
@@ -189,23 +192,22 @@ class FraudDetectionService:
         return None
     
     def check_unusual_location(self, donation, ip_address):
-        """Check for unusual location patterns"""
-        # This is a placeholder for geolocation-based fraud detection
-        # In a real implementation, you would use a geolocation service
-        # to check if the IP address is from an unusual location
-        
-        if ip_address:
-            # Check for known VPN/proxy IP ranges (simplified)
-            suspicious_ranges = ['10.', '192.168.', '172.']
-            for range_prefix in suspicious_ranges:
-                if ip_address.startswith(range_prefix):
-                    return f"Donation from private/internal IP range: {ip_address}"
-        
+        """No geo evidence is available without a trusted IP intelligence service.
+
+        RFC1918 addresses, reverse proxies and local networks are not evidence
+        of a fraudulent donation. Do not raise fabricated location alerts.
+        """
         return None
-    
+
     def create_fraud_alert(self, donation, alert_type, severity, description, ip_address, user_agent):
-        """Create a fraud alert record"""
-        alert = FraudAlert.objects.create(
+        """Do not create repeated unresolved alerts on re-screening."""
+        alert = FraudAlert.objects.filter(
+            donation=donation, alert_type=alert_type,
+            status__in=('pending', 'investigating'),
+        ).first()
+        if alert:
+            return alert
+        return FraudAlert.objects.create(
             donation=donation,
             alert_type=alert_type,
             severity=severity,
@@ -214,20 +216,18 @@ class FraudDetectionService:
             user_agent=user_agent,
             metadata={
                 'detection_time': timezone.now().isoformat(),
-                'thresholds_used': self.risk_thresholds
-            }
+                'thresholds_used': self.risk_thresholds,
+            },
         )
-        return alert
-    
+
     def get_client_ip(self, request):
-        """Get the client's IP address from request"""
-        x_forwarded_for = request.META.get('HTTP_X_FORWARDED_FOR')
-        if x_forwarded_for:
-            ip = x_forwarded_for.split(',')[0]
-        else:
-            ip = request.META.get('REMOTE_ADDR')
-        return ip
-    
+        """Never trust client-supplied X-Forwarded-For without proxy validation.
+
+        Deployments with a trusted reverse proxy should configure real-IP
+        extraction at that proxy, not accept arbitrary request headers here.
+        """
+        return request.META.get('REMOTE_ADDR') if request else None
+
     def calculate_risk_score(self, donation):
         """Calculate overall risk score for a donation"""
         alerts = FraudAlert.objects.filter(donation=donation)
@@ -256,7 +256,7 @@ class FraudDetectionService:
             'by_type': {},
             'by_severity': {},
             'by_status': {},
-            'high_risk_donations': alerts.filter(severity__in=['high', 'critical']).count()
+            'high_risk_donations': alerts.filter(severity__in=['high', 'critical']).values('donation_id').distinct().count()
         }
         
         # Group by type

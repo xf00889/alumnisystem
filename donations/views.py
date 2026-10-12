@@ -1459,275 +1459,122 @@ def export_donations(request):
 
 @login_required
 def analytics_dashboard(request):
-    """Advanced analytics dashboard for donations"""
-    # Check if user is staff, admin, or alumni coordinator
+    """Reconciled donation analytics with a single explicit reporting window.
+
+    Money is counted only after manual verification (status=completed).
+    Unpaid, failed, refunded, cancelled, and disputed transactions never inflate
+    the fundraising totals.  The transaction date is when it was created,
+    consistently for all views, tables and charts.
+    """
     if not can_manage_donations(request.user):
-        messages.error(request, _('You do not have permission to access this page.'))
-        return redirect('donations:campaign_list')
+        raise PermissionDenied
 
-    from django.db.models import Sum, Count, Avg, F, ExpressionWrapper, DurationField
-    from django.db.models.functions import TruncDay, TruncMonth
-    from django.db.models import Q
-    import json
-    from datetime import timedelta, datetime
+    from django.db.models import Avg, Count, Sum
+    from django.db.models.functions import TruncDate, TruncMonth
+    from datetime import timedelta
 
-    # Date range filter - use datetime for proper filtering
-    # Since USE_TZ is False, we need to use naive datetimes for MySQL
     try:
         days = int(request.GET.get('days', 30))
-    except (ValueError, TypeError):
+    except (TypeError, ValueError):
         days = 30
-    
-    # Use naive datetime for MySQL compatibility when USE_TZ is False
-    # Use datetime.now() directly to ensure naive datetime
-    from datetime import datetime as dt
-    now = dt.now()
-    
-    end_datetime = now
+    if days not in (7, 30, 90, 365):
+        days = 30
+
+    end_datetime = timezone.now()
     start_datetime = end_datetime - timedelta(days=days)
-    start_date = start_datetime.date()
-    end_date = end_datetime.date()
-
-    # Basic statistics - all time completed donations
-    total_donations = Donation.objects.filter(status='completed').aggregate(
-        total_amount=Sum('amount'),
-        total_count=Count('id'),
-        avg_amount=Avg('amount')
+    verified = Donation.objects.filter(status='completed')
+    in_period = verified.filter(
+        created_at__gte=start_datetime, created_at__lte=end_datetime
     )
-
-    # Daily donation trends - use TruncDay for proper date grouping
-    # Note: TruncDay might not work in all databases, so we'll use a more compatible approach
-    daily_trends_queryset = Donation.objects.filter(
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime,
-        status='completed'
+    period_totals = in_period.aggregate(
+        total_amount=Sum('amount'), total_count=Count('pk'), avg_amount=Avg('amount')
     )
-    
-    # Debug: Log count of donations found
-    donation_count = daily_trends_queryset.count()
-    print(f"DEBUG: Found {donation_count} completed donations in date range {start_date} to {end_date}")
-    print(f"DEBUG: Start datetime: {start_datetime}, End datetime: {end_datetime}")
-    
-    # Also check all completed donations to see what we're working with
-    all_completed = Donation.objects.filter(status='completed')
-    print(f"DEBUG: Total completed donations (all time): {all_completed.count()}")
-    for d in all_completed[:5]:  # Show first 5
-        print(f"  - ID: {d.id}, Amount: {d.amount}, Created: {d.created_at}, Status: {d.status}")
-    
-    # Group by date using TruncDay if available, otherwise use extra
-    try:
-        daily_trends = daily_trends_queryset.annotate(
-            day=TruncDay('created_at')
-    ).values('day').annotate(
-        amount=Sum('amount'),
-        count=Count('id')
-    ).order_by('day')
-        print(f"DEBUG: Using TruncDay for daily trends")
-    except Exception as e:
-        # Fallback for databases that don't support TruncDay
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.warning(f"TruncDay not supported, using extra: {e}")
-        daily_trends = daily_trends_queryset.extra(
-            select={'day': "DATE(created_at)"}
-        ).values('day').annotate(
-            amount=Sum('amount'),
-            count=Count('id')
-        ).order_by('day')
-        print(f"DEBUG: Using extra() for daily trends")
-    
-    # Debug: Log the daily trends data
-    daily_trends_list = list(daily_trends)
-    print(f"DEBUG: Daily trends query result: {daily_trends_list}")
+    lifetime_totals = verified.aggregate(
+        total_amount=Sum('amount'), total_count=Count('pk')
+    )
+    daily_trends = list(in_period.annotate(day=TruncDate('created_at'))
+        .values('day').annotate(amount=Sum('amount'), count=Count('pk'))
+        .order_by('day'))
+    monthly_trends = list(in_period.annotate(month=TruncMonth('created_at'))
+        .values('month').annotate(amount=Sum('amount'), count=Count('pk'))
+        .order_by('month'))
+    payment_methods = list(in_period.values('payment_method')
+        .annotate(amount=Sum('amount'), count=Count('pk'))
+        .order_by('-amount'))
 
-    # Campaign performance - filter by date range for more accurate results
     campaign_performance = Campaign.objects.annotate(
         total_raised=Sum('donations__amount', filter=Q(
-            donations__status='completed',
-            donations__created_at__gte=start_datetime,
-            donations__created_at__lte=end_datetime
-        )),
+            donations__status='completed', donations__created_at__gte=start_datetime,
+            donations__created_at__lte=end_datetime)),
         donation_count=Count('donations', filter=Q(
-            donations__status='completed',
-            donations__created_at__gte=start_datetime,
-            donations__created_at__lte=end_datetime
-        )),
-        avg_donation=Avg('donations__amount', filter=Q(
-            donations__status='completed',
-            donations__created_at__gte=start_datetime,
-            donations__created_at__lte=end_datetime
-        ))
-    ).filter(total_raised__isnull=False, total_raised__gt=0).order_by('-total_raised')[:10]
+            donations__status='completed', donations__created_at__gte=start_datetime,
+            donations__created_at__lte=end_datetime)),
+    ).filter(total_raised__isnull=False).order_by('-total_raised')[:10]
 
-    # Verification efficiency - calculate average verification time properly
-    # Use naive datetime for MySQL compatibility
-    verified_donations = Donation.objects.filter(
-        verification_date__isnull=False,
+    verified_reviews = Donation.objects.filter(
         verification_date__gte=start_datetime,
         verification_date__lte=end_datetime,
-        status__in=['completed', 'failed', 'disputed']
-    )
-    
-    # Calculate average verification time in hours
-    verification_times = []
-    for donation in verified_donations:
-        if donation.verification_date and donation.created_at:
-            time_diff = donation.verification_date - donation.created_at
-            verification_times.append(time_diff.total_seconds() / 3600)  # Convert to hours
-    
-    avg_verification_hours = sum(verification_times) / len(verification_times) if verification_times else 0
-    
+        status__in=('completed', 'failed', 'disputed')
+    ).select_related('verified_by')
+    verification_hours = [
+        max(0, (donation.verification_date - donation.created_at).total_seconds()) / 3600
+        for donation in verified_reviews
+        if donation.verification_date and donation.created_at
+    ]
     verification_stats = {
-        'avg_verification_time': avg_verification_hours,
-        'total_verified': verified_donations.count()
+        'total_verified': verified_reviews.count(),
+        'avg_verification_time': (
+            sum(verification_hours) / len(verification_hours) if verification_hours else None
+        ),
     }
-
-    # Payment method breakdown - all donations are GCash
-    payment_methods_data = Donation.objects.filter(
-        status='completed',
-        created_at__gte=start_datetime,
-        created_at__lte=end_datetime
-    ).aggregate(
-        total_amount=Sum('amount'),
-        total_count=Count('id')
-    )
-    
-    print(f"DEBUG: Payment methods data - total_amount: {payment_methods_data['total_amount']}, total_count: {payment_methods_data['total_count']}")
-    print(f"DEBUG: Payment methods data type - total_amount type: {type(payment_methods_data['total_amount'])}, total_count type: {type(payment_methods_data['total_count'])}")
-    
-    # Since all donations are GCash, create a single entry
-    # Always create an entry even if count is 0, so the chart shows something
-    payment_amount_value = float(payment_methods_data['total_amount'] or 0)
-    payment_count_value = int(payment_methods_data['total_count'] or 0)
-    print(f"DEBUG: Payment method values - amount: {payment_amount_value}, count: {payment_count_value}")
-    
-    payment_methods = [{
-        'payment_method': 'GCash',
-        'amount': payment_amount_value,
-        'count': payment_count_value
-    }]
-
-    # Admin performance - use correct related_name and filter by date range
     admin_performance = User.objects.filter(
         verified_donations__verification_date__gte=start_datetime,
-        verified_donations__verification_date__lte=end_datetime
+        verified_donations__verification_date__lte=end_datetime,
     ).annotate(
         verifications=Count('verified_donations', filter=Q(
             verified_donations__verification_date__gte=start_datetime,
-            verified_donations__verification_date__lte=end_datetime
+            verified_donations__verification_date__lte=end_datetime,
         )),
         total_amount=Sum('verified_donations__amount', filter=Q(
             verified_donations__verification_date__gte=start_datetime,
             verified_donations__verification_date__lte=end_datetime,
-            verified_donations__status='completed'
-        ))
+            verified_donations__status='completed',
+        )),
     ).filter(verifications__gt=0).order_by('-verifications')[:10]
 
-    # Monthly trends for charts - use longer range for better visualization
-    monthly_start_date = end_date - timedelta(days=365)
-    # Use naive datetime for MySQL compatibility
-    monthly_start_datetime = dt.combine(monthly_start_date, dt.min.time())
-    
-    monthly_trends = Donation.objects.filter(
-        status='completed',
-        created_at__gte=monthly_start_datetime,
-        created_at__lte=end_datetime
-    ).annotate(
-        month=TruncMonth('created_at')
-    ).values('month').annotate(
-        amount=Sum('amount'),
-        count=Count('id')
-    ).order_by('month')
-
-    # Prepare chart data - ensure all data is properly formatted
-    # Handle empty data gracefully
-    daily_labels = []
-    daily_amounts = []
-    daily_counts = []
-    
-    # Convert queryset to list for debugging
-    daily_trends_list = list(daily_trends) if daily_trends else []
-    print(f"DEBUG: Processing {len(daily_trends_list)} daily trend items")
-    
-    if daily_trends_list:
-        for item in daily_trends_list:
-            day = item.get('day')
-            amount = item.get('amount') or 0
-            count = item.get('count') or 0
-            
-            print(f"DEBUG: Processing item - day: {day}, amount: {amount}, count: {count}")
-            
-            if day:
-                # Handle both date objects and date strings
-                if isinstance(day, str):
-                    # Parse date string (format: YYYY-MM-DD)
-                    try:
-                        from datetime import datetime as dt
-                        day_obj = dt.strptime(day, '%Y-%m-%d').date()
-                        daily_labels.append(day_obj.strftime('%Y-%m-%d'))
-                    except (ValueError, AttributeError):
-                        daily_labels.append(str(day)[:10])  # Take first 10 chars (YYYY-MM-DD)
-                elif hasattr(day, 'strftime'):
-                    daily_labels.append(day.strftime('%Y-%m-%d'))
-                else:
-                    daily_labels.append(str(day)[:10])
-                
-                daily_amounts.append(float(amount))
-                daily_counts.append(int(count))
-    
-    print(f"DEBUG: Final daily data - Labels: {len(daily_labels)}, Amounts: {len(daily_amounts)}, Counts: {len(daily_counts)}")
-    
-    monthly_labels = []
-    monthly_amounts = []
-    
-    if monthly_trends:
-        for item in monthly_trends:
-            if item.get('month'):
-                monthly_labels.append(item['month'].strftime('%Y-%m'))
-                monthly_amounts.append(float(item.get('amount') or 0))
-    
-    payment_labels = []
-    payment_amounts = []
-    payment_counts = []
-    
-    if payment_methods:
-        for item in payment_methods:
-            payment_labels.append(item.get('payment_method', 'GCash'))
-            payment_amounts.append(float(item.get('amount') or 0))
-            payment_counts.append(item.get('count') or 0)
-    
+    from .models import FraudAlert
+    outstanding_alerts = FraudAlert.objects.filter(
+        status__in=('pending', 'investigating')
+    ).count()
+    payment_labels = dict(Donation.PAYMENT_METHOD_CHOICES)
     chart_data = {
-        'daily_amounts': daily_amounts,
-        'daily_counts': daily_counts,
-        'daily_labels': daily_labels,
-        'monthly_amounts': monthly_amounts,
-        'monthly_labels': monthly_labels,
-        'payment_methods': {
-            'labels': payment_labels if payment_labels else ['GCash'],
-            'amounts': payment_amounts if payment_amounts else [0],
-            'counts': payment_counts if payment_counts else [0]
-        }
+        'daily': {
+            'labels': [item['day'].isoformat() for item in daily_trends],
+            'amounts': [float(item['amount'] or 0) for item in daily_trends],
+            'counts': [item['count'] for item in daily_trends],
+        },
+        'monthly': {
+            'labels': [item['month'].strftime('%Y-%m') for item in monthly_trends],
+            'amounts': [float(item['amount'] or 0) for item in monthly_trends],
+        },
+        'payment': {
+            'labels': [str(payment_labels.get(row['payment_method'], row['payment_method'])) for row in payment_methods],
+            'amounts': [float(row['amount'] or 0) for row in payment_methods],
+            'counts': [row['count'] for row in payment_methods],
+        },
     }
-    
-    # Debug: Print final chart data structure
-    print(f"DEBUG: Final chart_data structure:")
-    print(f"  - daily_labels: {len(chart_data['daily_labels'])} items - {chart_data['daily_labels']}")
-    print(f"  - daily_amounts: {len(chart_data['daily_amounts'])} items - {chart_data['daily_amounts']}")
-    print(f"  - payment_methods.labels: {chart_data['payment_methods']['labels']}")
-    print(f"  - payment_methods.amounts: {chart_data['payment_methods']['amounts']}")
-
-    context = {
-        'total_donations': total_donations,
+    return render(request, 'donations/analytics_dashboard.html', {
+        'period_totals': period_totals,
+        'lifetime_totals': lifetime_totals,
         'campaign_performance': campaign_performance,
         'verification_stats': verification_stats,
-                'admin_performance': admin_performance,
-        'chart_data': json.dumps(chart_data),
+        'admin_performance': admin_performance,
+        'outstanding_alerts': outstanding_alerts,
+        'chart_data': chart_data,
         'days': days,
-        'start_date': start_date,
-        'end_date': end_date,
-    }
-
-    return render(request, 'donations/analytics_dashboard.html', context)
+        'start_date': start_datetime.date(),
+        'end_date': end_datetime.date(),
+    })
 
 
 @login_required
@@ -1742,8 +1589,13 @@ def fraud_monitoring_dashboard(request):
     from .models import FraudAlert, BlacklistedEntity
 
     # Get fraud summary
-    days = int(request.GET.get('days', 30))
-    
+    try:
+        days = int(request.GET.get('days', 30))
+    except (ValueError, TypeError):
+        days = 30
+    if days not in (7, 30, 90):
+        days = 30
+
     # Log dashboard access
     logger.info(
         f"Fraud monitoring dashboard accessed: Days={days}",
@@ -1763,19 +1615,21 @@ def fraud_monitoring_dashboard(request):
 
     # Get pending alerts
     pending_alerts = FraudAlert.objects.filter(
-        status='pending'
-    ).select_related('donation', 'donation__campaign').order_by('-severity', '-created_at')
+        status__in=('pending', 'investigating')
+    ).select_related('donation', 'donation__campaign').order_by('-created_at')
 
     # Get high-risk donations
     high_risk_donations = Donation.objects.filter(
         fraud_alerts__severity__in=['high', 'critical'],
-        fraud_alerts__status='pending'
+        fraud_alerts__status__in=('pending', 'investigating')
     ).distinct().select_related('campaign')
 
     # Get blacklisted entities
     blacklisted_entities = BlacklistedEntity.objects.filter(
         is_active=True
-    ).order_by('-created_at')[:10]
+    ).filter(Q(expires_at__isnull=True) | Q(expires_at__gt=timezone.now()))
+    blacklisted_count = blacklisted_entities.count()
+    blacklisted_entities = blacklisted_entities.order_by('-created_at')[:10]
 
     context = {
         'fraud_summary': fraud_summary,
@@ -1783,6 +1637,7 @@ def fraud_monitoring_dashboard(request):
         'pending_alerts': pending_alerts,
         'high_risk_donations': high_risk_donations,
         'blacklisted_entities': blacklisted_entities,
+        'blacklisted_count': blacklisted_count,
         'days': days,
     }
 
@@ -1795,16 +1650,18 @@ def resolve_fraud_alert(request, alert_id):
     """Resolve a fraud alert"""
     # Check if user is staff, admin, or alumni coordinator
     if not can_manage_donations(request.user):
-        return JsonResponse({'status': 'error', 'message': 'Permission denied'})
+        return JsonResponse({'status': 'error', 'message': 'Permission denied'}, status=403)
 
     from .models import FraudAlert
     alert = get_object_or_404(FraudAlert, id=alert_id)
 
     status = request.POST.get('status')
-    notes = request.POST.get('notes', '')
+    notes = request.POST.get('notes', '').strip()
 
     if status not in ['resolved', 'false_positive', 'investigating']:
-        return JsonResponse({'status': 'error', 'message': 'Invalid status'})
+        return JsonResponse({'status': 'error', 'message': 'Invalid status'}, status=400)
+    if status in ('resolved', 'false_positive') and not notes:
+        return JsonResponse({'status': 'error', 'message': 'Please record the review rationale.'}, status=400)
 
     alert.status = status
     alert.resolution_notes = notes
@@ -1814,8 +1671,104 @@ def resolve_fraud_alert(request, alert_id):
 
     return JsonResponse({
         'status': 'success',
-        'message': 'Alert resolved successfully'
+        'message': 'Alert review saved successfully'
     })
+
+@login_required
+@require_GET
+def export_fraud_alerts(request):
+    """Staff-only CSV export for the selected fraud review window."""
+    if not can_manage_donations(request.user):
+        raise PermissionDenied
+    import csv
+    from datetime import timedelta
+    from .models import FraudAlert
+
+    try:
+        days = int(request.GET.get('days', 30))
+    except (TypeError, ValueError):
+        days = 30
+    if days not in (7, 30, 90):
+        days = 30
+
+    response = HttpResponse(content_type='text/csv; charset=utf-8')
+    response['Content-Disposition'] = 'attachment; filename="donation_fraud_alerts.csv"'
+    response['Cache-Control'] = 'private, no-store'
+    writer = csv.writer(response)
+    writer.writerow(['Created', 'Donation ID', 'Campaign', 'Type', 'Severity',
+                     'Status', 'Description', 'Reviewed By', 'Reviewed At', 'Review Notes'])
+    rows = FraudAlert.objects.filter(
+        created_at__gte=timezone.now() - timedelta(days=days)
+    ).select_related('donation__campaign', 'reviewed_by').order_by('-created_at')
+    # Avoid spreadsheet formula injection from donor-provided text.
+    def safe(value):
+        value = str(value or '')
+        return "'" + value if value.lstrip().startswith(('=', '+', '-', '@')) else value
+    for item in rows.iterator():
+        writer.writerow([safe(item.created_at.isoformat()), item.donation_id,
+                         safe(item.donation.campaign.name), safe(item.get_alert_type_display()),
+                         safe(item.get_severity_display()), safe(item.get_status_display()),
+                         safe(item.description), safe(item.reviewed_by or ''),
+                         safe(item.reviewed_at.isoformat() if item.reviewed_at else ''),
+                         safe(item.resolution_notes)])
+    return response
+
+
+@login_required
+@require_POST
+def create_blacklisted_entity(request):
+    """Create a reviewable active blacklist entry (no implicit fuzzy matches)."""
+    if not can_manage_donations(request.user):
+        raise PermissionDenied
+    from .models import BlacklistedEntity
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError as DjangoValidationError
+    import ipaddress
+
+    entity_type = request.POST.get('entity_type', '').strip()
+    value = request.POST.get('value', '').strip()
+    reason = request.POST.get('reason', '').strip()
+    if entity_type not in ('email', 'ip', 'name') or not value or len(value) > 255 or not reason:
+        messages.error(request, 'Choose a type and supply a value and reason.')
+        return redirect('donations:fraud_monitoring_dashboard')
+    if entity_type == 'email':
+        try:
+            validate_email(value)
+        except DjangoValidationError:
+            messages.error(request, 'Enter a valid email address.')
+            return redirect('donations:fraud_monitoring_dashboard')
+        value = value.lower()
+    if entity_type == 'ip':
+        try:
+            value = str(ipaddress.ip_address(value))
+        except ValueError:
+            messages.error(request, 'Enter a valid IP address.')
+            return redirect('donations:fraud_monitoring_dashboard')
+    # Names are exact case-insensitive matches, not uncontrolled regexes.
+    item, created = BlacklistedEntity.objects.get_or_create(
+        entity_type=entity_type, value=value,
+        defaults={'reason': reason, 'created_by': request.user})
+    if not created:
+        item.reason = reason
+        item.is_active = True
+        item.created_by = request.user
+        item.save(update_fields=['reason', 'is_active', 'created_by'])
+    messages.success(request, 'Blacklist entry saved.')
+    return redirect('donations:fraud_monitoring_dashboard')
+
+
+@login_required
+@require_POST
+def deactivate_blacklisted_entity(request, pk):
+    if not can_manage_donations(request.user):
+        raise PermissionDenied
+    from .models import BlacklistedEntity
+    item = get_object_or_404(BlacklistedEntity, pk=pk)
+    item.is_active = False
+    item.save(update_fields=['is_active'])
+    messages.success(request, 'Blacklist entry deactivated.')
+    return redirect('donations:fraud_monitoring_dashboard')
+
 
 @login_required
 def manage_gcash(request):

@@ -33,6 +33,9 @@ urlpatterns = [
     path('verify-donation/<int:pk>/', views.verify_donation, name='verify_donation'),
     path('bulk-verify/', views.bulk_verify_donations, name='bulk_verify_donations'),
     path('resolve-fraud-alert/<int:alert_id>/', views.resolve_fraud_alert, name='resolve_fraud_alert'),
+    path('fraud-monitoring/export/', views.export_fraud_alerts, name='export_fraud_alerts'),
+    path('fraud-monitoring/blacklist/add/', views.create_blacklisted_entity, name='create_blacklisted_entity'),
+    path('fraud-monitoring/blacklist/<int:pk>/deactivate/', views.deactivate_blacklisted_entity, name='deactivate_blacklisted_entity'),
     path('export/', views.export_donations, name='export_donations'),
     path('manage/donations/', views.manage_donations, name='manage_donations'),
     # GCash management (custom interface)

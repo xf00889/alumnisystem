@@ -1,557 +1,70 @@
-{% extends 'donations/base.html' %}
-{% load static %}
-{% load humanize %}
-{% load i18n %}
-
-{% block title %}{% trans "Analytics Dashboard" %} - NORSU Alumni{% endblock %}
-
-{% block extra_css %}
-{{ block.super }}
-<script>document.documentElement.classList.add("fe-page--app-donations-donations-analytics-dashboard-html");</script>
-<link rel="stylesheet" href="{% static 'css/modules/donations-app.css' %}">
-{% endblock %}
-
- {% block donations_content %}
- <div class="container-fluid">
-     <!-- Header Section (Matching Alumni List Style) -->
-     <div class="directory-header admin-page-header">
-         <p class="admin-page-header__eyebrow">ADMINISTRATION / DONATIONS</p>
-         <h1 class="directory-title admin-page-header__title">{% trans "Donation Analytics Dashboard" %}</h1>
-         <p class="directory-subtitle admin-page-header__subtitle">{% trans "Comprehensive insights into donation performance and campaign analytics" %}</p>
-     </div>
-
-        <!-- Date Range Filter -->
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h5 class="card-title">
-                    <i class="fas fa-calendar-alt me-2"></i>
-                    {% trans "Date Range Selection" %}
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex justify-content-between align-items-center">
-                    <div>
-                        <small class="text-muted">
-                            {% trans "Showing data from" %} {{ start_date }} {% trans "to" %} {{ end_date }}
-                        </small>
-                    </div>
-                    <div class="btn-group" role="group">
-                        <a href="?days=7" class="btn btn-outline-primary {% if days == 7 %}active{% endif %}">{% trans "7 Days" %}</a>
-                        <a href="?days=30" class="btn btn-outline-primary {% if days == 30 %}active{% endif %}">{% trans "30 Days" %}</a>
-                        <a href="?days=90" class="btn btn-outline-primary {% if days == 90 %}active{% endif %}">{% trans "90 Days" %}</a>
-                        <a href="?days=365" class="btn btn-outline-primary {% if days == 365 %}active{% endif %}">{% trans "1 Year" %}</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Quick Actions -->
-        <div class="dashboard-card mb-4">
-            <div class="card-body">
-                <h6 class="mb-3"><i class="fas fa-bolt me-2"></i>{% trans "Quick Actions" %}</h6>
-                <div class="row g-2">
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                        <a href="{% url 'donations:campaign_list' %}" class="quick-action-card">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-hand-holding-usd"></i>
-                            </div>
-                            <div class="quick-action-title">{% trans "Campaigns" %}</div>
-                        </a>
-                    </div>
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                        <a href="{% url 'donations:campaign_create' %}" class="quick-action-card">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-plus-circle"></i>
-                            </div>
-                            <div class="quick-action-title">{% trans "New Campaign" %}</div>
-                        </a>
-                    </div>
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                        <a href="{% url 'donations:manage_donations' %}" class="quick-action-card">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-list"></i>
-                            </div>
-                            <div class="quick-action-title">{% trans "All Donations" %}</div>
-                        </a>
-                    </div>
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                        <a href="{% url 'donations:fraud_monitoring_dashboard' %}" class="quick-action-card">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-shield-alt"></i>
-                            </div>
-                            <div class="quick-action-title">{% trans "Fraud Monitor" %}</div>
-                        </a>
-                    </div>
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                        <a href="{% url 'donations:export_donations' %}" class="quick-action-card">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-download"></i>
-                            </div>
-                            <div class="quick-action-title">{% trans "Export Data" %}</div>
-                        </a>
-                    </div>
-                    <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 col-6">
-                        <a href="{% url 'donations:analytics_dashboard' %}" class="quick-action-card">
-                            <div class="quick-action-icon">
-                                <i class="fas fa-chart-bar"></i>
-                            </div>
-                            <div class="quick-action-title">{% trans "Analytics" %}</div>
-                        </a>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Key Metrics -->
-        <div class="row mb-4">
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="metric-card bg-primary">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h3>₱{{ total_donations.total_amount|default:0|intcomma }}</h3>
-                            <p>{% trans "Total Raised" %}</p>
-                            <small>{% trans "All Time" %}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-peso-sign fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="metric-card bg-success">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h3>{{ total_donations.total_count|default:0|intcomma }}</h3>
-                            <p>{% trans "Total Donations" %}</p>
-                            <small>{% trans "Completed" %}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-heart fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="metric-card bg-info">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h3>₱{{ total_donations.avg_amount|default:0|floatformat:0|intcomma }}</h3>
-                            <p>{% trans "Average Donation" %}</p>
-                            <small>{% trans "Per Transaction" %}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-chart-bar fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-3 col-md-6 mb-3">
-                <div class="metric-card bg-warning">
-                    <div class="d-flex justify-content-between">
-                        <div>
-                            <h3>{{ verification_stats.total_verified|default:0 }}</h3>
-                            <p>{% trans "Verified" %}</p>
-                            <small>{% trans "Last" %} {{ days }} {% trans "days" %}</small>
-                        </div>
-                        <div class="align-self-center">
-                            <i class="fas fa-check-circle fa-2x"></i>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Charts Row -->
-        <div class="row mb-4">
-            <div class="col-lg-8 mb-4">
-                <div class="dashboard-card h-100">
-                    <div class="card-header">
-                        <h5 class="card-title">
-                            <i class="fas fa-chart-line me-2"></i>
-                            {% trans "Daily Donation Trends" %}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="dailyTrendsChart"></canvas>
-                        </div>
-                        <div id="dailyTrendsEmpty" class="text-center text-muted py-4" style="display: none;">
-                            <i class="fas fa-chart-line fa-3x mb-3"></i>
-                            <p>{% trans "No donation data available for the selected date range." %}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 mb-4">
-                <div class="dashboard-card h-100">
-                    <div class="card-header">
-                        <h5 class="card-title">
-                            <i class="fas fa-chart-pie me-2"></i>
-                            {% trans "Payment Method (GCash)" %}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="paymentMethodsChart"></canvas>
-                        </div>
-                        <div id="paymentMethodsEmpty" class="text-center text-muted py-4" style="display: none;">
-                            <i class="fas fa-chart-pie fa-3x mb-3"></i>
-                            <p>{% trans "No payment data available for the selected date range." %}</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Campaign Performance -->
-        <div class="row mb-4">
-            <div class="col-lg-8 mb-4">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h5 class="card-title">
-                            <i class="fas fa-trophy me-2"></i>
-                            {% trans "Top Performing Campaigns" %}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        <div class="table-responsive">
-                            <table class="table table-hover">
-                                <thead>
-                                    <tr>
-                                        <th>{% trans "Campaign" %}</th>
-                                        <th>{% trans "Total Raised" %}</th>
-                                        <th>{% trans "Donations" %}</th>
-                                        <th>{% trans "Avg Donation" %}</th>
-                                        <th>{% trans "Progress" %}</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    {% for campaign in campaign_performance %}
-                                    <tr>
-                                        <td>
-                                            <strong>{{ campaign.name|truncatechars:30 }}</strong>
-                                        </td>
-                                        <td>
-                                            <span class="fw-bold text-success">₱{{ campaign.total_raised|intcomma }}</span>
-                                        </td>
-                                        <td>
-                                            <span class="badge bg-primary">{{ campaign.donation_count }}</span>
-                                        </td>
-                                        <td>
-                                            ₱{{ campaign.avg_donation|default:0|floatformat:0|intcomma }}
-                                        </td>
-                                        <td>
-                                            {% if campaign.goal_amount %}
-                                            {% widthratio campaign.total_raised campaign.goal_amount 100 as progress %}
-                                            <div class="progress">
-                                                <div class="progress-bar" role="progressbar" style="width: {{ progress }}%">
-                                                    {{ progress }}%
-                                                </div>
-                                            </div>
-                                            {% else %}
-                                            <span class="text-muted">{% trans "No goal set" %}</span>
-                                            {% endif %}
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="col-lg-4 mb-4">
-                <div class="dashboard-card">
-                    <div class="card-header">
-                        <h5 class="card-title">
-                            <i class="fas fa-users me-2"></i>
-                            {% trans "Admin Performance" %}
-                        </h5>
-                    </div>
-                    <div class="card-body">
-                        {% for admin in admin_performance %}
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div>
-                                <strong>{{ admin.get_full_name|default:admin.username }}</strong><br>
-                                <small class="text-muted">₱{{ admin.total_amount|default:0|intcomma }} {% trans "verified" %}</small>
-                            </div>
-                            <span class="badge bg-primary">{{ admin.verifications }}</span>
-                        </div>
-                        {% empty %}
-                        <p class="text-muted">{% trans "No verification data available" %}</p>
-                        {% endfor %}
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- Export Options -->
-        <div class="dashboard-card">
-            <div class="card-header">
-                <h5 class="card-title">
-                    <i class="fas fa-download me-2"></i>
-                    {% trans "Export Options" %}
-                </h5>
-            </div>
-            <div class="card-body">
-                <div class="d-flex gap-2 flex-wrap">
-                    <a href="{% url 'donations:export_donations' %}?days={{ days }}" class="btn btn-outline-primary">
-                        <i class="fas fa-file-csv me-1"></i>{% trans "Export CSV" %}
-                    </a>
-                    <button class="btn btn-outline-success" onclick="exportChart('dailyTrendsChart', 'daily_trends')">
-                        <i class="fas fa-chart-line me-1"></i>{% trans "Export Chart" %}
-                    </button>
-                    <button class="btn btn-outline-info" onclick="printReport()">
-                        <i class="fas fa-print me-1"></i>{% trans "Print Report" %}
-                    </button>
-                </div>
-            </div>
-        </div>
+{% extends 'base.html' %}
+{% load static humanize i18n %}
+{% block title %}Donation Analytics - NORSU Alumni{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/donation-intelligence.css' %}">{% endblock %}
+{% block content %}
+<main class="donation-intelligence container-fluid py-3 py-lg-4" aria-label="Donation analytics">
+  <header class="admin-page-header donation-intelligence__header">
+    <div><p class="admin-page-header__eyebrow">ADMINISTRATION / DONATIONS & FUNDRAISING</p>
+      <h1 class="admin-page-header__title">Donation Analytics</h1>
+      <p class="admin-page-header__subtitle">Verified funds, donation trends and campaign performance — based on actual recorded transactions.</p></div>
+    <a class="btn btn-outline-light" href="{% url 'donations:verification_dashboard' %}"><i class="fas fa-clipboard-check me-2" aria-hidden="true"></i>Review payments</a>
+  </header>
+  {% include "donations/components/admin_navigation.html" %}
+  <section class="donation-intelligence__period" aria-label="Reporting period">
+    <div><strong>Reporting window</strong><p class="mb-0">{{ start_date|date:'M j, Y' }} – {{ end_date|date:'M j, Y' }} · Dates based on donation creation.</p></div>
+    <div class="donation-intelligence__filters" role="group" aria-label="Select reporting period">
+      <a href="?days=7" {% if days == 7 %}aria-current="true" class="active"{% endif %}>7 days</a>
+      <a href="?days=30" {% if days == 30 %}aria-current="true" class="active"{% endif %}>30 days</a>
+      <a href="?days=90" {% if days == 90 %}aria-current="true" class="active"{% endif %}>90 days</a>
+      <a href="?days=365" {% if days == 365 %}aria-current="true" class="active"{% endif %}>1 year</a>
     </div>
-</div>
+  </section>
+  <section class="donation-intelligence__metrics" aria-label="Verified donation summary">
+    <article class="donation-intelligence__metric"><span>Raised in selected period</span><strong>₱{{ period_totals.total_amount|default_if_none:0|floatformat:2|intcomma }}</strong><small>Completed payments only</small></article>
+    <article class="donation-intelligence__metric"><span>Completed donations</span><strong>{{ period_totals.total_count|default:0|intcomma }}</strong><small>Selected period</small></article>
+    <article class="donation-intelligence__metric"><span>Average confirmed donation</span><strong>₱{{ period_totals.avg_amount|default_if_none:0|floatformat:2|intcomma }}</strong><small>Selected period</small></article>
+    <article class="donation-intelligence__metric"><span>Verified funds · all time</span><strong>₱{{ lifetime_totals.total_amount|default_if_none:0|floatformat:2|intcomma }}</strong><small>{{ lifetime_totals.total_count|default:0 }} completed donations</small></article>
+  </section>
+  <section class="donation-intelligence__charts" aria-label="Donation trends">
+    <article class="donation-intelligence__panel donation-intelligence__panel--wide">
+      <header><div><h2>Daily donation activity</h2><p>Amounts and transaction counts for the selected period</p></div><button type="button" class="btn btn-outline-secondary btn-sm" data-export-chart="dailyTrendsChart">Save chart</button></header>
+      <div class="donation-intelligence__canvas" data-chart-wrap="daily"><canvas id="dailyTrendsChart" role="img" aria-label="Daily verified donation amount and count trends"></canvas></div>
+      <div class="donation-intelligence__empty" data-chart-empty="daily" hidden>No completed payments in this period. Verify received GCash payments to see real trends.</div>
+    </article>
+    <article class="donation-intelligence__panel">
+      <header><div><h2>Payment methods</h2><p>Only confirmed payment methods</p></div></header>
+      <div class="donation-intelligence__canvas" data-chart-wrap="payment"><canvas id="paymentMethodsChart" role="img" aria-label="Verified donation amounts by payment method"></canvas></div>
+      <div class="donation-intelligence__empty" data-chart-empty="payment" hidden>Nothing to chart until a payment is confirmed.</div>
+    </article>
+    <article class="donation-intelligence__panel donation-intelligence__panel--wide">
+      <header><div><h2>Monthly fundraising</h2><p>Confirmed amounts grouped by month within the selected period</p></div><button type="button" class="btn btn-outline-secondary btn-sm" data-export-chart="monthlyTrendsChart">Save chart</button></header>
+      <div class="donation-intelligence__canvas" data-chart-wrap="monthly"><canvas id="monthlyTrendsChart" role="img" aria-label="Monthly verified fundraising amounts"></canvas></div>
+      <div class="donation-intelligence__empty" data-chart-empty="monthly" hidden>No completed payments in this reporting period.</div>
+    </article>
+    <article class="donation-intelligence__panel donation-intelligence__panel--summary">
+      <header><div><h2>Verification operations</h2><p>Reviews recorded in the selected period</p></div></header>
+      <dl class="donation-intelligence__stats"><div><dt>Payments reviewed</dt><dd>{{ verification_stats.total_verified|default:0 }}</dd></div>
+        <div><dt>Average time to review</dt><dd>{% if verification_stats.avg_verification_time is not None %}{{ verification_stats.avg_verification_time|floatformat:1 }} hours{% else %}Not available{% endif %}</dd></div>
+        <div><dt>Open fraud flags</dt><dd>{{ outstanding_alerts }}</dd></div></dl>
+      <a href="{% url 'donations:fraud_monitoring_dashboard' %}" class="donation-intelligence__text-link">Review fraud flags <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+    </article>
+  </section>
+  <section class="donation-intelligence__charts" aria-label="Fundraising breakdown">
+    <article class="donation-intelligence__panel donation-intelligence__panel--wide"><header><div><h2>Campaign performance</h2><p>Top campaigns by completed amount in the selected period</p></div></header>
+      {% if campaign_performance %}<div class="table-responsive"><table class="table donation-intelligence__table"><thead><tr><th scope="col">Campaign</th><th scope="col">Confirmed donations</th><th scope="col">Amount raised</th></tr></thead><tbody>
+      {% for campaign in campaign_performance %}<tr><td>{{ campaign.name }}</td><td>{{ campaign.donation_count }}</td><td>₱{{ campaign.total_raised|floatformat:2|intcomma }}</td></tr>{% endfor %}</tbody></table></div>
+      {% else %}<div class="donation-intelligence__empty">No confirmed campaign donations in this period.</div>{% endif %}
+    </article>
+    <article class="donation-intelligence__panel"><header><div><h2>Reviewer activity</h2><p>Reviews completed in the selected period</p></div></header>
+      {% for reviewer in admin_performance %}<div class="donation-intelligence__reviewer"><span>{{ reviewer.get_full_name|default:reviewer.username }}</span><strong>{{ reviewer.verifications }} review{{ reviewer.verifications|pluralize }}</strong></div>
+      {% empty %}<div class="donation-intelligence__empty">No staff reviews recorded in this period.</div>{% endfor %}
+    </article>
+  </section>
+  <p class="donation-intelligence__note"><i class="fas fa-circle-info" aria-hidden="true"></i> Fundraising totals only include completed donations. Pending, failed, refunded, disputed and cancelled transactions are excluded. Charts reflect the selected period.</p>
+</main>
+{{ chart_data|json_script:"donation-chart-data" }}
 {% endblock %}
-
 {% block page_specific_js %}
-<!-- Load Chart.js directly (ensures it's available before our script runs) -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-<script>
-// Initialize charts
-console.log('=== ANALYTICS DASHBOARD SCRIPT STARTED ===');
-
-// Initialize charts when page is ready
-(function() {
-    console.log('=== Initializing charts... ===');
-    
-    // Check if Chart.js is available (should be loaded by base.html)
-    if (typeof Chart === 'undefined') {
-        console.error('=== ERROR: Chart.js is not loaded! ===');
-        console.error('=== Loading Chart.js fallback... ===');
-        // Fallback: Load Chart.js if not available
-        const script = document.createElement('script');
-        script.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js';
-        script.onload = function() {
-            console.log('=== Chart.js loaded via fallback ===');
-            initCharts();
-        };
-        document.head.appendChild(script);
-        return;
-    }
-    
-    console.log('=== Chart.js is available:', typeof Chart, '===');
-    
-    // Wait for DOM to be ready
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', initCharts);
-    } else {
-        // DOM is already ready
-        initCharts();
-    }
-    
-    function initCharts() {
-        console.log('=== initCharts called ===');
-    
-    // Get chart data from template
-    let chartData;
-    try {
-        // Chart data is passed as JSON string from Django
-        const chartDataJson = '{{ chart_data|escapejs }}';
-        console.log('Raw JSON string:', chartDataJson);
-        
-        // Parse JSON string
-        chartData = JSON.parse(chartDataJson);
-        console.log('Parsed chart data:', chartData);
-    } catch (error) {
-        console.error('Error parsing chart data:', error);
-        console.error('Error details:', error.message);
-        chartData = {
-            daily_labels: [],
-            daily_amounts: [],
-            daily_counts: [],
-            payment_methods: { labels: ['GCash'], amounts: [0] }
-        };
-    }
-    
-    // Extract data arrays
-    const dailyLabels = chartData.daily_labels || [];
-    const dailyAmounts = chartData.daily_amounts || [];
-    const dailyCounts = chartData.daily_counts || [];
-    const paymentLabels = chartData.payment_methods?.labels || ['GCash'];
-    const paymentAmounts = chartData.payment_methods?.amounts || [0];
-    
-    console.log('Daily data - Labels:', dailyLabels.length, 'Amounts:', dailyAmounts.length);
-    console.log('Payment data - Labels:', paymentLabels.length, 'Amounts:', paymentAmounts.length);
-    
-    // Get canvas elements
-    const dailyCanvas = document.getElementById('dailyTrendsChart');
-    const paymentCanvas = document.getElementById('paymentMethodsChart');
-    const dailyEmpty = document.getElementById('dailyTrendsEmpty');
-    const paymentEmpty = document.getElementById('paymentMethodsEmpty');
-    
-    // Daily Trends Chart
-    if (dailyCanvas) {
-        if (dailyLabels.length > 0 && dailyAmounts.length > 0) {
-            dailyCanvas.style.display = 'block';
-            if (dailyEmpty) dailyEmpty.style.display = 'none';
-            
-            try {
-                new Chart(dailyCanvas.getContext('2d'), {
-                    type: 'line',
-                    data: {
-                        labels: dailyLabels,
-                        datasets: [{
-                            label: '{% trans "Amount (₱)" %}',
-                            data: dailyAmounts,
-                            borderColor: 'rgb(75, 192, 192)',
-                            backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                            tension: 0.1,
-                            yAxisID: 'y'
-                        }, {
-                            label: '{% trans "Count" %}',
-                            data: dailyCounts,
-                            borderColor: 'rgb(255, 99, 132)',
-                            backgroundColor: 'rgba(255, 99, 132, 0.2)',
-                            tension: 0.1,
-                            yAxisID: 'y1'
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                            mode: 'index',
-                            intersect: false
-                        },
-                        scales: {
-                            x: {
-                                display: true,
-                                title: {
-                                    display: true,
-                                    text: '{% trans "Date" %}'
-                                }
-                            },
-                            y: {
-                                type: 'linear',
-                                display: true,
-                                position: 'left',
-                                title: {
-                                    display: true,
-                                    text: '{% trans "Amount (₱)" %}'
-                                },
-                                beginAtZero: true
-                            },
-                            y1: {
-                                type: 'linear',
-                                display: true,
-                                position: 'right',
-                                title: {
-                                    display: true,
-                                    text: '{% trans "Count" %}'
-                                },
-                                beginAtZero: true,
-                                grid: {
-                                    drawOnChartArea: false
-                                }
-                            }
-                        }
-                    }
-                });
-                console.log('Daily trends chart created successfully');
-            } catch (error) {
-                console.error('Error creating daily trends chart:', error);
-                if (dailyEmpty) dailyEmpty.style.display = 'block';
-                dailyCanvas.style.display = 'none';
-            }
-        } else {
-            console.log('No daily trend data - showing empty message');
-            dailyCanvas.style.display = 'none';
-            if (dailyEmpty) dailyEmpty.style.display = 'block';
-        }
-    } else {
-        console.error('Daily trends canvas not found!');
-    }
-    
-    // Payment Methods Chart
-    if (paymentCanvas) {
-        const hasPaymentData = paymentAmounts.length > 0 && paymentAmounts.some(amt => amt > 0);
-        
-        if (hasPaymentData) {
-            paymentCanvas.style.display = 'block';
-            if (paymentEmpty) paymentEmpty.style.display = 'none';
-            
-            try {
-                new Chart(paymentCanvas.getContext('2d'), {
-                    type: 'doughnut',
-                    data: {
-                        labels: paymentLabels,
-                        datasets: [{
-                            data: paymentAmounts,
-                            backgroundColor: [
-                                '#FF6384',
-                                '#36A2EB',
-                                '#FFCE56',
-                                '#4BC0C0',
-                                '#9966FF',
-                                '#FF9F40'
-                            ]
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: {
-                                position: 'bottom'
-                            },
-                            tooltip: {
-                                callbacks: {
-                                    label: function(context) {
-                                        let label = context.label || '';
-                                        if (label) label += ': ';
-                                        if (context.parsed !== null) {
-                                            label += '₱' + context.parsed.toLocaleString('en-US', {
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2
-                                            });
-                                        }
-                                        return label;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                });
-                console.log('Payment methods chart created successfully');
-            } catch (error) {
-                console.error('Error creating payment methods chart:', error);
-                if (paymentEmpty) paymentEmpty.style.display = 'block';
-                paymentCanvas.style.display = 'none';
-            }
-        } else {
-            console.log('No payment data - showing empty message');
-            paymentCanvas.style.display = 'none';
-            if (paymentEmpty) paymentEmpty.style.display = 'block';
-        }
-    } else {
-        console.error('Payment methods canvas not found!');
-    }
-    
-    console.log('=== Chart initialization complete ===');
-    }
-})();
-
-function exportChart(chartId, filename) {
-    const canvas = document.getElementById(chartId);
-    if (!canvas) return;
-    const url = canvas.toDataURL('image/png');
-    const link = document.createElement('a');
-    link.download = filename + '_' + new Date().toISOString().split('T')[0] + '.png';
-    link.href = url;
-    link.click();
-}
-
-function printReport() {
-    window.print();
-}
-</script>
+<script src="{% static 'js/admin/donation-analytics.js' %}" defer></script>
 {% endblock %}
