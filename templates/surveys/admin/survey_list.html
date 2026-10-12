@@ -7,6 +7,7 @@
 {% block extra_css %}
 <script>document.documentElement.classList.add("fe-page--surveys-admin-survey-list-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/surveys.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin/reporting-workflow.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -26,6 +27,12 @@
             </div>
         </div>
 
+        <nav class="reporting-workflow" aria-label="Surveys and reporting workflow">
+            <a class="reporting-workflow__item is-current" href="{% url 'surveys:survey_list' %}" aria-current="page"><span class="reporting-workflow__step">S</span><span><strong>General surveys</strong><small>Create questionnaires and review participation</small></span></a>
+            <a class="reporting-workflow__item" href="{% url 'surveys:tracer_study_reports' %}"><span class="reporting-workflow__step">T</span><span><strong>Tracer study cycles</strong><small>Manage graduate and employer follow-ups</small></span></a>
+            <a class="reporting-workflow__item" href="{% url 'surveys:report_list' %}"><span class="reporting-workflow__step">R</span><span><strong>Reports and exports</strong><small>Open saved reports or export results</small></span></a>
+        </nav>
+        <p class="reporting-scope-note"><i class="fas fa-info-circle" aria-hidden="true"></i> Numbers and charts below use <strong>general-survey responses only</strong>. Graduate tracer-study responses are analyzed in Tracer Study Cycles.</p>
         <!-- Analytics Overview -->
         <div class="row g-3 mb-4">
             <div class="col-md-3">
@@ -46,7 +53,7 @@
                 <div class="analytics-card success">
                     <div class="d-flex justify-content-between align-items-center">
                         <div>
-                            <div class="analytics-title">Participating Alumni</div>
+                            <div class="analytics-title">General Survey Participants</div>
                             <div class="analytics-metric">{{ alumni_with_responses }}</div>
                             <div class="text-muted small">Active participants</div>
                         </div>
@@ -62,7 +69,7 @@
                         <div>
                             <div class="analytics-title">Participation Rate</div>
                             <div class="analytics-metric">{{ participation_percentage }}%</div>
-                            <div class="text-muted small">Overall engagement</div>
+                            <div class="text-muted small">General surveys only</div>
                         </div>
                         <div class="analytics-icon">
                             <i class="fas fa-percentage"></i>
@@ -97,9 +104,11 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="collegeChart"></canvas>
-                        </div>
+                        {% if college_data %}
+                        <div class="chart-container"><canvas id="collegeChart" aria-label="Response counts by college" role="img"></canvas></div>
+                        {% else %}
+                        <div class="reporting-empty"><i class="fas fa-chart-pie" aria-hidden="true"></i><strong>No response data yet</strong><span>College breakdown appears when a general survey receives responses.</span></div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
@@ -111,9 +120,11 @@
                         </h5>
                     </div>
                     <div class="card-body">
-                        <div class="chart-container">
-                            <canvas id="batchChart"></canvas>
-                        </div>
+                        {% if batch_data %}
+                        <div class="chart-container"><canvas id="batchChart" aria-label="Response counts by graduation batch" role="img"></canvas></div>
+                        {% else %}
+                        <div class="reporting-empty"><i class="fas fa-chart-bar" aria-hidden="true"></i><strong>No batch data yet</strong><span>Graduation-year breakdown appears after eligible submissions are received.</span></div>
+                        {% endif %}
                     </div>
                 </div>
             </div>

@@ -129,13 +129,15 @@ class SurveyListView(ListView):
         surveys = list(context['surveys'])
         context['surveys'] = surveys
         
-        # Get basic counts
+        # General surveys are reported separately from tracer-study cycles.
+        # Keep the denominator as registered alumni but never mix tracer submissions
+        # into this dashboard's numerator or demographic charts.
+        general_survey_ids = [survey.pk for survey in surveys]
+        general_responses = SurveyResponse.objects.filter(
+            survey_id__in=general_survey_ids
+        )
         total_alumni = Alumni.objects.count()
-        
-        # Count unique alumni who have responded to any survey
-        alumni_with_responses = Alumni.objects.filter(
-            survey_responses__isnull=False
-        ).distinct().count()
+        alumni_with_responses = general_responses.values('alumni_id').distinct().count()
         
         # Calculate participation percentage
         participation_percentage = 0
@@ -143,10 +145,10 @@ class SurveyListView(ListView):
             participation_percentage = round((alumni_with_responses / total_alumni) * 100, 1)
         
         # Count active surveys
-        active_surveys = Survey.objects.filter(status='active').count()
+        active_surveys = Survey.objects.filter(pk__in=general_survey_ids, status='active').count()
         
         # Get response data by college
-        college_data = SurveyResponse.objects.select_related('alumni').values(
+        college_data = general_responses.values(
             'alumni__college'
         ).annotate(
             count=Count('id')
@@ -161,16 +163,8 @@ class SurveyListView(ListView):
                     'count': item['count']
                 })
             
-        # If no college data, add a default entry for testing/visualization
-        if not formatted_college_data:
-            # Add a sample entry if no real data exists
-            formatted_college_data.append({
-                'college_name': 'No College Data',
-                'count': 1
-            })
-        
         # Get response data by graduation year (batch)
-        batch_data = SurveyResponse.objects.values(
+        batch_data = general_responses.exclude(alumni__graduation_year__isnull=True).values(
             'alumni__graduation_year'
         ).annotate(
             count=Count('id')
@@ -1552,6 +1546,7 @@ class ReportDetailView(DetailView):
             if has_reference:
                 data['is_survey_scoped'] = True
                 data['survey_context'] = build_tracer_metadata(scoped_survey)
+                data['is_tracer_report'] = data['survey_context']['is_tracer']
                 audience = (
                     data['survey_context']['audience']
                     or (report.parameters or {}).get('audience')
@@ -1719,6 +1714,12 @@ class ReportDetailView(DetailView):
                         / len(completion_rates), 1
                     ) if completion_rates else 0,
                 }
+
+            # Tracer studies have their own dedicated, eligibility-aware report
+            # and filled-form viewer. Do not expose or duplicate named responses in
+            # the generic Survey Feedback text table or its PDF export.
+            if data.get('is_tracer_report'):
+                data['table_data'] = []
 
             data['chart_data']['ratings'] = {
                 'labels': [

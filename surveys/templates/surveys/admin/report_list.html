@@ -758,6 +758,7 @@
         }
     }
 </style>
+<link rel="stylesheet" href="{% static 'css/admin/reporting-workflow.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -775,6 +776,12 @@
             <p class="admin-page-header__subtitle">{% translate 'Create and manage comprehensive reports from survey data and analytics. View detailed tables and export reports as PDF.' %}</p>
         </div>
 
+        <nav class="reporting-workflow" aria-label="Surveys and reporting workflow">
+            <a class="reporting-workflow__item" href="{% url 'surveys:survey_list' %}"><span class="reporting-workflow__step">S</span><span><strong>General surveys</strong><small>Create and manage questionnaires</small></span></a>
+            <a class="reporting-workflow__item" href="{% url 'surveys:tracer_study_reports' %}"><span class="reporting-workflow__step">T</span><span><strong>Tracer study cycles</strong><small>Eligibility-aware analytics and filled forms</small></span></a>
+            <a class="reporting-workflow__item is-current" href="{% url 'surveys:report_list' %}" aria-current="page"><span class="reporting-workflow__step">R</span><span><strong>Reports and exports</strong><small>Saved snapshots and PDF exports</small></span></a>
+        </nav>
+        <p class="reporting-scope-note"><i class="fas fa-info-circle" aria-hidden="true"></i> Tracer reports listed here show a summary preview. Open <a href="{% url 'surveys:tracer_study_reports' %}">Tracer Study Cycles</a> for the detailed, eligibility-aware report and individual filled forms.</p>
         <!-- Reports Card -->
         <div class="reports-card">
             <div class="reports-card-header">
@@ -859,25 +866,26 @@
     'use strict';
     
     window.openReportModal = function(reportId) {
-        console.log('openReportModal called with reportId:', reportId);
+
         const modalContainer = document.getElementById('reportModalContainer');
         
         if (!modalContainer) {
-            console.error('Modal container not found!');
-            alert('Error: Modal container not found. Please refresh the page.');
+            console.error('Modal container not found');
+            window.location.assign(`/surveys/admin/reports/${encodeURIComponent(reportId)}/`);
             return;
         }
     
         // Close any existing modal first
-        const existingModal = bootstrap.Modal.getInstance(document.getElementById('reportDetailModal'));
+        const previousDialog = document.getElementById('reportDetailModal');
+        const existingModal = previousDialog ? bootstrap.Modal.getInstance(previousDialog) : null;
         if (existingModal) {
             existingModal.hide();
         }
     
         // Show loading state with enhanced design
         modalContainer.innerHTML = `
-            <div class="modal fade" id="reportDetailModal" tabindex="-1" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="false">
-                <div class="modal-dialog modal-lg modal-dialog-scrollable">
+            <div class="modal fade" id="reportDetailModal" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="reportModalTitle">
+                <div class="modal-dialog modal-xl modal-dialog-scrollable reporting-preview-dialog">
                     <div class="modal-content">
                         <div class="modal-header">
                             <h5 class="modal-title">
@@ -886,8 +894,8 @@
                             </h5>
                             <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                         </div>
-                        <div class="modal-body" id="reportModalBody">
-                            <div id="reportModalLoading" class="text-center" style="padding: var(--space-xl) var(--space-lg);">
+                        <div class="modal-body" id="reportModalBody" aria-busy="true">
+                            <div id="reportModalLoading" class="text-center" role="status" style="padding: var(--space-xl) var(--space-lg);">
                                 <div class="spinner-border text-primary" role="status">
                                     <span class="visually-hidden">Loading...</span>
                                 </div>
@@ -929,7 +937,8 @@
             tempDiv.innerHTML = html;
             
             // Extract the report content from the full page
-            const reportCards = tempDiv.querySelectorAll('.report-detail-page .dashboard-card');
+            const reportPage = tempDiv.querySelector('.report-detail-page');
+            const reportCards = reportPage ? reportPage.querySelectorAll('.dashboard-card') : [];
             const headerTitle = tempDiv.querySelector('.report-detail-page .dashboard-header h1');
             
             // Extract title - remove icon and extra whitespace
@@ -954,13 +963,32 @@
             const titleSpan = document.getElementById('reportModalTitle');
             
             if (reportCards.length > 0 && loadingDiv && contentDiv) {
-                // Build modal content - include all cards
-                let modalContent = '';
-                reportCards.forEach(card => {
-                    const cardClone = card.cloneNode(true);
-                    cardClone.querySelectorAll('.report-results-export').forEach(action => action.remove());
-                    modalContent += cardClone.outerHTML;
+                // One focused preview: summary/results only. The full report
+                // contains metadata, pagination and detailed respondent tables.
+                const resultsCard = reportPage.querySelector('.report-results-header')?.closest('.dashboard-card');
+                const messageCard = reportPage.querySelector('.no-data')?.closest('.dashboard-card');
+                const selectedCard = resultsCard || messageCard || reportCards[0];
+                const previewCard = selectedCard.cloneNode(true);
+                previewCard.querySelectorAll('.report-results-export, .pagination').forEach(element => element.remove());
+                // Keep the preview short; full response tables stay on the report page.
+                previewCard.querySelectorAll('.feedback-table tbody tr').forEach((row, index) => {
+                    if (index >= 5) row.remove();
                 });
+                const isTracer = reportPage.dataset.reportSource === 'tracer';
+                // Dedicated tracer reporting owns the full questionnaire records.
+                if (isTracer) {
+                    previewCard.querySelectorAll('.table-section').forEach(section => {
+                        if (/Textual Feedback/i.test(section.textContent)) section.remove();
+                    });
+                }
+                let modalContent = '';
+                if (isTracer && reportPage.dataset.tracerReportUrl) {
+                    const tracerUrl = reportPage.dataset.tracerReportUrl;
+                    if (/^\/surveys\/tracer-study\/report\/\d+\/$/.test(tracerUrl)) {
+                        modalContent += `<div class="reporting-preview-notice"><div><strong>Graduate Tracer Study</strong><p>This is a brief survey summary. The dedicated tracer analytics page contains the complete results, participation and filled questionnaires.</p></div><a class="btn btn-primary btn-sm" href="${tracerUrl}">Open Tracer Analytics <i class="fas fa-arrow-right ms-1"></i></a></div>`;
+                    }
+                }
+                modalContent += previewCard.outerHTML;
                 
                 // Update title
                 if (titleSpan) {
@@ -969,6 +997,7 @@
                 
                 // Hide loading, show content
                 loadingDiv.style.display = 'none';
+                document.getElementById('reportModalBody')?.setAttribute('aria-busy', 'false');
                 contentDiv.innerHTML = modalContent;
                 contentDiv.style.display = 'block';
                 
@@ -992,8 +1021,8 @@
                 }
                 
                 // Re-enable backdrop dismissal
-                modalElement.setAttribute('data-bs-backdrop', 'true');
-                modalElement.setAttribute('data-bs-keyboard', 'true');
+                // Bootstrap manages close via Escape, backdrop, and close buttons.
+                document.getElementById('reportModalBody')?.setAttribute('aria-busy', 'false');
             } else {
                 throw new Error('Could not find report content in response');
             }
@@ -1006,6 +1035,7 @@
             
             if (loadingDiv && contentDiv) {
                 loadingDiv.style.display = 'none';
+                document.getElementById('reportModalBody')?.setAttribute('aria-busy', 'false');
                 if (titleSpan) {
                     titleSpan.textContent = 'Error';
                 }
@@ -1026,16 +1056,15 @@
     
     // Set up event listeners for report links
     function setupModalListeners() {
-    console.log('Setting up report modal listeners...');
-    
+
     // Handle report title links
     const titleLinks = document.querySelectorAll('.report-title-link[data-report-id]');
-    console.log('Found title links:', titleLinks.length);
+
     titleLinks.forEach(link => {
         link.addEventListener('click', function(e) {
             e.preventDefault();
             const reportId = this.getAttribute('data-report-id');
-            console.log('Title link clicked, reportId:', reportId);
+
             if (reportId && window.openReportModal) {
                 window.openReportModal(reportId);
             } else {
@@ -1046,12 +1075,12 @@
     
     // Handle view report buttons
     const viewButtons = document.querySelectorAll('.btn-view-report[data-report-id]');
-    console.log('Found view buttons:', viewButtons.length);
+
     viewButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             e.preventDefault();
             const reportId = this.getAttribute('data-report-id');
-            console.log('View button clicked, reportId:', reportId);
+
             if (reportId && window.openReportModal) {
                 window.openReportModal(reportId);
             } else {
@@ -1065,7 +1094,7 @@
     if (!modalContainer) {
         console.error('reportModalContainer element not found!');
     } else {
-        console.log('Modal container found');
+
     }
     }
     

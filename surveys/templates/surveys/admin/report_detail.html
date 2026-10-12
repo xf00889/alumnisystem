@@ -6,7 +6,8 @@
 {% block title %}{% blocktranslate with title=report.title %}Report: {{ title }}{% endblocktranslate %}{% endblock %}
 
 {% block content %}
-<div class="report-detail-page">
+<link rel="stylesheet" href="{% static 'css/admin/reporting-workflow.css' %}">
+<div class="report-detail-page" data-report-source="{% if report_context.is_tracer %}tracer{% else %}general{% endif %}" {% if report_context.is_tracer %}data-tracer-report-url="{% url 'surveys:tracer_study_report' report_context.survey_id %}"{% endif %}>
     <div class="container">
         <!-- Report Detail Header -->
         <div class="dashboard-header admin-page-header">
@@ -27,6 +28,12 @@
             </div>
         </div>
 
+        {% if report_context.is_tracer %}
+        <div class="report-tracer-guidance" role="note">
+            <div><strong>Tracer study analytics</strong><p>This is a summary of the tracer study cycle. Detailed responses, eligible alumni, and filled questionnaires are available in the dedicated tracer report.</p></div>
+            <a href="{% url 'surveys:tracer_study_report' report_context.survey_id %}" class="btn btn-primary"><i class="fas fa-arrow-up-right-from-square me-1" aria-hidden="true"></i>Open Tracer Analytics</a>
+        </div>
+        {% endif %}
         <!-- Report Info Card -->
         <div class="dashboard-card">
             <div class="card-header">
@@ -475,7 +482,7 @@
                         {% endif %}
                         
                         <!-- Textual Feedback Table -->
-                        {% if report_data.table_data %}
+                        {% if report_data.table_data and not report_context.is_tracer %}
                             <div class="table-section">
                                 <h5 class="section-title">
                                     <i class="fas fa-table me-2"></i>
