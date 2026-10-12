@@ -1,277 +1,210 @@
-from django.shortcuts import render
-from django.contrib.auth.decorators import user_passes_test
-from django.http import JsonResponse
-from django.views.decorators.csrf import csrf_exempt
-from django.contrib.auth import get_user_model
-from .models import LocationData
-import json
-from django.db import models
-from django.utils import timezone
-from datetime import timedelta
+"""Staff-only alumni map and opt-in location endpoint.
 
-User = get_user_model()
+A recorded position is a last-shared position, never proof of current presence.
+"""
+import json
+import logging
+import math
+from datetime import timedelta
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
+from django.conf import settings
+from django.contrib.auth.decorators import login_required, user_passes_test
+from django.core.cache import cache
+from django.http import JsonResponse
+from django.shortcuts import render
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from django.views.decorators.http import require_GET, require_POST
+
+from alumni_directory.models import Alumni
+from .models import LocationData
+
+logger = logging.getLogger(__name__)
+MAP_LOOKBACK_DAYS = 90
+GEOCODER_CACHE_SECONDS = 7 * 24 * 3600
+
 
 def is_admin(user):
-    """Check if user has admin privileges (staff, superuser, or alumni coordinator)"""
     if not user.is_authenticated:
         return False
-    
-    is_coordinator = hasattr(user, 'profile') and user.profile.is_alumni_coordinator
-    return user.is_superuser or user.is_staff or is_coordinator
+    profile = getattr(user, 'profile', None)
+    return bool(user.is_superuser or user.is_staff or (profile and profile.is_alumni_coordinator))
 
-@user_passes_test(is_admin)
-def map_view(request):
-    # Define online threshold (2 hours - alumni is considered online if location updated within last 2 hours)
-    # Increased from 30 minutes to 2 hours to ensure more alumni are visible
-    online_threshold = timezone.now() - timedelta(hours=2)
-    
-    # Get users with active locations updated within the threshold (online alumni)
-    # First get all recent active locations
-    recent_locations = LocationData.objects.filter(
-        is_active=True,
-        timestamp__gte=online_threshold
-    ).select_related('user', 'user__profile').prefetch_related('user__profile__education').order_by('-timestamp')
-    
-    # Get unique users from recent locations (ordered by most recent location first)
-    user_ids_with_timestamps = {}
-    for loc in recent_locations:
-        if loc.user_id not in user_ids_with_timestamps or loc.timestamp > user_ids_with_timestamps[loc.user_id]:
-            user_ids_with_timestamps[loc.user_id] = loc.timestamp
-    
-    # Sort by timestamp and get user IDs
-    sorted_user_ids = sorted(user_ids_with_timestamps.items(), key=lambda x: x[1], reverse=True)
-    user_ids = [uid for uid, _ in sorted_user_ids]
-    
-    # Get users in the same order
-    users_with_locations = User.objects.filter(id__in=user_ids).order_by(
-        models.Case(*[models.When(id=uid, then=pos) for pos, uid in enumerate(user_ids)], default=len(user_ids))
-    )
-    
-    # Group users by batch if education data is available
-    batch_groups = {}
-    for user in users_with_locations:
-        batch = "Unknown"
-        course = "Unknown"
-        avatar_url = None
-        
-        try:
-            # Check if user has a profile
-            if hasattr(user, 'profile'):
-                profile = user.profile
-                avatar_url = profile.avatar.url if profile.avatar else None
-                
-                # Get primary education for batch info
-                education = profile.education.filter(is_primary=True).first()
-                if education and education.graduation_year:
-                    batch = education.graduation_year
-                    course = education.get_program_display() if education.program else "Unknown"
-                elif profile.education.exists():
-                    # If no primary education, use the most recent one
-                    recent_education = profile.education.order_by('-graduation_year').first()
-                    if recent_education and recent_education.graduation_year:
-                        batch = recent_education.graduation_year
-                        course = recent_education.get_program_display() if recent_education.program else "Unknown"
-            
-            # Get the latest location data for this user (must be within online threshold)
-            latest_location = LocationData.objects.filter(
-                user=user, 
-                is_active=True,
-                timestamp__gte=online_threshold
-            ).order_by('-timestamp').first()
-            
-            latitude = float(latest_location.latitude) if latest_location else None
-            longitude = float(latest_location.longitude) if latest_location else None
-            
-        except Exception as e:
-            # Handle any errors gracefully
-            try:
-                latest_location = LocationData.objects.filter(
-                    user=user, 
-                    is_active=True,
-                    timestamp__gte=online_threshold
-                ).order_by('-timestamp').first()
-                
-                latitude = float(latest_location.latitude) if latest_location else None
-                longitude = float(latest_location.longitude) if latest_location else None
-            except:
-                latitude = None
-                longitude = None
-        
-        # Skip users without valid recent location data
-        if latitude is None or longitude is None:
+
+def _latest_verified_locations():
+    """One latest, active position per verified alumnus, never non-alumni staff."""
+    cutoff = timezone.now() - timedelta(days=MAP_LOOKBACK_DAYS)
+    queryset = (LocationData.objects.filter(
+        is_active=True, timestamp__gte=cutoff, user__alumni__is_verified=True,
+    ).select_related('user', 'user__alumni', 'user__profile').order_by('-timestamp', '-pk'))
+    seen = set()
+    results = []
+    for position in queryset:
+        if position.user_id in seen:
             continue
-        
-        # Add user to appropriate batch group
-        if batch not in batch_groups:
-            batch_groups[batch] = []
-        
-        batch_groups[batch].append({
-            'name': user.get_full_name() or user.username,
-            'avatar': avatar_url,
-            'course': course,
-            'latitude': latitude,
-            'longitude': longitude
-        })
-    
-    # Sort batch groups by year (newest first)
-    sorted_batch_groups = dict(sorted(batch_groups.items(), key=lambda x: (x[0] != "Unknown", x[0]), reverse=True))
-    
-    context = {
-        'users': users_with_locations,
-        'batch_groups': sorted_batch_groups,
-        'total_users': users_with_locations.count(),
-    }
-    return render(request, 'location_tracking/map.html', context)
-
-@csrf_exempt
-def update_location(request):
-    """Update or create location data for the authenticated user."""
-    if request.method == 'POST' and request.user.is_authenticated:
+        seen.add(position.user_id)
+        alumni = position.user.alumni
+        profile = getattr(position.user, 'profile', None)
         try:
-            # Parse JSON data - handle different content types for better mobile support
-            if request.content_type == 'application/json':
-                data = json.loads(request.body)
-            else:
-                # Fallback for different content types
-                data = request.POST
-                if not data:
-                    # If still empty, try parsing the body
-                    try:
-                        data = json.loads(request.body)
-                    except:
-                        data = {}
-            
-            lat = data.get('latitude')
-            lng = data.get('longitude')
-            
-            # Validate coordinates
-            if not lat or not lng:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Missing latitude or longitude'
-                }, status=400)
-            
-            try:
-                lat = float(lat)
-                lng = float(lng)
-                
-                # Basic validation of coordinates
-                if not (-90 <= lat <= 90) or not (-180 <= lng <= 180):
-                    return JsonResponse({
-                        'status': 'error',
-                        'message': 'Invalid coordinates'
-                    }, status=400)
-            except (ValueError, TypeError):
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Coordinates must be valid numbers'
-                }, status=400)
-            
-            # Deactivate old locations for this user (only keep the latest active)
-            LocationData.objects.filter(user=request.user, is_active=True).update(is_active=False)
-            
-            # Create new location data with fresh timestamp (always create new to update timestamp)
-            location = LocationData.objects.create(
-                user=request.user,
-                latitude=lat,
-                longitude=lng,
-                is_active=True
-            )
-            
-            created = True
-            
-            action = 'created' if created else 'updated'
-            
-            # Log successful location update for debugging
-            import logging
-            logger = logging.getLogger(__name__)
-            logger.info(f"Location {action} for user {request.user.id} ({request.user.email or request.user.username}): lat={lat}, lng={lng}")
-            
-            return JsonResponse({
-                'status': 'success',
-                'success': True,  # Also include 'success' for location.js compatibility
-                'message': f'Location {action} successfully',
-                'location': {
-                    'latitude': float(location.latitude),
-                    'longitude': float(location.longitude),
-                    'timestamp': location.timestamp.isoformat(),
-                    'is_active': location.is_active
-                }
-            })
-        except json.JSONDecodeError:
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Invalid JSON data'
-            }, status=400)
-        except Exception as e:
-            # Log the exception for debugging
-            import logging
-            logging.error(f"Location update error: {str(e)}")
-            
-            return JsonResponse({
-                'status': 'error',
-                'message': f'An error occurred: {str(e)}'
-            }, status=500)
-    
-    return JsonResponse({
-        'status': 'error',
-        'message': 'Invalid request or user not authenticated'
-    }, status=401)
+            avatar_url = profile.avatar.url if profile and profile.avatar else None
+        except (ValueError, OSError):
+            avatar_url = None
+        results.append({
+            'id': position.user_id,
+            'position_id': position.pk,
+            'user': position.user.get_full_name() or position.user.username,
+            'batch': str(alumni.graduation_year) if alumni.graduation_year else 'Unknown',
+            'course': alumni.course or 'Unknown program',
+            'location': (profile.city if profile and profile.city else alumni.city) or 'Unknown city',
+            'latitude': float(position.latitude),
+            'longitude': float(position.longitude),
+            'timestamp': position.timestamp.isoformat(),
+            'avatar': avatar_url,
+        })
+    return results
+
 
 @user_passes_test(is_admin)
+@never_cache
+def map_view(request):
+    """Render a light shell; locations come from the permission-checked JSON endpoint."""
+    return render(request, 'location_tracking/map.html', {
+        # These are browser-side service keys, NOT Django SECRET_KEY or credentials.
+        # Restrict permitted websites in the respective tile-service dashboard.
+        'carto_basemap_key': getattr(settings, 'LOCATION_CARTO_BASEMAP_KEY', ''),
+        'maptiler_basemap_key': getattr(settings, 'LOCATION_MAPTILER_BASEMAP_KEY', ''),
+    })
+
+
+@require_GET
+@user_passes_test(is_admin)
+@never_cache
 def get_all_locations(request):
-    # Define online threshold (2 hours - alumni is considered online if location updated within last 2 hours)
-    # Increased from 30 minutes to 2 hours to ensure more alumni are visible
-    online_threshold = timezone.now() - timedelta(hours=2)
-    
-    # Only get locations that are active and updated within the last 30 minutes (online alumni)
-    locations = LocationData.objects.filter(
-        is_active=True,
-        timestamp__gte=online_threshold
-    ).select_related(
-        'user',
-        'user__profile'
-    ).prefetch_related(
-        'user__profile__education'
-    ).order_by('-timestamp')
-    
-    data = []
-    for location in locations:
-        batch = None
-        course = None
-        avatar_url = None
-        city = None
-        
-        try:
-            # Check if user has a profile
-            if hasattr(location.user, 'profile'):
-                profile = location.user.profile
-                avatar_url = profile.avatar.url if profile.avatar else None
-                city = profile.city if profile.city else None
-                
-                # Get primary education for batch info
-                education = profile.education.filter(is_primary=True).first()
-                if education and education.graduation_year:
-                    batch = education.graduation_year
-                    course = education.get_program_display() if education.program else None
-                elif profile.education.exists():
-                    # If no primary education, use the most recent one
-                    recent_education = profile.education.order_by('-graduation_year').first()
-                    if recent_education and recent_education.graduation_year:
-                        batch = recent_education.graduation_year
-                        course = recent_education.get_program_display() if recent_education.program else None
-        except Exception as e:
-            # Handle any errors gracefully
-            pass
-        
-        data.append({
-            'user': location.user.get_full_name() or location.user.username,
-            'latitude': float(location.latitude),
-            'longitude': float(location.longitude),
-            'timestamp': location.timestamp.strftime('%Y-%m-%d %H:%M:%S'),
-            'avatar': avatar_url,
-            'batch': batch,
-            'course': course,
-            'location': city,
-        })
-    return JsonResponse({'locations': data})
+    return JsonResponse({'locations': _latest_verified_locations(), 'lookback_days': MAP_LOOKBACK_DAYS})
+
+
+@require_GET
+@login_required
+@never_cache
+def sharing_status(request):
+    """Return the signed-in alumnus's persisted map status, not browser permission."""
+    eligible = Alumni.objects.filter(user_id=request.user.pk, is_verified=True).exists()
+    location = None
+    if eligible:
+        location = (LocationData.objects.filter(
+            user=request.user, is_active=True,
+            timestamp__gte=timezone.now() - timedelta(days=MAP_LOOKBACK_DAYS),
+        ).order_by('-timestamp', '-pk').first())
+    return JsonResponse({
+        'eligible': eligible,
+        'has_active_location': location is not None,
+        'last_shared_at': location.timestamp.isoformat() if location else None,
+    })
+
+
+@require_POST
+@login_required
+@never_cache
+def update_location(request):
+    """Only a verified alumnus can share their own coordinates (CSRF protected)."""
+    if not Alumni.objects.filter(user_id=request.user.pk, is_verified=True).exists():
+        return JsonResponse({'status': 'error', 'message': 'Verified alumni access required.'}, status=403)
+    try:
+        if request.content_type == 'application/json':
+            payload = json.loads(request.body)
+        else:
+            payload = request.POST
+        latitude, longitude = float(payload['latitude']), float(payload['longitude'])
+        if not (math.isfinite(latitude) and math.isfinite(longitude)
+                and -90 <= latitude <= 90 and -180 <= longitude <= 180):
+            raise ValueError('Out-of-range coordinates')
+    except (ValueError, TypeError, KeyError, json.JSONDecodeError):
+        return JsonResponse({'status': 'error', 'message': 'Valid latitude and longitude are required.'}, status=400)
+    # Retain a single active position per user, preserving the existing history behavior.
+    from django.db import transaction
+    with transaction.atomic():
+        LocationData.objects.filter(user=request.user, is_active=True).update(is_active=False)
+        location = LocationData.objects.create(
+            user=request.user, latitude=latitude, longitude=longitude, is_active=True,
+        )
+    return JsonResponse({
+        'status': 'success', 'success': True, 'message': 'Location shared successfully.',
+        'location': {'latitude': float(location.latitude), 'longitude': float(location.longitude),
+                     'timestamp': location.timestamp.isoformat(), 'is_active': True},
+    })
+
+
+@require_POST
+@login_required
+@never_cache
+def stop_sharing_location(request):
+    """Remove all active map positions when an account withdraws consent."""
+    LocationData.objects.filter(user=request.user, is_active=True).update(is_active=False)
+    return JsonResponse({'status': 'success', 'success': True, 'message': 'Location sharing stopped.'})
+
+
+@require_POST
+@user_passes_test(is_admin)
+@never_cache
+def lookup_street_address(request, position_id):
+    """On-demand reverse geocoding, never a bulk request for all map pins.
+
+    Precise coordinates are sent to Nominatim ONLY after an admin explicitly clicks
+    'Look up address'. Deploy with a shared Django cache for global request throttling.
+    """
+    position = (LocationData.objects.filter(
+        pk=position_id, is_active=True,
+        timestamp__gte=timezone.now() - timedelta(days=MAP_LOOKBACK_DAYS),
+        user__alumni__is_verified=True,
+    ).first())
+    if not position:
+        return JsonResponse({'message': 'This shared location is no longer available.'}, status=404)
+
+    contact = getattr(settings, 'LOCATION_GEOCODER_CONTACT_EMAIL', '') or ''
+    if not contact or '@' not in contact:
+        return JsonResponse({'message': 'Address lookup is not configured. Set LOCATION_GEOCODER_CONTACT_EMAIL.'}, status=503)
+
+    lat, lon = float(position.latitude), float(position.longitude)
+    key = f'location:reverse:v1:{lat:.5f}:{lon:.5f}'
+    cached = cache.get(key)
+    if cached is not None:
+        return JsonResponse(cached)
+    # The shared cache prevents concurrent requests from exceeding the public
+    # Nominatim service's hard 1 request/second limit. No automatic retries.
+    if not cache.add('location:nominatim:request_lock', '1', timeout=2):
+        return JsonResponse({'message': 'Address lookup is busy. Try again in a few seconds.'}, status=429)
+
+    params = urlencode({'format': 'jsonv2', 'lat': f'{lat:.6f}', 'lon': f'{lon:.6f}',
+                        'zoom': 18, 'addressdetails': 1})
+    request_url = f'https://nominatim.openstreetmap.org/reverse?{params}'
+    req = Request(request_url, headers={
+        'User-Agent': f'NORSUAlumniMap/1.0 (contact: {contact})',
+        'Accept': 'application/json',
+    })
+    try:
+        with urlopen(req, timeout=5) as response:
+            result = json.loads(response.read(32768))
+    except (HTTPError, URLError, TimeoutError, ValueError, OSError) as exc:
+        logger.warning('Reverse geocoder unavailable: %s', type(exc).__name__)
+        return JsonResponse({'message': 'Address service unavailable. Please try again later.'}, status=502)
+
+    address = result.get('address') or {}
+    road = address.get('road') or address.get('pedestrian') or address.get('residential')
+    number = address.get('house_number')
+    city = (address.get('city') or address.get('town') or address.get('municipality')
+            or address.get('village') or address.get('county'))
+    detail = ', '.join(filter(None, [f'{number} {road}' if road and number else road,
+                                   address.get('suburb') or address.get('neighbourhood'),
+                                   city, address.get('state')]))
+    payload = {
+        'address': detail or result.get('display_name') or 'No mapped address found',
+        'precision': 'street' if road else 'area',
+        'note': ('Mapped street estimate; not a verified residential address.' if road else
+                 'Only the approximate mapped area is available.'),
+        'attribution': '© OpenStreetMap contributors (Nominatim)',
+    }
+    cache.set(key, payload, GEOCODER_CACHE_SECONDS)
+    return JsonResponse(payload)

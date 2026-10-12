@@ -1,0 +1,90 @@
+{% comment %}Includes only in the approved-member area of Group Detail.{% endcomment %}
+<section class="tab-pane fade" id="polls" role="tabpanel" aria-labelledby="polls-tab">
+    <div class="group-community-heading"><h2>Community polls</h2><p>Make decisions together, one vote per person.</p></div>
+    <div class="group-community-card">
+        <h3>Start a poll</h3>
+        <form method="post" action="{% url 'alumni_groups:create_poll' group.slug %}" class="group-community-form">
+            {% csrf_token %}
+            <label for="poll-question">Question</label>
+            <input id="poll-question" class="form-control" type="text" name="question" maxlength="250" minlength="5" placeholder="What should we organize next?" required>
+            <div class="group-poll-option-grid">
+                {% for index in '1234' %}
+                <div><label for="poll-option-{{ index }}">Option {{ forloop.counter }}{% if forloop.counter < 3 %} *{% endif %}</label><input id="poll-option-{{ index }}" class="form-control" name="options" maxlength="150" placeholder="Enter an option" {% if forloop.counter < 3 %}required{% endif %}></div>
+                {% endfor %}
+            </div>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-poll" aria-hidden="true"></i> Publish poll</button>
+        </form>
+    </div>
+    {% for poll in group_polls %}
+    <article class="group-community-card group-poll-card">
+        <header><h3>{{ poll.question }}</h3><span class="text-muted">{{ poll.author.get_full_name|default:poll.author.username }} · {{ poll.created_at|timesince }} ago</span></header>
+        <form method="post" action="{% url 'alumni_groups:vote_poll' poll.pk %}">
+            {% csrf_token %}
+            {% for option in poll.options.all %}
+            <label class="group-poll-choice"><input type="radio" name="option" value="{{ option.pk }}" {% if poll.my_option_id or poll.is_closed %}disabled{% endif %} required>
+                <span>{{ option.label }} — {{ option.votes.count }} votes</span></label>
+            {% endfor %}
+            <p class="text-muted">{{ poll.total_votes }} vote{{ poll.total_votes|pluralize }} {% if poll.my_option_id %}· You've voted{% endif %}</p>
+            {% if not poll.my_option_id and not poll.is_closed %}<button type="submit" class="btn btn-primary">Submit vote</button>{% endif %}
+        </form>
+    </article>
+    {% empty %}<div class="group-community-empty">No polls yet. Start a question for your alumni community.</div>{% endfor %}
+</section>
+<section class="tab-pane fade" id="discussions" role="tabpanel" aria-labelledby="discussions-tab">
+    <div class="group-community-heading"><h2>Discussion topics</h2><p>Persistent, searchable conversations for jobs, mentorship and reunions. Chat remains separate.</p></div>
+    <div class="group-community-card">
+        <h3>Start a discussion</h3>
+        <form method="post" action="{% url 'alumni_groups:create_discussion' group.slug %}" class="group-community-form">
+            {% csrf_token %}
+            <label for="discussion-title">Topic title</label><input id="discussion-title" class="form-control" name="title" maxlength="255" minlength="5" required placeholder="What would you like to discuss?">
+            <label for="discussion-category">Category</label><select id="discussion-category" class="form-select" name="category"><option value="GENERAL">General</option><option value="JOBS">Jobs & Careers</option><option value="MENTORSHIP">Mentorship</option><option value="REUNION">Reunions</option></select>
+            <label for="discussion-content">Your message</label><textarea id="discussion-content" class="form-control" name="content" minlength="5" maxlength="5000" rows="3" required></textarea>
+            <button class="btn btn-primary" type="submit">Start discussion</button>
+        </form>
+    </div>
+    {% for discussion in discussions %}
+    <article class="group-community-card" id="discussion-{{ discussion.pk }}">
+        <div class="group-discussion-heading"><div><span class="group-topic-label">{{ discussion.get_category_display }}</span>{% if discussion.is_pinned %}<span class="group-topic-label"><i class="fas fa-thumbtack"></i> Pinned</span>{% endif %}{% if discussion.is_locked %}<span class="group-topic-label">Locked</span>{% endif %}<h3>{{ discussion.title }}</h3><small class="text-muted">{{ discussion.created_by.get_full_name|default:discussion.created_by.username }} · {{ discussion.created_at|timesince }} ago</small></div>
+            {% if can_moderate_posts or membership.role == 'MODERATOR' %}
+            <form method="post" action="{% url 'alumni_groups:moderate_discussion' discussion.pk %}">{% csrf_token %}<button class="btn btn-sm btn-outline-primary" name="action" value="{% if discussion.is_pinned %}unpin{% else %}pin{% endif %}" type="submit">{% if discussion.is_pinned %}Unpin{% else %}Pin{% endif %}</button><button class="btn btn-sm btn-outline-secondary" name="action" value="{% if discussion.is_locked %}unlock{% else %}lock{% endif %}" type="submit">{% if discussion.is_locked %}Unlock{% else %}Lock{% endif %}</button></form>{% endif %}
+        </div>
+        <p class="group-discussion-content">{{ discussion.content|linebreaksbr }}</p>
+        <div class="group-discussion-replies">
+        {% for reply in discussion.comments.all %}
+            {% if not reply.parent_id %}<div class="group-discussion-reply"><strong>{{ reply.created_by.get_full_name|default:reply.created_by.username }}</strong><small> · {{ reply.created_at|timesince }} ago</small><div>{{ reply.content|linebreaksbr }}</div>
+                {% for subreply in reply.replies.all %}<div class="group-discussion-reply group-discussion-reply--nested"><strong>{{ subreply.created_by.get_full_name|default:subreply.created_by.username }}</strong><div>{{ subreply.content|linebreaksbr }}</div></div>{% endfor %}
+                {% if not discussion.is_locked %}<form method="post" action="{% url 'alumni_groups:reply_discussion' discussion.pk %}" class="group-quick-reply">{% csrf_token %}<input type="hidden" name="parent_id" value="{{ reply.pk }}"><input name="content" class="form-control" aria-label="Reply to {{ reply.created_by.username }}" maxlength="3000" required placeholder="Reply to {{ reply.created_by.username }}"><button class="btn btn-outline-primary btn-sm">Reply</button></form>{% endif %}</div>{% endif %}
+        {% endfor %}
+        </div>
+        {% if not discussion.is_locked %}<form method="post" action="{% url 'alumni_groups:reply_discussion' discussion.pk %}" class="group-quick-reply">{% csrf_token %}<input name="content" class="form-control" aria-label="Add to discussion" maxlength="3000" required placeholder="Join this discussion"><button class="btn btn-primary btn-sm">Comment</button></form>{% endif %}
+    </article>
+    {% empty %}<div class="group-community-empty">No discussion topics yet. Start the first one.</div>{% endfor %}
+</section>
+<section class="tab-pane fade" id="notifications" role="tabpanel" aria-labelledby="notifications-tab">
+    <div class="group-community-heading"><h2>Group notices & event requests</h2><p>Group administrators choose what is published. Selecting a group in Event Management does not automatically publish a post.</p></div>
+    {% if can_review_event_shares %}
+    <section class="group-event-request-list" aria-labelledby="event-review-title">
+        <h3 id="event-review-title">Events awaiting your review <span class="badge bg-primary">{{ pending_event_shares|length }}</span></h3>
+        {% for share in pending_event_shares %}
+        <article class="group-community-card group-event-request" aria-label="Event awaiting approval">
+            <div class="group-event-request__top"><strong>{{ share.event.title }}</strong><span class="badge bg-warning text-dark">Awaiting group admin</span></div>
+            <p>{{ share.event.description|striptags|truncatechars:210 }}</p>
+            <p class="text-muted"><i class="far fa-calendar" aria-hidden="true"></i> {{ share.event.start_date|date:'M d, Y g:i A' }} &nbsp; <i class="fas fa-map-marker-alt" aria-hidden="true"></i> {{ share.event.location }}</p>
+            <a href="{% url 'events:event_detail' share.event.pk %}" class="btn btn-outline-primary btn-sm">Review event details</a>
+            <form method="post" action="{% url 'alumni_groups:handle_event_share' share.pk %}" class="group-event-request__actions">
+                {% csrf_token %}
+                <button name="action" value="share" class="btn btn-primary" type="submit"><i class="fas fa-share" aria-hidden="true"></i> Share as post</button>
+                <button name="action" value="pin" class="btn btn-outline-primary" type="submit"><i class="fas fa-thumbtack" aria-hidden="true"></i> Share & pin</button>
+                <button name="action" value="dismiss" class="btn btn-outline-secondary" type="submit">Dismiss</button>
+            </form>
+        </article>
+        {% empty %}<div class="group-community-empty">No event requests are waiting for review.</div>{% endfor %}
+    </section>
+    {% endif %}
+    {% for notification in community_notifications %}
+    <div class="group-community-card group-notice {% if not notification.is_read %}group-notice--unread{% endif %}">
+        <p>{{ notification.message }}</p><small>{{ notification.created_at|timesince }} ago</small>
+        {% if not notification.is_read %}<form method="post" action="{% url 'alumni_groups:mark_notification_read' notification.pk %}">{% csrf_token %}<button class="btn btn-outline-secondary btn-sm" type="submit">Mark read</button></form>{% endif %}
+    </div>
+    {% empty %}<div class="group-community-empty">You're all caught up. Your group notifications will appear here.</div>{% endfor %}
+</section>

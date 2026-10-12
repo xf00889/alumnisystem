@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Alumni
+from .models import Alumni, GraduateRegistry
 
 # Register your models here.
 
@@ -60,3 +60,11 @@ class AlumniAdmin(admin.ModelAdmin):
         queryset.update(is_featured=False)
         self.message_user(request, f"{queryset.count()} alumni have been removed from homepage features.")
     unfeature_alumni.short_description = "Remove selected alumni from homepage features"
+
+
+@admin.register(GraduateRegistry)
+class GraduateRegistryAdmin(admin.ModelAdmin):
+    list_display = ('last_name', 'first_name', 'campus', 'graduation_year', 'course', 'claimed_by')
+    list_filter = ('campus', 'graduation_year')
+    search_fields = ('first_name', 'last_name', 'email', 'course')
+    readonly_fields = ('claimed_by', 'imported_at', 'updated_at')

@@ -880,7 +880,7 @@ class PostRegistrationForm(forms.Form):
         choices.append(('OTHER', 'Other (Please specify)'))
         return choices
 
-    def save(self, user):
+    def save(self, user, registry_verified=False):
         # Update names directly via queryset update to avoid post_save side-effects
         # from user.save() that can re-persist a stale in-memory profile object.
         user.first_name = self.cleaned_data['first_name']
@@ -995,16 +995,14 @@ class PostRegistrationForm(forms.Form):
                 f"linked to imported alumni record. Auto-verified."
             )
         else:
-            alumni_record, _ = Alumni.objects.update_or_create(
+            alumni_defaults['is_verified'] = registry_verified
+            Alumni.objects.update_or_create(
                 user=user,
                 defaults=alumni_defaults,
             )
-            if alumni_record.is_verified:
-                alumni_record.is_verified = False
-                alumni_record.save(update_fields=['is_verified'])
             _logger.info(
-                f"No registry match for user={user.id} ({user.email}). "
-                f"Pending admin review."
+                f"Registrar verification for user={user.id} ({user.email}): "
+                f"{'verified' if registry_verified else 'pending admin review'}."
             )
 
 class UserUpdateForm(forms.ModelForm):
@@ -1808,7 +1806,9 @@ class EnhancedSignupForm(forms.Form):
     def clean_email(self):
         email = self.cleaned_data.get('email')
         if email:
-            if User.objects.filter(email=email).exists():
+            existing_users = User.objects.filter(email__iexact=email)
+            # Legacy registrar imports created inactive placeholder users.
+            if existing_users.exclude(is_active=False, alumni__isnull=False).exists():
                 raise forms.ValidationError("A user with this email already exists.")
         return email
     
@@ -1865,6 +1865,19 @@ class EmailVerificationForm(forms.Form):
         })
     )
     
+    def __init__(self, *args, verified_email=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.verified_email = verified_email
+        self.fields['email'].initial = verified_email
+        self.fields['email'].widget.attrs['readonly'] = 'readonly'
+        self.fields['email'].widget.attrs['aria-readonly'] = 'true'
+
+    def clean_email(self):
+        submitted = self.cleaned_data['email']
+        if not self.verified_email or submitted.casefold() != self.verified_email.casefold():
+            raise forms.ValidationError('Verification email cannot be changed. Please sign in again.')
+        return self.verified_email
+
     verification_code = forms.CharField(
         max_length=6,
         min_length=6,

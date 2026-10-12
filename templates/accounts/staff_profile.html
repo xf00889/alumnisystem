@@ -1,0 +1,60 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Account Profile - NORSU Administration{% endblock %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin/account-profile.css' %}">
+{% endblock %}
+{% block content %}
+<div class="container-fluid staff-account-page">
+  <header class="admin-page-header staff-account-heading">
+    <div>
+      <p class="admin-page-header__eyebrow">Administration / Account</p>
+      <h1 class="admin-page-header__title">Account Profile</h1>
+      <p class="admin-page-header__subtitle">Manage your administrative account separately from alumni records.</p>
+    </div>
+  </header>
+  <section class="staff-account-card" aria-label="Account information">
+    <div class="staff-account-card__heading">
+      <div class="staff-account-avatar" aria-hidden="true"><i class="fas fa-user-shield"></i></div>
+      <div>
+        <h2>{{ account.get_full_name|default:account.username }}</h2>
+        <p>{{ account.email }}</p>
+        <div class="staff-account-roles">{% for role in staff_roles %}<span>{{ role }}</span>{% endfor %}</div>
+      </div>
+    </div>
+    {% if form %}
+      <form method="post" class="staff-account-edit">
+        {% csrf_token %}
+        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+        <div class="staff-account-grid">
+          <div><label for="{{ form.first_name.id_for_label }}">First name</label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+          <div><label for="{{ form.last_name.id_for_label }}">Last name</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+        </div>
+        <p class="staff-account-hint">For account security, email and permissions cannot be changed from this form.</p>
+        <div class="staff-account-actions">
+          <button class="btn btn-primary" type="submit">Save account name</button>
+          <a class="btn btn-outline-secondary" href="{% url 'accounts:staff_profile' %}">Cancel</a>
+        </div>
+      </form>
+    {% else %}
+      <dl class="staff-account-details">
+        <div><dt>Username</dt><dd>{{ account.username }}</dd></div>
+        <div><dt>Email address</dt><dd>{{ account.email|default:'Not provided' }}</dd></div>
+        <div><dt>Account status</dt><dd>{% if account.is_active %}Active{% else %}Inactive{% endif %}</dd></div>
+        <div><dt>Last sign in</dt><dd>{{ account.last_login|date:'M j, Y, g:i A'|default:'Not recorded' }}</dd></div>
+      </dl>
+      <div class="staff-account-actions">
+        <a class="btn btn-primary" href="{% url 'accounts:edit_staff_profile' %}"><i class="fas fa-pen me-1"></i> Edit account name</a>
+        <a class="btn btn-outline-secondary" href="{% url 'accounts:change_staff_email' %}"><i class="fas fa-envelope me-1" aria-hidden="true"></i> Change Email</a>
+        <a class="btn btn-outline-secondary" href="{% url 'accounts:change_staff_password' %}"><i class="fas fa-key me-1" aria-hidden="true"></i> Change Password</a>
+        {% if has_alumni_identity %}
+        <a class="btn btn-outline-secondary" href="{% url 'accounts:my_alumni_profile' %}">View my alumni profile</a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </section>
+  {% if has_alumni_identity %}
+    <p class="staff-account-hint">Your verified alumni record remains separate. Administrative permissions do not change your alumni identity.</p>
+  {% endif %}
+</div>
+{% endblock %}

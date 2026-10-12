@@ -2,11 +2,19 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from . import security_views
+from . import staff_profile_views
 
 app_name = 'accounts'
 urlpatterns = [
+    path('staff-profile/', staff_profile_views.staff_profile, name='staff_profile'),
+    path('staff-profile/edit/', staff_profile_views.edit_staff_profile, name='edit_staff_profile'),
+    path('staff-profile/change-password/', staff_profile_views.change_staff_password, name='change_staff_password'),
+    path('staff-profile/change-email/', staff_profile_views.change_staff_email, name='change_staff_email'),
+    path('staff-profile/confirm-email/<str:token>/', staff_profile_views.confirm_staff_email, name='confirm_staff_email'),
+    path('alumni-profile/', staff_profile_views.my_alumni_profile, name='my_alumni_profile'),
     path('profile/', views.profile_detail, name='profile_detail'),
     path('profile/update/', views.profile_update, name='profile_update'),
+    path('profile/sections/save/', views.save_profile_section, name='save_profile_section'),
     path('profile/<str:username>/', views.profile_detail, name='profile_detail'),
     path('post-registration/', views.post_registration, name='post_registration'),
     path('api/search-users/', views.search_users_api, name='search_users_api'),

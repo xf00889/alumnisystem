@@ -9,6 +9,7 @@ from .view_handlers.error_handlers import health_check_view
 from django.views.generic.base import RedirectView
 # Import views directly from views.py file to avoid conflict with views directory
 from . import views
+from .csrf_views import refresh_csrf_token
 from cms.views import LegalPageDetailView
 # Import user management views from view_handlers
 from .view_handlers import user_management_views
@@ -18,6 +19,7 @@ from .view_handlers import seo_admin_views
 app_name = 'core'
 
 urlpatterns = [
+    path('security/csrf-token/', refresh_csrf_token, name='refresh_csrf_token'),
     path('', views.home, name='home'),
     path('superuser/', views.SuperuserCreationView.as_view(), name='create_superuser'),  # One-time superuser creation
 

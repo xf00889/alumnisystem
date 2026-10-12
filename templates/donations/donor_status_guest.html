@@ -1,0 +1,27 @@
+{% extends 'base_landingpage.html' %}
+{% load static %}
+{% block title %}Track your donation · NORSU Alumni{% endblock title %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/public_donation_form.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/donation-workflow.css' %}">
+<link rel="stylesheet" href="{% static 'css/public_donation_flow.css' %}">
+{% endblock extra_css %}
+{% block content %}
+<div class="public-donation-page public-donation-journey" data-donation-stage="status">
+  <div class="public-donation-shell">
+    {% if donation.status == 'pending_payment' %}{% include 'donations/components/public_donation_flow_heading.html' with stage=2 stage_label='Donation status' stage_title='Track your donation' stage_description='Payment has not been confirmed. Return to GCash instructions when you are ready.' %}{% else %}{% include 'donations/components/public_donation_flow_heading.html' with stage=4 stage_label='Donation status' stage_title='Track your donation' stage_description='Follow the status of your contribution while the alumni office reviews your payment.' %}{% endif %}
+    <div class="public-donation-journey__layout">
+      <div class="public-donation-journey__main dn-workflow">
+        {% include 'donations/components/donation_status.html' with suppress_donation_progress=True %}
+      </div>
+      {% if donation.status == 'pending_payment' %}
+      {% include 'donations/components/public_donation_flow_sidebar.html' with stage=2 %}
+      {% else %}
+      {% include 'donations/components/public_donation_flow_sidebar.html' with stage=4 %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock content %}
+{% block extra_js %}{{ block.super }}<script defer src="{% static 'js/alumni/donation-workflow.js' %}"></script>{% endblock extra_js %}

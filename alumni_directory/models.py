@@ -123,6 +123,7 @@ class Alumni(models.Model):
     def email(self):
         return self.user.email
 
+
     @property
     def location(self):
         return f"{self.city}, {self.province}, {self.country.name}"
@@ -165,6 +166,36 @@ class Alumni(models.Model):
             self.current_company = experience.company
             self.job_title = experience.position
             self.save(update_fields=['current_company', 'job_title'])
+
+
+class GraduateRegistry(models.Model):
+    """Registrar-supplied graduate record used to validate registration."""
+
+    first_name = models.CharField(max_length=150)
+    last_name = models.CharField(max_length=150)
+    campus = models.CharField(max_length=10, choices=Alumni.CAMPUS_CHOICES, default='BSC')
+    graduation_year = models.IntegerField()
+    course = models.CharField(max_length=200, blank=True)
+    email = models.EmailField(blank=True)
+    claimed_by = models.OneToOneField(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='graduate_registry_record',
+    )
+    imported_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name_plural = 'Graduate registry'
+        ordering = ['-graduation_year', 'last_name', 'first_name']
+        indexes = [
+            models.Index(fields=['last_name', 'first_name', 'graduation_year', 'campus']),
+        ]
+
+    def __str__(self):
+        return f"{self.last_name}, {self.first_name} ({self.graduation_year})"
 
 class AlumniDocument(models.Model):
     DOCUMENT_TYPES = (

@@ -1,4 +1,4 @@
-from django.db.models.signals import post_save, m2m_changed
+from django.db.models.signals import post_save, pre_delete, m2m_changed
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
 from django.utils import timezone
@@ -7,70 +7,31 @@ from .models import Event, EventRSVP
 User = get_user_model()
 
 @receiver(post_save, sender=Event)
-def event_post_save(sender, instance, created, **kwargs):
-    """
-    Signal to handle event creation and updates.
-    This will be triggered when an event is created or updated.
-    """
-    if created and instance.status == 'published':
-        # When a new event is created and published, notify the groups
-        notify_groups(instance)
+def event_post_save(sender, instance, **kwargs):
+    # Also handles draft → published and published → cancelled transitions.
+    from alumni_groups.event_sharing import queue_event_for_groups
+    queue_event_for_groups(instance)
+
 
 @receiver(m2m_changed, sender=Event.notified_groups.through)
-def event_groups_changed(sender, instance, action, reverse, model, pk_set, **kwargs):
-    """
-    Signal to handle changes in the notified_groups M2M relationship.
-    This will be triggered when groups are added to or removed from an event.
-    """
-    if action == "post_add" and instance.status == 'published':
-        # When groups are added to a published event, notify the new groups
-        notify_groups(instance, pk_set)
+def event_groups_changed(sender, instance, action, reverse, pk_set, **kwargs):
+    if reverse:
+        return
+    from alumni_groups.event_sharing import queue_event_for_groups, withdraw_event_from_groups
+    if action == 'post_add':
+        queue_event_for_groups(instance, group_ids=pk_set)
+    elif action == 'pre_clear':
+        withdraw_event_from_groups(instance)
+    elif action == 'post_remove':
+        withdraw_event_from_groups(instance, group_ids=pk_set)
 
-def notify_groups(event, group_pks=None):
-    """
-    Helper function to send notifications to group members.
-    If group_pks is provided, only notify those specific groups.
-    Otherwise, notify all groups associated with the event.
-    """
-    groups = event.notified_groups.all()
-    if group_pks:
-        groups = groups.filter(pk__in=group_pks)
 
-    for group in groups:
-        # Get all approved members of the group through GroupMembership
-        memberships = group.memberships.filter(status='APPROVED', is_active=True)
-        
-        # Here you would implement your notification logic
-        # This could be sending emails, creating notifications in your notification system, etc.
-        # For example:
-        for membership in memberships:
-            create_notification(
-                user=membership.user,
-                event=event,
-                group=group,
-                message=f"New event '{event.title}' has been announced for {group.name}."
-            )
+@receiver(pre_delete, sender=Event)
+def event_pre_delete(sender, instance, **kwargs):
+    # Retract shared group posts before the event's requests cascade away.
+    from alumni_groups.event_sharing import withdraw_event_from_groups
+    withdraw_event_from_groups(instance)
 
-def create_notification(user, event, group, message):
-    """
-    Helper function to create a notification for a user.
-    Creates a private notification for the specific user about the event.
-    """
-    try:
-        from core.models.notifications import Notification
-        
-        # Create a private notification for the user
-        Notification.create_notification(
-            recipient=user,
-            notification_type='event',
-            title=f"New Event: {event.title}",
-            message=message,
-            content_object=event,
-            action_url=f'/events/{event.pk}/'
-        )
-    except ImportError:
-        # If core.models.notifications is not available, log this
-        pass
 
 @receiver(post_save, sender=EventRSVP)
 def rsvp_post_save(sender, instance, created, **kwargs):

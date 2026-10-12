@@ -1,0 +1,9 @@
+{% include 'donations/components/donation_progress.html' with step=3 %}
+<section class="dn-card"><div class="dn-summary"><span>Expected transfer</span><strong>₱{{ donation.amount|floatformat:2 }}</strong><small>{{ donation.campaign.name }}</small></div>
+<p class="dn-muted">Only submit proof after your GCash transfer is successful. Uploading proof does not confirm that funds have arrived.</p>
+<form method="post" enctype="multipart/form-data" class="dn-form" id="donation-proof-form" data-csrf-refresh-url="{% url 'core:refresh_csrf_token' %}">{% csrf_token %}{% if guest_proof_claim %}<input type="hidden" name="access" value="{{ guest_proof_claim }}">{% endif %}
+  {% if form.non_field_errors %}<div class="dn-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <div><label for="{{ form.reference_number.id_for_label }}">GCash reference number *</label>{{ form.reference_number }}{% for e in form.reference_number.errors %}<p class="dn-error" role="alert">{{ e }}</p>{% endfor %}</div>
+  <div><label for="{{ form.payment_proof.id_for_label }}">Payment receipt screenshot *</label>{{ form.payment_proof }}<small>JPG, PNG, or WebP · Maximum 5 MB. Include the date, amount, and reference.</small>{% for e in form.payment_proof.errors %}<p class="dn-error" role="alert">{{ e }}</p>{% endfor %}</div>
+  <div class="dn-actions"><button type="submit" class="dn-button dn-button-primary">Submit proof for verification</button><a class="dn-button dn-button-secondary" href="{% url 'donations:payment_instructions' donation.pk %}{% if guest_proof_claim %}?access={{ guest_proof_claim|urlencode }}{% endif %}">Back to payment instructions</a></div>
+</form></section>

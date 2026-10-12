@@ -140,12 +140,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     // For minimal form, disable fields instead of hiding
                     if (donorFields) {
                         donorNameFieldElement.disabled = true;
-                        donorEmailFieldElement.disabled = true;
+                        donorEmailFieldElement.disabled = false; // Always keep a private recovery email.
                         donorNameFieldElement.value = '';
-                        donorEmailFieldElement.value = '';
                         donorNameFieldElement.removeAttribute('required');
-                        donorEmailFieldElement.removeAttribute('required');
-                        donorFields.classList.add('disabled');
+                        donorEmailFieldElement.setAttribute('required', 'required');
+                        donorFields.classList.remove('disabled');
                     } else {
                         // For authenticated form, hide fields
                         if (donorNameFieldElement) {

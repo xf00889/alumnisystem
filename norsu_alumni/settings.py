@@ -57,9 +57,8 @@ for domain in PRODUCTION_DOMAINS:
     if domain not in ALLOWED_HOSTS:
         ALLOWED_HOSTS.append(domain)
 
-# Session configuration - use cache-based sessions during setup
-# This avoids database dependency issues during initial setup
-SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+# Keep the database as the session authority so reloads and multiple workers are safe.
+SESSION_ENGINE = config('SESSION_ENGINE', default='django.contrib.sessions.backends.cached_db')
 SESSION_CACHE_ALIAS = 'default'
 
 
@@ -96,7 +95,7 @@ INSTALLED_APPS = [
     'surveys',
     'announcements',
     'feedback',
-    'connections',
+    'connections.apps.ConnectionsConfig',
     'location_tracking',
     'mentorship',
     'jobs',
@@ -178,7 +177,7 @@ else:
             'ENGINE': config('DB_ENGINE', default='django.db.backends.mysql'),
             'NAME': config('DB_NAME', default='alumni_norsu'),
             'USER': config('DB_USER', default='root'),
-            'PASSWORD': config('DB_PASSWORD', default='root123'),
+            'PASSWORD': config('DB_PASSWORD', default=''),
             'HOST': config('DB_HOST', default='localhost'),
             'PORT': config('DB_PORT', default='3306'),
             'OPTIONS': {
@@ -484,7 +483,7 @@ if DATABASE_URL:
             },
             'core.view_handlers.error_handlers': {
                 'handlers': ['console'],
-                'level': 'ERROR',
+                'level': 'WARNING',
                 'propagate': True,
             },
             'django_recaptcha': {
@@ -579,8 +578,8 @@ else:
                 'propagate': True,
             },
             'core.view_handlers.error_handlers': {
-                'handlers': ['console', 'error_file'],
-                'level': 'ERROR',
+                'handlers': ['console', 'file'],
+                'level': 'WARNING',
                 'propagate': True,
             },
             'django_recaptcha': {
@@ -846,3 +845,14 @@ if HAS_DJANGO_Q:
 
 # Google Gemini AI Configuration (for AI-powered job matching)
 GEMINI_API_KEY = config('GEMINI_API_KEY', default='')
+
+# Public Nominatim access is disabled until a contact email is configured.
+# Use a shared cache (e.g. Redis) for deployment-wide geocoding throttling.
+LOCATION_GEOCODER_CONTACT_EMAIL = config('LOCATION_GEOCODER_CONTACT_EMAIL', default='')
+
+
+# Optional public browser tile-service keys for the staff Leaflet map.
+# Obtain with any ordinary email account; restrict each key to your site origins
+# in the provider dashboard. They are intentionally rendered only on staff pages.
+LOCATION_CARTO_BASEMAP_KEY = config('LOCATION_CARTO_BASEMAP_KEY', default='').strip()
+LOCATION_MAPTILER_BASEMAP_KEY = config('LOCATION_MAPTILER_BASEMAP_KEY', default='').strip()

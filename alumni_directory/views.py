@@ -1,15 +1,15 @@
 import html
 import logging
 import io
+import re
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q, Count, F
 from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
-from django.contrib.auth import get_user_model
-from .models import Alumni, AlumniDocument, Achievement, ProfessionalExperience
+from .models import Alumni, AlumniDocument, Achievement, GraduateRegistry, ProfessionalExperience
 from django.core.exceptions import PermissionDenied
-from django.db import transaction, IntegrityError
+from django.db import transaction
 from django.http import Http404
 from django.core.mail import send_mail
 from django.urls import reverse
@@ -22,7 +22,55 @@ from datetime import datetime
 
 logger = logging.getLogger(__name__)
 
-User = get_user_model()
+
+def _registrar_csv_rows(decoded_file):
+    """Yield normalized rows from either supported registrar CSV layout."""
+    if 'CANDIDATES FOR GRADUATION' not in decoded_file.upper():
+        yield from csv.DictReader(decoded_file.splitlines())
+        return
+
+    school_year = re.search(r'\bSY\s+(\d{4})-(\d{4})\b', decoded_file, re.IGNORECASE)
+    first_year = school_year.group(1) if school_year else ''
+    final_year = school_year.group(2) if school_year else ''
+    base_course = current_course = ''
+
+    for columns in csv.reader(decoded_file.splitlines()):
+        if not columns:
+            continue
+
+        first_column = columns[0].strip()
+        heading = ' '.join(first_column.split())
+        heading_upper = heading.upper()
+
+        if heading_upper.startswith("CONT'N OF BACHELOR"):
+            current_course = re.sub(r"^CONT'N OF\s+", '', heading, flags=re.IGNORECASE)
+            continue
+
+        if heading_upper.startswith('BACHELOR'):
+            current_course = heading
+            base_course = heading.split(' - ', 1)[0]
+            continue
+
+        if heading_upper.startswith('MAJOR:') or heading_upper.startswith('AREA OF CONCENTRATION:'):
+            major = heading.split(':', 1)[1].strip()
+            current_course = f'{base_course} - {major}' if base_course and major else base_course
+            continue
+
+        if not re.fullmatch(r'\*{0,2}\d+\s*', first_column) or len(columns) < 4:
+            continue
+
+        given_names = columns[1].strip()
+        last_name = columns[3].strip()
+        graduation_year = first_year if first_column.startswith('*') and not first_column.startswith('**') else final_year
+        yield {
+            'FullName': f'{last_name}, {given_names}',
+            'FirstName': given_names,
+            'LastName': last_name,
+            'Year': graduation_year,
+            'Course': current_course,
+            'Campus': 'BSC',
+        }
+
 
 def apply_selective_export_filters(request, base_queryset=None):
     """
@@ -155,6 +203,91 @@ def is_admin(user):
     
     is_coordinator = hasattr(user, 'profile') and user.profile.is_alumni_coordinator
     return user.is_superuser or user.is_staff or is_coordinator
+
+
+def import_graduate_registry(csv_file):
+    """Import registrar CSV rows without creating user accounts."""
+    try:
+        decoded_file = csv_file.read().decode('utf-8-sig')
+    except UnicodeDecodeError:
+        csv_file.seek(0)
+        decoded_file = csv_file.read().decode('latin-1')
+
+    campus_aliases = {
+        'NORSU-MAIN': 'MAIN',
+        'NORSU-BAIS': 'BAIS1',
+        'NORSU-GUI': 'GUI',
+        'NORSU-MAB': 'MAB',
+        'NORSU-BSC': 'BSC',
+        'NORSU-SIA': 'SIATON',
+        'NORSU-PAM': 'PAM',
+    }
+    valid_campuses = dict(Alumni.CAMPUS_CHOICES)
+    imported_count = updated_count = error_count = 0
+
+    for row in _registrar_csv_rows(decoded_file):
+        full_name = (row.get('FullName') or row.get('Full Name') or row.get('full_name') or '').strip()
+        first_name = (row.get('FirstName') or '').strip()
+        last_name = (row.get('LastName') or '').strip()
+        graduation_year = (row.get('Year-1') or row.get('Year') or row.get('graduation_year') or '').strip()
+        course = (row.get('Course Grad') or row.get('Course') or row.get('course') or '').strip()
+        email = (row.get('Email Address') or row.get('Email') or row.get('email') or '').strip()
+        campus_value = (row.get('Campus') or row.get('campus') or 'BSC').strip().upper()
+        campus = campus_aliases.get(campus_value, campus_value)
+
+        if not (full_name or (first_name and last_name)) or not graduation_year:
+            error_count += 1
+            continue
+
+        try:
+            graduation_year = int(graduation_year)
+        except ValueError:
+            error_count += 1
+            continue
+
+        if campus not in valid_campuses:
+            error_count += 1
+            continue
+
+        if not first_name or not last_name:
+            if ',' in full_name:
+                last_name, given_names = (part.strip() for part in full_name.split(',', 1))
+                first_name = given_names.split()[0] if given_names else ''
+            else:
+                name_parts = full_name.split()
+                first_name = name_parts[0]
+                last_name = name_parts[-1] if len(name_parts) > 1 else ''
+
+        if not first_name or not last_name:
+            error_count += 1
+            continue
+
+        existing = GraduateRegistry.objects.filter(
+            first_name__iexact=first_name,
+            last_name__iexact=last_name,
+            campus=campus,
+            graduation_year=graduation_year,
+            course__iexact=course,
+        ).first()
+        if existing:
+            existing.first_name = first_name
+            existing.last_name = last_name
+            existing.course = course
+            existing.email = email
+            existing.save(update_fields=['first_name', 'last_name', 'course', 'email', 'updated_at'])
+            updated_count += 1
+        else:
+            GraduateRegistry.objects.create(
+                first_name=first_name,
+                last_name=last_name,
+                campus=campus,
+                graduation_year=graduation_year,
+                course=course,
+                email=email,
+            )
+            imported_count += 1
+
+    return imported_count, updated_count, error_count
 
 @login_required
 def alumni_list(request):
@@ -828,263 +961,23 @@ def alumni_management(request):
     Alumni Management view with tabular display, import/export functionality.
     """
     try:
-        # Handle CSV import
-        if request.method == 'POST' and 'import_csv' in request.POST:
-            csv_file = request.FILES.get('csv_file')
-            if csv_file:
-                # Log CSV import start
-                file_size = csv_file.size
-                file_name = csv_file.name
-                
-                logger.info(
-                    f"CSV import started: File={file_name}, Size={file_size} bytes",
-                    extra={
-                        'file_name': file_name,
-                        'file_size': file_size,
-                        'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
-                        'action': 'csv_import_start'
-                    }
-                )
-                
-                try:
-                    # Decode with UTF-8-sig to handle BOM character from Excel-exported CSVs
-                    try:
-                        decoded_file = csv_file.read().decode('utf-8-sig')
-                    except UnicodeDecodeError:
-                        csv_file.seek(0)
-                        decoded_file = csv_file.read().decode('latin-1')
-                    csv_data = csv.DictReader(decoded_file.splitlines())
-
-                    # Log detected headers for debugging
-                    fieldnames = csv_data.fieldnames or []
-                    logger.info(f"CSV import - detected headers: {fieldnames}")
-                    
-                    imported_count = 0
-                    updated_count = 0
-                    error_count = 0
-                    error_details = []
-                    
-                    for row in csv_data:
-                        # Support both old column names and coordinator CSV format
-                        # Coordinator CSV: FullName, Year-1, Course Grad, Rec #, Mobile No, Email Address
-                        # Old format: Full Name, Year, Course, Present Occupation, Name of Company, Employment Address
-
-                        full_name = (
-                            row.get('FullName') or
-                            row.get('Full Name') or
-                            row.get('full_name') or ''
-                        ).strip()
-
-                        graduation_year = (
-                            row.get('Year-1') or
-                            row.get('Year') or
-                            row.get('graduation_year') or ''
-                        ).strip()
-
-                        course = (
-                            row.get('Course Grad') or
-                            row.get('Course') or
-                            row.get('course') or ''
-                        ).strip()
-
-                        occupation = (
-                            row.get('Present Occupation') or
-                            row.get('occupation') or ''
-                        ).strip()
-
-                        company = (
-                            row.get('Name of Company') or
-                            row.get('company') or ''
-                        ).strip()
-
-                        address = (
-                            row.get('Employment Address') or
-                            row.get('address') or ''
-                        ).strip()
-
-                        # Coordinator CSV extras
-                        rec_number = (row.get('Rec #') or row.get('Rec#') or '').strip()
-                        mobile = (row.get('Mobile No') or row.get('Mobile') or '').strip()
-                        email_from_csv = (row.get('Email Address') or row.get('Email') or '').strip()
-
-                        # Skip empty rows and summary rows (e.g. "TOTAL" row)
-                        if not full_name or not graduation_year:
-                            continue
-                        try:
-                            int(graduation_year)
-                        except ValueError:
-                            continue  # Skip non-numeric year rows
-
-                        # Parse name — handle both formats:
-                        # Coordinator format: "Last, First M." → reversed, comma-separated
-                        # Standard format: "First Last"
-                        if ',' in full_name:
-                            # Coordinator format: "Aungon, Airies M."
-                            parts = full_name.split(',', 1)
-                            last_name = parts[0].strip()
-                            first_name = parts[1].strip() if len(parts) > 1 else ''
-                            # Remove middle initial if present (e.g. "Airies M." → "Airies")
-                            first_name_parts = first_name.split()
-                            first_name = first_name_parts[0] if first_name_parts else first_name
-                        else:
-                            # Standard format: "First Last"
-                            name_parts = full_name.split(' ', 1)
-                            first_name = name_parts[0]
-                            last_name = name_parts[1] if len(name_parts) > 1 else ''
-
-                        # Try to find existing alumni by name and graduation year
-                        try:
-                            alumni = Alumni.objects.get(
-                                user__first_name__iexact=first_name,
-                                user__last_name__iexact=last_name,
-                                graduation_year=graduation_year
-                            )
-                            # Update existing alumni
-                            alumni.course = course
-                            alumni.job_title = occupation
-                            alumni.current_company = company
-                            if address:
-                                address_parts = address.split(', ')
-                                if len(address_parts) >= 2:
-                                    alumni.city = address_parts[0]
-                                    alumni.province = address_parts[1]
-                            alumni.save()
-                            updated_count += 1
-                        except Alumni.DoesNotExist:
-                            # Create new user and alumni
-                            try:
-                                # Use email from CSV if available, otherwise generate one
-                                if email_from_csv:
-                                    email = email_from_csv
-                                    username = email_from_csv.split('@')[0]
-                                else:
-                                    username = f"{first_name.lower()}.{last_name.lower()}.{graduation_year}"
-                                    email = f"{username}@norsu.alumni.placeholder"
-
-                                # Ensure username uniqueness
-                                base_username = username
-                                counter = 1
-                                while User.objects.filter(username=username).exists():
-                                    username = f"{base_username}{counter}"
-                                    counter += 1
-
-                                user = User.objects.create_user(
-                                    username=username,
-                                    first_name=first_name,
-                                    last_name=last_name,
-                                    email=email,
-                                    is_active=False  # Inactive until they register
-                                )
-
-                                alumni = Alumni.objects.create(
-                                    user=user,
-                                    graduation_year=graduation_year,
-                                    course=course,
-                                    job_title=occupation,
-                                    current_company=company,
-                                    college='',
-                                    campus='BSC',  # Default for coordinator CSV
-                                    gender='O',
-                                    province='',
-                                    city='',
-                                    address='',
-                                )
-
-                                if address:
-                                    address_parts = address.split(', ')
-                                    if len(address_parts) >= 2:
-                                        alumni.city = address_parts[0]
-                                        alumni.province = address_parts[1]
-                                        alumni.save()
-
-                                if mobile:
-                                    try:
-                                        user.profile.phone_number = mobile
-                                        user.profile.save()
-                                    except Exception:
-                                        pass
-
-                                imported_count += 1
-                            except IntegrityError as ie:
-                                # Handle database constraint violation (duplicate email/username)
-                                error_count += 1
-                                error_details.append({
-                                    'row': full_name,
-                                    'error': 'Unable to create account. A user with this email or username already exists.'
-                                })
-                                logger.error(
-                                    f"Database constraint violation during CSV import: {full_name}",
-                                    extra={
-                                        'row_data': full_name,
-                                        'error_type': 'IntegrityError',
-                                        'error_message': str(ie),
-                                        'file_name': file_name,
-                                        'action': 'csv_import_integrity_error'
-                                    }
-                                )
-                            except Exception as row_error:
-                                error_count += 1
-                                error_details.append({
-                                    'row': full_name,
-                                    'error': str(row_error)
-                                })
-                                logger.warning(
-                                    f"Error processing CSV row: {str(row_error)}",
-                                    extra={
-                                        'row_data': full_name,
-                                        'error_type': type(row_error).__name__,
-                                        'file_name': file_name,
-                                        'action': 'csv_row_error'
-                                    }
-                                )
-                    
-                    # Log CSV import completion
-                    logger.info(
-                        f"CSV import completed: Imported={imported_count}, Updated={updated_count}, Errors={error_count}",
-                        extra={
-                            'file_name': file_name,
-                            'file_size': file_size,
-                            'imported_count': imported_count,
-                            'updated_count': updated_count,
-                            'error_count': error_count,
-                            'total_processed': imported_count + updated_count + error_count,
-                            'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
-                            'action': 'csv_import_complete'
-                        }
-                    )
-                    
-                    if error_count > 0:
-                        logger.warning(
-                            f"CSV import completed with errors: {error_count} errors out of {imported_count + updated_count + error_count} rows",
-                            extra={
-                                'file_name': file_name,
-                                'error_count': error_count,
-                                'error_details': error_details[:10],  # Limit to first 10 errors
-                                'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
-                                'action': 'csv_import_errors'
-                            }
-                        )
-                    
-                    messages.success(request, f"Successfully imported {imported_count} new alumni and updated {updated_count} existing records.")
-                    if error_count > 0:
-                        messages.warning(request, f"Warning: {error_count} rows had errors during import.")
-                    
-                except Exception as e:
-                    logger.error(
-                        f"Error importing CSV: {str(e)}",
-                        exc_info=True,
-                        extra={
-                            'file_name': file_name if 'file_name' in locals() else None,
-                            'file_size': file_size if 'file_size' in locals() else None,
-                            'user_id': request.user.id if hasattr(request, 'user') and request.user.is_authenticated else None,
-                            'error_type': type(e).__name__,
-                            'action': 'csv_import_failed'
-                        }
-                    )
-                    messages.error(request, f"Error importing CSV file: {str(e)}")
+        if request.method == 'POST' and 'import_registry_csv' in request.POST:
+            csv_file = request.FILES.get('registry_csv_file')
+            if not csv_file:
+                messages.error(request, 'Please select a registrar CSV file to import.')
             else:
-                messages.error(request, "Please select a CSV file to import.")
-        
+                try:
+                    imported_count, updated_count, error_count = import_graduate_registry(csv_file)
+                    messages.success(
+                        request,
+                        f'Registrar list imported: {imported_count} new and {updated_count} updated records.',
+                    )
+                    if error_count:
+                        messages.warning(request, f'{error_count} invalid or incomplete rows were skipped.')
+                except Exception as exc:
+                    logger.error('Registrar CSV import failed: %s', exc, exc_info=True)
+                    messages.error(request, f'Error importing registrar CSV file: {exc}')
+
         # Base queryset with efficient loading
         queryset = Alumni.objects.select_related('user').all()
         

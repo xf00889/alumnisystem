@@ -17,13 +17,40 @@ def user_role_context(request):
     context = {
         'is_alumni_coordinator': False,
         'can_access_system_config': False,
+        # Shared templates choose their layout based on the authenticated user role.
+        'alumni_page_base': 'base.html',
+        'use_alumni_layout': False,
+        'load_alumni_feature_scripts': False,
+        # Public tracer pages retain public chrome for unauthenticated visitors.
+        'tracer_study_page_base': 'base_landingpage.html',
     }
     
     if request.user.is_authenticated:
-        # Check if user is alumni coordinator
+        # HR accounts manage job-board content and must retain the legacy
+        # management presentation, even when they are not Django staff.
+        is_hr_user = False
         if hasattr(request.user, 'profile'):
             context['is_alumni_coordinator'] = request.user.profile.is_alumni_coordinator
-        
+            is_hr_user = getattr(request.user.profile, 'is_hr', False)
+
+        # Only regular alumni receive the separate alumni design system.
+        # Preserve elevated-role pages and all backend permissions.
+        if not (request.user.is_staff or request.user.is_superuser
+                or context['is_alumni_coordinator'] or is_hr_user):
+            context['alumni_page_base'] = 'base_alumni.html'
+            context['use_alumni_layout'] = True
+            # The alumni dashboard keeps its minimal script bundle. Only opted-in
+            # feature modules need interactive legacy vendor libraries.
+            match = getattr(request, 'resolver_match', None)
+            context['load_alumni_feature_scripts'] = (
+                bool(match) and match.app_name in
+                {'accounts', 'alumni_directory', 'jobs', 'mentorship',
+                 'alumni_groups', 'connections', 'events', 'announcements',
+                 'donations', 'surveys', 'feedback'}
+            )
+
+        context['tracer_study_page_base'] = context['alumni_page_base']
+
         # Only superusers can access system configuration
         context['can_access_system_config'] = request.user.is_superuser
     

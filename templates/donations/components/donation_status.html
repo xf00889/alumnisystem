@@ -1,0 +1,13 @@
+{% include 'donations/components/donation_progress.html' with step=4 %}
+<section class="dn-card dn-status">
+  {% if donation.status == 'completed' %}
+    <span class="dn-status-icon" aria-hidden="true">✓</span><h2>Donation verified</h2><p>Thank you! The alumni office has verified your GCash payment.</p>
+  {% elif donation.status == 'pending_verification' %}
+    <span class="dn-status-icon" aria-hidden="true">⌛</span><h2>Proof submitted — awaiting verification</h2><p>Your receipt was received. Staff still need to reconcile the GCash transaction. Your donation has not been marked completed.</p>
+  {% elif donation.status == 'pending_payment' %}
+    <h2>Payment not yet confirmed</h2><p>Continue with the GCash instructions when you're ready. No payment was charged by this website.</p><a class="dn-button dn-button-primary" href="{% url 'donations:payment_instructions' donation.pk %}">Resume GCash payment</a>
+  {% else %}<h2>{{ donation.get_status_display }}</h2><p>This donation needs staff attention. Contact the alumni office if you need assistance.</p>
+  {% endif %}
+  <dl class="dn-payee"><dt>Campaign</dt><dd>{{ donation.campaign.name }}</dd><dt>Amount</dt><dd>₱{{ donation.amount|floatformat:2 }}</dd><dt>Status</dt><dd>{{ donation.get_status_display }}</dd>{% if donation.reference_number %}<dt>GCash reference</dt><dd>{{ donation.reference_number }}</dd>{% endif %}</dl>
+  <div class="dn-actions"><a class="dn-button dn-button-secondary" href="{% if user.is_authenticated %}{% url 'donations:campaign_list' %}{% else %}{% url 'donations:public_campaign_list' %}{% endif %}">Browse campaigns</a>{% if user.is_authenticated %}<a class="dn-button dn-button-primary" href="{% url 'donations:donation_history' %}">My donations</a>{% endif %}</div>
+</section>

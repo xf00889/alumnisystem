@@ -1,4 +1,39 @@
 // Connection management JavaScript
+// Accessible, app-styled confirmation dialog shared by connection actions.
+function confirmConnectionAction({ title, description, confirmText, cancelText = 'Cancel', danger = false }) {
+    return new Promise(resolve => {
+        const dialog = document.createElement('dialog');
+        dialog.className = 'norsu-connection-dialog';
+        const heading = document.createElement('h2');
+        heading.textContent = title;
+        const body = document.createElement('p');
+        body.textContent = description;
+        const controls = document.createElement('div');
+        controls.className = 'norsu-connection-dialog__actions';
+        const cancel = document.createElement('button');
+        cancel.type = 'button'; cancel.textContent = cancelText;
+        cancel.className = 'btn btn-outline-secondary';
+        const proceed = document.createElement('button');
+        proceed.type = 'button'; proceed.textContent = confirmText;
+        proceed.className = danger ? 'btn btn-danger' : 'btn btn-primary';
+        controls.append(cancel, proceed);
+        dialog.append(heading, body, controls);
+        document.body.appendChild(dialog);
+        let settled = false;
+        function finish(choice) {
+            if (settled) return;
+            settled = true;
+            dialog.close(); dialog.remove(); resolve(choice);
+        }
+        cancel.addEventListener('click', () => finish(false));
+        proceed.addEventListener('click', () => finish(true));
+        dialog.addEventListener('cancel', event => { event.preventDefault(); finish(false); });
+        dialog.addEventListener('click', event => { if (event.target === dialog) finish(false); });
+        dialog.showModal(); cancel.focus();
+    });
+}
+window.confirmConnectionAction = confirmConnectionAction;
+
 
 // Get CSRF token helper function
 function getCookie(name) {
@@ -56,7 +91,8 @@ function sendConnectionRequest(userId) {
 }
 
 // Accept connection request
-function acceptConnectionRequest(connectionId) {
+async function acceptConnectionRequest(connectionId) {
+    if (!await confirmConnectionAction({title: 'Accept connection request?', description: 'This alumnus will be added to your connections.', confirmText: 'Accept request'})) return;
     const csrftoken = getCSRFToken();
     fetch(`/connections/accept/${connectionId}/`, {
         method: 'POST',
@@ -83,7 +119,8 @@ function acceptConnectionRequest(connectionId) {
 }
 
 // Reject connection request
-function rejectConnectionRequest(connectionId) {
+async function rejectConnectionRequest(connectionId) {
+    if (!await confirmConnectionAction({title: 'Reject connection request?', description: 'The request will be removed from your incoming requests.', confirmText: 'Reject request', danger: true})) return;
     const csrftoken = getCSRFToken();
     fetch(`/connections/reject/${connectionId}/`, {
         method: 'POST',
@@ -110,10 +147,8 @@ function rejectConnectionRequest(connectionId) {
 }
 
 // Remove connection
-function removeConnection(userId) {
-    if (!confirm('Are you sure you want to remove this connection?')) {
-        return;
-    }
+async function removeConnection(userId) {
+    if (!await confirmConnectionAction({title: 'Remove connection?', description: 'You and this alumnus will no longer be connected.', confirmText: 'Remove connection', cancelText: 'Keep connection', danger: true})) return;
     
     const csrftoken = getCSRFToken();
     fetch(`/connections/remove/${userId}/`, {
@@ -222,6 +257,9 @@ function updatePendingRequestsCount() {
 document.addEventListener('DOMContentLoaded', function() {
     // Connect button click
     document.addEventListener('click', function(e) {
+        // Alumni Detail owns ALL connection controls (connect, accept, reject, remove).
+        // The global delegated handler must not prompt or POST for those same clicks.
+        if (e.target.closest('.fe-page--alumni-directory-alumni-detail-html .contact-buttons')) return;
         if (e.target.closest('.connect-btn')) {
             e.preventDefault();
             const button = e.target.closest('.connect-btn');

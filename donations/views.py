@@ -1,3 +1,4 @@
+from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -5,8 +6,8 @@ from django.utils.translation import gettext_lazy as _
 from django.db.models import Sum, Count, Q
 from django.utils import timezone
 from django.core.paginator import Paginator
-from django.http import JsonResponse, HttpResponse
-from django.views.decorators.http import require_POST
+from django.http import JsonResponse, HttpResponse, FileResponse, HttpResponseRedirect, Http404
+from django.views.decorators.http import require_POST, require_GET
 from django.urls import reverse
 
 from .models import Campaign, CampaignType, Donation, DonorRecognition, CampaignUpdate, GCashConfig
@@ -17,8 +18,19 @@ from django.db import transaction
 from django.db import models
 from .forms_gcash import GCashConfigForm
 import logging
+from django.core.exceptions import ValidationError, PermissionDenied
+from django.views.decorators.cache import never_cache
+from .payment_flow import (assert_campaign_accepts_donations, resolve_recipient, snapshot_recipient,
+                           grant_guest_access, assert_donation_access, email_guest_recovery_link, payment_display)
 
 logger = logging.getLogger(__name__)
+
+# Preserve donor URL privacy without breaking browser form POSTs. A document
+# with Referrer-Policy: no-referrer sends Origin: null on navigation-mode POST,
+# which Django correctly rejects even when the CSRF token is valid.
+# strict-origin sends the site's origin (not donation paths or guest claims)
+# for same-origin proof submissions. Never whitelist the "null" origin.
+DONATION_REFERRER_POLICY = 'strict-origin'
 
 
 def can_manage_donations(user):
@@ -33,24 +45,39 @@ def can_manage_donations(user):
         return False
 
 
-def campaign_list(request):
-    """View to display list of campaigns with filtering"""
-    # Filter campaigns based on user authentication and visibility
-    if request.user.is_authenticated:
-        # Authenticated users can see both registered_alumni and public campaigns
-        campaigns = Campaign.objects.filter(
-            Q(visibility='registered_alumni') | Q(visibility='public')
-        )
-    else:
-        # Non-authenticated users can only see public campaigns
-        campaigns = Campaign.objects.filter(visibility='public')
-    
-    # Filter out ended campaigns - exclude completed, cancelled, and past end date campaigns
-    campaigns = campaigns.exclude(
-        Q(status__in=['completed', 'cancelled']) |
-        Q(end_date__lt=timezone.now())
-    )
+def public_campaign_list(request):
+    """Guest campaign directory using the university's public website design.
 
+    Reuse the same read-only campaign filtering and pagination. Never expose
+    alumni-only, draft, paused, or unavailable campaigns to visitors.
+    """
+    if request.user.is_authenticated:
+        return redirect('donations:campaign_list')
+
+    now = timezone.now()
+    campaigns = Campaign.objects.filter(
+        visibility='public', status='active', allow_donations=True,
+        start_date__lte=now,
+    ).filter(Q(end_date__isnull=True) | Q(end_date__gte=now))
+    context = _campaign_list_context(request, campaigns)
+    return render(request, 'donations/public_campaign_list.html', context)
+
+
+def campaign_list(request):
+    """Campaign directory for authenticated alumni and management accounts."""
+    if not request.user.is_authenticated:
+        url = reverse('donations:public_campaign_list')
+        params = request.GET.urlencode()
+        return redirect(f'{url}?{params}' if params else url)
+    campaigns = Campaign.objects.filter(
+        Q(visibility='registered_alumni') | Q(visibility='public')
+    ).exclude(Q(status__in=['completed', 'cancelled']) | Q(end_date__lt=timezone.now()))
+    context = _campaign_list_context(request, campaigns)
+    return render(request, 'donations/campaign_list.html', context)
+
+
+def _campaign_list_context(request, campaigns):
+    """Common filtering and pagination for public and alumni campaigns."""
     # Apply filters from form
     filter_form = CampaignFilterForm(request.GET)
     if filter_form.is_valid():
@@ -115,7 +142,7 @@ def campaign_list(request):
         'campaign_types': campaign_types,
     }
 
-    return render(request, 'donations/campaign_list.html', context)
+    return context
 
 def campaign_detail(request, slug):
     """View to display campaign details and donation form"""
@@ -145,35 +172,27 @@ def campaign_detail(request, slug):
         'progress_percentage': campaign.progress_percentage,
     }
 
-    # Initialize donation form
+    # Reject invalid campaign states on POST, regardless of client-side controls.
+    campaign_open = (campaign.status == 'active' and campaign.allow_donations and
+                     campaign.start_date <= timezone.now() and
+                     (not campaign.end_date or campaign.end_date >= timezone.now()))
+    form = DonationForm(request.POST or None, user=request.user, campaign=campaign)
     if request.method == 'POST':
-        # Require active GCash configuration with QR code before accepting donations
-        gcash_config = GCashConfig.get_active_config()
-        if not gcash_config or not gcash_config.qr_code_image:
-            messages.error(request, _('GCash payment is currently unavailable. Please try again later.'))
-            return redirect('donations:campaign_list')
-
-        form = DonationForm(
-            request.POST,
-            user=request.user,
-            campaign=campaign
-        )
-
-        if form.is_valid():
-            donation = form.save()
-            
-            # Store donor email in session for unauthenticated users
-            if not request.user.is_authenticated and donation.donor_email:
-                request.session['donor_email'] = donation.donor_email
-                request.session.save()
-            
-            messages.success(
-                request,
-                _('Donation created! Please follow the payment instructions to complete your donation.')
-            )
-            return redirect('donations:payment_instructions', pk=donation.pk)
-    else:
-        form = DonationForm(user=request.user, campaign=campaign)
+        try:
+            assert_campaign_accepts_donations(campaign, request.user)
+            config = resolve_recipient(campaign)
+        except ValidationError as exc:
+            form.add_error(None, exc.messages[0])
+        else:
+            if form.is_valid():
+                with transaction.atomic():
+                    donation = form.save()
+                    snapshot_recipient(donation, config)
+                    if not request.user.is_authenticated:
+                        grant_guest_access(request, donation)
+                    email_guest_recovery_link(donation, request)
+                messages.info(request, _('Donation amount saved. No payment has been taken. Follow the GCash instructions to transfer the exact amount.'))
+                return redirect('donations:payment_instructions', pk=donation.pk)
 
     context = {
         'campaign': campaign,
@@ -181,6 +200,7 @@ def campaign_detail(request, slug):
         'recent_donations': recent_donations,
         'updates': updates,
         'donation_stats': donation_stats,
+        'campaign_open': campaign_open,
     }
 
     # Use minimal template for unauthenticated users (no navbar)
@@ -192,50 +212,67 @@ def campaign_detail(request, slug):
 @login_required
 def donation_history(request):
     """View to display user's donation history"""
-    # Only show completed donations
-    donations = Donation.objects.filter(
-        donor=request.user,
-        status='completed'
-    ).select_related('campaign').order_by('-donation_date')
+    # Donors must be able to resume unpaid intents and track submitted proof.
+    donations = (Donation.objects.filter(donor=request.user)
+                 .exclude(status='cancelled')
+                 .select_related('campaign').order_by('-donation_date'))
 
     # Calculate statistics (only completed donations)
-    total_donated = donations.aggregate(
-        total=Sum('amount')
-    )['total'] or 0
-
-    campaigns_supported = donations.values('campaign').distinct().count()
+    completed = donations.filter(status='completed')
+    total_donated = completed.aggregate(total=Sum('amount'))['total'] or 0
+    campaigns_supported = completed.values('campaign').distinct().count()
 
     context = {
         'donations': donations,
         'total_donated': total_donated,
         'campaigns_supported': campaigns_supported,
+        'donation_count': donations.count(),
     }
 
     return render(request, 'donations/donation_history.html', context)
+
+@login_required
+@require_POST
+def cancel_donation(request, pk):
+    """Cancel only this donor's unpaid intent; retain record for audit/reconciliation.
+
+    Submitted proof must be reviewed instead of silently discarded. The row lock
+    prevents cancellation racing with proof submission or staff verification.
+    """
+    with transaction.atomic():
+        donation = get_object_or_404(
+            Donation.objects.select_for_update(), pk=pk, donor=request.user,
+        )
+        if donation.status != 'pending_payment' or donation.payment_proof or donation.reference_number:
+            messages.error(request, _('This donation cannot be cancelled after payment proof is submitted. Contact the alumni office if you already transferred funds.'))
+            return redirect('donations:donation_history')
+        donation.status = 'cancelled'
+        donation.save(update_fields=['status', 'updated_at'])
+    logger.info('Donor %s cancelled unpaid donation %s', request.user.pk, pk)
+    messages.success(request, _('Unpaid donation cancelled. It has been removed from your active donation history.'))
+    return redirect('donations:donation_history')
+
 
 def donation_confirmation(request, pk):
     """View to display donation confirmation"""
     donation = get_object_or_404(Donation, pk=pk)
 
-    # Security check - only allow viewing if:
-    # 1. User is the donor, or
-    # 2. User has the donor email (for non-authenticated users)
-    if request.user.is_authenticated:
-        if donation.donor and donation.donor != request.user:
-            messages.error(request, _('You do not have permission to view this donation.'))
-            return redirect('donations:campaign_list')
-    else:
-        # For non-authenticated users, require email verification
-        donor_email = request.session.get('donor_email')
-        if not donor_email or donor_email != donation.donor_email:
-            messages.error(request, _('You do not have permission to view this donation.'))
-            return redirect('donations:campaign_list')
+    assert_donation_access(request, donation)
 
     context = {
         'donation': donation,
     }
 
-    return render(request, 'donations/donation_confirmation.html', context)
+    if not request.user.is_authenticated:
+        template = 'donations/donor_status_guest.html'
+    elif can_manage_donations(request.user):
+        template = 'donations/donation_confirmation.html'
+    else:
+        template = 'donations/donor_status.html'
+    response = render(request, template, context)
+    response['Cache-Control'] = 'private, no-store'
+    response['Referrer-Policy'] = DONATION_REFERRER_POLICY
+    return response
 
 @login_required
 def campaign_donors(request, slug):
@@ -268,25 +305,30 @@ def campaign_donors(request, slug):
 @require_POST
 @login_required
 def update_donation_status(request, pk):
-    """AJAX view to update donation status"""
-    # Check if user is staff, admin, or alumni coordinator
+    """Audited status transitions for the administrative donation list."""
     if not can_manage_donations(request.user):
         return JsonResponse({'status': 'error', 'message': _('Permission denied')}, status=403)
-
-    donation = get_object_or_404(Donation, pk=pk)
     status = request.POST.get('status')
-
-    if status not in [choice[0] for choice in Donation.STATUS_CHOICES]:
-        return JsonResponse({'status': 'error', 'message': _('Invalid status')}, status=400)
-
-    donation.status = status
-    donation.save()
-
-    return JsonResponse({
-        'status': 'success',
-        'message': _('Donation status updated successfully'),
-        'new_status': donation.get_status_display()
-    })
+    transitions = {
+        'pending_payment': ('failed',),
+        'pending_verification': ('completed', 'failed', 'disputed'),
+        'completed': ('refunded', 'disputed'),
+        'disputed': ('completed', 'failed'),
+    }
+    with transaction.atomic():
+        donation = get_object_or_404(Donation.objects.select_for_update(), pk=pk)
+        if status not in transitions.get(donation.status, ()):
+            return JsonResponse({'status': 'error', 'message': 'Invalid donation status transition.'}, status=400)
+        if status == 'completed' and request.POST.get('gcash_reconciled') != 'yes':
+            return JsonResponse({'status': 'error', 'message': 'Confirm actual GCash receipt before approval.'}, status=400)
+        if status == 'completed' and (not donation.payment_proof or not donation.reference_number):
+            return JsonResponse({'status': 'error', 'message': 'GCash proof and reference number are required before approving.'}, status=400)
+        donation.status = status
+        donation.verified_by = request.user
+        donation.verification_date = timezone.now()
+        donation.save()
+    logger.info('Donation %s status updated to %s by staff %s', pk, status, request.user.pk)
+    return JsonResponse({'status': 'success', 'message': _('Donation status updated successfully'), 'new_status': donation.get_status_display()})
 
 @login_required
 def manage_donations(request):
@@ -963,436 +1005,119 @@ def manage_gcash(request):
     })
 
 
+@require_GET
+@never_cache
+@ensure_csrf_cookie
 def payment_instructions(request, pk):
-    """View to display GCash payment instructions and QR code"""
-    donation = get_object_or_404(Donation, pk=pk)
-
-    # Log payment instructions access
-    logger.info(
-        f"Payment instructions accessed: Donation ID={donation.id}, Campaign={donation.campaign.name if donation.campaign else None}",
-        extra={
-            'donation_id': donation.id,
-            'campaign_id': donation.campaign.id if donation.campaign else None,
-            'donation_status': donation.status,
-            'user_id': request.user.id if request.user.is_authenticated else None,
-            'is_authenticated': request.user.is_authenticated,
-            'action': 'payment_instructions_access'
-        }
-    )
-
-    # Security check - only allow viewing if:
-    # 1. User is the donor, or
-    # 2. User has the donor email (for non-authenticated users)
-    if request.user.is_authenticated:
-        if donation.donor and donation.donor != request.user:
-            logger.warning(
-                f"Unauthorized access attempt to payment instructions: Donation ID={donation.id}, User ID={request.user.id}",
-                extra={
-                    'donation_id': donation.id,
-                    'user_id': request.user.id,
-                    'action': 'unauthorized_access'
-                }
-            )
-            messages.error(request, _('You do not have permission to view this donation.'))
-            return redirect('donations:campaign_list')
-    else:
-        # For non-authenticated users, store email in session for later verification
-        if donation.donor_email:
-            request.session['donor_email'] = donation.donor_email
-
-    # Handle POST request for updating reference number and payment proof
-    if request.method == 'POST':
-        reference_number = request.POST.get('reference_number', '').strip()
-        payment_proof = request.FILES.get('payment_proof')
-        
-        # Validate required fields
-        if not reference_number:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'error': 'Reference number is required.'})
-            else:
-                messages.error(request, _('Reference number is required.'))
-                return redirect('donations:payment_instructions', pk=donation.pk)
-        
-        if not payment_proof:
-            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-                return JsonResponse({'success': False, 'error': 'Payment proof is required.'})
-            else:
-                messages.error(request, _('Payment proof is required.'))
-                return redirect('donations:payment_instructions', pk=donation.pk)
-        
-        # Get file size before saving
-        file_size = payment_proof.size if payment_proof else 0
-        
-        # Update the donation with both reference number and payment proof
-        donation.reference_number = reference_number
-        donation.payment_proof = payment_proof
-        donation.status = 'pending_verification'  # Change status to pending verification
-        donation.save()
-        
-        # Log payment proof submission with enhanced context
-        logger.info(
-            f"Payment proof submitted: Donation ID={donation.pk}, Reference={reference_number}",
-            extra={
-                'donation_id': donation.pk,
-                'campaign_id': donation.campaign.id if donation.campaign else None,
-                'campaign_name': donation.campaign.name if donation.campaign else None,
-                'reference_number': reference_number,
-                'file_size': file_size,
-                'file_name': payment_proof.name if payment_proof else None,
-                'donation_status': donation.status,
-                'user_id': request.user.id if request.user.is_authenticated else None,
-                'is_authenticated': request.user.is_authenticated,
-                'action': 'payment_proof_submission'
-            }
-        )
-        
-        # Refresh donation from database to ensure we have latest data
-        donation.refresh_from_db()
-        
-        # Get donor email address
-        donor_email = donation.donor.email if donation.donor else donation.donor_email
-        
-        # Explicitly send confirmation email after payment proof submission
-        logger.info(
-            f"Sending confirmation email for donation {donation.pk} after payment proof submission",
-            extra={
-                'donation_id': donation.pk,
-                'donation_status': donation.status,
-                'reference_number': reference_number,
-                'donor_email': donor_email,
-                'user_id': request.user.id if request.user.is_authenticated else None
-            }
-        )
-        
-        if not donor_email:
-            logger.error(
-                f"Cannot send email: No email address for donation {donation.pk}",
-                extra={
-                    'donation_id': donation.pk,
-                    'donation_donor': str(donation.donor) if donation.donor else None,
-                    'donation_donor_email': donation.donor_email,
-                    'error_type': 'missing_email',
-                    'action': 'email_send_failed'
-                }
-            )
-        else:
-            try:
-                from .email_utils import send_donation_confirmation_email
-                result = send_donation_confirmation_email(donation)
-                if result:
-                    logger.info(
-                        f"Confirmation email sent successfully to {donor_email} for donation {donation.pk}",
-                        extra={
-                            'donation_id': donation.pk,
-                            'donor_email': donor_email,
-                            'action': 'email_sent'
-                        }
-                    )
-                else:
-                    logger.error(
-                        f"Failed to send confirmation email to {donor_email} for donation {donation.pk}",
-                        extra={
-                            'donation_id': donation.pk,
-                            'donor_email': donor_email,
-                            'error_type': 'email_send_failed',
-                            'action': 'email_send_failed'
-                        }
-                    )
-            except Exception as e:
-                logger.error(
-                    f"Exception sending donation confirmation email after payment proof submission: {str(e)}",
-            exc_info=True,
-            extra={
-                        'donation_id': donation.pk,
-                        'donor_email': donor_email,
-                        'error_type': type(e).__name__}
-                )
-        
-        if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
-            return JsonResponse({
-                'success': True, 
-                'message': 'Donation completed successfully!',
-                'redirect_url': donation.campaign.get_absolute_url()
-            })
-        else:
-            messages.success(request, _('Donation completed successfully! You will receive an email confirmation once verified.'))
-            return redirect('donations:campaign_detail', slug=donation.campaign.slug)
-
-    # Get active GCash configuration
-    gcash_config = GCashConfig.get_active_config()
-    if not gcash_config or not gcash_config.qr_code_image:
-        messages.error(request, _('GCash payment is currently unavailable. Please try again later.'))
-        return redirect('donations:campaign_detail', slug=donation.campaign.slug)
-
-    context = {
-        'donation': donation,
-        'gcash_config': gcash_config,
-    }
-
-    # Use minimal template for unauthenticated users (no navbar)
-    if not request.user.is_authenticated:
-        return render(request, 'donations/payment_instructions_minimal.html', context)
-    else:
-        return render(request, 'donations/payment_instructions.html', context)
-
-
-def upload_payment_proof(request, pk):
-    """View to handle payment proof upload"""
-    donation = get_object_or_404(Donation, pk=pk)
-
-    # Security check
-    if request.user.is_authenticated:
-        if donation.donor and donation.donor != request.user:
-            messages.error(request, _('You do not have permission to access this donation.'))
-            return redirect('donations:campaign_list')
-    else:
-        # For non-authenticated users, check email in session
-        donor_email = request.session.get('donor_email')
-        if not donor_email or donor_email != donation.donor_email:
-            # For debugging, let's be more lenient and allow access if donation is recent
-            # This is a temporary fix to test the upload functionality
-            from django.utils import timezone
-            from datetime import timedelta
-            
-            # Allow access if donation was created within the last hour
-            if donation.created_at and donation.created_at > timezone.now() - timedelta(hours=1):
-                print("Allowing access due to recent donation creation")
-            else:
-                messages.error(request, _('You do not have permission to access this donation.'))
-                return redirect('donations:campaign_list')
-
-    # Log payment proof upload access
-    logger.info(
-        f"Payment proof upload accessed: Donation ID={donation.id}, Status={donation.status}",
-        extra={
-            'donation_id': donation.id,
-            'campaign_id': donation.campaign.id if donation.campaign else None,
-            'donation_status': donation.status,
-            'user_id': request.user.id if request.user.is_authenticated else None,
-            'is_authenticated': request.user.is_authenticated,
-            'action': 'payment_proof_upload_access'
-        }
-    )
-
-    # Check if donation is in correct status
+    """Read-only instructions for the already-created amount and recipient."""
+    donation = get_object_or_404(Donation.objects.select_related('campaign', 'campaign__gcash_config'), pk=pk)
+    assert_donation_access(request, donation)
+    if request.GET.get('access'):
+        # Strip capability tokens from URL/history and avoid leaking in Referer.
+        response = HttpResponseRedirect(reverse('donations:payment_instructions', kwargs={'pk': pk}))
+        response['Referrer-Policy'] = DONATION_REFERRER_POLICY
+        return response
     if donation.status != 'pending_payment':
-        logger.warning(
-            f"Payment proof upload attempted for already processed donation: Donation ID={donation.id}, Status={donation.status}",
-            extra={
-                'donation_id': donation.id,
-                'donation_status': donation.status,
-                'user_id': request.user.id if request.user.is_authenticated else None,
-                'action': 'invalid_status'
-            }
-        )
-        messages.warning(request, _('This donation has already been processed.'))
-        return redirect('donations:donation_confirmation', pk=donation.pk)
+        return redirect('donations:donation_confirmation', pk=pk)
+    payment = payment_display(donation)
+    if not payment['gcash_number'] or not payment['account_name']:
+        messages.error(request, _('Payment details are unavailable. Contact the alumni office.'))
+        return redirect('donations:donation_confirmation', pk=pk)
+    # Render a signed, donation-scoped next-step link for guests. Their cache
+    # session may be lost while they switch to GCash; never rely on IDs alone.
+    guest_proof_claim = None
+    if donation.donor_id is None:
+        from .payment_flow import signed_guest_token
+        guest_proof_claim = signed_guest_token(donation)
+    context = {'donation': donation, 'payment': payment,
+               'guest_proof_claim': guest_proof_claim}
+    template = ('donations/donor_payment_guest.html' if not request.user.is_authenticated else
+                'donations/donor_payment_staff.html' if can_manage_donations(request.user) else
+                'donations/donor_payment.html')
+    response = render(request, template, context)
+    response['Referrer-Policy'] = DONATION_REFERRER_POLICY
+    response['Cache-Control'] = 'private, no-store'
+    return response
 
+
+@never_cache
+@ensure_csrf_cookie
+def upload_payment_proof(request, pk):
+    """Single validated endpoint for donor GCash evidence (never direct payment)."""
+    donation = get_object_or_404(Donation, pk=pk)
+    assert_donation_access(request, donation)
+    if request.GET.get('access'):
+        return redirect('donations:upload_payment_proof', pk=pk)
+    if donation.status != 'pending_payment':
+        return redirect('donations:donation_confirmation', pk=pk)
+    form = PaymentProofForm(instance=donation)
     if request.method == 'POST':
-        # Get file information before processing
-        payment_proof_file = request.FILES.get('payment_proof')
-        file_size = payment_proof_file.size if payment_proof_file else 0
-        file_name = payment_proof_file.name if payment_proof_file else None
-        
-        logger.info(
-            f"Payment proof upload attempt: Donation ID={donation.id}, File={file_name}, Size={file_size} bytes",
-            extra={
-                'donation_id': donation.id,
-                'file_name': file_name,
-                'file_size': file_size,
-                'user_id': request.user.id if request.user.is_authenticated else None,
-                'action': 'payment_proof_upload_attempt'
-            }
-        )
-        
-        form = PaymentProofForm(request.POST, request.FILES, instance=donation)
-        
-        if not form.is_valid():
-            # Log form validation errors with detailed context
-            logger.warning(
-                f"Payment proof upload failed validation: Donation ID={donation.id}",
-                extra={
-                    'donation_id': donation.id,
-                    'form_errors': form.errors,
-                    'file_name': file_name,
-                    'file_size': file_size,
-                    'user_id': request.user.id if request.user.is_authenticated else None,
-                    'action': 'validation_failed'
-                }
-            )
-            
-            # Check if this is an AJAX request for SweetAlert response
-            is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
-                      request.headers.get('Content-Type') == 'application/json' or
-                      request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest')
-            
-            if is_ajax:
-                # Get the first error message
-                error_message = "Please correct the errors below."
-                for field, errors in form.errors.items():
-                    if errors:
-                        error_message = errors[0]
-                        break
-                
-                return JsonResponse({
-                    'success': False,
-                    'message': error_message
-                })
-        else:
-            try:
-                # Get file size after form validation
-                payment_proof_file = form.cleaned_data.get('payment_proof')
-                file_size = payment_proof_file.size if payment_proof_file else 0
-                file_name = payment_proof_file.name if payment_proof_file else None
-                
-                donation = form.save(commit=False)
-                donation.status = 'pending_verification'
-                donation.save()
-                
-                # Log successful payment proof upload with enhanced context
-                logger.info(
-                    f"Payment proof uploaded successfully: Donation ID={donation.pk}, File={file_name}, Size={file_size} bytes",
-                    extra={
-                        'donation_id': donation.pk,
-                        'campaign_id': donation.campaign.id if donation.campaign else None,
-                        'campaign_name': donation.campaign.name if donation.campaign else None,
-                        'file_name': file_name,
-                        'file_size': file_size,
-                        'reference_number': donation.reference_number,
-                        'donation_status': donation.status,
-                        'user_id': request.user.id if request.user.is_authenticated else None,
-                        'is_authenticated': request.user.is_authenticated,
-                        'action': 'payment_proof_upload_success'
-                    }
-                )
-
-                # Refresh donation from database to ensure we have latest data
-                donation.refresh_from_db()
-                
-                # Get donor email address
-                donor_email = donation.donor.email if donation.donor else donation.donor_email
-                
-                # Explicitly send confirmation email after payment proof submission
-                logger.info(
-                    f"Sending confirmation email for donation {donation.pk} after payment proof upload",
-                    extra={
-                        'donation_id': donation.pk,
-                        'donation_status': donation.status,
-                        'reference_number': donation.reference_number,
-                        'donor_email': donor_email,
-                        'user_id': request.user.id if request.user.is_authenticated else None
-                    }
-                )
-                
-                if not donor_email:
-                    logger.error(
-                        f"Cannot send email: No email address for donation {donation.pk}",
-                        extra={
-                            'donation_id': donation.pk,
-                            'donation_donor': str(donation.donor) if donation.donor else None,
-                            'donation_donor_email': donation.donor_email,
-                            'error_type': 'missing_email',
-                            'action': 'email_send_failed'
-                        }
-                    )
-                else:
-                    try:
-                        from .email_utils import send_donation_confirmation_email
-                        result = send_donation_confirmation_email(donation)
-                        if result:
-                            logger.info(
-                                f"Confirmation email sent successfully to {donor_email} for donation {donation.pk}",
-                                extra={
-                                    'donation_id': donation.pk,
-                                    'donor_email': donor_email,
-                                    'action': 'email_sent'
-                                }
-                            )
-                        else:
-                            logger.error(
-                                f"Failed to send confirmation email to {donor_email} for donation {donation.pk}",
-                                extra={
-                                    'donation_id': donation.pk,
-                                    'donor_email': donor_email,
-                                    'error_type': 'email_send_failed',
-                                    'action': 'email_send_failed'
-                                }
-                            )
-                    except Exception as e:
-                        logger.error(
-                            f"Exception sending donation confirmation email after payment proof upload: {str(e)}",
-            exc_info=True,
-            extra={
-                                'donation_id': donation.pk,
-                                'donor_email': donor_email,
-                                'error_type': type(e).__name__}
-                        )
-                        
-            except Exception as e:
-                logger.error(
-                    f"Error uploading payment proof: {str(e)}",
-            exc_info=True,
-            extra={
-                        'donation_id': donation.id,
-                        'file_name': file_name if 'file_name' in locals() else None,
-                        'file_size': file_size if 'file_size' in locals() else None,
-                        'user_id': request.user.id if request.user.is_authenticated else None,
-                        'error_type': type(e).__name__,
-                        'form_errors': form.errors if 'form' in locals() else None}
-                )
-                raise
-
-            # Run fraud detection
+        proof = None
+        with transaction.atomic():
+            locked = get_object_or_404(Donation.objects.select_for_update(), pk=pk)
+            assert_donation_access(request, locked)
+            if locked.status != 'pending_payment':
+                return redirect('donations:donation_confirmation', pk=pk)
+            # Bind the POST and uploaded file directly to the locked instance.
+            # Replacing form.instance after is_valid() discards the validated
+            # reference_number and payment_proof while advancing the status.
+            form = PaymentProofForm(request.POST, request.FILES, instance=locked)
+            if form.is_valid():
+                proof = form.save(commit=False)
+                proof.status = 'pending_verification'
+                proof.save()
+        if proof is not None:
+            # Fraud detection is advisory; verification still requires staff review.
             try:
                 from .fraud_detection import fraud_detector
-                fraud_alerts = fraud_detector.analyze_donation(donation, request)
-                print(f"Fraud detection completed, alerts: {len(fraud_alerts)}")
+                fraud_detector.analyze_donation(proof, request)
+            except Exception:
+                logger.exception('Fraud screening unavailable for donation %s', pk)
+            message = _('Payment proof submitted. Your donation is awaiting manual verification; no payment has been confirmed yet.')
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse({'success': True, 'message': str(message), 'redirect_url': reverse('donations:donation_confirmation', kwargs={'pk': pk})})
+            messages.success(request, message)
+            return redirect('donations:donation_confirmation', pk=pk)
+    if request.method == 'POST' and request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return JsonResponse({'success': False, 'message': 'Please correct the proof fields.', 'errors': form.errors}, status=400)
+    template = ('donations/donor_proof_guest.html' if not request.user.is_authenticated else
+                'donations/donor_proof_staff.html' if can_manage_donations(request.user) else
+                'donations/donor_proof.html')
+    # This capability is only placed in a rendered form after ownership has
+    # already been checked. Registered donors must still authenticate.
+    guest_proof_claim = None
+    if donation.donor_id is None:
+        from .payment_flow import signed_guest_token
+        guest_proof_claim = signed_guest_token(donation)
+    response = render(request, template, {
+        'donation': donation, 'form': form, 'guest_proof_claim': guest_proof_claim,
+    })
+    response['Cache-Control'] = 'private, no-store'
+    response['Referrer-Policy'] = DONATION_REFERRER_POLICY
+    return response
 
-                # If high-risk alerts are found, flag for manual review
-                high_risk_alerts = [alert for alert in fraud_alerts if alert.severity in ['high', 'critical']]
-                if high_risk_alerts:
-                    donation.status = 'disputed'  # Flag for manual review
-                    donation.save()
-                    print(f"Donation flagged for review: status={donation.status}")
 
-                    success_message = _('Your donation has been flagged for manual review. Our team will verify it within 24 hours. Thank you for your generous contribution!')
-                else:
-                    success_message = _('Payment proof uploaded successfully! Your donation will be verified within 24 hours. Thank you for your generous contribution to our cause!')
-            except Exception as e:
-                print(f"Fraud detection error: {e}")
-                success_message = _('Payment proof uploaded successfully! Your donation will be verified within 24 hours. Thank you for your generous contribution!')
-
-            print(f"Success message: {success_message}")
-            
-            # Check if this is an AJAX request for SweetAlert response
-            is_ajax = (request.headers.get('X-Requested-With') == 'XMLHttpRequest' or 
-                      request.headers.get('Content-Type') == 'application/json' or
-                      request.META.get('HTTP_X_REQUESTED_WITH') == 'XMLHttpRequest')
-            
-            if is_ajax:
-                print("Returning JSON response for SweetAlert")
-                return JsonResponse({
-                    'success': True,
-                    'message': success_message,
-                    'redirect_url': reverse('donations:donation_confirmation', kwargs={'pk': donation.pk})
-                })
-            else:
-                messages.success(request, success_message)
-                print(f"Redirecting to donation confirmation page")
-                return redirect('donations:donation_confirmation', pk=donation.pk)
-    else:
-        form = PaymentProofForm(instance=donation)
-
-    context = {
-        'donation': donation,
-        'form': form,
-    }
-
-    # Use minimal template for unauthenticated users (no navbar)
-    if not request.user.is_authenticated:
-        return render(request, 'donations/upload_payment_proof_minimal.html', context)
-    else:
-        return render(request, 'donations/upload_payment_proof.html', context)
+@login_required
+@require_GET
+@never_cache
+def view_payment_proof(request, pk):
+    """Admin/coordinator-only download; new files use private storage."""
+    if not can_manage_donations(request.user):
+        raise PermissionDenied
+    donation = get_object_or_404(Donation, pk=pk)
+    if not donation.payment_proof:
+        raise Http404
+    try:
+        file_handle = donation.payment_proof.open('rb')
+    except (OSError, FileNotFoundError):
+        raise Http404
+    import mimetypes
+    mime_type = mimetypes.guess_type(donation.payment_proof.name)[0] or 'application/octet-stream'
+    response = FileResponse(file_handle, content_type=mime_type)
+    response['Content-Disposition'] = 'inline; filename="donation-proof"'
+    response['Cache-Control'] = 'no-store, private'
+    response['X-Content-Type-Options'] = 'nosniff'
+    return response
 
 
 @login_required
@@ -1518,72 +1243,26 @@ def verification_dashboard(request):
 @login_required
 @require_POST
 def verify_donation(request, pk):
-    """AJAX view to verify a donation"""
-    # Check if user is staff, admin, or alumni coordinator
+    """Manual review of a received GCash transaction (staff-only)."""
     if not can_manage_donations(request.user):
-        return JsonResponse({'status': 'error', 'message': _('Permission denied.')})
-
-    donation = get_object_or_404(Donation, pk=pk)
-    
-    old_status = donation.status
-
-    form = DonationVerificationForm(request.POST, instance=donation)
-    if form.is_valid():
-        try:
-            donation = form.save(commit=False)
-            donation.verified_by = request.user
-            donation.verification_date = timezone.now()
-            donation.save()
-
-            # Log donation verification
-            logger.info(
-                f"Donation verified: Donation ID={donation.id}, Status changed from {old_status} to {donation.status}",
-                extra={
-                    'donation_id': donation.id,
-                    'campaign_id': donation.campaign.id if donation.campaign else None,
-                    'campaign_name': donation.campaign.name if donation.campaign else None,
-                    'old_status': old_status,
-                    'new_status': donation.status,
-                    'verified_by_id': request.user.id,
-                    'amount': float(donation.amount) if donation.amount else None
-                }
-            )
-
-            return JsonResponse({
-                'status': 'success',
-                'message': _('Donation verified successfully.'),
-                'new_status': donation.get_status_display()
-            })
-        except Exception as e:
-            logger.error(
-                f"Error verifying donation: {str(e)}",
-            exc_info=True,
-            extra={
-                    'donation_id': donation.id,
-                    'user_id': request.user.id,
-                    'error_type': type(e).__name__}
-            )
-            return JsonResponse({
-                'status': 'error',
-                'message': _('Error verifying donation.'),
-                'errors': {'__all__': [str(e)]}
-            })
-    else:
-        logger.warning(
-            f"Donation verification failed: Invalid form data for Donation ID={donation.id}",
-            extra={
-                'donation_id': donation.id,
-                'user_id': request.user.id,
-                'form_errors': form.errors
-            }
-        )
-        return JsonResponse({
-            'status': 'error',
-            'message': _('Invalid form data.'),
-            'errors': form.errors
-        })
-
-
+        return JsonResponse({'status': 'error', 'message': _('Permission denied.')}, status=403)
+    with transaction.atomic():
+        donation = get_object_or_404(Donation.objects.select_for_update(), pk=pk)
+        if donation.status != 'pending_verification':
+            return JsonResponse({'status': 'error', 'message': 'Donation is no longer awaiting verification.'}, status=409)
+        form = DonationVerificationForm(request.POST, instance=donation)
+        if not form.is_valid():
+            return JsonResponse({'status': 'error', 'message': _('Invalid verification data.'), 'errors': form.errors}, status=400)
+        result = form.save(commit=False)
+        if result.status == 'completed' and request.POST.get('gcash_reconciled') != 'yes':
+            return JsonResponse({'status': 'error', 'message': 'Confirm the actual GCash credit before approval.'}, status=400)
+        if result.status == 'completed' and (not donation.payment_proof or not donation.reference_number):
+            return JsonResponse({'status': 'error', 'message': 'Cannot approve without receipt proof and reference number.'}, status=400)
+        result.verified_by = request.user
+        result.verification_date = timezone.now()
+        result.save()
+    logger.info('Donation %s reviewed with status %s by staff %s', pk, result.status, request.user.pk)
+    return JsonResponse({'status': 'success', 'message': _('Donation review recorded.'), 'new_status': result.get_status_display()})
 
 
 @login_required
@@ -1616,22 +1295,25 @@ def bulk_verify_donations(request):
 
         if action not in ['completed', 'failed', 'disputed']:
             return JsonResponse({'status': 'error', 'message': 'Invalid action'})
-
-        # Get donations to update
-        donations = Donation.objects.filter(
-            id__in=donation_ids,
-            status='pending_verification'
-        )
+        if action == 'completed' and request.POST.get('gcash_reconciled') != 'yes':
+            return JsonResponse({'status': 'error', 'message': 'Confirm actual GCash receipts before bulk approval.'}, status=400)
 
         processed_count = 0
-        for donation in donations:
-            donation.status = action
-            donation.verified_by = request.user
-            donation.verification_date = timezone.now()
-            if notes:
-                donation.verification_notes = notes
-            donation.save()
-            processed_count += 1
+        skipped_count = 0
+        with transaction.atomic():
+            donations = Donation.objects.select_for_update().filter(
+                id__in=donation_ids, status='pending_verification')
+            for donation in donations:
+                if action == 'completed' and (not donation.payment_proof or not donation.reference_number):
+                    skipped_count += 1
+                    continue
+                donation.status = action
+                donation.verified_by = request.user
+                donation.verification_date = timezone.now()
+                if notes:
+                    donation.verification_notes = notes
+                donation.save()
+                processed_count += 1
 
         # Log bulk operation completion
         logger.info(
@@ -1647,7 +1329,8 @@ def bulk_verify_donations(request):
         return JsonResponse({
             'status': 'success',
             'processed_count': processed_count,
-            'message': f'Successfully processed {processed_count} donations'
+            'skipped_count': skipped_count,
+            'message': f'Processed {processed_count} donations; {skipped_count} missing receipt proof or reference'
         })
 
     except Exception as e:

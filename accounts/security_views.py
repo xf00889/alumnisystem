@@ -170,7 +170,8 @@ def custom_signup_view(request):
                 # Don't auto-login, redirect to email verification instead
                 messages.success(request, 'Account created successfully! Please check your email for verification.')
                 
-                # Redirect to email verification page (not post-registration)
+                # Bind verification to the account created in this session.
+                request.session['pending_verification_user_id'] = user.pk
                 return redirect('accounts:verify_email')
                 
             except Exception as e:
@@ -273,9 +274,11 @@ NORSU Alumni Network Team
                 # Log account creation
                 SecurityAuditLogger.log_account_creation(user.email, request.META.get('REMOTE_ADDR'))
                 
+                request.session['pending_verification_user_id'] = user.pk
+                request.session.pop('inactive_account_email', None)
                 messages.success(request, 'Account created successfully! Please check your email for verification code.')
                 # Pass the email to the verification page
-                return redirect(f'/accounts/verify-email/?email={user.email}')
+                return redirect('accounts:verify_email')
                 
             except Exception as e:
                 logger.error(f"Signup error: {str(e)}", exc_info=True)
@@ -295,13 +298,39 @@ NORSU Alumni Network Team
         return redirect('accounts:custom_login')
 
 
+
+def _pending_verification_user(request):
+    """Resolve the unverified account from a server-controlled session, never URL/POST email.
+
+    The legacy inactive-account session key is set only after an attempted login
+    has been authenticated by the account adapter. Convert it to a canonical ID.
+    """
+    user_id = request.session.get('pending_verification_user_id')
+    if user_id is not None:
+        user = User.objects.filter(pk=user_id, is_active=False).first()
+        if user:
+            return user
+
+    login_email = request.session.get('inactive_account_email')
+    if login_email:
+        user = User.objects.filter(email__iexact=login_email, is_active=False).first()
+        if user:
+            request.session['pending_verification_user_id'] = user.pk
+            return user
+    return None
+
+
 def verify_email(request):
     """Email verification view with comprehensive security logging"""
-    email = ''  # Initialize email variable
-    form = None  # Initialize form variable
+    user = _pending_verification_user(request)
+    if user is None:
+        messages.warning(request, 'Please sign in or register again to verify your email address.')
+        return redirect('account_login')
+    email = user.email
+    form = None
     
     # Check if user was redirected from inactive login attempt
-    from_inactive_login = request.session.pop('inactive_account_email', None)
+    from_inactive_login = request.session.get('inactive_account_email')
     if from_inactive_login and not request.method == 'POST':
         # User tried to login but account is not verified
         messages.info(
@@ -310,9 +339,9 @@ def verify_email(request):
         )
     
     if request.method == 'POST':
-        form = EmailVerificationForm(request.POST)
+        form = EmailVerificationForm(request.POST, verified_email=email)
         if form.is_valid():
-            email = form.cleaned_data['email']
+            # The email identity is bound to the signup/login session, not form data.
             verification_code = form.cleaned_data['verification_code']
             
             # Log verification attempt for security audit
@@ -327,7 +356,6 @@ def verify_email(request):
             
             if is_valid:
                 try:
-                    user = User.objects.get(email=email)
                     user.is_active = True
                     user.save()
                     
@@ -341,6 +369,8 @@ def verify_email(request):
                     
                     # Auto-login the user with secure session
                     login(request, user, backend='accounts.backends.CustomModelBackend')
+                    request.session.pop('pending_verification_user_id', None)
+                    request.session.pop('inactive_account_email', None)
                     
                     # Ensure session security settings
                     request.session.set_expiry(settings.SESSION_COOKIE_AGE if hasattr(settings, 'SESSION_COOKIE_AGE') else 1209600)  # 2 weeks default
@@ -391,17 +421,9 @@ def verify_email(request):
                     details={'email': email, 'reason': message}
                 )
                 messages.error(request, message)
-        else:
-            # Form is invalid, try to get email from POST data for context
-            email = request.POST.get('email', '')
-    else:
-        # Get email from URL parameter if available
-        email = request.GET.get('email', '')
-    
-    # If form wasn't created in POST (or was invalid), create it with email pre-filled
-    if form is None or not form.is_valid():
-        initial_data = {'email': email} if email else {}
-        form = EmailVerificationForm(initial=initial_data)
+    # Never fall back to a query parameter or POSTed email. Retain form errors.
+    if form is None:
+        form = EmailVerificationForm(verified_email=email)
     
     # Use existing verify email template
     return render(request, 'accounts/verify_email.html', {'form': form, 'user_email': email})
@@ -410,7 +432,13 @@ def verify_email(request):
 def resend_verification_code(request):
     """Resend verification code with enhanced security"""
     if request.method == 'POST':
-        email = request.POST.get('email')
+        user = _pending_verification_user(request)
+        if user is None:
+            return JsonResponse({
+                'success': False,
+                'error': 'Verification session expired. Please sign in again.'
+            }, status=403)
+        email = user.email
         if email:
             # Log verification attempt for security audit
             SecurityAuditLogger.log_event(
@@ -433,7 +461,6 @@ def resend_verification_code(request):
                 })
             
             try:
-                user = User.objects.get(email=email)
                 if user.is_active:
                     SecurityAuditLogger.log_event(
                         'resend_verification_already_active',
@@ -544,7 +571,8 @@ NORSU Alumni Network Team
 def check_resend_countdown(request):
     """Check if user can resend verification code"""
     if request.method == 'POST':
-        email = request.POST.get('email')
+        pending_user = _pending_verification_user(request)
+        email = pending_user.email if pending_user else None
         if email:
             can_resend = not RateLimiter.is_rate_limited(email, 'resend_verification')
             return JsonResponse({
@@ -927,12 +955,9 @@ def check_password_reset_countdown(request):
 def resend_verification_from_inactive(request):
     """Resend verification email from inactive account page with comprehensive error handling"""
     if request.method == 'POST':
-        # Try to get email from session first (set during login attempt)
-        email = request.session.get('inactive_account_email')
-        
-        # If not in session, try to get from POST
-        if not email:
-            email = request.POST.get('email')
+        # Never accept a client-selected verification recipient.
+        pending_user = _pending_verification_user(request)
+        email = pending_user.email if pending_user else None
         
         # Error Case 1: User Not Found (generic message for security)
         if not email:
@@ -1049,7 +1074,7 @@ NORSU Alumni Network Team
             return JsonResponse({
                 'success': True,
                 'message': 'Verification email sent successfully! Please check your inbox.',
-                'redirect_url': f'/accounts/verify-email/?email={email}'
+                'redirect_url': '/accounts/verify-email/'
             })
             
         except User.DoesNotExist:
@@ -1137,29 +1162,23 @@ def enhanced_password_reset(request):
     return redirect('accounts:password_reset_email')
 
 
+@login_required
+@ratelimit(key='user', rate='5/15m', method='POST', block=True)
 def change_password(request):
-    """Change password view for logged-in users"""
-    if not request.user.is_authenticated:
-        return redirect('account_login')
-    
-    if request.method == 'POST':
-        form = PasswordResetNewPasswordForm(request.POST)
-        if form.is_valid():
-            request.user.set_password(form.cleaned_data['new_password1'])
-            request.user.save()
-            
-            # Log password change
-            SecurityAuditLogger.log_event(
-                'password_change_success',
-                user=request.user,
-                ip_address=request.META.get('REMOTE_ADDR')
-            )
-            
-            messages.success(request, 'Password changed successfully!')
-            return redirect('accounts:profile_detail')
-    else:
-        form = PasswordResetNewPasswordForm()
-    
+    """Legacy endpoint still requires current password; never reuse reset forms here."""
+    from django.contrib.auth import update_session_auth_hash
+    from .staff_account_forms import StaffPasswordChangeForm
+    from .staff_profile_views import has_staff_workspace
+
+    form = StaffPasswordChangeForm(request.user, request.POST or None)
+    if request.method == 'POST' and form.is_valid():
+        user = form.save()
+        update_session_auth_hash(request, user)
+        SecurityAuditLogger.log_event('password_change_success', user=user,
+                                      ip_address=request.META.get('REMOTE_ADDR'))
+        messages.success(request, 'Password changed successfully.')
+        return redirect('accounts:staff_profile' if has_staff_workspace(user)
+                        else 'accounts:profile_detail')
     return render(request, 'accounts/change_password.html', {'form': form})
 
 

@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends alumni_page_base|default:'base.html' %}
+{% load static %}
 {% load i18n %}
 {% load crispy_forms_tags %}
 
@@ -12,1176 +13,21 @@
 {% endblock %}
 
 {% block extra_css %}
-<style>
-    /* Core variables */
-    :root {
-        --primary-color: #2b3c6b;
-        --primary-dark: #1a2544;
-        --text-primary: #2c3e50;
-        --text-secondary: #6c757d;
-        --border-radius: 20px;
-        --spacing-unit: 1rem;
-    }
-
-    /* Profile Edit Header */
-    .profile-edit {
-        background: var(--primary-color);
-        padding: 2.5rem 0;
-        position: relative;
-        margin-bottom: 3rem;
-    }
-
-    .edit-title {
-        color: white;
-        font-size: 2rem;
-        font-weight: 700;
-        margin-bottom: 0.5rem;
-        text-align: center;
-    }
-
-    .edit-subtitle {
-        color: rgba(255,255,255,0.9);
-        font-size: 1rem;
-        text-align: center;
-        margin: 0;
-    }
-
-    /* Content Layout */
-    .edit-content {
-        position: relative;
-        z-index: 2;
-        padding-bottom: 4rem;
-    }
-
-    .edit-card {
-        background: white;
-        border-radius: var(--border-radius);
-        box-shadow: 0 10px 30px rgba(0,0,0,0.05);
-        padding: calc(var(--spacing-unit) * 2);
-        margin-bottom: calc(var(--spacing-unit) * 2);
-        border: 1px solid rgba(0,0,0,0.05);
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
-    }
-
-    .edit-card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 15px 35px rgba(0,0,0,0.1);
-    }
-
-    .edit-card h3 {
-        color: var(--primary-color);
-        font-size: 1.5rem;
-        font-weight: 700;
-        margin-bottom: calc(var(--spacing-unit) * 1.5);
-        padding-bottom: var(--spacing-unit);
-        border-bottom: 2px solid rgba(43, 60, 107, 0.1);
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .edit-card h3 i {
-        color: var(--primary-color);
-        opacity: 0.8;
-    }
-
-    /* Accordion Styling */
-    .accordion-item {
-        border: none;
-        margin-bottom: 1.5rem;
-        border-radius: var(--border-radius) !important;
-        box-shadow: 0 5px 15px rgba(0,0,0,0.05);
-    }
-
-    .accordion-button {
-        background: white;
-        color: var(--primary-color);
-        font-size: 1.3rem;
-        font-weight: 700;
-        padding: 1.5rem 2rem;
-        border: none;
-        box-shadow: none;
-        border-radius: var(--border-radius) var(--border-radius) 0 0 !important;
-    }
-
-    .accordion-button.collapsed {
-        border-radius: var(--border-radius) !important;
-    }
-
-    .accordion-button:not(.collapsed) {
-        background: var(--primary-color);
-        color: white;
-        box-shadow: none;
-    }
-
-    .accordion-button:focus {
-        box-shadow: none;
-        border: none;
-    }
-
-    .accordion-button::after {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%232b3c6b'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    }
-
-    .accordion-button:not(.collapsed)::after {
-        background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='white'%3e%3cpath fill-rule='evenodd' d='M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708z'/%3e%3c/svg%3e");
-    }
-
-    .accordion-body {
-        padding: 2rem;
-        background: white;
-        border-radius: 0 0 var(--border-radius) var(--border-radius) !important;
-    }
-
-    .section-icon {
-        margin-right: 0.75rem;
-        font-size: 1.2rem;
-    }
-
-    .section-badge {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        margin-left: 0.5rem;
-        font-weight: 600;
-    }
-
-    .badge-required {
-        background: #dc3545;
-        color: white;
-    }
-
-    .badge-optional {
-        background: #6c757d;
-        color: white;
-    }
-
-    .badge-count {
-        background: var(--primary-color);
-        color: white;
-    }
-
-    /* Form Styling */
-    .formset-item {
-        background: rgba(43, 60, 107, 0.02);
-        border: 1px solid rgba(43, 60, 107, 0.1);
-        border-radius: 15px;
-        padding: 1.5rem;
-        padding-right: 6rem; /* Even more space for delete button */
-        margin-bottom: 1.5rem;
-        position: relative;
-        transition: all 0.3s ease;
-        min-height: 160px; /* Further increased minimum height */
-    }
-
-    .formset-item:hover {
-        background: rgba(43, 60, 107, 0.03);
-        border-color: rgba(43, 60, 107, 0.2);
-    }
-
-    .formset-item .delete-row {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-    }
-
-    /* Style for existing Django formset delete checkboxes */
-    .formset-item .delete-row .form-check {
-        padding: 0;
-        margin: 0;
-    }
-
-    .formset-item .delete-row .form-check-label {
-        display: none;
-    }
-
-    .formset-item .delete-row .form-check-input {
-        display: none;
-    }
-
-    /* Create delete button for existing formsets */
-    .formset-item .delete-row::after {
-        content: '\f2ed';
-        font-family: 'Font Awesome 5 Free';
-        font-weight: 900;
-        color: #dc3545;
-        font-size: 1rem;
-        cursor: pointer;
-        transition: all 0.3s ease;
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        z-index: 10;
-        background: #fff;
-        border: 1px solid #dc3545;
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-    }
-
-    .formset-item .delete-row:hover::after {
-        color: #fff;
-        background-color: #dc3545;
-        transform: scale(1.1);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-    }
-
-    /* Styles for dynamically created delete buttons (with .btn class) */
-    .formset-item .delete-row {
-        position: absolute;
-        top: 1rem;
-        right: 1rem;
-        z-index: 10;
-        display: block !important;
-    }
-
-    .formset-item .delete-row .btn {
-        border-radius: 50%;
-        width: 40px;
-        height: 40px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 0;
-        transition: all 0.3s ease;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15);
-        border: 1px solid #dc3545;
-        background-color: #fff;
-        color: #dc3545;
-        margin: 0;
-    }
-
-    .formset-item .delete-row .btn:hover {
-        transform: scale(1.1);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-        background-color: #dc3545;
-        color: #fff;
-    }
-
-    .formset-item .delete-row .btn i {
-        font-size: 1rem;
-    }
-
-    /* Ensure form fields don't interfere with delete button */
-    .formset-item .row {
-        margin-right: 0;
-        max-width: calc(100% - 3rem); /* Leave adequate space for delete button */
-    }
-
-    .formset-item .col-md-6:last-child {
-        padding-right: 0;
-    }
-
-    /* Make sure form controls don't extend into delete button area */
-    .formset-item .form-control,
-    .formset-item .form-select {
-        max-width: 100%;
-        margin-right: 0;
-        width: 100%;
-    }
-
-    /* Specific positioning for form fields to avoid delete button */
-    .formset-item .col-md-6 {
-        max-width: calc(50% - 0.5rem);
-        margin-right: 0;
-    }
-
-    /* Ensure dropdowns don't extend into delete button area */
-    .formset-item .form-select {
-        background-position: right 0.75rem center;
-        padding-right: 2rem;
-    }
-
-    .add-form {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: calc(var(--spacing-unit) * 1.2);
-        border: 2px dashed rgba(43, 60, 107, 0.2);
-        border-radius: 15px;
-        color: var(--primary-color);
-        text-decoration: none;
-        transition: all 0.3s ease;
-        font-weight: 600;
-        gap: 0.5rem;
-    }
-
-    .add-form:hover {
-        background: rgba(43, 60, 107, 0.05);
-        border-color: var(--primary-color);
-        color: var(--primary-color);
-    }
-
-    .add-form i {
-        font-size: 1.2rem;
-    }
-
-    /* Avatar Upload Section */
-    .avatar-upload-section {
-        text-align: center;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .current-avatar {
-        width: 150px;
-        height: 150px;
-        margin: 0 auto;
-        position: relative;
-        border-radius: 50%;
-        overflow: hidden;
-        background-color: #f8f9fa;
-        border: 3px solid #4e73df;
-    }
-
-    .avatar-preview {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-    }
-
-    .no-avatar {
-        width: 100%;
-        height: 100%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        background-color: #e9ecef;
-    }
-
-    .no-avatar i {
-        font-size: 4rem;
-        color: #adb5bd;
-    }
-
-    .avatar-controls {
-        margin-top: 1rem;
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-    }
-
-    #id_avatar {
-        display: none;
-    }
-
-    /* Optional Section Styling */
-    .optional-section {
-        position: relative;
-        padding-top: 1rem;
-    }
-
-    .optional-badge {
-        position: absolute;
-        top: -12px;
-        right: -12px;
-        background: var(--primary-color);
-        color: white;
-        padding: 0.25rem 0.75rem;
-        border-radius: 20px;
-        font-size: 0.8rem;
-        font-weight: 600;
-        z-index: 1;
-    }
-
-    .document-upload {
-        position: relative;
-        border: 2px dashed rgba(43, 60, 107, 0.2);
-        border-radius: 15px;
-        padding: calc(var(--spacing-unit) * 2);
-        text-align: center;
-        transition: all 0.3s ease;
-    }
-
-    .document-upload:hover {
-        border-color: var(--primary-color);
-        background: rgba(43, 60, 107, 0.02);
-    }
-
-    .document-upload i {
-        font-size: 3rem;
-        color: var(--primary-color);
-        margin-bottom: calc(var(--spacing-unit) * 1.2);
-        opacity: 0.8;
-    }
-
-    .document-upload p {
-        color: var(--text-secondary);
-        margin-bottom: 1rem;
-    }
-
-    /* Form Controls */
-    .form-control {
-        border-radius: 10px;
-        border: 1px solid rgba(0,0,0,0.1);
-        padding: 0.8rem 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-control:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
-    }
-
-    .form-select {
-        border-radius: 10px;
-        border: 1px solid rgba(0,0,0,0.1);
-        padding: 0.8rem 1rem;
-        transition: all 0.3s ease;
-    }
-
-    .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 0.2rem rgba(43, 60, 107, 0.15);
-    }
-
-    textarea.form-control {
-        min-height: 120px;
-    }
-
-    /* Placeholder Styles */
-    .form-control::placeholder,
-    .form-select::placeholder,
-    textarea::placeholder {
-        color: #6c757d;
-        font-style: italic;
-        opacity: 0.7;
-    }
-
-    .form-control:focus::placeholder,
-    .form-select:focus::placeholder,
-    textarea:focus::placeholder {
-        opacity: 0.5;
-    }
-
-    /* Action Buttons */
-    .btn-save {
-        background: var(--primary-color);
-        color: white;
-        border-radius: 50px;
-        padding: 1rem 2.5rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-        box-shadow: 0 4px 15px rgba(43, 60, 107, 0.2);
-    }
-
-    .btn-save:hover {
-        background: var(--primary-dark);
-        color: white;
-        transform: translateY(-3px);
-        box-shadow: 0 6px 20px rgba(43, 60, 107, 0.3);
-    }
-
-    .btn-cancel {
-        background: transparent;
-        color: var(--primary-color);
-        border: 2px solid var(--primary-color);
-        border-radius: 50px;
-        padding: 1rem 2.5rem;
-        font-weight: 600;
-        transition: all 0.3s ease;
-    }
-
-    .btn-cancel:hover {
-        background: rgba(43, 60, 107, 0.05);
-        transform: translateY(-3px);
-    }
-
-    /* Responsive Adjustments */
-    @media (max-width: 768px) {
-        body {
-            font-size: 0.875rem !important;
-        }
-
-        /* Header adjustments */
-        .profile-edit {
-            padding: 1.5rem 0 !important;
-            margin-bottom: 1.5rem !important;
-        }
-
-        .edit-title {
-            font-size: 1.25rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-
-        .edit-subtitle {
-            font-size: 0.8125rem !important;
-        }
-
-        /* Content spacing */
-        .edit-content {
-            padding-bottom: 1.5rem !important;
-        }
-
-        .edit-card {
-            padding: 1.25rem !important;
-            margin-bottom: 1.25rem !important;
-        }
-
-        .edit-card h3 {
-            font-size: 1.125rem !important;
-            margin-bottom: 1rem !important;
-            padding-bottom: 0.75rem !important;
-        }
-
-        /* Accordion improvements */
-        .accordion-button {
-            font-size: 1rem !important;
-            padding: 1rem 1.25rem !important;
-        }
-
-        .section-icon {
-            font-size: 0.9rem !important;
-            margin-right: 0.5rem !important;
-        }
-
-        .section-badge {
-            font-size: 0.625rem !important;
-            padding: 0.2rem 0.5rem !important;
-            margin-left: 0.25rem !important;
-        }
-
-        .accordion-body {
-            padding: 1rem !important;
-        }
-
-        /* Avatar section */
-        .current-avatar {
-            width: 100px !important;
-            height: 100px !important;
-            margin: 0 auto !important;
-        }
-
-        .avatar-controls {
-            flex-direction: column;
-            gap: 0.75rem;
-            width: 100%;
-            max-width: 300px;
-            margin: 1rem auto 0;
-        }
-
-        .avatar-controls .btn {
-            width: 100%;
-            max-width: 250px;
-            font-size: 0.875rem !important;
-            margin: 0 !important;
-        }
-
-        .avatar-controls label.btn {
-            margin-right: 0 !important;
-        }
-
-        /* Form fields - stack on mobile */
-        .formset-item {
-            padding: 1rem !important;
-            padding-right: 1rem !important;
-            min-height: auto !important;
-        }
-
-        .formset-item .row {
-            max-width: 100%;
-        }
-
-        .formset-item .col-md-6 {
-            max-width: 100%;
-            margin-bottom: 0.75rem;
-        }
-
-        /* Delete button repositioning for mobile */
-        .formset-item .delete-row {
-            position: static;
-            display: flex;
-            justify-content: center;
-            margin-top: 1rem;
-            padding-top: 1rem;
-            border-top: 1px solid rgba(43, 60, 107, 0.1);
-        }
-
-        .formset-item .delete-row::after {
-            position: static;
-            margin: 0;
-        }
-
-        .formset-item .delete-row .btn {
-            position: static;
-            width: 100%;
-            max-width: 200px;
-            border-radius: 10px;
-            height: auto;
-            padding: 0.5rem 1rem;
-        }
-
-        /* Add form button */
-        .add-form {
-            padding: 1rem !important;
-            font-size: 0.875rem !important;
-        }
-
-        /* Document sections */
-        .document-section {
-            padding: 1rem !important;
-        }
-
-        .document-title {
-            font-size: 0.9375rem !important;
-        }
-
-        .document-upload {
-            padding: 1.25rem 1rem !important;
-        }
-
-        .document-upload i {
-            font-size: 2rem !important;
-            margin-bottom: 1rem !important;
-        }
-
-        .document-upload p {
-            font-size: 0.8125rem !important;
-        }
-
-        /* Action buttons */
-        .btn-save,
-        .btn-cancel {
-            width: 100%;
-            margin-bottom: 0.75rem;
-            padding: 0.875rem 1.5rem !important;
-            font-size: 0.875rem !important;
-        }
-
-        .btn-save {
-            margin-right: 0 !important;
-        }
-
-        /* Form controls - better touch targets */
-        .form-control,
-        .form-select {
-            font-size: 0.875rem !important;
-            padding: 0.75rem !important;
-            min-height: 44px !important;
-        }
-
-        .form-label,
-        label {
-            font-size: 0.875rem !important;
-        }
-
-        textarea.form-control {
-            min-height: 100px !important;
-        }
-
-        /* Loading overlay text */
-        .loading-text {
-            font-size: 0.875rem !important;
-        }
-
-        /* Alert messages */
-        .alert {
-            font-size: 0.875rem !important;
-            padding: 0.75rem !important;
-        }
-
-        .alert-heading {
-            font-size: 0.9375rem !important;
-        }
-    }
-
-    @media (max-width: 576px) {
-        body {
-            font-size: 0.8125rem !important;
-        }
-
-        /* Extra small devices */
-        .profile-edit {
-            padding: 1rem 0 !important;
-            margin-bottom: 1rem !important;
-        }
-
-        .edit-title {
-            font-size: 1.125rem !important;
-        }
-
-        .edit-subtitle {
-            font-size: 0.75rem !important;
-        }
-
-        .edit-card {
-            padding: 1rem !important;
-            margin-bottom: 1rem !important;
-        }
-
-        .edit-card h3 {
-            font-size: 1rem !important;
-            margin-bottom: 0.875rem !important;
-            padding-bottom: 0.625rem !important;
-        }
-
-        .accordion-button {
-            font-size: 0.9375rem !important;
-            padding: 0.875rem 1rem !important;
-        }
-
-        .section-icon {
-            font-size: 0.875rem !important;
-        }
-
-        .section-badge {
-            display: block;
-            margin-left: 0;
-            margin-top: 0.25rem;
-            width: fit-content;
-            font-size: 0.625rem !important;
-        }
-
-        .accordion-body {
-            padding: 0.875rem !important;
-        }
-
-        .current-avatar {
-            width: 80px !important;
-            height: 80px !important;
-            margin: 0 auto !important;
-        }
-
-        .no-avatar i {
-            font-size: 2.5rem !important;
-        }
-
-        /* Tighter spacing for small screens */
-        .formset-item {
-            padding: 0.875rem !important;
-            margin-bottom: 1rem !important;
-        }
-
-        .add-form {
-            padding: 0.875rem !important;
-            font-size: 0.8125rem !important;
-        }
-
-        .document-upload {
-            padding: 1rem 0.75rem !important;
-        }
-
-        .document-upload i {
-            font-size: 1.75rem !important;
-        }
-
-        .document-upload p {
-            font-size: 0.75rem !important;
-        }
-
-        .btn-save,
-        .btn-cancel {
-            font-size: 0.8125rem !important;
-            padding: 0.75rem 1.25rem !important;
-        }
-
-        .form-control,
-        .form-select {
-            font-size: 0.8125rem !important;
-            padding: 0.625rem !important;
-        }
-
-        .form-label,
-        label {
-            font-size: 0.8125rem !important;
-        }
-
-        textarea.form-control {
-            min-height: 80px !important;
-        }
-
-        .alert {
-            font-size: 0.8125rem !important;
-            padding: 0.625rem !important;
-        }
-
-        /* Container padding */
-        .container {
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
-        }
-    }
-
-    /* Extra small phones */
-    @media (max-width: 375px) {
-        body {
-            font-size: 0.75rem !important;
-        }
-
-        .edit-title {
-            font-size: 1rem !important;
-        }
-
-        .edit-subtitle {
-            font-size: 0.6875rem !important;
-        }
-
-        .edit-card h3 {
-            font-size: 0.9375rem !important;
-        }
-
-        .accordion-button {
-            font-size: 0.875rem !important;
-            padding: 0.75rem 0.875rem !important;
-        }
-
-        .current-avatar {
-            width: 70px !important;
-            height: 70px !important;
-            margin: 0 auto !important;
-        }
-
-        .form-control,
-        .form-select {
-            font-size: 0.75rem !important;
-        }
-
-        .form-label,
-        label {
-            font-size: 0.75rem !important;
-        }
-
-        .btn-save,
-        .btn-cancel {
-            font-size: 0.75rem !important;
-        }
-    }
-
-    /* Landscape mobile optimization */
-    @media (max-width: 768px) and (orientation: landscape) {
-        .profile-edit {
-            padding: 1.25rem 0;
-            margin-bottom: 1.5rem;
-        }
-
-        .current-avatar {
-            width: 80px;
-            height: 80px;
-            margin: 0 auto;
-        }
-    }
-
-    /* Touch device optimizations */
-    @media (hover: none) and (pointer: coarse) {
-        /* Larger touch targets */
-        .accordion-button {
-            min-height: 56px;
-        }
-
-        .add-form {
-            min-height: 48px;
-        }
-
-        .btn {
-            min-height: 44px;
-        }
-
-        /* Remove hover effects on touch devices */
-        .formset-item:hover {
-            background: rgba(43, 60, 107, 0.02);
-            border-color: rgba(43, 60, 107, 0.1);
-        }
-
-        .add-form:hover {
-            background: rgba(43, 60, 107, 0.05);
-        }
-
-        /* Better tap feedback */
-        .accordion-button:active {
-            transform: scale(0.98);
-        }
-
-        .btn:active {
-            transform: scale(0.97);
-        }
-    }
-
-    /* Loading States */
-    .loading-overlay {
-        position: fixed;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background: rgba(255, 255, 255, 0.8);
-        display: none;
-        justify-content: center;
-        align-items: center;
-        z-index: 9999;
-    }
-
-    .loading-overlay.active {
-        display: flex;
-    }
-
-    .loading-spinner {
-        text-align: center;
-    }
-
-    .loading-spinner i {
-        color: var(--primary-color);
-        font-size: 3rem;
-        animation: spin 1s linear infinite;
-    }
-
-    .loading-text {
-        margin-top: 1rem;
-        color: var(--primary-color);
-        font-weight: 600;
-    }
-
-    @keyframes spin {
-        0% { transform: rotate(0deg); }
-        100% { transform: rotate(360deg); }
-    }
-
-    .btn-save:disabled {
-        background: var(--text-secondary);
-        cursor: not-allowed;
-        transform: none !important;
-    }
-
-    .upload-progress {
-        display: none;
-        margin-top: 1rem;
-    }
-
-    .upload-progress.active {
-        display: block;
-    }
-
-    .document-section {
-        background: rgba(43, 60, 107, 0.02);
-        border-radius: 15px;
-        padding: 1.5rem;
-    }
-
-    .document-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-        color: var(--primary-color);
-        margin-bottom: 1rem;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .document-section .document-upload {
-        background: white;
-        border: 2px dashed rgba(43, 60, 107, 0.2);
-        margin: 0;
-    }
-
-    .document-section:hover .document-upload {
-        border-color: var(--primary-color);
-    }
-
-    /* Sticky action buttons for mobile */
-    .action-buttons-wrapper {
-        position: relative;
-    }
-
-    @media (max-width: 768px) {
-        .action-buttons-wrapper {
-            position: sticky;
-            bottom: 0;
-            left: 0;
-            right: 0;
-            background: white;
-            padding: 1rem;
-            box-shadow: 0 -4px 12px rgba(0,0,0,0.1);
-            z-index: 100;
-            margin: 0 -1rem;
-        }
-
-        .action-buttons-wrapper .text-center {
-            margin-bottom: 0 !important;
-        }
-    }
-
-    /* Improved form label visibility on mobile */
-    @media (max-width: 768px) {
-        .form-label {
-            font-weight: 600;
-            font-size: 0.9rem;
-            margin-bottom: 0.5rem;
-            color: var(--text-primary);
-        }
-
-        /* Better spacing for crispy forms */
-        .mb-3 {
-            margin-bottom: 1rem !important;
-        }
-    }
-
-    /* Smooth scrolling for better UX */
-    html {
-        scroll-behavior: smooth;
-    }
-
-    /* Prevent double-tap zoom on buttons using CSS only */
-    .btn,
-    .accordion-button,
-    .add-form,
-    button {
-        touch-action: manipulation;
-    }
-
-    /* Focus states for accessibility */
-    .accordion-button:focus,
-    .form-control:focus,
-    .form-select:focus,
-    .btn:focus {
-        outline: 2px solid var(--primary-color);
-        outline-offset: 2px;
-    }
-
-    /* Prevent text selection on buttons */
-    .accordion-button,
-    .btn,
-    .add-form {
-        user-select: none;
-        -webkit-user-select: none;
-        -moz-user-select: none;
-        -ms-user-select: none;
-    }
-
-    /* Mobile animations */
-    @keyframes slideUp {
-        from {
-            transform: translateX(-50%) translateY(20px);
-            opacity: 0;
-        }
-        to {
-            transform: translateX(-50%) translateY(0);
-            opacity: 1;
-        }
-    }
-
-    @keyframes bounce {
-        0%, 20%, 50%, 80%, 100% {
-            transform: translateY(0);
-        }
-        40% {
-            transform: translateY(-10px);
-        }
-        60% {
-            transform: translateY(-5px);
-        }
-    }
-
-    @keyframes fadeIn {
-        from {
-            opacity: 0;
-            transform: translateY(10px);
-        }
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    /* Mobile toast notifications */
-    .mobile-toast {
-        animation: slideUp 0.3s ease;
-    }
-
-    /* Improved accordion transition on mobile */
-    @media (max-width: 768px) {
-        .accordion-collapse {
-            transition: height 0.25s ease;
-        }
-
-        .accordion-item {
-            animation: fadeIn 0.3s ease;
-        }
-    }
-
-    /* Safe area insets for notched devices */
-    @supports (padding: max(0px)) {
-        @media (max-width: 768px) {
-            .action-buttons-wrapper {
-                padding-bottom: max(1rem, env(safe-area-inset-bottom));
-            }
-
-            .container {
-                padding-left: max(1rem, env(safe-area-inset-left));
-                padding-right: max(1rem, env(safe-area-inset-right));
-            }
-        }
-    }
-
-    /* Allow natural scrolling on mobile */
-    @media (max-width: 768px) {
-        body {
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-            position: relative;
-            min-height: 100vh;
-        }
-
-        /* Ensure main content is scrollable */
-        .edit-content {
-            overflow-y: visible;
-            min-height: auto;
-        }
-
-        /* Prevent accordion from blocking scroll */
-        .accordion {
-            overflow: visible;
-        }
-
-        .accordion-item {
-            overflow: visible;
-        }
-    }
-
-    /* Better form field appearance on iOS */
-    @media (max-width: 768px) {
-        input[type="text"],
-        input[type="email"],
-        input[type="tel"],
-        input[type="number"],
-        input[type="date"],
-        select,
-        textarea {
-            -webkit-appearance: none;
-            -moz-appearance: none;
-            appearance: none;
-        }
-
-        /* Custom select arrow for mobile */
-        .form-select {
-            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e");
-            background-repeat: no-repeat;
-            background-position: right 0.75rem center;
-            background-size: 16px 12px;
-            padding-right: 2.5rem;
-        }
-    }
-
-    /* Loading overlay improvements for mobile */
-    @media (max-width: 768px) {
-        .loading-overlay {
-            backdrop-filter: blur(4px);
-        }
-
-        .loading-spinner i {
-            font-size: 2.5rem;
-        }
-    }
-</style>
+<script>document.documentElement.classList.add("fe-page--accounts-profile-update-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/accounts.css' %}">
+
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/profile.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/profile-editor.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Profile & career' %}
+{% endif %}
+
 <!-- Loading Overlay -->
 <div class="loading-overlay" id="loadingOverlay">
     <div class="loading-spinner">
@@ -1201,7 +47,7 @@
     <div class="container">
         <div class="row justify-content-center">
             <div class="col-lg-10">
-                <form method="post" enctype="multipart/form-data" id="profileForm" novalidate>
+                <form method="post" enctype="multipart/form-data" id="profileForm" novalidate {% if use_alumni_layout %}data-section-save-url="{% url 'accounts:save_profile_section' %}" data-edit-url="{% url 'accounts:edit_profile' %}"{% endif %}>
                     {% csrf_token %}
 
                     {% if form.errors %}
@@ -1218,11 +64,25 @@
                     </div>
                     {% endif %}
 
+                    {% if use_alumni_layout %}
+                    <div class="alumni-profile-editor-intro" aria-label="Profile editor guidance">
+                        <h2>Complete your profile at your own pace</h2>
+                        <p>Save one section at a time. You can leave and return later; previously saved sections will remain available.</p>
+                    </div>
+                    <nav class="alumni-profile-edit-tabs" role="tablist" aria-label="Profile editor sections">
+                        <button type="button" class="active" role="tab" data-profile-tab="personal" aria-controls="collapsePersonal" aria-selected="true">Personal</button>
+                        <button type="button" role="tab" data-profile-tab="education" aria-controls="collapseEducation" aria-selected="false">Education</button>
+                        <button type="button" role="tab" data-profile-tab="experience" aria-controls="collapseExperience" aria-selected="false">Experience</button>
+                        <button type="button" role="tab" data-profile-tab="skills" aria-controls="collapseSkills" aria-selected="false">Skills</button>
+                        <button type="button" role="tab" data-profile-tab="documents" aria-controls="collapseDocuments" aria-selected="false">Documents</button>
+                    </nav>
+                    <div class="alumni-edit-save-status" id="sectionSaveStatus" role="status" aria-live="polite">Unsaved changes are not stored until you save this section.</div>
+                    {% endif %}
                     <!-- Accordion for Form Sections -->
-                    <div class="accordion" id="profileAccordion">
+                    <div class="accordion alumni-profile-editor" id="profileAccordion">
 
                         <!-- Personal Information (Always Expanded) -->
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-profile-panel="personal">
                             <h2 class="accordion-header" id="headingPersonal">
                                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePersonal" aria-expanded="true" aria-controls="collapsePersonal">
                                     <i class="fas fa-user section-icon"></i>
@@ -1273,7 +133,7 @@
                         </div>
 
                         <!-- Education -->
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-profile-panel="education">
                             <h2 class="accordion-header" id="headingEducation">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEducation" aria-expanded="false" aria-controls="collapseEducation">
                                     <i class="fas fa-graduation-cap section-icon"></i>
@@ -1322,7 +182,7 @@
                         </div>
 
                         <!-- Experience -->
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-profile-panel="experience">
                             <h2 class="accordion-header" id="headingExperience">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseExperience" aria-expanded="false" aria-controls="collapseExperience">
                                     <i class="fas fa-briefcase section-icon"></i>
@@ -1367,7 +227,7 @@
                         </div>
 
                         <!-- Skills -->
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-profile-panel="skills">
                             <h2 class="accordion-header" id="headingSkills">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSkills" aria-expanded="false" aria-controls="collapseSkills">
                                     <i class="fas fa-star section-icon"></i>
@@ -1412,7 +272,7 @@
                         </div>
 
                         <!-- Documents (Optional) -->
-                        <div class="accordion-item">
+                        <div class="accordion-item" data-profile-panel="documents">
                             <h2 class="accordion-header" id="headingDocuments">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseDocuments" aria-expanded="false" aria-controls="collapseDocuments">
                                     <i class="fas fa-file-alt section-icon"></i>
@@ -1478,6 +338,21 @@
                                         </div>
                                     </div>
 
+                                    {% if use_alumni_layout and request.user.profile.documents.exists %}
+                                    <div class="alumni-existing-documents" aria-label="Existing documents">
+                                        <h3 class="h6 fw-bold">Uploaded documents</h3>
+                                        <p class="text-muted small">Replace a document using the corresponding upload above, or remove a document below.</p>
+                                        {% for doc in request.user.profile.documents.all %}
+                                        <div class="alumni-existing-document">
+                                            <span><i class="fas fa-file-alt me-2"></i>{{ doc.get_document_type_display }}: {{ doc.title }}</span>
+                                            <div class="d-flex gap-2 align-items-center">
+                                                <a class="btn btn-sm btn-outline-primary" href="{{ doc.file.url }}" target="_blank" rel="noopener">View</a>
+                                                <button type="submit" form="removeProfileDocument{{ doc.pk }}" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this document?')">Remove</button>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                    {% endif %}
                                     <div class="upload-progress">
                                         <div class="progress">
                                             <div class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
@@ -1491,24 +366,40 @@
                     </div>
                     <!-- End Accordion -->
 
-                    <!-- Submit Buttons -->
+                    <!-- Alumni actions live inside the active tab (moved there by profile-editor.js).
+                         The staff/admin form keeps its original action wrapper. -->
+                    {% if use_alumni_layout %}
+                    <div class="alumni-profile-editor-actions" id="profileEditorActions" aria-label="Profile section actions">
+                        <button type="submit" class="btn btn-save" id="saveSectionButton"><i class="fas fa-save me-2" aria-hidden="true"></i>Save</button>
+                        <button type="button" class="btn btn-outline-primary" id="saveNextButton">Save &amp; Next <i class="fas fa-arrow-right ms-1" aria-hidden="true"></i></button>
+                        <a href="{% url 'accounts:profile_detail' %}" class="alumni-profile-return" id="finishEditingButton">Return to profile</a>
+                    </div>
+                    {% else %}
                     <div class="action-buttons-wrapper">
                         <div class="text-center mb-5">
-                            <button type="submit" class="btn btn-save me-3" id="saveButton">
-                                <i class="fas fa-save me-2"></i> Save Changes
-                            </button>
-                            <a href="{% url 'accounts:profile_detail' %}" class="btn btn-cancel" id="cancelButton">
-                                <i class="fas fa-times me-2"></i> Cancel
-                            </a>
+                            <button type="submit" class="btn btn-save me-3" id="saveButton"><i class="fas fa-save me-2"></i> Save Changes</button>
+                            <a href="{% url 'accounts:profile_detail' %}" class="btn btn-cancel" id="cancelButton"><i class="fas fa-times me-2"></i> Cancel</a>
                         </div>
                     </div>
+                    {% endif %}
                 </form>
+                {% if use_alumni_layout %}
+                    {% for doc in request.user.profile.documents.all %}
+                    <form id="removeProfileDocument{{ doc.pk }}" method="post" action="{% url 'accounts:document_delete' doc.pk %}" class="d-none">
+                        {% csrf_token %}
+                        <input type="hidden" name="return_to_editor" value="1">
+                    </form>
+                    {% endfor %}
+                {% endif %}
             </div>
         </div>
     </div>
 </div>
 
 {% block extra_js %}
+{% if use_alumni_layout %}
+<script src="{% static 'js/alumni/profile-editor.js' %}" defer></script>
+{% endif %}
 <script>
     // Retained only as historical reference; the server-rendered formset
     // implementation below is the active path.
@@ -1966,31 +857,6 @@
                 });
             });
 
-            // Add pull-to-refresh hint (visual only)
-            const container = document.querySelector('.edit-content .container');
-            if (container && window.scrollY === 0) {
-                const hint = document.createElement('div');
-                hint.className = 'mobile-hint';
-                hint.innerHTML = '<i class="fas fa-chevron-down"></i> Scroll to see all sections';
-                hint.style.cssText = `
-                    text-align: center;
-                    color: var(--text-secondary);
-                    font-size: 0.8rem;
-                    padding: 0.5rem;
-                    animation: bounce 2s infinite;
-                `;
-                container.insertBefore(hint, container.firstChild);
-
-                // Remove hint after first scroll
-                window.addEventListener('scroll', function removeHint() {
-                    if (window.scrollY > 50) {
-                        hint.style.opacity = '0';
-                        hint.style.transition = 'opacity 0.3s ease';
-                        setTimeout(() => hint.remove(), 300);
-                        window.removeEventListener('scroll', removeHint);
-                    }
-                }, { passive: true });
-            }
         }
 
         // Handle orientation change
@@ -2015,7 +881,7 @@
 
         const form = document.getElementById('profileForm');
         const loadingOverlay = document.getElementById('loadingOverlay');
-        const saveButton = document.getElementById('saveButton');
+        const saveButton = document.getElementById('saveButton') || document.getElementById('saveSectionButton');
         const cancelButton = document.getElementById('cancelButton');
         const fileInputs = document.querySelectorAll('input[type="file"]');
         const progressBar = document.querySelector('.progress-bar');

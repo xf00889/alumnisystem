@@ -1125,7 +1125,25 @@
                         {# Filter out logout, login success, and OAuth error messages #}
                         {% with message_text=message|lower %}
                             {% if 'signed out' not in message_text and 'logged out' not in message_text and 'sign out' not in message_text and 'log out' not in message_text and 'logout' not in message_text and 'signed in' not in message_text and 'logged in' not in message_text and 'google sign-in' not in message_text and 'cancelled' not in message_text and 'access_denied' not in message_text and 'successfully signed in' not in message_text %}
-                                {% if message.tags == 'error' %}
+                                {% if 'user with this email already exists' in message_text %}
+                                    Swal.fire({
+                                        icon: 'info',
+                                        title: 'Account Already Exists',
+                                        html: 'An account is already registered with this email address. No new account was created.<br><br>Sign in with your existing password, or reset it if you no longer remember it.',
+                                        showDenyButton: true,
+                                        confirmButtonText: 'Sign In',
+                                        denyButtonText: 'Reset Password',
+                                        confirmButtonColor: '#2b3c6b',
+                                        denyButtonColor: '#a66316'
+                                    }).then((result) => {
+                                        if (result.isConfirmed) {
+                                            switchTab('login');
+                                            document.getElementById('loginEmail').focus();
+                                        } else if (result.isDenied) {
+                                            window.location.href = "{% url 'account_reset_password' %}";
+                                        }
+                                    });
+                                {% elif message.tags == 'error' %}
                                     ToastUtils.showError('{{ message|escapejs }}');
                                 {% elif message.tags == 'warning' %}
                                     ToastUtils.showWarning('{{ message|escapejs }}');

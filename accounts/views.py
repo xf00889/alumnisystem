@@ -8,6 +8,7 @@ from django.core.exceptions import ValidationError
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from .decorators import email_verified_required
+from .staff_profile_views import has_staff_workspace, has_verified_alumni
 import logging
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,9 @@ from .models import (
     MentorApplication, Mentor, MentorReactivationRequest
 )
 from alumni_groups.models import AlumniGroup, GroupMembership
-from alumni_directory.models import Alumni, Achievement, AlumniDocument, ProfessionalExperience
+from alumni_directory.models import (
+    Alumni, Achievement, AlumniDocument, GraduateRegistry, ProfessionalExperience,
+)
 from alumni_directory.academic import to_alumni_campus
 from .forms import (
     ProfileUpdateForm, 
@@ -91,7 +94,6 @@ def post_registration(request):
         if form.is_valid():
             try:
                 with transaction.atomic():
-                    # Server-side duplicate check before saving
                     first_name = form.cleaned_data.get('first_name', '').strip()
                     last_name = form.cleaned_data.get('last_name', '').strip()
                     college = form.cleaned_data.get('college', '').strip()
@@ -99,7 +101,47 @@ def post_registration(request):
                     campus = form.cleaned_data.get('campus', '').strip()
                     graduation_year = form.cleaned_data.get('graduation_year')
                     alumni_campus = to_alumni_campus(campus)
+                    registry_first_name = first_name.split()[0]
 
+                    registry_queryset = GraduateRegistry.objects.select_for_update().filter(
+                        last_name__iexact=last_name,
+                        campus=alumni_campus,
+                        graduation_year=graduation_year,
+                    )
+                    registry_matches = list(registry_queryset.filter(first_name__iexact=first_name)[:2])
+                    if len(registry_matches) != 1:
+                        registry_matches = list(registry_queryset.filter(
+                            Q(first_name__iexact=registry_first_name) |
+                            Q(first_name__istartswith=f'{registry_first_name} ')
+                        )[:2])
+                    if len(registry_matches) != 1:
+                        verification_error = (
+                            'We could not verify your alumni record against the registrar list. '
+                            'Please check your information or contact the Alumni Office.'
+                        )
+                        return render(request, 'accounts/post_registration.html', {
+                            'form': form,
+                            'title': 'Complete Registration',
+                            'verification_success': False,
+                            'verification_message': '',
+                            'verification_error': verification_error,
+                        })
+
+                    registry_record = registry_matches[0]
+                    if registry_record.claimed_by_id not in (None, request.user.id):
+                        verification_error = (
+                            'This registrar record is already linked to another account. '
+                            'Please contact the Alumni Office for account recovery.'
+                        )
+                        return render(request, 'accounts/post_registration.html', {
+                            'form': form,
+                            'title': 'Complete Registration',
+                            'verification_success': False,
+                            'verification_message': '',
+                            'verification_error': verification_error,
+                        })
+
+                    # Server-side duplicate check before saving
                     duplicate_exists = Alumni.objects.filter(
                         user__first_name__iexact=first_name,
                         user__last_name__iexact=last_name,
@@ -126,7 +168,10 @@ def post_registration(request):
                         })
 
                     # Save the form data
-                    form.save(request.user)
+                    form.save(request.user, registry_verified=True)
+                    if registry_record.claimed_by_id != request.user.id:
+                        registry_record.claimed_by = request.user
+                        registry_record.save(update_fields=['claimed_by', 'updated_at'])
                     # Defensive write: ensure completion flag stays persisted.
                     Profile.objects.filter(user=request.user).update(has_completed_registration=True)
                     
@@ -194,6 +239,17 @@ def post_registration(request):
 
 @login_required
 def profile_detail(request, username=None):
+    # Administrative accounts have a separate account profile. Verified alumni
+    # who are also staff can deliberately open their alumni identity instead.
+    if username is None and has_staff_workspace(request.user):
+        return redirect('accounts:staff_profile')
+    if username is not None:
+        candidate = get_object_or_404(User, username=username)
+        if has_staff_workspace(candidate) and not has_verified_alumni(candidate):
+            if candidate.pk == request.user.pk:
+                return redirect('accounts:staff_profile')
+            from django.http import Http404
+            raise Http404('No alumni profile is available for this account.')
     try:
         # If username is provided, get that user's profile, otherwise get the logged-in user's profile
         if username:
@@ -255,6 +311,8 @@ def profile_detail(request, username=None):
             'achievements': achievements,
             'unified_experience': unified_experience,
             'is_own_profile': request.user == profile.user,
+            'is_staff_alumni_profile': (request.user == profile.user and has_staff_workspace(request.user)
+                                       and alumni is not None and alumni.is_verified),
             'is_mentor': is_mentor,
             'has_pending_application': has_pending_application,
         }
@@ -272,6 +330,9 @@ def profile_detail(request, username=None):
 
 @login_required
 def profile_update(request):
+    # A staff-only account should never be sent through the alumni editor.
+    if has_staff_workspace(request.user) and not has_verified_alumni(request.user):
+        return redirect('accounts:edit_staff_profile')
     if request.method == 'POST':
         try:
             user_form = UserUpdateForm(request.POST, instance=request.user)
@@ -586,6 +647,153 @@ def profile_update(request):
     return render(request, 'accounts/profile_update.html', context)
 
 @login_required
+@require_POST
+def save_profile_section(request):
+    """Persist a validated edit-profile section without touching other sections.
+
+    Each section's fields are validated independently.
+    """
+    if has_staff_workspace(request.user) and not has_verified_alumni(request.user):
+        return JsonResponse({'status': 'error', 'message': 'Alumni profile required.'}, status=403)
+    section = request.POST.get('section', '')
+    profile = request.user.profile
+    valid_sections = {'personal', 'education', 'experience', 'skills', 'documents'}
+    if section not in valid_sections:
+        return JsonResponse({'status': 'error', 'message': 'Unknown profile section.'}, status=400)
+
+    errors = []
+
+    def collect_errors(bound, category):
+        if hasattr(bound, 'forms'):
+            for row, form in enumerate(bound.forms):
+                for field, messages in form.errors.items():
+                    errors.append({'section': category, 'row': row, 'field': field,
+                                   'label': form.fields[field].label if field in form.fields else field,
+                                   'messages': [str(message) for message in messages]})
+            for message in bound.non_form_errors():
+                errors.append({'section': category, 'row': None, 'field': '__all__',
+                               'label': 'General', 'messages': [str(message)]})
+        else:
+            for field, messages in bound.errors.items():
+                errors.append({'section': category, 'row': None, 'field': field,
+                               'label': bound.fields[field].label if field in bound.fields else field,
+                               'messages': [str(message) for message in messages]})
+
+    try:
+        if section == 'personal':
+            user_form = UserUpdateForm(request.POST, instance=request.user)
+            profile_form = ProfileUpdateForm(request.POST, request.FILES, instance=profile)
+            user_valid = user_form.is_valid()
+            profile_valid = profile_form.is_valid()
+            if not user_valid or not profile_valid:
+                collect_errors(user_form, 'user')
+                collect_errors(profile_form, 'profile')
+            else:
+                with transaction.atomic():
+                    user_form.save()
+                    old_avatar = profile.avatar.name if request.POST.get('remove_avatar') == 'true' and profile.avatar else None
+                    profile = profile_form.save()
+                    if old_avatar:
+                        profile.avatar = None
+                        profile.save(update_fields=['avatar'])
+                        storage = profile._meta.get_field('avatar').storage
+                        transaction.on_commit(lambda: storage.delete(old_avatar))
+                    current_position = profile_form.cleaned_data.get('current_position')
+                    current_employer = profile_form.cleaned_data.get('current_employer')
+                    if current_position and current_employer:
+                        current_exp = Experience.objects.filter(profile=profile, is_current=True).first()
+                        if current_exp:
+                            current_exp.position, current_exp.company = current_position, current_employer
+                            current_exp.save(update_fields=['position', 'company'])
+                        else:
+                            import datetime
+                            Experience.objects.create(profile=profile, position=current_position,
+                                company=current_employer, location=profile.city or '',
+                                start_date=datetime.date.today(), is_current=True,
+                                career_significance='REGULAR')
+                    try:
+                        alumni = request.user.alumni
+                        alumni.phone_number = profile.phone_number
+                        alumni.address = profile.address
+                        alumni.city = profile.city
+                        alumni.province = profile.state
+                        alumni.country = profile.country
+                        alumni.linkedin_profile = profile.linkedin_profile
+                        alumni.date_of_birth = profile.birth_date
+                        alumni.gender = profile.gender
+                        alumni.save()
+                    except Alumni.DoesNotExist:
+                        pass
+        elif section in ('education', 'experience', 'skills'):
+            formset_class, prefix = {
+                'education': (EducationFormSet, 'education'),
+                'experience': (ExperienceFormSet, 'experience'),
+                'skills': (SkillFormSet, 'skill'),
+            }[section]
+            formset = formset_class(request.POST, instance=profile, prefix=prefix)
+            if not formset.is_valid():
+                collect_errors(formset, prefix)
+            else:
+                with transaction.atomic():
+                    formset.save()
+        else:
+            kinds = {
+                'transcript': ('TRANSCRIPT', TranscriptUploadForm),
+                'certificate': ('CERTIFICATE', CertificateUploadForm),
+                'diploma': ('DIPLOMA', DiplomaUploadForm),
+                'resume': ('RESUME', ResumeUploadForm),
+            }
+            changed_forms = []
+            for prefix, (kind, form_class) in kinds.items():
+                instance = Document.objects.filter(profile=profile, document_type=kind).first()
+                form = form_class(request.POST, request.FILES, prefix=prefix, instance=instance)
+                if form.has_changed():
+                    if not form.is_valid():
+                        collect_errors(form, 'documents')
+                    elif form.cleaned_data.get('file'):
+                        file = form.cleaned_data['file']
+                        from pathlib import Path
+                        if file.size > 5 * 1024 * 1024 or Path(file.name).suffix.lower() not in {'.pdf', '.doc', '.docx'}:
+                            errors.append({'section': 'documents', 'row': None, 'field': 'file',
+                                'label': kind.title(), 'messages': ['Upload a PDF, DOC, or DOCX file no larger than 5 MB.']})
+                        else:
+                            changed_forms.append((form, kind, True))
+                    elif instance is not None:
+                        changed_forms.append((form, kind, False))
+                    else:
+                        errors.append({'section': 'documents', 'row': None, 'field': 'file',
+                            'label': kind.title(), 'messages': ['Select a document before saving.']})
+            if not errors:
+                with transaction.atomic():
+                    for form, kind, is_new in changed_forms:
+                        document = form.save(commit=False)
+                        document.profile = profile
+                        document.document_type = kind
+                        document.save()
+                        if is_new:
+                            try:
+                                alumni = request.user.alumni
+                                AlumniDocument.objects.create(alumni=alumni,
+                                    title=document.title,
+                                    document_type={'TRANSCRIPT':'TOR','CERTIFICATE':'CERT',
+                                                   'DIPLOMA':'DIPLOMA','RESUME':'RESUME'}[kind],
+                                    file=document.file, description='', is_verified=False)
+                            except Alumni.DoesNotExist:
+                                pass
+        if errors:
+            return JsonResponse({'status': 'error', 'errors': errors}, status=400)
+        logger.info('Alumni profile section saved', extra={
+            'user_id': request.user.pk, 'section': section, 'action': 'profile_section_save'})
+        return JsonResponse({'status': 'success', 'section': section,
+                             'message': 'This section was saved. You can continue later.'})
+    except Exception:
+        logger.exception('Failed to save alumni profile section', extra={
+            'user_id': request.user.pk, 'section': section})
+        return JsonResponse({'status': 'error', 'message': 'Unable to save this section. Please try again.'}, status=500)
+
+
+@login_required
+@require_POST
 def document_delete(request, pk):
     try:
         document = get_object_or_404(Document, pk=pk, profile=request.user.profile)
@@ -606,7 +814,7 @@ def document_delete(request, pk):
         
         document.delete()
         messages.success(request, f'🗑️ Document "{document_title}" has been deleted successfully!')
-        return redirect('accounts:profile_detail')
+        return redirect('accounts:edit_profile') if request.POST.get('return_to_editor') == '1' else redirect('accounts:profile_detail')
     except Exception as e:
         logger.error(
             f"Error deleting document: {str(e)}",
@@ -618,7 +826,7 @@ def document_delete(request, pk):
             exc_info=True
         )
         messages.error(request, f'❌ Failed to delete document: {str(e)}')
-        return redirect('accounts:profile_detail')
+        return redirect('accounts:edit_profile') if request.POST.get('return_to_editor') == '1' else redirect('accounts:profile_detail')
 
 User = get_user_model()
 
@@ -1286,6 +1494,9 @@ def skill_matching(request):
 @login_required
 def apply_mentor(request):
     """View for submitting mentor applications"""
+    # Staff privileges never establish alumni identity.
+    if not has_verified_alumni(request.user):
+        return HttpResponseForbidden('A verified alumni record is required to apply as a mentor.')
     # Check if user already has a pending or approved application
     existing_application = None
     try:

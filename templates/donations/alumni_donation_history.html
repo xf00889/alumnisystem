@@ -1,0 +1,83 @@
+{% load humanize %}
+<div class="alumni-donation-history-page">
+  {% url 'donations:campaign_list' as campaigns_url %}
+  {% include 'alumni/components/page_header.html' with title='My Donations' description='Track your contributions, continue pending payments, and review verification updates.' icon='fa-solid fa-hand-holding-heart' action_url=campaigns_url action_label='Browse campaigns' action_icon='fa-solid fa-arrow-up-right-from-square' %}
+
+  <section class="alumni-history-summary" aria-label="Donation summary">
+    <div class="alumni-history-stat">
+      <div class="alumni-history-stat-icon" aria-hidden="true"><i class="fa-solid fa-peso-sign"></i></div>
+      <div><span class="alumni-history-stat-label">Verified contributions</span>
+      <strong class="alumni-history-stat-value">₱{{ total_donated|floatformat:2|intcomma }}</strong>
+      <small>Completed donations only</small></div>
+    </div>
+    <div class="alumni-history-stat">
+      <div class="alumni-history-stat-icon" aria-hidden="true"><i class="fa-solid fa-heart"></i></div>
+      <div><span class="alumni-history-stat-label">Campaigns supported</span>
+      <strong class="alumni-history-stat-value">{{ campaigns_supported }}</strong>
+      <small>With verified contributions</small></div>
+    </div>
+    <div class="alumni-history-stat">
+      <div class="alumni-history-stat-icon" aria-hidden="true"><i class="fa-solid fa-receipt"></i></div>
+      <div><span class="alumni-history-stat-label">Donation records</span>
+      <strong class="alumni-history-stat-value">{{ donation_count }}</strong>
+      <small>Excluding cancelled requests</small></div>
+    </div>
+  </section>
+
+  <section class="alumni-history-ledger" aria-labelledby="alumniDonationListHeading">
+    <div class="alumni-history-ledger-head">
+      <div><h2 id="alumniDonationListHeading"><i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i> Donation History</h2>
+      <p>Unpaid requests can be continued or cancelled. Proof submitted for verification cannot be cancelled here.</p></div>
+      <span class="alumni-history-count">{{ donation_count }} record{{ donation_count|pluralize }}</span>
+    </div>
+    {% if donations %}
+    <div class="alumni-history-table-wrapper">
+      <table class="alumni-history-table">
+        <thead><tr><th scope="col">Campaign</th><th scope="col">Amount</th><th scope="col">Date</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+        <tbody>
+          {% for donation in donations %}
+          <tr>
+            <td data-label="Campaign"><a class="alumni-history-campaign" href="{% url 'donations:campaign_detail' donation.campaign.slug %}">{{ donation.campaign.name }}</a></td>
+            <td data-label="Amount"><strong class="alumni-history-amount">₱{{ donation.amount|floatformat:2|intcomma }}</strong></td>
+            <td data-label="Date">{{ donation.donation_date|date:'M j, Y' }}</td>
+            <td data-label="Status">
+              {% if donation.status == 'completed' %}<span class="alumni-history-status is-completed"><i class="fa-solid fa-circle-check" aria-hidden="true"></i> Verified</span>
+              {% elif donation.status == 'pending_payment' %}<span class="alumni-history-status is-unpaid"><i class="fa-regular fa-clock" aria-hidden="true"></i> Pending payment</span>
+              {% elif donation.status == 'pending_verification' %}<span class="alumni-history-status is-review"><i class="fa-regular fa-clock" aria-hidden="true"></i> Awaiting verification</span>
+              {% elif donation.status == 'failed' %}<span class="alumni-history-status is-failed">Failed</span>
+              {% else %}<span class="alumni-history-status is-neutral">{{ donation.get_status_display }}</span>{% endif %}
+            </td>
+            <td data-label="Actions">
+              <div class="alumni-history-actions">
+                {% if donation.status == 'pending_payment' %}
+                <a class="alumni-history-action is-primary" href="{% url 'donations:payment_instructions' donation.pk %}">Continue payment</a>
+                {% if not donation.payment_proof and not donation.reference_number %}
+                <form method="post" action="{% url 'donations:cancel_donation' donation.pk %}" class="alumni-history-cancel-form" onsubmit="return confirm('Cancel this unpaid donation request? This does not refund or reverse a GCash transfer.');">
+                  {% csrf_token %}
+                  <button type="submit" class="alumni-history-action is-cancel">Cancel</button>
+                </form>
+                {% endif %}
+                {% elif donation.status == 'pending_verification' %}
+                <a class="alumni-history-action is-outline" href="{% url 'donations:donation_confirmation' donation.pk %}">View status</a>
+                {% elif donation.status == 'completed' %}
+                <a class="alumni-history-action is-outline" href="{% url 'donations:donation_confirmation' donation.pk %}">View receipt</a>
+                {% else %}
+                <a class="alumni-history-action is-outline" href="{% url 'donations:donation_confirmation' donation.pk %}">Details</a>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+    <div class="alumni-history-empty">
+      <i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i>
+      <h3>No donations to display</h3>
+      <p>Explore fundraising campaigns to support NORSU initiatives.</p>
+      <a class="alumni-history-action is-primary" href="{% url 'donations:campaign_list' %}">Browse campaigns</a>
+    </div>
+    {% endif %}
+  </section>
+</div>

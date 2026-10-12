@@ -11,7 +11,7 @@ from unittest.mock import patch
 from django.contrib.auth import get_user_model
 from django.conf import settings
 from django.core.management import call_command
-from django.test import RequestFactory, SimpleTestCase, TestCase, override_settings
+from django.test import Client, RequestFactory, SimpleTestCase, TestCase, override_settings
 from django.template.loader import render_to_string
 from django.urls import reverse
 from django.utils import timezone
@@ -476,7 +476,7 @@ class TracerStudyReportResponseStatusTests(TestCase):
         from openpyxl import load_workbook
 
         workbook = load_workbook(BytesIO(export.content))
-        self.assertEqual(workbook.sheetnames, ["Responded", "No Response"])
+        self.assertEqual(workbook.sheetnames, ["Responded", "No Response", "Summary"])
         responded_values = [cell.value for row in workbook["Responded"].iter_rows() for cell in row]
         missing_values = [cell.value for row in workbook["No Response"].iter_rows() for cell in row]
         self.assertIn("Tracer Study Response Status", responded_values)
@@ -664,3 +664,158 @@ class TracerStudyBannerContextTests(TestCase):
         self.assertIn("class=\"tracer-study-banner no-print\"", html)
         self.assertIn("top: 64px", html)
         self.assertIn("margin-top: 138px", html)
+
+
+@override_settings(MIDDLEWARE=[
+    middleware for middleware in settings.MIDDLEWARE
+    if middleware != 'setup.middleware.SetupRequiredMiddleware'
+])
+class TracerStudyFormDateParsingRegressionTests(TestCase):
+    """Regression tests for date vs datetime comparison bug in admin views.
+
+    Issue: admin_views.py parses form date strings into date objects and
+    assigns them to a DateTimeField, which causes a TypeError when the
+    post_save signal compares date > datetime in signals.py:29.
+
+    This test suite verifies:
+    1. Editing a tracer study via admin form with date-string values works
+    2. Creating a tracer study via admin form with date-string values works
+    3. Notification failures do not crash the survey save operation
+    """
+
+    def setUp(self):
+        User = get_user_model()
+        self.admin = User.objects.create_user(
+            "admin", "admin@example.com", "pass", is_staff=True, is_superuser=True
+        )
+        self.alumni_user = User.objects.create_user(
+            "alumni", "alumni@example.com", "pass"
+        )
+        Alumni.objects.create(
+            user=self.alumni_user,
+            college="CAS",
+            campus="MAIN",
+            graduation_year=2026,
+            course="BSINT",
+            gender="M",
+            province="Negros Oriental",
+            city="Dumaguete",
+            address="A",
+        )
+        self.client = Client()
+        self.client.login(username="admin", password="pass")
+
+    def _create_initial_survey(self):
+        """Create an initial survey for editing tests."""
+        return Survey.objects.create(
+            title=ALUMNI_TITLE,
+            description="SY 2025-2026 — Alumni",
+            created_by=self.admin,
+            start_date=timezone.now() - timedelta(days=1),
+            end_date=timezone.now() + timedelta(days=7),
+            status="draft",
+            display_to_all=True,
+        )
+
+    def test_edit_tracer_study_with_date_string_form_values_and_active_status(self):
+        """Edit an alumni-titled cycle to active with date-string form values.
+
+        This reproduces the exact crash scenario: admin form parses date strings
+        into date objects, assigns to DateTimeField, and post_save signal crashes
+        comparing date > datetime.
+        """
+        survey = self._create_initial_survey()
+
+        # POST with form date strings and active status (the crash trigger)
+        tomorrow = (timezone.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        next_week = (timezone.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+
+        response = self.client.post(
+            reverse("core:edit_tracer_study", args=[survey.id]),
+            {
+                "label": "SY 2026-2027",
+                "start_date": tomorrow,  # Form date string, not datetime
+                "end_date": next_week,
+                "status": "active",  # This activates the guard in signals.py
+                "display_to_all": "on",
+            },
+        )
+
+        # Should redirect to reports, not show error
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("reports", response.url)
+
+        # Verify survey was saved with the new dates
+        survey.refresh_from_db()
+        self.assertEqual(survey.status, "active")
+        self.assertIsNotNone(survey.start_date)
+        self.assertIsNotNone(survey.end_date)
+
+        # A scheduled cycle must not notify alumni before its opening day.
+        notifications = Notification.objects.filter(
+            object_id=survey.pk,
+            notification_type="survey",
+        )
+        self.assertEqual(notifications.count(), 0)
+
+    def test_create_tracer_study_with_date_string_form_values(self):
+        """Create a tracer study with date-string form values.
+
+        Verifies that the create path (which also uses _parse_date_input)
+        handles date objects safely in the post_save signal.
+        """
+        tomorrow = (timezone.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        next_week = (timezone.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+
+        response = self.client.post(
+            reverse("core:create_tracer_study"),
+            {
+                "label": "SY 2026-2027",
+                "start_date": tomorrow,  # Form date string
+                "end_date": next_week,
+                "status": "active",
+                "display_to_all": "on",
+            },
+        )
+
+        # Should redirect to reports
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("reports", response.url)
+
+        # Verify the alumni survey was created
+        alumni_survey = Survey.objects.filter(
+            title=ALUMNI_TITLE,
+            status="active",
+        ).first()
+        self.assertIsNotNone(alumni_survey)
+
+    def test_notification_failure_does_not_break_survey_save(self):
+        """Verify that notification creation failures don't break the survey save.
+
+        The signals.py handler now wraps bulk_create in try/except so that
+        notification errors don't cascade back and break the admin transaction.
+        """
+        survey = self._create_initial_survey()
+        tomorrow = (timezone.now() + timedelta(days=1)).strftime("%Y-%m-%d")
+        next_week = (timezone.now() + timedelta(days=7)).strftime("%Y-%m-%d")
+
+        # Patch Notification.bulk_create to raise an exception
+        with patch.object(Notification.objects, "bulk_create", side_effect=Exception("Notification service down")):
+            response = self.client.post(
+                reverse("core:edit_tracer_study", args=[survey.id]),
+                {
+                    "label": "SY 2026-2027",
+                    "start_date": tomorrow,
+                    "end_date": next_week,
+                    "status": "active",
+                    "display_to_all": "on",
+                },
+            )
+
+        # Should still redirect successfully (survey save didn't fail)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("reports", response.url)
+
+        # Survey should be updated despite notification failure
+        survey.refresh_from_db()
+        self.assertEqual(survey.status, "active")

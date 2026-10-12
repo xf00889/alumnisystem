@@ -142,13 +142,12 @@ class FraudDetectionService:
         if amount >= self.risk_thresholds['suspicious_amount_min']:
             return f"Unusually high donation amount: ₱{amount:,.2f}"
         
-        # Check for round numbers that might indicate testing
-        if amount in [1, 10, 100, 1000, 10000] and amount < 500:
-            return f"Potential test amount: ₱{amount}"
-        
-        # Check for patterns in recent donations
+        # A common rounded amount (such as 100 or 1000 PHP) is not fraud
+        # evidence by itself. Exclude abandoned unpaid intents when checking
+        # repeated transactions, but retain alerts for large amounts.
         recent_donations = Donation.objects.filter(
             amount=donation.amount,
+            status__in=['pending_verification', 'completed'],
             created_at__gte=timezone.now() - timedelta(hours=24)
         ).exclude(id=donation.id)
         
@@ -178,12 +177,14 @@ class FraudDetectionService:
                         other_hash = hashlib.md5(f.read()).hexdigest()
                     
                     if file_hash == other_hash:
-                        return f"Identical payment proof image found in donation {other_donation.reference_number}"
+                        identifier = other_donation.reference_number or f"Donation #{other_donation.pk}"
+                        return f"Identical payment proof image found in {identifier}"
                 except:
                     continue
             
-        except Exception as e:
-            return f"Error checking image: {str(e)}"
+        except Exception:
+            # A storage/read failure isn't itself evidence of fraud.
+            return None
         
         return None
     

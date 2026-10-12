@@ -1,6 +1,6 @@
 from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
-from .models import AlumniGroup, GroupMembership, GroupActivity, GroupAnalytics
+from .models import AlumniGroup, GroupMembership, GroupActivity, GroupAnalytics, GroupEventShareRequest
 
 @receiver(post_save, sender=AlumniGroup)
 def create_group_analytics(sender, instance, created, **kwargs):
@@ -41,3 +41,13 @@ def update_analytics_on_member_leave(sender, instance, **kwargs):
         )
     except (AlumniGroup.DoesNotExist, GroupAnalytics.DoesNotExist):
         pass  # Group might have been deleted 
+
+@receiver(post_delete, sender=GroupEventShareRequest)
+def cleanup_group_event_global_notifications(sender, instance, **kwargs):
+    """GenericForeignKey notifications do not cascade when a share request is deleted."""
+    from django.contrib.contenttypes.models import ContentType
+    from core.models.notifications import Notification
+    Notification.objects.filter(
+        content_type=ContentType.objects.get_for_model(GroupEventShareRequest),
+        object_id=instance.pk,
+    ).delete()

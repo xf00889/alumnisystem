@@ -6,6 +6,7 @@ from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 import random
 import string
+from .storage import private_payment_storage
 
 # Create your models here.
 
@@ -186,6 +187,7 @@ class Donation(models.Model):
     STATUS_CHOICES = (
         ('pending_payment', _('Pending Payment')),
         ('pending_verification', _('Pending Verification')),
+        ('cancelled', _('Cancelled')),
         ('completed', _('Completed')),
         ('failed', _('Failed')),
         ('refunded', _('Refunded')),
@@ -221,7 +223,13 @@ class Donation(models.Model):
 
     # Enhanced reference and verification fields
     reference_number = models.CharField(_("Reference Number"), max_length=100, blank=True, null=True, help_text=_("Enter the reference number from your GCash receipt (alphanumeric and symbols allowed)"))
-    payment_proof = models.ImageField(_("Payment Proof"), upload_to='payment_proofs/', blank=True, null=True)
+    payment_proof = models.ImageField(_("Payment Proof"), upload_to='payment_proofs/', storage=private_payment_storage, blank=True, null=True)
+    # Immutable payee details captured when the donor creates the payment intent.
+    gcash_account_name = models.CharField(max_length=100, blank=True)
+    gcash_account_number = models.CharField(max_length=15, blank=True)
+    gcash_payment_instructions = models.TextField(blank=True)
+    gcash_qr_snapshot = models.ImageField(upload_to='donation_gcash_qr/', blank=True, null=True)
+
     gcash_transaction_id = models.CharField(_("GCash Transaction ID"), max_length=50, blank=True)
     verification_notes = models.TextField(_("Verification Notes"), blank=True)
     verified_by = models.ForeignKey(
@@ -404,7 +412,8 @@ class FraudAlert(models.Model):
         ordering = ['-created_at']
 
     def __str__(self):
-        return f"{self.get_alert_type_display()} - {self.donation.reference_number}"
+        reference = self.donation.reference_number or f"Donation #{self.donation_id}"
+        return f"{self.get_alert_type_display()} - {reference}"
 
 
 class BlacklistedEntity(models.Model):

@@ -1,4 +1,6 @@
 from django.contrib import admin
+from django.utils.html import format_html
+from django.urls import reverse
 from django.utils.translation import gettext_lazy as _
 from .models import (
     CampaignType, Campaign, Donation, DonorRecognition, CampaignUpdate,
@@ -62,7 +64,14 @@ class DonationAdmin(admin.ModelAdmin):
     list_filter = ('status', 'receipt_sent', 'donation_date', 'campaign', 'verified_by')
     search_fields = ('donor__first_name', 'donor__last_name', 'donor__email',
                     'donor_name', 'donor_email', 'campaign__name', 'reference_number', 'gcash_transaction_id')
-    readonly_fields = ('created_at', 'updated_at', 'reference_number')
+    readonly_fields = ('created_at', 'updated_at', 'reference_number', 'view_proof')
+    @admin.display(description='Payment receipt (private)')
+    def view_proof(self, obj):
+        if not obj.pk or not obj.payment_proof:
+            return 'No proof uploaded'
+        return format_html('<a href="{}" target="_blank" rel="noopener">View receipt</a>',
+                           reverse('donations:view_payment_proof', kwargs={'pk': obj.pk}))
+
     fieldsets = (
         (_('Donation Information'), {
             'fields': ('campaign', 'amount', 'donation_date', 'status', 'reference_number')
@@ -71,7 +80,7 @@ class DonationAdmin(admin.ModelAdmin):
             'fields': ('donor', 'is_anonymous', 'donor_name', 'donor_email')
         }),
         (_('Payment Verification'), {
-            'fields': ('payment_proof', 'gcash_transaction_id', 'verification_notes', 'verified_by', 'verification_date')
+            'fields': ('view_proof', 'gcash_transaction_id', 'verification_notes', 'verified_by', 'verification_date')
         }),
         (_('Additional Information'), {
             'fields': ('message', 'receipt_sent')

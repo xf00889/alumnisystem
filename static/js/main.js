@@ -94,13 +94,11 @@ window.NORSUAlumni = window.NORSUAlumni || {};
 
     // CSRF Token Management
     app.csrf = {
-        token: null,
-
         /**
-         * Initialize CSRF token
+         * Initialize CSRF-aware AJAX requests. Never cache the cookie token:
+         * login/logout in another tab can rotate it while this page is open.
          */
         init: function() {
-            this.token = app.utils.getCookie('csrftoken');
             this.setupAjax();
         },
 
@@ -112,7 +110,8 @@ window.NORSUAlumni = window.NORSUAlumni || {};
                 $.ajaxSetup({
                     beforeSend: (xhr, settings) => {
                         if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !settings.crossDomain) {
-                            xhr.setRequestHeader("X-CSRFToken", this.token);
+                            const token = this.getToken();
+                            if (token) xhr.setRequestHeader("X-CSRFToken", token);
                         }
                     }
                 });
@@ -123,8 +122,12 @@ window.NORSUAlumni = window.NORSUAlumni || {};
          * Get CSRF token for fetch requests
          * @returns {string} CSRF token
          */
-        getToken: function() {
-            return this.token;
+        getToken: function(form) {
+            // Prefer the current cookie for JavaScript requests, if readable.
+            // Fall back to a rendered form token for HTTP-only CSRF cookies.
+            return app.utils.getCookie('csrftoken') ||
+                (form && form.querySelector('[name="csrfmiddlewaretoken"]')?.value) ||
+                document.querySelector('[name="csrfmiddlewaretoken"]')?.value || null;
         }
     };
 
@@ -168,8 +171,16 @@ window.NORSUAlumni = window.NORSUAlumni || {};
         // Initialize core modules
         this.csrf.init();
         
-        // Expose CSRF token globally for other scripts
-        window.csrftoken = this.csrf.getToken();
+        // Compatibility for scripts that read the global: don't freeze a
+        // security token that can rotate after login/logout in another tab.
+        try {
+            Object.defineProperty(window, 'csrftoken', {
+                configurable: true,
+                get: () => this.csrf.getToken()
+            });
+        } catch (_) {
+            window.csrftoken = this.csrf.getToken();
+        }
         
         // Initialize Bootstrap components
         this.bootstrap.init();

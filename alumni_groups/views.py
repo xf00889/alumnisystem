@@ -5,14 +5,15 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.views import View
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
-from django.db.models import Q, Count, Avg
+from django.db.models import Q, Count, Avg, Prefetch
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
 from django.utils import timezone
 from .models import (
     AlumniGroup, GroupMembership, GroupEvent, GroupDiscussion,
     GroupDiscussionComment, GroupActivity, GroupFile, GroupAnalytics,
-    SecurityQuestion, SecurityQuestionAnswer, GroupMessage, Post, Comment, PostLike
+    SecurityQuestion, SecurityQuestionAnswer, GroupMessage, Post, Comment, PostLike,
+    PostBookmark, PostReport, GroupPoll, GroupPollVote, GroupEventRSVP, GroupNotification, GroupEventShareRequest
 )
 from .forms import (
     AlumniGroupForm, GroupEventForm, GroupDiscussionForm,
@@ -152,6 +153,57 @@ class GroupListView(LoginRequiredMixin, ListView):
         
         return context
 
+def get_approved_group_feed_posts(group, user, feed_sort='newest'):
+    """One permission-neutral queryset preparation path for the page and AJAX refresh.
+
+    Call only after verifying an approved group membership. Every result is an
+    approved post belonging to this group; pending posts cannot enter the feed.
+    """
+    if feed_sort not in ('newest', 'oldest', 'popular', 'saved'):
+        feed_sort = 'newest'
+    posts = group.posts.filter(status='APPROVED').select_related(
+        'author', 'author__profile'
+    ).prefetch_related('likes', 'comments__author', 'event_shares__event')
+    if feed_sort == 'saved':
+        posts = posts.filter(bookmarks__user=user).order_by('-is_pinned', '-created_at', '-pk')
+    elif feed_sort == 'oldest':
+        posts = posts.order_by('-is_pinned', 'created_at', 'pk')
+    elif feed_sort == 'popular':
+        posts = posts.annotate(popularity=Count('likes', distinct=True)).order_by('-is_pinned', '-popularity', '-created_at', '-pk')
+    else:
+        posts = posts.order_by('-is_pinned', '-created_at', '-pk')
+    items = list(posts[:100])
+    liked_ids = set(user.liked_posts.filter(group=group).values_list('pk', flat=True))
+    bookmarked_ids = set(PostBookmark.objects.filter(user=user, post__group=group).values_list('post_id', flat=True))
+    for post in items:
+        post.is_liked = post.pk in liked_ids
+        post.is_bookmarked = post.pk in bookmarked_ids
+        post.top_comments = [comment for comment in post.comments.all() if comment.parent_id is None]
+    return items
+
+
+@login_required
+def group_feed_snapshot(request, slug):
+    """Safe, read-only HTML fragment of the latest visible posts for a group member."""
+    group = get_object_or_404(AlumniGroup, slug=slug)
+    if not GroupMembership.objects.filter(
+        group=group, user=request.user, status='APPROVED', is_active=True
+    ).exists():
+        return HttpResponseForbidden('Approved group membership is required.')
+    feed_sort = request.GET.get('feed_sort', 'newest')
+    posts = get_approved_group_feed_posts(group, request.user, feed_sort)
+    html = render_to_string('alumni_groups/feed_post_cards.html', {
+        'group_posts': posts,
+        'user': request.user,
+        'can_moderate_posts': GroupMembership.objects.filter(
+            group=group, user=request.user, status='APPROVED', is_active=True
+        ).filter(Q(role='ADMIN') | Q(user__is_staff=True)).exists(),
+    }, request=request)
+    response = JsonResponse({'html': html, 'post_ids': [post.pk for post in posts]})
+    response['Cache-Control'] = 'no-store, private'
+    return response
+
+
 class GroupDetailView(LoginRequiredMixin, DetailView):
     model = AlumniGroup
     template_name = 'alumni_groups/group_detail.html'
@@ -181,20 +233,66 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         ).order_by('start_date')[:5]
         
         # Get recent discussions
-        context['discussions'] = group.discussions.select_related(
-            'created_by'
-        ).order_by('-created_at')[:5]
+        context['discussions'] = group.discussions.select_related('created_by').prefetch_related(
+            Prefetch('comments', queryset=GroupDiscussionComment.objects.select_related('created_by').order_by('created_at'))
+        ).order_by('-is_pinned', '-created_at')[:25]
         
         # Get group files
         context['files'] = group.files.select_related(
             'uploaded_by'
         ).order_by('-uploaded_at')[:5]
         
-        # Get group posts
-        context['group_posts'] = group.posts.all() if context['membership'] and context['membership'].status == 'APPROVED' else []
-        
-        # Get group messages
-        context['group_messages'] = group.messages.all() if context['membership'] and context['membership'].status == 'APPROVED' else []
+        # Feed access is tied to an approved membership, never merely a staff role.
+        membership = context['membership']
+        is_member = bool(membership and membership.status == 'APPROVED')
+        can_moderate = is_member and (self.request.user.is_staff or membership.role == 'ADMIN')
+        context['can_moderate_posts'] = can_moderate
+        context['can_review_event_shares'] = is_member and membership.is_active and membership.role == 'ADMIN'
+        context['approved_member_count'] = group.memberships.filter(status='APPROVED').count()
+        context['feed_sort'] = self.request.GET.get('feed_sort', 'newest')
+        if context['feed_sort'] not in ('newest', 'oldest', 'popular', 'saved'):
+            context['feed_sort'] = 'newest'
+        context['group_posts'] = []
+        context['pending_posts'] = []
+        context['my_pending_posts'] = []
+        context['group_polls'] = []
+        context['community_notifications'] = []
+        context['pending_event_shares'] = []
+        context['group_events'] = []
+        context['is_community_member'] = is_member
+        if is_member:
+            posts = group.posts.select_related('author', 'author__profile')
+            context['group_posts'] = get_approved_group_feed_posts(group, self.request.user, context['feed_sort'])
+            if can_moderate:
+                context['pending_posts'] = list(posts.filter(status='PENDING').order_by('created_at')[:100])
+            else:
+                context['my_pending_posts'] = list(posts.filter(status='PENDING', author=self.request.user).order_by('-created_at')[:20])
+        # Only active GroupEvent records appear on the Events tab.
+        if is_member:
+            context['group_events'] = list(group.events.filter(is_active=True).order_by('start_date')[:25])
+            event_responses = dict(GroupEventRSVP.objects.filter(event__group=group, user=self.request.user).values_list('event_id', 'response'))
+            for event in context['group_events']:
+                event.my_rsvp = event_responses.get(event.id)
+                event.going_count = event.rsvps.filter(response='GOING').count()
+            context['group_polls'] = list(group.polls.select_related('author').prefetch_related('options__votes').order_by('-created_at')[:20])
+            vote_options = dict(GroupPollVote.objects.filter(poll__group=group, voter=self.request.user).values_list('poll_id', 'option_id'))
+            for poll in context['group_polls']:
+                poll.my_option_id = vote_options.get(poll.id)
+                poll.is_closed = bool(poll.closes_at and poll.closes_at <= timezone.now())
+                poll.total_votes = len(poll.votes.all())
+            context['community_notifications'] = list(GroupNotification.objects.filter(group=group, recipient=self.request.user).order_by('-created_at')[:20])
+            context['unread_group_notifications'] = sum(not notice.is_read for notice in context['community_notifications'])
+            if context['can_review_event_shares']:
+                context['pending_event_shares'] = list(
+                    GroupEventShareRequest.objects.filter(
+                        group=group, status='PENDING', event__status='published', event__end_date__gte=timezone.now(),
+                        event__notified_groups=group,
+                    ).select_related('event', 'event__created_by').order_by('-created_at')[:50]
+                )
+        else:
+            context['unread_group_notifications'] = 0
+        context['group_event_form'] = GroupEventForm() if can_moderate else None
+        context['group_messages'] = group.messages.all() if is_member else []
         
         return context
 
@@ -577,6 +675,13 @@ def manage_members(request, slug):
         status__in=['REJECTED', 'BLOCKED']
     ).select_related('user', 'user__profile')
     
+    member_query = (request.GET.get('member_search') or '').strip()[:100]
+    if member_query:
+        member_filter = Q(user__first_name__icontains=member_query) | Q(user__last_name__icontains=member_query) | Q(user__username__icontains=member_query) | Q(user__email__icontains=member_query)
+        active_members = active_members.filter(member_filter)
+        pending_members = pending_members.filter(member_filter)
+        removed_members = removed_members.filter(member_filter)
+
     # Get posts by status
     pending_posts = Post.objects.filter(
         group=group,
@@ -601,6 +706,8 @@ def manage_members(request, slug):
         'pending_posts': pending_posts,
         'approved_posts': approved_posts,
         'rejected_posts': rejected_posts,
+        'member_search': member_query,
+        'open_reports': PostReport.objects.filter(post__group=group, status='OPEN').select_related('post', 'reporter').order_by('-created_at')[:100],
     }
     return render(request, 'alumni_groups/manage_members.html', context)
 
@@ -713,7 +820,20 @@ def group_analytics_api(request, slug):
 
 @login_required
 def group_map_view(request):
-    return render(request, 'alumni_groups/group_map.html')
+    # Use the same active-group visibility as the existing Groups directory.
+    # The group model has no geographical coordinates, so this view supplies
+    # discoverable groups without inventing or exposing member locations.
+    groups = list(AlumniGroup.objects.filter(is_active=True))
+    memberships = GroupMembership.objects.filter(
+        user=request.user, group_id__in=[group.id for group in groups]
+    ).values_list('group_id', flat=True)
+    return render(request, 'alumni_groups/group_map.html', {
+        'groups': groups,
+        'user_memberships': set(memberships),
+        'group_types': AlumniGroup.GROUP_TYPES,
+        'courses': sorted({group.course for group in groups if group.course}),
+        'current_year': timezone.now().year,
+    })
 
 @login_required
 def manage_security_questions(request, slug):
@@ -872,148 +992,48 @@ def get_messages(request, slug):
 @login_required
 @require_POST
 def update_member_status(request, membership_id):
-    import json
-    import logging
-    
-    logger = logging.getLogger(__name__)
-    logger.info(f"Attempting to update member status for membership_id: {membership_id}")
-    logger.info(f"Request method: {request.method}")
-    logger.info(f"Request user: {request.user}")
-    logger.info(f"Request headers: {dict(request.headers)}")
-    
-    # Ensure we return JSON response
+    from django.db import transaction
     try:
-        # Log the raw request body for debugging
-        logger.debug(f"Raw request body: {request.body.decode('utf-8')}")
         data = json.loads(request.body)
-        action = data.get('action')
-        logger.info(f"Requested action: {action}")
-        
-    except json.JSONDecodeError as e:
-        logger.error(f"JSON decode error: {str(e)}")
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Invalid JSON data',
-            'details': str(e)
-        }, status=400)
-    except Exception as e:
-        logger.error(f"Unexpected error parsing request: {str(e)}")
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Error processing request',
-            'details': str(e)
-        }, status=400)
-    
-    try:
-        membership = get_object_or_404(GroupMembership, id=membership_id)
-        logger.info(f"Found membership for user: {membership.user.get_full_name()} in group: {membership.group.name}")
-        
-        # Check permissions
-        user_membership = GroupMembership.objects.filter(
-            group=membership.group,
-            user=request.user,
-            status='APPROVED'
-        ).first()
-        
-        if not (request.user.is_staff or (user_membership and user_membership.role == 'ADMIN')):
-            logger.warning(f"Permission denied for user: {request.user.get_full_name()}")
-            return JsonResponse({
-                'status': 'error',
-                'message': 'Permission denied',
-                'details': 'You must be a group admin or staff member to perform this action'
-            }, status=403)
-        
-        # Don't allow removing the last admin
-        if action == 'remove' and membership.role == 'ADMIN':
-            admin_count = GroupMembership.objects.filter(
-                group=membership.group,
-                role='ADMIN',
-                status='APPROVED'
-            ).count()
-            logger.info(f"Current admin count for group: {admin_count}")
-            
-            if admin_count <= 1:
-                logger.warning("Attempted to remove last admin")
-                return JsonResponse({
-                    'status': 'error',
-                    'message': 'Cannot remove the last admin of the group'
-                }, status=400)
-        
-        # Validate the action
-        valid_actions = {'approve', 'reject', 'remove', 'promote', 'reinstate'}
-        if action not in valid_actions:
-            logger.error(f"Invalid action attempted: {action}")
-            return JsonResponse({
-                'status': 'error',
-                'message': f'Invalid action. Must be one of: {", ".join(valid_actions)}'
-            }, status=400)
-        
-        # Log the current state before changes
-        logger.info(f"Current membership state - Status: {membership.status}, Role: {membership.role}")
-        
-        # Update membership based on action
+    except (ValueError, TypeError):
+        return JsonResponse({'status': 'error', 'message': 'Invalid JSON.'}, status=400)
+    action = data.get('action')
+    valid = {'approve', 'reject', 'remove', 'promote', 'demote', 'make_moderator', 'reinstate'}
+    if action not in valid:
+        return JsonResponse({'status': 'error', 'message': 'Invalid member action.'}, status=400)
+    with transaction.atomic():
+        membership = get_object_or_404(GroupMembership.objects.select_for_update().select_related('group', 'user'), pk=membership_id)
+        actor = GroupMembership.objects.filter(group=membership.group, user=request.user, status='APPROVED', is_active=True).first()
+        if not (request.user.is_staff or (actor and actor.role == 'ADMIN')):
+            return JsonResponse({'status': 'error', 'message': 'Group administrator required.'}, status=403)
+        if membership.user_id == request.user.pk and action in ('remove', 'demote', 'reject', 'make_moderator'):
+            return JsonResponse({'status': 'error', 'message': 'You cannot remove or demote your own role.'}, status=400)
+        if action in ('promote', 'demote', 'make_moderator') and membership.status != 'APPROVED':
+            return JsonResponse({'status': 'error', 'message': 'Only approved members can receive role changes.'}, status=400)
+        if action in ('approve', 'reject') and membership.status != 'PENDING':
+            return JsonResponse({'status': 'error', 'message': 'Only pending requests can be reviewed.'}, status=400)
+        if action == 'reinstate' and membership.status not in ('BLOCKED', 'REJECTED'):
+            return JsonResponse({'status': 'error', 'message': 'Member is not removed.'}, status=400)
+        if membership.role == 'ADMIN' and membership.status == 'APPROVED' and action in ('remove', 'demote', 'make_moderator'):
+            if GroupMembership.objects.filter(group=membership.group, role='ADMIN', status='APPROVED').count() <= 1:
+                return JsonResponse({'status': 'error', 'message': 'The group must retain an administrator.'}, status=400)
         if action == 'approve':
-            membership.status = 'APPROVED'
-            membership.role = 'MEMBER'
+            membership.status, membership.role = 'APPROVED', 'MEMBER'
         elif action == 'reject':
             membership.status = 'REJECTED'
         elif action == 'remove':
-            membership.status = 'BLOCKED'
+            membership.status, membership.is_active = 'BLOCKED', False
+        elif action == 'reinstate':
+            membership.status, membership.is_active, membership.role = 'APPROVED', True, 'MEMBER'
         elif action == 'promote':
             membership.role = 'ADMIN'
-        elif action == 'reinstate':
-            membership.status = 'APPROVED'
+        elif action == 'make_moderator':
+            membership.role = 'MODERATOR'
+        elif action == 'demote':
             membership.role = 'MEMBER'
-        
-        # Save the changes
-        membership.save()
-        logger.info(f"Updated membership - New Status: {membership.status}, New Role: {membership.role}")
-        
-        # Record activity
-        activity_types = {
-            'approve': 'JOIN',
-            'reject': 'LEAVE',
-            'remove': 'LEAVE',
-            'promote': 'UPDATE',
-            'reinstate': 'JOIN'
-        }
-        
-        activity_descriptions = {
-            'approve': f'{membership.user.get_full_name()} joined the group',
-            'reject': f'{membership.user.get_full_name()} was rejected from the group',
-            'remove': f'{membership.user.get_full_name()} was removed from the group',
-            'promote': f'{membership.user.get_full_name()} was promoted to admin',
-            'reinstate': f'{membership.user.get_full_name()} was reinstated to the group'
-        }
-        
-        GroupActivity.objects.create(
-            group=membership.group,
-            user=membership.user,
-            activity_type=activity_types[action],
-            description=activity_descriptions[action]
-        )
-        logger.info(f"Activity recorded: {activity_descriptions[action]}")
-        
-        return JsonResponse({
-            'status': 'success',
-            'message': activity_descriptions[action],
-            'new_status': membership.status,
-            'new_role': membership.role
-        })
-        
-    except GroupMembership.DoesNotExist:
-        logger.error(f"Membership not found: {membership_id}")
-        return JsonResponse({
-            'status': 'error',
-            'message': 'Membership not found'
-        }, status=404)
-    except Exception as e:
-        logger.exception("Unexpected error in update_member_status")
-        return JsonResponse({
-            'status': 'error',
-            'message': 'An unexpected error occurred',
-            'details': str(e)
-        }, status=500)
+        membership.save(update_fields=['status', 'role', 'is_active', 'last_active_at'])
+        GroupActivity.objects.create(group=membership.group, user=request.user, activity_type='UPDATE', description=f'Group membership {action}: {membership.user.username}')
+    return JsonResponse({'status': 'success', 'message': 'Member updated.', 'new_status': membership.status, 'new_role': membership.role})
 
 @login_required
 def get_security_answers(request, membership_id):
@@ -1126,21 +1146,32 @@ def create_post(request, slug):
     if not membership:
         return JsonResponse({'error': 'You must be an approved member to post'}, status=403)
     
-    content = request.POST.get('content')
-    if not content:
-        return JsonResponse({'error': 'Content is required'}, status=400)
-    
-    # Set initial status based on user role
-    initial_status = 'PENDING'
-    if request.user.is_staff or membership.role in ['ADMIN', 'MODERATOR']:
-        initial_status = 'APPROVED'
-    
-    # Create post with appropriate status
+    content = (request.POST.get('content') or '').strip()
+    photo = request.FILES.get('image')
+    if not content and not photo:
+        return JsonResponse({'error': 'Write an update or attach a photo.'}, status=400)
+    if len(content) > 5000:
+        return JsonResponse({'error': 'Posts must be 5,000 characters or fewer.'}, status=400)
+
+    if photo:
+        # ImageField validates image bytes, not only the browser-provided MIME type.
+        from django import forms
+        from django.core.exceptions import ValidationError
+        if photo.size > 5 * 1024 * 1024:
+            return JsonResponse({'error': 'Photo must be 5 MB or smaller.'}, status=400)
+        try:
+            photo = forms.ImageField().clean(photo)
+        except ValidationError:
+            return JsonResponse({'error': 'Please upload a valid image file.'}, status=400)
+        if photo.image.format not in ('JPEG', 'PNG', 'WEBP'):
+            return JsonResponse({'error': 'Only JPEG, PNG, or WebP photos are supported.'}, status=400)
+
+    # The group's setting controls whether ordinary members need approval.
+    can_publish = request.user.is_staff or membership.role in ('ADMIN', 'MODERATOR')
+    initial_status = 'APPROVED' if can_publish or not group.require_post_approval else 'PENDING'
     post = Post.objects.create(
-        group=group,
-        author=request.user,
-        content=content,
-        status=initial_status
+        group=group, author=request.user, content=content,
+        image=photo, status=initial_status,
     )
     
     # If auto-approved, set the approval details
@@ -1149,7 +1180,11 @@ def create_post(request, slug):
         post.approved_at = timezone.now()
         post.save()
         
-    return JsonResponse({'success': True, 'post_id': post.id})
+    if post.status == 'APPROVED':
+        from .community_views import notify_mentions
+        notify_mentions(group, request.user, content, post=post)
+    return JsonResponse({'success': True, 'post_id': post.id, 'status': post.status,
+                         'message': 'Post published.' if post.status == 'APPROVED' else 'Post sent for approval.'})
 
 @login_required
 def approve_post(request, post_id):
@@ -1170,7 +1205,11 @@ def approve_post(request, post_id):
     post.approved_by = request.user
     post.approved_at = timezone.now()
     post.save()
-    
+    if action == 'approve':
+        from .community_views import notify_mentions
+        notify_mentions(post.group, post.author, post.content, post=post)
+    GroupNotification.objects.create(group=post.group, recipient=post.author, actor=request.user, post=post,
+                                     message=f'Your group post was {post.status.lower()}.')
     return JsonResponse({
         'success': True,
         'status': post.get_status_display(),
@@ -1180,7 +1219,7 @@ def approve_post(request, post_id):
 
 @login_required
 def like_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(Post, id=post_id, status='APPROVED')
     membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
     
     if request.method == 'POST':
@@ -1197,29 +1236,34 @@ def like_post(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(Post, id=post_id, status='APPROVED')
     membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
     
     if request.method == 'POST':
-        content = request.POST.get('content')
-        if content:
-            comment = Comment.objects.create(
-                post=post,
-                author=request.user,
-                content=content
-            )
-            return JsonResponse({
-                'status': 'success',
-                'comment_id': comment.id
-            })
+        content = (request.POST.get('content') or '').strip()
+        if not content or len(content) > 3000:
+            return JsonResponse({'status': 'error', 'message': 'Comment must contain 1–3000 characters.'}, status=400)
+        parent = None
+        if request.POST.get('parent_id'):
+            parent = get_object_or_404(Comment, pk=request.POST['parent_id'], post=post)
+            if parent.parent_id:
+                parent = parent.parent
+        comment = Comment.objects.create(post=post, author=request.user, content=content, parent=parent)
+        from .community_views import notify_mentions
+        notify_mentions(post.group, request.user, content, post=post)
+        recipient = parent.author if parent else post.author
+        if recipient_id := (recipient.pk if recipient.pk != request.user.pk else None):
+            GroupNotification.objects.create(group=post.group, recipient_id=recipient_id, actor=request.user, post=post,
+                                             message=f'{request.user.get_full_name() or request.user.username} replied to your group post.')
+        return JsonResponse({'status': 'success', 'comment_id': comment.pk})
     return JsonResponse({'status': 'error'}, status=400)
 
 @login_required
 def get_post_comments(request, post_id):
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(Post, id=post_id, status='APPROVED')
     membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
     
-    comments = post.comments.select_related('author').order_by('created_at')
+    comments = post.comments.filter(parent__isnull=True).select_related('author').prefetch_related('replies__author').order_by('created_at')
     comments_html = render_to_string('alumni_groups/comments_list.html', {
         'comments': comments
     }, request=request)

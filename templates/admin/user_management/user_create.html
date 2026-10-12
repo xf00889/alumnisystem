@@ -319,9 +319,10 @@
 {% block content %}
 <div class="container-fluid">
     <!-- Header -->
-    <div class="directory-header">
-        <h1 class="directory-title">Create New User</h1>
-        <p class="directory-subtitle">Add a new user account to the system</p>
+    <div class="directory-header admin-page-header">
+        <p class="admin-page-header__eyebrow">ADMINISTRATION / ALUMNI MANAGEMENT</p>
+        <h1 class="directory-title admin-page-header__title">Create New User</h1>
+        <p class="directory-subtitle admin-page-header__subtitle">Add a new user account to the system</p>
     </div>
 
     <!-- Form Card -->
@@ -467,98 +468,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('userCreateForm');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingOverlay = document.getElementById('loadingOverlay');
-    const passwordInput = document.getElementById('id_password');
-    const passwordConfirmInput = document.getElementById('id_password_confirm');
-    const passwordStrength = document.getElementById('passwordStrength');
-    const strengthBarFill = document.getElementById('strengthBarFill');
-    const strengthText = document.getElementById('strengthText');
-
-    // Password strength checker
-    if (passwordInput) {
-        passwordInput.addEventListener('input', function() {
-            const password = this.value;
-            
-            if (password.length === 0) {
-                passwordStrength.style.display = 'none';
-                return;
-            }
-
-            passwordStrength.style.display = 'block';
-
-            // Check requirements
-            const requirements = {
-                length: password.length >= 8,
-                uppercase: /[A-Z]/.test(password),
-                lowercase: /[a-z]/.test(password),
-                number: /[0-9]/.test(password)
-            };
-
-            // Update requirement indicators
-            document.getElementById('req-length').classList.toggle('met', requirements.length);
-            document.getElementById('req-uppercase').classList.toggle('met', requirements.uppercase);
-            document.getElementById('req-lowercase').classList.toggle('met', requirements.lowercase);
-            document.getElementById('req-number').classList.toggle('met', requirements.number);
-
-            // Calculate strength
-            const metCount = Object.values(requirements).filter(Boolean).length;
-            
-            strengthBarFill.className = 'strength-bar-fill';
-            if (metCount <= 2) {
-                strengthBarFill.classList.add('strength-weak');
-                strengthText.textContent = 'Weak';
-                strengthText.style.color = 'var(--feedback-error)';
-            } else if (metCount === 3) {
-                strengthBarFill.classList.add('strength-medium');
-                strengthText.textContent = 'Medium';
-                strengthText.style.color = 'var(--feedback-warning)';
-            } else {
-                strengthBarFill.classList.add('strength-strong');
-                strengthText.textContent = 'Strong';
-                strengthText.style.color = 'var(--feedback-success)';
-            }
-        });
-    }
-
-    // Form submission with loading indicator
-    form.addEventListener('submit', function(e) {
-        // Basic client-side validation
-        let isValid = true;
-        const email = document.getElementById('id_email').value.trim();
-        const firstName = document.getElementById('id_first_name').value.trim();
-        const lastName = document.getElementById('id_last_name').value.trim();
-        const password = passwordInput.value;
-        const passwordConfirm = passwordConfirmInput.value;
-
-        if (!email || !firstName || !lastName || !password || !passwordConfirm) {
-            e.preventDefault();
-            alert('Please fill in all required fields');
-            return;
-        }
-
-        if (password !== passwordConfirm) {
-            e.preventDefault();
-            alert('Passwords do not match');
-            passwordConfirmInput.focus();
-            return;
-        }
-
-        if (password.length < 8) {
-            e.preventDefault();
-            alert('Password must be at least 8 characters long');
-            passwordInput.focus();
-            return;
-        }
-
-        // Show loading overlay
-        loadingOverlay.classList.add('show');
-        submitBtn.disabled = true;
-        submitBtn.classList.add('btn-loading');
-    });
-});
-</script>
+<script>document.documentElement.classList.add("fe-page--admin-user-management-user-create-html");</script>
+<script src="{% static 'js/modules/admin.js' %}"></script>
 {% endblock %}

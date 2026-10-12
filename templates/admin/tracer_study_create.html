@@ -4,40 +4,17 @@
 {% block title %}{% if survey %}Edit{% else %}Create{% endif %} Tracer Study Form - Admin{% endblock %}
 
 {% block extra_css %}
-<style>
-    .tracer-create-wrap { max-width: 820px; margin: 0 auto; }
-    .tracer-create-card { background: var(--ui-surface, #fff); border: 1px solid var(--ui-border, #e2e8f0); border-radius: 12px; padding: 2rem; box-shadow: 0 10px 30px rgba(43, 60, 107, 0.08); }
-    .tracer-create-card h4 { color: var(--primary-color, #2b3c6b); margin-bottom: 0.5rem; letter-spacing: -0.02em; }
-    .form-label { font-weight: 600; }
-    .form-hint { font-size: 0.8rem; color: var(--text-muted, #a0aec0); }
-    .btn-create { background: var(--primary-color, #2b3c6b); border-color: var(--primary-color, #2b3c6b); }
-    .audience-select-panel { padding: 1rem; margin-bottom: 1.25rem; background: #f5f7fb; border: 1px solid #dce3ef; border-radius: 8px; }
-    .audience-select-panel .form-select { min-height: 46px; border-color: #cbd5e1; font-weight: 500; }
-    .audience-readonly { display: flex; align-items: center; gap: 0.65rem; padding: 0.85rem 1rem; margin-bottom: 1.25rem; color: #2b3c6b; background: #f5f7fb; border: 1px solid #dce3ef; border-radius: 8px; font-weight: 600; }
-    .conditional-section[hidden] { display: none !important; }
-    .section-heading { margin: 0 0 0.35rem; color: #2b3c6b; font-size: 1rem; font-weight: 600; }
-    .section-copy { margin: 0 0 1rem; color: #64748b; font-size: 0.82rem; }
-    .alumni-settings-panel { padding: 1.1rem; margin-bottom: 1.5rem; border: 1px solid #dce3ef; border-radius: 8px; }
-    .targeting-fields { padding: 1rem; background: #fbfcfe; border: 1px solid #e2e8f0; border-radius: 7px; transition: opacity 0.2s ease; }
-    .public-listing-option { display: flex; gap: 0.8rem; margin-top: 1rem; padding: 1rem; background: #eef6ff; border: 1px solid #cfe1f8; border-radius: 7px; }
-    .public-listing-option .form-check-input { flex: 0 0 auto; margin-top: 0.2rem; }
-    .public-listing-option label { color: #233b6e; font-weight: 600; }
-    .public-listing-option p { margin: 0.2rem 0 0; color: #5d6b82; font-size: 0.8rem; }
-    .employer-access-panel { display: flex; gap: 0.9rem; padding: 1rem; margin-bottom: 1.5rem; color: #285f50; background: #eef8f5; border: 1px solid #cce8de; border-radius: 8px; }
-    .employer-access-panel > i { margin-top: 0.15rem; font-size: 1.1rem; }
-    .employer-access-panel strong { display: block; margin-bottom: 0.2rem; color: #1f5547; }
-    @media (max-width: 576px) {
-        .tracer-create-card { padding: 1.25rem; }
-    }
-</style>
+<script>document.documentElement.classList.add("fe-page--admin-tracer-study-create-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/admin.css' %}">
 {% endblock %}
 
 {% block content %}
 <div class="container py-4 tracer-create-wrap">
-    <div class="tracer-create-card">
-        <h4><i class="fas fa-{% if survey %}edit{% else %}clipboard-list{% endif %} me-2"></i>
-            {% if survey %}Edit{% else %}Create New{% endif %} Tracer Study Form</h4>
-        <p class="text-muted">
+    <header class="admin-page-header">
+        <p class="admin-page-header__eyebrow">ADMINISTRATION / ANALYTICS</p>
+        <h1 class="admin-page-header__title"><i class="fas fa-{% if survey %}edit{% else %}clipboard-list{% endif %} me-2"></i>
+            {% if survey %}Edit{% else %}Create New{% endif %} Tracer Study Form</h1>
+        <p class="admin-page-header__subtitle">
             {% if survey %}
                 Update this questionnaire's label, response period, access, and status.
                 Other tracer study questionnaires will not be changed.
@@ -46,6 +23,8 @@
                 specific cohort, while employer studies use a public response form.
             {% endif %}
         </p>
+    </header>
+    <div class="tracer-create-card">
 
         <form method="post" action="{% if survey %}{% url 'core:edit_tracer_study' survey.id %}{% else %}{% url 'core:create_tracer_study' %}{% endif %}"
               data-audience="{{ selected_audience }}" novalidate>

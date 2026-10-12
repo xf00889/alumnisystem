@@ -6,6 +6,7 @@ app_name = 'donations'
 urlpatterns = [
     # Campaign views
     path('campaigns/', views.campaign_list, name='campaign_list'),
+    path('campaigns/public/', views.public_campaign_list, name='public_campaign_list'),
     path('campaigns/create/', views.campaign_create, name='campaign_create'),
     path('campaigns/<slug:slug>/', views.campaign_detail, name='campaign_detail'),
     path('campaigns/<slug:slug>/donors/', views.campaign_donors, name='campaign_donors'),
@@ -13,11 +14,13 @@ urlpatterns = [
 
     # Donation views
     path('history/', views.donation_history, name='donation_history'),
+    path('cancel/<int:pk>/', views.cancel_donation, name='cancel_donation'),
     path('confirmation/<int:pk>/', views.donation_confirmation, name='donation_confirmation'),
 
     # GCash payment flow
     path('payment-instructions/<int:pk>/', views.payment_instructions, name='payment_instructions'),
     path('upload-proof/<int:pk>/', views.upload_payment_proof, name='upload_payment_proof'),
+    path('manage/payment-proof/<int:pk>/', views.view_payment_proof, name='view_payment_proof'),
 
 
     # Help and FAQ

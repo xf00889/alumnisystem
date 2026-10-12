@@ -8,10 +8,11 @@ from core.recaptcha_utils import is_recaptcha_enabled
 
 class EventForm(forms.ModelForm):
     notified_groups = forms.ModelMultipleChoiceField(
-        queryset=AlumniGroup.objects.all(),
+        queryset=AlumniGroup.objects.filter(is_active=True),
         widget=forms.CheckboxSelectMultiple,
         required=False,
-        label='Notify Groups'
+        label='Request sharing in Alumni Groups',
+        help_text='Selected group administrators receive a notice after publication. They decide whether to post, pin or dismiss the event. No automatic group post is created.'
     )
     
     class Meta:

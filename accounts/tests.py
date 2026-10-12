@@ -1,12 +1,14 @@
 from django.test import RequestFactory, SimpleTestCase, TestCase
+from django.conf import settings
+from django.test import override_settings
 from django.contrib.auth import get_user_model
 from django.http import HttpResponse
 from django.contrib.messages.storage.fallback import FallbackStorage
 from django.contrib.sessions.middleware import SessionMiddleware
-from accounts.forms import EducationForm, ProfileUpdateForm
+from accounts.forms import EducationForm, EnhancedSignupForm, ProfileUpdateForm
 from accounts.models import Education, Profile
 from accounts.decorators import post_registration_required
-from alumni_directory.models import Alumni
+from alumni_directory.models import Alumni, GraduateRegistry
 
 User = get_user_model()
 
@@ -134,14 +136,86 @@ class PostRegistrationDecoratorTestCase(TestCase):
         self.assertIn('/accounts/post-registration/', response.url)
 
 
+@override_settings(MIDDLEWARE=[
+    middleware for middleware in settings.MIDDLEWARE
+    if middleware != 'setup.middleware.SetupRequiredMiddleware'
+])
 class PostRegistrationTransactionTestCase(TestCase):
+    def test_post_registration_uses_unique_first_token_for_registrar_typo(self):
+        registry_record = GraduateRegistry.objects.create(
+            first_name='DARYL LLYOD',
+            last_name='TANO',
+            campus='BSC',
+            graduation_year=2025,
+            course='BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY',
+        )
+        user = User.objects.create_user(
+            username='daryl_lloyd',
+            email='daryl.lloyd@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post('/accounts/post-registration/', data={
+            'first_name': 'Daryl Lloyd',
+            'last_name': 'Tano',
+            'campus': 'NORSU-BSC',
+            'college': 'CAS',
+            'course_graduated': 'BSINT',
+            'major': '',
+            'major_other': '',
+            'graduation_year': 2025,
+            'present_occupation': 'IT Staff',
+            'company_name': 'Acme Inc.',
+        })
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.url, '/')
+        registry_record.refresh_from_db()
+        self.assertEqual(registry_record.claimed_by, user)
+
+    def test_post_registration_does_not_guess_ambiguous_first_token(self):
+        for first_name in ('MERRY JANE', 'MERRY JOY'):
+            GraduateRegistry.objects.create(
+                first_name=first_name,
+                last_name='TALLEDO',
+                campus='BSC',
+                graduation_year=2025,
+                course='BACHELOR OF SCIENCE IN INFORMATION TECHNOLOGY',
+            )
+        user = User.objects.create_user(
+            username='merry_typo',
+            email='merry.typo@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post('/accounts/post-registration/', data={
+            'first_name': 'Merry May',
+            'last_name': 'Talledo',
+            'campus': 'NORSU-BSC',
+            'college': 'CAS',
+            'course_graduated': 'BSINT',
+            'major': '',
+            'major_other': '',
+            'graduation_year': 2025,
+            'present_occupation': 'IT Staff',
+            'company_name': 'Acme Inc.',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Alumni Record Not Verified')
+        self.assertFalse(GraduateRegistry.objects.filter(claimed_by=user).exists())
+
     def test_post_registration_handles_imported_match_without_broken_transaction(self):
         """
         Regression test for TransactionManagementError in post-registration:
         when an imported placeholder alumni match exists, registration should
         still complete successfully and attach that imported record to user.
         """
-        first_name = 'RegTxn'
+        first_name = 'RegTxn Middle'
         last_name = 'MatchCase'
 
         placeholder = User.objects.create_user(
@@ -156,7 +230,7 @@ class PostRegistrationTransactionTestCase(TestCase):
             user=placeholder,
             graduation_year=2024,
             course='BSIT',
-            college='CAS',
+            college='CIT',
             campus='MAIN',
             current_company='',
             job_title='',
@@ -165,6 +239,13 @@ class PostRegistrationTransactionTestCase(TestCase):
             province='',
             city='',
             address='',
+        )
+        registry_record = GraduateRegistry.objects.create(
+            first_name='RegTxn',
+            last_name=last_name,
+            campus='MAIN',
+            graduation_year=2024,
+            course='BSIT',
         )
 
         user = User.objects.create_user(
@@ -182,7 +263,7 @@ class PostRegistrationTransactionTestCase(TestCase):
             'first_name': first_name,
             'last_name': last_name,
             'campus': 'NORSU-MAIN',
-            'college': 'CAS',
+            'college': 'CIT',
             'course_graduated': 'BSIT',
             'major': '',
             'major_other': '',
@@ -202,7 +283,131 @@ class PostRegistrationTransactionTestCase(TestCase):
         self.assertEqual(alumni_record.campus, 'MAIN')
         self.assertEqual(alumni_record.graduation_year, 2024)
 
+        registry_record.refresh_from_db()
+        self.assertEqual(registry_record.claimed_by, user)
+
         self.assertFalse(User.objects.filter(pk=placeholder.pk).exists())
+
+    def test_post_registration_rejects_user_missing_from_registrar_list(self):
+        user = User.objects.create_user(
+            username='not_in_registry',
+            email='not_in_registry@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post('/accounts/post-registration/', data={
+            'first_name': 'Missing',
+            'last_name': 'Graduate',
+            'campus': 'NORSU-BSC',
+            'college': 'CAS',
+            'course_graduated': 'BSINT',
+            'major': '',
+            'major_other': '',
+            'graduation_year': 2024,
+            'present_occupation': 'Engineer',
+            'company_name': 'Acme Inc.',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'could not verify your alumni record')
+        self.assertContains(response, 'Alumni Record Not Verified')
+        user.profile.refresh_from_db()
+        self.assertFalse(user.profile.has_completed_registration)
+        self.assertFalse(Alumni.objects.filter(user=user).exists())
+
+    def test_post_registration_rejects_registry_record_claimed_by_another_user(self):
+        owner = User.objects.create_user(
+            username='registry_owner',
+            email='registry_owner@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        registry_record = GraduateRegistry.objects.create(
+            first_name='Claimed',
+            last_name='Graduate',
+            campus='BSC',
+            graduation_year=2024,
+            course='BSINT',
+            claimed_by=owner,
+        )
+        user = User.objects.create_user(
+            username='registry_claimant',
+            email='registry_claimant@example.com',
+            password='testpass123',
+            is_active=True,
+        )
+        self.client.force_login(user)
+
+        response = self.client.post('/accounts/post-registration/', data={
+            'first_name': registry_record.first_name,
+            'last_name': registry_record.last_name,
+            'campus': 'NORSU-BSC',
+            'college': 'CAS',
+            'course_graduated': 'BSINT',
+            'major': '',
+            'major_other': '',
+            'graduation_year': registry_record.graduation_year,
+            'present_occupation': 'Engineer',
+            'company_name': 'Acme Inc.',
+        })
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'already linked to another account')
+        user.profile.refresh_from_db()
+        self.assertFalse(user.profile.has_completed_registration)
+        self.assertFalse(Alumni.objects.filter(user=user).exists())
+
+
+class EnhancedSignupRegistryCompatibilityTests(TestCase):
+    def test_inactive_imported_placeholder_does_not_block_signup_email(self):
+        placeholder = User.objects.create_user(
+            username='legacy.placeholder',
+            email='graduate@example.com',
+            is_active=False,
+            first_name='Legacy',
+            last_name='Graduate',
+        )
+        Alumni.objects.create(
+            user=placeholder,
+            graduation_year=2020,
+            course='BSINT',
+            college='CAS',
+            campus='BSC',
+            gender='O',
+            province='',
+            city='',
+            address='',
+        )
+
+        form = EnhancedSignupForm(data={
+            'first_name': 'Legacy',
+            'last_name': 'Graduate',
+            'email': 'graduate@example.com',
+            'password1': 'StrongPass1!',
+            'password2': 'StrongPass1!',
+        })
+
+        self.assertTrue(form.is_valid(), form.errors)
+
+    def test_existing_account_still_blocks_signup_email(self):
+        User.objects.create_user(
+            username='existing@example.com',
+            email='existing@example.com',
+            password='testpass123',
+        )
+
+        form = EnhancedSignupForm(data={
+            'first_name': 'Existing',
+            'last_name': 'User',
+            'email': 'existing@example.com',
+            'password1': 'StrongPass1!',
+            'password2': 'StrongPass1!',
+        })
+
+        self.assertFalse(form.is_valid())
+        self.assertIn('email', form.errors)
 
 
 class GoogleSSOErrorHandlingTestCase(TestCase):

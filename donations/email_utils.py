@@ -12,13 +12,13 @@ logger = logging.getLogger(__name__)
 
 def send_donation_confirmation_email(donation):
     """
-    Send confirmation email when a donation is created
+    Send payment-proof acknowledgement after a submitted GCash transaction
     """
     try:
         # Get donor information
         if donation.donor:
             donor_name = donation.donor.get_full_name() or donation.donor.username
-            donor_email = donation.donor.email
+            donor_email = donation.donor.email or donation.donor_email
         else:
             donor_name = donation.donor_name or "Anonymous Donor"
             donor_email = donation.donor_email
@@ -28,17 +28,19 @@ def send_donation_confirmation_email(donation):
             logger.warning(f"No email address for donation {donation.pk}")
             return False
         
-        # Log email attempt with full details
-        logger.info(f"Attempting to send confirmation email for donation {donation.pk} to {donor_email}")
-        logger.info(f"Donation status: {donation.status}, Reference: {donation.reference_number}")
-        logger.info(f"Donor: {donor_name}, Email: {donor_email}, Campaign: {donation.campaign.name}")
+        # Log the donation identifier, never personal details or full receipts.
+        logger.info('Preparing proof acknowledgement for donation %s (status=%s)', donation.pk, donation.status)
         
+        if not donation.reference_number or not donation.payment_proof:
+            logger.error('Donation %s is missing persisted GCash proof/reference; acknowledgement not sent', donation.pk)
+            return False
+
         # Prepare context
         context = {
             'donor_name': donor_name,
             'donor_email': donor_email,
             'amount': donation.amount,
-            'reference_number': donation.reference_number,
+            'reference_number': donation.reference_number or 'Not provided',
             'campaign_name': donation.campaign.name,
             'campaign_description': donation.campaign.description,
             'donation_date': donation.donation_date,
@@ -48,23 +50,23 @@ def send_donation_confirmation_email(donation):
         }
         
         # Render email templates
-        subject = f"Thank You for Your Donation - {donation.campaign.name}"
+        subject = f"Payment proof received — awaiting verification: {donation.campaign.name}"
         html_content = render_to_string('emails/donation_confirmation.html', context)
         
         # Create plain text version
         text_content = f"""
 Dear {donor_name},
 
-Thank you for your generous donation of ₱{donation.amount} to {donation.campaign.name}.
+We received your payment proof for a proposed donation of ₱{donation.amount} to {donation.campaign.name}. This is not confirmation of payment.
 
 Donation Details:
 - Amount: ₱{donation.amount}
-- Reference Number: {donation.reference_number}
+- Reference Number: {donation.reference_number or 'Not provided'}
 - Campaign: {donation.campaign.name}
 - Date: {donation.donation_date.strftime('%B %d, %Y at %I:%M %p')}
 - Status: {donation.get_status_display()}
 
-Your donation is being processed and will be verified within 24 hours. You'll receive another email once the verification is complete.
+Our alumni office will reconcile the GCash transaction. You will receive a status update after review.
 
 Thank you for supporting the NORSU Alumni System!
 
@@ -73,22 +75,23 @@ The NORSU Alumni System Team
         """
         
         # Send email using email provider
-        logger.info(f"Calling send_email_with_provider for donation {donation.pk}")
+        logger.info('Sending donation acknowledgement through configured backend for donation %s', donation.pk)
         result = send_email_with_provider(
             subject=subject,
             message=text_content,
             recipient_list=[donor_email],
             html_message=html_content,
-            fail_silently=False
+            fail_silently=False,
+            require_delivery=True,
         )
         
-        logger.info(f"send_email_with_provider returned: {result} for donation {donation.pk}")
+        logger.info('Donation acknowledgement backend result for donation %s: %s', donation.pk, bool(result))
         
         if result:
-            logger.info(f"✅ Donation confirmation email sent successfully to {donor_email} for donation {donation.pk}")
+            logger.info('Donation proof notification handled by configured email backend for donation %s', donation.pk)
             return True
         else:
-            logger.error(f"❌ Failed to send donation confirmation email to {donor_email} for donation {donation.pk}")
+            logger.error('Donation proof notification was not accepted by email backend for donation %s', donation.pk)
             return False
             
     except Exception as e:
@@ -103,7 +106,7 @@ def send_donation_status_update_email(donation, old_status=None):
         # Get donor information
         if donation.donor:
             donor_name = donation.donor.get_full_name() or donation.donor.username
-            donor_email = donation.donor.email
+            donor_email = donation.donor.email or donation.donor_email
         else:
             donor_name = donation.donor_name or "Anonymous Donor"
             donor_email = donation.donor_email
@@ -113,8 +116,8 @@ def send_donation_status_update_email(donation, old_status=None):
             logger.warning(f"No email address for donation {donation.pk}")
             return False
         
-        # Skip if status hasn't changed or is still pending payment
-        if old_status == donation.status or donation.status == 'pending_payment':
+        # No email for unchanged state; do notify on an admin status reset.
+        if old_status == donation.status:
             return True
         
         # Prepare context
@@ -122,14 +125,13 @@ def send_donation_status_update_email(donation, old_status=None):
             'donor_name': donor_name,
             'donor_email': donor_email,
             'amount': donation.amount,
-            'reference_number': donation.reference_number,
+            'reference_number': donation.reference_number or 'Not provided',
             'campaign_name': donation.campaign.name,
             'donation_date': donation.donation_date,
             'status': donation.status,
             'status_display': donation.get_status_display(),
             'verification_date': donation.verification_date,
             'verified_by': donation.verified_by,
-            'verification_notes': donation.verification_notes,
         }
         
         # Render email templates
@@ -144,7 +146,7 @@ Your donation status has been updated.
 
 Donation Details:
 - Amount: ₱{donation.amount}
-- Reference Number: {donation.reference_number}
+- Reference Number: {donation.reference_number or 'Not provided'}
 - Campaign: {donation.campaign.name}
 - Date: {donation.donation_date.strftime('%B %d, %Y at %I:%M %p')}
 - Status: {donation.get_status_display()}
@@ -169,6 +171,19 @@ Your donation is currently being reviewed by our verification team. This process
 Your donation has been flagged for manual review to ensure everything is in order. Our team will review it and contact you if needed.
             """
         
+        elif donation.status == 'refunded':
+            text_content += """
+Your donation was marked refunded. Contact our alumni office if you need details about the refund transaction.
+            """
+        elif donation.status == 'cancelled':
+            text_content += """
+Your unpaid donation request was cancelled. If you already sent a GCash transfer, contact the alumni office immediately.
+            """
+        elif donation.status == 'pending_payment':
+            text_content += """
+Your donation is awaiting payment. Please follow the original payment instructions before uploading proof.
+            """
+
         text_content += """
 
 If you have any questions, please contact our support team.
@@ -183,11 +198,12 @@ The NORSU Alumni System Team
             message=text_content,
             recipient_list=[donor_email],
             html_message=html_content,
-            fail_silently=False
+            fail_silently=False,
+            require_delivery=True,
         )
         
         if result:
-            logger.info(f"Donation status update email sent to {donor_email} for donation {donation.pk}")
+            logger.info('Donation status notification accepted by delivery backend for donation %s', donation.pk)
             return True
         else:
             logger.error(f"Failed to send donation status update email to {donor_email} for donation {donation.pk}")
@@ -209,7 +225,7 @@ def send_donation_receipt_email(donation):
         # Get donor information
         if donation.donor:
             donor_name = donation.donor.get_full_name() or donation.donor.username
-            donor_email = donation.donor.email
+            donor_email = donation.donor.email or donation.donor_email
         else:
             donor_name = donation.donor_name or "Anonymous Donor"
             donor_email = donation.donor_email
@@ -224,7 +240,7 @@ def send_donation_receipt_email(donation):
             'donor_name': donor_name,
             'donor_email': donor_email,
             'amount': donation.amount,
-            'reference_number': donation.reference_number,
+            'reference_number': donation.reference_number or 'Not provided',
             'campaign_name': donation.campaign.name,
             'campaign_description': donation.campaign.description,
             'donation_date': donation.donation_date,
@@ -248,7 +264,7 @@ DONATION RECEIPT
 
 Donation Details:
 - Amount: ₱{donation.amount}
-- Reference Number: {donation.reference_number}
+- Reference Number: {donation.reference_number or 'Not provided'}
 - Campaign: {donation.campaign.name}
 - Date: {donation.donation_date.strftime('%B %d, %Y at %I:%M %p')}
 - Verified: {donation.verification_date.strftime('%B %d, %Y at %I:%M %p') if donation.verification_date else 'N/A'}
@@ -267,11 +283,12 @@ The NORSU Alumni System Team
             message=text_content,
             recipient_list=[donor_email],
             html_message=html_content,
-            fail_silently=False
+            fail_silently=False,
+            require_delivery=True,
         )
         
         if result:
-            logger.info(f"Donation receipt email sent to {donor_email} for donation {donation.pk}")
+            logger.info('Donation receipt accepted by delivery backend for donation %s', donation.pk)
             # Mark receipt as sent
             donation.receipt_sent = True
             donation.save(update_fields=['receipt_sent'])

@@ -86,8 +86,16 @@ def send_email_with_smtp_config(subject, message, recipient_list, from_email=Non
                 )
         
         if result:
-            logger.info(
-                f"Email sent successfully via SMTP: Subject={subject}, To={recipient_list}",
+            if settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend':
+                logger.info('Email rendered to development console only; no email was delivered to a recipient')
+            else:
+                logger.info(
+                    'SMTP backend accepted email for recipient count=%s', len(recipient_list),
+                )
+            # Preserve the existing result contract; returning 1 for the
+            # console backend means the message was rendered, not delivered.
+            logger.debug(
+                'Email backend processing completed: backend=%s', settings.EMAIL_BACKEND,
                 extra={
                     'subject': subject,
                     'recipient_list': recipient_list,
@@ -179,7 +187,7 @@ def get_active_email_provider():
         logger.error(f"Error getting active email provider: {str(e)}")
         return None
 
-def send_email_with_provider(subject, message, recipient_list, from_email=None, fail_silently=False, html_message=None, provider_type=None):
+def send_email_with_provider(subject, message, recipient_list, from_email=None, fail_silently=False, html_message=None, provider_type=None, require_delivery=False):
     """
     Send email using the active email provider or specified provider
     
@@ -191,6 +199,7 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
         fail_silently: Whether to fail silently on errors
         html_message: HTML version of the message (optional)
         provider_type: Specific provider to use ('smtp' or 'brevo'), if None uses active provider
+        require_delivery: When True, a console preview cannot be counted as delivered
     """
     try:
         # Determine which provider to use
@@ -287,13 +296,21 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
                 fail_silently=fail_silently
             )
             
+            # A console backend only prints the message. Donation notices use
+            # require_delivery=True so a preview never marks a receipt sent.
+            if (require_delivery and
+                    settings.EMAIL_BACKEND == 'django.core.mail.backends.console.EmailBackend' and
+                    not is_render_hosting()):
+                logger.info('Console-only email preview; external delivery not attempted')
+                return 0
+
             # Update provider usage statistics
             if result:
                 provider = get_active_email_provider()
                 if provider:
                     provider.increment_usage()
                     logger.info(
-                        f"Email sent successfully via SMTP: Subject={subject}, To={recipient_list}",
+                        'SMTP email backend processed message (delivery not independently confirmed)', 
                         extra={
                             'subject': subject,
                             'recipient_list': recipient_list,

@@ -4,6 +4,7 @@ from . import views
 app_name = 'connections'
 
 urlpatterns = [
+    path('activity/', views.activity_summary, name='activity_summary'),
     # Connection management URLs
     path('send-request/<int:user_id>/', views.send_connection_request, name='send_request'),
     path('requests/', views.connection_requests, name='connection_requests'),

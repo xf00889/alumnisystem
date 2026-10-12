@@ -67,6 +67,13 @@ def csrf_failure(request, reason=""):
     This handler is called by Django's CSRF middleware when CSRF validation fails.
     It detects AJAX requests and returns JSON responses instead of HTML error pages.
     """
+    # Safe troubleshooting across all unsafe methods. Never log CSRF secrets,
+    # authorization tokens, uploaded receipt data, or request bodies.
+    logger.warning(
+        'CSRF rejection: method=%s path=%s reason=%s secure_transport=%s',
+        request.method, request.path, reason, request.is_secure(),
+    )
+
     # Check if this is an AJAX request
     is_ajax = (
         request.headers.get('X-Requested-With') == 'XMLHttpRequest' or

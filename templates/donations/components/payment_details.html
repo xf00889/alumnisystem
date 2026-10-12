@@ -1,0 +1,19 @@
+{% include 'donations/components/donation_progress.html' with step=2 %}
+<div class="dn-summary"><span>Amount to send via GCash</span><strong>₱{{ donation.amount|floatformat:2 }}</strong><small>No funds have been collected by this website.</small></div>
+<div class="dn-grid">
+  <section class="dn-card" aria-labelledby="dn-recipient-heading">
+    <h2 id="dn-recipient-heading">GCash recipient</h2>
+    <p class="dn-muted">Confirm the recipient in the GCash app before sending.</p>
+    <dl class="dn-payee"><dt>Account name</dt><dd>{{ payment.account_name }}</dd><dt>GCash mobile number</dt><dd><span id="donation-gcash-number">{{ payment.gcash_number }}</span></dd></dl>
+    <button type="button" class="dn-button dn-button-secondary" data-donation-copy="donation-gcash-number">Copy GCash number</button>
+    {% if payment.instructions %}<div class="dn-info">{{ payment.instructions|linebreaksbr }}</div>{% endif %}
+  </section>
+  <section class="dn-card dn-qr" aria-labelledby="dn-qr-heading">
+    <h2 id="dn-qr-heading">Scan GCash QR</h2>
+    {% if payment.qr_url %}<img src="{{ payment.qr_url }}" alt="GCash receiving-account QR code" loading="lazy">{% endif %}
+    <p class="dn-muted">The QR may not prefill the amount. Manually enter exactly ₱{{ donation.amount|floatformat:2 }}.</p>
+  </section>
+</div>
+<div class="dn-card dn-help"><h2>After sending your payment</h2><ol><li>Open GCash and send the exact amount to the recipient above.</li><li>Save the successful transaction screenshot and its reference number.</li><li>Upload the proof below. The alumni office will review the actual payment.</li></ol>
+<a class="dn-button dn-button-primary" href="{% url 'donations:upload_payment_proof' donation.pk %}{% if guest_proof_claim %}?access={{ guest_proof_claim|urlencode }}{% endif %}">I've transferred the amount — Upload proof <span aria-hidden="true">→</span></a>
+<p class="dn-muted">You may leave and return later using Donation History or your private email link. Do not upload a receipt if you have not sent the payment.</p></div>

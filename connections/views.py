@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponseForbidden
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -9,9 +9,12 @@ from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
 from django.core.exceptions import ValidationError
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
 import json
 import os
 from .models import Connection, DirectConversation, DirectMessage
+from core.models import Notification, NotificationPreference
 from .forms import DirectMessageForm, GroupPhotoUploadForm
 from alumni_directory.models import Alumni
 from core.file_validators import validate_message_attachment, sanitize_filename
@@ -131,11 +134,19 @@ def send_connection_request(request, user_id):
             })
     else:
         # Create new connection request
-        Connection.objects.create(
+        connection = Connection.objects.create(
             requester=request.user,
             receiver=receiver,
             status='PENDING'
         )
+        if not NotificationPreference.objects.filter(user=receiver, app_connections=False).exists():
+            Notification.create_notification(
+                recipient=receiver, sender=request.user, notification_type='connection_request',
+                title='New connection request',
+                message=f'{request.user.get_full_name() or request.user.username} wants to connect with you.',
+                content_object=connection,
+                action_url=reverse('connections:connection_requests'),
+            )
         return JsonResponse({
             'status': 'success',
             'success': True,
@@ -183,6 +194,18 @@ def accept_connection_request(request, connection_id):
         )
         
         connection.accept()
+        Notification.objects.filter(
+            recipient=request.user, notification_type='connection_request',
+            object_id=connection.pk, is_read=False,
+        ).update(is_read=True, read_at=timezone.now())
+        if not NotificationPreference.objects.filter(user=connection.requester, app_connections=False).exists():
+            Notification.create_notification(
+                recipient=connection.requester, sender=request.user,
+                notification_type='connection_accepted', title='Connection accepted',
+                message=f'{request.user.get_full_name() or request.user.username} accepted your connection request.',
+                content_object=connection,
+                action_url=reverse('connections:my_connections'),
+            )
         return JsonResponse({
             'status': 'success',
             'success': True,
@@ -215,6 +238,10 @@ def reject_connection_request(request, connection_id):
         )
         
         connection.reject()
+        Notification.objects.filter(
+            recipient=request.user, notification_type='connection_request',
+            object_id=connection.pk, is_read=False,
+        ).update(is_read=True, read_at=timezone.now())
         return JsonResponse({
             'status': 'success',
             'success': True,
@@ -246,6 +273,10 @@ def cancel_connection_request(request, connection_id):
             status='PENDING'
         )
         receiver_id = connection.receiver.id
+        Notification.objects.filter(
+            recipient=connection.receiver, notification_type='connection_request',
+            object_id=connection.pk,
+        ).delete()
         connection.delete()
         return JsonResponse({
             'status': 'success',
@@ -288,25 +319,53 @@ def my_connections(request):
     return render(request, 'connections/my_connections.html', context)
 
 
+
+
+def mark_chat_activity_read(user, action_url):
+    """Clear only this conversation's message notices when the chat is opened."""
+    Notification.objects.filter(
+        recipient=user, notification_type='new_message',
+        action_url=action_url, is_read=False,
+    ).update(is_read=True, read_at=timezone.now())
+
 @login_required
 def direct_messages(request, user_id=None):
     """View direct messages with a connected user"""
     if user_id:
         other_user = get_object_or_404(User, id=user_id)
         
-        # Check if users are connected
-        if not Connection.are_connected(request.user, other_user):
-            messages.error(request, "You can only message users you are connected with.")
-            return redirect('connections:my_connections')
-        
-        # Get or create conversation
-        conversation = DirectConversation.get_or_create_conversation(request.user, other_user)
+        # Only connected users may start new conversations or send new messages.
+        # Former connections may read existing shared history, never create new history.
+        can_send = Connection.are_connected(request.user, other_user)
+        if can_send:
+            conversation = DirectConversation.get_or_create_conversation(request.user, other_user)
+        else:
+            conversation = DirectConversation.objects.filter(
+                conversation_type='direct', participants=request.user
+            ).filter(participants=other_user).first()
+            # Blocking is stronger than disconnecting: do not expose archived history.
+            is_blocked = Connection.objects.filter(
+                Q(requester=request.user, receiver=other_user) |
+                Q(requester=other_user, receiver=request.user),
+                status='BLOCKED',
+            ).exists()
+            if is_blocked or not conversation or conversation.participants.count() != 2:
+                if request.headers.get('HX-Request') or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return HttpResponseForbidden('This conversation is unavailable.')
+                messages.error(request, 'This conversation is unavailable.')
+                return redirect('connections:conversations_list')
+            if request.method == 'POST':
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse({'status':'error','success':False,'message':'Reconnect before sending messages.'}, status=403)
+                messages.error(request, 'Reconnect before sending messages.')
+                return redirect('connections:conversations_list')
         
         # Get messages (ordered newest first for column-reverse display)
         messages_list = DirectMessage.objects.filter(
             conversation=conversation
         ).select_related('sender').order_by('-created_at')
         
+        mark_chat_activity_read(request.user, reverse('connections:direct_messages', args=[other_user.id]))
         # Mark messages as read (messages not sent by current user)
         DirectMessage.objects.filter(
             conversation=conversation,
@@ -342,6 +401,7 @@ def direct_messages(request, user_id=None):
             'other_user': other_user,
             'messages': messages_list,
             'form': form,
+            'can_send': can_send,
         }
         
         # Check if this is an HTMX request
@@ -397,12 +457,28 @@ def send_message(request, user_id):
     """Handle sending messages via HTMX"""
     other_user = get_object_or_404(User, id=user_id)
     
-    # Check if users are connected
+    # Check if users are connected. Former contacts already have a read-only
+    # notice in the conversation, so their rejected send need not produce a toast.
     if not Connection.are_connected(request.user, other_user):
+        shared_history = DirectConversation.objects.filter(
+            conversation_type='direct', participants=request.user,
+        ).filter(participants=other_user).exists()
+        is_blocked = Connection.objects.filter(
+            Q(requester=request.user, receiver=other_user) |
+            Q(requester=other_user, receiver=request.user),
+            status='BLOCKED',
+        ).exists()
+        if shared_history and not is_blocked:
+            return JsonResponse({
+                'success': False,
+                'code': 'conversation_read_only',
+                'silent': True,
+                'message': '',
+            }, status=403)
         return JsonResponse({
             'success': False,
             'message': 'You can only message users you are connected with.'
-        })
+        }, status=403)
     
     # Get or create conversation
     conversation = DirectConversation.get_or_create_conversation(request.user, other_user)
@@ -580,6 +656,7 @@ def group_chat_detail(request, conversation_id):
         conversation=conversation
     ).select_related('sender').order_by('created_at')
 
+    mark_chat_activity_read(request.user, reverse('connections:conversations_list') + f'?open_group={conversation.pk}')
     # Mark messages as read for current user
     DirectMessage.objects.filter(
         conversation=conversation,
@@ -1132,3 +1209,21 @@ def conversation_detail_redirect(request, conversation_id):
     except DirectConversation.DoesNotExist:
         messages.error(request, "Conversation not found.")
         return redirect('connections:conversations_list')
+
+
+@login_required
+@never_cache
+def activity_summary(request):
+    """Authenticated, recipient-scoped activity for navbar counts and live banners."""
+    unread = Notification.objects.filter(recipient=request.user, is_read=False)
+    recent = list(unread.exclude(notification_type='new_message').order_by('-id').values(
+        'id', 'title', 'message', 'notification_type', 'action_url'
+    )[:20])
+    payload = {
+        'success': True,
+        'notifications': recent,
+        'unread_notifications': unread.exclude(notification_type='new_message').count(),
+        'unread_messages': unread.filter(notification_type='new_message').count(),
+        'pending_requests': Connection.objects.filter(receiver=request.user, status='PENDING').count(),
+    }
+    return JsonResponse(payload)

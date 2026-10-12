@@ -1,0 +1,76 @@
+{% extends 'base_landingpage.html' %}
+{% load static humanize %}
+{% block title %}Fundraising Campaigns | NORSU Alumni{% endblock title %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/public_campaigns.css' %}">
+{% endblock extra_css %}
+{% block content %}
+<div class="public-campaigns-page">
+  <div class="public-campaigns-shell">
+    <nav class="public-campaigns-breadcrumb" aria-label="Breadcrumb">
+      <a href="{% url 'core:home' %}">Home</a><span aria-hidden="true">/</span><span aria-current="page">Fundraising campaigns</span>
+    </nav>
+    <header class="public-campaigns-hero">
+      <span class="public-campaigns-eyebrow"><i class="fas fa-heart" aria-hidden="true"></i> Give back to NORSU</span>
+      <h1>Fundraising Campaigns</h1>
+      <p>Explore verified university initiatives and support the people and programs making a difference.</p>
+    </header>
+    <div class="public-campaigns-layout">
+      <aside class="public-campaigns-filters" aria-label="Campaign filters">
+        <h2><i class="fas fa-sliders-h" aria-hidden="true"></i> Find a campaign</h2>
+        <form method="get" action="{% url 'donations:public_campaign_list' %}">
+          <label for="{{ filter_form.search.id_for_label }}">Search campaigns</label>
+          {{ filter_form.search }}
+          <label for="{{ filter_form.campaign_type.id_for_label }}">Campaign type</label>
+          {{ filter_form.campaign_type }}
+          <label for="{{ filter_form.sort.id_for_label }}">Sort by</label>
+          {{ filter_form.sort }}
+          <button type="submit" class="public-campaigns-filter-submit"><i class="fas fa-search" aria-hidden="true"></i> Apply filters</button>
+          {% if request.GET %}<a class="public-campaigns-reset" href="{% url 'donations:public_campaign_list' %}">Clear filters</a>{% endif %}
+        </form>
+      </aside>
+      <section class="public-campaigns-results" aria-label="Open fundraising campaigns">
+        <div class="public-campaigns-results-header">
+          <div><h2>Campaigns accepting support</h2><p>Only currently open public campaigns are shown.</p></div>
+          <span class="public-campaigns-count">{{ page_obj.paginator.count }} campaign{{ page_obj.paginator.count|pluralize }}</span>
+        </div>
+        {% if page_obj.object_list %}
+        <div class="public-campaigns-grid">
+          {% for campaign in page_obj %}
+          <article class="public-campaign-card">
+            <a class="public-campaign-card-image" href="{% url 'donations:campaign_detail' campaign.slug %}" aria-label="View {{ campaign.name }}">
+              {% if campaign.featured_image %}<img src="{{ campaign.featured_image.url }}" loading="lazy" alt=""/>
+              {% else %}<div class="public-campaign-placeholder"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i></div>{% endif %}
+            </a>
+            <div class="public-campaign-card-body">
+              <div class="public-campaign-card-eyebrow"><span>{{ campaign.campaign_type.name }}</span><span class="public-campaign-active">Open</span></div>
+              <h3><a href="{% url 'donations:campaign_detail' campaign.slug %}">{{ campaign.name }}</a></h3>
+              <p class="public-campaign-card-description">{{ campaign.short_description|default:campaign.description|truncatechars:125 }}</p>
+              <div class="public-campaign-funding">
+                <div class="public-campaign-funding-values"><strong>₱{{ campaign.current_amount|floatformat:0|intcomma }}</strong><span>of ₱{{ campaign.goal_amount|floatformat:0|intcomma }}</span></div>
+                <div class="public-campaign-progress" role="progressbar" aria-label="Campaign progress" aria-valuenow="{{ campaign.progress_percentage }}" aria-valuemin="0" aria-valuemax="100"><span style="width:{{ campaign.progress_percentage }}%"></span></div>
+              </div>
+              <div class="public-campaign-card-foot">
+                {% if campaign.days_remaining is not None %}<span><i class="far fa-clock" aria-hidden="true"></i> {{ campaign.days_remaining }} day{{ campaign.days_remaining|pluralize }} remaining</span>{% endif %}
+                <a class="public-campaign-donate" href="{% url 'donations:campaign_detail' campaign.slug %}">Support campaign <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+              </div>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+        {% if page_obj.has_other_pages %}
+        <nav class="public-campaign-pagination" aria-label="Campaign pages">
+          {% if page_obj.has_previous %}<a href="?search={{ request.GET.search|default:''|urlencode }}&amp;campaign_type={{ request.GET.campaign_type|default:''|urlencode }}&amp;sort={{ request.GET.sort|default:'recent'|urlencode }}&amp;page={{ page_obj.previous_page_number }}">Previous</a>{% endif %}
+          <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+          {% if page_obj.has_next %}<a href="?search={{ request.GET.search|default:''|urlencode }}&amp;campaign_type={{ request.GET.campaign_type|default:''|urlencode }}&amp;sort={{ request.GET.sort|default:'recent'|urlencode }}&amp;page={{ page_obj.next_page_number }}">Next</a>{% endif %}
+        </nav>
+        {% endif %}
+        {% else %}
+        <div class="public-campaigns-empty"><i class="far fa-heart" aria-hidden="true"></i><h3>No campaigns match your search</h3><p>Try a different filter, or check back soon for new fundraising initiatives.</p><a href="{% url 'donations:public_campaign_list' %}">Show all public campaigns</a></div>
+        {% endif %}
+      </section>
+    </div>
+  </div>
+</div>
+{% endblock content %}

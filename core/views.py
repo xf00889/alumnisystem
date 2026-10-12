@@ -89,7 +89,14 @@ def home(request):
             'breadcrumbs': breadcrumbs,
         }
 
-        return render(request, 'authenticated_home.html', context)
+        # Phase 1 presentation split: admin/staff/coordinator dashboard is unchanged.
+        # Regular alumni use their own public-site-inspired layout and assets.
+        dashboard_template = (
+            'authenticated_home.html'
+            if request.user.is_staff or request.user.is_superuser or profile.is_alumni_coordinator
+            else 'alumni/dashboard.html'
+        )
+        return render(request, dashboard_template, context)
     
     # Handle unauthenticated users
     # Get the latest announcements
@@ -613,7 +620,7 @@ def get_notifications(request):
         unread_only = request.GET.get('unread_only', 'false').lower() == 'true'
 
         # Build query
-        notifications_query = Notification.objects.filter(recipient=request.user)
+        notifications_query = Notification.objects.filter(recipient=request.user).exclude(notification_type='new_message')
 
         if unread_only:
             notifications_query = notifications_query.filter(is_read=False)
@@ -639,8 +646,8 @@ def get_notifications(request):
             })
 
         # Get total count and unread count
-        total_count = Notification.objects.filter(recipient=request.user).count()
-        unread_count = Notification.get_unread_count(request.user)
+        total_count = Notification.objects.filter(recipient=request.user).exclude(notification_type='new_message').count()
+        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).exclude(notification_type='new_message').count()
 
         return JsonResponse({
             'success': True,
@@ -668,7 +675,7 @@ def all_notifications(request):
         filter_type = request.GET.get('filter', 'all')
         
         # Build query
-        notifications_query = Notification.objects.filter(recipient=request.user).select_related('sender', 'sender__profile')
+        notifications_query = Notification.objects.filter(recipient=request.user).exclude(notification_type='new_message').select_related('sender', 'sender__profile')
         
         if filter_type == 'unread':
             notifications_query = notifications_query.filter(is_read=False)
@@ -677,8 +684,8 @@ def all_notifications(request):
         notifications = notifications_query.order_by('-created_at')
         
         # Get counts
-        total_count = Notification.objects.filter(recipient=request.user).count()
-        unread_count = Notification.get_unread_count(request.user)
+        total_count = Notification.objects.filter(recipient=request.user).exclude(notification_type='new_message').count()
+        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).exclude(notification_type='new_message').count()
         read_count = total_count - unread_count
         
         context = {
@@ -704,7 +711,7 @@ def mark_notification_read(request, notification_id):
     API endpoint to mark a specific notification as read
     """
     try:
-        notification = Notification.objects.get(
+        notification = Notification.objects.exclude(notification_type='new_message').get(
             id=notification_id,
             recipient=request.user
         )
@@ -712,7 +719,7 @@ def mark_notification_read(request, notification_id):
 
         return JsonResponse({
             'success': True,
-            'unread_count': Notification.get_unread_count(request.user)
+            'unread_count': Notification.objects.filter(recipient=request.user, is_read=False).exclude(notification_type='new_message').count()
         })
 
     except Notification.DoesNotExist:
@@ -735,7 +742,7 @@ def mark_all_notifications_read(request):
     API endpoint to mark all notifications as read for the current user
     """
     try:
-        Notification.mark_all_as_read(request.user)
+        Notification.objects.filter(recipient=request.user, is_read=False).exclude(notification_type='new_message').update(is_read=True, read_at=timezone.now())
 
         return JsonResponse({
             'success': True,
@@ -757,7 +764,7 @@ def get_unread_count(request):
     API endpoint to get unread notification count for the current user
     """
     try:
-        unread_count = Notification.get_unread_count(request.user)
+        unread_count = Notification.objects.filter(recipient=request.user, is_read=False).exclude(notification_type='new_message').count()
 
         return JsonResponse({
             'success': True,

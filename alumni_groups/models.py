@@ -151,6 +151,8 @@ class GroupEvent(models.Model):
         return None
 
 class GroupDiscussion(models.Model):
+    CATEGORY_CHOICES = (('GENERAL', 'General'), ('JOBS', 'Jobs & Careers'), ('MENTORSHIP', 'Mentorship'), ('REUNION', 'Reunions'))
+    category = models.CharField(max_length=12, choices=CATEGORY_CHOICES, default='GENERAL')
     group = models.ForeignKey(AlumniGroup, on_delete=models.CASCADE, related_name='discussions')
     title = models.CharField(max_length=255)
     content = models.TextField()
@@ -260,6 +262,8 @@ class Post(models.Model):
     group = models.ForeignKey('AlumniGroup', on_delete=models.CASCADE, related_name='posts')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_posts')
     content = models.TextField()
+    image = models.ImageField(upload_to='group_post_images/%Y/%m/', blank=True, null=True)
+    is_pinned = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     likes = models.ManyToManyField(settings.AUTH_USER_MODEL, through='PostLike', related_name='liked_posts')
@@ -296,6 +300,7 @@ class PostLike(models.Model):
         unique_together = ['post', 'user']
 
 class Comment(models.Model):
+    parent = models.ForeignKey('self', null=True, blank=True, on_delete=models.CASCADE, related_name='replies')
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='comments')
     author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_comments')
     content = models.TextField()
@@ -307,3 +312,98 @@ class Comment(models.Model):
 
     def __str__(self):
         return f"Comment by {self.author.get_full_name()} on {self.post}" 
+
+class PostBookmark(models.Model):
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='bookmarks')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_post_bookmarks')
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['post', 'user'], name='unique_group_post_bookmark')]
+
+
+class PostReport(models.Model):
+    STATUS_CHOICES = (('OPEN', 'Open'), ('DISMISSED', 'Dismissed'), ('RESOLVED', 'Resolved'))
+    post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reports')
+    reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    reason = models.CharField(max_length=500)
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OPEN')
+    created_at = models.DateTimeField(auto_now_add=True)
+    reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviewed_group_reports')
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['post', 'reporter'], name='unique_group_post_report')]
+
+
+class GroupPoll(models.Model):
+    group = models.ForeignKey(AlumniGroup, on_delete=models.CASCADE, related_name='polls')
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    question = models.CharField(max_length=250)
+    created_at = models.DateTimeField(auto_now_add=True)
+    closes_at = models.DateTimeField(null=True, blank=True)
+
+
+class GroupPollOption(models.Model):
+    poll = models.ForeignKey(GroupPoll, on_delete=models.CASCADE, related_name='options')
+    label = models.CharField(max_length=150)
+
+
+class GroupPollVote(models.Model):
+    poll = models.ForeignKey(GroupPoll, on_delete=models.CASCADE, related_name='votes')
+    option = models.ForeignKey(GroupPollOption, on_delete=models.CASCADE, related_name='votes')
+    voter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['poll', 'voter'], name='unique_group_poll_vote')]
+
+
+class GroupEventRSVP(models.Model):
+    RESPONSE_CHOICES = (('GOING', 'Going'), ('MAYBE', 'Maybe'), ('NOT_GOING', 'Not going'))
+    event = models.ForeignKey(GroupEvent, on_delete=models.CASCADE, related_name='rsvps')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    response = models.CharField(max_length=10, choices=RESPONSE_CHOICES)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['event', 'user'], name='unique_group_event_rsvp')]
+
+
+class GroupNotification(models.Model):
+    group = models.ForeignKey(AlumniGroup, on_delete=models.CASCADE, related_name='community_notifications')
+    recipient = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='group_notifications')
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='+')
+    message = models.CharField(max_length=240)
+    post = models.ForeignKey(Post, null=True, blank=True, on_delete=models.CASCADE)
+    event_share_request = models.ForeignKey('GroupEventShareRequest', null=True, blank=True, on_delete=models.CASCADE, related_name='notifications')
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [models.Index(fields=['recipient', 'is_read', 'created_at'])]
+
+
+class GroupEventShareRequest(models.Model):
+    """An event organizer's request to a group admin, not an automatic post."""
+    STATUS_CHOICES = (
+        ('PENDING', 'Awaiting group admin'),
+        ('SHARED', 'Shared as post'),
+        ('PINNED', 'Shared and pinned'),
+        ('DISMISSED', 'Dismissed'),
+        ('WITHDRAWN', 'Withdrawn'),
+    )
+    event = models.ForeignKey('events.Event', on_delete=models.CASCADE, related_name='group_share_requests')
+    group = models.ForeignKey(AlumniGroup, on_delete=models.CASCADE, related_name='event_share_requests')
+    status = models.CharField(max_length=12, choices=STATUS_CHOICES, default='PENDING')
+    post = models.ForeignKey(Post, on_delete=models.SET_NULL, null=True, blank=True, related_name='event_shares')
+    handled_by = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='handled_event_shares')
+    handled_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=['event', 'group'], name='unique_event_group_share_request')]
+        indexes = [models.Index(fields=['group', 'status', 'created_at'])]
+
+    def __str__(self):
+        return f'{self.event.title} → {self.group.name} ({self.status})'

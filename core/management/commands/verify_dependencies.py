@@ -56,9 +56,9 @@ class Command(BaseCommand):
     
     # Django apps and local modules that don't need to be in requirements.txt
     LOCAL_MODULES = {
-        'accounts', 'alumni_directory', 'alumni_groups', 'alumni_web', 'announcements',
-        'cms', 'connections', 'core', 'data_consolidation', 'docs', 'donations',
-        'events', 'feedback', 'groups', 'jobs', 'location_tracking', 'log_viewer',
+        'accounts', 'alumni_directory', 'alumni_groups', 'announcements',
+        'cms', 'connections', 'core', 'docs', 'donations',
+        'events', 'feedback', 'jobs', 'location_tracking', 'log_viewer',
         'mentorship', 'norsu_alumni', 'setup', 'surveys',
         # Common local module names that are relative imports
         'utils', 'models', 'forms', 'views', 'serializers', 'middleware', 'signals',

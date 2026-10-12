@@ -1,0 +1,90 @@
+{% extends 'base_alumni.html' %}
+{% load static humanize %}
+{% block title %}My Dashboard | NORSU Alumni Network{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/alumni/dashboard.css' %}">{% endblock %}
+{% block content %}
+<div class="alumni-shell alumni-dashboard">
+    <section class="alumni-hero" aria-labelledby="alumni-welcome-heading">
+        <div class="alumni-hero-content">
+            <p class="alumni-eyebrow"><i class="fa-solid fa-circle-nodes" aria-hidden="true"></i> YOUR ALUMNI NETWORK</p>
+            <div class="alumni-welcome-row">
+                {% if user.profile.avatar %}<img class="alumni-hero-avatar" src="{{ user.profile.avatar.url }}" alt="">{% else %}<span class="alumni-hero-avatar alumni-hero-initial" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>{% endif %}
+                <div>
+                    <h1 id="alumni-welcome-heading">Welcome back, <span>{{ user.first_name|default:user.username }}.</span></h1>
+                    <p>Good to have you here. Discover opportunities, find old friends, and keep your NORSU connections growing.</p>
+                </div>
+            </div>
+            <div class="alumni-hero-actions">
+                <a class="alumni-btn alumni-btn-gold" href="{% url 'alumni_directory:alumni_list' %}">Explore the directory <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+                <a class="alumni-btn alumni-btn-outline" href="{% url 'accounts:profile_detail' %}">View my profile <i class="fa-regular fa-user" aria-hidden="true"></i></a>
+            </div>
+        </div>
+        <div class="alumni-hero-art" aria-hidden="true">
+            <span class="alumni-art-ring alumni-art-ring-one"></span>
+            <span class="alumni-art-ring alumni-art-ring-two"></span>
+            <div class="alumni-art-mark"><i class="fa-solid fa-graduation-cap"></i><span>NORSU</span></div>
+        </div>
+    </section>
+
+    {% if user.alumni.is_verified %}
+    <section class="alumni-dashboard-location" aria-label="Location sharing settings">
+        <div id="alumniLocationSharingMount"></div>
+    </section>
+    {% endif %}
+
+    <section class="alumni-section" aria-labelledby="alumni-explore-heading">
+        <div class="alumni-section-heading">
+            <div><p class="alumni-section-kicker">YOUR GATEWAY</p><h2 id="alumni-explore-heading">Explore your community</h2><p class="alumni-section-subtitle">Everything you need to stay connected, all in one place.</p></div>
+        </div>
+        <div class="alumni-quick-grid">
+            {% url 'alumni_directory:alumni_list' as directory_url %}
+            {% include 'alumni/components/quick_link.html' with href=directory_url icon='fa-solid fa-users' label='Alumni Directory' description='Reconnect with graduates' %}
+            {% url 'jobs:job_list' as jobs_url %}
+            {% include 'alumni/components/quick_link.html' with href=jobs_url icon='fa-solid fa-briefcase' label='Job Board' description='Discover career openings' %}
+            {% url 'mentorship:mentor_search' as mentors_url %}
+            {% include 'alumni/components/quick_link.html' with href=mentors_url icon='fa-solid fa-handshake-angle' label='Find a Mentor' description='Learn from fellow alumni' %}
+            {% url 'alumni_groups:group_list' as groups_url %}
+            {% include 'alumni/components/quick_link.html' with href=groups_url icon='fa-solid fa-people-group' label='Alumni Groups' description='Join your communities' %}
+            {% url 'events:event_list' as events_url %}
+            {% include 'alumni/components/quick_link.html' with href=events_url icon='fa-regular fa-calendar-days' label='Events' description='Meet and celebrate together' %}
+            {% url 'connections:conversations_list' as messages_url %}
+            {% include 'alumni/components/quick_link.html' with href=messages_url icon='fa-regular fa-comments' label='Messages' description='Continue conversations' %}
+        </div>
+    </section>
+
+    <div class="alumni-news-grid">
+        <section class="alumni-section alumni-feed-panel" aria-labelledby="alumni-announcements-heading">
+            <div class="alumni-feed-heading"><div><p class="alumni-section-kicker">STAY INFORMED</p><h2 id="alumni-announcements-heading">Latest announcements</h2></div><a href="{% url 'announcements:announcement-list' %}" class="alumni-text-link">View all <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>
+            <div class="alumni-feed-list">
+                {% for announcement in announcements %}
+                    <article class="alumni-feed-item">
+                        <div class="alumni-feed-icon" aria-hidden="true"><i class="fa-solid fa-bullhorn"></i></div>
+                        <div class="alumni-feed-content"><p class="alumni-feed-meta">{{ announcement.date_posted|naturaltime }}</p><h3><a href="{% url 'announcements:announcement-detail' announcement.id %}">{{ announcement.title }}</a></h3><p>{{ announcement.content|striptags|truncatewords:23 }}</p></div>
+                    </article>
+                {% empty %}
+                    {% include 'alumni/components/empty_state.html' with icon='fa-regular fa-bell-slash' message='No announcements yet. Check back soon for university updates.' %}
+                {% endfor %}
+            </div>
+        </section>
+        <section class="alumni-section alumni-feed-panel" aria-labelledby="alumni-events-heading">
+            <div class="alumni-feed-heading"><div><p class="alumni-section-kicker">GET INVOLVED</p><h2 id="alumni-events-heading">Upcoming events</h2></div><a href="{% url 'events:event_list' %}" class="alumni-text-link">View all <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a></div>
+            <div class="alumni-feed-list">
+                {% for event in upcoming_events %}
+                    <article class="alumni-feed-item alumni-event-item">
+                        <div class="alumni-date-tile" aria-hidden="true"><strong>{{ event.start_date|date:'d' }}</strong><small>{{ event.start_date|date:'M'|upper }}</small></div>
+                        <div class="alumni-feed-content"><p class="alumni-feed-meta">{{ event.start_date|date:'l, M d, Y' }}{% if event.location %} · {{ event.location }}{% endif %}</p><h3><a href="{% url 'events:event_detail' event.id %}">{{ event.title }}</a></h3><p>{{ event.description|striptags|truncatewords:18 }}</p></div>
+                    </article>
+                {% empty %}
+                    {% include 'alumni/components/empty_state.html' with icon='fa-regular fa-calendar-xmark' message='No upcoming events right now. New gatherings will appear here.' %}
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+
+    <section class="alumni-community-callout" aria-label="NORSU alumni community">
+        <div class="alumni-callout-icon" aria-hidden="true"><i class="fa-solid fa-heart"></i></div>
+        <div><p class="alumni-section-kicker">ONCE NORSU, ALWAYS NORSU</p><h2>Our connection doesn't end at graduation.</h2><p>Stay involved, share opportunities, and make a difference in our alumni community.</p></div>
+        <a class="alumni-btn alumni-btn-dark" href="{% url 'donations:campaign_list' %}">Support a cause <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+    </section>
+</div>
+{% endblock %}

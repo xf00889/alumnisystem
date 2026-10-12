@@ -1,0 +1,83 @@
+{% load static %}
+{# The five alumni destinations are shared by the desktop and bottom navigation. #}
+<nav class="alumni-navbar" aria-label="Alumni navigation">
+  <div class="alumni-shell alumni-nav-shell">
+    <a class="alumni-nav-brand alumni-nav-brand--mobile" href="{% url 'core:home' %}" aria-label="Alumni Network dashboard">
+      <span class="alumni-brand-text"><strong>Alumni Network</strong><small>Your NORSU community</small></span>
+    </a>
+
+    <div class="alumni-primary-desktop" aria-label="Main destinations">
+      {% include 'alumni/components/primary_navigation_links.html' with navigation_variant='desktop' %}
+      <div class="dropdown alumni-more-desktop">
+        <button type="button" class="alumni-primary-link alumni-primary-link--desktop alumni-more-button {% if request.resolver_match.app_name == 'jobs' or request.resolver_match.app_name == 'mentorship' or request.resolver_match.app_name == 'events' or request.resolver_match.app_name == 'announcements' or request.resolver_match.app_name == 'donations' or request.resolver_match.app_name == 'surveys' %}is-active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false">
+          <i class="fa-solid fa-compass" aria-hidden="true"></i><span>More</span><i class="fa-solid fa-chevron-down alumni-more-chevron" aria-hidden="true"></i>
+        </button>
+        <div class="dropdown-menu alumni-dropdown alumni-more-menu">
+          {% include 'alumni/components/secondary_navigation_links.html' %}
+        </div>
+      </div>
+    </div>
+
+    <div class="alumni-nav-utilities" data-activity-url="{% url 'connections:activity_summary' %}">
+      <a href="{% url 'connections:connection_requests' %}" class="alumni-icon-link alumni-requests-utility" aria-label="Connection requests" title="Connection requests">
+        <i class="fa-solid fa-user-plus" aria-hidden="true"></i>
+        <span class="alumni-activity-count alumni-utility-count" data-connection-request-count hidden></span>
+      </a>
+      <div class="dropdown alumni-notification-dropdown">
+        <button type="button" class="alumni-icon-link alumni-notifications-link" id="alumniNotificationsToggle"
+                data-bs-toggle="dropdown" data-bs-auto-close="outside" aria-expanded="false"
+                aria-controls="alumniNotificationsMenu" aria-label="Open notifications" title="Notifications">
+          <i class="fa-regular fa-bell" aria-hidden="true"></i>
+          <span class="alumni-notification-count" id="notification-count" style="display:none" aria-hidden="true"></span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end alumni-notification-menu" id="alumniNotificationsMenu" aria-labelledby="alumniNotificationsToggle">
+          <div class="alumni-notification-menu__heading"><strong>Notifications</strong><span>Recent activity</span></div>
+          <div class="alumni-notification-menu__list" id="alumniNotificationPreview" aria-live="polite">
+            <p class="alumni-notification-menu__empty">Open to view recent activity.</p>
+          </div>
+          <a class="alumni-notification-menu__all" href="{% url 'core:all_notifications' %}">View all notifications <i class="fa-solid fa-arrow-right" aria-hidden="true"></i></a>
+        </div>
+      </div>
+      <button class="alumni-mobile-more-button" type="button" data-bs-toggle="offcanvas" data-bs-target="#alumniMobileMore" aria-controls="alumniMobileMore" aria-label="Open more destinations">
+        <i class="fa-solid fa-bars" aria-hidden="true"></i><span>More</span>
+      </button>
+      <div class="dropdown alumni-account-desktop">
+        <button type="button" class="alumni-account-trigger dropdown-toggle {% if request.resolver_match.app_name == 'accounts' %}is-active{% endif %}" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Account actions">
+          {% if user.profile.avatar %}<img class="alumni-account-avatar" src="{{ user.profile.avatar.url }}" alt="">{% else %}<span class="alumni-account-initial" aria-hidden="true">{{ user.first_name|default:user.username|first|upper }}</span>{% endif %}
+          <span class="alumni-account-name">{{ user.first_name|default:user.username|truncatechars:17 }}</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end alumni-dropdown">
+          <a class="dropdown-item" href="{% url 'accounts:profile_detail' %}"><i class="fa-regular fa-user" aria-hidden="true"></i> My profile</a>
+          <a class="dropdown-item" href="{% url 'donations:donation_history' %}"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i> My Donations</a>
+          <a class="dropdown-item" href="{% url 'feedback:submit_feedback' %}"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i> Feedback</a>
+          <a class="dropdown-item" href="{% url 'accounts:security_dashboard' %}"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Security</a>
+          <hr class="dropdown-divider">
+          <a class="dropdown-item" href="{% url 'account_logout' %}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Log out</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+{# Bootstrap offcanvas traps focus, supports Escape and backdrop dismissal. #}
+<div class="offcanvas offcanvas-end alumni-mobile-more" tabindex="-1" id="alumniMobileMore" aria-labelledby="alumniMobileMoreTitle">
+  <div class="offcanvas-header">
+    <div><span class="alumni-more-kicker">NORSU ALUMNI</span><h2 class="offcanvas-title" id="alumniMobileMoreTitle">Explore</h2></div>
+    <button type="button" class="btn-close" data-bs-dismiss="offcanvas" aria-label="Close more destinations"></button>
+  </div>
+  <div class="offcanvas-body">
+    <nav aria-label="More alumni destinations">
+      {% include 'alumni/components/secondary_navigation_links.html' %}
+    </nav>
+    <div class="alumni-more-account">
+      <a href="{% url 'donations:donation_history' %}"><i class="fa-solid fa-hand-holding-heart" aria-hidden="true"></i> My Donations</a>
+      <a href="{% url 'feedback:submit_feedback' %}"><i class="fa-regular fa-comment-dots" aria-hidden="true"></i> Feedback</a>
+      <a href="{% url 'accounts:security_dashboard' %}"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Security settings</a>
+      <a href="{% url 'account_logout' %}"><i class="fa-solid fa-arrow-right-from-bracket" aria-hidden="true"></i> Log out</a>
+    </div>
+  </div>
+</div>
+
+<nav class="alumni-bottom-nav" aria-label="Alumni primary mobile navigation">
+  {% include 'alumni/components/primary_navigation_links.html' with navigation_variant='mobile' %}
+</nav>

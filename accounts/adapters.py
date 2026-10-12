@@ -118,6 +118,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         
         # Store the user's email in session for resend verification
         request.session['inactive_account_email'] = user.email
+        request.session['pending_verification_user_id'] = user.pk
         
         # Add informative message
         messages.warning(
@@ -129,7 +130,7 @@ class CustomAccountAdapter(DefaultAccountAdapter):
         logger.info(f"Inactive user login attempt: {user.email} - redirecting to email verification")
         
         # Redirect to email verification page with email parameter
-        return redirect(f'/accounts/verify-email/?email={user.email}')
+        return redirect('accounts:verify_email')
     
     def add_message(self, request, level, message_tag, message=None, extra_tags='', *args, **kwargs):
         """

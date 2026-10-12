@@ -1,4 +1,4 @@
-<!--  -->{% extends 'base.html' %}
+<!--  -->{% extends alumni_page_base|default:'base.html' %}
 {% load static %}
 
 {% block title %}Alumni Directory - Tabular View{% endblock %}
@@ -7,7 +7,12 @@
 
 
 
+{% block extra_css %}{% if use_alumni_layout %}<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}"><link rel="stylesheet" href="{% static 'css/alumni/directory.css' %}">{% endif %}{% endblock %}
 {% block content %}
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Alumni directory' %}
+{% endif %}
+
 <div class="page-content">
     <div class="container">
         <!-- Header Section -->
@@ -239,9 +244,6 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Initialize any needed JavaScript here
-    });
-</script>
+<script>document.documentElement.classList.add("fe-page--alumni-directory-tabular-alumni-list-html");</script>
+<script src="{% static 'js/modules/alumni-directory.js' %}"></script>
 {% endblock %}

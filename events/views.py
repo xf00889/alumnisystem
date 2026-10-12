@@ -196,6 +196,14 @@ class EventDetailView(LoginRequiredMixin, DetailView):
                 user=self.request.user
             ).first()
             context['rsvp_form'] = EventRSVPForm(instance=context['user_rsvp'])
+        group_share_states = {
+            share.group_id: share.get_status_display()
+            for share in self.object.group_share_requests.select_related('group')
+        }
+        context['group_share_entries'] = [
+            {'group': group, 'status': group_share_states.get(group.pk, 'On publication')}
+            for group in self.object.notified_groups.all()
+        ]
         context['rsvp_counts'] = {
             'attending': self.object.rsvps.filter(status='yes').count(),
             'not_attending': self.object.rsvps.filter(status='no').count(),
@@ -240,6 +248,14 @@ class EventModalView(LoginRequiredMixin, DetailView):
                 user=self.request.user
             ).first()
             context['rsvp_form'] = EventRSVPForm(instance=context['user_rsvp'])
+        group_share_states = {
+            share.group_id: share.get_status_display()
+            for share in self.object.group_share_requests.select_related('group')
+        }
+        context['group_share_entries'] = [
+            {'group': group, 'status': group_share_states.get(group.pk, 'On publication')}
+            for group in self.object.notified_groups.all()
+        ]
         context['rsvp_counts'] = {
             'attending': self.object.rsvps.filter(status='yes').count(),
             'not_attending': self.object.rsvps.filter(status='no').count(),
@@ -492,6 +508,14 @@ class PublicEventDetailView(DetailView):
     
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
+        group_share_states = {
+            share.group_id: share.get_status_display()
+            for share in self.object.group_share_requests.select_related('group')
+        }
+        context['group_share_entries'] = [
+            {'group': group, 'status': group_share_states.get(group.pk, 'On publication')}
+            for group in self.object.notified_groups.all()
+        ]
         context['rsvp_counts'] = {
             'attending': self.object.rsvps.filter(status='yes').count(),
             'not_attending': self.object.rsvps.filter(status='no').count(),

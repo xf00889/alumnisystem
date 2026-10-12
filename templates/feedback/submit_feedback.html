@@ -1,4 +1,5 @@
-{% extends 'base.html' %}
+{% extends alumni_page_base|default:'base.html' %}
+{% load static %}
 {% load crispy_forms_tags %}
 
 {% block title %}Submit Feedback{% endblock %}
@@ -9,545 +10,23 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-    /* System Color Scheme */
-    :root {
-        /* Secondary Colors */
-        --secondary-color: #4a5568;
-        
-        /* UI Colors */
-        --ui-background: #f7fafc;
-        --ui-surface: #ffffff;
-        --ui-border: #e2e8f0;
-        --ui-hover: #edf2f7;
-        
-        /* Text Colors */
-        --text-primary: #2d3748;
-        --text-secondary: #718096;
-        --text-muted: #a0aec0;
-        --text-light: #ffffff;
-        
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
-        
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-        
-        /* Border Radius */
-        --radius-sm: 0.25rem;
-        --radius-md: 0.375rem;
-        --radius-lg: 0.5rem;
-    }
-    
-    body {
-        background-color: var(--ui-background);
-        font-family: 'Poppins', sans-serif;
-        font-size: 0.875rem;
-    }
-    
+<script>document.documentElement.classList.add("fe-page--feedback-submit-feedback-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/feedback.css' %}">
 
-    
-    .feedback-card {
-        background: var(--ui-surface);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-md);
-        border: 1px solid var(--ui-border);
-        overflow: hidden;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .feedback-card .card-body {
-        padding: 2rem;
-    }
-    
-    .form-group {
-        margin-bottom: 1.5rem;
-    }
-    
-    .form-label {
-        font-weight: 500;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-        font-family: 'Poppins', sans-serif;
-        font-size: 0.875rem;
-    }
-    
-    .form-control, .form-select {
-        border: 2px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-        background-color: var(--ui-surface);
-    }
-    
-    .form-control:focus, .form-select:focus {
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
-        outline: none;
-    }
-    
-    .form-control:hover, .form-select:hover {
-        border-color: var(--secondary-color);
-    }
-    
-    .help-text {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        margin-top: 0.5rem;
-        font-family: 'Poppins', sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-    }
-    
-    .char-counter {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        text-align: right;
-        margin-top: 0.25rem;
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500;
-    }
-    
-    .priority-badge {
-        display: inline-block;
-        width: 1rem;
-        height: 1rem;
-        border-radius: 50%;
-        margin-right: 0.5rem;
-        border: 2px solid transparent;
-    }
-    
-    .priority-low { 
-        background-color: var(--text-secondary);
-        border-color: var(--text-secondary);
-    }
-    .priority-medium { 
-        background-color: var(--feedback-info);
-        border-color: var(--feedback-info);
-    }
-    .priority-high { 
-        background-color: var(--feedback-warning);
-        border-color: var(--feedback-warning);
-    }
-    .priority-urgent { 
-        background-color: var(--feedback-error);
-        border-color: var(--feedback-error);
-    }
-    
-    .priority-legend {
-        background: var(--ui-hover);
-        padding: 1rem;
-        border-radius: var(--radius-md);
-        margin-top: 0.5rem;
-        font-size: 0.75rem;
-        font-family: 'Poppins', sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-        flex-wrap: wrap;
-    }
-    
-    .priority-item {
-        display: flex;
-        align-items: center;
-        gap: 0.25rem;
-        font-weight: 500;
-        color: var(--text-primary);
-    }
-    
-    .attachment-preview {
-        max-width: 100%;
-        max-height: 200px;
-        margin-top: 1rem;
-        border-radius: var(--radius-md);
-        display: none;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--ui-border);
-    }
-    
-    .btn {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
-        border-radius: var(--radius-md);
-        font-size: 0.875rem;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-    }
-    
-    .btn-primary {
-        background: var(--primary-color);
-        border-color: var(--primary-color);
-        color: var(--text-light);
-    }
-    
-    .btn-primary:hover {
-        background: var(--secondary-color);
-        border-color: var(--secondary-color);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .btn-outline-secondary {
-        background: transparent;
-        border-color: var(--ui-border);
-        color: var(--text-secondary);
-    }
-    
-    .btn-outline-secondary:hover {
-        background: var(--ui-hover);
-        border-color: var(--secondary-color);
-        color: var(--text-primary);
-        transform: translateY(-1px);
-    }
-    
-    .action-buttons {
-        display: flex;
-        gap: 1rem;
-        margin-top: 2rem;
-        flex-wrap: wrap;
-    }
-    
-    /* Tablet breakpoint */
-    @media (max-width: 991px) {
-        body {
-            font-size: 0.8125rem !important;
-        }
-        
-        .feedback-card .card-body {
-            padding: 1.75rem !important;
-        }
-        
-        .feedback-card .card-body h1 {
-            font-size: 1.75rem !important;
-        }
-        
-        .feedback-card .card-body p {
-            font-size: 0.9375rem !important;
-        }
-        
-        .form-label {
-            font-size: 0.8125rem !important;
-        }
-        
-        .form-control,
-        .form-select {
-            font-size: 0.8125rem !important;
-            padding: 0.625rem 0.875rem !important;
-        }
-        
-        .help-text {
-            font-size: 0.6875rem !important;
-        }
-        
-        .char-counter {
-            font-size: 0.6875rem !important;
-        }
-        
-        .priority-legend {
-            font-size: 0.6875rem !important;
-            padding: 0.875rem !important;
-        }
-        
-        .btn {
-            font-size: 0.8125rem !important;
-            padding: 0.625rem 1.25rem !important;
-        }
-    }
-    
-    /* Mobile breakpoint */
-    @media (max-width: 768px) {
-        body {
-            font-size: 0.75rem !important;
-        }
-        
-        .container-fluid {
-            padding-left: 0.75rem !important;
-            padding-right: 0.75rem !important;
-        }
-        
-        .feedback-card {
-            margin-bottom: 0.875rem !important;
-        }
-        
-        .feedback-card .card-body {
-            padding: 1.25rem !important;
-        }
-        
-        .feedback-card .card-body h1 {
-            font-size: 1.25rem !important;
-            margin-bottom: 0.75rem !important;
-        }
-        
-        .feedback-card .card-body h1 i {
-            font-size: 1.125rem !important;
-            margin-right: 0.5rem !important;
-        }
-        
-        .feedback-card .card-body p {
-            font-size: 0.8125rem !important;
-            margin-bottom: 0 !important;
-        }
-        
-        .form-group {
-            margin-bottom: 1.25rem !important;
-        }
-        
-        .form-label {
-            font-size: 0.75rem !important;
-            margin-bottom: 0.375rem !important;
-        }
-        
-        .form-control,
-        .form-select {
-            font-size: 0.75rem !important;
-            padding: 0.5rem 0.75rem !important;
-            border-width: 1px !important;
-        }
-        
-        .help-text {
-            font-size: 0.625rem !important;
-            margin-top: 0.375rem !important;
-        }
-        
-        .help-text i {
-            font-size: 0.625rem !important;
-        }
-        
-        .char-counter {
-            font-size: 0.625rem !important;
-            margin-top: 0.1875rem !important;
-        }
-        
-        .priority-badge {
-            width: 0.875rem !important;
-            height: 0.875rem !important;
-            margin-right: 0.375rem !important;
-        }
-        
-        .priority-legend {
-            padding: 0.75rem !important;
-            margin-top: 0.375rem !important;
-            font-size: 0.625rem !important;
-            gap: 0.75rem !important;
-        }
-        
-        .priority-item {
-            gap: 0.1875rem !important;
-        }
-        
-        .attachment-preview {
-            max-height: 150px !important;
-            margin-top: 0.75rem !important;
-        }
-        
-        .btn {
-            font-size: 0.75rem !important;
-            padding: 0.5rem 1rem !important;
-        }
-        
-        .btn i {
-            font-size: 0.6875rem !important;
-        }
-        
-        .action-buttons {
-            flex-direction: column;
-            gap: 0.75rem !important;
-            margin-top: 1.5rem !important;
-        }
-        
-        .btn {
-            width: 100%;
-            justify-content: center;
-        }
-        
-        .priority-legend {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: 0.5rem !important;
-        }
-        
-        /* reCAPTCHA */
-        .form-text {
-            font-size: 0.625rem !important;
-        }
-        
-        .text-danger {
-            font-size: 0.625rem !important;
-        }
-    }
-    
-    /* Small mobile breakpoint */
-    @media (max-width: 576px) {
-        body {
-            font-size: 0.6875rem !important;
-        }
-        
-        .container-fluid {
-            padding-left: 0.625rem !important;
-            padding-right: 0.625rem !important;
-        }
-        
-        .feedback-card .card-body {
-            padding: 1rem !important;
-        }
-        
-        .feedback-card .card-body h1 {
-            font-size: 1.125rem !important;
-            margin-bottom: 0.625rem !important;
-        }
-        
-        .feedback-card .card-body h1 i {
-            font-size: 1rem !important;
-        }
-        
-        .feedback-card .card-body p {
-            font-size: 0.75rem !important;
-        }
-        
-        .form-group {
-            margin-bottom: 1rem !important;
-        }
-        
-        .form-label {
-            font-size: 0.6875rem !important;
-        }
-        
-        .form-control,
-        .form-select {
-            font-size: 0.6875rem !important;
-            padding: 0.4375rem 0.625rem !important;
-        }
-        
-        .help-text {
-            font-size: 0.5625rem !important;
-        }
-        
-        .char-counter {
-            font-size: 0.5625rem !important;
-        }
-        
-        .priority-badge {
-            width: 0.75rem !important;
-            height: 0.75rem !important;
-            margin-right: 0.3125rem !important;
-        }
-        
-        .priority-legend {
-            padding: 0.625rem !important;
-            font-size: 0.5625rem !important;
-            gap: 0.5rem !important;
-        }
-        
-        .attachment-preview {
-            max-height: 120px !important;
-        }
-        
-        .btn {
-            font-size: 0.6875rem !important;
-            padding: 0.4375rem 0.875rem !important;
-        }
-        
-        .btn i {
-            font-size: 0.625rem !important;
-        }
-        
-        .action-buttons {
-            gap: 0.625rem !important;
-            margin-top: 1.25rem !important;
-        }
-    }
-    
-    /* Extra small mobile breakpoint */
-    @media (max-width: 375px) {
-        body {
-            font-size: 0.625rem !important;
-        }
-        
-        .container-fluid {
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
-        }
-        
-        .feedback-card .card-body {
-            padding: 0.875rem !important;
-        }
-        
-        .feedback-card .card-body h1 {
-            font-size: 1rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        .feedback-card .card-body h1 i {
-            font-size: 0.875rem !important;
-        }
-        
-        .feedback-card .card-body p {
-            font-size: 0.6875rem !important;
-        }
-        
-        .form-group {
-            margin-bottom: 0.875rem !important;
-        }
-        
-        .form-label {
-            font-size: 0.625rem !important;
-        }
-        
-        .form-control,
-        .form-select {
-            font-size: 0.625rem !important;
-            padding: 0.375rem 0.5rem !important;
-        }
-        
-        .help-text {
-            font-size: 0.5rem !important;
-        }
-        
-        .char-counter {
-            font-size: 0.5rem !important;
-        }
-        
-        .priority-badge {
-            width: 0.625rem !important;
-            height: 0.625rem !important;
-        }
-        
-        .priority-legend {
-            padding: 0.5rem !important;
-            font-size: 0.5rem !important;
-        }
-        
-        .attachment-preview {
-            max-height: 100px !important;
-        }
-        
-        .btn {
-            font-size: 0.625rem !important;
-            padding: 0.375rem 0.75rem !important;
-        }
-        
-        .btn i {
-            font-size: 0.5625rem !important;
-        }
-        
-        .action-buttons {
-            gap: 0.5rem !important;
-            margin-top: 1rem !important;
-        }
-    }
-</style>
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/feedback.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}
+<div class="alumni-page-shell alumni-feedback-page">
+    {% include 'alumni/components/breadcrumbs.html' with area='Submit feedback' within_page_shell=True %}
+    {% include 'alumni/components/page_header.html' with title='Submit Feedback' description='Share your experience, report an issue, or suggest an improvement to the alumni community.' icon='fa-regular fa-comment-dots' %}
+{% else %}
 <div class="container-fluid">
+    
     <!-- Header inside blue container -->
     <div class="row justify-content-center mb-4">
         <div class="col-lg-8">
@@ -560,8 +39,9 @@
         </div>
     </div>
     
-    <div class="row justify-content-center">
-        <div class="col-lg-8">
+    {% endif %}
+    <div class="row justify-content-center{% if use_alumni_layout %} alumni-feedback-form-row{% endif %}">
+        <div class="col-lg-8{% if use_alumni_layout %} alumni-feedback-form-col{% endif %}">
             <div class="feedback-card">
                 <div class="card-body">
                     
@@ -578,19 +58,23 @@
                             <div class="col-md-6">
                                 <div class="form-group">
                                     {{ form.category|as_crispy_field }}
+                                    {% if not use_alumni_layout %}
                                     <div class="help-text">
                                         <i class="fas fa-info-circle me-1"></i>
                                         {{ form.category.help_text }}
                                     </div>
+                                    {% endif %}
                                 </div>
                             </div>
                             <div class="col-md-6">
                                 <div class="form-group">
                                     {{ form.priority|as_crispy_field }}
+                                    {% if not use_alumni_layout %}
                                     <div class="help-text">
                                         <i class="fas fa-info-circle me-1"></i>
                                         {{ form.priority.help_text }}
                                     </div>
+                                    {% endif %}
                                     <div class="priority-legend">
                                         <div class="priority-item">
                                             <span class="priority-badge priority-low"></span>Low
@@ -611,10 +95,12 @@
                         
                         <div class="form-group">
                             {{ form.subject|as_crispy_field }}
+                            {% if not use_alumni_layout %}
                             <div class="help-text">
                                 <i class="fas fa-info-circle me-1"></i>
                                 {{ form.subject.help_text }}
                             </div>
+                            {% endif %}
                             <div class="char-counter">
                                 <span id="subjectCounter">0</span>/200 characters
                             </div>
@@ -622,18 +108,22 @@
                         
                         <div class="form-group">
                             {{ form.message|as_crispy_field }}
+                            {% if not use_alumni_layout %}
                             <div class="help-text">
                                 <i class="fas fa-info-circle me-1"></i>
                                 {{ form.message.help_text }}
                             </div>
+                            {% endif %}
                         </div>
                         
                         <div class="form-group">
                             {{ form.attachment|as_crispy_field }}
+                            {% if not use_alumni_layout %}
                             <div class="help-text">
                                 <i class="fas fa-info-circle me-1"></i>
                                 {{ form.attachment.help_text }}
                             </div>
+                            {% endif %}
                             <img id="attachmentPreview" class="attachment-preview" alt="Attachment preview">
                         </div>
                         
@@ -669,94 +159,5 @@
 {% endblock %}
 
 {% block extra_js %}
-<script>
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize tooltips
-    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
-        return new bootstrap.Tooltip(tooltipTriggerEl)
-    });
-    
-    // Character counter for subject
-    const subjectInput = document.querySelector('#id_subject');
-    const subjectCounter = document.querySelector('#subjectCounter');
-    
-    if (subjectInput && subjectCounter) {
-        subjectInput.addEventListener('input', function() {
-            const count = this.value.length;
-            subjectCounter.textContent = count;
-            
-            if (count > 190) {
-                subjectCounter.style.color = '#dc3545';
-            } else {
-                subjectCounter.style.color = '#6c757d';
-            }
-        });
-    }
-    
-    // Attachment preview
-    const attachmentInput = document.querySelector('#id_attachment');
-    const attachmentPreview = document.querySelector('#attachmentPreview');
-    
-    if (attachmentInput && attachmentPreview) {
-        attachmentInput.addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const fileType = file.type.split('/')[0];
-                if (fileType === 'image') {
-                    const reader = new FileReader();
-                    reader.onload = function(e) {
-                        attachmentPreview.src = e.target.result;
-                        attachmentPreview.style.display = 'block';
-                    };
-                    reader.readAsDataURL(file);
-                } else {
-                    attachmentPreview.style.display = 'none';
-                }
-            } else {
-                attachmentPreview.style.display = 'none';
-            }
-        });
-    }
-    
-    // Form validation with SweetAlert
-    const form = document.querySelector('#feedbackForm');
-    form.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        if (!this.checkValidity()) {
-            e.stopPropagation();
-            this.classList.add('was-validated');
-            return;
-        }
-        
-        // Show confirmation dialog
-        Swal.fire({
-            icon: 'question',
-            title: 'Submit Feedback',
-            text: 'Are you sure you want to submit this feedback?',
-            showCancelButton: true,
-            confirmButtonText: 'Yes, submit it!',
-            cancelButtonText: 'Cancel'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Show loading state
-                Swal.fire({
-                    title: 'Submitting Feedback...',
-                    text: 'Please wait while we submit your feedback.',
-                    allowOutsideClick: false,
-                    allowEscapeKey: false,
-                    showConfirmButton: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-                
-                // Submit the form
-                form.submit();
-            }
-        });
-    });
-});
-</script>
+<script src="{% static 'js/modules/feedback.js' %}"></script>
 {% endblock %}

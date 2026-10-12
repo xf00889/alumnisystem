@@ -1,4 +1,4 @@
-{% extends 'base.html' %}
+{% extends alumni_page_base|default:'base.html' %}
 {% load static %}
 
 {% block title %}Alumni Groups Map{% endblock %}
@@ -7,354 +7,20 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.css" />
 <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.4.1/dist/MarkerCluster.Default.css" />
-<style>
-    /* Core Design System */
-    :root {
-        /* Brand Colors */
-        --brand-primary: #2b3c6b;
-        --brand-secondary: #4a5568;
-        --brand-accent: #3182ce;
-        
-        /* UI Colors */
-        --ui-background: #f7fafc;
-        --ui-surface: #ffffff;
-        --ui-border: #e2e8f0;
-        --ui-hover: #edf2f7;
-        
-        /* Text Colors */
-        --text-primary: #2d3748;
-        --text-secondary: #718096;
-        --text-muted: #a0aec0;
-        --text-light: #ffffff;
-        
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
-        
-        /* Spacing Scale */
-        --space-1: 0.25rem;
-        --space-2: 0.5rem;
-        --space-3: 0.75rem;
-        --space-4: 1rem;
-        --space-5: 1.5rem;
-        --space-6: 2rem;
-        --space-8: 3rem;
-        
-        /* Border Radius */
-        --radius-sm: 0.25rem;
-        --radius-md: 0.375rem;
-        --radius-lg: 0.5rem;
-        
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-        
-        /* Transitions */
-        --transition-fast: 150ms ease;
-        --transition-normal: 250ms ease;
-    }
-
-    /* Layout */
-    .page-container {
-        height: calc(100vh - 76px);
-        display: grid;
-        grid-template-columns: 300px 1fr;
-    }
-
-    /* Sidebar */
-    .sidebar {
-        background: var(--ui-surface);
-        border-right: 1px solid var(--ui-border);
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        overflow: hidden;
-    }
-
-    .sidebar-header {
-        padding: var(--space-4);
-        border-bottom: 1px solid var(--ui-border);
-        background: var(--brand-primary);
-        color: var(--text-light);
-    }
-
-    .sidebar-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        margin: 0 0 var(--space-2);
-    }
-
-    .sidebar-subtitle {
-        font-size: 0.875rem;
-        opacity: 0.9;
-        margin: 0;
-    }
-
-    .sidebar-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: var(--space-4);
-    }
-
-    /* Search and Filters */
-    .search-container {
-        margin-bottom: var(--space-4);
-    }
-
-    .search-input {
-        width: 100%;
-        padding: var(--space-3);
-        border: 2px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        font-size: 0.95rem;
-        transition: var(--transition-normal);
-    }
-
-    .search-input:focus {
-        outline: none;
-        border-color: var(--brand-accent);
-        box-shadow: 0 0 0 3px rgba(49, 130, 206, 0.15);
-    }
-
-    .filter-section {
-        margin-bottom: var(--space-4);
-    }
-
-    .filter-title {
-        font-size: 0.875rem;
-        font-weight: 600;
-        color: var(--text-secondary);
-        margin-bottom: var(--space-2);
-        text-transform: uppercase;
-        letter-spacing: 0.05em;
-    }
-
-    .filter-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--space-2);
-    }
-
-    .filter-option {
-        display: flex;
-        align-items: center;
-        gap: var(--space-2);
-        padding: var(--space-2);
-        border-radius: var(--radius-md);
-        cursor: pointer;
-        transition: var(--transition-fast);
-    }
-
-    .filter-option:hover {
-        background: var(--ui-hover);
-    }
-
-    .filter-checkbox {
-        width: 18px;
-        height: 18px;
-        border: 2px solid var(--ui-border);
-        border-radius: var(--radius-sm);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: var(--transition-fast);
-    }
-
-    .filter-checkbox.checked {
-        background: var(--brand-primary);
-        border-color: var(--brand-primary);
-    }
-
-    .filter-checkbox.checked::after {
-        content: '✓';
-        color: var(--text-light);
-        font-size: 12px;
-    }
-
-    .filter-label {
-        font-size: 0.95rem;
-        color: var(--text-primary);
-    }
-
-    /* Group List */
-    .group-list {
-        margin-top: var(--space-4);
-    }
-
-    .group-card {
-        padding: var(--space-3);
-        border-radius: var(--radius-md);
-        background: var(--ui-background);
-        margin-bottom: var(--space-3);
-        cursor: pointer;
-        transition: var(--transition-normal);
-    }
-
-    .group-card:hover {
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-
-    .group-card.active {
-        background: var(--brand-primary);
-        color: var(--text-light);
-    }
-
-    .group-name {
-        font-weight: 600;
-        margin: 0 0 var(--space-1);
-    }
-
-    .group-meta {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        display: flex;
-        gap: var(--space-3);
-    }
-
-    .group-card.active .group-meta {
-        color: rgba(255, 255, 255, 0.8);
-    }
-
-    /* Map Container */
-    .map-container {
-        height: 100%;
-        position: relative;
-    }
-
-    #map {
-        height: 100%;
-        width: 100%;
-    }
-
-    /* Map Controls */
-    .map-controls {
-        position: absolute;
-        top: var(--space-4);
-        right: var(--space-4);
-        z-index: 1000;
-        display: flex;
-        gap: var(--space-2);
-    }
-
-    .map-control {
-        background: var(--ui-surface);
-        border: none;
-        padding: var(--space-2);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-md);
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: var(--transition-fast);
-    }
-
-    .map-control:hover {
-        background: var(--ui-hover);
-        transform: translateY(-1px);
-    }
-
-    /* Popup Styles */
-    .leaflet-popup-content-wrapper {
-        border-radius: var(--radius-md);
-        padding: 0;
-        overflow: hidden;
-    }
-
-    .popup-content {
-        padding: var(--space-4);
-    }
-
-    .popup-header {
-        margin-bottom: var(--space-3);
-    }
-
-    .popup-title {
-        font-size: 1.125rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin: 0 0 var(--space-1);
-    }
-
-    .popup-meta {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-
-    .popup-description {
-        font-size: 0.95rem;
-        color: var(--text-secondary);
-        margin: 0 0 var(--space-3);
-    }
-
-    .popup-actions {
-        display: flex;
-        gap: var(--space-2);
-    }
-
-    /* Responsive Design */
-    @media (max-width: 768px) {
-        .page-container {
-            grid-template-columns: 1fr;
-        }
-
-        .sidebar {
-            position: fixed;
-            left: 0;
-            top: 76px;
-            width: 300px;
-            height: calc(100vh - 76px);
-            transform: translateX(-100%);
-            transition: transform var(--transition-normal);
-            z-index: 1000;
-        }
-
-        .sidebar.active {
-            transform: translateX(0);
-        }
-
-        .sidebar-toggle {
-            position: absolute;
-            top: var(--space-4);
-            left: 100%;
-            background: var(--ui-surface);
-            padding: var(--space-2) var(--space-3);
-            border-radius: 0 var(--radius-md) var(--radius-md) 0;
-            box-shadow: var(--shadow-md);
-            cursor: pointer;
-        }
-    }
-
-    /* Accessibility */
-    @media (prefers-reduced-motion: reduce) {
-        * {
-            transition: none !important;
-        }
-    }
-
-    .sr-only {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        padding: 0;
-        margin: -1px;
-        overflow: hidden;
-        clip: rect(0, 0, 0, 0);
-        white-space: nowrap;
-        border: 0;
-    }
-
-    /* Focus Styles */
-    :focus-visible {
-        outline: 3px solid var(--brand-accent);
-        outline-offset: 2px;
-    }
-</style>
+<script>document.documentElement.classList.add("fe-page--alumni-groups-group-map-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/alumni-groups.css' %}">
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/community.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/groups.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Alumni Groups' %}
+{% endif %}
+
 <div class="page-container">
     <!-- Sidebar -->
     <aside class="sidebar">
@@ -417,7 +83,7 @@
             <div class="group-list">
                 {% for group in groups %}
                 <div class="group-card" data-group-id="{{ group.id }}">
-                    <h3 class="group-name">{{ group.name }}</h3>
+                    <h3 class="group-name">{% if use_alumni_layout %}<a href="{% url 'alumni_groups:group_detail' group.slug %}">{{ group.name }}</a>{% else %}{{ group.name }}{% endif %}</h3>
                     <div class="group-meta">
                         <span>
                             <i class="fas fa-users"></i>
@@ -425,7 +91,7 @@
                         </span>
                         <span>
                             <i class="fas fa-map-marker-alt"></i>
-                            {{ group.region }}
+                            {{ group.get_campus_display }}
                         </span>
                     </div>
                 </div>
@@ -439,16 +105,17 @@
         </div>
     </aside>
 
-    <!-- Map -->
+    <!-- Group records do not currently have map coordinates. Do not derive them from member locations. -->
     <main class="map-container">
+        {% if use_alumni_layout %}<p class="alumni-map-notice" role="status">Group locations are not available on the map yet. You can still explore groups in the list.</p>{% endif %}
         <div class="map-controls">
-            <button class="map-control" id="centerMap" title="Center Map">
+            <button class="map-control" id="centerMap" {% if use_alumni_layout %}title="Group map coordinates unavailable" disabled aria-disabled="true"{% else %}title="Center Map"{% endif %}>
                 <i class="fas fa-crosshairs"></i>
             </button>
-            <button class="map-control" id="findNearby" title="Find Nearby Groups">
+            <button class="map-control" id="findNearby" {% if use_alumni_layout %}title="Group map coordinates unavailable" disabled aria-disabled="true"{% else %}title="Find Nearby Groups"{% endif %}>
                 <i class="fas fa-location-arrow"></i>
             </button>
-            <button class="map-control" id="toggleClusters" title="Toggle Clusters">
+            <button class="map-control" id="toggleClusters" {% if use_alumni_layout %}title="Group map coordinates unavailable" disabled aria-disabled="true"{% else %}title="Toggle Clusters"{% endif %}>
                 <i class="fas fa-layer-group"></i>
             </button>
         </div>
@@ -480,11 +147,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // Add markers for groups
     {% for group in groups %}
     {% if group.location %}
+    {
     const marker = L.marker([{{ group.location.y }}, {{ group.location.x }}])
         .bindPopup(`
             <div class="popup-content">
                 <div class="popup-header">
-                    <h3 class="popup-title">{{ group.name }}</h3>
+                    <h3 class="popup-title">{{ group.name|force_escape|escapejs }}</h3>
                     <div class="popup-meta">
                         <span>
                             <i class="fas fa-users"></i>
@@ -496,13 +164,13 @@ document.addEventListener('DOMContentLoaded', function() {
                         </span>
                     </div>
                 </div>
-                <p class="popup-description">{{ group.description|truncatewords:30 }}</p>
+                <p class="popup-description">{{ group.description|truncatewords:30|force_escape|escapejs }}</p>
                 <div class="popup-actions">
                     <a href="{% url 'alumni_groups:group_detail' group.slug %}" 
                        class="btn btn-primary">
                         View Group
                     </a>
-                    {% if not group.memberships.filter(user=user).exists %}
+                    {% if group.id not in user_memberships %}
                     <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" 
                        class="btn btn-secondary">
                         Join Group
@@ -524,6 +192,7 @@ document.addEventListener('DOMContentLoaded', function() {
             });
             groupCard.classList.add('active');
         });
+    }
     }
     {% endif %}
     {% endfor %}
@@ -547,12 +216,12 @@ document.addEventListener('DOMContentLoaded', function() {
                 map.setView([lat, lng], 13);
                 
                 // Find nearby groups
-                fetch(`{% url 'alumni_groups:nearby_groups_api' %}?lat=${lat}&lng=${lng}`)
+                fetch(`{% url 'alumni_groups:nearby_groups_api' %}?latitude=${lat}&longitude=${lng}`)
                     .then(response => response.json())
                     .then(data => {
                         // Update group list with nearby groups
                         const groupList = document.querySelector('.group-list');
-                        groupList.innerHTML = data.map(group => `
+                        groupList.innerHTML = (data.groups || []).map(group => `
                             <div class="group-card" data-group-id="${group.id}">
                                 <h3 class="group-name">${group.name}</h3>
                                 <div class="group-meta">

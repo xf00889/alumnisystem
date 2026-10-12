@@ -1,1125 +1,54 @@
-{% extends 'base.html' %}
+{% extends alumni_page_base|default:'base.html' %}
 {% load static %}
 
 {% block title %}Messages - Alumni System{% endblock %}
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-    /* System Color Scheme */
-    :root {
-        /* Primary Colors */
-        --primary-color: #2b3c6b;
-        
-        /* Secondary Colors */
-        --secondary-color: #4a5568;
-        
-        /* UI Colors */
-        --ui-background: #f7fafc;
-        --ui-surface: #ffffff;
-        --ui-border: #e2e8f0;
-        --ui-hover: #edf2f7;
-        
-        /* Text Colors */
-        --text-primary: #2d3748;
-        --text-secondary: #718096;
-        --text-muted: #a0aec0;
-        --text-light: #ffffff;
-        
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
-
-        /* Feedback Background Colors */
-        --feedback-success-bg: #f0fff4;
-        --feedback-info-bg: #ebf8ff;
-        
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-        
-        /* Border Radius */
-        --radius-sm: 0.25rem;
-        --radius-md: 0.375rem;
-        --radius-lg: 0.5rem;
-    }
-    
-    body {
-        background-color: var(--ui-background);
-        font-family: 'Poppins', sans-serif;
-        font-size: 0.875rem;
-    }
-    
-    .messages-header {
-        background: var(--primary-color);
-        color: var(--text-light);
-        padding: 1.75rem;
-        border-radius: var(--radius-md);
-        margin-bottom: 1.25rem;
-        box-shadow: var(--shadow-sm);
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .messages-header h2 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-        color: var(--text-light);
-    }
-    
-    .messages-card {
-        background: var(--ui-surface);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--ui-border);
-        font-family: 'Poppins', sans-serif;
-        overflow: hidden;
-    }
-    
-    .messages-card:hover {
-        box-shadow: var(--shadow-md);
-    }
-    
-    .conversation-item {
-        cursor: pointer;
-        transition: all 0.3s ease;
-        border-bottom: 1px solid var(--ui-border);
-        padding: 1.25rem;
-        background: var(--ui-surface);
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .conversation-item:last-child {
-        border-bottom: none;
-    }
-    
-    .conversation-item:hover {
-        background-color: var(--ui-hover);
-    }
-    
-    .conversation-item.active {
-        background-color: rgba(43, 60, 107, 0.1);
-        border-left: 4px solid var(--primary-color);
-    }
-    
-    .conversation-item.unread {
-        font-weight: 600;
-        background-color: rgba(237, 137, 54, 0.1);
-    }
-    
-    .avatar-sm {
-        width: 55px;
-        height: 55px;
-        object-fit: cover;
-        border: 2px solid var(--ui-border);
-        transition: all 0.3s ease;
-    }
-    
-    .conversation-item:hover .avatar-sm {
-        border-color: var(--primary-color);
-    }
-    
-    .unread-badge {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
-        color: var(--text-light);
-        font-size: 0.7rem;
-        font-weight: 600;
-        padding: 0.25rem 0.5rem;
-        border-radius: 50px;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .message-preview {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        font-weight: 400;
-        line-height: 1.4;
-    }
-    
-    .conversation-time {
-        font-size: 0.75rem;
-        color: var(--text-muted);
-        font-weight: 500;
-    }
-    
-    .conversation-name {
-        color: var(--text-primary);
-        font-weight: 600;
-        font-size: 0.95rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .conversation-position {
-        color: var(--text-secondary);
-        font-size: 0.8rem;
-        font-weight: 500;
-        margin-bottom: 0.5rem;
-    }
-    
-    .no-conversations {
-        text-align: center;
-        padding: 4rem 2rem;
-        color: var(--text-secondary);
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .no-conversations i {
-        color: var(--text-muted);
-        margin-bottom: 1.5rem;
-    }
-    
-    .no-conversations h5 {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 1rem;
-    }
-    
-    .btn-primary {
-        background: linear-gradient(135deg, var(--primary-color) 0%, #3d4f7a 100%);
-        border: none;
-        border-radius: var(--radius-md);
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .btn-primary:hover {
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-        background: linear-gradient(135deg, #3d4f7a 0%, var(--primary-color) 100%);
-    }
-    
-    .btn-outline-primary {
-        border: 2px solid var(--primary-color);
-        color: var(--primary-color);
-        border-radius: var(--radius-md);
-        padding: 0.75rem 1.5rem;
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-        background: transparent;
-    }
-    
-    .btn-outline-primary:hover {
-        background: var(--primary-color);
-        color: var(--text-light);
-        transform: translateY(-2px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .filter-controls {
-        background: var(--ui-surface);
-        padding: 1rem;
-        border-radius: var(--radius-md);
-        margin-bottom: 1.25rem;
-        box-shadow: var(--shadow-sm);
-        border: 1px solid var(--ui-border);
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .search-input {
-        border: 2px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        padding: 0.75rem 1rem;
-        font-size: 0.875rem;
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-    }
-    
-    .search-input:focus {
-        outline: none;
-        border-color: var(--primary-color);
-        box-shadow: 0 0 0 3px rgba(43, 60, 107, 0.1);
-    }
-    
-    /* Create Message Modal Styles */
-    .modal-content {
-        border: none;
-        border-radius: var(--radius-lg);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-    }
-    
-    .modal-header {
-        background: var(--primary-color);
-        color: var(--text-light);
-        border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-        border-bottom: none;
-    }
-    
-    .modal-title {
-        font-weight: 600;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .btn-close {
-        filter: invert(1);
-    }
-    
-    .search-results-container {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        background: var(--ui-surface);
-    }
-    
-    .search-result-item {
-        padding: 0.75rem 1rem;
-        border-bottom: 1px solid var(--ui-border);
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-    }
-    
-    .search-result-item:last-child {
-        border-bottom: none;
-    }
-    
-    .search-result-item:hover {
-        background-color: var(--ui-hover);
-    }
-    
-    .search-result-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        margin-right: 0.75rem;
-        border: 2px solid var(--ui-border);
-    }
-    
-    .search-result-info {
-        flex-grow: 1;
-    }
-    
-    .search-result-name {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-        font-size: 0.9rem;
-    }
-    
-    .search-result-title {
-        color: var(--text-secondary);
-        font-size: 0.8rem;
-    }
-    
-    .selected-user-card {
-        background: var(--ui-hover);
-        border: 2px solid var(--primary-color);
-        border-radius: var(--radius-md);
-        padding: 1rem;
-    }
-    
-    .selected-user-avatar {
-        width: 50px;
-        height: 50px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid var(--primary-color);
-    }
-    
-    .selected-user-name {
-        color: var(--text-primary);
-        font-size: 1rem;
-    }
-    
-    .selected-user-title {
-        font-size: 0.85rem;
-    }
-    
-    .search-loading {
-        color: var(--text-secondary);
-    }
-    
-    .spinner-border-sm {
-        width: 1rem;
-        height: 1rem;
-    }
-    
-    #messageContent:disabled {
-        background-color: var(--ui-hover);
-        opacity: 0.7;
-    }
-    
-    #messageContent:enabled {
-        border-color: var(--primary-color);
-    }
-    
-    .form-label.fw-semibold {
-        color: var(--text-primary);
-        font-weight: 600;
-    }
-
-    /* Inline Message Interface Styles */
-    #newMessageInterface {
-        border-top: 3px solid var(--primary-color);
-        background: linear-gradient(135deg, #f8fafc 0%, #edf2f7 100%);
-        transition: all 0.3s ease;
-    }
-
-    #newMessageInterface h6 {
-        color: var(--primary-color);
-        font-weight: 600;
-    }
-
-    #inlineMessageContent:disabled {
-        background-color: var(--ui-hover);
-        opacity: 0.7;
-    }
-
-    #inlineMessageContent:enabled {
-        border-color: var(--primary-color);
-    }
-
-    .inline-search-results-list {
-        max-height: 250px;
-        overflow-y: auto;
-    }
-
-    /* Group Chat Interface Styles */
-    #groupChatInterface {
-        border-top: 3px solid var(--success-color);
-        background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-        transition: all 0.3s ease;
-    }
-
-    #groupChatInterface h6 {
-        color: var(--success-color);
-        font-weight: 600;
-    }
-
-    .group-search-results-list {
-        max-height: 200px;
-        overflow-y: auto;
-    }
-
-    .selected-participants-container {
-        min-height: 60px;
-        max-height: 200px;
-        overflow-y: auto;
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        padding: 0.75rem;
-        background: var(--ui-background);
-    }
-
-    .participant-item {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.5rem;
-        margin-bottom: 0.5rem;
-        background: var(--ui-surface);
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-sm);
-        transition: all 0.2s ease;
-    }
-
-    .participant-item:hover {
-        background: var(--ui-hover);
-    }
-
-    .participant-item:last-child {
-        margin-bottom: 0;
-    }
-
-    .participant-avatar {
-        width: 32px;
-        height: 32px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid var(--ui-border);
-    }
-
-    .remove-participant-btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-    }
-
-    /* Participants Modal Styles */
-    .participant-item {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        border-radius: var(--radius-md);
-        margin-bottom: 0.5rem;
-        background: var(--ui-surface);
-        border: 1px solid var(--ui-border);
-        transition: all 0.2s ease;
-    }
-
-    .participant-item:hover {
-        background: var(--ui-hover);
-        border-color: var(--primary-color);
-    }
-
-    .participant-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid var(--ui-border);
-        margin-right: 0.75rem;
-        flex-shrink: 0;
-    }
-
-    .participant-info {
-        flex-grow: 1;
-    }
-
-    .participant-name {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-    }
-
-    .participant-role {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-
-    .participant-status {
-        font-size: 0.75rem;
-        padding: 0.25rem 0.5rem;
-        border-radius: var(--radius-sm);
-        font-weight: 500;
-    }
-
-    .participant-status.creator {
-        background: var(--feedback-success-bg);
-        color: var(--feedback-success);
-    }
-
-    .participant-status.member {
-        background: var(--feedback-info-bg);
-        color: var(--feedback-info);
-    }
-
-    .participant-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .remove-participant-btn {
-        padding: 0.25rem 0.5rem;
-        font-size: 0.75rem;
-        border-radius: var(--radius-sm);
-        transition: all 0.2s ease;
-        min-width: 32px;
-        height: 32px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .remove-participant-btn:hover {
-        background-color: var(--feedback-error);
-        border-color: var(--feedback-error);
-        color: white;
-        transform: scale(1.05);
-    }
-
-    .remove-participant-btn:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-        transform: none;
-    }
-
-    /* Add Members Modal Styles */
-    .search-results-container {
-        max-height: 300px;
-        overflow-y: auto;
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        padding: 0.5rem;
-    }
-
-    .search-result-item {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem;
-        border-radius: var(--radius-md);
-        margin-bottom: 0.5rem;
-        background: var(--ui-surface);
-        border: 1px solid var(--ui-border);
-        transition: all 0.2s ease;
-        cursor: pointer;
-    }
-
-    .search-result-item:hover {
-        background: var(--ui-hover);
-        border-color: var(--primary-color);
-    }
-
-    .search-result-item.selected {
-        background: var(--primary-bg);
-        border-color: var(--primary-color);
-    }
-
-    .search-result-checkbox {
-        margin-right: 0.75rem;
-    }
-
-    .search-result-avatar {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        object-fit: cover;
-        border: 2px solid var(--ui-border);
-        margin-right: 0.75rem;
-        flex-shrink: 0;
-    }
-
-    .search-result-info {
-        flex-grow: 1;
-    }
-
-    .search-result-name {
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-    }
-
-    .search-result-details {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-
-    .selected-members-container {
-        max-height: 150px;
-        overflow-y: auto;
-        border: 1px solid var(--ui-border);
-        border-radius: var(--radius-md);
-        padding: 0.5rem;
-        background: var(--ui-surface);
-    }
-
-    .selected-member-tag {
-        display: inline-flex;
-        align-items: center;
-        background: var(--primary-color);
-        color: white;
-        padding: 0.25rem 0.5rem;
-        border-radius: var(--radius-sm);
-        margin: 0.25rem;
-        font-size: 0.875rem;
-    }
-
-    .selected-member-remove {
-        margin-left: 0.5rem;
-        cursor: pointer;
-        opacity: 0.8;
-    }
-
-    .selected-member-remove:hover {
-        opacity: 1;
-    }
-
-    /* ============================================
-       MOBILE RESPONSIVE STYLES
-       ============================================ */
-
-    /* Mobile Back Button */
-    .mobile-back-btn {
-        display: none;
-        position: sticky;
-        top: 0;
-        z-index: 100;
-        background: var(--primary-color);
-        color: var(--text-light);
-        padding: 0.75rem 1rem;
-        border: none;
-        width: 100%;
-        text-align: left;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: var(--shadow-sm);
-    }
-
-    .mobile-back-btn:hover {
-        background: #3d4f7a;
-    }
-
-    /* Desktop and Tablet - Reset mobile positioning */
-    @media (min-width: 768px) {
-        .col-lg-8 {
-            position: relative !important;
-            left: auto !important;
-            right: auto !important;
-            transition: none !important;
-        }
-    }
-
-    /* Tablet View - 768px to 991px */
-    @media (max-width: 991.98px) {
-        .messages-header {
-            padding: 1.25rem;
-            margin-bottom: 1rem;
-        }
-
-        .messages-header h2 {
-            font-size: 1.25rem;
-        }
-
-        .conversation-item {
-            padding: 1rem;
-        }
-
-        .avatar-sm {
-            width: 48px;
-            height: 48px;
-        }
-
-        .conversation-name {
-            font-size: 0.9rem;
-        }
-
-        .message-preview {
-            font-size: 0.8125rem;
-        }
-    }
-
-    /* Mobile View - 767px and below */
-    @media (max-width: 767.98px) {
-        /* Show back button on mobile */
-        .mobile-back-btn {
-            display: block;
-        }
-
-        /* Adjust body padding for bottom nav */
-        body {
-            padding-bottom: 60px;
-        }
-
-        .container-fluid {
-            padding: 0 !important;
-        }
-
-        /* Header adjustments */
-        .messages-header {
-            padding: 1rem !important;
-            margin-bottom: 0.5rem !important;
-            border-radius: 0 !important;
-        }
-
-        .messages-header h2 {
-            font-size: 0.8125rem !important;
-        }
-
-        /* Sidebar visible by default on mobile */
-        .col-lg-4 {
-            display: block !important;
-        }
-
-        /* Detail view hidden by default on mobile */
-        .col-lg-8 {
-            display: none !important;
-        }
-
-        /* When mobile-active class is added to body, show detail and hide sidebar */
-        body.mobile-conversation-active .col-lg-4 {
-            display: none !important;
-        }
-
-        body.mobile-conversation-active .col-lg-8 {
-            display: block !important;
-            position: fixed !important;
-            top: 0 !important;
-            left: 0 !important;
-            right: 0 !important;
-            bottom: 60px !important; /* Account for bottom nav */
-            z-index: 1030 !important;
-            background: var(--ui-background) !important;
-            overflow-y: auto !important;
-        }
-
-        /* Conversation items - more compact */
-        .conversation-item {
-            padding: 0.875rem !important;
-            border-bottom: 1px solid var(--ui-border) !important;
-        }
-
-        .avatar-sm {
-            width: 45px !important;
-            height: 45px !important;
-        }
-
-        .conversation-name {
-            font-size: 0.8125rem !important;
-            margin-bottom: 0.125rem !important;
-        }
-
-        .conversation-position {
-            font-size: 0.75rem !important;
-            margin-bottom: 0.25rem !important;
-        }
-
-        .message-preview {
-            font-size: 0.8125rem !important;
-            line-height: 1.3 !important;
-            display: -webkit-box !important;
-            -webkit-line-clamp: 2 !important;
-            -webkit-box-orient: vertical !important;
-            overflow: hidden !important;
-        }
-
-        .conversation-time {
-            font-size: 0.6875rem !important;
-        }
-
-        .unread-badge {
-            font-size: 0.625rem !important;
-            padding: 0.2rem 0.4rem !important;
-        }
-
-        /* Messages card adjustments */
-        .messages-card {
-            border-radius: 0 !important;
-            border-left: none !important;
-            border-right: none !important;
-            box-shadow: none !important;
-        }
-
-        /* Search and filter - more compact */
-        .p-3 {
-            padding: 0.75rem !important;
-        }
-
-        .input-group-text {
-            padding: 0.5rem 0.75rem !important;
-            font-size: 0.8125rem !important;
-        }
-
-        .form-control, .form-select {
-            padding: 0.5rem 0.75rem !important;
-            font-size: 0.8125rem !important;
-        }
-
-        /* Card header with "Your Conversations" */
-        .card-header h5 {
-            font-size: 0.8125rem !important;
-        }
-
-        /* Buttons */
-        .btn-primary, .btn-outline-primary {
-            padding: 0.625rem 1rem !important;
-            font-size: 0.8125rem !important;
-        }
-
-        .btn-sm {
-            padding: 0.5rem 0.75rem !important;
-            font-size: 0.75rem !important;
-        }
-
-        /* No conversations state */
-        .no-conversations {
-            padding: 2rem 1rem !important;
-        }
-
-        .no-conversations i {
-            font-size: 2rem !important;
-        }
-
-        .no-conversations h5 {
-            font-size: 0.8125rem !important;
-        }
-
-        .no-conversations p {
-            font-size: 0.75rem !important;
-        }
-
-        /* Hide the "View My Connections" button in empty state */
-        .no-conversations .btn {
-            display: none !important;
-        }
-
-        /* Detail view adjustments */
-        #conversation-detail {
-            min-height: calc(100vh - 60px) !important;
-            border-radius: 0 !important;
-        }
-
-        #conversation-detail h5 {
-            font-size: 0.8125rem !important;
-        }
-
-        #conversation-detail p {
-            font-size: 0.75rem !important;
-        }
-
-        /* Modal adjustments */
-        .modal-dialog {
-            margin: 0.5rem !important;
-        }
-
-        .modal-content {
-            border-radius: var(--radius-md) !important;
-        }
-
-        .modal-header {
-            padding: 1rem !important;
-        }
-
-        .modal-title {
-            font-size: 0.8125rem !important;
-        }
-
-        .modal-body {
-            padding: 1rem !important;
-        }
-
-        .search-results-container {
-            max-height: 250px !important;
-        }
-
-        .search-result-item {
-            padding: 0.625rem !important;
-        }
-
-        .search-result-avatar {
-            width: 36px !important;
-            height: 36px !important;
-            margin-right: 0.625rem !important;
-        }
-
-        .search-result-name {
-            font-size: 0.8125rem !important;
-        }
-    }
-
-    /* Small Mobile - 575px and below */
-    @media (max-width: 575.98px) {
-        .messages-header {
-            padding: 0.875rem !important;
-        }
-
-        .messages-header h2 {
-            font-size: 0.75rem !important;
-        }
-
-        .conversation-item {
-            padding: 0.75rem !important;
-        }
-
-        .avatar-sm {
-            width: 42px !important;
-            height: 42px !important;
-        }
-
-        .conversation-name {
-            font-size: 0.75rem !important;
-        }
-
-        .conversation-position {
-            font-size: 0.6875rem !important;
-        }
-
-        .message-preview {
-            font-size: 0.75rem !important;
-            -webkit-line-clamp: 1 !important;
-        }
-
-        .conversation-time {
-            font-size: 0.625rem !important;
-        }
-
-        .p-3 {
-            padding: 0.5rem !important;
-        }
-
-        .input-group {
-            margin-bottom: 0.5rem !important;
-        }
-
-        .form-control, .form-select {
-            padding: 0.5rem !important;
-            font-size: 0.75rem !important;
-        }
-
-        .input-group-text {
-            font-size: 0.75rem !important;
-        }
-
-        .card-header h5 {
-            font-size: 0.75rem !important;
-        }
-
-        .btn-primary, .btn-outline-primary {
-            padding: 0.5rem 0.875rem !important;
-            font-size: 0.75rem !important;
-        }
-
-        .btn-sm {
-            padding: 0.375rem 0.625rem !important;
-            font-size: 0.6875rem !important;
-        }
-
-        .mobile-back-btn {
-            padding: 0.625rem 0.875rem !important;
-            font-size: 0.75rem !important;
-        }
-
-        .no-conversations h5 {
-            font-size: 0.75rem !important;
-        }
-
-        .no-conversations p {
-            font-size: 0.6875rem !important;
-        }
-
-        .no-conversations i {
-            font-size: 1.75rem !important;
-        }
-
-        #conversation-detail h5 {
-            font-size: 0.75rem !important;
-        }
-
-        #conversation-detail p {
-            font-size: 0.6875rem !important;
-        }
-
-        .modal-title {
-            font-size: 0.75rem !important;
-        }
-
-        .search-result-name {
-            font-size: 0.75rem !important;
-        }
-    }
-
-    /* Extra Small Mobile - 375px and below */
-    @media (max-width: 375px) {
-        .messages-header {
-            padding: 0.75rem !important;
-        }
-
-        .messages-header h2 {
-            font-size: 0.6875rem !important;
-        }
-
-        .conversation-item {
-            padding: 0.625rem !important;
-        }
-
-        .avatar-sm {
-            width: 38px !important;
-            height: 38px !important;
-        }
-
-        .conversation-name {
-            font-size: 0.6875rem !important;
-        }
-
-        .conversation-position {
-            font-size: 0.625rem !important;
-        }
-
-        .message-preview {
-            font-size: 0.6875rem !important;
-        }
-
-        .conversation-time {
-            font-size: 0.5625rem !important;
-        }
-
-        .form-control, .form-select {
-            padding: 0.375rem 0.5rem !important;
-            font-size: 0.6875rem !important;
-        }
-
-        .input-group-text {
-            padding: 0.375rem 0.5rem !important;
-            font-size: 0.6875rem !important;
-        }
-
-        .card-header h5 {
-            font-size: 0.6875rem !important;
-        }
-
-        .btn-primary, .btn-outline-primary {
-            padding: 0.375rem 0.75rem !important;
-            font-size: 0.6875rem !important;
-        }
-
-        .btn-sm {
-            padding: 0.3rem 0.5rem !important;
-            font-size: 0.625rem !important;
-        }
-
-        .mobile-back-btn {
-            padding: 0.5rem 0.75rem !important;
-            font-size: 0.6875rem !important;
-        }
-
-        .no-conversations {
-            padding: 1.5rem 0.75rem !important;
-        }
-
-        .no-conversations h5 {
-            font-size: 0.6875rem !important;
-        }
-
-        .no-conversations p {
-            font-size: 0.625rem !important;
-        }
-
-        .no-conversations i {
-            font-size: 1.5rem !important;
-        }
-
-        #conversation-detail h5 {
-            font-size: 0.6875rem !important;
-        }
-
-        #conversation-detail p {
-            font-size: 0.625rem !important;
-        }
-
-        .modal-title {
-            font-size: 0.6875rem !important;
-        }
-
-        .search-result-name {
-            font-size: 0.6875rem !important;
-        }
-
-        .unread-badge {
-            font-size: 0.5625rem !important;
-            padding: 0.15rem 0.35rem !important;
-        }
-    }
-</style>
+<script>document.documentElement.classList.add("fe-page--connections-conversations-list-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/connections.css' %}">
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/community.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/connections.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/messaging.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/messaging-workspace.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
-<div class="container-fluid py-4">
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Connections & Messages' %}
+{% endif %}
+
+<div class="container-fluid py-4 {% if use_alumni_layout %}alumni-messaging-workspace{% endif %}" {% if use_alumni_layout %}data-messaging-workspace data-messaging-type="connections"{% endif %}>
+    {% if use_alumni_layout %}
+    <div class="messaging-mobile-appbar">
+        <a href="{% url 'core:home' %}" class="messaging-appbar-exit" aria-label="Back to alumni dashboard"><i class="fas fa-chevron-left" aria-hidden="true"></i><span>Alumni</span></a>
+        <strong><i class="fas fa-comments" aria-hidden="true"></i> Messages</strong>
+        <span class="messaging-appbar-spacer" aria-hidden="true"></span>
+    </div>
+    {% endif %}
     <!-- Header -->
     <div class="messages-header">
         <h2><i class="fas fa-comments me-2"></i>Your Messages</h2>
+        {% if use_alumni_layout %}<p class="messaging-header-subtitle">Stay connected with alumni and groups in one place.</p>{% endif %}
     </div>
 
     <!-- Main Content Area -->
-    <div class="row g-3">
+    <div class="row g-3 {% if use_alumni_layout %}messaging-grid{% endif %}">
         <!-- Conversations Sidebar -->
-        <div class="col-lg-4">
+        <div class="col-lg-4 {% if use_alumni_layout %}messaging-sidebar-pane{% endif %}">
             <div class="messages-card h-100">
                 <!-- Search and Filter -->
                 <div class="p-3 border-bottom">
                     <div class="mb-3">
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-search"></i></span>
-                            <input type="text" class="form-control" id="searchInput" placeholder="Search conversations...">
+                            <input type="text" class="form-control" id="searchInput" aria-label="Search conversations" placeholder="Search conversations...">
                         </div>
                     </div>
-                    <select class="form-select" id="sortSelect">
+                    <select class="form-select" id="sortSelect" aria-label="Sort conversations">
                         <option value="recent">Most Recent</option>
                         <option value="unread">Unread First</option>
                         <option value="alphabetical">Alphabetical</option>
@@ -1130,6 +59,17 @@
                 <div class="card-header bg-white border-bottom">
                     <div class="d-flex justify-content-between align-items-center p-3">
                         <h5 class="mb-0">Your Conversations</h5>
+                        {% if use_alumni_layout %}
+                        <div class="dropdown alumni-compose-action">
+                            <button type="button" class="btn btn-primary btn-sm dropdown-toggle" id="composeMessageMenu" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Create a message or group conversation">
+                                <i class="fas fa-plus me-1" aria-hidden="true"></i>New Message
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="composeMessageMenu">
+                                <li><button type="button" class="dropdown-item" onclick="toggleNewMessageInterface()"><i class="fas fa-user me-2"></i>Direct Message</button></li>
+                                <li><button type="button" class="dropdown-item" onclick="toggleGroupChatInterface()"><i class="fas fa-users me-2"></i>Create Group</button></li>
+                            </ul>
+                        </div>
+                        {% else %}
                         <div class="btn-group">
                             <button type="button" class="btn btn-primary btn-sm" id="toggleNewMessage" onclick="console.log('Button clicked!'); toggleNewMessageInterface();">
                                 <i class="fas fa-plus me-1"></i>New Message
@@ -1146,6 +86,7 @@
                                 </a></li>
                             </ul>
                         </div>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -1157,7 +98,7 @@
                 function toggleNewMessageInterface() {
                     console.log('=== toggleNewMessageInterface called ===');
                     const newMessageInterface = document.getElementById('newMessageInterface');
-                    const toggleBtn = document.getElementById('toggleNewMessage');
+                    const toggleBtn = document.getElementById('toggleNewMessage') || document.getElementById('composeMessageMenu');
 
                     console.log('Elements found:', {
                         newMessageInterface: !!newMessageInterface,
@@ -1174,14 +115,14 @@
                         // Show interface
                         console.log('Showing interface');
                         newMessageInterface.style.display = 'block';
-                        if (toggleBtn) {
+                        if (toggleBtn && toggleBtn.id === 'toggleNewMessage') {
                             toggleBtn.innerHTML = '<i class="fas fa-minus me-1"></i>Hide';
                         }
                     } else {
                         // Hide interface and reset state
                         console.log('Hiding interface');
                         newMessageInterface.style.display = 'none';
-                        if (toggleBtn) {
+                        if (toggleBtn && toggleBtn.id === 'toggleNewMessage') {
                             toggleBtn.innerHTML = '<i class="fas fa-plus me-1"></i>New Message';
                         }
                     }
@@ -1426,11 +367,13 @@
                         },
                         body: `content=${encodeURIComponent(messageContent)}`
                     })
-                    .then(response => {
-                        if (!response.ok) {
+                    .then(async response => {
+                        const data = await response.json();
+                        // A former connection is already informed by the chat's inline notice.
+                        if (!response.ok && data.code !== 'conversation_read_only') {
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
-                        return response.json();
+                        return data;
                     })
                     .then(data => {
                         if (data.success) {
@@ -1441,7 +384,7 @@
 
                             // Update the conversations list and load conversation detail
                             updateConversationsAndLoadDetail(selectedUserId);
-                        } else {
+                        } else if (!data.silent && data.code !== 'conversation_read_only') {
                             alert(data.error || 'Failed to send message. Please try again.');
                         }
                     })
@@ -1467,7 +410,7 @@
                     if (conversationDetail) {
                         // Show loading state in conversation detail
                         conversationDetail.innerHTML = `
-                            <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 500px;">
+                            <div class="card-body d-flex align-items-center justify-content-center messaging-welcome-state" style="min-height: 500px;">
                                 <div class="text-center text-muted">
                                     <div class="spinner-border text-primary mb-3" role="status">
                                         <span class="visually-hidden">Loading conversation...</span>
@@ -2224,6 +1167,8 @@
                 // Global message sending functions
                 function sendMessage(event, userId) {
                     event.preventDefault();
+                    // The archive is read-only; don't trigger obsolete send handlers.
+                    if (document.querySelector('#conversation-detail [data-conversation-read-only="true"]')) return;
                     console.log('Sending direct message to user:', userId);
 
                     const form = event.target;
@@ -2373,8 +1318,8 @@
                                     initializeAllAvatars();
                                 }, 100);
                             }
-                        } else {
-                            alert(data.error || 'Failed to send message');
+                        } else if (!data.silent && data.code !== 'conversation_read_only') {
+                            alert(data.error || data.message || 'Failed to send message');
                         }
                     })
                     .catch(error => {
@@ -5973,10 +4918,12 @@
                 <div class="card-body p-0" id="conversationsList" style="max-height: 600px; overflow-y: auto;">
                     {% if conversations %}
                         {% for conv in conversations %}
-                        <div class="conversation-item {% if conv.unread_count > 0 %}unread{% endif %}"
+                        <div class="conversation-item {% if conv.unread_count > 0 %}unread{% endif %}" {% if use_alumni_layout %}role="button" tabindex="0" aria-label="Open conversation"{% endif %}
                              {% if conv.is_group_chat %}
+                                 data-mobile-url="{% url 'connections:group_chat_detail' conv.conversation.id %}"
                                  onclick="loadGroupConversation({{ conv.conversation.id }}); setActiveConversation(this);"
                              {% else %}
+                                 data-mobile-url="{% url 'connections:direct_messages' conv.other_user.id %}"
                                  hx-get="{% url 'connections:direct_messages' conv.other_user.id %}"
                                  hx-target="#conversation-detail"
                                  hx-swap="innerHTML"
@@ -6100,9 +5047,11 @@
                             <i class="fas fa-comments fa-3x mb-3"></i>
                             <h5>No conversations yet</h5>
                             <p class="mb-3">Start messaging your connections to see conversations here.</p>
-                            <a href="{% url 'connections:my_connections' %}" class="btn btn-primary">
+                            {% if not use_alumni_layout %}
+<a href="{% url 'connections:my_connections' %}" class="btn btn-primary">
                                 <i class="fas fa-users me-1"></i>View My Connections
                             </a>
+{% endif %}
                         </div>
                     {% endif %}
                 </div>
@@ -6110,7 +5059,10 @@
         </div>
         
         <!-- Conversation Detail Area -->
-        <div class="col-lg-8">
+        <div class="col-lg-8 {% if use_alumni_layout %}messaging-detail-pane{% endif %}">
+            {% if use_alumni_layout %}
+            <button type="button" class="messaging-mobile-back" aria-label="Back to conversations"><i class="fas fa-arrow-left" aria-hidden="true"></i><span>Conversations</span></button>
+            {% endif %}
             <div class="messages-card h-100" id="conversation-detail">
                 <div class="card-body d-flex align-items-center justify-content-center" style="min-height: 500px;">
                     <div class="text-center text-muted">
@@ -6356,26 +5308,21 @@ function initSearchAndSort() {
     }
 }
 
-// Toast notifications now use ToastUtils API" class="toast align-items-center text-white bg-${type} border-0" role="alert" aria-live="assertive" aria-atomic="true">
-            <div class="d-flex">
-                <div class="toast-body">
-                    ${message}
-                </div>
-                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-            </div>
-        </div>
-    `;
-
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-
-    // Show toast
-    const toastElement = document.getElementById(toastId);
-    // Replaced with ToastUtils API
-
-    // Remove toast element after it's hidden
-    toastElement.addEventListener('hidden.bs.toast', function() {
-        toastElement.remove();
-    });
+// Keep legacy calls in one place; the shared toast utility owns notifications.
+function showToast(message, type = 'info') {
+    // A former connection already sees the inline read-only explanation.
+    if (document.querySelector('#conversation-detail [data-conversation-read-only="true"]') &&
+        String(message || '').includes('You can only message users you are connected with')) return;
+    const methods = {
+        success: 'showSuccess', danger: 'showError', error: 'showError',
+        warning: 'showWarning', info: 'showInfo', primary: 'showInfo'
+    };
+    const method = methods[type] || 'showInfo';
+    if (window.ToastUtils && typeof window.ToastUtils[method] === 'function') {
+        window.ToastUtils[method](String(message));
+    } else {
+        console.info(String(message));
+    }
 }
 
 // Helper function to update group avatars to fallback (when photo is removed)
@@ -6613,4 +5560,7 @@ window.updateGroupAvatarsToFallback = updateGroupAvatarsToFallback;
     </div>
 </div>
 
+{% if use_alumni_layout %}
+<script src="{% static 'js/alumni/messaging-workspace.js' %}"></script>
+{% endif %}
 {% endblock %}

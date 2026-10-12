@@ -1,543 +1,24 @@
-{% extends 'base.html' %}
+{% extends alumni_page_base|default:'base.html' %}
 {% load static %}
 
 {% block title %}Messages with {{ other_user.get_full_name|default:other_user.username }} - Alumni System{% endblock %}
 
 {% block extra_css %}
-<style>
-:root {
-    --primary-color: #2563eb;
-    --secondary-color: #64748b;
-    --accent-color: #3b82f6;
-    --text-primary: #1e293b;
-    --text-secondary: #475569;
-    --text-muted: #94a3b8;
-    --text-light: #ffffff;
-    --ui-background: #f8fafc;
-    --ui-surface: #ffffff;
-    --ui-border: #e2e8f0;
-    --feedback-success: #10b981;
-    --feedback-warning: #f59e0b;
-    --feedback-error: #ef4444;
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
-    --radius-sm: 0.375rem;
-    --radius-md: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-full: 9999px;
-}
-
-body {
-    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    background: var(--ui-background);
-    color: var(--text-primary);
-}
-
-.chat-container {
-    height: 80vh;
-    display: flex;
-    flex-direction: column;
-    background: var(--ui-surface);
-    border-radius: var(--radius-lg);
-    box-shadow: var(--shadow-lg);
-    border: 1px solid var(--ui-border);
-}
-
-.chat-header {
-    background: var(--ui-surface);
-    border-bottom: 1px solid var(--ui-border);
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-    padding: 1.25rem 1.5rem !important;
-}
-
-.chat-title {
-    margin: 0;
-    font-size: 0.9375rem;
-    font-weight: 600;
-    color: var(--text-primary);
-}
-
-.chat-subtitle {
-    margin: 0;
-    font-size: 0.75rem;
-    color: var(--text-muted);
-}
-
-.messages-container {
-    flex: 1;
-    overflow-y: auto;
-    padding: 2.5rem 2rem;
-    background: linear-gradient(to bottom, var(--ui-background), rgba(248, 250, 252, 0.8));
-    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-}
-
-.message {
-    margin-bottom: 3rem;
-    display: flex;
-    align-items: flex-start;
-}
-
-.message.own {
-    flex-direction: row-reverse;
-}
-
-.message-content {
-    max-width: 65%;
-    padding: 1.5rem 2rem;
-    border-radius: var(--radius-lg);
-    position: relative;
-    box-shadow: var(--shadow-sm);
-    font-weight: 400;
-    line-height: 1.7;
-    font-size: 0.8125rem;
-}
-
-.message.own .message-content {
-    background: var(--primary-color);
-    color: var(--text-light);
-    border-bottom-right-radius: var(--radius-sm);
-}
-
-.message:not(.own) .message-content {
-    background: var(--ui-surface);
-    color: var(--text-primary);
-    border: 1px solid var(--ui-border);
-    border-bottom-left-radius: var(--radius-sm);
-}
-
-.message-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: var(--radius-full);
-    margin: 0 1.5rem;
-    flex-shrink: 0;
-    object-fit: cover;
-    border: 2px solid var(--ui-border);
-}
-
-.message-time {
-    font-size: 0.625rem;
-    color: var(--text-muted);
-    margin-top: 1rem;
-    font-weight: 500;
-}
-
-.message.own .message-time {
-    text-align: right;
-}
-
-.message-form {
-    border-top: 1px solid var(--ui-border);
-    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
-    padding: 2.25rem;
-    background: var(--ui-surface);
-    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
-}
-
-.form-control {
-    background: var(--ui-background);
-    border: 1px solid var(--ui-border);
-    color: var(--text-primary);
-    border-radius: var(--radius-md);
-    padding: 0.75rem 1rem;
-    font-weight: 400;
-    font-size: 0.8125rem;
-}
-
-.form-control:focus {
-    border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
-    background: var(--ui-surface);
-}
-
-.btn-primary {
-    background: var(--primary-color);
-    border: none;
-    color: var(--text-light);
-    padding: 0.75rem 1.25rem;
-    border-radius: var(--radius-md);
-    font-weight: 600;
-    font-size: 0.8125rem;
-    transition: all 0.2s ease;
-    min-height: 44px;
-}
-
-.btn-primary:hover {
-    background: var(--accent-color);
-    transform: translateY(-1px);
-    box-shadow: var(--shadow-md);
-}
-
-/* Send button specific styling */
-.message-form .btn-primary {
-    padding: 0.75rem 1rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 44px;
-}
-
-.attachment-preview {
-    max-width: 200px;
-    max-height: 200px;
-    border-radius: var(--radius-md);
-    margin-top: 0.5rem;
-}
-
-.file-attachment {
-    display: inline-flex;
-    align-items: center;
-    padding: 0.75rem;
-    background: rgba(37, 99, 235, 0.1);
-    border-radius: var(--radius-md);
-    margin-top: 0.5rem;
-    text-decoration: none;
-    color: var(--primary-color);
-    font-weight: 500;
-    transition: all 0.2s ease;
-}
-
-.file-attachment:hover {
-    background: rgba(37, 99, 235, 0.2);
-    color: var(--primary-color);
-    transform: translateY(-1px);
-}
-
-.typing-indicator {
-    display: none;
-    padding: 1rem 1.25rem;
-    font-style: italic;
-    color: var(--text-muted);
-    font-weight: 500;
-    font-size: 0.75rem;
-}
-
-/* Input group improvements */
-.input-group {
-    gap: 0.5rem;
-}
-
-.input-group .form-control {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-}
-
-.input-group-text {
-    background: var(--ui-background);
-    border: 1px solid var(--ui-border);
-    border-left: none;
-    color: var(--text-secondary);
-    padding: 0.75rem 0.875rem;
-    transition: all 0.2s ease;
-    font-size: 0.8125rem;
-}
-
-.input-group-text:hover {
-    background: var(--ui-surface);
-    color: var(--primary-color);
-}
-
-/* Better spacing for message content */
-.message-content > div {
-    margin-bottom: 0.25rem;
-}
-
-.message-content .attachment-preview,
-.message-content .file-attachment {
-    margin-top: 0.75rem;
-}
-
-/* Header button styling */
-.chat-header .btn {
-    padding: 0.5rem 0.75rem;
-    font-size: 0.8125rem;
-    min-height: 36px;
-    min-width: 36px;
-}
-
-.chat-header .btn-outline-secondary {
-    border-width: 1px;
-    font-weight: 500;
-}
-
-.dropdown-toggle::after {
-    font-size: 0.75rem;
-}
-
-/* Ensure proper touch targets on mobile */
-@media (max-width: 768px) {
-    body {
-        font-size: 0.8125rem !important;
-    }
-
-    .chat-header .btn {
-        min-height: 44px;
-        min-width: 44px;
-        padding: 0.5rem 0.75rem !important;
-        font-size: 0.75rem !important;
-    }
-}
-
-.online-status {
-    width: 14px;
-    height: 14px;
-    background: var(--feedback-success);
-    border-radius: var(--radius-full);
-    border: 2px solid var(--ui-surface);
-    position: absolute;
-    bottom: 0;
-    right: 0;
-}
-
-/* Responsive Design Improvements */
-@media (max-width: 768px) {
-    .chat-container {
-        height: 85vh;
-    }
-
-    .messages-container {
-        padding: 1.25rem 0.875rem !important;
-    }
-
-    .message {
-        margin-bottom: 1.5rem !important;
-    }
-
-    .message-content {
-        max-width: 75%;
-        padding: 0.875rem 1rem !important;
-        font-size: 0.75rem !important;
-        line-height: 1.4 !important;
-    }
-
-    .message-avatar {
-        width: 32px !important;
-        height: 32px !important;
-        margin: 0 0.75rem !important;
-    }
-
-    .message-time {
-        margin-top: 0.5rem !important;
-        font-size: 0.625rem !important;
-    }
-
-    .chat-header {
-        padding: 0.75rem 0.875rem !important;
-    }
-
-    .chat-title {
-        font-size: 0.875rem !important;
-    }
-
-    .chat-subtitle {
-        font-size: 0.6875rem !important;
-    }
-
-    .message-form {
-        padding: 1.25rem 1rem !important;
-    }
-
-    .form-control {
-        font-size: 0.75rem !important;
-        padding: 0.5rem 0.75rem !important;
-    }
-
-    .btn-primary {
-        font-size: 0.75rem !important;
-        padding: 0.5rem 0.75rem !important;
-    }
-
-    .input-group-text {
-        font-size: 0.75rem !important;
-        padding: 0.5rem 0.625rem !important;
-    }
-
-    label {
-        font-size: 0.8125rem !important;
-    }
-
-    /* Hide empty state button on mobile */
-    .empty-state .btn,
-    .empty-state a.btn {
-        display: none !important;
-    }
-
-    .empty-state p {
-        font-size: 0.75rem !important;
-        margin-bottom: 0 !important;
-    }
-
-    .empty-state i {
-        font-size: 2rem !important;
-    }
-}
-
-@media (max-width: 480px) {
-    body {
-        font-size: 0.75rem !important;
-    }
-
-    .messages-container {
-        padding: 1rem 0.625rem !important;
-    }
-
-    .message {
-        margin-bottom: 1.25rem !important;
-    }
-
-    .message-content {
-        max-width: 85%;
-        padding: 0.75rem 0.875rem !important;
-        line-height: 1.3 !important;
-        font-size: 0.6875rem !important;
-    }
-
-    .message-avatar {
-        width: 28px !important;
-        height: 28px !important;
-        margin: 0 0.625rem !important;
-    }
-
-    .message-time {
-        margin-top: 0.375rem !important;
-        font-size: 0.5625rem !important;
-    }
-
-    .message-form {
-        padding: 1rem 0.875rem !important;
-    }
-
-    .form-control {
-        padding: 0.4rem 0.625rem !important;
-        font-size: 0.6875rem !important;
-    }
-
-    .chat-header {
-        padding: 0.625rem 0.75rem !important;
-    }
-
-    .chat-title {
-        font-size: 0.8125rem !important;
-    }
-
-    .chat-subtitle {
-        font-size: 0.625rem !important;
-    }
-
-    .btn-primary {
-        padding: 0.4rem 0.625rem !important;
-        font-size: 0.6875rem !important;
-    }
-
-    .input-group-text {
-        padding: 0.4rem 0.5rem !important;
-        font-size: 0.6875rem !important;
-    }
-
-    .chat-header .btn {
-        padding: 0.4rem 0.625rem !important;
-        font-size: 0.6875rem !important;
-        min-height: 36px !important;
-        min-width: 36px !important;
-    }
-
-    label {
-        font-size: 0.75rem !important;
-    }
-
-    .empty-state p {
-        font-size: 0.6875rem !important;
-    }
-
-    .empty-state i {
-        font-size: 1.75rem !important;
-    }
-}
-
-@media (max-width: 375px) {
-    body {
-        font-size: 0.6875rem !important;
-    }
-
-    .messages-container {
-        padding: 0.875rem 0.5rem !important;
-    }
-
-    .message {
-        margin-bottom: 1rem !important;
-    }
-
-    .message-content {
-        max-width: 90%;
-        padding: 0.625rem 0.75rem !important;
-        font-size: 0.625rem !important;
-    }
-
-    .message-avatar {
-        width: 26px !important;
-        height: 26px !important;
-        margin: 0 0.5rem !important;
-    }
-
-    .message-time {
-        font-size: 0.5rem !important;
-    }
-
-    .chat-header {
-        padding: 0.5rem 0.625rem !important;
-    }
-
-    .chat-title {
-        font-size: 0.75rem !important;
-    }
-
-    .chat-subtitle {
-        font-size: 0.5625rem !important;
-    }
-
-    .message-form {
-        padding: 0.875rem 0.75rem !important;
-    }
-
-    .form-control {
-        padding: 0.375rem 0.5rem !important;
-        font-size: 0.625rem !important;
-    }
-
-    .btn-primary {
-        padding: 0.375rem 0.5rem !important;
-        font-size: 0.625rem !important;
-    }
-
-    .input-group-text {
-        padding: 0.375rem 0.4rem !important;
-        font-size: 0.625rem !important;
-    }
-
-    .chat-header .btn {
-        padding: 0.375rem 0.5rem !important;
-        font-size: 0.625rem !important;
-        min-height: 32px !important;
-        min-width: 32px !important;
-    }
-
-    label {
-        font-size: 0.6875rem !important;
-    }
-
-    .empty-state p {
-        font-size: 0.625rem !important;
-    }
-
-    .empty-state i {
-        font-size: 1.5rem !important;
-    }
-}
-</style>
+<script>document.documentElement.classList.add("fe-page--connections-direct-messages-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/connections.css' %}">
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/community.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/connections.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/messaging.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Connections & Messages' %}
+{% endif %}
+
 <div class="container mt-4">
     <div class="row">
         <div class="col-md-12">
@@ -649,6 +130,24 @@ body {
                     </div>
                 </div>
                 
+                {% if not can_send %}
+                <div class="conversation-read-only-notice" role="status" data-conversation-read-only="true">
+        <span class="conversation-read-only-notice__icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+        <div class="conversation-read-only-notice__body">
+            <strong>Conversation is read-only</strong>
+            <p>You are no longer connected. Your previous messages are still available, but you must reconnect to send new ones.</p>
+            {% if other_user.alumni %}
+            <a class="conversation-read-only-notice__link" href="{% url 'alumni_directory:alumni_detail' other_user.alumni.pk %}">
+                <i class="fas fa-user-plus" aria-hidden="true"></i> View {{ other_user.first_name|default:other_user.username }}'s alumni profile <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            {% else %}
+            <a class="conversation-read-only-notice__link" href="{% url 'alumni_directory:alumni_list' %}">
+                <i class="fas fa-users" aria-hidden="true"></i> Open alumni directory <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+                {% else %}
                 <!-- Message Form -->
                 <div class="message-form">
                     <form method="post" enctype="multipart/form-data" id="messageForm">
@@ -690,6 +189,7 @@ body {
                         </div>
                     </form>
                 </div>
+                {% endif %}
             </div>
         </div>
     </div>
@@ -712,6 +212,9 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initial scroll to bottom
     scrollToBottom();
     
+    // A removed connection can open this page in read-only mode.
+    if (!messageForm || !messageInput || !attachmentInput) return;
+
     // Auto-resize textarea
     messageInput.addEventListener('input', function() {
         this.style.height = 'auto';

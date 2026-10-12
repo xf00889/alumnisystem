@@ -43,6 +43,8 @@
                 </button>
             {% elif member.status == 'APPROVED' %}
                 {% if member.role != 'ADMIN' %}
+                    {% if member.role == 'MEMBER' %}<button type="button" class="btn btn-outline-primary btn-sm member-action" data-action="make_moderator" data-membership-id="{{ member.id }}" title="Make Moderator">Moderator</button>{% endif %}
+                    {% if member.role == 'MODERATOR' %}<button type="button" class="btn btn-outline-secondary btn-sm member-action" data-action="demote" data-membership-id="{{ member.id }}" title="Return to Member">Demote</button>{% endif %}
                     <button type="button" 
                             class="btn btn-primary btn-sm member-action"
                             data-action="promote"
@@ -57,6 +59,8 @@
                             title="Remove">
                         <i class="fas fa-user-minus"></i>
                     </button>
+                {% else %}
+                    {% if member.user_id != user.pk %}<button type="button" class="btn btn-outline-secondary btn-sm member-action" data-action="demote" data-membership-id="{{ member.id }}" title="Return Admin to Member">Demote admin</button>{% endif %}
                 {% endif %}
             {% elif member.status == 'REJECTED' or member.status == 'BLOCKED' %}
                 <button type="button" 

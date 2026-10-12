@@ -1,13 +1,22 @@
-{% extends 'base.html' %}
+{% extends alumni_page_base|default:'base.html' %}
 {% load static %}
 
 {% block title %}Skill Matching - NORSU Alumni System{% endblock %}
 
 {% block extra_css %}
 <link rel="stylesheet" href="{% static 'css/skill_matching.css' %}">
+
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/profile.css' %}">
+{% endif %}
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Profile & career' %}
+{% endif %}
+
 <div class="skill-matching-container">
     <div class="container py-4">
         <div class="row mb-4">
@@ -266,9 +275,6 @@
 
 {% block extra_js %}
 <script src="{% static 'js/skill_matching.js' %}"></script>
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        initSkillMatching();
-    });
-</script>
+<script>document.documentElement.classList.add("fe-page--accounts-skill-matching-html");</script>
+<script src="{% static 'js/modules/accounts.js' %}"></script>
 {% endblock %} 

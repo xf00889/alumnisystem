@@ -1,54 +1,84 @@
+"""Transactional donation notifications for all normal ORM save paths.
+
+Views, staff verification, bulk verification, and Django Admin all call
+Donation.save(), so the post_save receiver covers every supported change.
+"""
+import logging
+from django.db import transaction
 from django.db.models.signals import post_save, pre_save
 from django.dispatch import receiver
-from django.utils import timezone
-from .models import Donation, DonorRecognition
-from .email_utils import send_donation_confirmation_email, send_donation_status_update_email, send_donation_receipt_email
-import logging
+
+from .models import Donation
+from .email_utils import (
+    send_donation_confirmation_email,
+    send_donation_status_update_email,
+    send_donation_receipt_email,
+)
 
 logger = logging.getLogger(__name__)
 
-@receiver(post_save, sender=Donation)
-def send_donation_emails(sender, instance, created, **kwargs):
-    """
-    Send appropriate emails when donation is created or status changes
+
+def deliver_status_notification(donation_pk, previous_status, expected_status):
+    """Notify only when the database still has the committed new status.
+
+    Email delivery failures are logged and never roll back an administrator's
+    already-committed verification. A failed provider send can be retried
+    operationally; this function does not falsely claim successful delivery.
     """
     try:
-        if created:
-            # Don't send email when donation is first created - wait for payment proof submission
-            # Email will be sent when status changes to pending_verification
-            logger.info(f"Donation {instance.pk} created with status {instance.status} - email will be sent after payment proof submission")
-        elif hasattr(instance, '_old_status') and instance._old_status != instance.status:
-            # Send emails when status changes
-            logger.info(f"Donation {instance.pk} status changed from {instance._old_status} to {instance.status}")
-            
-            # Send confirmation email when payment proof is submitted (status changes to pending_verification)
-            if instance.status == 'pending_verification' and instance._old_status == 'pending_payment':
-                logger.info(f"Sending confirmation email for donation {instance.pk} after payment proof submission")
-                send_donation_confirmation_email(instance)
-            
-            # Send status update email for other status changes
-            elif instance.status in ['completed', 'failed', 'disputed']:
-                logger.info(f"Sending status update email for donation {instance.pk}")
-                send_donation_status_update_email(instance, instance._old_status)
-                
-                # Send receipt email for completed donations
-                if instance.status == 'completed' and not instance.receipt_sent:
-                    logger.info(f"Sending receipt email for completed donation {instance.pk}")
-                    send_donation_receipt_email(instance)
-                    
-    except Exception as e:
-        logger.error(f"Error in donation email signals for donation {instance.pk}: {str(e)}")
+        donation = Donation.objects.select_related('campaign', 'donor').get(pk=donation_pk)
+        if donation.status != expected_status:
+            logger.info('Skipping stale donation email: id=%s expected=%s current=%s',
+                        donation_pk, expected_status, donation.status)
+            return
+        if not (donation.donor.email or donation.donor_email if donation.donor_id else donation.donor_email):
+            logger.warning('Donor has no email for donation %s (status=%s); notification not sent',
+                           donation_pk, expected_status)
+            return
+        if previous_status == 'pending_payment' and expected_status == 'pending_verification':
+            if not donation.payment_proof or not donation.reference_number:
+                logger.error('Donation %s reached verification without saved proof/reference; no acknowledgement sent', donation_pk)
+                return
+            send_donation_confirmation_email(donation)
+        else:
+            send_donation_status_update_email(donation, previous_status)
+        if expected_status == 'completed' and not donation.receipt_sent:
+            send_donation_receipt_email(donation)
+    except Donation.DoesNotExist:
+        logger.warning('Donation %s removed before email delivery', donation_pk)
+    except Exception:
+        logger.exception('Donation email delivery failed for donation %s', donation_pk)
 
-@receiver(pre_save, sender=Donation)
+
+@receiver(post_save, sender=Donation, dispatch_uid='donations_status_notifications')
+def send_donation_emails(sender, instance, created, **kwargs):
+    """Queue status-change notifications after the surrounding transaction commits.
+
+    No email is sent for a newly created unpaid intent or an unchanged status.
+    """
+    if created:
+        logger.info('Donation %s created with status %s; no payment confirmed',
+                    instance.pk, instance.status)
+        return
+    old_status = getattr(instance, '_old_status', None)
+    if not old_status or old_status == instance.status:
+        return
+
+    donation_pk = instance.pk
+    new_status = instance.status
+    logger.info('Donation %s status changed %s -> %s (email queued after commit)',
+                donation_pk, old_status, new_status)
+    transaction.on_commit(
+        lambda pk=donation_pk, old=old_status, new=new_status:
+        deliver_status_notification(pk, old, new)
+    )
+
+
+@receiver(pre_save, sender=Donation, dispatch_uid='donations_capture_prior_status')
 def store_old_status(sender, instance, **kwargs):
-    """
-    Store the old status before saving to detect changes
-    """
+    """Detect actual status transitions, including transitions made in Django Admin."""
     if instance.pk:
-        try:
-            old_instance = Donation.objects.get(pk=instance.pk)
-            instance._old_status = old_instance.status
-        except Donation.DoesNotExist:
-            instance._old_status = None
+        instance._old_status = (Donation.objects.filter(pk=instance.pk)
+                                .values_list('status', flat=True).first())
     else:
         instance._old_status = None

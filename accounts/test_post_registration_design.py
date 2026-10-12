@@ -51,3 +51,17 @@ class PostRegistrationDesignTest(TestCase):
         )
         self.assertIn("@media (max-width: 600px)", css)
         self.assertIn("grid-template-columns: 1fr;", css)
+
+
+class SignupFeedbackDesignTest(TestCase):
+    def test_existing_account_error_uses_an_actionable_modal(self):
+        template = (
+            BASE_DIR / "templates" / "account" / "login.html"
+        ).read_text(encoding="utf-8")
+
+        self.assertIn("'user with this email already exists' in message_text", template)
+        self.assertIn("title: 'Account Already Exists'", template)
+        self.assertIn("confirmButtonText: 'Sign In'", template)
+        self.assertIn("denyButtonText: 'Reset Password'", template)
+        self.assertIn("window.location.href = \"{% url 'account_reset_password' %}\"", template)
+        self.assertIn("ToastUtils.showError('{{ message|escapejs }}')", template)

@@ -37,7 +37,7 @@ class UnverifiedUserLoginRedirectTest(TestCase):
         # Check that user was redirected to verification page
         self.assertRedirects(
             response,
-            f'/accounts/verify-email/?email={self.email}',
+            '/accounts/verify-email/',
             status_code=302,
             target_status_code=200
         )
@@ -124,8 +124,8 @@ class UnverifiedUserLoginRedirectTest(TestCase):
             'password': self.password,
         }, follow=True)
         
-        # Check that email parameter is in URL
-        self.assertIn(f'email={self.email}', response.request['QUERY_STRING'])
+        # No account email is exposed in the URL.
+        self.assertNotIn('email=', response.request['QUERY_STRING'])
         
         # Check that email is in context
         self.assertEqual(response.context.get('user_email'), self.email)

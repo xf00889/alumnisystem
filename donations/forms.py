@@ -1,4 +1,6 @@
 from django import forms
+from decimal import Decimal
+from PIL import Image, UnidentifiedImageError
 from django.utils.translation import gettext_lazy as _
 from .models import Donation, Campaign, CampaignType, GCashConfig
 from core.recaptcha_fields import DatabaseReCaptchaField
@@ -51,10 +53,18 @@ class DonationForm(forms.ModelForm):
             self.fields['donor_name'].required = False
             self.fields['donor_email'].required = False
         else:
-            # If user is not authenticated, make donor_name and donor_email not required by default
-            # We'll handle validation in the clean method based on anonymous status
+            # Guest emails are required for payment recovery and status updates.
+            # Model and HTML validation must agree; Django's EmailField also
+            # validates malformed addresses before saving a payment intent.
             self.fields['donor_name'].required = False
-            self.fields['donor_email'].required = False
+            self.fields['donor_email'].required = True
+            self.fields['donor_email'].error_messages['required'] = _(
+                'Email is required for donation status updates and payment recovery.'
+            )
+            self.fields['donor_email'].widget.attrs.update({
+                'required': 'required', 'autocomplete': 'email',
+                'aria-required': 'true',
+            })
         
         # Add reCAPTCHA field if enabled in database
         if is_recaptcha_enabled():
@@ -74,8 +84,8 @@ class DonationForm(forms.ModelForm):
         amount = cleaned_data.get('amount')
 
         # Validate amount is positive
-        if amount and amount <= 0:
-            self.add_error('amount', _('Amount must be greater than zero.'))
+        if amount is not None and (amount < Decimal('1.00') or amount > Decimal('99999999.99')):
+            self.add_error('amount', _('Enter an amount between ₱1.00 and ₱99,999,999.99.'))
 
         # If anonymous user, ensure donor_name and donor_email are provided (unless anonymous)
         if not self.user or not self.user.is_authenticated:
@@ -83,13 +93,12 @@ class DonationForm(forms.ModelForm):
             donor_name = cleaned_data.get('donor_name')
             donor_email = cleaned_data.get('donor_email')
 
-            # Only require name and email if not anonymous
-            if not is_anonymous:
-                if not donor_name:
-                    self.add_error('donor_name', _('Please provide your name.'))
-
-                if not donor_email:
-                    self.add_error('donor_email', _('Please provide your email.'))
+            # Anonymity only hides public identity; email remains private and
+            # mandatory for secure recovery of guest payments.
+            if not donor_email and not self.has_error('donor_email'):
+                self.add_error('donor_email', _('Email is required for donation status notifications.'))
+            if not is_anonymous and not donor_name:
+                self.add_error('donor_name', _('Please provide your name.'))
 
         return cleaned_data
 
@@ -279,12 +288,9 @@ class CampaignForm(forms.ModelForm):
 class PaymentProofForm(forms.ModelForm):
     """Form for uploading payment proof"""
     
-    # Add donor_email as a hidden field for unauthenticated users
-    donor_email = forms.EmailField(required=False, widget=forms.HiddenInput())
-
     class Meta:
         model = Donation
-        fields = ['payment_proof', 'reference_number', 'donor_email']
+        fields = ['payment_proof', 'reference_number']
         widgets = {
             'payment_proof': forms.ClearableFileInput(attrs={
                 'class': 'form-control',
@@ -299,9 +305,6 @@ class PaymentProofForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        # Set the donor_email value from the instance
-        if self.instance and self.instance.donor_email:
-            self.fields['donor_email'].initial = self.instance.donor_email
         self.fields['payment_proof'].required = True
         self.fields['reference_number'].required = True
 
@@ -321,9 +324,16 @@ class PaymentProofForm(forms.ModelForm):
             if proof.size > 5 * 1024 * 1024:
                 raise forms.ValidationError(_('File size must be less than 5MB.'))
 
-            # Check file type
-            if not proof.content_type.startswith('image/'):
-                raise forms.ValidationError(_('Please upload an image file.'))
+            # Verify actual image bytes, not browser-supplied MIME type.
+            try:
+                image = Image.open(proof)
+                if image.format not in ('JPEG', 'PNG', 'WEBP'):
+                    raise forms.ValidationError(_('Only JPG, PNG or WebP images are supported.'))
+                image.verify()
+            except (UnidentifiedImageError, OSError, ValueError, Image.DecompressionBombError):
+                raise forms.ValidationError(_('The uploaded file is not a valid image.'))
+            finally:
+                proof.seek(0)
 
         return proof
 
@@ -333,7 +343,10 @@ class PaymentProofForm(forms.ModelForm):
         
         # Require reference number for authenticated users
         if not reference_number:
-            self.add_error('reference_number', _('Reference number is required. Please enter your GCash transaction reference number.'))
+            self.add_error('reference_number', _('Enter the reference number on your GCash receipt.'))
+        elif Donation.objects.filter(reference_number__iexact=reference_number).exclude(
+                pk=self.instance.pk).exclude(status='failed').exists():
+            self.add_error('reference_number', _('This GCash reference is already on another donation. Please contact support if this is an error.'))
         
         return cleaned_data
 

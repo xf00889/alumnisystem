@@ -137,6 +137,25 @@
         </div>
     </div>
 
+    <!-- Existing history remains readable after disconnect; sending requires an accepted connection. -->
+    {% if not can_send %}
+    <div class="conversation-read-only-notice" role="status" data-conversation-read-only="true">
+        <span class="conversation-read-only-notice__icon" aria-hidden="true"><i class="fas fa-lock"></i></span>
+        <div class="conversation-read-only-notice__body">
+            <strong>Conversation is read-only</strong>
+            <p>You are no longer connected. Your previous messages are still available, but you must reconnect to send new ones.</p>
+            {% if other_user.alumni %}
+            <a class="conversation-read-only-notice__link" href="{% url 'alumni_directory:alumni_detail' other_user.alumni.pk %}">
+                <i class="fas fa-user-plus" aria-hidden="true"></i> View {{ other_user.first_name|default:other_user.username }}'s alumni profile <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            {% else %}
+            <a class="conversation-read-only-notice__link" href="{% url 'alumni_directory:alumni_list' %}">
+                <i class="fas fa-users" aria-hidden="true"></i> Open alumni directory <i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+            {% endif %}
+        </div>
+    </div>
+    {% else %}
     <!-- Message Form -->
     <div class="message-form">
         <form id="messageForm" onsubmit="sendMessage(event, {{ other_user.id }})">
@@ -182,6 +201,7 @@
             </div>
         </form>
     </div>
+    {% endif %}
 </div>
 
 <style>
@@ -676,7 +696,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // Handle file attachment preview
-document.getElementById('attachmentInput').addEventListener('change', function(e) {
+document.getElementById('attachmentInput')?.addEventListener('change', function(e) {
     const file = e.target.files[0];
     if (file) {
         const previewContainer = document.getElementById('attachmentPreview');
@@ -743,6 +763,7 @@ function sendMessage(event, userId) {
         return; // Don't send if both are empty
     }
     
+    if (document.querySelector('#conversation-detail [data-conversation-read-only="true"]')) return;
     fetch(`/connections/send-message/${userId}/`, {
         method: 'POST',
         body: formData,

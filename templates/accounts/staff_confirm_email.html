@@ -1,0 +1,30 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Confirm Email - NORSU Administration{% endblock %}
+{% block extra_css %}{{ block.super }}<link rel="stylesheet" href="{% static 'css/admin/account-profile.css' %}">{% endblock %}
+{% block content %}
+<div class="container-fluid staff-account-page">
+  <header class="admin-page-header staff-account-heading">
+    <div>
+      <p class="admin-page-header__eyebrow">Administration / Account Security</p>
+      <h1 class="admin-page-header__title">Confirm Email Change</h1>
+      <p class="admin-page-header__subtitle">Confirm the new inbox before changing your account email.</p>
+    </div>
+  </header>
+  <section class="staff-account-card staff-account-card--form">
+    {% if error %}
+      <div class="alert alert-danger" role="alert">{{ error }}</div>
+      <div class="staff-account-actions"><a href="{% url 'accounts:change_staff_email' %}" class="btn btn-primary">Start a new request</a></div>
+    {% else %}
+      <h2>Confirm new email address</h2>
+      <p>New address: <strong>{{ new_email }}</strong></p>
+      <p>Your old email will remain active until you select Confirm below.</p>
+      <form method="post" class="staff-account-actions">
+        {% csrf_token %}
+        <button class="btn btn-primary" type="submit">Confirm email address</button>
+        <a href="{% url 'accounts:staff_profile' %}" class="btn btn-outline-secondary">Cancel</a>
+      </form>
+    {% endif %}
+  </section>
+</div>
+{% endblock %}

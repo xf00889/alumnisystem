@@ -24,6 +24,20 @@ class EventAdmin(admin.ModelAdmin):
     filter_horizontal = ('notified_groups',)
     readonly_fields = ('created_at', 'updated_at', 'rsvp_summary_detailed')
     inlines = [EventRSVPInline]
+
+    def get_form(self, request, obj=None, **kwargs):
+        # Match staff and public forms: group selection requests an admin review;
+        # it does not automatically post to the selected group.
+        form = super().get_form(request, obj, **kwargs)
+        field = form.base_fields.get('notified_groups')
+        if field:
+            field.label = 'Request sharing in Alumni Groups'
+            field.help_text = (
+                'For published events, approved group administrators receive an in-app '
+                'review request. They may share, pin, or dismiss it; no group post is automatic.'
+            )
+            field.queryset = field.queryset.filter(is_active=True)
+        return form
     
     fieldsets = (
         (None, {

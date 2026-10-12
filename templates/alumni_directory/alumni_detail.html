@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends alumni_page_base|default:'base.html' %}
 {% load static %}
 {% load string_filters %}
 
@@ -6,993 +6,29 @@
 
 {% block extra_css %}
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<style>
-    /* System Color Scheme */
-    :root {
-        /* Primary Colors */
-        --primary-color: #2b3c6b;
-        --primary-light: #3c4f8a;
-        --primary-dark: #1a2544;
-        
-        /* Secondary Colors */
-        --secondary-color: #4a5568;
-        
-        /* UI Colors */
-        --ui-background: #f7fafc;
-        --ui-surface: #ffffff;
-        --ui-border: #e2e8f0;
-        --ui-hover: #edf2f7;
-        
-        /* Text Colors */
-        --text-primary: #2d3748;
-        --text-secondary: #718096;
-        --text-muted: #a0aec0;
-        --text-light: #ffffff;
-        
-        /* Feedback Colors */
-        --feedback-success: #48bb78;
-        --feedback-warning: #ed8936;
-        --feedback-error: #e53e3e;
-        --feedback-info: #4299e1;
-        
-        /* Shadows */
-        --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.1);
-        --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.1);
-        --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.1);
-        
-        /* Border Radius */
-        --radius-sm: 0.25rem;
-        --radius-md: 0.375rem;
-        --radius-lg: 0.5rem;
-        --radius-xl: 0.75rem;
-    }
-    
-    body {
-        background-color: var(--ui-background);
-        font-family: 'Poppins', sans-serif;
-        color: var(--text-primary);
-    }
-    
-    .dashboard-card {
-        background: var(--ui-surface);
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-        padding: 2rem;
-        margin-bottom: 1.5rem;
-        border: 1px solid var(--ui-border);
-        font-family: 'Poppins', sans-serif;
-        transition: all 0.3s ease;
-    }
-    
-    .dashboard-card:hover {
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
-    }
-    
-    .dashboard-header {
-        background: var(--primary-color);
-        color: var(--text-light);
-        padding: 1.75rem;
-        border-radius: var(--radius-md);
-        margin-bottom: 1.25rem;
-        box-shadow: var(--shadow-sm);
-        font-size: 0.875rem;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .dashboard-header h1 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 0.25rem;
-    }
-    
-    .dashboard-header p {
-        opacity: 0.9;
-        font-size: 0.875rem;
-    }
-    
-    .btn-primary {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
-        border-radius: var(--radius-md);
-        transition: all 0.3s ease;
-    }
-    
-    .btn-primary:hover {
-        background-color: var(--primary-light);
-        border-color: var(--primary-light);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .btn-outline-primary {
-        color: var(--primary-color);
-        border-color: var(--primary-color);
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500;
-        padding: 0.75rem 1.5rem;
-        border-radius: var(--radius-md);
-        transition: all 0.3s ease;
-    }
-    
-    .btn-outline-primary:hover {
-        background-color: var(--primary-color);
-        border-color: var(--primary-color);
-        color: var(--text-light);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-md);
-    }
-    
-    .profile-header {
-        background: var(--ui-surface);
-        border-radius: var(--radius-lg);
-        box-shadow: var(--shadow-md);
-        padding: 2rem;
-        margin-bottom: 2rem;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .profile-avatar {
-        width: 150px;
-        height: 150px;
-        object-fit: cover;
-        border-radius: 50%;
-        border: 4px solid var(--ui-border);
-        box-shadow: var(--shadow-md);
-        transition: transform 0.3s ease;
-    }
-    
-    .profile-avatar:hover {
-        transform: scale(1.05);
-    }
-    
-    .profile-name {
-        font-size: 2.5rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .profile-headline {
-        font-size: 1.25rem;
-        color: var(--text-secondary);
-        margin-bottom: 1rem;
-        font-weight: 400;
-    }
-    
-    .profile-meta {
-        display: flex;
-        gap: 1rem;
-        flex-wrap: wrap;
-        margin-top: 1rem;
-    }
-    
-    .profile-meta-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        background: var(--ui-hover);
-        padding: 0.5rem 1rem;
-        border-radius: var(--radius-lg);
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .profile-meta-item i {
-        color: var(--primary-color);
-    }
-    
-    .mentor-badge {
-        position: absolute;
-        bottom: 10px;
-        right: 10px;
-        background-color: var(--primary-color);
-        color: var(--text-light);
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 16px;
-        box-shadow: var(--shadow-md);
-        border: 3px solid var(--ui-surface);
-    }
-    
-    .section-title {
-        font-size: 1.5rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 1.5rem;
-        padding-bottom: 0.75rem;
-        border-bottom: 2px solid var(--ui-border);
-        position: relative;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .section-title::after {
-        content: '';
-        position: absolute;
-        bottom: -2px;
-        left: 0;
-        width: 60px;
-        height: 2px;
-        background: var(--primary-color);
-    }
-    
-    .university-card {
-        border-top: 4px solid var(--primary-color);
-    }
-    
-    .university-logo {
-        max-width: 120px;
-        height: auto;
-        border-radius: var(--radius-md);
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .university-name {
-        color: var(--text-primary);
-        font-weight: 600;
-        margin: 1rem 0;
-        font-size: 1.25rem;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .university-details {
-        background: var(--ui-hover);
-        border-radius: var(--radius-md);
-        padding: 1rem;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .university-detail-item {
-        display: flex;
-        align-items: center;
-        padding: 0.75rem 0;
-        border-bottom: 1px solid var(--ui-border);
-    }
-    
-    .university-detail-item:last-child {
-        border-bottom: none;
-    }
-    
-    .university-detail-item i {
-        color: var(--primary-color);
-        width: 20px;
-        margin-right: 1rem;
-    }
-    
-    .detail-label {
-        font-weight: 500;
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin-bottom: 0.25rem;
-    }
-    
-    .detail-value {
-        color: var(--text-primary);
-        font-weight: 500;
-    }
-    
-    .contact-btn {
-        display: flex;
-        align-items: center;
-        padding: 1rem;
-        border-radius: var(--radius-md);
-        text-decoration: none;
-        transition: all 0.3s ease;
-        color: var(--text-primary);
-        border: 1px solid var(--ui-border);
-        background: var(--ui-surface);
-        margin-bottom: 0.75rem;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .contact-btn:hover {
-        background: var(--ui-hover);
-        transform: translateY(-1px);
-        box-shadow: var(--shadow-sm);
-        color: var(--text-primary);
-        text-decoration: none;
-    }
-    
-    .contact-btn i {
-        font-size: 1.25rem;
-        width: 24px;
-        margin-right: 1rem;
-    }
-    
-    .mentor-btn i {
-        color: var(--primary-color);
-    }
-    
-    .email-btn i {
-        color: var(--feedback-info);
-    }
-    
-    .linkedin-btn i {
-        color: #0077b5;
-    }
-    
-    .timeline-container {
-        position: relative;
-        padding-left: 2rem;
-    }
-    
-    .timeline-container::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        bottom: 0;
-        left: 0.75rem;
-        width: 2px;
-        background: var(--ui-border);
-    }
-    
-    .timeline-item {
-        position: relative;
-        padding-bottom: 2rem;
-    }
-    
-    .timeline-marker {
-        position: absolute;
-        top: 0.25rem;
-        left: -2rem;
-        width: 1rem;
-        height: 1rem;
-        border-radius: 50%;
-        background: var(--ui-border);
-        border: 2px solid var(--ui-surface);
-        box-shadow: var(--shadow-sm);
-    }
-    
-    .timeline-item.current-position .timeline-marker {
-        background: var(--feedback-success);
-    }
-    
-    .timeline-title {
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
-        margin-bottom: 0.25rem;
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .timeline-subtitle {
-        font-size: 1.1rem;
-        color: var(--primary-color);
-        margin-bottom: 0.5rem;
-        font-weight: 500;
-    }
-    
-    .timeline-info {
-        display: flex;
-        gap: 1rem;
-        margin-bottom: 0.5rem;
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-    }
-    
-    .badge {
-        font-family: 'Poppins', sans-serif;
-        font-weight: 500;
-        padding: 0.5rem 1rem;
-        border-radius: var(--radius-lg);
-    }
-    
-    .badge.bg-primary-subtle {
-        background: rgba(6, 57, 112, 0.1);
-        color: var(--primary-color);
-        margin: 0.25rem;
-    }
-    
-    .badge.bg-secondary-subtle {
-        background: var(--ui-hover);
-        color: var(--text-secondary);
-        margin: 0.25rem;
-    }
-    
-    .document-stats {
-        background: var(--ui-hover);
-        border-radius: var(--radius-md);
-        padding: 1.5rem;
-        margin-bottom: 1.5rem;
-        border: 1px solid var(--ui-border);
-    }
-    
-    .document-stat-value {
-        font-size: 2rem;
-        font-weight: 700;
-        color: var(--primary-color);
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .document-stat-label {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-    
-    .document-item {
-        padding: 1rem;
-        border-bottom: 1px solid var(--ui-border);
-        transition: background-color 0.3s ease;
-    }
-    
-    .document-item:hover {
-        background: var(--ui-hover);
-    }
-    
-    .document-item:last-child {
-        border-bottom: none;
-    }
-    
-    .document-title {
-        font-weight: 600;
-        color: var(--text-primary);
-        font-family: 'Poppins', sans-serif;
-    }
-    
-    .document-meta {
-        font-size: 0.875rem;
-        color: var(--text-secondary);
-        margin-top: 0.25rem;
-    }
-    
-    .document-badge.verified {
-        background: rgba(72, 187, 120, 0.1);
-        color: var(--feedback-success);
-        border: 1px solid rgba(72, 187, 120, 0.2);
-    }
-    
-    .document-badge.pending {
-        background: rgba(237, 137, 54, 0.1);
-        color: var(--feedback-warning);
-        border: 1px solid rgba(237, 137, 54, 0.2);
-    }
-    
-    /* Tablet breakpoint */
-    @media (max-width: 991px) {
-        .dashboard-header {
-            padding: 1.25rem !important;
-            font-size: 0.8125rem !important;
-        }
-        
-        .dashboard-header h1 {
-            font-size: 1.25rem !important;
-        }
-        
-        .dashboard-header p {
-            font-size: 0.8125rem !important;
-        }
-        
-        .dashboard-card {
-            padding: 1.5rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .section-title {
-            font-size: 1.25rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .profile-name {
-            font-size: 2rem !important;
-        }
-        
-        .profile-headline {
-            font-size: 1.1rem !important;
-        }
-        
-        .timeline-title {
-            font-size: 1.1rem !important;
-        }
-        
-        .timeline-subtitle {
-            font-size: 1rem !important;
-        }
-    }
-    
-    /* Mobile breakpoint */
-    @media (max-width: 768px) {
-        .dashboard-header {
-            padding: 1rem !important;
-            margin-bottom: 1rem !important;
-            font-size: 0.75rem !important;
-        }
-        
-        .dashboard-header h1 {
-            font-size: 1.125rem !important;
-            margin-bottom: 0.25rem !important;
-        }
-        
-        .dashboard-header p {
-            font-size: 0.75rem !important;
-            margin-bottom: 0 !important;
-        }
-        
-        .dashboard-header .btn {
-            font-size: 0.75rem !important;
-            padding: 0.5rem 1rem !important;
-        }
-        
-        .dashboard-card {
-            padding: 1.25rem !important;
-            margin-bottom: 0.875rem !important;
-        }
-        
-        .profile-header {
-            padding: 1.25rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .profile-avatar {
-            width: 100px !important;
-            height: 100px !important;
-            border-width: 3px !important;
-        }
-        
-        .mentor-badge {
-            width: 30px !important;
-            height: 30px !important;
-            font-size: 14px !important;
-            bottom: 5px !important;
-            right: 5px !important;
-        }
-        
-        .profile-name {
-            font-size: 1.5rem !important;
-            text-align: center;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        .profile-headline {
-            font-size: 0.9375rem !important;
-            text-align: center;
-            margin-bottom: 0.75rem !important;
-        }
-        
-        .profile-meta {
-            justify-content: center;
-            gap: 0.5rem !important;
-        }
-        
-        .profile-meta-item {
-            font-size: 0.75rem !important;
-            padding: 0.375rem 0.75rem !important;
-        }
-        
-        .section-title {
-            font-size: 1.125rem !important;
-            margin-bottom: 0.875rem !important;
-            padding-bottom: 0.5rem !important;
-        }
-        
-        .section-title i {
-            font-size: 1rem !important;
-        }
-        
-        /* Personal & Professional Info */
-        .dashboard-card p {
-            font-size: 0.8125rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        .dashboard-card strong {
-            font-size: 0.8125rem !important;
-        }
-        
-        /* Timeline/Experience */
-        .timeline-container {
-            padding-left: 1.5rem !important;
-        }
-        
-        .timeline-container::before {
-            left: 0.5rem !important;
-        }
-        
-        .timeline-item {
-            padding-bottom: 1.25rem !important;
-        }
-        
-        .timeline-marker {
-            left: -1.5rem !important;
-            width: 0.75rem !important;
-            height: 0.75rem !important;
-        }
-        
-        .timeline-title {
-            font-size: 1rem !important;
-            margin-bottom: 0.25rem !important;
-        }
-        
-        .timeline-subtitle {
-            font-size: 0.875rem !important;
-            margin-bottom: 0.375rem !important;
-        }
-        
-        .timeline-info {
-            font-size: 0.75rem !important;
-            gap: 0.5rem !important;
-            margin-bottom: 0.375rem !important;
-        }
-        
-        .timeline-body .card,
-        .timeline-achievements .card {
-            font-size: 0.8125rem !important;
-        }
-        
-        .timeline-body .card-body,
-        .timeline-achievements .card-body {
-            padding: 0.75rem !important;
-        }
-        
-        .timeline-achievements h6 {
-            font-size: 0.875rem !important;
-        }
-        
-        /* Skills & Interests */
-        .dashboard-card h5 {
-            font-size: 0.9375rem !important;
-            margin-bottom: 0.5rem !important;
-        }
-        
-        .badge {
-            font-size: 0.6875rem !important;
-            padding: 0.375rem 0.75rem !important;
-            margin: 0.1875rem !important;
-        }
-        
-        /* Empty states */
-        .text-muted {
-            font-size: 0.75rem !important;
-        }
-        
-        /* University Card */
-        .university-logo {
-            max-width: 90px !important;
-        }
-        
-        .university-name {
-            font-size: 1rem !important;
-            margin: 0.75rem 0 !important;
-        }
-        
-        .university-details {
-            padding: 0.75rem !important;
-        }
-        
-        .university-detail-item {
-            padding: 0.5rem 0 !important;
-        }
-        
-        .university-detail-item i {
-            font-size: 0.875rem !important;
-            margin-right: 0.75rem !important;
-        }
-        
-        .detail-label {
-            font-size: 0.75rem !important;
-        }
-        
-        .detail-value {
-            font-size: 0.8125rem !important;
-        }
-        
-        /* Contact Buttons */
-        .contact-btn {
-            padding: 0.75rem !important;
-            margin-bottom: 0.5rem !important;
-            font-size: 0.8125rem !important;
-        }
-        
-        .contact-btn i {
-            font-size: 1rem !important;
-            margin-right: 0.75rem !important;
-        }
-        
-        .contact-btn small {
-            font-size: 0.6875rem !important;
-        }
-        
-        /* Documents */
-        .document-stats {
-            padding: 1rem !important;
-            margin-bottom: 1rem !important;
-        }
-        
-        .document-stat-value {
-            font-size: 1.5rem !important;
-        }
-        
-        .document-stat-label {
-            font-size: 0.75rem !important;
-        }
-        
-        .document-item {
-            padding: 0.75rem !important;
-        }
-        
-        .document-title {
-            font-size: 0.8125rem !important;
-        }
-        
-        .document-meta {
-            font-size: 0.6875rem !important;
-        }
-        
-        .document-badge {
-            font-size: 0.6875rem !important;
-            padding: 0.25rem 0.5rem !important;
-        }
-        
-        .document-item .btn {
-            font-size: 0.6875rem !important;
-            padding: 0.25rem 0.5rem !important;
-        }
-        
-        /* Buttons */
-        .btn-primary,
-        .btn-outline-primary {
-            font-size: 0.8125rem !important;
-            padding: 0.5rem 1rem !important;
-        }
-    }
-    
-    /* Small mobile breakpoint */
-    @media (max-width: 576px) {
-        .dashboard-header {
-            padding: 0.875rem !important;
-            font-size: 0.6875rem !important;
-        }
-        
-        .dashboard-header h1 {
-            font-size: 1rem !important;
-        }
-        
-        .dashboard-header p {
-            font-size: 0.6875rem !important;
-        }
-        
-        .dashboard-header .btn {
-            font-size: 0.6875rem !important;
-            padding: 0.375rem 0.75rem !important;
-        }
-        
-        .dashboard-card {
-            padding: 1rem !important;
-            margin-bottom: 0.75rem !important;
-        }
-        
-        .profile-header {
-            padding: 1rem !important;
-        }
-        
-        .profile-avatar {
-            width: 80px !important;
-            height: 80px !important;
-        }
-        
-        .mentor-badge {
-            width: 26px !important;
-            height: 26px !important;
-            font-size: 12px !important;
-        }
-        
-        .profile-name {
-            font-size: 1.25rem !important;
-        }
-        
-        .profile-headline {
-            font-size: 0.875rem !important;
-        }
-        
-        .profile-meta-item {
-            font-size: 0.6875rem !important;
-            padding: 0.3125rem 0.625rem !important;
-        }
-        
-        .section-title {
-            font-size: 1rem !important;
-            margin-bottom: 0.75rem !important;
-        }
-        
-        .dashboard-card p,
-        .dashboard-card strong {
-            font-size: 0.75rem !important;
-        }
-        
-        .timeline-title {
-            font-size: 0.9375rem !important;
-        }
-        
-        .timeline-subtitle {
-            font-size: 0.8125rem !important;
-        }
-        
-        .timeline-info {
-            font-size: 0.6875rem !important;
-        }
-        
-        .timeline-body .card,
-        .timeline-achievements .card {
-            font-size: 0.75rem !important;
-        }
-        
-        .timeline-achievements h6 {
-            font-size: 0.8125rem !important;
-        }
-        
-        .dashboard-card h5 {
-            font-size: 0.875rem !important;
-        }
-        
-        .badge {
-            font-size: 0.625rem !important;
-            padding: 0.3125rem 0.625rem !important;
-        }
-        
-        .university-logo {
-            max-width: 70px !important;
-        }
-        
-        .university-name {
-            font-size: 0.9375rem !important;
-        }
-        
-        .university-detail-item i {
-            font-size: 0.75rem !important;
-        }
-        
-        .detail-label {
-            font-size: 0.6875rem !important;
-        }
-        
-        .detail-value {
-            font-size: 0.75rem !important;
-        }
-        
-        .contact-btn {
-            padding: 0.625rem !important;
-            font-size: 0.75rem !important;
-        }
-        
-        .contact-btn i {
-            font-size: 0.875rem !important;
-        }
-        
-        .contact-btn small {
-            font-size: 0.625rem !important;
-        }
-        
-        .document-stat-value {
-            font-size: 1.25rem !important;
-        }
-        
-        .document-stat-label {
-            font-size: 0.6875rem !important;
-        }
-        
-        .document-title {
-            font-size: 0.75rem !important;
-        }
-        
-        .document-meta {
-            font-size: 0.625rem !important;
-        }
-        
-        .document-item .btn {
-            font-size: 0.625rem !important;
-            padding: 0.1875rem 0.375rem !important;
-        }
-    }
-    
-    /* Extra small mobile breakpoint */
-    @media (max-width: 375px) {
-        .dashboard-header {
-            padding: 0.75rem !important;
-        }
-        
-        .dashboard-header h1 {
-            font-size: 0.9375rem !important;
-        }
-        
-        .dashboard-header p {
-            font-size: 0.625rem !important;
-        }
-        
-        .dashboard-card {
-            padding: 0.875rem !important;
-        }
-        
-        .profile-avatar {
-            width: 70px !important;
-            height: 70px !important;
-        }
-        
-        .mentor-badge {
-            width: 24px !important;
-            height: 24px !important;
-            font-size: 11px !important;
-        }
-        
-        .profile-name {
-            font-size: 1.125rem !important;
-        }
-        
-        .profile-headline {
-            font-size: 0.8125rem !important;
-        }
-        
-        .profile-meta-item {
-            font-size: 0.625rem !important;
-            padding: 0.25rem 0.5rem !important;
-        }
-        
-        .section-title {
-            font-size: 0.9375rem !important;
-        }
-        
-        .dashboard-card p,
-        .dashboard-card strong {
-            font-size: 0.6875rem !important;
-        }
-        
-        .timeline-title {
-            font-size: 0.875rem !important;
-        }
-        
-        .timeline-subtitle {
-            font-size: 0.75rem !important;
-        }
-        
-        .timeline-info {
-            font-size: 0.625rem !important;
-        }
-        
-        .badge {
-            font-size: 0.5625rem !important;
-            padding: 0.25rem 0.5rem !important;
-        }
-        
-        .university-logo {
-            max-width: 60px !important;
-        }
-        
-        .university-name {
-            font-size: 0.875rem !important;
-        }
-        
-        .detail-label,
-        .detail-value {
-            font-size: 0.625rem !important;
-        }
-        
-        .contact-btn {
-            font-size: 0.6875rem !important;
-        }
-        
-        .document-stat-value {
-            font-size: 1.125rem !important;
-        }
-    }
-</style>
+<script>document.documentElement.classList.add("fe-page--alumni-directory-alumni-detail-html");</script>
+<link rel="stylesheet" href="{% static 'css/modules/alumni-directory.css' %}">
+
+{% if use_alumni_layout %}
+<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/directory.css' %}">
+{% endif %}
+<link rel="stylesheet" href="{% static 'css/alumni/alumni-detail-refresh.css' %}">
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}
+{% include 'alumni/components/breadcrumbs.html' with area='Alumni directory' %}
+{% endif %}
+
 <div class="container-fluid">
     <!-- Dashboard Header -->
-    <div class="dashboard-header">
+    <div class="dashboard-header{% if not use_alumni_layout %} admin-page-header{% endif %}">
+        {% if not use_alumni_layout %}<p class="admin-page-header__eyebrow">ADMINISTRATION / ALUMNI MANAGEMENT</p>{% endif %}
         <div class="container">
             <div class="row align-items-center">
                 <div class="col-md-8 text-center text-md-start">
-                    <h1><i class="fas fa-user-graduate me-3"></i>Alumni Profile</h1>
+                    <h1 class="admin-page-header__title"><i class="fas fa-user-graduate me-3"></i>Alumni Profile</h1>
                     <p>{% if can_view_private_profile %}Detailed information about {{ alumni.full_name }}{% else %}Alumni profile{% endif %}</p>
                 </div>
                 <div class="col-md-4 text-center text-md-end">
@@ -1004,62 +40,60 @@
         </div>
     </div>
 
-    <!-- Profile Header Card -->
-    <div class="dashboard-card profile-header">
-        <div class="row align-items-center">
-            <div class="col-md-3 text-center text-md-start mb-3 mb-md-0">
-                <div class="position-relative d-inline-block">
-                    {% if alumni.user.profile.avatar %}
-                        <img src="{{ alumni.user.profile.avatar.url }}" alt="{{ alumni.full_name }}" class="profile-avatar">
-                    {% else %}
-                        <img src="{% static 'images/default-avatar.png' %}" alt="{{ alumni.full_name }}" class="profile-avatar">
-                    {% endif %}
-                    
-                    {% if can_view_private_profile and alumni.is_mentor %}
-                    <div class="mentor-badge" data-bs-toggle="tooltip" title="Mentor">
-                        <i class="fas fa-chalkboard-teacher"></i>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
-            
-            <div class="col-md-9">
-                <h1 class="profile-name text-truncate">{{ alumni.full_name }}</h1>
-                {% if can_view_private_profile and alumni.job_title %}
-                    <p class="profile-headline">{{ alumni.job_title }}{% if alumni.current_company %} at {{ alumni.current_company }}{% endif %}</p>
-                {% endif %}
-                
-                <div class="profile-meta">
-                    {% if can_view_private_profile and alumni.user.profile.address or can_view_private_profile and alumni.user.profile.city or can_view_private_profile and alumni.user.profile.state %}
-                    <div class="profile-meta-item">
-                        <i class="fas fa-map-marker-alt"></i>
-                        <span>{{ alumni.user.profile.address }}, {{ alumni.user.profile.city }}, {{ alumni.user.profile.state }}, {{ alumni.user.profile.country.name }}</span>
-                    </div>
-                    {% endif %}
-                    
-                    {% if can_view_private_profile and alumni.email %}
-                    <div class="profile-meta-item">
-                        <i class="fas fa-envelope"></i>
-                        <span>{{ alumni.email }}</span>
-                    </div>
-                    {% endif %}
-                    
-                    {% if can_view_private_profile and alumni.graduation_year %}
-                    <div class="profile-meta-item">
-                        <i class="fas fa-graduation-cap"></i>
-                        <span>Class of {{ alumni.graduation_year }}</span>
-                    </div>
-                    {% endif %}
-                </div>
-            </div>
+    <!-- Alumni profile introduction: private information is intentionally permission-gated. -->
+    <section class="dashboard-card profile-header alumni-detail-intro" aria-labelledby="alumni-profile-name">
+        <div class="alumni-detail-intro__avatar">
+            {% if alumni.user.profile.avatar %}
+                <img src="{{ alumni.user.profile.avatar.url }}" alt="Profile photo of {{ alumni.full_name }}" class="profile-avatar">
+            {% else %}
+                <img src="{% static 'images/default-avatar.png' %}" alt="Default profile avatar" class="profile-avatar">
+            {% endif %}
         </div>
-    </div>
+        <div class="alumni-detail-intro__body">
+            <p class="alumni-detail-intro__eyebrow"><i class="fas fa-graduation-cap" aria-hidden="true"></i> NORSU Alumni Network</p>
+            <h2 class="profile-name" id="alumni-profile-name">{{ alumni.full_name }}</h2>
+            {% if can_view_private_profile %}
+                {% if alumni.job_title %}
+                    <p class="profile-headline">{{ alumni.job_title }}{% if alumni.current_company %} at {{ alumni.current_company }}{% endif %}</p>
+                {% elif alumni.course %}
+                    <p class="profile-headline">{{ alumni.course }} alumnus</p>
+                {% else %}
+                    <p class="profile-headline">NORSU graduate</p>
+                {% endif %}
+                <div class="alumni-detail-intro__facts">
+                    {% if alumni.graduation_year %}<span><i class="fas fa-calendar-alt" aria-hidden="true"></i> Class of {{ alumni.graduation_year }}</span>{% endif %}
+                    {% if alumni.course %}<span><i class="fas fa-book" aria-hidden="true"></i> {{ alumni.course }}</span>{% endif %}
+                    {% if alumni.campus %}<span><i class="fas fa-university" aria-hidden="true"></i> {{ alumni.campus_display }}</span>{% endif %}
+                    {% if alumni.is_verified %}<span class="alumni-detail-intro__verified"><i class="fas fa-check-circle" aria-hidden="true"></i> Verified alumnus</span>{% endif %}
+                </div>
+                {% if alumni.bio %}<p class="alumni-detail-intro__summary">{{ alumni.bio|truncatechars:260 }}</p>{% endif %}
+                {% if is_owner %}
+                    <a href="{% url 'accounts:profile_update' %}" class="alumni-detail-intro__edit"><i class="fas fa-pen" aria-hidden="true"></i> Update your profile</a>
+                {% endif %}
+            {% else %}
+                <p class="profile-headline">A member of the NORSU alumni community</p>
+                <p class="alumni-detail-intro__summary">Reconnect with a fellow alumnus through a connection request. Personal, academic and career details are private.</p>
+                {% if alumni.is_verified %}<span class="alumni-detail-intro__verified"><i class="fas fa-check-circle" aria-hidden="true"></i> Verified alumnus</span>{% endif %}
+            {% endif %}
+        </div>
+    </section>
 
     <!-- Main content -->
-    <div class="row">
-        <!-- Left column -->
+    <div class="row alumni-detail-layout">
+        <!-- Left column: rich details for owner/staff, privacy-aware guidance for other alumni. -->
         {% if can_view_private_profile %}
-        <div class="col-lg-8">
+        <div class="col-lg-8 alumni-detail-main">
+            <section class="dashboard-card alumni-detail-about" aria-labelledby="profile-about-title">
+                <div class="alumni-detail-section-head">
+                    <h3 class="section-title" id="profile-about-title"><i class="fas fa-address-card me-2" aria-hidden="true"></i>About</h3>
+                    {% if is_owner %}<a href="{% url 'accounts:profile_update' %}" class="alumni-detail-edit-link">Edit profile</a>{% endif %}
+                </div>
+                {% if alumni.bio %}
+                    <div class="alumni-detail-about__text">{{ alumni.bio|linebreaks }}</div>
+                {% else %}
+                    <p class="alumni-detail-empty">{% if is_owner %}Tell your fellow alumni about your background and interests.{% else %}This alumnus hasn't added an introduction yet.{% endif %}</p>
+                {% endif %}
+            </section>
             <!-- Personal Information -->
             <div class="dashboard-card">
                 <h3 class="section-title"><i class="fas fa-user me-2"></i>Personal Information</h3>
@@ -1196,8 +230,8 @@
                     <div class="mb-3">
                         <h5>Skills</h5>
                         <div>
-                            {% for skill in alumni.skills.split %}
-                            <span class="badge bg-primary-subtle text-primary p-2">{{ skill }}</span>
+                            {% for skill in alumni.skills|split:',' %}
+                            <span class="badge bg-primary-subtle text-primary p-2">{{ skill|strip }}</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -1207,8 +241,8 @@
                     <div>
                         <h5>Interests</h5>
                         <div>
-                            {% for interest in alumni.interests.split %}
-                            <span class="badge bg-secondary-subtle text-secondary p-2">{{ interest }}</span>
+                            {% for interest in alumni.interests|split:',' %}
+                            <span class="badge bg-secondary-subtle text-secondary p-2">{{ interest|strip }}</span>
                             {% endfor %}
                         </div>
                     </div>
@@ -1223,20 +257,11 @@
             <!-- Additional Information -->
             <div class="dashboard-card">
                 <h3 class="section-title"><i class="fas fa-info-circle me-2"></i>Additional Information</h3>
-                {% if alumni.bio or alumni.achievements %}
-                    {% if alumni.bio %}
-                    <div class="mb-4">
-                        <h5>Bio</h5>
-                        <div>{{ alumni.bio|linebreaks }}</div>
-                    </div>
-                    {% endif %}
-                    
-                    {% if alumni.achievements %}
+                {% if alumni.achievements %}
                     <div>
                         <h5>Achievements</h5>
                         <div>{{ alumni.achievements|linebreaks }}</div>
                     </div>
-                    {% endif %}
                 {% else %}
                     <div class="text-muted text-center py-3">
                         <i class="fas fa-info-circle me-2"></i>No additional information available
@@ -1244,10 +269,26 @@
                 {% endif %}
             </div>
         </div>
+        {% else %}
+        <div class="col-lg-8 alumni-detail-main">
+            <section class="dashboard-card alumni-detail-welcome" aria-labelledby="alumni-welcome-title">
+                <span class="alumni-detail-welcome__icon" aria-hidden="true"><i class="fas fa-user-friends"></i></span>
+                <div>
+                    <p class="alumni-detail-welcome__eyebrow">Connect with your community</p>
+                    <h3 id="alumni-welcome-title">Stay connected with NORSU alumni</h3>
+                    <p>Send a connection request to reconnect or begin a professional conversation. Once connected, you can use direct messages to stay in touch.</p>
+                </div>
+            </section>
+            <section class="dashboard-card alumni-detail-privacy" aria-labelledby="alumni-privacy-title">
+                <h3 class="section-title" id="alumni-privacy-title"><i class="fas fa-user-shield me-2" aria-hidden="true"></i>Profile privacy</h3>
+                <p>Academic records, employment history, contact information and personal documents are restricted to the profile owner and authorized university staff.</p>
+                <p class="alumni-detail-privacy__note">You can still send a connection request using the contact panel. Connecting does not automatically reveal private records.</p>
+            </section>
+        </div>
         {% endif %}
 
         <!-- Right sidebar -->
-        <div class="col-lg-4">
+        <div class="col-lg-4 alumni-detail-aside">
             <!-- University Information -->
             {% if can_view_private_profile %}
             <div class="dashboard-card university-card">
@@ -1329,8 +370,15 @@
 
             <!-- Contact buttons -->
             <div class="dashboard-card contact-card">
-                <h3 class="section-title"><i class="fas fa-phone me-2"></i>Contact</h3>
+                <h3 class="section-title"><i class="fas fa-user-plus me-2"></i>Connect &amp; message</h3>
+                <p class="alumni-detail-contact__intro">{% if user == alumni.user %}This is your alumni profile.{% elif user.is_authenticated %}Manage your connection with this alumnus here.{% else %}Sign in to send connection requests.{% endif %}</p>
                 <div class="contact-buttons">
+                    {% if is_owner %}
+                        <a href="{% url 'accounts:edit_profile' %}" class="contact-btn" aria-label="Edit your alumni profile">
+                            <i class="fas fa-pen" aria-hidden="true"></i>
+                            <div><span>Edit your profile</span><small>Keep your alumni information up to date</small></div>
+                        </a>
+                    {% endif %}
                     {% if can_view_private_profile and alumni.is_mentor %}
                         <a href="{% url 'mentorship:request_mentorship' mentor_id=alumni.id %}" class="contact-btn mentor-btn">
                             <i class="fas fa-user-graduate"></i>
@@ -1418,6 +466,18 @@
                     {% endif %}
                 </div>
             </div>
+
+            {% if not can_view_private_profile %}
+            <section class="dashboard-card alumni-detail-resources" aria-labelledby="alumni-resources-title">
+                <h3 class="section-title" id="alumni-resources-title"><i class="fas fa-compass me-2" aria-hidden="true"></i>Explore the network</h3>
+                <a href="{% url 'alumni_groups:group_list' %}" class="alumni-detail-resources__link">
+                    <i class="fas fa-users" aria-hidden="true"></i><span><strong>Alumni Groups</strong><small>Find classmates and interest communities</small></span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+                <a href="{% url 'mentorship:mentor_search' %}" class="alumni-detail-resources__link">
+                    <i class="fas fa-user-graduate" aria-hidden="true"></i><span><strong>Find a Mentor</strong><small>Explore alumni career guidance</small></span><i class="fas fa-arrow-right" aria-hidden="true"></i>
+                </a>
+            </section>
+            {% endif %}
 
             {% if can_view_private_profile %}
             <!-- Documents -->
@@ -1509,36 +569,22 @@ document.addEventListener('DOMContentLoaded', function() {
     const sendReminderBtn = document.getElementById('sendReminderBtn');
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]')?.value || '{{ csrf_token }}';
 
+    // Keep one toast surface, shared with the rest of the site. Content is handled as text.
     function showAlert(message, type = 'success') {
+        if (window.ToastUtils) {
+            if (type === 'success') window.ToastUtils.showSuccess(message);
+            else if (type === 'danger') window.ToastUtils.showError(message);
+            else window.ToastUtils.showInfo(message);
+            return;
+        }
+        // Accessible fallback if the global notification library is unavailable.
         const alertDiv = document.createElement('div');
-        alertDiv.className = `alert alert-${type} alert-dismissible fade show`;
-        alertDiv.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 9999;
-            min-width: 300px;
-            max-width: 500px;
-            padding: 1rem;
-            border-radius: 0.375rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            background: ${type === 'success' ? '#48bb78' : type === 'danger' ? '#e53e3e' : '#4299e1'};
-            color: white;
-            border: none;
-        `;
-        alertDiv.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 0.5rem;">
-                <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'danger' ? 'exclamation-triangle' : 'info-circle'}"></i>
-                <span>${message}</span>
-                <button type="button" onclick="this.parentElement.parentElement.remove()" style="background: none; border: none; color: white; margin-left: auto; cursor: pointer; font-size: 1.2rem;">&times;</button>
-            </div>
-        `;
+        alertDiv.className = 'alert alert-' + (type === 'danger' ? 'danger' : 'info');
+        alertDiv.setAttribute('role', 'status');
+        alertDiv.textContent = message;
+        alertDiv.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;max-width:min(380px,calc(100vw - 40px));';
         document.body.appendChild(alertDiv);
-        setTimeout(() => {
-            if (alertDiv.parentNode) {
-                alertDiv.remove();
-            }
-        }, 5000);
+        setTimeout(() => alertDiv.remove(), 4500);
     }
 
     // Reminder functionality
@@ -1577,6 +623,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 showAlert(error.message || 'Failed to send reminder', 'danger');
             }
         });
+    }
+
+    // Confirmation dialogs are shared with the Connections request page.
+    // Never fall back to window.confirm(): a missing dialog must fail closed.
+    async function confirmProfileConnection(options) {
+        if (typeof window.confirmConnectionAction !== 'function') {
+            showAlert('Confirmation dialog unavailable. Refresh the page and try again.', 'danger');
+            return false;
+        }
+        return window.confirmConnectionAction(options);
     }
 
     // Connection functionality
@@ -1623,129 +679,84 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Handle accept connection button
+    // All profile connection decisions use the same accessible app-styled dialog.
     const acceptBtn = document.querySelector('.accept-connection-btn[data-connection-id]');
     if (acceptBtn) {
-        acceptBtn.addEventListener('click', function() {
-            const connectionId = this.dataset.connectionId;
-            const buttonContainer = this.closest('.d-flex');
-            
-            fetch(`{% url 'connections:accept_request' 0 %}`.replace('0', connectionId), {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': csrfToken,
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Replace buttons with message button
-                    buttonContainer.innerHTML = `
-                        <a href="{% url 'connections:conversations_list' %}" class="contact-btn">
-                            <i class="fas fa-comments"></i>
-                            <div>
-                                <span>Message</span>
-                                <small>Send direct message</small>
-                            </div>
-                        </a>
-                    `;
-                    showAlert(data.message, 'success');
-                } else {
-                    showAlert(data.message, 'danger');
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                showAlert('Error accepting connection request. Please try again.', 'danger');
-            });
+        acceptBtn.addEventListener('click', async function () {
+            if (this.disabled) return;
+            if (!await confirmProfileConnection({
+                title: 'Accept connection request?',
+                description: 'Connect with {{ alumni.full_name|escapejs }}? You can then exchange direct messages.',
+                confirmText: 'Accept request', cancelText: 'Keep pending'
+            })) return;
+            this.disabled = true;
+            try {
+                const response = await fetch(`{% url 'connections:accept_request' 0 %}`.replace('0', this.dataset.connectionId), {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'}
+                });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Could not accept this request.');
+                showAlert(data.message || 'Connection request accepted.');
+                // Re-render all connected-profile controls from the server.
+                window.location.reload();
+            } catch (error) {
+                this.disabled = false;
+                showAlert(error.message || 'Unable to accept connection request.', 'danger');
+            }
         });
     }
 
-    // Handle reject connection button
     const rejectBtn = document.querySelector('.reject-connection-btn[data-connection-id]');
     if (rejectBtn) {
-        rejectBtn.addEventListener('click', function() {
-            const connectionId = this.dataset.connectionId;
-            const buttonContainer = this.closest('.d-flex');
-            
-            if (confirm('Are you sure you want to reject this connection request?')) {
-                fetch(`{% url 'connections:reject_request' 0 %}`.replace('0', connectionId), {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.success) {
-                        // Replace buttons with connect button
-                         buttonContainer.innerHTML = `
-                             <button class="contact-btn connect-btn" data-user-id="{{ alumni.user.id }}">
-                                 <div>
-                                     <span>Connect</span>
-                                     <small>Send connection request</small>
-                                 </div>
-                             </button>
-                         `;
-                        showAlert(data.message, 'info');
-                        // Re-attach event listener to new connect button
-                        location.reload();
-                    } else {
-                        showAlert(data.message, 'danger');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error rejecting connection request. Please try again.', 'danger');
+        rejectBtn.addEventListener('click', async function () {
+            if (this.disabled) return;
+            if (!await confirmProfileConnection({
+                title: 'Reject connection request?',
+                description: 'Reject the invitation from {{ alumni.full_name|escapejs }}? The request will be removed.',
+                confirmText: 'Reject request', cancelText: 'Keep request', danger: true
+            })) return;
+            this.disabled = true;
+            try {
+                const response = await fetch(`{% url 'connections:reject_request' 0 %}`.replace('0', this.dataset.connectionId), {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'}
                 });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Could not reject this request.');
+                window.location.reload();
+            } catch (error) {
+                this.disabled = false;
+                showAlert(error.message || 'Unable to reject connection request.', 'danger');
             }
         });
     }
 
-    // Handle remove connection button
     const removeBtn = document.querySelector('.remove-connection-btn[data-user-id]');
     if (removeBtn) {
-        removeBtn.addEventListener('click', function() {
-            const userId = this.dataset.userId;
-            const buttonElement = this;
-            
-            if (confirm('Are you sure you want to remove this connection?')) {
-                fetch(`{% url 'connections:remove_connection' 0 %}`.replace('0', userId), {
-                    method: 'POST',
-                    headers: {
-                        'X-CSRFToken': csrfToken,
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
-                })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        // Replace with connect button
-                        buttonElement.outerHTML = `
-                            <button class="contact-btn connect-btn" data-user-id="${userId}">
-                                <i class="fas fa-user-plus"></i>
-                                <div>
-                                    <span>Connect</span>
-                                    <small>Send connection request</small>
-                                </div>
-                            </button>
-                        `;
-                        showAlert('Connection removed successfully.', 'info');
-                        // Re-attach event listener to new connect button
-                        location.reload();
-                    } else {
-                        showAlert('Error removing connection. Please try again.', 'danger');
-                    }
-                })
-                .catch(error => {
-                    console.error('Error:', error);
-                    showAlert('Error removing connection. Please try again.', 'danger');
+        removeBtn.addEventListener('click', async function () {
+            if (this.disabled) return;
+            if (!await confirmProfileConnection({
+                title: 'Remove connection?',
+                description: 'Remove {{ alumni.full_name|escapejs }} from your connections? Direct messaging access may change.',
+                confirmText: 'Remove connection', cancelText: 'Keep connection', danger: true
+            })) return;
+            this.disabled = true;
+            try {
+                const response = await fetch(`{% url 'connections:remove_connection' 0 %}`.replace('0', this.dataset.userId), {
+                    method: 'POST', credentials: 'same-origin',
+                    headers: {'X-CSRFToken': csrfToken, 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json'}
                 });
+                const data = await response.json();
+                if (!response.ok || !data.success) throw new Error(data.message || 'Could not remove this connection.');
+                window.location.reload();
+            } catch (error) {
+                this.disabled = false;
+                showAlert(error.message || 'Unable to remove connection.', 'danger');
             }
         });
     }
+
 });
 </script>
 {% endblock %}

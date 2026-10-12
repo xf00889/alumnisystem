@@ -1,6 +1,10 @@
 // NORSU Alumni System - Notification Management JavaScript
 
-// Note: csrftoken is already declared globally in base.html
+// CSRF tokens can rotate during the life of an open browser tab.
+function notificationCsrfToken() {
+    return window.NORSUAlumni?.csrf?.getToken() ||
+        document.querySelector('[name="csrfmiddlewaretoken"]')?.value || '';
+}
 
 class NotificationManager {
     constructor() {
@@ -65,7 +69,7 @@ class NotificationManager {
             const response = await fetch(`/api/notifications/?limit=${limit}&offset=${offset}`, {
                 method: 'GET',
                 headers: {
-                    'X-CSRFToken': csrftoken,
+                    'X-CSRFToken': notificationCsrfToken(),
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -92,7 +96,7 @@ class NotificationManager {
             const response = await fetch(`/api/notifications/${notificationId}/read/`, {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrftoken,
+                    'X-CSRFToken': notificationCsrfToken(),
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -125,7 +129,7 @@ class NotificationManager {
             const response = await fetch('/api/notifications/mark-all-read/', {
                 method: 'POST',
                 headers: {
-                    'X-CSRFToken': csrftoken,
+                    'X-CSRFToken': notificationCsrfToken(),
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -155,7 +159,7 @@ class NotificationManager {
             const response = await fetch('/api/notifications/unread-count/', {
                 method: 'GET',
                 headers: {
-                    'X-CSRFToken': csrftoken,
+                    'X-CSRFToken': notificationCsrfToken(),
                     'Content-Type': 'application/json',
                     'Accept': 'application/json',
                 },
@@ -362,7 +366,7 @@ class NotificationManager {
 
 // Initialize notification manager when DOM is loaded
 document.addEventListener('DOMContentLoaded', function() {
-    if (typeof csrftoken !== 'undefined') {
+    if (document.querySelector('[name=csrfmiddlewaretoken]') || notificationCsrfToken()) {
         window.notificationManager = new NotificationManager();
     }
 });

@@ -1,11 +1,12 @@
 from django.contrib.auth import get_user_model
 from django.conf import settings
+from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, override_settings
 from django.urls import reverse
 
 from connections.models import Connection
 
-from .models import Alumni
+from .models import Alumni, GraduateRegistry
 
 
 @override_settings(MIDDLEWARE=[
@@ -58,3 +59,36 @@ class AlumniDirectoryPrivacyTests(TestCase):
         self.assertNotContains(detail_response, 'BSINT')
         self.assertNotContains(detail_response, 'Private Street')
         self.assertNotContains(detail_response, 'owner@example.com')
+
+
+@override_settings(MIDDLEWARE=[
+    middleware for middleware in settings.MIDDLEWARE
+    if middleware != 'setup.middleware.SetupRequiredMiddleware'
+])
+class GraduateRegistryImportTests(TestCase):
+    def test_admin_can_import_registrar_list_without_creating_users(self):
+        User = get_user_model()
+        admin = User.objects.create_superuser('registry_admin', 'admin@example.com', 'pass')
+        self.client.force_login(admin)
+        user_count = User.objects.count()
+        csv_file = SimpleUploadedFile(
+            'registrar.csv',
+            b'FullName,Year-1,Course Grad,Campus,Email Address\n"Graduate, Test",2024,BSINT,NORSU-BSC,test@example.com\n',
+            content_type='text/csv',
+        )
+
+        response = self.client.post(
+            reverse('alumni_directory:alumni_management'),
+            {'import_registry_csv': '1', 'registry_csv_file': csv_file},
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(User.objects.count(), user_count)
+        self.assertTrue(
+            GraduateRegistry.objects.filter(
+                first_name='Test',
+                last_name='Graduate',
+                campus='BSC',
+                graduation_year=2024,
+            ).exists()
+        )

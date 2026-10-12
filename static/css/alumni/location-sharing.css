@@ -1,0 +1,49 @@
+/* Voluntary alumni GPS sharing: compact controls, explicit server-save feedback. */
+.alumni-location-sharing {
+    position: fixed; z-index: 1040; bottom: 18px; left: 18px;
+    width: min(390px, calc(100vw - 36px));
+    display: flex; align-items: center; justify-content: space-between; gap: 12px;
+    background: #fffdf9; color: #1d3157; border: 1px solid #d8e0ef;
+    border-radius: 14px; box-shadow: 0 8px 26px #1f30512c;
+    padding: 15px 46px 15px 14px; font-family: 'Poppins', sans-serif;
+}
+/* A dismissed reminder stays hidden even as asynchronous status updates arrive. */
+.alumni-location-sharing[hidden] { display:none !important; }
+.alumni-location-sharing__dismiss {
+    position:absolute;top:9px;right:9px;
+    width:28px;height:28px;display:grid;place-items:center;
+    border:1px solid #d8dfeb;border-radius:8px;
+    background:#f7f9fc;color:#243858;
+    font-family:inherit;font-size:18px;line-height:1;cursor:pointer;
+    transition:background .15s ease,border-color .15s ease,color .15s ease;
+}
+.alumni-location-sharing__dismiss:hover {
+    background:#e7edf5;border-color:#bac8dc;color:#142541;
+}
+.alumni-location-sharing__dismiss:focus-visible {outline:3px solid #8cb5fc;outline-offset:2px;}
+.alumni-location-sharing__copy { min-width: 0; flex: 1; font-size: 12px; line-height: 1.45; }
+.alumni-location-sharing__detail { display: block; color: #5b6a84; font-size: 10px; margin-top: 4px; }
+.alumni-location-sharing__actions { display: flex; flex-direction: column; gap: 5px; flex: none; }
+.alumni-location-sharing__button, .alumni-location-sharing__remove {
+    border: 0; border-radius: 8px; padding: 9px 10px; font-size: 11px;
+    font-weight: 650; cursor: pointer; max-width: 132px;
+}
+.alumni-location-sharing__button { background: #2b3c6b; color: #fff; }
+.alumni-location-sharing__remove { background: #f8e9e7; color: #853d31; }
+.alumni-location-sharing__button:disabled, .alumni-location-sharing__remove:disabled { opacity: .65; cursor: wait; }
+.alumni-location-sharing :is(button):focus-visible { outline: 3px solid #8cb5fc; outline-offset: 2px; }
+.alumni-location-sharing__remove[hidden] { display: none; }
+.alumni-location-sharing[data-state="error"] { border-color: #d49a8d; }
+.alumni-location-sharing[data-state="active"] { border-color: #77b9a0; }
+@media (max-width: 991.98px) {
+    /* Keep the sharing control above the fixed alumni bottom navigation. */
+    body.alumni-portal .alumni-location-sharing {
+        bottom: calc(var(--alumni-mobile-bottom-height, 68px) + env(safe-area-inset-bottom) + 10px);
+        left: 12px; width: min(390px, calc(100vw - 24px));
+        padding: 9px 11px;
+    }
+}
+@media (max-width: 400px) {
+    .alumni-location-sharing__copy { font-size: 11px; }
+    .alumni-location-sharing__button, .alumni-location-sharing__remove { font-size: 10px; padding: 8px; max-width: 112px; }
+}
