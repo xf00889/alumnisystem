@@ -16,7 +16,7 @@ class SuperuserForm(forms.Form):
         max_length=150,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'admin'
+            'placeholder': 'Choose a username', 'autocomplete': 'username'
         }),
         help_text="Username for the superuser account"
     )
@@ -24,7 +24,7 @@ class SuperuserForm(forms.Form):
     email = forms.EmailField(
         widget=forms.EmailInput(attrs={
             'class': 'form-control',
-            'placeholder': 'admin@example.com'
+            'placeholder': 'name@example.com', 'autocomplete': 'email'
         }),
         help_text="Email address for the superuser account"
     )
@@ -33,7 +33,7 @@ class SuperuserForm(forms.Form):
         min_length=8,
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Enter password'
+            'placeholder': 'Create a strong password', 'autocomplete': 'new-password'
         }),
         help_text="Password must be at least 8 characters long"
     )
@@ -41,7 +41,7 @@ class SuperuserForm(forms.Form):
     password2 = forms.CharField(
         widget=forms.PasswordInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Confirm password'
+            'placeholder': 'Repeat your password', 'autocomplete': 'new-password'
         }),
         help_text="Confirm your password"
     )
@@ -51,7 +51,7 @@ class SuperuserForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'First name'
+            'placeholder': 'First name', 'autocomplete': 'given-name'
         })
     )
     
@@ -60,7 +60,7 @@ class SuperuserForm(forms.Form):
         required=False,
         widget=forms.TextInput(attrs={
             'class': 'form-control',
-            'placeholder': 'Last name'
+            'placeholder': 'Last name', 'autocomplete': 'family-name'
         })
     )
 
