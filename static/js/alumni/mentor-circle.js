@@ -37,14 +37,16 @@
     event.preventDefault();
     if (!sendForm.reportValidity()) return;
     const submit = sendForm.querySelector('button[type="submit"]');
+    const originalLabel = submit.innerHTML;
     submit.disabled = true;
+    submit.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Sending';
     flash('');
     try {
       await request(root.dataset.sendUrl, new FormData(sendForm));
       sendForm.reset();
       await refresh(true);
     } catch (error) {flash(error.message, true);}
-    finally {submit.disabled = false;}
+    finally {submit.disabled = false; submit.innerHTML = originalLabel;}
   });
   const meetingForm = document.getElementById('circleMeetingForm');
   meetingForm?.addEventListener('submit', async (event) => {
@@ -53,14 +55,16 @@
     const button = meetingForm.querySelector('button[type="submit"]');
     const errorNode = document.getElementById('circleMeetingError');
     errorNode.hidden = true;
+    const originalLabel = button.innerHTML;
     button.disabled = true;
+    button.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i> Saving';
     try {
       const result = await request(root.dataset.scheduleUrl, new FormData(meetingForm));
       bootstrap.Modal.getOrCreateInstance(document.getElementById('circleMeetingModal')).hide();
       flash(`Meeting scheduled for ${result.participants} group member(s).`);
       window.location.reload();
     } catch (error) {errorNode.hidden = false; errorNode.textContent = error.message;}
-    finally {button.disabled = false;}
+    finally {button.disabled = false; button.innerHTML = originalLabel;}
   });
   let cancelUrl = null;
   const cancelModal = document.getElementById('circleCancelModal');

@@ -41,6 +41,7 @@ class MentorSerializer(serializers.ModelSerializer):
     current_availability = serializers.SerializerMethodField()
     expertise_list = serializers.SerializerMethodField()
     has_requested = serializers.SerializerMethodField()
+    relationship_status = serializers.SerializerMethodField()
     
     class Meta:
         model = Mentor
@@ -48,7 +49,7 @@ class MentorSerializer(serializers.ModelSerializer):
             'id', 'user', 'expertise_areas', 'expertise_list', 'availability_status',
             'max_mentees', 'current_mentees', 'mentoring_experience', 'expectations',
             'preferred_contact_method', 'is_active', 'current_availability',
-            'accepting_mentees', 'has_requested'
+            'accepting_mentees', 'has_requested', 'relationship_status'
         ]
         read_only_fields = ['current_mentees']
 
@@ -70,6 +71,18 @@ class MentorSerializer(serializers.ModelSerializer):
             mentee=request.user, 
             status__in=['PENDING', 'APPROVED', 'PAUSED']
         ).exists()
+
+
+    def get_relationship_status(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+
+        active_request = obj.mentorship_requests.filter(
+            mentee=request.user,
+            status__in=['APPROVED', 'PENDING', 'PAUSED']
+        ).order_by('-updated_at', '-created_at').values_list('status', flat=True).first()
+        return active_request
 
 class MentorshipRequestSerializer(serializers.ModelSerializer):
     mentor = MentorSerializer(read_only=True)

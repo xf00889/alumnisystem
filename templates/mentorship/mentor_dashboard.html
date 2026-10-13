@@ -77,23 +77,18 @@
     </div>
   </div>
 
-  <div class="mentor-workspace-intro" aria-label="Mentorship overview">
-    <div>
-      <span class="mentor-workspace-intro__eyebrow">YOUR MENTORSHIP WORKSPACE</span>
-      <h2>Make every mentoring moment count</h2>
-      <p>Review new requests, support current mentees, and stay on top of upcoming sessions.</p>
-    </div>
-    <div class="d-flex flex-wrap gap-2">
-      {% if total_pending_requests %}<a href="#pendingMentorshipRequests" class="btn btn-outline-primary btn-sm">Review {{ total_pending_requests }} pending request{{ total_pending_requests|pluralize }}</a>{% endif %}
-      <a href="{% url 'mentorship:mentor_circle' mentor.id %}" class="btn btn-primary btn-sm"><i class="fas fa-comments me-1"></i> Group workspace · {{ total_active_mentees }} mentees</a>
-    </div>
-  </div>
-
   <section class="mentor-circle-summary" aria-label="Group messages and shared calendar">
-    <div><span class="mentor-workspace-intro__eyebrow">GROUP COMMUNICATION</span><h2>Mentorship group messages & schedule</h2><p>Message your active mentees together, arrange one session for the group, and follow private progress and timeline activity.</p>
-      {% if circle_messages %}<div class="mentor-circle-summary__previews">{% for entry in circle_messages %}<p><strong>{{ entry.author.get_full_name|default:entry.author.username }}:</strong> {{ entry.body|truncatechars:100 }}</p>{% endfor %}</div>{% endif %}
+    <div>
+      <span class="mentor-workspace-intro__eyebrow">GROUP COMMUNICATION</span>
+      <h2>Mentorship group messages & schedule</h2>
+      <p>Use one shared workspace for messages and meetings, then apply the same progress and timeline updates to every active mentee when needed.</p>
+      {% if total_pending_requests %}<a href="#pendingMentorshipRequests" class="mentor-circle-summary__inline-link">Review {{ total_pending_requests }} pending request{{ total_pending_requests|pluralize }}</a>{% endif %}
     </div>
-    <a class="btn btn-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}"><i class="fas fa-comments me-1"></i> Open group messages</a>
+    <div class="mentor-circle-summary__actions">
+      <a class="btn btn-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}"><i class="fas fa-comments me-1"></i> Open group messages{% if circle_message_count %} <span class="badge rounded-pill text-bg-light ms-1">{{ circle_message_count }}</span>{% endif %}</a>
+      <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#progressUpdateModal" data-progress-url="{% url 'mentorship:circle_update_group_progress' mentor.id %}" data-mentee-name="All active mentees" data-progress-percent="0" data-progress-scope="group"><i class="fas fa-chart-line me-1"></i> Update group progress</button>
+      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#timelineModal" data-timeline-url="{% url 'mentorship:circle_update_group_timeline' mentor.id %}" data-timeline="" data-end-date="" data-mentee-name="All active mentees" data-timeline-scope="group"><i class="fas fa-tasks me-1"></i> Manage group timeline</button>
+    </div>
   </section>
 
   <!-- Analytics Cards -->
@@ -269,24 +264,8 @@
                   </div>
                   {% endif %}
 
-                  <!-- Action Buttons -->
-                  <div class="d-flex gap-2 flex-wrap">
-                    <a class="btn btn-sm btn-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}"><i class="fas fa-comments me-1"></i> Group messages & meetings</a>
-                    <button type="button" class="btn btn-sm btn-info"
-                            data-bs-toggle="modal" data-bs-target="#progressUpdateModal"
-                            data-progress-url="{% url 'mentorship:circle_update_progress' mentor.id mentorship.id %}"
-                            data-mentee-name="{{ mentorship.mentee.get_full_name|default:mentorship.mentee.username }}"
-                            data-progress-percent="{{ mentorship.progress_percentage }}">
-                      <i class="fas fa-chart-line me-1"></i> Update personal progress
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="modal" data-bs-target="#timelineModal"
-                            data-timeline-url="{% url 'mentorship:circle_update_timeline' mentor.id mentorship.id %}"
-                            data-timeline="{{ mentorship.timeline_milestones }}"
-                            data-end-date="{{ mentorship.expected_end_date|date:'Y-m-d' }}"
-                            data-mentee-name="{{ mentorship.mentee.get_full_name|default:mentorship.mentee.username }}">
-                      <i class="fas fa-tasks me-1"></i> Manage personal timeline
-                    </button>
+                  <div class="mentor-mentorship-note small text-muted">
+                    Shared progress and timeline actions now live in the group communication section above so one update can be applied to all active mentees.
                   </div>
                 </div>
               </div>
@@ -423,9 +402,9 @@
 <!-- Personal progress, scoped to the selected mentorship. -->
 <div class="modal fade mentorship-editor-modal" id="progressUpdateModal" tabindex="-1" aria-labelledby="progressUpdateModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
-    <div class="modal-header"><div><small class="text-uppercase text-muted fw-bold">Personal mentorship</small><h2 class="modal-title fs-5" id="progressUpdateModalLabel">Update progress</h2><p class="small text-muted mb-0" id="mentorProgressRecipient"></p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-header"><div><small class="text-uppercase text-muted fw-bold" id="mentorProgressScopeLabel">Mentorship update</small><h2 class="modal-title fs-5" id="progressUpdateModalLabel">Update progress</h2><p class="small text-muted mb-0" id="mentorProgressRecipient"></p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
     <form id="progressUpdateForm"><div class="modal-body">
-      <p class="small text-muted">Progress notes are visible only to you and this mentee in the group workspace.</p>
+      <p class="small text-muted" id="mentorProgressHelp">Progress notes are visible only to you and the selected mentee in the group workspace.</p>
       <div class="mb-3"><label class="form-label" for="mentorProgressPercentage">Overall progress</label><input type="range" id="mentorProgressPercentage" name="percentage" class="form-range" min="0" max="100" value="0"><output for="mentorProgressPercentage" id="mentorProgressOutput" class="fw-bold">0%</output></div>
       <div class="mb-3"><label class="form-label" for="mentorProgressNote">What changed? *</label><textarea id="mentorProgressNote" name="note" class="form-control" rows="4" maxlength="2000" required placeholder="Summarize achievements, blockers, and next steps"></textarea></div>
       <div id="mentorProgressError" class="text-danger small" role="alert" hidden></div>
@@ -435,9 +414,9 @@
 <!-- Structured personal timeline replaces the raw multiline-text editor. -->
 <div class="modal fade mentorship-editor-modal" id="timelineModal" tabindex="-1" aria-labelledby="timelineModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
-    <div class="modal-header"><div><small class="text-uppercase text-muted fw-bold">Personal mentorship</small><h2 class="modal-title fs-5" id="timelineModalLabel">Manage timeline</h2><p class="small text-muted mb-0" id="mentorTimelineRecipient"></p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <div class="modal-header"><div><small class="text-uppercase text-muted fw-bold" id="mentorTimelineScopeLabel">Mentorship update</small><h2 class="modal-title fs-5" id="timelineModalLabel">Manage timeline</h2><p class="small text-muted mb-0" id="mentorTimelineRecipient"></p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
     <form id="timelineForm"><div class="modal-body">
-      <p class="small text-muted">Organize milestones by week or period, assign their status, and save the expected completion date. Changes appear privately in the group activity stream.</p>
+      <p class="small text-muted" id="mentorTimelineHelp">Organize milestones by week or period, assign their status, and save the expected completion date. Changes appear privately in the group activity stream.</p>
       <div class="mb-3"><label for="mentorExpectedEndDate" class="form-label">Expected completion date (optional)</label><input id="mentorExpectedEndDate" name="expected_end_date" type="date" class="form-control"></div>
       <div class="d-flex justify-content-between gap-2 align-items-center mb-2"><strong>Milestones</strong><button type="button" id="mentorAddMilestone" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus me-1"></i> Add milestone</button></div>
       <div id="mentorMilestoneRows" class="mentor-milestones"></div><div class="my-3"><label for="mentorTimelineNotes" class="form-label">Additional notes (optional)</label><textarea id="mentorTimelineNotes" name="notes" class="form-control" rows="3" maxlength="2000"></textarea></div><template id="mentorMilestoneRowTemplate"><div class="mentor-milestone-row"><div><label class="form-label">Week / period</label><input class="form-control" name="period[]" maxlength="40" placeholder="1–2" required></div><div><label class="form-label">Milestone description</label><input class="form-control" name="description[]" maxlength="300" placeholder="Complete project review" required></div><div><label class="form-label">Status</label><select class="form-select" name="status[]"><option value="NOT_STARTED">Not started</option><option value="IN_PROGRESS">In progress</option><option value="COMPLETED">Completed</option></select></div><button type="button" class="btn btn-outline-danger mentor-remove-milestone" aria-label="Remove this milestone"><i class="fas fa-times"></i></button></div></template>

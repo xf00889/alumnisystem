@@ -311,9 +311,11 @@ def mentor_dashboard(request):
         ).select_related('mentorship', 'mentorship__mentee').order_by('-created_at')[:5]
 
         from .models import MentorCircleEntry
-        circle_messages = MentorCircleEntry.objects.filter(
+        circle_messages_queryset = MentorCircleEntry.objects.filter(
             mentor=mentor, kind='MESSAGE', mentorship__isnull=True
-        ).select_related('author').order_by('-created_at')[:3]
+        ).select_related('author').order_by('-created_at')
+        circle_messages = circle_messages_queryset[:3]
+        circle_message_count = circle_messages_queryset.count()
 
         # Calculate statistics for the analytics cards
         total_active_mentees = active_mentorships.count()
@@ -349,6 +351,7 @@ def mentor_dashboard(request):
             'upcoming_meetings': upcoming_meetings,
             'upcoming_circle_meetings': upcoming_circle_meetings,
             'circle_messages': circle_messages,
+            'circle_message_count': circle_message_count,
             'recent_progress': recent_progress,
             'total_active_mentees': total_active_mentees,
             'total_pending_requests': total_pending_requests,

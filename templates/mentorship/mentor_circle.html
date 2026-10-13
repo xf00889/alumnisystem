@@ -7,33 +7,85 @@
 {% block content %}
 <div class="container mentor-circle" id="mentorCircle" data-activity-url="{% url 'mentorship:circle_activity' mentor.id %}" data-send-url="{% url 'mentorship:circle_send' mentor.id %}" data-schedule-url="{% url 'mentorship:circle_schedule' mentor.id %}">
   <div class="circle-hero">
-    <div><span class="circle-eyebrow">MENTORSHIP / GROUP WORKSPACE</span><h1>{{ mentor.user.get_full_name|default:mentor.user.username }}’s mentoring group</h1><p>One conversation for your active mentor–mentee group, with shared meetings and role-restricted progress updates.</p></div>
+    <div>
+      <span class="circle-eyebrow">MENTORSHIP / GROUP WORKSPACE</span>
+      <h1>{{ mentor.user.get_full_name|default:mentor.user.username }}’s mentoring group</h1>
+      <p>One shared space for your group chat, schedules, and mentorship updates. Group meetings appear once for everyone, while private mentee updates stay visible only to the mentor and the affected mentee.</p>
+      <div class="circle-hero__meta">
+        <span class="circle-pill"><i class="fas fa-users me-1"></i>{{ circle_members|length }} mentee{{ circle_members|length|pluralize }}</span>
+        <span class="circle-pill"><i class="far fa-calendar-alt me-1"></i>{{ circle_meetings|length }} upcoming meeting{{ circle_meetings|length|pluralize }}</span>
+      </div>
+    </div>
     <div class="circle-hero__actions">
-      {% if is_circle_mentor %}<a class="btn btn-outline-light" href="{% url 'mentorship:mentor_dashboard' %}"><i class="fas fa-arrow-left me-1"></i> Dashboard</a>{% if circle_members and mentor.is_active %}<button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#circleMeetingModal"><i class="fas fa-calendar-plus me-1"></i> Schedule group meeting</button>{% endif %}{% else %}<a class="btn btn-outline-light" href="{% url 'mentorship:mentee_dashboard' %}">My mentorship</a>{% endif %}
+      {% if is_circle_mentor %}
+        <a class="btn btn-outline-light" href="{% url 'mentorship:mentor_dashboard' %}"><i class="fas fa-arrow-left me-1"></i> Dashboard</a>
+        {% if circle_members and mentor.is_active %}
+          <button type="button" class="btn btn-warning" data-bs-toggle="modal" data-bs-target="#circleMeetingModal"><i class="fas fa-calendar-plus me-1"></i> Schedule group meeting</button>
+        {% endif %}
+      {% else %}
+        <a class="btn btn-outline-light" href="{% url 'mentorship:mentee_dashboard' %}"><i class="fas fa-arrow-left me-1"></i> My mentorship</a>
+      {% endif %}
     </div>
   </div>
   <div class="circle-layout">
     <div class="circle-main">
       <section class="circle-panel" aria-label="Group messages and activity">
-        <div class="circle-panel__header"><div><h2><i class="far fa-comments me-2"></i>Group messages</h2><p>Group messages are shared. Personal progress and timelines are visible only to the relevant mentee and mentor.</p></div><span class="circle-pill">{{ circle_members|length }} mentee{{ circle_members|length|pluralize }}</span></div>
+        <div class="circle-panel__header">
+          <div>
+            <h2><i class="far fa-comments me-2"></i>Group messages</h2>
+            <p>Announcements, schedules, and timeline/progress updates appear here automatically so the whole group stays aligned.</p>
+          </div>
+          <span class="circle-pill">{{ circle_members|length }} member{{ circle_members|length|pluralize }}</span>
+        </div>
         <div id="circleFeedback" class="circle-feedback" role="status" aria-live="polite" hidden></div>
         <div id="circleActivity" class="circle-activity" aria-live="off" aria-label="Conversation timeline">{% include 'mentorship/partials/circle_activity.html' %}</div>
         <form id="circleMessageForm" class="circle-compose">
           {% csrf_token %}
           <label for="circleMessageContent">Message your group</label>
-          <div class="circle-compose__row"><textarea id="circleMessageContent" name="content" maxlength="2000" rows="2" placeholder="Share an announcement or ask your group a question…" required></textarea><button class="btn btn-primary" type="submit"{% if not circle_members or not mentor.is_active %} disabled{% endif %}><i class="fas fa-paper-plane me-1"></i> Send</button></div>
-          {% if not circle_members %}<small>There are no approved mentees in this group yet.</small>{% endif %}
+          <div class="circle-compose__row">
+            <textarea id="circleMessageContent" name="content" maxlength="2000" rows="3" placeholder="Share an announcement, update, or question for your mentoring group…" required></textarea>
+            <button class="btn btn-primary" type="submit"{% if not circle_members or not mentor.is_active %} disabled{% endif %}><i class="fas fa-paper-plane me-1"></i> Send</button>
+          </div>
+          {% if not circle_members %}<small>There are no approved mentees in this group yet.</small>{% else %}<small>New messages are posted to the shared group chat immediately.</small>{% endif %}
         </form>
       </section>
     </div>
     <aside class="circle-aside">
-      <section class="circle-panel"><div class="circle-panel__header"><h2><i class="fas fa-users me-2"></i> Group members</h2></div><ul class="circle-members"><li><i class="fas fa-user-tie"></i><span><strong>{{ mentor.user.get_full_name|default:mentor.user.username }}</strong><small>Mentor</small></span></li>{% for relationship in circle_members %}<li><i class="fas fa-user-graduate"></i><span><strong>{{ relationship.mentee.get_full_name|default:relationship.mentee.username }}</strong><small>Mentee</small></span></li>{% empty %}<li class="circle-muted">Accepted mentees will appear here.</li>{% endfor %}</ul></section>
-      <section class="circle-panel"><div class="circle-panel__header"><h2><i class="far fa-calendar-alt me-2"></i> Group schedule</h2></div><div class="circle-meetings">{% for meeting in circle_meetings %}<article class="circle-meeting"><strong>{{ meeting.title }}</strong><time>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time><span>{{ meeting.duration }} min · {{ meeting.participants.count }} attendee{{ meeting.participants.count|pluralize }}</span>{% if meeting.agenda %}<p>{{ meeting.agenda|truncatewords:35 }}</p>{% endif %}<div class="circle-meeting__actions">{% if meeting.meeting_link %}<a class="btn btn-sm btn-outline-primary" href="{{ meeting.meeting_link }}" rel="noopener noreferrer" target="_blank">Join meeting</a>{% endif %}{% if is_circle_mentor %}<button type="button" class="btn btn-sm btn-outline-danger" data-circle-cancel-url="{% url 'mentorship:circle_cancel_meeting' mentor.id meeting.id %}" data-circle-meeting-title="{{ meeting.title }}">Cancel</button>{% endif %}</div></article>{% empty %}<p class="circle-muted">No upcoming group sessions. {% if is_circle_mentor %}Schedule once for all approved mentees.{% endif %}</p>{% endfor %}</div></section>
+      <section class="circle-panel">
+        <div class="circle-panel__header"><h2><i class="fas fa-users me-2"></i> Group members</h2></div>
+        <ul class="circle-members">
+          <li><i class="fas fa-user-tie"></i><span><strong>{{ mentor.user.get_full_name|default:mentor.user.username }}</strong><small>Mentor</small></span></li>
+          {% for relationship in circle_members %}
+            <li><i class="fas fa-user-graduate"></i><span><strong>{{ relationship.mentee.get_full_name|default:relationship.mentee.username }}</strong><small>Mentee</small></span></li>
+          {% empty %}
+            <li class="circle-muted">Accepted mentees will appear here.</li>
+          {% endfor %}
+        </ul>
+      </section>
+      <section class="circle-panel">
+        <div class="circle-panel__header"><h2><i class="far fa-calendar-alt me-2"></i> Group schedule</h2></div>
+        <div class="circle-meetings">
+          {% for meeting in circle_meetings %}
+            <article class="circle-meeting">
+              <strong>{{ meeting.title }}</strong>
+              <time>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time>
+              <span>{{ meeting.duration }} min · {{ meeting.participants.count }} attendee{{ meeting.participants.count|pluralize }}</span>
+              {% if meeting.agenda %}<p>{{ meeting.agenda|truncatewords:35 }}</p>{% endif %}
+              <div class="circle-meeting__actions">
+                {% if meeting.meeting_link %}<a class="btn btn-sm btn-outline-primary" href="{{ meeting.meeting_link }}" rel="noopener noreferrer" target="_blank">Join meeting</a>{% endif %}
+                {% if is_circle_mentor %}<button type="button" class="btn btn-sm btn-outline-danger" data-circle-cancel-url="{% url 'mentorship:circle_cancel_meeting' mentor.id meeting.id %}" data-circle-meeting-title="{{ meeting.title }}">Cancel</button>{% endif %}
+              </div>
+            </article>
+          {% empty %}
+            <p class="circle-muted">No upcoming group sessions. {% if is_circle_mentor %}Schedule once for all approved mentees.{% endif %}</p>
+          {% endfor %}
+        </div>
+      </section>
     </aside>
   </div>
 </div>
 {% if is_circle_mentor %}
-<div class="modal fade circle-modal" id="circleMeetingModal" tabindex="-1" aria-labelledby="circleMeetingModalTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><div><span class="circle-eyebrow">GROUP SCHEDULE</span><h2 class="modal-title fs-5" id="circleMeetingModalTitle">Schedule one meeting for the group</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><form id="circleMeetingForm"><div class="modal-body"><p class="text-muted">All <strong>{{ circle_members|length }}</strong> currently approved mentees will be included. New mentees will not be added retroactively.</p><div class="mb-3"><label for="groupMeetingTitle" class="form-label">Meeting title <span aria-hidden="true">*</span></label><input name="title" maxlength="160" id="groupMeetingTitle" class="form-control" required placeholder="Weekly learning session"></div><div class="row g-3 mb-3"><div class="col-sm-7"><label for="groupMeetingDate" class="form-label">Start date and time *</label><input type="datetime-local" id="groupMeetingDate" name="meeting_date" class="form-control" required></div><div class="col-sm-5"><label for="groupMeetingDuration" class="form-label">Length (minutes) *</label><input type="number" id="groupMeetingDuration" name="duration" min="15" max="240" value="60" class="form-control" required></div></div><div class="mb-3"><label class="form-label" for="groupMeetingLink">Video meeting link (optional)</label><input type="url" class="form-control" id="groupMeetingLink" name="meeting_link" placeholder="https://…"><small class="text-muted">Paste your real meeting link. The system doesn't generate one.</small></div><div class="mb-3"><label class="form-label" for="groupMeetingAgenda">Agenda (optional)</label><textarea class="form-control" name="agenda" id="groupMeetingAgenda" rows="3" maxlength="3000" placeholder="Topics and preparation"></textarea></div><div id="circleMeetingError" class="text-danger" role="alert" hidden></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save group meeting</button></div></form></div></div></div>
+<div class="modal fade circle-modal" id="circleMeetingModal" tabindex="-1" aria-labelledby="circleMeetingModalTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg"><div class="modal-content"><div class="modal-header"><div><span class="circle-eyebrow">GROUP SCHEDULE</span><h2 class="modal-title fs-5" id="circleMeetingModalTitle">Schedule one meeting for the group</h2></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div><form id="circleMeetingForm"><div class="modal-body"><p class="text-muted">All <strong>{{ circle_members|length }}</strong> currently approved mentees will be included. New mentees will not be added retroactively.</p><div class="mb-3"><label for="groupMeetingTitle" class="form-label">Meeting title <span aria-hidden="true">*</span></label><input name="title" maxlength="160" id="groupMeetingTitle" class="form-control" required placeholder="Weekly learning session"></div><div class="row g-3 mb-3"><div class="col-sm-7"><label for="groupMeetingDate" class="form-label">Start date and time *</label><input type="datetime-local" id="groupMeetingDate" name="meeting_date" class="form-control" required></div><div class="col-sm-5"><label for="groupMeetingDuration" class="form-label">Length (minutes) *</label><input type="number" id="groupMeetingDuration" name="duration" min="15" max="240" value="60" class="form-control" required></div></div><div class="mb-3"><label class="form-label" for="groupMeetingLink">Video meeting link (optional)</label><input type="url" class="form-control" id="groupMeetingLink" name="meeting_link" placeholder="https://…"><small class="text-muted">Paste a Google Meet, Zoom, or other meeting URL. If a link is provided, it will be clickable directly from the activity feed and schedule list.</small></div><div class="mb-3"><label class="form-label" for="groupMeetingAgenda">Agenda (optional)</label><textarea class="form-control" name="agenda" id="groupMeetingAgenda" rows="4" maxlength="3000" placeholder="Topics, goals, and preparation reminders"></textarea></div><div id="circleMeetingError" class="text-danger" role="alert" hidden></div></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save group meeting</button></div></form></div></div></div>
 <div class="modal fade circle-modal" id="circleCancelModal" tabindex="-1" aria-labelledby="circleCancelTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-sm"><div class="modal-content"><div class="modal-header"><h2 id="circleCancelTitle" class="modal-title fs-5">Cancel group meeting?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p id="circleCancelDescription">All attendees will see this cancellation in the group conversation.</p><div id="circleCancelError" class="text-danger" role="alert" hidden></div></div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Keep meeting</button><button class="btn btn-danger" type="button" id="circleConfirmCancel">Cancel meeting</button></div></div></div></div>
 {% endif %}
 {% endblock %}

@@ -27,8 +27,13 @@
   progressModal?.addEventListener('show.bs.modal', event => {
     const trigger = event.relatedTarget;
     const form = document.getElementById('progressUpdateForm');
+    const scope = trigger.dataset.progressScope === 'group' ? 'group' : 'personal';
     form.dataset.submitUrl = trigger.dataset.progressUrl;
     document.getElementById('mentorProgressRecipient').textContent = trigger.dataset.menteeName;
+    document.getElementById('mentorProgressScopeLabel').textContent = scope === 'group' ? 'Group mentorship' : 'Personal mentorship';
+    document.getElementById('mentorProgressHelp').textContent = scope === 'group'
+      ? 'This update will be applied to every currently active mentee in your mentoring group.'
+      : 'Progress notes are visible only to you and the selected mentee in the group workspace.';
     const percent = document.getElementById('mentorProgressPercentage');
     percent.value = trigger.dataset.progressPercent || '0';
     document.getElementById('mentorProgressOutput').textContent = `${percent.value}%`;

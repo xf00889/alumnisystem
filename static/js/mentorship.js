@@ -263,9 +263,19 @@ function displaySearchResults(mentors) {
             requestBtn.classList.remove('btn-primary');
             requestBtn.classList.add('btn-secondary');
             requestBtn.disabled = true;
+        } else if (mentor.relationship_status === 'APPROVED' || mentor.relationship_status === 'PAUSED') {
+            requestBtn.innerHTML = '<i class="fas fa-user-check me-2"></i>Open Mentee Dashboard';
+            requestBtn.classList.remove('btn-primary');
+            requestBtn.classList.add('btn-success');
+            requestBtn.disabled = false;
+            requestBtn.addEventListener('click', () => {
+                window.location.href = '/mentorship/mentee-dashboard/';
+            });
         } else if (mentor.has_requested) {
             // User has already sent a request to this mentor
-            requestBtn.innerHTML = '<i class="fas fa-check me-2"></i>Request Sent';
+            requestBtn.innerHTML = mentor.relationship_status === 'PENDING'
+                ? '<i class="fas fa-check me-2"></i>Request Sent'
+                : '<i class="fas fa-clock me-2"></i>Mentorship in Progress';
             requestBtn.classList.remove('btn-primary');
             requestBtn.classList.add('btn-secondary');
             requestBtn.disabled = true;
