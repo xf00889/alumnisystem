@@ -7,10 +7,14 @@
 <link rel="stylesheet" href="{% versioned_static 'css/home_redesign.css' %}">
 {% endblock extra_css %}
 
+{% block page_final_css %}
+<link rel="stylesheet" href="{% versioned_static 'css/home_experience.css' %}">
+{% endblock page_final_css %}
+
 {% block content %}
 {% if not user.is_authenticated %}
 {% url 'account_login' as alumni_login_url %}
-<div class="home-redesign" id="home-main">
+<div class="home-redesign home-experience" id="home-main">
     <a class="home-skip-link" href="#home-content">Skip to homepage content</a>
 
     <section class="home-hero hero-section" aria-labelledby="home-hero-title">
@@ -52,21 +56,30 @@
                 </a>
                 <a class="home-hero-secondary" href="#home-content">Explore alumni opportunities <i class="fas fa-arrow-down" aria-hidden="true"></i></a>
             </div>
+            <div class="home-hero-side-note" aria-hidden="true">
+                <span>From campus beginnings</span>
+                <strong>To wherever<br>life takes you.</strong>
+                <i class="fas fa-arrow-up-right" aria-hidden="true"></i>
+            </div>
         </div>
+        <div class="home-hero-bottom" aria-hidden="true"><span>ONE UNIVERSITY · ONE ALUMNI COMMUNITY</span><span>SCROLL TO DISCOVER <i class="fas fa-arrow-down"></i></span></div>
     </section>
 
     <nav class="home-pathways" aria-label="Popular alumni destinations">
         <div class="home-shell home-pathways-grid">
             <p class="home-pathways-label">Start here</p>
             <a href="{{ alumni_login_url }}">
+                <i class="fas fa-briefcase home-pathways-icon" aria-hidden="true"></i>
                 <span>Career opportunities for members</span>
                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
             </a>
             <a href="{% url 'core:landing_events' %}">
+                <i class="fas fa-calendar-alt home-pathways-icon" aria-hidden="true"></i>
                 <span>University events</span>
                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
             </a>
             <a href="{% url 'surveys:tracer_study_public_list' %}">
+                <i class="fas fa-graduation-cap home-pathways-icon" aria-hidden="true"></i>
                 <span>Graduate tracer studies</span>
                 <i class="fas fa-arrow-right" aria-hidden="true"></i>
             </a>
@@ -138,6 +151,22 @@
             </div>
         </section>
 
+        <section class="home-journey" aria-labelledby="home-journey-title">
+            <div class="home-shell home-journey-inner">
+                <div class="home-journey-heading">
+                    <p class="home-eyebrow">For every chapter</p>
+                    <h2 class="home-section-title" id="home-journey-title">The NORSU connection doesn't end at graduation.</h2>
+                    <p>Stay part of the community through the relationships, opportunities, and university activities that matter to you.</p>
+                    <a href="{{ alumni_login_url }}" class="home-journey-link">Join your alumni community <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                </div>
+                <div class="home-journey-steps">
+                    <article><span class="home-journey-number">01</span><i class="fas fa-user-group" aria-hidden="true"></i><h3>Reconnect</h3><p>Find classmates and make new alumni connections.</p></article>
+                    <article><span class="home-journey-number">02</span><i class="fas fa-compass" aria-hidden="true"></i><h3>Explore</h3><p>Discover professional resources and community activities.</p></article>
+                    <article><span class="home-journey-number">03</span><i class="fas fa-hands-holding-circle" aria-hidden="true"></i><h3>Contribute</h3><p>Share your experience and stay involved with NORSU.</p></article>
+                </div>
+            </div>
+        </section>
+
         <section class="home-section home-updates" id="community-updates" aria-labelledby="updates-title">
             <div class="home-shell">
                 <header class="home-section-header home-section-header-split home-section-header-light">
@@ -204,6 +233,38 @@
                 </div>
             </div>
         </section>
+
+        {% if norsu_campuses %}
+        <section class="home-section home-campuses" aria-labelledby="home-campuses-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split">
+                    <div>
+                        <p class="home-eyebrow">Rooted in NORSU</p>
+                        <h2 class="home-section-title" id="home-campuses-title">The campuses that connect us.</h2>
+                    </div>
+                    <div class="home-gallery-side">
+                        <p>Discover the places that have shaped the university community, through images maintained by NORSU.</p>
+                        <div class="home-gallery-controls" aria-label="Campus gallery controls">
+                            <button type="button" data-gallery-prev aria-controls="home-campus-gallery-track" aria-label="Previous campus" disabled><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                            <button type="button" data-gallery-toggle aria-label="Pause campus gallery" aria-pressed="true"><i class="fas fa-pause" aria-hidden="true"></i></button>
+                            <button type="button" data-gallery-next aria-controls="home-campus-gallery-track" aria-label="Next campus"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                        </div>
+                    </div>
+                </header>
+                <div class="home-campus-gallery" data-home-gallery data-gallery-interval="6500" role="region" aria-roledescription="carousel" aria-label="NORSU campus gallery">
+                    <div class="home-campus-track" id="home-campus-gallery-track" data-gallery-track tabindex="0" aria-label="Campus slides">
+                        {% for campus in norsu_campuses %}
+                        <article class="home-campus-slide" data-gallery-slide role="group" aria-roledescription="slide" aria-label="Campus {{ forloop.counter }} of {{ norsu_campuses|length }}">
+                            <div class="home-campus-image"><img src="{{ campus.image.url }}" alt="{{ campus.name }} campus in {{ campus.location }}" width="1120" height="680" loading="lazy" decoding="async"></div>
+                            <div class="home-campus-caption"><span>Campus {{ forloop.counter|stringformat:'02d' }}</span><div><h3>{{ campus.name }}</h3><p class="home-campus-location"><i class="fas fa-location-dot" aria-hidden="true"></i> {{ campus.location }}</p>{% if campus.description %}<p class="home-campus-description">{{ campus.description|truncatewords:35 }}</p>{% endif %}</div></div>
+                        </article>
+                        {% endfor %}
+                    </div>
+                    <div class="home-gallery-progress"><span data-gallery-status aria-live="off">01 / {{ norsu_campuses|length|stringformat:'02d' }}</span><div data-gallery-dots aria-label="Choose campus"></div></div>
+                </div>
+            </div>
+        </section>
+        {% endif %}
 
         {% if vmgo_section and vmgo_section.is_active %}
         <section class="home-section home-foundation" aria-labelledby="foundation-title">
@@ -295,9 +356,11 @@
                     <p>Stories from graduates who continue to learn, lead, and support the NORSU community.</p>
                 </header>
 
-                <div class="home-story-grid">
+                <div class="home-story-gallery" data-home-gallery data-gallery-interval="7800" role="region" aria-roledescription="carousel" aria-label="Alumni testimonials">
+                    <div class="home-gallery-toolbar"><span>Alumni voices</span><div class="home-gallery-controls"><button type="button" data-gallery-prev aria-controls="home-story-track" aria-label="Previous alumni story" disabled><i class="fas fa-arrow-left" aria-hidden="true"></i></button><button type="button" data-gallery-toggle aria-label="Pause alumni stories" aria-pressed="true"><i class="fas fa-pause" aria-hidden="true"></i></button><button type="button" data-gallery-next aria-controls="home-story-track" aria-label="Next alumni story"><i class="fas fa-arrow-right" aria-hidden="true"></i></button></div></div>
+                    <div class="home-story-grid" id="home-story-track" data-gallery-track tabindex="0" aria-label="Alumni stories">
                     {% for testimonial in testimonials %}
-                    <figure class="home-story-item">
+                    <figure class="home-story-item" data-gallery-slide role="group" aria-roledescription="slide" aria-label="Story {{ forloop.counter }} of {{ testimonials|length }}">
                         <blockquote>“{{ testimonial.quote }}”</blockquote>
                         <figcaption>
                             {% if testimonial.image %}
@@ -312,6 +375,8 @@
                         </figcaption>
                     </figure>
                     {% endfor %}
+                    </div>
+                    <div class="home-gallery-progress"><span data-gallery-status aria-live="off">01 / {{ testimonials|length|stringformat:'02d' }}</span><div data-gallery-dots aria-label="Choose alumni story"></div></div>
                 </div>
             </div>
         </section>
@@ -327,21 +392,18 @@
                     </div>
                     <div class="home-team-intro">
                         <p>Meet the people who help graduates stay connected to NORSU and to one another.</p>
-                        <div class="home-team-controls" aria-label="Alumni Affairs gallery controls">
-                            <button type="button" data-team-previous aria-controls="alumni-team-gallery" aria-label="Show previous Alumni Affairs team member" disabled>
-                                <i class="fas fa-arrow-left" aria-hidden="true"></i>
-                            </button>
-                            <button type="button" data-team-next aria-controls="alumni-team-gallery" aria-label="Show next Alumni Affairs team member">
-                                <i class="fas fa-arrow-right" aria-hidden="true"></i>
-                            </button>
+                        <div class="home-team-controls home-gallery-controls" aria-label="Alumni Affairs gallery controls">
+                            <button type="button" data-gallery-prev data-team-previous aria-controls="alumni-team-gallery" aria-label="Previous Alumni Affairs member" disabled><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
+                            <button type="button" data-gallery-toggle aria-label="Pause team gallery" aria-pressed="true"><i class="fas fa-pause" aria-hidden="true"></i></button>
+                            <button type="button" data-gallery-next data-team-next aria-controls="alumni-team-gallery" aria-label="Next Alumni Affairs member"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                         </div>
                     </div>
                 </header>
 
-                <div class="home-team-gallery" data-team-gallery>
-                    <div class="home-team-track" id="alumni-team-gallery" tabindex="0" aria-label="Alumni Affairs team gallery">
+                <div class="home-team-gallery" data-team-gallery data-home-gallery data-gallery-interval="7000" role="region" aria-roledescription="carousel" aria-label="Office of Alumni Affairs team">
+                    <div class="home-team-track" id="alumni-team-gallery" data-gallery-track tabindex="0" aria-label="Alumni Affairs team gallery">
                     {% for staff in staff_members %}
-                    <article class="home-team-member">
+                    <article class="home-team-member" data-gallery-slide role="group" aria-roledescription="slide" aria-label="Member {{ forloop.counter }} of {{ staff_members|length }}">
                         {% if staff.image %}
                             <img src="{{ staff.image.url }}" alt="Portrait of {{ staff.name }}" width="252" height="265" loading="lazy" decoding="async">
                         {% else %}
@@ -360,6 +422,7 @@
                     </article>
                     {% endfor %}
                     </div>
+                    <div class="home-gallery-progress"><span data-gallery-status aria-live="off">01 / {{ staff_members|length|stringformat:'02d' }}</span><div data-gallery-dots aria-label="Choose team member"></div></div>
                 </div>
             </div>
         </section>
@@ -378,7 +441,7 @@
 
                 <div class="home-help-layout {% if not feedback_form or not faqs %}home-help-layout-single{% endif %}">
                     {% if faqs %}
-                    <div class="home-faq-list" aria-label="Frequently asked questions">
+                    <div class="home-faq-list" aria-label="Frequently asked questions" data-home-accordion>
                         {% for faq in faqs %}
                         <details {% if forloop.first %}open{% endif %}>
                             <summary>
@@ -470,5 +533,5 @@
 {% endblock content %}
 
 {% block extra_js %}
-<script src="{% static 'js/home_gallery.js' %}" defer></script>
+<script src="{% versioned_static 'js/home_gallery.js' %}" defer></script>
 {% endblock extra_js %}
