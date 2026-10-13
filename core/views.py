@@ -264,6 +264,15 @@ def home(request):
         {'name': 'Home', 'url': '/'}
     ]
 
+    # Optional Facebook gallery: secure server-side fetch with TTL caching.
+    facebook_posts = []
+    if site_config and site_config.facebook_url:
+        try:
+            from core.services.facebook_page_feed import get_latest_facebook_image_posts
+            facebook_posts = get_latest_facebook_image_posts()
+        except Exception:
+            logger.warning('Optional Facebook gallery could not be prepared', exc_info=False)
+
     # Prepare hero section data from CMS
     hero_data = {
         'hero_headline': site_config.hero_headline if site_config else 'Advance Your Career With 5,000+ NORSU Professionals',
@@ -289,6 +298,7 @@ def home(request):
         'job_count_display': job_count_display,
         # CMS data
         'site_config': site_config,
+        'facebook_posts': facebook_posts,
         'features': features,
         'testimonials': testimonials,
         'faqs': faqs,

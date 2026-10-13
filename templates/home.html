@@ -394,13 +394,12 @@
                         <p>Meet the people who help graduates stay connected to NORSU and to one another.</p>
                         <div class="home-team-controls home-gallery-controls" aria-label="Alumni Affairs gallery controls">
                             <button type="button" data-gallery-prev data-team-previous aria-controls="alumni-team-gallery" aria-label="Previous Alumni Affairs member" disabled><i class="fas fa-arrow-left" aria-hidden="true"></i></button>
-                            <button type="button" data-gallery-toggle aria-label="Pause team gallery" aria-pressed="true"><i class="fas fa-pause" aria-hidden="true"></i></button>
                             <button type="button" data-gallery-next data-team-next aria-controls="alumni-team-gallery" aria-label="Next Alumni Affairs member"><i class="fas fa-arrow-right" aria-hidden="true"></i></button>
                         </div>
                     </div>
                 </header>
 
-                <div class="home-team-gallery" data-team-gallery data-home-gallery data-gallery-interval="7000" role="region" aria-roledescription="carousel" aria-label="Office of Alumni Affairs team">
+                <div class="home-team-gallery" data-team-gallery data-home-gallery data-gallery-autoplay="false" role="region" aria-roledescription="carousel" aria-label="Office of Alumni Affairs team">
                     <div class="home-team-track" id="alumni-team-gallery" data-gallery-track tabindex="0" aria-label="Alumni Affairs team gallery">
                     {% for staff in staff_members %}
                     <article class="home-team-member" data-gallery-slide role="group" aria-roledescription="slide" aria-label="Member {{ forloop.counter }} of {{ staff_members|length }}">
@@ -414,7 +413,7 @@
                             <p>{{ staff.position }}</p>
                             {% if staff.department %}<small>{{ staff.department }}</small>{% endif %}
                             {% if staff.email %}
-                                <a href="mailto:{{ staff.email }}" aria-label="Email {{ staff.name }}">
+                                <a class="home-team-email" href="mailto:{{ staff.email }}?subject=NORSU%20Alumni%20Affairs%20Inquiry" aria-label="Compose email to {{ staff.name }}" title="Email {{ staff.name }}">
                                     <i class="fas fa-envelope" aria-hidden="true"></i>
                                 </a>
                             {% endif %}
@@ -439,7 +438,7 @@
                     <p>Find quick answers or tell the Alumni Affairs team what would make this network more useful to you.</p>
                 </header>
 
-                <div class="home-help-layout {% if not feedback_form or not faqs %}home-help-layout-single{% endif %}">
+                <div class="home-help-layout {% if feedback_form and not faqs %}home-help-layout-feedback-only{% elif faqs and not feedback_form %}home-help-layout-faq-only{% endif %}">
                     {% if faqs %}
                     <div class="home-faq-list" aria-label="Frequently asked questions" data-home-accordion>
                         {% for faq in faqs %}
@@ -507,8 +506,55 @@
                             </button>
                         </form>
                     </aside>
+                    {% if not faqs %}
+                    <aside class="home-help-guidance" aria-labelledby="home-help-guidance-title">
+                        <p class="home-eyebrow">Make your voice heard</p>
+                        <h3 id="home-help-guidance-title">Every NORSU experience matters.</h3>
+                        <p>Use the feedback form to share a question, suggestion, or concern about the alumni network.</p>
+                        <div class="home-help-guidance-steps" aria-label="How to send helpful feedback">
+                            <div><span aria-hidden="true">01</span><div><h4>Choose a category</h4><p>Select the topic and priority that best describe your message.</p></div></div>
+                            <div><span aria-hidden="true">02</span><div><h4>Explain your feedback</h4><p>Give your message a clear subject and include relevant details.</p></div></div>
+                            <div><span aria-hidden="true">03</span><div><h4>Send securely</h4><p>Submit the form or visit our contact page for other contact details.</p></div></div>
+                        </div>
+                        <a href="{% url 'core:contact_us' %}" class="home-help-guidance-link">Contact Alumni Affairs <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+                    </aside>
+                    {% endif %}
                     {% endif %}
                 </div>
+            </div>
+        </section>
+        {% endif %}
+
+        {% if site_config.facebook_url %}
+        <section class="home-section home-facebook" aria-labelledby="home-facebook-title">
+            <div class="home-shell">
+                <header class="home-section-header home-section-header-split home-facebook-heading">
+                    <div>
+                        <p class="home-eyebrow">From our Facebook community</p>
+                        <h2 class="home-section-title" id="home-facebook-title">Follow NORSU Alumni on Facebook.</h2>
+                    </div>
+                    <div class="home-facebook-heading-right">
+                        <p>See the latest photos and updates from the university's alumni community.</p>
+                        <a class="home-button home-button-primary" href="{{ site_config.facebook_url }}" target="_blank" rel="noopener noreferrer"><i class="fab fa-facebook-f" aria-hidden="true"></i> Visit our Facebook page <i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                    </div>
+                </header>
+                {% if facebook_posts %}
+                <div class="home-facebook-gallery" role="list" aria-label="Recent Facebook posts with images">
+                    {% for fb_post in facebook_posts %}
+                    <article class="home-facebook-card" role="listitem">
+                        <a href="{{ fb_post.permalink }}" target="_blank" rel="noopener noreferrer" aria-label="View this NORSU Facebook post">
+                            <div class="home-facebook-image"><img src="{{ fb_post.image }}" alt="Image shared in NORSU Alumni Facebook post" loading="lazy" decoding="async" referrerpolicy="no-referrer"></div>
+                            <div class="home-facebook-card-copy">
+                                <span class="home-facebook-label"><i class="fab fa-facebook-f" aria-hidden="true"></i> Facebook post {% if fb_post.created %} · {{ fb_post.created|date:"M j, Y" }}{% endif %}</span>
+                                {% if fb_post.text %}<p>{{ fb_post.text|truncatechars:150 }}</p>{% else %}<p>View this update on Facebook.</p>{% endif %}
+                            </div>
+                        </a>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="home-facebook-fallback"><i class="fab fa-facebook-f" aria-hidden="true"></i><p>Follow our official Facebook page for alumni news, photos, and community announcements.</p><a href="{{ site_config.facebook_url }}" target="_blank" rel="noopener noreferrer">Browse on Facebook <i class="fas fa-arrow-right" aria-hidden="true"></i></a></div>
+                {% endif %}
             </div>
         </section>
         {% endif %}

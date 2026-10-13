@@ -29,11 +29,11 @@
       const toggle = gallery.querySelector('[data-gallery-toggle]') || gallery.closest('section')?.querySelector('[data-gallery-toggle]');
       const dots = gallery.querySelector('[data-gallery-dots]');
       const status = gallery.querySelector('[data-gallery-status]');
-      if (!track || !items.length || !prev || !next || !toggle) return;
+      if (!track || !items.length || !prev || !next) return;
 
       const intervalTime = Math.max(5000, Number(gallery.dataset.galleryInterval) || 6500);
       let visible = false;
-      let playing = items.length > 1 && !reduceMotion.matches;
+      let playing = Boolean(toggle) && gallery.dataset.galleryAutoplay !== 'false' && items.length > 1 && !reduceMotion.matches;
       let interrupted = false;
       let timer = null;
       let resizeObserver = null;
@@ -72,6 +72,7 @@
         timer = null;
       }
       function syncToggle() {
+        if (!toggle) return;
         toggle.setAttribute('aria-pressed', String(playing));
         const canPlay = items.length > 1 && maxScroll() > 2 && !reduceMotion.matches;
         toggle.disabled = !canPlay;
@@ -83,7 +84,7 @@
         toggle.append(symbol);
       }
       function setPlaying(value) {
-        playing = Boolean(value && items.length > 1 && !reduceMotion.matches);
+        playing = Boolean(toggle && value && items.length > 1 && !reduceMotion.matches);
         syncToggle();
         schedule();
       }
@@ -103,14 +104,14 @@
 
       prev.addEventListener('click', () => { pauseOnInteraction(); scrollToIndex(currentIndex() - 1); });
       next.addEventListener('click', () => { pauseOnInteraction(); scrollToIndex(currentIndex() + 1); });
-      toggle.addEventListener('click', () => {
+      if (toggle) toggle.addEventListener('click', () => {
         interrupted = false;
         setPlaying(!playing);
       });
       track.addEventListener('pointerdown', pauseOnInteraction, { passive: true });
       gallery.addEventListener('focusin', pauseOnInteraction);
       // Controls may live in the adjacent heading rather than the gallery.
-      [prev, next, toggle].forEach((button) => button.addEventListener('focus', pauseOnInteraction));
+      [prev, next, toggle].filter(Boolean).forEach((button) => button.addEventListener('focus', pauseOnInteraction));
       track.addEventListener('keydown', (event) => {
         if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(event.key)) return;
         pauseOnInteraction();

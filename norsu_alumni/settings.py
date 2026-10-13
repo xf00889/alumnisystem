@@ -860,3 +860,8 @@ LOCATION_GEOCODER_CONTACT_EMAIL = config('LOCATION_GEOCODER_CONTACT_EMAIL', defa
 # in the provider dashboard. They are intentionally rendered only on staff pages.
 LOCATION_CARTO_BASEMAP_KEY = config('LOCATION_CARTO_BASEMAP_KEY', default='').strip()
 LOCATION_MAPTILER_BASEMAP_KEY = config('LOCATION_MAPTILER_BASEMAP_KEY', default='').strip()
+
+# Optional read-only Facebook Page image feed for the public landing page.
+# Access token is server-side only and never exposed in templates or JavaScript.
+FACEBOOK_PAGE_ID = os.environ.get('FACEBOOK_PAGE_ID', '')
+FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN', '')
