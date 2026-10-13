@@ -153,6 +153,12 @@ def mentee_dashboard(request):
             meeting_date__gt=timezone.now()
         ).select_related('mentorship', 'mentorship__mentor', 'mentorship__mentor__user').order_by('meeting_date')[:5]
         
+        from .models import MentorCircleMeeting
+        upcoming_group_meetings = MentorCircleMeeting.objects.filter(
+            participants__mentee=request.user, participants__status='APPROVED',
+            is_cancelled=False, meeting_date__gt=timezone.now()
+        ).select_related('mentor__user').distinct().order_by('meeting_date')[:6]
+
         # Get recent messages
         recent_messages = MentorshipMessage.objects.filter(
             mentorship__mentee=request.user,
@@ -171,6 +177,7 @@ def mentee_dashboard(request):
             'completed_mentorships': completed_mentorships,
             'rejected_requests': rejected_requests,
             'upcoming_meetings': upcoming_meetings,
+            'upcoming_group_meetings': upcoming_group_meetings,
             'recent_messages': recent_messages,
             'progress_updates': progress_updates,
             'total_active_mentorships': active_mentorships.count(),
@@ -291,11 +298,22 @@ def mentor_dashboard(request):
             meeting_date__gt=timezone.now()
         ).select_related('mentorship', 'mentorship__mentee').order_by('meeting_date')[:5]
 
+        # One shared group meeting appears once, not once per mentee.
+        from .models import MentorCircleMeeting
+        upcoming_circle_meetings = MentorCircleMeeting.objects.filter(
+            mentor=mentor, is_cancelled=False, meeting_date__gt=timezone.now()
+        ).prefetch_related('participants').order_by('meeting_date')[:5]
+
         # Get recent progress updates
         recent_progress = MentorshipProgress.objects.filter(
             mentorship__mentor=mentor,
             mentorship__status='APPROVED'
         ).select_related('mentorship', 'mentorship__mentee').order_by('-created_at')[:5]
+
+        from .models import MentorCircleEntry
+        circle_messages = MentorCircleEntry.objects.filter(
+            mentor=mentor, kind='MESSAGE', mentorship__isnull=True
+        ).select_related('author').order_by('-created_at')[:3]
 
         # Calculate statistics for the analytics cards
         total_active_mentees = active_mentorships.count()
@@ -329,6 +347,8 @@ def mentor_dashboard(request):
             'active_mentorships': active_mentorships,
             'completed_mentorships': completed_mentorships,
             'upcoming_meetings': upcoming_meetings,
+            'upcoming_circle_meetings': upcoming_circle_meetings,
+            'circle_messages': circle_messages,
             'recent_progress': recent_progress,
             'total_active_mentees': total_active_mentees,
             'total_pending_requests': total_pending_requests,

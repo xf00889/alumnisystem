@@ -179,3 +179,54 @@ class TimelineMilestone(models.Model):
     
     def __str__(self):
         return f"Week/Day {self.period}: {self.description} - {self.get_status_display()}"
+
+
+class MentorCircleMeeting(models.Model):
+    """One shared meeting scheduled for the mentor's selected active mentees."""
+    mentor = models.ForeignKey('accounts.Mentor', on_delete=models.CASCADE, related_name='circle_meetings')
+    participants = models.ManyToManyField('accounts.MentorshipRequest', related_name='circle_meetings')
+    title = models.CharField(max_length=160)
+    agenda = models.TextField(blank=True)
+    meeting_date = models.DateTimeField()
+    duration = models.PositiveSmallIntegerField(default=60)
+    meeting_link = models.URLField(blank=True)
+    is_cancelled = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['meeting_date']
+
+    def __str__(self):
+        return self.title
+
+
+class MentorCircleEntry(models.Model):
+    """Shared group messages and access-scoped mentorship activity entries."""
+    KIND_CHOICES = (
+        ('MESSAGE', 'Message'),
+        ('MEETING', 'Meeting'),
+        ('PROGRESS', 'Progress update'),
+        ('TIMELINE', 'Timeline update'),
+    )
+    mentor = models.ForeignKey('accounts.Mentor', on_delete=models.CASCADE, related_name='circle_entries')
+    mentorship = models.ForeignKey(
+        'accounts.MentorshipRequest', on_delete=models.CASCADE, null=True, blank=True,
+        related_name='circle_entries',
+        help_text='When set, only this mentee and their mentor may read the entry.',
+    )
+    meeting = models.ForeignKey(
+        MentorCircleMeeting, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='activity_entries',
+    )
+    author = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, related_name='mentor_circle_entries')
+    kind = models.CharField(max_length=12, choices=KIND_CHOICES)
+    title = models.CharField(max_length=180, blank=True)
+    body = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['created_at', 'pk']
+        indexes = [models.Index(fields=['mentor', '-created_at'], name='mentor_circle_activity_idx')]
+
+    def __str__(self):
+        return self.title or self.get_kind_display()

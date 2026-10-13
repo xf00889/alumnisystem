@@ -1184,6 +1184,11 @@
         </div>
     </div>
 
+    {% if upcoming_group_meetings %}
+    <section class="card mb-3" aria-label="Upcoming group mentorship meetings"><div class="card-header"><h2 class="h5 mb-0">Group mentorship sessions</h2></div><div class="card-body d-flex flex-wrap gap-3">
+      {% for meeting in upcoming_group_meetings %}<div class="border rounded p-3"><strong>{{ meeting.title }}</strong><p class="small text-muted my-1">{{ meeting.meeting_date|date:'M j, Y · g:i A' }} · {{ meeting.duration }} minutes</p><a class="btn btn-sm btn-outline-primary" href="{% url 'mentorship:mentor_circle' meeting.mentor.id %}">Open group workspace</a></div>{% endfor %}
+    </div></section>
+    {% endif %}
     <!-- Main Dashboard Content -->
         <div class="row">
         <!-- Left Column (8 cols) -->
@@ -1198,6 +1203,7 @@
                     <div class="active-mentorships">
                     <div class="accordion" id="mentorshipAccordion">
                     {% for mentorship in active_mentorships %}
+                            <div class="mb-2"><a class="btn btn-sm btn-primary" href="{% url 'mentorship:mentor_circle' mentorship.mentor.id %}"><i class="fas fa-comments me-1"></i> Open mentoring group messages & schedule</a></div>
                             <div class="accordion-item mentorship-item" data-mentorship-id="{{ mentorship.id }}">
                             <h2 class="accordion-header">
                                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#mentorship-{{ mentorship.id }}" aria-expanded="false" aria-controls="mentorship-{{ mentorship.id }}">

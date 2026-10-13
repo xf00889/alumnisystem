@@ -1,0 +1,22 @@
+{% if entries %}
+  {% for entry in entries %}
+  <article class="circle-entry {% if entry.kind == 'MESSAGE' %}circle-entry--message{% else %}circle-entry--activity{% endif %}{% if entry.mentorship_id %} circle-entry--private{% endif %}">
+    <div class="circle-entry__top">
+      <span class="circle-entry__author">{% if entry.author %}{{ entry.author.get_full_name|default:entry.author.username }}{% else %}Mentorship update{% endif %}</span>
+      <time datetime="{{ entry.created_at|date:'c' }}">{{ entry.created_at|date:'M j, Y g:i A' }}</time>
+    </div>
+    {% if entry.kind != 'MESSAGE' %}
+      <div class="circle-entry__label">
+        {% if entry.kind == 'MEETING' %}<i class="fas fa-calendar-check"></i>
+        {% elif entry.kind == 'PROGRESS' %}<i class="fas fa-chart-line"></i>
+        {% else %}<i class="fas fa-list-check"></i>{% endif %}
+        {{ entry.get_kind_display }}{% if entry.mentorship_id %} · Private to {{ entry.mentorship.mentee.get_full_name }} and mentor{% endif %}
+      </div>
+      {% if entry.title %}<strong>{{ entry.title }}</strong>{% endif %}
+    {% endif %}
+    {% if entry.body %}<p>{{ entry.body|linebreaksbr }}</p>{% endif %}
+  </article>
+  {% endfor %}
+{% else %}
+  <div class="circle-empty"><i class="far fa-comments"></i><strong>Start the group conversation</strong><p>Messages, meetings, and personal mentorship updates will appear here when available.</p></div>
+{% endif %}

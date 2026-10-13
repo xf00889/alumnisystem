@@ -53,9 +53,9 @@
       <div class="col-lg-4 text-lg-end mt-3 mt-lg-0">
         {% if not is_disabled %}
           <div class="form-check form-switch d-inline-block me-3">
-            <input class="form-check-input" type="checkbox" id="availabilityToggle" 
+            <input class="form-check-input" type="checkbox" id="availabilityToggle" data-url="{% url 'mentorship:toggle_availability' mentor.id %}" 
                    {% if mentor.accepting_mentees %}checked{% endif %}
-                   onchange="toggleAvailability()">
+>
             <label class="form-check-label text-white" for="availabilityToggle">
               Available for Mentees
             </label>
@@ -83,8 +83,18 @@
       <h2>Make every mentoring moment count</h2>
       <p>Review new requests, support current mentees, and stay on top of upcoming sessions.</p>
     </div>
-    {% if total_pending_requests %}<a href="#pendingMentorshipRequests" class="btn btn-primary btn-sm">Review {{ total_pending_requests }} pending request{{ total_pending_requests|pluralize }}</a>{% endif %}
+    <div class="d-flex flex-wrap gap-2">
+      {% if total_pending_requests %}<a href="#pendingMentorshipRequests" class="btn btn-outline-primary btn-sm">Review {{ total_pending_requests }} pending request{{ total_pending_requests|pluralize }}</a>{% endif %}
+      <a href="{% url 'mentorship:mentor_circle' mentor.id %}" class="btn btn-primary btn-sm"><i class="fas fa-comments me-1"></i> Group workspace · {{ total_active_mentees }} mentees</a>
+    </div>
   </div>
+
+  <section class="mentor-circle-summary" aria-label="Group messages and shared calendar">
+    <div><span class="mentor-workspace-intro__eyebrow">GROUP COMMUNICATION</span><h2>Mentorship group messages & schedule</h2><p>Message your active mentees together, arrange one session for the group, and follow private progress and timeline activity.</p>
+      {% if circle_messages %}<div class="mentor-circle-summary__previews">{% for entry in circle_messages %}<p><strong>{{ entry.author.get_full_name|default:entry.author.username }}:</strong> {{ entry.body|truncatechars:100 }}</p>{% endfor %}</div>{% endif %}
+    </div>
+    <a class="btn btn-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}"><i class="fas fa-comments me-1"></i> Open group messages</a>
+  </section>
 
   <!-- Analytics Cards -->
   <div class="row mb-4">
@@ -261,29 +271,21 @@
 
                   <!-- Action Buttons -->
                   <div class="d-flex gap-2 flex-wrap">
-                    <button class="btn btn-sm btn-primary" 
-                            data-bs-toggle="modal" 
-                            data-bs-target="#scheduleMeetingModal"
-                            onclick="setMentorshipId({{ mentorship.id }})">
-                      <i class="fas fa-calendar-plus me-1"></i> Schedule Meeting
+                    <a class="btn btn-sm btn-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}"><i class="fas fa-comments me-1"></i> Group messages & meetings</a>
+                    <button type="button" class="btn btn-sm btn-info"
+                            data-bs-toggle="modal" data-bs-target="#progressUpdateModal"
+                            data-progress-url="{% url 'mentorship:circle_update_progress' mentor.id mentorship.id %}"
+                            data-mentee-name="{{ mentorship.mentee.get_full_name|default:mentorship.mentee.username }}"
+                            data-progress-percent="{{ mentorship.progress_percentage }}">
+                      <i class="fas fa-chart-line me-1"></i> Update personal progress
                     </button>
-                    <button class="btn btn-sm btn-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#sendMessageModal"
-                            onclick="setMenteeInfo({{ mentorship.id }}, '{{ mentorship.mentee.get_full_name|escapejs }}')">
-                      <i class="fas fa-envelope me-1"></i> Send Message
-                    </button>
-                    <button class="btn btn-sm btn-info"
-                            data-bs-toggle="modal"
-                            data-bs-target="#progressUpdateModal"
-                            onclick="setMentorshipId({{ mentorship.id }})">
-                      <i class="fas fa-chart-line me-1"></i> Update Progress
-                    </button>
-                    <button class="btn btn-sm btn-outline-secondary"
-                            data-bs-toggle="modal"
-                            data-bs-target="#timelineModal"
-                            onclick="setMentorshipId({{ mentorship.id }})">
-                      <i class="fas fa-tasks me-1"></i> Manage Timeline
+                    <button type="button" class="btn btn-sm btn-outline-secondary"
+                            data-bs-toggle="modal" data-bs-target="#timelineModal"
+                            data-timeline-url="{% url 'mentorship:circle_update_timeline' mentor.id mentorship.id %}"
+                            data-timeline="{{ mentorship.timeline_milestones }}"
+                            data-end-date="{{ mentorship.expected_end_date|date:'Y-m-d' }}"
+                            data-mentee-name="{{ mentorship.mentee.get_full_name|default:mentorship.mentee.username }}">
+                      <i class="fas fa-tasks me-1"></i> Manage personal timeline
                     </button>
                   </div>
                 </div>
@@ -324,7 +326,7 @@
                 <span class="badge bg-primary">{{ progress.mentorship.progress_percentage }}%</span>
                 {% endif %}
               </div>
-              <p class="mb-0 small text-muted">{{ progress.notes|truncatewords:30 }}</p>
+              <p class="mb-0 small text-muted">{{ progress.description|truncatewords:30 }}</p>
             </li>
             {% endfor %}
           </ul>
@@ -375,6 +377,10 @@
           <h5 class="mb-0 fw-semibold">Upcoming Meetings</h5>
         </div>
         <div class="card-body">
+          {% if upcoming_circle_meetings %}
+            <h6 class="text-uppercase text-muted small fw-bold">Group sessions</h6>
+            {% for meeting in upcoming_circle_meetings %}<div class="py-2 border-bottom"><strong>{{ meeting.title }}</strong><p class="small text-muted mb-1">{{ meeting.meeting_date|date:'M j, Y · g:i A' }} · {{ meeting.participants.count }} mentees</p><a class="btn btn-sm btn-outline-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}">View group meeting</a></div>{% endfor %}
+          {% endif %}
           {% if upcoming_meetings %}
             {% for meeting in upcoming_meetings %}
             <div class="{% if not forloop.last %}border-bottom{% endif %} py-3">
@@ -391,8 +397,10 @@
                 <i class="fas fa-video me-2"></i>Join Meeting
               </a>
               {% endif %}
-              <button class="btn btn-sm btn-outline-danger w-100" 
-                      onclick="cancelMeeting({{ meeting.id }})">
+              <button type="button" class="btn btn-sm btn-outline-danger w-100" data-bs-toggle="modal"
+                      data-bs-target="#personalMeetingCancelModal"
+                      data-meeting-name="{{ meeting.title }}"
+                      data-cancel-url="{% url 'mentorship:cancel_personal_meeting' meeting.id %}">
                 <i class="fas fa-trash-alt me-1"></i>Cancel Meeting
               </button>
             </div>
@@ -412,425 +420,34 @@
 
 <!-- Modals -->
 
-<!-- Schedule Meeting Modal -->
-<div class="modal fade" id="scheduleMeetingModal" tabindex="-1" aria-labelledby="scheduleMeetingModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="scheduleMeetingModalLabel">Schedule Meeting</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="scheduleMeetingForm">
-          <input type="hidden" id="meetingMentorshipId" name="mentorship_id">
-          
-          <div class="mb-3">
-            <label for="meetingTitle" class="form-label">Meeting Title</label>
-            <input type="text" class="form-control" id="meetingTitle" name="title" required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="meetingDate" class="form-label">Date & Time</label>
-            <input type="datetime-local" class="form-control" id="meetingDate" name="meeting_date" required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="meetingLink" class="form-label">Meeting Link (Optional)</label>
-            <input type="url" class="form-control" id="meetingLink" name="meeting_link" 
-                   placeholder="https://zoom.us/j/...">
-            <div class="form-text">Add a video call link for virtual meetings</div>
-          </div>
-          
-          <div class="mb-3">
-            <label for="meetingNotes" class="form-label">Notes (Optional)</label>
-            <textarea class="form-control" id="meetingNotes" name="notes" rows="3"></textarea>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="scheduleMeeting()">
-          <span class="spinner-border spinner-border-sm d-none" id="scheduleMeetingSpinner"></span>
-          Schedule Meeting
-        </button>
-      </div>
-    </div>
-  </div>
+<!-- Personal progress, scoped to the selected mentorship. -->
+<div class="modal fade mentorship-editor-modal" id="progressUpdateModal" tabindex="-1" aria-labelledby="progressUpdateModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered"><div class="modal-content">
+    <div class="modal-header"><div><small class="text-uppercase text-muted fw-bold">Personal mentorship</small><h2 class="modal-title fs-5" id="progressUpdateModalLabel">Update progress</h2><p class="small text-muted mb-0" id="mentorProgressRecipient"></p></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <form id="progressUpdateForm"><div class="modal-body">
+      <p class="small text-muted">Progress notes are visible only to you and this mentee in the group workspace.</p>
+      <div class="mb-3"><label class="form-label" for="mentorProgressPercentage">Overall progress</label><input type="range" id="mentorProgressPercentage" name="percentage" class="form-range" min="0" max="100" value="0"><output for="mentorProgressPercentage" id="mentorProgressOutput" class="fw-bold">0%</output></div>
+      <div class="mb-3"><label class="form-label" for="mentorProgressNote">What changed? *</label><textarea id="mentorProgressNote" name="note" class="form-control" rows="4" maxlength="2000" required placeholder="Summarize achievements, blockers, and next steps"></textarea></div>
+      <div id="mentorProgressError" class="text-danger small" role="alert" hidden></div>
+    </div><div class="modal-footer"><button type="button" data-bs-dismiss="modal" class="btn btn-outline-secondary">Back</button><button type="submit" class="btn btn-primary">Save progress</button></div></form>
+  </div></div>
 </div>
-
-<!-- Send Message Modal -->
-<div class="modal fade" id="sendMessageModal" tabindex="-1" aria-labelledby="sendMessageModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="sendMessageModalLabel">Send Message</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="sendMessageForm">
-          <input type="hidden" id="messageMentorshipId" name="mentorship_id">
-          
-          <div class="mb-3">
-            <label class="form-label">To:</label>
-            <p class="fw-semibold" id="messageRecipient"></p>
-          </div>
-          
-          <div class="mb-3">
-            <label for="messageSubject" class="form-label">Subject</label>
-            <input type="text" class="form-control" id="messageSubject" name="subject" required>
-          </div>
-          
-          <div class="mb-3">
-            <label for="messageContent" class="form-label">Message</label>
-            <textarea class="form-control" id="messageContent" name="content" rows="5" required></textarea>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="sendMessage()">
-          <span class="spinner-border spinner-border-sm d-none" id="sendMessageSpinner"></span>
-          Send Message
-        </button>
-      </div>
-    </div>
-  </div>
+<!-- Structured personal timeline replaces the raw multiline-text editor. -->
+<div class="modal fade mentorship-editor-modal" id="timelineModal" tabindex="-1" aria-labelledby="timelineModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable"><div class="modal-content">
+    <div class="modal-header"><div><small class="text-uppercase text-muted fw-bold">Personal mentorship</small><h2 class="modal-title fs-5" id="timelineModalLabel">Manage timeline</h2><p class="small text-muted mb-0" id="mentorTimelineRecipient"></p></div><button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button></div>
+    <form id="timelineForm"><div class="modal-body">
+      <p class="small text-muted">Organize milestones by week or period, assign their status, and save the expected completion date. Changes appear privately in the group activity stream.</p>
+      <div class="mb-3"><label for="mentorExpectedEndDate" class="form-label">Expected completion date (optional)</label><input id="mentorExpectedEndDate" name="expected_end_date" type="date" class="form-control"></div>
+      <div class="d-flex justify-content-between gap-2 align-items-center mb-2"><strong>Milestones</strong><button type="button" id="mentorAddMilestone" class="btn btn-sm btn-outline-primary"><i class="fas fa-plus me-1"></i> Add milestone</button></div>
+      <div id="mentorMilestoneRows" class="mentor-milestones"></div><div class="my-3"><label for="mentorTimelineNotes" class="form-label">Additional notes (optional)</label><textarea id="mentorTimelineNotes" name="notes" class="form-control" rows="3" maxlength="2000"></textarea></div><template id="mentorMilestoneRowTemplate"><div class="mentor-milestone-row"><div><label class="form-label">Week / period</label><input class="form-control" name="period[]" maxlength="40" placeholder="1–2" required></div><div><label class="form-label">Milestone description</label><input class="form-control" name="description[]" maxlength="300" placeholder="Complete project review" required></div><div><label class="form-label">Status</label><select class="form-select" name="status[]"><option value="NOT_STARTED">Not started</option><option value="IN_PROGRESS">In progress</option><option value="COMPLETED">Completed</option></select></div><button type="button" class="btn btn-outline-danger mentor-remove-milestone" aria-label="Remove this milestone"><i class="fas fa-times"></i></button></div></template>
+      <div id="mentorTimelineError" class="text-danger small" role="alert" hidden></div>
+    </div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button><button class="btn btn-primary" type="submit">Save timeline</button></div></form>
+  </div></div>
 </div>
-
-<!-- Progress Update Modal -->
-<div class="modal fade" id="progressUpdateModal" tabindex="-1" aria-labelledby="progressUpdateModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="progressUpdateModalLabel">Update Progress</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="progressUpdateForm">
-          <input type="hidden" id="progressMentorshipId" name="mentorship_id">
-          
-          <div class="mb-3">
-            <label for="progressPercentage" class="form-label">Progress Percentage</label>
-            <input type="range" class="form-range" id="progressPercentage" name="progress_percentage" 
-                   min="0" max="100" value="0" oninput="updateProgressLabel(this.value)">
-            <div class="d-flex justify-content-between">
-              <small class="text-muted">0%</small>
-              <small class="fw-semibold" id="progressLabel">0%</small>
-              <small class="text-muted">100%</small>
-            </div>
-          </div>
-          
-          <div class="mb-3">
-            <label for="progressNotes" class="form-label">Progress Notes</label>
-            <textarea class="form-control" id="progressNotes" name="notes" rows="4" required></textarea>
-            <div class="form-text">Describe the progress made and any achievements</div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="updateProgress()">
-          <span class="spinner-border spinner-border-sm d-none" id="progressUpdateSpinner"></span>
-          Update Progress
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Timeline Management Modal -->
-<div class="modal fade" id="timelineModal" tabindex="-1" aria-labelledby="timelineModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-lg">
-    <div class="modal-content">
-      <div class="modal-header">
-        <h5 class="modal-title" id="timelineModalLabel">Manage Timeline</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body">
-        <form id="timelineForm">
-          <input type="hidden" id="timelineMentorshipId" name="mentorship_id">
-          
-          <div class="mb-3">
-            <label for="expectedEndDate" class="form-label">Expected End Date</label>
-            <input type="date" class="form-control" id="expectedEndDate" name="expected_end_date">
-          </div>
-          
-          <div class="mb-3">
-            <label for="timelineMilestones" class="form-label">Timeline Milestones</label>
-            <textarea class="form-control" id="timelineMilestones" name="timeline_milestones" rows="8"
-                      placeholder="Week/Day 1: Initial meeting and goal setting&#10;Week/Day 2: First project review&#10;Week/Day 3: Mid-point assessment"></textarea>
-            <div class="form-text">Enter milestones one per line</div>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-        <button type="button" class="btn btn-primary" onclick="updateTimeline()">
-          <span class="spinner-border spinner-border-sm d-none" id="timelineUpdateSpinner"></span>
-          Update Timeline
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
+<div class="modal fade mentorship-editor-modal" id="personalMeetingCancelModal" tabindex="-1" aria-labelledby="personalMeetingCancelTitle" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="personalMeetingCancelTitle">Cancel personal meeting?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p id="personalMeetingCancelDescription">This meeting will be marked as cancelled. The mentee will see the change in their private activity.</p><div class="text-danger small" id="personalMeetingCancelError" role="alert" hidden></div></div><div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal" type="button">Keep meeting</button><button class="btn btn-danger" id="personalMeetingCancelConfirm" type="button">Cancel meeting</button></div></div></div></div>
 {% endblock %}
-
 {% block extra_js %}
-<script>
-// CSRF Token Setup
-function getCookie(name) {
-  let cookieValue = null;
-  if (document.cookie && document.cookie !== '') {
-    const cookies = document.cookie.split(';');
-    for (let i = 0; i < cookies.length; i++) {
-      const cookie = cookies[i].trim();
-      if (cookie.substring(0, name.length + 1) === (name + '=')) {
-        cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-        break;
-      }
-    }
-  }
-  return cookieValue;
-}
-
-const csrftoken = getCookie('csrftoken');
-
-// Toast notifications now use ToastUtils API
-
-function createToastContainer() {
-  const container = document.createElement('div');
-  container.id = 'toastContainer';
-  container.className = 'toast-container position-fixed top-0 end-0 p-3';
-  container.style.zIndex = '9999';
-  document.body.appendChild(container);
-  return container;
-}
-
-// Toggle Availability
-function toggleAvailability() {
-  const checkbox = document.getElementById('availabilityToggle');
-  const isAvailable = checkbox.checked;
-  
-  fetch(`/api/mentors/{{ mentor.id }}/toggle_availability/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrftoken
-    },
-    body: JSON.stringify({ is_available: isAvailable })
-  })
-  .then(response => response.json())
-  .then(data => {
-    ToastUtils.showSuccess(data.message);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to update availability', 'danger');
-    checkbox.checked = !isAvailable;
-  });
-}
-
-// Modal Helper Functions
-function setMentorshipId(mentorshipId) {
-  document.getElementById('meetingMentorshipId').value = mentorshipId;
-  document.getElementById('progressMentorshipId').value = mentorshipId;
-  document.getElementById('timelineMentorshipId').value = mentorshipId;
-}
-
-function setMenteeInfo(mentorshipId, menteeName) {
-  document.getElementById('messageMentorshipId').value = mentorshipId;
-  document.getElementById('messageRecipient').textContent = menteeName;
-}
-
-// Schedule Meeting
-function scheduleMeeting() {
-  const form = document.getElementById('scheduleMeetingForm');
-  const formData = new FormData(form);
-  const spinner = document.getElementById('scheduleMeetingSpinner');
-  
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
-  
-  spinner.classList.remove('d-none');
-  
-  fetch('/api/mentorship-meetings/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrftoken
-    },
-    body: JSON.stringify(Object.fromEntries(formData))
-  })
-  .then(response => response.json())
-  .then(data => {
-    ToastUtils.showSuccess('Meeting scheduled successfully');
-    bootstrap.Modal.getInstance(document.getElementById('scheduleMeetingModal')).hide();
-    form.reset();
-    setTimeout(() => location.reload(), 1000);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to schedule meeting', 'danger');
-  })
-  .finally(() => {
-    spinner.classList.add('d-none');
-  });
-}
-
-// Send Message
-function sendMessage() {
-  const form = document.getElementById('sendMessageForm');
-  const formData = new FormData(form);
-  const spinner = document.getElementById('sendMessageSpinner');
-  
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
-  
-  spinner.classList.remove('d-none');
-  
-  fetch('/api/mentorship-messages/', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrftoken
-    },
-    body: JSON.stringify(Object.fromEntries(formData))
-  })
-  .then(response => response.json())
-  .then(data => {
-    ToastUtils.showSuccess('Message sent successfully');
-    bootstrap.Modal.getInstance(document.getElementById('sendMessageModal')).hide();
-    form.reset();
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to send message', 'danger');
-  })
-  .finally(() => {
-    spinner.classList.add('d-none');
-  });
-}
-
-// Update Progress
-function updateProgressLabel(value) {
-  document.getElementById('progressLabel').textContent = value + '%';
-}
-
-function updateProgress() {
-  const form = document.getElementById('progressUpdateForm');
-  const formData = new FormData(form);
-  const spinner = document.getElementById('progressUpdateSpinner');
-  const mentorshipId = document.getElementById('progressMentorshipId').value;
-  
-  if (!form.checkValidity()) {
-    form.reportValidity();
-    return;
-  }
-  
-  spinner.classList.remove('d-none');
-  
-  fetch(`/api/mentorship-requests/${mentorshipId}/update_timeline/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrftoken
-    },
-    body: JSON.stringify({
-      progress_percentage: parseInt(formData.get('progress_percentage')),
-      notes: formData.get('notes')
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    ToastUtils.showSuccess('Progress updated successfully');
-    bootstrap.Modal.getInstance(document.getElementById('progressUpdateModal')).hide();
-    form.reset();
-    setTimeout(() => location.reload(), 1000);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to update progress', 'danger');
-  })
-  .finally(() => {
-    spinner.classList.add('d-none');
-  });
-}
-
-// Update Timeline
-function updateTimeline() {
-  const form = document.getElementById('timelineForm');
-  const formData = new FormData(form);
-  const spinner = document.getElementById('timelineUpdateSpinner');
-  const mentorshipId = document.getElementById('timelineMentorshipId').value;
-  
-  spinner.classList.remove('d-none');
-  
-  fetch(`/api/mentorship-requests/${mentorshipId}/update_timeline/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrftoken
-    },
-    body: JSON.stringify({
-      expected_end_date: formData.get('expected_end_date'),
-      timeline_milestones: formData.get('timeline_milestones')
-    })
-  })
-  .then(response => response.json())
-  .then(data => {
-    ToastUtils.showSuccess('Timeline updated successfully');
-    bootstrap.Modal.getInstance(document.getElementById('timelineModal')).hide();
-    form.reset();
-    setTimeout(() => location.reload(), 1000);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to update timeline', 'danger');
-  })
-  .finally(() => {
-    spinner.classList.add('d-none');
-  });
-}
-
-// Cancel Meeting
-function cancelMeeting(meetingId) {
-  if (!confirm('Are you sure you want to cancel this meeting?')) {
-    return;
-  }
-  
-  fetch(`/api/mentorship-meetings/${meetingId}/`, {
-    method: 'DELETE',
-    headers: {
-      'X-CSRFToken': csrftoken
-    }
-  })
-  .then(response => {
-    if (response.ok) {
-      ToastUtils.showSuccess('Meeting cancelled successfully');
-      setTimeout(() => location.reload(), 1000);
-    } else {
-      throw new Error('Failed to cancel meeting');
-    }
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to cancel meeting', 'danger');
-  });
-}
-
-// Initialize Bootstrap components
-document.addEventListener('DOMContentLoaded', function() {
-  // Initialize tooltips
-  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
-  tooltipTriggerList.map(function (tooltipTriggerEl) {
-    return new bootstrap.Tooltip(tooltipTriggerEl);
-  });
-});
-</script>
+<script src="{% static 'js/alumni/mentor-dashboard-workspace.js' %}" defer></script>
 <script src="{% static 'js/alumni/mentorship-request-actions.js' %}" defer></script>
 {% endblock %}
