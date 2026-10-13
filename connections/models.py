@@ -1,8 +1,12 @@
+import uuid
 from django.db import models
 from django.contrib.auth.models import User
 from django.utils.translation import gettext_lazy as _
 from django.core.exceptions import ValidationError
 from django.utils import timezone
+from django.urls import reverse
+from core.file_validators import is_image_file, sanitize_filename
+from .private_storage import private_message_storage, private_message_upload_path
 
 
 class Connection(models.Model):
@@ -283,10 +287,13 @@ class DirectMessage(models.Model):
     )
     content = models.TextField()
     attachment = models.FileField(
-        upload_to='connections/messages/', 
-        blank=True, 
-        null=True
+        upload_to=private_message_upload_path,
+        storage=private_message_storage,
+        blank=True,
+        null=True,
     )
+    attachment_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    attachment_display_name = models.CharField(max_length=160, blank=True)
     is_read = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -298,6 +305,18 @@ class DirectMessage(models.Model):
     def __str__(self):
         return f"Message from {self.sender.get_full_name()} at {self.created_at}"
     
+    @property
+    def attachment_is_image(self):
+        return bool(self.attachment and is_image_file(self.attachment_display_name or self.attachment.name))
+
+    @property
+    def attachment_label(self):
+        return sanitize_filename(self.attachment_display_name or self.attachment.name) if self.attachment else ''
+
+    @property
+    def attachment_access_url(self):
+        return reverse('connections:message_attachment', kwargs={'token': self.attachment_token}) if self.attachment else ''
+
     def save(self, *args, **kwargs):
         """Update conversation's updated_at when a new message is saved"""
         super().save(*args, **kwargs)

@@ -16,6 +16,8 @@ urlpatterns = [
     path('pending-count/', views.pending_requests_count, name='pending_requests_count'),
     path('status/<int:user_id>/', views.connection_status, name='connection_status'),
     
+    path('attachments/<uuid:token>/', views.download_message_attachment, name='message_attachment'),
+
     # Direct messaging URLs
     path('messages/', views.direct_messages, name='conversations_list'),
     path('messages/<int:user_id>/', views.direct_messages, name='direct_messages'),

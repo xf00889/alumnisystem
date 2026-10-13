@@ -917,6 +917,10 @@ def job_detail(request, slug):
         'ai_match_state': ai_match_state,
         'source_url': source_url,
         'source_host': source_host,
+        # Expired sessions should render a public detail page, not legacy app chrome.
+        'job_detail_page_base': 'base_landingpage.html' if not request.user.is_authenticated else (
+            'base_alumni.html' if request.user.is_authenticated and not is_hr_or_admin(request.user) else 'base.html'
+        ),
     }
     return render(request, 'jobs/job_detail.html', context)
 

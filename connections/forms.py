@@ -1,5 +1,6 @@
 from django import forms
 from .models import DirectMessage, DirectConversation
+from core.file_validators import validate_message_attachment
 from core.recaptcha_fields import DatabaseReCaptchaField
 from core.recaptcha_widgets import DatabaseReCaptchaV3
 from core.recaptcha_utils import is_recaptcha_enabled
@@ -20,7 +21,7 @@ class DirectMessageForm(forms.ModelForm):
             }),
             'attachment': forms.FileInput(attrs={
                 'class': 'form-control',
-                'accept': '.pdf,.doc,.docx,.jpg,.jpeg,.png,.gif'
+                'accept': '.pdf,.docx,.xlsx,.pptx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp'
             })
         }
         labels = {
@@ -70,16 +71,7 @@ class DirectMessageForm(forms.ModelForm):
     def clean_attachment(self):
         attachment = self.cleaned_data.get('attachment')
         if attachment:
-            # Check file size (max 5MB)
-            if attachment.size > 5 * 1024 * 1024:
-                raise forms.ValidationError("File size cannot exceed 5MB.")
-            
-            # Check file extension
-            allowed_extensions = ['.pdf', '.doc', '.docx', '.jpg', '.jpeg', '.png', '.gif']
-            file_extension = attachment.name.lower().split('.')[-1]
-            if f'.{file_extension}' not in allowed_extensions:
-                raise forms.ValidationError("File type not allowed. Allowed types: PDF, DOC, DOCX, JPG, JPEG, PNG, GIF.")
-        
+            validate_message_attachment(attachment)
         return attachment
 
 

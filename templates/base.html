@@ -37,7 +37,8 @@
     <link rel="stylesheet" href="{% static 'css/alumni/connection-dialog.css' %}">
     <link rel="stylesheet" href="{% static 'css/notifications.css' %}">
     <link rel="stylesheet" href="{% versioned_static 'css/public_tracer_studies.css' %}">
-    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+    <link rel="stylesheet" href="{% versioned_static 'css/footer.css' %}">
+    <link rel="stylesheet" href="{% static 'css/alumni/authenticated-footer.css' %}">
     {% if recaptcha_enabled %}
     <!-- reCAPTCHA Mobile Fix -->
     <link rel="stylesheet" href="{% static 'css/recaptcha-mobile-fix.css' %}">
@@ -437,7 +438,7 @@
 
     <!-- Footer -->
     {% if not user.is_superuser and not user.is_staff and not user.profile.is_alumni_coordinator and not request.resolver_match.url_name == 'account_reset_password' %}
-    {% include 'components/footer.html' with is_landing=False %}
+    {% if user.is_authenticated %}{% include 'components/footer_authenticated.html' %}{% else %}{% include 'components/footer.html' with is_landing=False %}{% endif %}
     {% endif %}
 
     <!-- jQuery first -->

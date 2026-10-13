@@ -82,20 +82,7 @@
                             <div class="message-content">
                                 <div>{{ message.content|linebreaksbr }}</div>
                                 
-                                {% if message.attachment %}
-                                    {% if message.attachment.url|slice:"-4:" in ".jpg,.png,.gif,jpeg" %}
-                                        <img src="{{ message.attachment.url }}" 
-                                             alt="Attachment" 
-                                             class="attachment-preview img-fluid">
-                                    {% else %}
-                                        <a href="{{ message.attachment.url }}" 
-                                           class="file-attachment" 
-                                           target="_blank">
-                                            <i class="fas fa-file me-2"></i>
-                                            {{ message.attachment.name|default:"Download File" }}
-                                        </a>
-                                    {% endif %}
-                                {% endif %}
+                                {% include 'connections/partials/message_attachment.html' with message=message %}
                                 
                                 <div class="message-time">
                                     {{ message.created_at|date:"M d, Y H:i" }}
@@ -225,7 +212,7 @@ document.addEventListener('DOMContentLoaded', function() {
     messageInput.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
-            messageForm.submit();
+            messageForm.requestSubmit();
         }
     });
     
@@ -287,25 +274,28 @@ document.addEventListener('DOMContentLoaded', function() {
         const messageDiv = document.createElement('div');
         messageDiv.className = 'message own';
         
+        // This legacy updater must never interpolate untrusted message HTML or URLs.
+        const escapeMessageHtml = value => String(value ?? '').replace(/[&<>"']/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+        })[char]);
+        const attachmentUrl = String(messageData.attachment_download_url || '');
+        const safeAttachmentUrl = /^\/connections\/attachments\/[0-9a-f-]{36}\/$/i.test(attachmentUrl) ? attachmentUrl : '';
         let attachmentHtml = '';
-        if (messageData.attachment) {
-            if (messageData.attachment.endsWith('.jpg') || 
-                messageData.attachment.endsWith('.png') || 
-                messageData.attachment.endsWith('.gif') || 
-                messageData.attachment.endsWith('.jpeg')) {
-                attachmentHtml = `<img src="${messageData.attachment}" alt="Attachment" class="attachment-preview img-fluid">`;
+        if (safeAttachmentUrl) {
+            if (messageData.attachment_is_image === true) {
+                attachmentHtml = `<img src="${safeAttachmentUrl}" alt="Attachment" class="attachment-preview img-fluid">`;
             } else {
-                attachmentHtml = `<a href="${messageData.attachment}" class="file-attachment" target="_blank">
-                    <i class="fas fa-file me-2"></i>Download File</a>`;
+                attachmentHtml = `<a href="${safeAttachmentUrl}" class="file-attachment" target="_blank">
+                    <i class="fas fa-file me-2"></i>${escapeMessageHtml(messageData.attachment_display_name || 'Download attachment')}</a>`;
             }
         }
         
         messageDiv.innerHTML = `
             <div class="message-content">
-                <div>${messageData.content.replace(/\n/g, '<br>')}</div>
+                <div>${escapeMessageHtml(messageData.content).replace(/\n/g, '<br>')}</div>
                 ${attachmentHtml}
                 <div class="message-time">
-                    ${messageData.created_at}
+                    ${escapeMessageHtml(messageData.created_at)}
                     <i class="fas fa-check text-success ms-1"></i>
                 </div>
             </div>

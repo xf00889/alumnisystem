@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse, HttpResponseForbidden
+from django.http import JsonResponse, HttpResponseForbidden, FileResponse, Http404
 from django.views.decorators.http import require_http_methods
 from django.contrib.auth.models import User
 from django.db.models import Q
@@ -11,6 +11,9 @@ from django.urls import reverse
 from django.core.exceptions import ValidationError
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
+from django.utils.http import content_disposition_header
+from django_ratelimit.decorators import ratelimit
+import mimetypes
 import json
 import os
 from .models import Connection, DirectConversation, DirectMessage
@@ -379,16 +382,20 @@ def direct_messages(request, user_id=None):
                 message = form.save(commit=False)
                 message.conversation = conversation
                 message.sender = request.user
+                if message.attachment:
+                    message.attachment_display_name = sanitize_filename(message.attachment.name)
                 message.save()
 
-                
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
                     return JsonResponse({
                         'status': 'success',
                         'message': {
                             'content': message.content,
                             'sender': message.sender.get_full_name() or message.sender.username,
-                            'created_at': message.created_at.strftime('%Y-%m-%d %H:%M')
+                            'created_at': message.created_at.strftime('%Y-%m-%d %H:%M'),
+                            'attachment_download_url': message.attachment_access_url,
+                            'attachment_is_image': message.attachment_is_image,
+                            'attachment_display_name': message.attachment_label,
                         }
                     })
                 
@@ -507,8 +514,7 @@ def send_message(request, user_id):
         if message.attachment:
             try:
                 validate_message_attachment(message.attachment)
-                # Sanitize filename
-                message.attachment.name = sanitize_filename(message.attachment.name)
+                message.attachment_display_name = sanitize_filename(message.attachment.name)
             except ValidationError as e:
                 return JsonResponse({
                     'success': False,
@@ -717,8 +723,7 @@ def send_group_message(request, conversation_id):
         if message.attachment:
             try:
                 validate_message_attachment(message.attachment)
-                # Sanitize filename
-                message.attachment.name = sanitize_filename(message.attachment.name)
+                message.attachment_display_name = sanitize_filename(message.attachment.name)
             except ValidationError as e:
                 return JsonResponse({
                     'success': False,
@@ -1241,3 +1246,44 @@ def activity_summary(request):
         'pending_requests': Connection.objects.filter(receiver=request.user, status='PENDING').count(),
     }
     return JsonResponse(payload)
+
+
+@login_required
+@never_cache
+@ratelimit(key='user', rate='120/m', block=True)
+def download_message_attachment(request, token):
+    """Authorize every file access, including inline chat image previews."""
+    message = get_object_or_404(
+        DirectMessage.objects.select_related('conversation'),
+        attachment_token=token,
+    )
+    if not message.attachment or not message.conversation.participants.filter(pk=request.user.pk).exists():
+        raise Http404('Attachment not found')
+    if message.conversation.conversation_type == 'direct':
+        # Direct-conversation history is explicitly hidden when either side blocks
+        # the other; attachments must enforce the same rule as the conversation view.
+        member_ids = list(message.conversation.participants.values_list('pk', flat=True))
+        if Connection.objects.filter(
+            (Q(requester_id=request.user.pk, receiver_id__in=member_ids) |
+             Q(receiver_id=request.user.pk, requester_id__in=member_ids)),
+            status='BLOCKED',
+        ).exists():
+            raise Http404('Attachment not found')
+
+    try:
+        attachment = message.attachment.open('rb')
+    except (FileNotFoundError, OSError, ValueError):
+        raise Http404('Attachment not found')
+
+    safe_name = message.attachment_label
+    content_type = mimetypes.guess_type(safe_name)[0] or 'application/octet-stream'
+    inline = message.attachment_is_image and content_type in {
+        'image/jpeg', 'image/png', 'image/gif', 'image/webp'
+    }
+    response = FileResponse(attachment, content_type=content_type, as_attachment=not inline, filename=safe_name)
+    response['Content-Disposition'] = content_disposition_header(not inline, safe_name)
+    response['X-Content-Type-Options'] = 'nosniff'
+    response['Cache-Control'] = 'private, no-store, max-age=0'
+    response['Content-Security-Policy'] = "default-src 'none'; sandbox"
+    response['Referrer-Policy'] = 'no-referrer'
+    return response

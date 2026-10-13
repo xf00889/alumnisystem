@@ -73,6 +73,16 @@ urlpatterns = [
     path('docs/', include(('docs.urls', 'docs'), namespace='docs')),
 ]
 
+
+# Legacy message files must never be served by the general MEDIA route.
+# Production Nginx / Apache must also deny /media/connections/messages/.
+from django.urls import re_path
+
+def block_legacy_message_media(request, path):
+    raise Http404('Attachment not found')
+
+urlpatterns.insert(0, re_path(r'^media/connections/messages/(?P<path>.*)$', block_legacy_message_media))
+
 # Serve media files during development
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

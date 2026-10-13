@@ -240,6 +240,10 @@ else:
 
 MEDIA_URL = config('MEDIA_URL', default='/media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Private attachment storage must not be mapped by Nginx / Apache or Django MEDIA_URL.
+PRIVATE_MESSAGE_UPLOAD_ROOT = config(
+    'PRIVATE_MESSAGE_UPLOAD_ROOT', default=str(BASE_DIR / 'private_message_uploads')
+)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
