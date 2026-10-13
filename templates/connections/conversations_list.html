@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="{% static 'css/alumni/connections.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/messaging.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/messaging-workspace.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/messaging-conversation-refinements.css' %}">
 {% endif %}
 {% endblock %}
 
@@ -96,36 +97,11 @@
                 // Force cache refresh: {{ "now"|date:"Y-m-d H:i:s" }}
                 // Immediate test function
                 function toggleNewMessageInterface() {
-                    console.log('=== toggleNewMessageInterface called ===');
-                    const newMessageInterface = document.getElementById('newMessageInterface');
-                    const toggleBtn = document.getElementById('toggleNewMessage') || document.getElementById('composeMessageMenu');
-
-                    console.log('Elements found:', {
-                        newMessageInterface: !!newMessageInterface,
-                        toggleBtn: !!toggleBtn
-                    });
-
-                    if (!newMessageInterface) {
-                        console.error('newMessageInterface element not found!');
-                        alert('Interface not found. Please refresh the page.');
-                        return;
-                    }
-
-                    if (newMessageInterface.style.display === 'none' || !newMessageInterface.style.display) {
-                        // Show interface
-                        console.log('Showing interface');
-                        newMessageInterface.style.display = 'block';
-                        if (toggleBtn && toggleBtn.id === 'toggleNewMessage') {
-                            toggleBtn.innerHTML = '<i class="fas fa-minus me-1"></i>Hide';
-                        }
-                    } else {
-                        // Hide interface and reset state
-                        console.log('Hiding interface');
-                        newMessageInterface.style.display = 'none';
-                        if (toggleBtn && toggleBtn.id === 'toggleNewMessage') {
-                            toggleBtn.innerHTML = '<i class="fas fa-plus me-1"></i>New Message';
-                        }
-                    }
+                    const modal = document.getElementById('newMessageInterface');
+                    if (!modal || !window.bootstrap?.Modal) return;
+                    const controller = bootstrap.Modal.getOrCreateInstance(modal);
+                    if (modal.classList.contains('show')) controller.hide();
+                    else controller.show();
                 }
 
                 // Search functionality - Updated to use correct API endpoint
@@ -337,6 +313,13 @@
                     }
                 }
 
+                function showComposeError(errorId, message) {
+                    const node = document.getElementById(errorId);
+                    if (!node) return;
+                    node.textContent = message;
+                    node.hidden = false;
+                }
+
                 // Send message function
                 function sendInlineMessage() {
                     console.log('Sending inline message');
@@ -344,7 +327,7 @@
                     const sendMessageBtn = document.getElementById('inlineSendMessage');
 
                     if (!selectedUserId || !messageContent) {
-                        alert('Please select a user and enter a message.');
+                        showComposeError('directComposeError', 'Choose a connected alumnus and enter a message.');
                         return;
                     }
 
@@ -368,6 +351,10 @@
                         body: `content=${encodeURIComponent(messageContent)}`
                     })
                     .then(async response => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            throw new Error('Could not send your message. Please sign in again if your session has expired.');
+                        }
                         const data = await response.json();
                         // A former connection is already informed by the chat's inline notice.
                         if (!response.ok && data.code !== 'conversation_read_only') {
@@ -385,12 +372,12 @@
                             // Update the conversations list and load conversation detail
                             updateConversationsAndLoadDetail(selectedUserId);
                         } else if (!data.silent && data.code !== 'conversation_read_only') {
-                            alert(data.error || 'Failed to send message. Please try again.');
+                            showComposeError('directComposeError', data.error || 'Unable to send. Please try again.');
                         }
                     })
                     .catch(error => {
                         console.error('Send message error:', error);
-                        alert('Failed to send message. Please try again.');
+                        showComposeError('directComposeError', error.message || 'Unable to send. Please try again.');
                     })
                     .finally(() => {
                         // Re-enable button
@@ -658,21 +645,6 @@
                     }
 
                     // Close and cancel buttons
-                    if (closeBtn) {
-                        closeBtn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            console.log('Close button clicked');
-                            toggleNewMessageInterface();
-                        });
-                    }
-
-                    if (cancelBtn) {
-                        cancelBtn.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            console.log('Cancel button clicked');
-                            toggleNewMessageInterface();
-                        });
-                    }
 
                     // Group chat event listeners
                     const groupSearchBtn = document.getElementById('groupSearchBtn');
@@ -729,20 +701,25 @@
                         });
                     }
 
-                    if (closeGroupChat) {
-                        closeGroupChat.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            toggleGroupChatInterface();
-                        });
-                    }
 
-                    if (cancelGroupChat) {
-                        cancelGroupChat.addEventListener('click', function(e) {
-                            e.preventDefault();
-                            toggleGroupChatInterface();
-                        });
-                    }
-
+                    document.getElementById('newMessageInterface')?.addEventListener('shown.bs.modal', () => {
+                        document.getElementById('inlineUserSearch')?.focus();
+                    });
+                    document.getElementById('newMessageInterface')?.addEventListener('hidden.bs.modal', () => {
+                        clearInlineUserSelection();
+                        document.getElementById('inlineUserSearch').value = '';
+                        document.getElementById('inlineSearchResults').style.display = 'none';
+                        const error = document.getElementById('directComposeError');
+                        error.hidden = true; error.textContent = '';
+                    });
+                    document.getElementById('groupChatInterface')?.addEventListener('shown.bs.modal', () => {
+                        document.getElementById('groupNameInput')?.focus();
+                    });
+                    document.getElementById('groupChatInterface')?.addEventListener('hidden.bs.modal', () => {
+                        resetGroupChatForm();
+                        const error = document.getElementById('groupComposeError');
+                        error.hidden = true; error.textContent = '';
+                    });
                     console.log('All event listeners added (including group chat)');
                 });
 
@@ -835,29 +812,11 @@
                 let selectedParticipants = [];
 
                 function toggleGroupChatInterface() {
-                    console.log('=== toggleGroupChatInterface called ===');
-                    const groupChatInterface = document.getElementById('groupChatInterface');
-                    const newMessageInterface = document.getElementById('newMessageInterface');
-
-                    if (!groupChatInterface) {
-                        console.error('groupChatInterface element not found!');
-                        return;
-                    }
-
-                    // Hide direct message interface if open
-                    if (newMessageInterface && newMessageInterface.style.display !== 'none') {
-                        newMessageInterface.style.display = 'none';
-                    }
-
-                    if (groupChatInterface.style.display === 'none' || !groupChatInterface.style.display) {
-                        // Show interface
-                        groupChatInterface.style.display = 'block';
-                        resetGroupChatForm();
-                    } else {
-                        // Hide interface
-                        groupChatInterface.style.display = 'none';
-                        resetGroupChatForm();
-                    }
+                    const modal = document.getElementById('groupChatInterface');
+                    if (!modal || !window.bootstrap?.Modal) return;
+                    const controller = bootstrap.Modal.getOrCreateInstance(modal);
+                    if (modal.classList.contains('show')) controller.hide();
+                    else controller.show();
                 }
 
                 function resetGroupChatForm() {
@@ -1031,12 +990,12 @@
                     const groupName = document.getElementById('groupNameInput').value.trim();
 
                     if (!groupName) {
-                        alert('Please enter a group name');
+                        showComposeError('groupComposeError', 'Enter a group name.');
                         return;
                     }
 
                     if (selectedParticipants.length < 2) {
-                        alert('Please select at least 2 participants');
+                        showComposeError('groupComposeError', 'Choose at least two connected alumni.');
                         return;
                     }
 
@@ -1057,7 +1016,15 @@
                             participant_ids: participantIds
                         })
                     })
-                    .then(response => response.json())
+                    .then(async response => {
+                        const contentType = response.headers.get('content-type') || '';
+                        if (!contentType.includes('application/json')) {
+                            throw new Error('Could not create the group. Please sign in again if necessary.');
+                        }
+                        const data = await response.json();
+                        if (!response.ok) throw new Error(data.error || `Group creation failed (${response.status}).`);
+                        return data;
+                    })
                     .then(data => {
                         if (data.success) {
                             console.log('Group created successfully');
@@ -1071,12 +1038,12 @@
                             // Refresh conversations list
                             refreshConversationsList();
                         } else {
-                            alert(data.error || 'Failed to create group. Please try again.');
+                            showComposeError('groupComposeError', data.error || 'Unable to create the group.');
                         }
                     })
                     .catch(error => {
                         console.error('Create group error:', error);
-                        alert('Failed to create group. Please try again.');
+                        showComposeError('groupComposeError', error.message || 'Unable to create the group.');
                     })
                     .finally(() => {
                         createBtn.disabled = false;
@@ -4775,145 +4742,6 @@
                 console.log('All functions loaded, including group chat functionality and messaging fixes');
                 </script>
 
-                <!-- In-Page Message Creation Interface -->
-                <div id="newMessageInterface" class="border-bottom" style="display: none;">
-                    <div class="p-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0 text-primary">
-                                <i class="fas fa-paper-plane me-2"></i>Create New Message
-                            </h6>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="closeNewMessage">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-
-                        <!-- User Search -->
-                        <div class="mb-3">
-                            <label for="inlineUserSearch" class="form-label fw-semibold">
-                                <i class="fas fa-search me-1"></i>Search for a user
-                            </label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="inlineUserSearch" placeholder="Start typing a name..." autocomplete="off">
-                                <button class="btn btn-outline-primary" type="button" id="inlineSearchBtn">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                            <div class="form-text">Search for connected alumni to send a message</div>
-                        </div>
-
-                        <!-- Search Results -->
-                        <div id="inlineSearchResults" class="mb-3" style="display: none;">
-                            <div class="search-results-container">
-                                <div class="inline-search-results-list"></div>
-                            </div>
-                        </div>
-
-                        <!-- Selected User -->
-                        <div id="inlineSelectedUser" class="mb-3" style="display: none;">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-user me-1"></i>Sending to
-                            </label>
-                            <div class="selected-user-card">
-                                <div class="d-flex align-items-center justify-content-between">
-                                    <div class="d-flex align-items-center">
-                                        <img class="selected-user-avatar me-3" src="" alt="" width="40" height="40">
-                                        <div>
-                                            <div class="selected-user-name fw-semibold"></div>
-                                            <div class="selected-user-title text-muted small"></div>
-                                        </div>
-                                    </div>
-                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="inlineClearSelection">
-                                        <i class="fas fa-times"></i>
-                                    </button>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Message Input -->
-                        <div class="mb-3">
-                            <label for="inlineMessageContent" class="form-label fw-semibold">
-                                <i class="fas fa-comment me-1"></i>Your message
-                            </label>
-                            <textarea class="form-control" id="inlineMessageContent" rows="3" placeholder="Type your message here..." disabled></textarea>
-                            <div class="form-text">Select a user first to enable message input</div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary btn-sm" id="inlineCancelMessage">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </button>
-                            <button type="button" class="btn btn-primary btn-sm" id="inlineSendMessage" disabled>
-                                <i class="fas fa-paper-plane me-1"></i>Send Message
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Group Chat Creation Interface -->
-                <div id="groupChatInterface" class="border-bottom" style="display: none;">
-                    <div class="p-3 bg-light">
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <h6 class="mb-0 text-primary">
-                                <i class="fas fa-users me-2"></i>Create Group Chat
-                            </h6>
-                            <button type="button" class="btn btn-sm btn-outline-secondary" id="closeGroupChat">
-                                <i class="fas fa-times"></i>
-                            </button>
-                        </div>
-
-                        <!-- Group Name -->
-                        <div class="mb-3">
-                            <label for="groupNameInput" class="form-label fw-semibold">
-                                <i class="fas fa-tag me-1"></i>Group Name
-                            </label>
-                            <input type="text" class="form-control" id="groupNameInput" placeholder="Enter group name..." maxlength="100">
-                            <div class="form-text">Choose a name for your group chat</div>
-                        </div>
-
-                        <!-- Participant Search -->
-                        <div class="mb-3">
-                            <label for="groupUserSearch" class="form-label fw-semibold">
-                                <i class="fas fa-search me-1"></i>Add Participants
-                            </label>
-                            <div class="input-group">
-                                <input type="text" class="form-control" id="groupUserSearch" placeholder="Search for users to add..." autocomplete="off">
-                                <button class="btn btn-outline-primary" type="button" id="groupSearchBtn">
-                                    <i class="fas fa-search"></i>
-                                </button>
-                            </div>
-                            <div class="form-text">Search for connected alumni to add to the group</div>
-                        </div>
-
-                        <!-- Search Results for Group -->
-                        <div id="groupSearchResults" class="mb-3" style="display: none;">
-                            <div class="search-results-container">
-                                <div class="group-search-results-list"></div>
-                            </div>
-                        </div>
-
-                        <!-- Selected Participants -->
-                        <div id="selectedParticipants" class="mb-3">
-                            <label class="form-label fw-semibold">
-                                <i class="fas fa-users me-1"></i>Participants (<span id="participantCount">0</span>)
-                            </label>
-                            <div id="participantsList" class="selected-participants-container">
-                                <div class="text-muted small">No participants selected yet. Add at least 2 participants.</div>
-                            </div>
-                        </div>
-
-                        <!-- Action Buttons -->
-                        <div class="d-flex justify-content-end gap-2">
-                            <button type="button" class="btn btn-secondary btn-sm" id="cancelGroupChat">
-                                <i class="fas fa-times me-1"></i>Cancel
-                            </button>
-                            <button type="button" class="btn btn-primary btn-sm" id="createGroupBtn" disabled>
-                                <i class="fas fa-users me-1"></i>Create Group
-                            </button>
-                        </div>
-                    </div>
-                </div>
-
                 <!-- Conversations List -->
                 <div class="card-body p-0" id="conversationsList" style="max-height: 600px; overflow-y: auto;">
                     {% if conversations %}
@@ -5074,6 +4902,136 @@
             </div>
         </div>
     </div>
+</div>
+
+<!-- Compose forms live outside the scrolling conversation sidebar. -->
+<div class="modal fade message-compose-dialog" id="newMessageInterface" tabindex="-1" aria-labelledby="newMessageModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><span class="compose-eyebrow">ALUMNI MESSAGING</span><h2 class="modal-title" id="newMessageModalTitle">New direct message</h2><p class="compose-subtitle">Start a conversation with a connected alumnus.</p></div>
+        <button type="button" class="btn-close" id="closeNewMessage" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+                        <!-- User Search -->
+                        <div class="mb-3">
+                            <label for="inlineUserSearch" class="form-label fw-semibold">
+                                <i class="fas fa-search me-1"></i>Search for a user
+                            </label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="inlineUserSearch" placeholder="Start typing a name..." autocomplete="off">
+                                <button class="btn btn-outline-primary" type="button" id="inlineSearchBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Search for connected alumni to send a message</div>
+                        </div>
+
+                        <!-- Search Results -->
+                        <div id="inlineSearchResults" class="mb-3" style="display: none;">
+                            <div class="search-results-container">
+                                <div class="inline-search-results-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Selected User -->
+                        <div id="inlineSelectedUser" class="mb-3" style="display: none;">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-user me-1"></i>Sending to
+                            </label>
+                            <div class="selected-user-card">
+                                <div class="d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center">
+                                        <img class="selected-user-avatar me-3" src="" alt="" width="40" height="40">
+                                        <div>
+                                            <div class="selected-user-name fw-semibold"></div>
+                                            <div class="selected-user-title text-muted small"></div>
+                                        </div>
+                                    </div>
+                                    <button type="button" class="btn btn-outline-secondary btn-sm" id="inlineClearSelection">
+                                        <i class="fas fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Message Input -->
+                        <div class="mb-3">
+                            <label for="inlineMessageContent" class="form-label fw-semibold">
+                                <i class="fas fa-comment me-1"></i>Your message
+                            </label>
+                            <textarea class="form-control" id="inlineMessageContent" rows="3" placeholder="Type your message here..." disabled></textarea>
+                            <div class="form-text">Select a user first to enable message input</div>
+                        </div>
+
+
+        <div class="compose-form-error" id="directComposeError" role="alert" aria-live="polite" hidden></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="inlineCancelMessage" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="inlineSendMessage" disabled><i class="fas fa-paper-plane me-1"></i>Send message</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal fade message-compose-dialog" id="groupChatInterface" tabindex="-1" aria-labelledby="groupChatModalTitle" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <div><span class="compose-eyebrow">ALUMNI MESSAGING</span><h2 class="modal-title" id="groupChatModalTitle">Create a group conversation</h2><p class="compose-subtitle">Name your group and invite at least two connected alumni.</p></div>
+        <button type="button" class="btn-close" id="closeGroupChat" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+                        <!-- Group Name -->
+                        <div class="mb-3">
+                            <label for="groupNameInput" class="form-label fw-semibold">
+                                <i class="fas fa-tag me-1"></i>Group Name
+                            </label>
+                            <input type="text" class="form-control" id="groupNameInput" placeholder="Enter group name..." maxlength="100">
+                            <div class="form-text">Choose a name for your group chat</div>
+                        </div>
+
+                        <!-- Participant Search -->
+                        <div class="mb-3">
+                            <label for="groupUserSearch" class="form-label fw-semibold">
+                                <i class="fas fa-search me-1"></i>Add Participants
+                            </label>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="groupUserSearch" placeholder="Search for users to add..." autocomplete="off">
+                                <button class="btn btn-outline-primary" type="button" id="groupSearchBtn">
+                                    <i class="fas fa-search"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Search for connected alumni to add to the group</div>
+                        </div>
+
+                        <!-- Search Results for Group -->
+                        <div id="groupSearchResults" class="mb-3" style="display: none;">
+                            <div class="search-results-container">
+                                <div class="group-search-results-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- Selected Participants -->
+                        <div id="selectedParticipants" class="mb-3">
+                            <label class="form-label fw-semibold">
+                                <i class="fas fa-users me-1"></i>Participants (<span id="participantCount">0</span>)
+                            </label>
+                            <div id="participantsList" class="selected-participants-container">
+                                <div class="text-muted small">No participants selected yet. Add at least 2 participants.</div>
+                            </div>
+                        </div>
+
+
+        <div class="compose-form-error" id="groupComposeError" role="alert" aria-live="polite" hidden></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" id="cancelGroupChat" data-bs-dismiss="modal">Cancel</button>
+        <button type="button" class="btn btn-primary" id="createGroupBtn" disabled><i class="fas fa-users me-1"></i>Create group</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- CSRF Token for AJAX requests -->
