@@ -1,10 +1,16 @@
+"""Helpers for reading runtime system settings with caching.
+
+Runtime settings are consulted by middleware on *every* request. A temporary
+cache outage must not turn public pages and static redirects into HTTP 500s.
+The database remains authoritative whenever the cache cannot be reached.
 """
-Helpers for reading runtime system settings with caching.
-"""
+import logging
+
 from django.conf import settings
 from django.core.cache import cache
 
 
+logger = logging.getLogger(__name__)
 CACHE_KEY = "core_system_settings_cache"
 CACHE_TTL = 300
 DEFAULT_MAINTENANCE_MESSAGE = "The site is under maintenance. Please try again later."
@@ -19,18 +25,24 @@ def _default_data():
 
 
 def clear_system_settings_cache():
-    """Clear cached system settings."""
-    cache.delete(CACHE_KEY)
+    """Invalidate stored settings without failing administrative updates on cache outages."""
+    try:
+        cache.delete(CACHE_KEY)
+    except Exception:
+        logger.warning('System settings cache invalidation unavailable; using database settings')
 
 
 def get_system_settings():
-    """
-    Return system settings as a simple dict.
-    Falls back safely when database tables are not ready.
-    """
-    cached = cache.get(CACHE_KEY)
-    if cached is not None:
-        return cached
+    """Read runtime settings, falling back to DB if Redis/cache is unavailable."""
+    cache_available = True
+    try:
+        cached = cache.get(CACHE_KEY)
+        if cached is not None:
+            return cached
+    except Exception:
+        cache_available = False
+        # Never include cache URLs or credentials in log messages.
+        logger.warning('System settings cache unavailable; reading database settings')
 
     data = _default_data()
     try:
@@ -47,7 +59,11 @@ def get_system_settings():
         # Database may be unavailable during startup/migrations.
         data = _default_data()
 
-    cache.set(CACHE_KEY, data, CACHE_TTL)
+    if cache_available:
+        try:
+            cache.set(CACHE_KEY, data, CACHE_TTL)
+        except Exception:
+            logger.warning('System settings cache write unavailable; using database settings')
     return data
 
 
