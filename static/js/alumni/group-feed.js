@@ -113,10 +113,16 @@ document.addEventListener('click', function (event) {
         const status = document.getElementById('groupFeedRefreshStatus');
         if (!viewport || !holder || !scrollReload || !status) return;
         let busy = false;
+        const mobileTimeline = window.matchMedia('(max-width: 767.98px)');
         function updateFloatingRefresh() {
-            scrollReload.hidden = holder.scrollTop < 90;
+            // The mobile timeline uses window scrolling, not an internal scrolling box.
+            scrollReload.hidden = mobileTimeline.matches
+                ? holder.getBoundingClientRect().top >= -90
+                : holder.scrollTop < 90;
         }
         holder.addEventListener('scroll', updateFloatingRefresh, { passive: true });
+        window.addEventListener('scroll', updateFloatingRefresh, { passive: true });
+        if (mobileTimeline.addEventListener) mobileTimeline.addEventListener('change', updateFloatingRefresh);
         updateFloatingRefresh();
         async function refresh() {
             if (busy) return;
@@ -125,6 +131,7 @@ document.addEventListener('click', function (event) {
             scrollReload.setAttribute('aria-busy', 'true');
             const buttonLabel = scrollReload.innerHTML;
             const previousScroll = holder.scrollTop;
+            const previousPageScroll = window.scrollY;
             scrollReload.textContent = 'Checking…';
             status.textContent = 'Checking for newer posts…';
             try {
@@ -142,7 +149,12 @@ document.addEventListener('click', function (event) {
                 const fragment = document.createElement('template');
                 fragment.innerHTML = result.html;
                 holder.replaceChildren(fragment.content);
-                holder.scrollTop = fresh ? 0 : previousScroll;
+                if (mobileTimeline.matches) {
+                    if (fresh) holder.scrollIntoView({ block: 'start', behavior: 'auto' });
+                    else window.scrollTo(0, previousPageScroll);
+                } else {
+                    holder.scrollTop = fresh ? 0 : previousScroll;
+                }
                 document.dispatchEvent(new Event('group-feed:refreshed'));
                 status.textContent = fresh ? `${fresh} newer post${fresh === 1 ? '' : 's'} loaded.` : 'Feed is up to date.';
                 updateFloatingRefresh();
