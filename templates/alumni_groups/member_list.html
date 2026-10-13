@@ -1,10 +1,12 @@
+{% load profile_filters %}
 {% if members %}
 <div class="members-grid">
     {% for member in members %}
     <div class="member-grid-item">
-        <img src="{% if member.user.profile.avatar %}{{ member.user.profile.avatar.url %}{% else %}/static/images/default-avatar.png{% endif %}" 
-             alt="{{ member.user.get_full_name }}"
-             class="member-grid-avatar">
+        <img src="{{ member.user.profile.avatar|safe_avatar_url }}" 
+             alt="{{ member.user.get_full_name|default:member.user.username }}"
+             class="member-grid-avatar"
+             loading="lazy">
         <div class="member-grid-info">
             <h6 class="member-grid-name">{{ member.user.get_full_name }}</h6>
             <p class="member-grid-email">{{ member.user.email }}</p>

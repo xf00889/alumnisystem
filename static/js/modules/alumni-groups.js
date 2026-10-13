@@ -42,6 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
     const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
     const answersModal = new bootstrap.Modal(document.getElementById('securityAnswersModal'));
 
+    const requestedTab = new URLSearchParams(window.location.search).get('tab');
+    if (requestedTab) {
+        const trigger = document.querySelector(`[data-bs-target="#${requestedTab}"]`);
+        if (trigger && window.bootstrap?.Tab) {
+            bootstrap.Tab.getOrCreateInstance(trigger).show();
+        }
+    }
+
     // Handle member actions (approve, reject, remove, promote, reinstate)
     document.querySelectorAll('.member-action').forEach(button => {
         button.addEventListener('click', async function() {
@@ -164,6 +172,44 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+
+
+    const reviewModal = document.getElementById('reportReviewModal');
+    if (reviewModal) {
+        const reviewForm = document.getElementById('reportReviewForm');
+        const reviewAction = document.getElementById('reportReviewAction');
+        const reviewTitle = document.getElementById('reportReviewModalLabel');
+        const reviewDescription = document.getElementById('reportReviewModalDescription');
+        const reviewNote = document.getElementById('reportReviewNote');
+        const reviewNoteLabel = document.getElementById('reportReviewNoteLabel');
+        const reviewNoteHelp = document.getElementById('reportReviewNoteHelp');
+        const reviewSubmit = document.getElementById('reportReviewSubmit');
+
+        reviewModal.addEventListener('show.bs.modal', function (event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) return;
+            const action = trigger.getAttribute('data-review-action') || 'resolve';
+            const title = trigger.getAttribute('data-review-title') || 'Review report';
+            const description = trigger.getAttribute('data-review-description') || '';
+            const requiresNote = trigger.getAttribute('data-review-requires-note') === 'true';
+
+            reviewForm.action = trigger.getAttribute('data-report-action') || reviewForm.action;
+            reviewAction.value = action;
+            reviewTitle.textContent = title;
+            reviewDescription.textContent = description;
+            reviewNote.value = '';
+            reviewNote.required = requiresNote;
+            reviewNoteLabel.textContent = requiresNote ? 'Reason for rejecting the report' : 'Moderator note';
+            reviewNote.placeholder = requiresNote ? 'Explain why this report is being rejected' : 'Optional note for this moderation action';
+            reviewNoteHelp.textContent = requiresNote
+                ? 'A short note is required when rejecting a report.'
+                : 'This note is stored with the moderation review.';
+            reviewSubmit.className = 'btn ' + (action === 'remove_post' ? 'btn-danger' : 'btn-primary');
+            reviewSubmit.textContent = action === 'dismiss'
+                ? 'Reject report'
+                : (action === 'remove_post' ? 'Approve & remove post' : 'Approve report');
+        });
+    }
 });
 
 /* END: alumni_groups/manage_members.html */

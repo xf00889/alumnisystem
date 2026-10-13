@@ -815,6 +815,37 @@
         initializeFeedListeners();
         document.addEventListener('group-feed:refreshed', initializeFeedListeners);
 
+        const reportPostModal = document.getElementById('reportPostModal');
+        if (reportPostModal) {
+            const reportForm = document.getElementById('reportPostForm');
+            const reportCategory = document.getElementById('reportCategory');
+            const reportOtherWrap = document.getElementById('reportOtherWrap');
+            const reportOtherReason = document.getElementById('reportOtherReason');
+            const reportTarget = document.getElementById('reportPostTarget');
+
+            reportPostModal.addEventListener('show.bs.modal', function (event) {
+                const trigger = event.relatedTarget;
+                if (!trigger) return;
+                reportForm.action = trigger.getAttribute('data-report-action') || reportForm.action;
+                reportForm.reset();
+                reportOtherWrap.hidden = true;
+                reportOtherReason.required = false;
+                const author = trigger.getAttribute('data-post-author') || 'this member';
+                reportTarget.textContent = `Reporting a post by ${author}`;
+            });
+
+            if (reportCategory) {
+                reportCategory.addEventListener('change', function () {
+                    const isOther = this.value === 'OTHER';
+                    reportOtherWrap.hidden = !isOther;
+                    reportOtherReason.required = isOther;
+                    if (!isOther) {
+                        reportOtherReason.value = '';
+                    }
+                });
+            }
+        }
+
         // Handle post approval
         document.querySelectorAll('.approve-post, .reject-post').forEach(button => {
             button.addEventListener('click', async function() {

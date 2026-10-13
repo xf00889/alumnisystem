@@ -324,15 +324,30 @@ class PostBookmark(models.Model):
 
 class PostReport(models.Model):
     STATUS_CHOICES = (('OPEN', 'Open'), ('DISMISSED', 'Dismissed'), ('RESOLVED', 'Resolved'))
+    CATEGORY_CHOICES = (
+        ('SPAM', 'Spam or scam'),
+        ('HARASSMENT', 'Harassment or hate'),
+        ('MISINFORMATION', 'False or misleading information'),
+        ('INAPPROPRIATE', 'Inappropriate content'),
+        ('PRIVACY', 'Privacy or impersonation concern'),
+        ('OTHER', 'Other concern'),
+    )
+
     post = models.ForeignKey(Post, on_delete=models.CASCADE, related_name='reports')
     reporter = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE)
+    category = models.CharField(max_length=20, choices=CATEGORY_CHOICES, default='OTHER')
     reason = models.CharField(max_length=500)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='OPEN')
     created_at = models.DateTimeField(auto_now_add=True)
     reviewed_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='reviewed_group_reports')
+    reviewed_at = models.DateTimeField(null=True, blank=True)
+    resolution_note = models.CharField(max_length=500, blank=True)
 
     class Meta:
         constraints = [models.UniqueConstraint(fields=['post', 'reporter'], name='unique_group_post_report')]
+
+    def get_category_label(self):
+        return dict(self.CATEGORY_CHOICES).get(self.category, 'Other concern')
 
 
 class GroupPoll(models.Model):

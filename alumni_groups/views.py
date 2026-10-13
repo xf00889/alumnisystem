@@ -707,7 +707,7 @@ def manage_members(request, slug):
         'approved_posts': approved_posts,
         'rejected_posts': rejected_posts,
         'member_search': member_query,
-        'open_reports': PostReport.objects.filter(post__group=group, status='OPEN').select_related('post', 'reporter').order_by('-created_at')[:100],
+        'open_reports': PostReport.objects.filter(post__group=group, status='OPEN').select_related('post', 'post__author', 'reporter').order_by('-created_at')[:100],
     }
     return render(request, 'alumni_groups/manage_members.html', context)
 

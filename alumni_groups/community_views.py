@@ -75,10 +75,33 @@ def report_post(request, post_id):
     post = get_object_or_404(Post, pk=post_id, status='APPROVED')
     if not approved_member(post.group, request.user):
         return HttpResponseForbidden('Approved membership required.')
+
+    category = (request.POST.get('category') or 'OTHER').strip().upper()
+    valid_categories = {choice for choice, _ in PostReport.CATEGORY_CHOICES}
+    if category not in valid_categories:
+        category = 'OTHER'
+
     reason = (request.POST.get('reason') or '').strip()
+    details = (request.POST.get('details') or '').strip()
+    other_reason = (request.POST.get('other_reason') or '').strip()
+
+    if not reason:
+        if category == 'OTHER':
+            reason = other_reason
+        else:
+            category_label = dict(PostReport.CATEGORY_CHOICES).get(category, 'Other concern')
+            reason = category_label if not details else f'{category_label}: {details}'
+    elif category == 'OTHER' and other_reason and other_reason.lower() not in reason.lower():
+        reason = other_reason if not details else f'{other_reason}: {details}'
+
     if not 5 <= len(reason) <= 500:
         return HttpResponseBadRequest('Please provide a reason (5–500 characters).')
-    _, created = PostReport.objects.get_or_create(post=post, reporter=request.user, defaults={'reason':reason})
+
+    _, created = PostReport.objects.get_or_create(
+        post=post,
+        reporter=request.user,
+        defaults={'reason': reason, 'category': category}
+    )
     messages.info(request, 'Report submitted for group review.' if created else 'You already reported this post.')
     return redirect(group_page(post.group, 'feed'))
 
@@ -92,6 +115,11 @@ def review_report(request, report_id):
     action = request.POST.get('action')
     if action not in ('dismiss', 'resolve', 'remove_post'):
         return HttpResponseBadRequest('Invalid action.')
+
+    resolution_note = (request.POST.get('resolution_note') or '').strip()
+    if action == 'dismiss' and len(resolution_note) < 3:
+        return HttpResponseBadRequest('Please provide a short reason for rejecting the report.')
+
     report.status = 'DISMISSED' if action == 'dismiss' else 'RESOLVED'
     if action == 'remove_post':
         report.post.status = 'REJECTED'
@@ -99,9 +127,17 @@ def review_report(request, report_id):
         report.post.approved_at = timezone.now()
         report.post.save(update_fields=['status', 'approved_by', 'approved_at'])
     report.reviewed_by = request.user
-    report.save(update_fields=['status', 'reviewed_by'])
-    messages.success(request, 'Report reviewed.')
-    return redirect(management_page(report.post.group))
+    report.reviewed_at = timezone.now()
+    report.resolution_note = resolution_note[:500]
+    report.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'resolution_note'])
+
+    if action == 'dismiss':
+        messages.success(request, 'Report rejected and logged.')
+    elif action == 'remove_post':
+        messages.success(request, 'Report approved. The reported post was removed from the feed.')
+    else:
+        messages.success(request, 'Report approved and marked as resolved.')
+    return redirect(f"{management_page(report.post.group)}?tab=settings")
 
 
 @login_required
