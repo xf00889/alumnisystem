@@ -686,42 +686,54 @@
         }
     </style>
     {% include 'components/auth_public_head.html' %}
+    <link rel="stylesheet" href="{% static 'css/auth-unified.css' %}">
 </head>
 <body class="auth-public auth-public--login">
     {% include 'components/university_header.html' %}
     <div class="auth-container">
-        <!-- Header -->
-        <div class="auth-header">
-            <div class="logo-container">
-                <div class="logo-glow"></div>
-                <img src="{% static 'images/alumni_logo.png' %}" alt="NORSU Alumni Logo" class="logo">
+        <!-- Institutional identity: content changes with the selected form. -->
+        <aside class="auth-header" aria-label="About NORSU Alumni Network">
+            <div class="auth-brand-top">
+                <div class="logo-container">
+                    <img src="{% static 'images/alumni_logo.webp' %}" alt="NORSU Alumni Network" class="logo" width="64" height="64">
+                </div>
+                <span class="auth-brand-tag">NORSU Alumni Network</span>
             </div>
-            <p class="auth-brand-eyebrow">Office of Alumni Affairs · Member access</p>
-            <h1 class="auth-title">Stay connected to NORSU.</h1>
-            <p class="auth-subtitle">Access your profile, community, tracer studies, and opportunities through one alumni network.</p>
-        </div>
+            <div class="auth-brand-story">
+                <p class="auth-brand-eyebrow">Office of Alumni Affairs</p>
+                <h1 class="auth-title" id="authBrandTitle">A community that stays connected.</h1>
+                <p class="auth-subtitle" id="authBrandDescription">One home for your alumni profile, university updates, professional opportunities, and lifelong connections.</p>
+            </div>
+            <div class="auth-brand-benefits" aria-label="Alumni network features">
+                <div><i class="fas fa-user-group" aria-hidden="true"></i><span>Reconnect with fellow alumni</span></div>
+                <div><i class="fas fa-briefcase" aria-hidden="true"></i><span>Explore career opportunities</span></div>
+                <div><i class="fas fa-graduation-cap" aria-hidden="true"></i><span>Stay involved with NORSU</span></div>
+            </div>
+            <p class="auth-brand-credit">Negros Oriental State University · Office of Alumni Affairs</p>
+        </aside>
 
         <!-- Card -->
         <div class="auth-card">
             <div class="auth-form-intro" aria-live="polite">
-                <p class="auth-form-eyebrow">NORSU Alumni Network</p>
+                <p class="auth-form-eyebrow"><span class="auth-form-eyebrow-dot"></span> Official alumni portal</p>
                 <h2 id="authFormHeading">Welcome back</h2>
-                <p id="authFormDescription">Sign in to reconnect with your alumni community.</p>
+                <p id="authFormDescription">Sign in to access your NORSU alumni account.</p>
             </div>
             <!-- Tabs -->
             <div class="auth-tabs" role="tablist" aria-label="Account access">
                 <button type="button" role="tab" aria-selected="true" aria-controls="loginForm" class="auth-tab active" onclick="switchTab('login')" id="loginTab">
-                    Login
+                    <i class="fas fa-right-to-bracket" aria-hidden="true"></i> Sign in
                 </button>
                 <button type="button" role="tab" aria-selected="false" aria-controls="signupForm" class="auth-tab" onclick="switchTab('signup')" id="signupTab">
-                    Create Account
+                    <i class="fas fa-user-plus" aria-hidden="true"></i> Create Account
                 </button>
             </div>
 
             <!-- Login Form -->
-            <div class="form-container active" id="loginForm">
+            <div class="form-container active" id="loginForm" role="tabpanel" aria-labelledby="loginTab" aria-hidden="false">
                 <form method="POST" action="{% url 'account_login' %}" id="loginFormElement">
                     {% csrf_token %}
+                    <p class="auth-form-section-label">Your account</p>
                     
                     <!-- Error message container -->
                     <div id="loginErrorMessage" class="alert alert-error" style="display: none;">
@@ -742,9 +754,12 @@
                         </button>
                     </div>
 
-                    <div class="checkbox-group">
-                        <input type="checkbox" class="checkbox-input" name="remember" id="rememberMe">
-                        <label class="checkbox-label" for="rememberMe">Remember me</label>
+                    <div class="auth-login-options">
+                        <div class="checkbox-group">
+                            <input type="checkbox" class="checkbox-input" name="remember" id="rememberMe">
+                            <label class="checkbox-label" for="rememberMe">Remember me</label>
+                        </div>
+                        <a href="{% url 'account_reset_password' %}" class="forgot-password">Forgot password?</a>
                     </div>
 
                     {% if recaptcha_enabled %}
@@ -757,7 +772,7 @@
                     {% endif %}
 
                     <button type="submit" class="btn-primary" id="loginSubmitBtn">
-                        Sign In
+                        Sign in <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
 
                     {% if 'google' in enabled_sso_providers %}
@@ -778,13 +793,7 @@
                     </a>
                     {% endif %}
 
-                    <a href="{% url 'account_reset_password' %}" class="forgot-password">
-                        Forgot your password?
-                    </a>
-
-                    <div class="terms-link">
-                        <small>Need help accessing your account? Contact the Office of Alumni Affairs.</small>
-                    </div>
+                    <p class="auth-form-support">Having trouble signing in? <a href="{% url 'core:contact_us' %}">Contact Alumni Affairs</a></p>
 
                     {% if legal_terms_page or legal_privacy_page %}
                     <div class="terms-link">
@@ -795,18 +804,20 @@
             </div>
 
             <!-- Signup Form -->
-            <div class="form-container" id="signupForm">
+            <div class="form-container" id="signupForm" role="tabpanel" aria-labelledby="signupTab" aria-hidden="true">
                 <form method="POST" action="{% url 'accounts:enhanced_signup' %}" id="signupFormElement">
                     {% csrf_token %}
                     
-                    <div class="form-group">
-                        <label class="form-label" for="signupFirstName">First name</label>
-                        <input type="text" class="form-input" name="first_name" placeholder="First name" autocomplete="given-name" required id="signupFirstName">
-                    </div>
-
-                    <div class="form-group">
-                        <label class="form-label" for="signupLastName">Last name</label>
-                        <input type="text" class="form-input" name="last_name" placeholder="Last name" autocomplete="family-name" required id="signupLastName">
+                    <div class="auth-signup-note"><i class="fas fa-shield-halved" aria-hidden="true"></i><span>Register with your details. Email verification is required to activate your account.</span></div>
+                    <div class="auth-name-fields">
+                        <div class="form-group">
+                            <label class="form-label" for="signupFirstName">First name</label>
+                            <input type="text" class="form-input" name="first_name" placeholder="First name" autocomplete="given-name" required id="signupFirstName">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label" for="signupLastName">Last name</label>
+                            <input type="text" class="form-input" name="last_name" placeholder="Last name" autocomplete="family-name" required id="signupLastName">
+                        </div>
                     </div>
 
                     <div class="form-group">
@@ -884,7 +895,7 @@
                     {% endif %}
 
                     <button type="submit" class="btn-primary" id="signupSubmitBtn">
-                        Create Account
+                        Create my account <i class="fas fa-arrow-right" aria-hidden="true"></i>
                     </button>
 
                     {% if 'google' in enabled_sso_providers %}
@@ -911,6 +922,7 @@
                     </div>
                     {% endif %}
                 </form>
+                <p class="auth-switch-help">Already registered? <button type="button" class="auth-switch-link" onclick="switchTab('login'); document.getElementById('loginEmail').focus();">Sign in instead</button></p>
             </div>
         </div>
 
@@ -922,19 +934,46 @@
     <script>
         // Tab Switching
         function switchTab(tab) {
-            document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
-            document.getElementById(tab + 'Tab').classList.add('active');
-            document.querySelectorAll('.auth-tab').forEach(t => t.setAttribute('aria-selected', String(t.id === tab + 'Tab')));
-            const heading = document.getElementById('authFormHeading');
-            const description = document.getElementById('authFormDescription');
-            if (heading) heading.textContent = tab === 'signup' ? 'Create your alumni account' : 'Welcome back';
-            if (description) description.textContent = tab === 'signup'
-                ? 'Use your details to begin registration and verify your email.'
-                : 'Sign in to reconnect with your alumni community.';
-            
-            document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
-            document.getElementById(tab + 'Form').classList.add('active');
+            if (tab !== 'login' && tab !== 'signup') return;
+            const signup = tab === 'signup';
+            document.body.classList.toggle('auth-public--signup', signup);
+            for (const name of ['login', 'signup']) {
+                const selected = name === tab;
+                const trigger = document.getElementById(name + 'Tab');
+                const panel = document.getElementById(name + 'Form');
+                trigger.classList.toggle('active', selected);
+                trigger.setAttribute('aria-selected', String(selected));
+                trigger.setAttribute('tabindex', selected ? '0' : '-1');
+                panel.classList.toggle('active', selected);
+                panel.setAttribute('aria-hidden', String(!selected));
+            }
+            document.getElementById('authFormHeading').textContent = signup ? 'Join the alumni community' : 'Welcome back';
+            document.getElementById('authFormDescription').textContent = signup
+                ? 'Create an account to connect with NORSU alumni and access member services.'
+                : 'Sign in to access your NORSU alumni account.';
+            document.getElementById('authBrandTitle').textContent = signup
+                ? 'Your next chapter starts here.'
+                : 'A community that stays connected.';
+            document.getElementById('authBrandDescription').textContent = signup
+                ? 'Stay connected to NORSU long after graduation. Join the network built for our alumni community.'
+                : 'One home for your alumni profile, university updates, professional opportunities, and lifelong connections.';
         }
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const tabTriggers = Array.from(document.querySelectorAll('.auth-tab'));
+            tabTriggers.forEach((trigger, index) => {
+                trigger.addEventListener('keydown', function (event) {
+                    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
+                    event.preventDefault();
+                    const next = event.key === 'Home' ? 0
+                        : event.key === 'End' ? tabTriggers.length - 1
+                        : (index + (event.key === 'ArrowRight' ? 1 : -1) + tabTriggers.length) % tabTriggers.length;
+                    const tab = tabTriggers[next].id === 'signupTab' ? 'signup' : 'login';
+                    switchTab(tab);
+                    tabTriggers[next].focus();
+                });
+            });
+        });
 
         // Password Toggle
         function togglePassword(inputId, button) {
