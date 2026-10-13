@@ -25,7 +25,7 @@ from django.views.decorators.csrf import csrf_protect
 
 from core.mixins import SuperuserRequiredMixin, StaffRequiredMixin
 from core.forms.user_management_forms import UserCreationForm, UserSearchForm
-from core.services import UserManagementService, RoleAssignmentService, AuditLogService
+from core.services.user_management import UserManagementService, RoleAssignmentService, AuditLogService
 from core.models.user_management import UserAuditLog, UserStatusChange
 from accounts.models import Profile, Mentor
 
