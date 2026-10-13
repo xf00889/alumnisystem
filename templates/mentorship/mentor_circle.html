@@ -10,7 +10,6 @@
     <div>
       <span class="circle-eyebrow">MENTORSHIP / GROUP WORKSPACE</span>
       <h1>{{ mentor.user.get_full_name|default:mentor.user.username }}’s mentoring group</h1>
-      <p>One shared space for your group chat, schedules, and mentorship updates. Group meetings appear once for everyone, while private mentee updates stay visible only to the mentor and the affected mentee.</p>
       <div class="circle-hero__meta">
         <span class="circle-pill"><i class="fas fa-users me-1"></i>{{ circle_members|length }} mentee{{ circle_members|length|pluralize }}</span>
         <span class="circle-pill"><i class="far fa-calendar-alt me-1"></i>{{ circle_meetings|length }} upcoming meeting{{ circle_meetings|length|pluralize }}</span>
@@ -67,14 +66,21 @@
         <div class="circle-meetings">
           {% for meeting in circle_meetings %}
             <article class="circle-meeting">
-              <strong>{{ meeting.title }}</strong>
-              <time>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time>
-              <span>{{ meeting.duration }} min · {{ meeting.participants.count }} attendee{{ meeting.participants.count|pluralize }}</span>
-              {% if meeting.agenda %}<p>{{ meeting.agenda|truncatewords:35 }}</p>{% endif %}
-              <div class="circle-meeting__actions">
-                {% if meeting.meeting_link %}<a class="btn btn-sm btn-outline-primary" href="{{ meeting.meeting_link }}" rel="noopener noreferrer" target="_blank">Join meeting</a>{% endif %}
-                {% if is_circle_mentor %}<button type="button" class="btn btn-sm btn-outline-danger" data-circle-cancel-url="{% url 'mentorship:circle_cancel_meeting' mentor.id meeting.id %}" data-circle-meeting-title="{{ meeting.title }}">Cancel</button>{% endif %}
+              <div class="circle-meeting__details">
+                <strong class="circle-meeting__title">{{ meeting.title }}</strong>
+                <div class="circle-meeting__meta">
+                  <time ><i class="far fa-calendar-alt" aria-hidden="true"></i>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time>
+                  <span><i class="far fa-clock" aria-hidden="true"></i>{{ meeting.duration }} min</span>
+                  <span><i class="fas fa-users" aria-hidden="true"></i>{{ meeting.participants.count }} attendee{{ meeting.participants.count|pluralize }}</span>
+                </div>
+                {% if meeting.agenda %}<p class="circle-meeting__agenda">{{ meeting.agenda|truncatewords:25 }}</p>{% endif %}
               </div>
+              {% if meeting.meeting_link or is_circle_mentor %}
+                <div class="circle-meeting__actions">
+                  {% if meeting.meeting_link %}<a class="btn btn-sm circle-meeting__primary" href="{{ meeting.meeting_link }}" rel="noopener noreferrer" target="_blank"><i class="fas fa-video" aria-hidden="true"></i> Join meeting</a>{% endif %}
+                  {% if is_circle_mentor %}<button type="button" class="btn btn-sm circle-meeting__secondary" data-circle-cancel-url="{% url 'mentorship:circle_cancel_meeting' mentor.id meeting.id %}" data-circle-meeting-title="{{ meeting.title }}"><i class="fas fa-times" aria-hidden="true"></i> Cancel</button>{% endif %}
+                </div>
+              {% endif %}
             </article>
           {% empty %}
             <p class="circle-muted">No upcoming group sessions. {% if is_circle_mentor %}Schedule once for all approved mentees.{% endif %}</p>
