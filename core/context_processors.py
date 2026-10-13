@@ -24,6 +24,7 @@ def user_role_context(request):
         # Public tracer pages retain public chrome for unauthenticated visitors.
         'tracer_study_page_base': 'base_landingpage.html',
         'has_mentee_dashboard': False,
+        'has_mentor_dashboard': False,
     }
     
     if request.user.is_authenticated:
@@ -53,13 +54,15 @@ def user_role_context(request):
         context['tracer_study_page_base'] = context['alumni_page_base']
 
         try:
-            from accounts.models import MentorshipRequest
+            from accounts.models import Mentor, MentorshipRequest
+            context['has_mentor_dashboard'] = Mentor.objects.filter(user=request.user).exists()
             context['has_mentee_dashboard'] = MentorshipRequest.objects.filter(
                 mentee=request.user,
-                status__in=['APPROVED', 'PAUSED', 'COMPLETED']
+                status__in=['PENDING', 'APPROVED', 'PAUSED', 'COMPLETED', 'CANCELLED']
             ).exists()
         except Exception:
             context['has_mentee_dashboard'] = False
+            context['has_mentor_dashboard'] = False
 
         # Only superusers can access system configuration
         context['can_access_system_config'] = request.user.is_superuser

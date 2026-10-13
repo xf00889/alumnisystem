@@ -119,6 +119,101 @@ def update_request_status(request, request_id):
     })
 
 @login_required
+@require_POST
+def mentor_end_mentorship(request, mentorship_id):
+    """End an approved mentee relationship; retain history and revoke group access."""
+    reason = request.POST.get('reason', '').strip()
+    if not 10 <= len(reason) <= 1000:
+        return JsonResponse({'error': 'Please provide a reason (10–1,000 characters).'}, status=400)
+    with transaction.atomic():
+        mentorship = get_object_or_404(
+            MentorshipRequest.objects.select_related('mentor', 'mentee'), pk=mentorship_id
+        )
+        if mentorship.mentor.user_id != request.user.pk:
+            return JsonResponse({'error': 'Only the assigned mentor may end this mentorship.'}, status=403)
+        # Lock the mentor to serialize concurrent removals and counter recalculations.
+        mentor = Mentor.objects.select_for_update().get(pk=mentorship.mentor_id)
+        mentorship = MentorshipRequest.objects.select_for_update().get(pk=mentorship_id)
+        if mentorship.status != 'APPROVED':
+            return JsonResponse({'error': 'This mentorship is not active. Refresh the page.'}, status=409)
+        if MentorshipRequest.objects.filter(
+            mentor=mentor, mentee_id=mentorship.mentee_id, status='CANCELLED'
+        ).exclude(pk=mentorship.pk).exists():
+            return JsonResponse({
+                'error': 'An older cancelled request for this mentee already exists. Contact administration to close this relationship without losing history.'
+            }, status=409)
+        mentorship.status = 'CANCELLED'
+        mentorship.end_date = timezone.now().date()
+        mentorship.save(update_fields=['status', 'end_date', 'updated_at'])
+        MentorshipProgress.objects.create(
+            mentorship=mentorship, title='Mentorship ended by mentor',
+            description=reason, created_by=request.user,
+        )
+        mentor.current_mentees = MentorshipRequest.objects.filter(mentor=mentor, status='APPROVED').count()
+        mentor.save(update_fields=['current_mentees', 'updated_at'])
+        mentee_id = mentorship.mentee_id
+        mentor_name = request.user.get_full_name() or request.user.username
+        def notify_mentee():
+            try:
+                notify.send(
+                    sender=request.user,
+                    recipient=mentorship.mentee,
+                    verb='ended your mentorship',
+                    description=f'{mentor_name} has ended your mentoring relationship. Your previous records remain available.',
+                    action_object=mentorship,
+                    level='warning',
+                )
+            except Exception:
+                logger.exception('Unable to notify mentee %s of mentorship closure', mentee_id)
+        transaction.on_commit(notify_mentee)
+    return JsonResponse({'success': True, 'message': 'Mentorship ended. Group access has been revoked.'})
+
+
+@login_required
+def mentor_mentee_details(request, mentorship_id):
+    """Limited, role-authorized details for reviewing/mentoring an applicant."""
+    relationship = get_object_or_404(
+        MentorshipRequest.objects.select_related('mentor__user', 'mentee'),
+        pk=mentorship_id,
+        mentor__user=request.user,
+        status__in=['PENDING', 'APPROVED'],
+    )
+    mentee = relationship.mentee
+    alumni = getattr(mentee, 'alumni', None)
+    profile = getattr(mentee, 'profile', None)
+    # Neither private contact information nor uploaded identity documents are exposed.
+    return render(request, 'mentorship/partials/mentee_details.html', {
+        'relationship': relationship,
+        'mentee': mentee,
+        'alumni': alumni,
+        'profile': profile,
+    })
+
+
+@login_required
+@require_POST
+def mentee_withdraw_request(request, mentorship_id):
+    """Only an applicant can withdraw their own still-pending request."""
+    with transaction.atomic():
+        relationship = get_object_or_404(
+            MentorshipRequest.objects.select_for_update(),
+            pk=mentorship_id, mentee=request.user,
+        )
+        if relationship.status != 'PENDING':
+            return JsonResponse({'error': 'Only pending requests can be withdrawn.'}, status=409)
+        if MentorshipRequest.objects.filter(
+            mentor_id=relationship.mentor_id, mentee=request.user, status='CANCELLED'
+        ).exclude(pk=relationship.pk).exists():
+            return JsonResponse({
+                'error': 'A previous withdrawn request already exists. Please contact support to withdraw this one.'
+            }, status=409)
+        relationship.status = 'CANCELLED'
+        relationship.end_date = timezone.now().date()
+        relationship.save(update_fields=['status', 'end_date', 'updated_at'])
+    return JsonResponse({'success': True, 'message': 'Request withdrawn.'})
+
+
+@login_required
 def mentee_dashboard(request):
     """
     View for mentee's dashboard showing their mentorship requests and active mentorships
@@ -138,6 +233,10 @@ def mentee_dashboard(request):
         completed_mentorships = MentorshipRequest.objects.filter(
             mentee=request.user,
             status='COMPLETED'
+        ).select_related('mentor', 'mentor__user').order_by('-end_date', '-created_at')
+        archived_mentorships = MentorshipRequest.objects.filter(
+            mentee=request.user,
+            status__in=['COMPLETED', 'CANCELLED'],
         ).select_related('mentor', 'mentor__user').order_by('-end_date', '-created_at')
         
         rejected_requests = MentorshipRequest.objects.filter(
@@ -159,6 +258,18 @@ def mentee_dashboard(request):
             is_cancelled=False, meeting_date__gt=timezone.now()
         ).select_related('mentor__user').distinct().order_by('meeting_date')[:6]
 
+        # Group-first dashboard: retain only activity visible to the current mentee.
+        from .circle_views import _visible_entries
+        mentee_group_activity = []
+        for relationship in active_mentorships:
+            mentee_group_activity.extend(
+                _visible_entries(relationship.mentor, request.user, False)
+                .select_related('author')
+                .order_by('-created_at', '-pk')[:4]
+            )
+        mentee_group_activity.sort(key=lambda entry: (entry.created_at, entry.pk), reverse=True)
+        mentee_group_activity = mentee_group_activity[:6]
+
         # Get recent messages
         recent_messages = MentorshipMessage.objects.filter(
             mentorship__mentee=request.user,
@@ -175,9 +286,11 @@ def mentee_dashboard(request):
             'pending_requests': pending_requests,
             'active_mentorships': active_mentorships,
             'completed_mentorships': completed_mentorships,
+            'archived_mentorships': archived_mentorships,
             'rejected_requests': rejected_requests,
             'upcoming_meetings': upcoming_meetings,
             'upcoming_group_meetings': upcoming_group_meetings,
+            'mentee_group_activity': mentee_group_activity,
             'recent_messages': recent_messages,
             'progress_updates': progress_updates,
             'total_active_mentorships': active_mentorships.count(),
@@ -300,9 +413,16 @@ def mentor_dashboard(request):
 
         # One shared group meeting appears once, not once per mentee.
         from .models import MentorCircleMeeting
-        upcoming_circle_meetings = MentorCircleMeeting.objects.filter(
+        group_meeting_queryset = MentorCircleMeeting.objects.filter(
             mentor=mentor, is_cancelled=False, meeting_date__gt=timezone.now()
-        ).prefetch_related('participants').order_by('meeting_date')[:5]
+        )
+        upcoming_circle_meetings = group_meeting_queryset.prefetch_related('participants').order_by('meeting_date')[:5]
+        total_upcoming_meetings = (
+            group_meeting_queryset.count() + MentorshipMeeting.objects.filter(
+                mentorship__mentor=mentor, mentorship__status='APPROVED',
+                status='SCHEDULED', meeting_date__gt=timezone.now(),
+            ).count()
+        )
 
         # Get recent progress updates
         recent_progress = MentorshipProgress.objects.filter(
@@ -348,8 +468,10 @@ def mentor_dashboard(request):
             'pending_requests': pending_requests,
             'active_mentorships': active_mentorships,
             'completed_mentorships': completed_mentorships,
+            'archived_mentorships': archived_mentorships,
             'upcoming_meetings': upcoming_meetings,
             'upcoming_circle_meetings': upcoming_circle_meetings,
+            'total_upcoming_meetings': total_upcoming_meetings,
             'circle_messages': circle_messages,
             'circle_message_count': circle_message_count,
             'recent_progress': recent_progress,

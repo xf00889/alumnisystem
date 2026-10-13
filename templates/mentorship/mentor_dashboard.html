@@ -79,15 +79,15 @@
 
   <section class="mentor-circle-summary" aria-label="Group messages and shared calendar">
     <div>
-      <span class="mentor-workspace-intro__eyebrow">GROUP COMMUNICATION</span>
-      <h2>Mentorship group messages & schedule</h2>
-      <p>Use one shared workspace for messages and meetings, then apply the same progress and timeline updates to every active mentee when needed.</p>
+      <span class="mentor-workspace-intro__eyebrow">MENTORSHIP TOOLS</span>
+      <h2>Coordinate your mentoring group</h2>
+      <p>Schedule shared sessions, communicate with mentees, and update their progress and milestones in one place.</p>
       {% if total_pending_requests %}<a href="#pendingMentorshipRequests" class="mentor-circle-summary__inline-link">Review {{ total_pending_requests }} pending request{{ total_pending_requests|pluralize }}</a>{% endif %}
     </div>
-    <div class="mentor-circle-summary__actions">
-      <a class="btn btn-primary" href="{% url 'mentorship:mentor_circle' mentor.id %}"><i class="fas fa-comments me-1"></i> Open group messages{% if circle_message_count %} <span class="badge rounded-pill text-bg-light ms-1">{{ circle_message_count }}</span>{% endif %}</a>
-      <button type="button" class="btn btn-info" data-bs-toggle="modal" data-bs-target="#progressUpdateModal" data-progress-url="{% url 'mentorship:circle_update_group_progress' mentor.id %}" data-mentee-name="All active mentees" data-progress-percent="0" data-progress-scope="group"><i class="fas fa-chart-line me-1"></i> Update group progress</button>
-      <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#timelineModal" data-timeline-url="{% url 'mentorship:circle_update_group_timeline' mentor.id %}" data-timeline="" data-end-date="" data-mentee-name="All active mentees" data-timeline-scope="group"><i class="fas fa-tasks me-1"></i> Manage group timeline</button>
+    <div class="mentor-circle-summary__actions" aria-label="Group mentorship actions">
+      <a class="btn btn-primary mentor-tool" href="{% url 'mentorship:mentor_circle' mentor.id %}" title="Open group messages and meetings" aria-label="Open group messages and meetings"><i class="fas fa-comments" aria-hidden="true"></i>{% if circle_message_count %}<span class="mentor-tool__badge">{{ circle_message_count }}</span>{% endif %}</a>
+      <button type="button" class="btn btn-info mentor-tool" data-bs-toggle="modal" data-bs-target="#progressUpdateModal" data-progress-url="{% url 'mentorship:circle_update_group_progress' mentor.id %}" data-mentee-name="All active mentees" data-progress-percent="0" data-progress-scope="group" title="Update progress for all active mentees" aria-label="Update progress for all active mentees"><i class="fas fa-chart-line" aria-hidden="true"></i></button>
+      <button type="button" class="btn btn-outline-secondary mentor-tool" data-bs-toggle="modal" data-bs-target="#timelineModal" data-timeline-url="{% url 'mentorship:circle_update_group_timeline' mentor.id %}" data-timeline="" data-end-date="" data-mentee-name="All active mentees" data-timeline-scope="group" title="Manage timeline for all active mentees" aria-label="Manage timeline for all active mentees"><i class="fas fa-tasks" aria-hidden="true"></i></button>
     </div>
   </section>
 
@@ -130,7 +130,7 @@
       <div class="metric-card bg-info">
         <div class="d-flex justify-content-between">
           <div>
-            <h3>{{ upcoming_meetings.count|default:0 }}</h3>
+            <h3>{{ total_upcoming_meetings|default:0 }}</h3>
             <p>Upcoming Meetings</p>
             <small>Scheduled sessions</small>
           </div>
@@ -179,11 +179,13 @@
             {% for request in pending_requests %}
             <li class="list-group-item py-3" data-mentorship-request-row>
               <div class="d-flex justify-content-between align-items-start mb-2">
-                <h6 class="mb-1 fw-semibold">{{ request.mentee.get_full_name }}</h6>
+                <h6 class="mb-1 fw-semibold">{{ request.mentee.get_full_name|default:request.mentee.username }}</h6>
                 <small class="text-muted">{{ request.created_at|timesince }} ago</small>
               </div>
-              <p class="mb-2 text-muted small">{{ request.message|truncatewords:30 }}</p>
-              <div class="d-flex gap-2">
+              <p class="mb-1 text-muted small"><strong>Skills sought:</strong> {{ request.skills_seeking|truncatechars:115 }}</p>
+              <p class="mb-2 text-muted small"><strong>Goals:</strong> {{ request.goals|truncatechars:145 }}</p>
+              <div class="d-flex gap-2 flex-wrap align-items-center">
+                <button type="button" class="btn btn-sm btn-outline-primary" data-mentee-details-url="{% url 'mentorship:mentor_mentee_details' request.id %}" data-mentee-details-name="{{ request.mentee.get_full_name|default:request.mentee.username }}"><i class="far fa-id-card me-1"></i> Review profile</button>
                 <button type="button" class="btn btn-sm btn-success" data-mentorship-status-action data-mentorship-status="APPROVED" data-mentorship-status-url="{% url 'mentorship:update_request_status' request.id %}">
                   <i class="fas fa-check me-1"></i> Accept
                 </button>
@@ -264,8 +266,9 @@
                   </div>
                   {% endif %}
 
-                  <div class="mentor-mentorship-note small text-muted">
-                    Shared progress and timeline actions now live in the group communication section above so one update can be applied to all active mentees.
+                  <div class="mentor-mentorship-note">
+                    <button type="button" class="btn btn-sm btn-outline-primary" data-mentee-details-url="{% url 'mentorship:mentor_mentee_details' mentorship.id %}" data-mentee-details-name="{{ mentorship.mentee.get_full_name|default:mentorship.mentee.username }}"><i class="far fa-id-card me-1"></i> View mentee details</button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" data-end-mentorship-url="{% url 'mentorship:mentor_end_mentorship' mentorship.id %}" data-end-mentorship-name="{{ mentorship.mentee.get_full_name|default:mentorship.mentee.username }}"><i class="fas fa-user-minus me-1"></i> End mentorship</button>
                   </div>
                 </div>
               </div>
@@ -384,7 +387,7 @@
               </button>
             </div>
             {% endfor %}
-          {% else %}
+          {% elif not upcoming_circle_meetings %}
             <div class="text-center py-4">
               <i class="far fa-calendar-times fa-3x text-muted mb-3"></i>
               <p class="text-muted mb-0">No upcoming meetings</p>
@@ -424,9 +427,12 @@
     </div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Back</button><button class="btn btn-primary" type="submit">Save timeline</button></div></form>
   </div></div>
 </div>
+<div class="modal fade mentorship-editor-modal mentor-mentee-modal" id="mentorMenteeDetailsModal" tabindex="-1" aria-labelledby="mentorMenteeDetailsTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable"><div class="modal-content"><div class="modal-header"><div><span class="mentor-workspace-intro__eyebrow">MENTORSHIP PROFILE</span><h2 id="mentorMenteeDetailsTitle" class="modal-title fs-5">Mentee details</h2></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body" id="mentorMenteeDetailsContent" aria-live="polite">Loading mentee details…</div><div class="modal-footer"><button class="btn btn-outline-secondary" type="button" data-bs-dismiss="modal">Close</button></div></div></div></div>
+<div class="modal fade mentorship-editor-modal" id="mentorEndMentorshipModal" tabindex="-1" aria-labelledby="mentorEndMentorshipTitle" aria-hidden="true"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><div><span class="mentor-workspace-intro__eyebrow">END RELATIONSHIP</span><h2 id="mentorEndMentorshipTitle" class="modal-title fs-5">End mentorship?</h2></div><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><form id="mentorEndMentorshipForm"><div class="modal-body"><p id="mentorEndMentorshipDescription">This removes the mentee from your active group. Previous mentorship records are retained.</p><label class="form-label" for="mentorEndMentorshipReason">Reason for ending <span aria-hidden="true">*</span></label><textarea class="form-control" id="mentorEndMentorshipReason" name="reason" rows="3" minlength="10" maxlength="1000" required placeholder="Explain why this mentorship is ending"></textarea><p class="small text-muted mt-2">The mentee will be notified and will no longer have access to the active group workspace.</p><p class="text-danger small" role="alert" id="mentorEndMentorshipError" hidden></p></div><div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Keep mentee</button><button type="submit" class="btn btn-danger">End mentorship</button></div></form></div></div></div>
 <div class="modal fade mentorship-editor-modal" id="personalMeetingCancelModal" tabindex="-1" aria-labelledby="personalMeetingCancelTitle" aria-hidden="true"><div class="modal-dialog modal-sm modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h2 class="modal-title fs-5" id="personalMeetingCancelTitle">Cancel personal meeting?</h2><button class="btn-close" type="button" data-bs-dismiss="modal" aria-label="Close"></button></div><div class="modal-body"><p id="personalMeetingCancelDescription">This meeting will be marked as cancelled. The mentee will see the change in their private activity.</p><div class="text-danger small" id="personalMeetingCancelError" role="alert" hidden></div></div><div class="modal-footer"><button class="btn btn-outline-secondary" data-bs-dismiss="modal" type="button">Keep meeting</button><button class="btn btn-danger" id="personalMeetingCancelConfirm" type="button">Cancel meeting</button></div></div></div></div>
 {% endblock %}
 {% block extra_js %}
 <script src="{% static 'js/alumni/mentor-dashboard-workspace.js' %}" defer></script>
 <script src="{% static 'js/alumni/mentorship-request-actions.js' %}" defer></script>
+<script src="{% static 'js/alumni/mentor-mentee-management.js' %}" defer></script>
 {% endblock %}

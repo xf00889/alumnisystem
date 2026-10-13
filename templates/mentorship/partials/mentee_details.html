@@ -1,0 +1,21 @@
+<div class="mentor-person-details">
+  <div class="mentor-person-details__identity">
+    {% if profile and profile.avatar %}<img class="mentor-person-details__avatar" src="{{ profile.avatar.url }}" alt="">
+    {% else %}<span class="mentor-person-details__avatar mentor-person-details__initial" aria-hidden="true">{{ mentee.first_name|default:mentee.username|first|upper }}</span>{% endif %}
+    <div><h3>{{ mentee.get_full_name|default:mentee.username }}</h3><span>{% if relationship.status == 'PENDING' %}Awaiting review{% else %}Active mentee{% endif %}</span></div>
+  </div>
+  <div class="mentor-person-details__grid">
+    <div><span>Graduation batch</span><strong>{% if alumni %}{{ alumni.graduation_year }}{% else %}Not provided{% endif %}</strong></div>
+    <div><span>College</span><strong>{% if alumni %}{{ alumni.get_college_display }}{% else %}Not provided{% endif %}</strong></div>
+    <div><span>Program / course</span><strong>{% if alumni %}{{ alumni.course|default:'Not provided' }}{% else %}Not provided{% endif %}</strong></div>
+    <div><span>Campus</span><strong>{% if alumni %}{{ alumni.get_campus_display }}{% else %}Not provided{% endif %}</strong></div>
+    <div><span>Current occupation</span><strong>{% if profile and profile.current_position %}{{ profile.current_position }}{% elif alumni and alumni.job_title %}{{ alumni.job_title }}{% else %}Not provided{% endif %}</strong></div>
+    <div><span>Employer</span><strong>{% if profile and profile.current_employer %}{{ profile.current_employer }}{% elif alumni and alumni.current_company %}{{ alumni.current_company }}{% else %}Not provided{% endif %}</strong></div>
+  </div>
+  <div class="mentor-person-details__section"><h4>Skills to develop</h4><p>{{ relationship.skills_seeking|default:'Not provided' }}</p></div>
+  <div class="mentor-person-details__section"><h4>Mentorship goals</h4><p>{{ relationship.goals|default:'Not provided' }}</p></div>
+  <div class="mentor-person-details__section"><h4>Introduction</h4><p>{{ relationship.message|default:'No introduction provided' }}</p></div>
+  {% if profile and profile.bio %}<div class="mentor-person-details__section"><h4>About this alumnus</h4><p>{{ profile.bio }}</p></div>{% endif %}
+  {% if alumni %}<a class="mentor-person-details__link" href="{% url 'alumni_directory:alumni_detail' alumni.id %}"><i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i> View public alumni directory profile</a>{% endif %}
+  <p class="mentor-person-details__privacy"><i class="fas fa-lock" aria-hidden="true"></i> These mentorship details are available only to this request's assigned mentor. Personal contact information and uploaded documents aren't included.</p>
+</div>
