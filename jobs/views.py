@@ -17,6 +17,7 @@ from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet, 
 from .scraper_forms import JobScraperForm
 from .scraper_utils import scraper
 from .utils import calculate_job_match_score, get_skill_recommendations
+from .access import job_board_login_required
 from .ai_global_sort import (
     apply_ordered_ids,
     compute_scores_for_job_ids,
@@ -306,8 +307,9 @@ def _get_ai_sort_state(request, is_admin_or_hr_user):
 
     return ai_sort_enabled, ai_profile_version
 
+@job_board_login_required
 def careers(request):
-    """Public careers page for job listings"""
+    """Member-only careers page for job listings"""
     jobs = JobPosting.objects.filter(is_active=True).exclude(slug="").order_by('-posted_date')
     
     # Get filter parameters (for future implementation)
@@ -374,6 +376,7 @@ def careers(request):
     }
     return render(request, 'jobs/careers.html', context)
 
+@job_board_login_required
 def get_job_details(request, job_id):
     """Get job details as JSON for modal display"""
     try:
@@ -419,6 +422,7 @@ def get_job_details(request, job_id):
             'error': 'Failed to load job details'
         }, status=500)
 
+@job_board_login_required
 def check_job_application_eligibility(request, job_id):
     """Check if user can apply for a specific job based on source_type restrictions"""
     try:
@@ -448,6 +452,7 @@ def check_job_application_eligibility(request, job_id):
             'message': 'Unable to check application eligibility.'
         }, status=500)
 
+@job_board_login_required
 def job_list(request):
     dataset = _build_job_list_dataset(request, include_modal_prompt=True)
     jobs = dataset['jobs_queryset']
@@ -879,6 +884,7 @@ def clear_all_filters(request):
     return redirect('jobs:job_list')
 
 
+@job_board_login_required
 def job_detail(request, slug):
     job = get_object_or_404(JobPosting, slug=slug)
     user_application = None
@@ -917,10 +923,8 @@ def job_detail(request, slug):
         'ai_match_state': ai_match_state,
         'source_url': source_url,
         'source_host': source_host,
-        # Expired sessions should render a public detail page, not legacy app chrome.
-        'job_detail_page_base': 'base_landingpage.html' if not request.user.is_authenticated else (
-            'base_alumni.html' if request.user.is_authenticated and not is_hr_or_admin(request.user) else 'base.html'
-        ),
+        # Jobs are member-only. Staff/HR retain their management shell.
+        'job_detail_page_base': 'base_alumni.html' if not is_hr_or_admin(request.user) else 'base.html',
     }
     return render(request, 'jobs/job_detail.html', context)
 

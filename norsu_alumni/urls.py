@@ -8,7 +8,7 @@ from django.views.generic.base import RedirectView
 from accounts import security_views
 from accounts import staff_profile_views
 from accounts import google_views
-from core.sitemaps import StaticPageSitemap, EventSitemap, JobSitemap
+from core.sitemaps import StaticPageSitemap, EventSitemap
 from core import views
 import os
 
@@ -16,7 +16,6 @@ import os
 sitemaps = {
     'static': StaticPageSitemap,
     'events': EventSitemap,
-    'jobs': JobSitemap,
 }
 
 def profile_search_connected_users(request):

@@ -15,7 +15,7 @@ class PageAndAttachmentRegressions(unittest.TestCase):
         self.assertNotIn('<style>', footer)
         self.assertIn('site_config.facebook_url or', footer)
         self.assertIn('page.get_absolute_url', footer)
-        self.assertIn('public-landing .landing-footer', source('static/css/footer.css'))
+        self.assertIn('body.public-landing .landing-footer', source('static/css/public_redesign.css'))
 
     def test_authenticated_footer_is_not_public_four_column_footer(self):
         self.assertIn("components/footer_authenticated.html", source('templates/base_alumni.html'))
@@ -31,9 +31,21 @@ class PageAndAttachmentRegressions(unittest.TestCase):
                          'csrf_token', 'home-hero-secondary']:
             self.assertIn(expected, home)
 
-    def test_public_job_detail_selects_public_shell(self):
-        self.assertIn("'base_landingpage.html' if not request.user.is_authenticated", source('jobs/views.py'))
+    def test_all_public_job_data_routes_require_membership(self):
+        jobs = source('jobs/views.py')
+        for handler in ('job_list', 'careers', 'job_detail', 'get_job_details', 'check_job_application_eligibility'):
+            self.assertIn('@job_board_login_required\ndef ' + handler + '(request', jobs)
+        access = source('jobs/access.py')
+        self.assertIn("redirect('core:home')", access)
         self.assertIn("extends job_detail_page_base", source('jobs/templates/jobs/job_detail.html'))
+        self.assertNotIn("'jobs': JobSitemap", source('norsu_alumni/urls.py'))
+
+    def test_public_footer_spacing_has_one_override_owner(self):
+        footer_style = source('static/css/footer.css')
+        public_style = source('static/css/public_redesign.css')
+        self.assertNotIn('/* NORSU public landing footer: remove inactive', footer_style)
+        self.assertIn('grid-template-columns: repeat(auto-fit', public_style)
+        self.assertNotIn('padding: clamp(4rem, 7vw, 6.5rem) 0 clamp(3rem, 5vw, 4.5rem)', public_style)
 
     def test_chat_attachments_never_expose_media_storage_urls(self):
         templates = list((ROOT / 'templates/connections').rglob('*.html'))

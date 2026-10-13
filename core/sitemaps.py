@@ -10,7 +10,8 @@ from core.models.seo import PageSEO
 class StaticPageSitemap(Sitemap):
     """
     Sitemap for static high-priority pages configured in PageSEO model.
-    Includes pages like Home, About Us, Contact Us, Events Landing, and Careers.
+    Includes public pages like Home, About Us, Contact Us, and Events Landing.
+    Members-only job routes are not indexed.
     """
     protocol = 'https'
     
@@ -18,7 +19,7 @@ class StaticPageSitemap(Sitemap):
         """
         Returns all active PageSEO objects.
         """
-        return PageSEO.objects.filter(is_active=True)
+        return PageSEO.objects.filter(is_active=True).exclude(page_path__in=['/jobs/', '/jobs/careers/'])
     
     def location(self, obj):
         """
