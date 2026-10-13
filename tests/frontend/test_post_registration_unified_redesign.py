@@ -23,7 +23,7 @@ class PostRegistrationUnifiedRedesignTests(unittest.TestCase):
     def test_registration_form_integrations_unchanged(self):
         content = TEMPLATE.read_text(encoding='utf-8')
         for marker in (
-            '{{ form|crispy }}', '{% csrf_token %}', 'id="postRegForm"',
+            '{{ field|as_crispy_field }}', '{% for field in form %}', '{% csrf_token %}', 'id="postRegForm"',
             'id="cancelRegForm"', 'id="duplicateCheckBanner"',
             'id="submitBtn"', 'id="id_campus"', 'id="id_college"',
             'id="id_course_graduated"', 'id="id_major"',

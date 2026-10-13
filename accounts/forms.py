@@ -583,6 +583,7 @@ class PostRegistrationForm(forms.Form):
     course_graduated = forms.ChoiceField(
         choices=ALL_PROGRAM_CHOICES,  # Use all choices for validation
         required=True,
+        error_messages={'required': 'Please select your course/program.'},
         widget=forms.Select(attrs={
             'class': 'form-control',
         }),
@@ -719,75 +720,75 @@ class PostRegistrationForm(forms.Form):
         return year
 
     def clean(self):
+        """Attach academic-selection errors to their fields, not the form's grid.
+
+        Missing dropdown selections are normally caught by required field
+        validation.  Keep a helpful message on the matching field rather than
+        raising a form-wide ValidationError, which would render as an unrelated
+        grid cell above First Name in the post-registration template.
+        """
         cleaned_data = super().clean()
         campus = cleaned_data.get('campus')
         course = cleaned_data.get('course_graduated')
         college = cleaned_data.get('college')
 
-        # Validate that campus and course are selected
-        if not campus:
-            raise forms.ValidationError("Please select your campus.")
+        if not campus and 'campus' not in self.errors:
+            self.add_error('campus', 'Please select your campus.')
+        if not course and 'course_graduated' not in self.errors:
+            self.add_error('course_graduated', 'Please select your course/program.')
+        # No cross-field validation should run until both prerequisites exist.
+        if not campus or not course:
+            return cleaned_data
 
-        if not course:
-            raise forms.ValidationError("Please select your course/program.")
-
-        # Auto-derive college from course if not submitted (disabled select doesn't submit)
-        if not college and course and course != 'OTHER':
+        # Keep the existing server-side college derivation for compatibility
+        # with earlier accounts where college was optional.
+        if not college and course != 'OTHER':
             college = self.COURSE_COLLEGE_MAPPING.get(course, '')
             cleaned_data['college'] = college
-
-        # Final fallback
         if not college:
             college = 'CAS'
             cleaned_data['college'] = college
 
-        # Validate campus-college-course combination for non-OTHER courses
         if campus and college and course and course != 'OTHER':
-            # Get available programs for this campus and college
             campus_programs = self.PROGRAMS_BY_CAMPUS.get(campus)
-            
             if campus_programs and campus_programs != 'ALL':
-                # Campus has specific program restrictions
+                from alumni_directory.models import Alumni
+                college_dict = dict(Alumni.COLLEGE_CHOICES)
+                college_name = college_dict.get(college, college)
                 if college not in campus_programs:
-                    from alumni_directory.models import Alumni
-                    college_dict = dict(Alumni.COLLEGE_CHOICES)
-                    college_name = college_dict.get(college, college)
-                    raise forms.ValidationError(
-                        f"{college_name} is not available at the selected campus. "
-                        f"Please select a different college or campus."
+                    self.add_error(
+                        'college',
+                        f'{college_name} is not available at the selected campus. '
+                        'Please select a different college or campus.'
                     )
-                
-                # Check if course is available for this campus-college combination
-                available_courses = [course_code for course_code, _ in campus_programs.get(college, [])]
+                    return cleaned_data
+                available_courses = [item[0] for item in campus_programs.get(college, [])]
                 if course not in available_courses:
-                    from alumni_directory.models import Alumni
-                    college_dict = dict(Alumni.COLLEGE_CHOICES)
-                    college_name = college_dict.get(college, college)
-                    raise forms.ValidationError(
+                    self.add_error(
+                        'course_graduated',
                         f"The course '{course}' is not available in {college_name} at the selected campus. "
-                        f"Please select a different course."
+                        'Please select a different course.'
                     )
+                    return cleaned_data
             else:
-                # Campus allows all programs - use fallback validation
                 expected_college = self.COURSE_COLLEGE_MAPPING.get(course)
                 if expected_college and college != expected_college:
                     from alumni_directory.models import Alumni
                     college_dict = dict(Alumni.COLLEGE_CHOICES)
-                    expected_college_name = college_dict.get(expected_college, expected_college)
-                    selected_college_name = college_dict.get(college, college)
-
-                    raise forms.ValidationError(
-                        f"Invalid combination: The course '{course}' does not belong to {selected_college_name}. "
-                        f"This course belongs to {expected_college_name}. "
-                        f"Please select the correct college first, then choose your course from the available options."
+                    expected_name = college_dict.get(expected_college, expected_college)
+                    selected_name = college_dict.get(college, college)
+                    self.add_error(
+                        'college',
+                        f"Invalid combination: The course '{course}' does not belong to {selected_name}. "
+                        f'This course belongs to {expected_name}. '
+                        'Please select the correct college first, then choose your course.'
                     )
+                    return cleaned_data
 
-        # Validate major_other field if major is "OTHER"
         major = cleaned_data.get('major')
         major_other = cleaned_data.get('major_other')
-        
         if major == 'OTHER' and not major_other:
-            raise forms.ValidationError("Please specify your major when selecting 'Other'.")
+            self.add_error('major_other', "Please specify your major when selecting 'Other'.")
 
         return cleaned_data
 

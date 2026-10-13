@@ -740,7 +740,17 @@
 
             <form method="post" class="post-reg-form" id="postRegForm">
                 {% csrf_token %}
-                {{ form|crispy }}
+                {% if form.non_field_errors %}
+                <div class="profile-form-errors" role="alert" aria-live="polite">
+                    <strong><i class="fas fa-circle-exclamation" aria-hidden="true"></i> Please review your information</strong>
+                    <ul>
+                        {% for error in form.non_field_errors %}<li>{{ error }}</li>{% endfor %}
+                    </ul>
+                </div>
+                {% endif %}
+                {% for field in form %}
+                    {{ field|as_crispy_field }}
+                {% endfor %}
 
                 <!-- Duplicate Detection Banner -->
                 <div id="duplicateCheckBanner" style="display:none; margin-bottom: 1rem;">
@@ -1325,46 +1335,43 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
 
-        // Initialize form state
-        if (campusSelect.value === '') {
+        // Rehydrate server-bound selections after a failed POST. The existing
+        // cascade handlers rebuild option lists, so restoring values must wait
+        // until each dependent list has finished populating. These are the
+        // rendered bound field values, never user-controlled HTML strings.
+        const savedCampus = campusSelect.value;
+        const savedCollege = collegeSelect.value;
+        const savedCourse = courseSelect.value;
+        const savedMajor = majorSelect ? majorSelect.value : '';
+
+        if (!savedCampus) {
             collegeSelect.disabled = true;
             courseSelect.disabled = true;
             if (majorSelect) majorSelect.disabled = true;
-        } else if (collegeSelect.value === '') {
-            // Campus is selected but college is not - enable college
-            collegeSelect.disabled = false;
-            courseSelect.disabled = true;
-            if (majorSelect) majorSelect.disabled = true;
-            
-            // Trigger campus change to populate colleges
-            campusSelect.dispatchEvent(new Event('change'));
-        } else if (courseSelect.value === '') {
-            // Campus and college are selected - enable both
-            collegeSelect.disabled = false;
-            courseSelect.disabled = false;
-            if (majorSelect) majorSelect.disabled = true;
-            
-            // Trigger campus and college change to populate dropdowns
-            campusSelect.dispatchEvent(new Event('change'));
-            setTimeout(() => {
-                collegeSelect.dispatchEvent(new Event('change'));
-            }, 100);
         } else {
-            // All fields have values - enable all and trigger changes
-            collegeSelect.disabled = false;
-            courseSelect.disabled = false;
-            if (majorSelect) majorSelect.disabled = false;
-            
-            // Trigger all changes to populate dropdowns
             campusSelect.dispatchEvent(new Event('change'));
-            setTimeout(() => {
-                collegeSelect.dispatchEvent(new Event('change'));
+            if (savedCollege) {
                 setTimeout(() => {
-                    courseSelect.dispatchEvent(new Event('change'));
-                }, 100);
-            }, 100);
+                    if ([...collegeSelect.options].some(option => option.value === savedCollege)) {
+                        collegeSelect.value = savedCollege;
+                        collegeSelect.dispatchEvent(new Event('change'));
+                        if (savedCourse) {
+                            setTimeout(() => {
+                                if ([...courseSelect.options].some(option => option.value === savedCourse)) {
+                                    courseSelect.value = savedCourse;
+                                    courseSelect.dispatchEvent(new Event('change'));
+                                    if (savedMajor && majorSelect) {
+                                        majorSelect.value = savedMajor;
+                                        majorSelect.dispatchEvent(new Event('change'));
+                                    }
+                                }
+                            }, 350);
+                        }
+                    }
+                }, 350);
+            }
         }
-        
+
         // Hide major_other field initially
         const majorOtherInput = document.getElementById('id_major_other');
         if (majorOtherInput) {
@@ -1421,6 +1428,69 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         }, duration);
     }
+});
+</script>
+
+<!-- Keep validation feedback beside the relevant academic field. -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('postRegForm');
+    const campus = document.getElementById('id_campus');
+    const college = document.getElementById('id_college');
+    const course = document.getElementById('id_course_graduated');
+    if (!form || !campus || !college || !course) return;
+
+    function removeInlineError(field) {
+        const container = document.getElementById('div_id_' + field.name) || field.closest('.mb-3');
+        if (!container) return;
+        const message = container.querySelector('.profile-inline-error');
+        if (message) message.remove();
+        field.removeAttribute('aria-invalid');
+        field.removeAttribute('aria-describedby');
+    }
+
+    function displayInlineError(field, message) {
+        const container = document.getElementById('div_id_' + field.name) || field.closest('.mb-3');
+        if (!container) return;
+        removeInlineError(field);
+        const error = document.createElement('p');
+        error.id = 'profile-error-' + field.name;
+        error.className = 'profile-inline-error';
+        error.setAttribute('role', 'alert');
+        error.textContent = message;
+        container.appendChild(error);
+        field.setAttribute('aria-invalid', 'true');
+        field.setAttribute('aria-describedby', error.id);
+        container.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        if (!field.disabled) field.focus({ preventScroll: true });
+    }
+
+    for (const field of [campus, college, course]) {
+        field.addEventListener('change', () => removeInlineError(field));
+    }
+
+    // Program is dynamically disabled before college selection. Native HTML
+    // validation excludes disabled controls, so check the cascade explicitly
+    // before the duplicate checker applies its "Saving..." state.
+    form.addEventListener('submit', function (event) {
+        if (!campus.value) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            displayInlineError(campus, 'Select your campus to continue.');
+        } else if (!college.value) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            displayInlineError(college, 'Select your college before choosing a program.');
+        } else if (!course.value) {
+            event.preventDefault();
+            event.stopImmediatePropagation();
+            if (course.disabled) {
+                displayInlineError(college, 'Wait for your programs to load, then select one.');
+            } else {
+                displayInlineError(course, 'Select your course/program to continue.');
+            }
+        }
+    }, true);
 });
 </script>
 
