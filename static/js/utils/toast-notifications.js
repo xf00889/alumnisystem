@@ -259,9 +259,41 @@
                 dismissible: options.dismissible !== undefined ? options.dismissible : toastConfig.dismissible
             };
 
-            // Display the toast
-            notyf.open(toastOptions);
-            
+            // Keep a reference to the exact DOM node created by this call.  Notyf
+            // normally removes it itself, but its animationend-based cleanup can
+            // be suppressed by page-wide/reduced-motion animation rules.
+            const previousToasts = new Set(document.querySelectorAll('.notyf__toast'));
+            const notification = notyf.open(toastOptions);
+            let toastNode = Array.from(document.querySelectorAll('.notyf__toast'))
+                .find(node => !previousToasts.has(node)) || null;
+
+            if (!toastNode) {
+                // Accommodate renderers that insert the toast on the next frame.
+                requestAnimationFrame(() => {
+                    toastNode = Array.from(document.querySelectorAll('.notyf__toast'))
+                        .find(node => !previousToasts.has(node)) || null;
+                });
+            }
+
+            // Notyf owns the primary timer. This is a safety net, not a second
+            // notification: a timed toast must not become permanent when the
+            // browser suppresses its dismissal animation.
+            if (Number.isFinite(duration) && duration > 0) {
+                setTimeout(() => {
+                    if (!toastNode || !toastNode.isConnected) return;
+                    try {
+                        notyf.dismiss(notification);
+                    } catch (dismissError) {
+                        console.warn('ToastUtils: Notyf dismissal fallback failed', dismissError);
+                    }
+                    // If transition/animation completion never fires, remove
+                    // the expired node without touching other visible toasts.
+                    setTimeout(() => {
+                        if (toastNode.isConnected) toastNode.remove();
+                    }, 350);
+                }, duration + 150);
+            }
+
             // Requirement 9.1: Ensure ARIA attributes are present for accessibility
             // Enhancement: Add ARIA attributes if Notyf doesn't include them by default
             setTimeout(() => ensureARIAAttributes(), 100);

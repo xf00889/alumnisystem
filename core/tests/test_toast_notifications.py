@@ -29,6 +29,24 @@ class ToastNotificationVisibilityTest(TestCase):
             css,
         )
 
+    def test_timed_toasts_have_a_cleanup_fallback(self):
+        script = (
+            BASE_DIR / "static" / "js" / "utils" / "toast-notifications.js"
+        ).read_text(encoding="utf-8")
+        self.assertIn("success: 3000", script)
+        self.assertIn("const notification = notyf.open(toastOptions)", script)
+        self.assertIn("notyf.dismiss(notification)", script)
+        self.assertIn("if (toastNode.isConnected) toastNode.remove()", script)
+        self.assertIn("Number.isFinite(duration) && duration > 0", script)
+
+    def test_reduced_motion_allows_notyf_exit_cleanup(self):
+        css = (
+            BASE_DIR / "static" / "css" / "toast-notifications.css"
+        ).read_text(encoding="utf-8")
+        self.assertIn(".notyf .notyf__toast--disappear", css)
+        self.assertIn("norsu-notyf-instant-dismiss 1ms", css)
+        self.assertIn("@keyframes norsu-notyf-instant-dismiss", css)
+
     def test_shared_stylesheet_is_loaded_by_each_public_shell(self):
         paths = [
             BASE_DIR / "templates" / "base.html",
