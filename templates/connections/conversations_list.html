@@ -22,7 +22,7 @@
 {% include 'alumni/components/breadcrumbs.html' with area='Connections & Messages' %}
 {% endif %}
 
-<div class="container-fluid py-4 {% if use_alumni_layout %}alumni-messaging-workspace{% endif %}" {% if use_alumni_layout %}data-messaging-workspace data-messaging-type="connections"{% endif %}>
+<div class="container-fluid py-4 {% if use_alumni_layout %}alumni-messaging-workspace{% endif %}" {% if use_alumni_layout %}data-messaging-workspace data-messaging-type="connections"{% if selected_conversation_user_id %} data-initial-chat-user-id="{{ selected_conversation_user_id }}"{% endif %}{% endif %}>
     {% if use_alumni_layout %}
     <div class="messaging-mobile-appbar">
         <a href="{% url 'core:home' %}" class="messaging-appbar-exit" aria-label="Back to alumni dashboard"><i class="fas fa-chevron-left" aria-hidden="true"></i><span>Alumni</span></a>
@@ -4751,6 +4751,7 @@
                                  data-mobile-url="{% url 'connections:group_chat_detail' conv.conversation.id %}"
                                  onclick="loadGroupConversation({{ conv.conversation.id }}); setActiveConversation(this);"
                              {% else %}
+                                 data-direct-user-id="{{ conv.other_user.id }}"
                                  data-mobile-url="{% url 'connections:direct_messages' conv.other_user.id %}"
                                  hx-get="{% url 'connections:direct_messages' conv.other_user.id %}"
                                  hx-target="#conversation-detail"

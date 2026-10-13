@@ -411,6 +411,19 @@ def direct_messages(request, user_id=None):
         return render(request, 'connections/direct_messages.html', context)
     
     else:
+        # Optional profile-to-inbox deep link. Validate the target before creating
+        # an empty conversation; unrelated or blocked users cannot be opened.
+        selected_conversation_user_id = None
+        recipient_id = request.GET.get('with', '').strip()
+        if recipient_id:
+            if not recipient_id.isdecimal():
+                return redirect('connections:conversations_list')
+            recipient = get_object_or_404(User, pk=int(recipient_id))
+            if recipient.pk == request.user.pk or not Connection.are_connected(request.user, recipient):
+                return HttpResponseForbidden('A direct conversation requires an active connection.')
+            DirectConversation.get_or_create_conversation(request.user, recipient)
+            selected_conversation_user_id = recipient.pk
+
         # Show list of conversations
         conversations = DirectConversation.objects.filter(
             participants=request.user
@@ -446,6 +459,7 @@ def direct_messages(request, user_id=None):
         
         context = {
             'conversations': conversation_data,
+            'selected_conversation_user_id': selected_conversation_user_id,
         }
         return render(request, 'connections/conversations_list.html', context)
 

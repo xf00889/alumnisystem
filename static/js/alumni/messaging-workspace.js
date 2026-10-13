@@ -193,4 +193,18 @@
   // Support the existing group-conversation manual fetch, which doesn't dispatch HTMX events.
   // The observer intentionally does not change or retry requests.
   enhanceItems();
+
+  // Opening a connected alumnus from their directory profile must open that
+  // user's thread, not just the inbox. Use the same fragment loader on phones
+  // and desktops to support conversations that contain no messages yet.
+  const initialUserId = workspace.dataset.initialChatUserId;
+  if (initialUserId && /^\d+$/.test(initialUserId)) {
+    const openInitial = () => {
+      const item = [...workspace.querySelectorAll('.conversation-item[data-direct-user-id]')]
+        .find(node => node.dataset.directUserId === initialUserId);
+      if (item) openMobileConversation(item);
+    };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', openInitial, { once: true });
+    else openInitial();
+  }
 })();
