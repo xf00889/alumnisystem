@@ -468,7 +468,6 @@ def mentor_dashboard(request):
             'pending_requests': pending_requests,
             'active_mentorships': active_mentorships,
             'completed_mentorships': completed_mentorships,
-            'archived_mentorships': archived_mentorships,
             'upcoming_meetings': upcoming_meetings,
             'upcoming_circle_meetings': upcoming_circle_meetings,
             'total_upcoming_meetings': total_upcoming_meetings,

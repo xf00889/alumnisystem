@@ -39,6 +39,23 @@ class DashboardWorkspaceTests(TestCase):
         self.assertContains(response, 'Mentee dashboard')
         self.assertNotContains(response, '>Mentor dashboard</span>')
 
+    def test_mentor_dashboard_context_is_renderable_without_undefined_archives(self):
+        self.client.force_login(self.owner)
+        response = self.client.get(reverse('mentorship:mentor_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'Active Mentorships')
+        self.assertContains(response, 'Pending Requests')
+        self.assertEqual(response.context['total_active_mentees'], 1)
+        self.assertEqual(response.context['total_pending_requests'], 1)
+
+    def test_mentee_dashboard_uses_shared_shell_and_navy_group_actions(self):
+        self.client.force_login(self.mentee)
+        response = self.client.get(reverse('mentorship:mentee_dashboard'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'class="alumni-shell mentee-workspace"')
+        self.assertContains(response, 'css/alumni/page-foundation.css')
+        self.assertContains(response, 'Open group workspace')
+
     def test_mentee_dashboard_uses_group_workspace_without_legacy_composer(self):
         self.client.force_login(self.mentee)
         response = self.client.get(reverse('mentorship:mentee_dashboard'))

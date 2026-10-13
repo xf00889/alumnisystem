@@ -2,11 +2,12 @@
 {% load static %}
 {% block title %}Mentee Dashboard | NORSU Alumni{% endblock %}
 {% block extra_css %}
+{% if use_alumni_layout %}<link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">{% endif %}
 <link rel="stylesheet" href="{% static 'css/alumni/mentee-dashboard.css' %}">
 {% endblock %}
 {% block content %}
 {% if use_alumni_layout %}{% include 'alumni/components/breadcrumbs.html' with area='Mentorship' %}{% endif %}
-<main class="container mentee-workspace" id="menteeWorkspace">
+<main class="alumni-shell mentee-workspace" id="menteeWorkspace">
   <form id="menteeSecurityForm" hidden>{% csrf_token %}</form>
   <header class="mentee-hero">
     <div class="mentee-hero__intro">
@@ -66,7 +67,7 @@
         <div class="mentee-panel__header"><div><h2 id="menteeMeetingsHeading">Upcoming sessions</h2><p>Join your scheduled mentoring meetings.</p></div></div>
         <div class="mentee-sessions">
           {% for meeting in upcoming_group_meetings %}
-            <article class="mentee-session"><span class="mentee-session__tag">Group meeting</span><strong>{{ meeting.title }}</strong><time>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time><small>{{ meeting.duration }} minutes · {{ meeting.mentor.user.get_full_name|default:meeting.mentor.user.username }}</small><div class="mentee-session__actions"><a href="{% url 'mentorship:mentor_circle' meeting.mentor.id %}" class="btn btn-sm btn-outline-primary">Group workspace</a>{% if meeting.meeting_link %}<a class="btn btn-sm btn-primary" href="{{ meeting.meeting_link }}" target="_blank" rel="noopener noreferrer">Join meeting</a>{% endif %}</div></article>
+            <article class="mentee-session"><span class="mentee-session__tag">Group meeting</span><strong>{{ meeting.title }}</strong><time>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time><small>{{ meeting.duration }} minutes · {{ meeting.mentor.user.get_full_name|default:meeting.mentor.user.username }}</small><div class="mentee-session__actions"><a href="{% url 'mentorship:mentor_circle' meeting.mentor.id %}" class="btn btn-sm btn-primary"><i class="far fa-comments me-1" aria-hidden="true"></i> Group workspace</a>{% if meeting.meeting_link %}<a class="btn btn-sm btn-primary" href="{{ meeting.meeting_link }}" target="_blank" rel="noopener noreferrer">Join meeting</a>{% endif %}</div></article>
           {% endfor %}
           {% for meeting in upcoming_meetings %}
             <article class="mentee-session"><span class="mentee-session__tag mentee-session__tag--personal">Personal meeting</span><strong>{{ meeting.title }}</strong><time>{{ meeting.meeting_date|date:'M j, Y · g:i A' }}</time><small>{{ meeting.mentorship.mentor.user.get_full_name|default:meeting.mentorship.mentor.user.username }}</small>{% if meeting.meeting_link %}<div class="mentee-session__actions"><a class="btn btn-sm btn-primary" href="{{ meeting.meeting_link }}" target="_blank" rel="noopener noreferrer">Join meeting</a></div>{% endif %}</article>
