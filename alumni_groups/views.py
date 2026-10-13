@@ -249,6 +249,9 @@ class GroupDetailView(LoginRequiredMixin, DetailView):
         context['can_moderate_posts'] = can_moderate
         context['can_review_event_shares'] = is_member and membership.is_active and membership.role == 'ADMIN'
         context['approved_member_count'] = group.memberships.filter(status='APPROVED').count()
+        context['must_complete_membership_questions'] = bool(
+            membership and membership.status == 'PENDING' and _unanswered_membership_questions(group, membership)
+        )
         context['feed_sort'] = self.request.GET.get('feed_sort', 'newest')
         if context['feed_sort'] not in ('newest', 'oldest', 'popular', 'saved'):
             context['feed_sort'] = 'newest'
@@ -564,45 +567,102 @@ class GroupUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     def get_success_url(self):
         return reverse_lazy('alumni_groups:group_detail', kwargs={'slug': self.object.slug})
 
+def _unanswered_required_questions(group, membership):
+    """A legacy pending membership may have no question responses. Never silently approve it."""
+    if not group.has_security_questions:
+        return []
+    answered_ids = set(membership.security_answers.exclude(answer__exact='').values_list('question_id', flat=True))
+    return list(group.security_questions.filter(is_required=True).exclude(pk__in=answered_ids))
+
+
+def _unanswered_membership_questions(group, membership):
+    if not group.has_security_questions:
+        return []
+    answered_ids = set(membership.security_answers.exclude(answer__exact='').values_list('question_id', flat=True))
+    return list(group.security_questions.exclude(pk__in=answered_ids))
+
+
 @login_required
 def join_group(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
-    
-    # Check if user has an existing membership
-    existing_membership = GroupMembership.objects.filter(group=group, user=request.user).first()
-    
-    if existing_membership:
-        if existing_membership.status == 'APPROVED':
-            messages.warning(request, 'You are already a member of this group.')
-            return redirect('alumni_groups:group_detail', slug=slug)
-        elif existing_membership.status in ['REJECTED', 'BLOCKED']:
-            # Allow rejected or blocked users to try joining again
-            existing_membership.delete()
-        elif existing_membership.status == 'PENDING':
-            messages.warning(request, 'Your join request is already pending approval.')
-            return redirect('alumni_groups:group_detail', slug=slug)
-    
-    # Create new membership
-    status = 'PENDING' if group.requires_approval else 'APPROVED'
-    GroupMembership.objects.create(
-        group=group,
-        user=request.user,
-        status=status
-    )
-    
-    # Record activity
-    GroupActivity.objects.create(
-        group=group,
-        user=request.user,
-        activity_type='JOIN',
-        description=f'{request.user.get_full_name()} requested to join the group'
-    )
-    
-    message = ('Your request to join has been submitted and is pending approval.'
-              if status == 'PENDING' else 'You have successfully joined the group.')
-    messages.success(request, message)
-    
-    return redirect('alumni_groups:group_detail', slug=slug)
+    """Require an explicit POST; enforce current group questions on the server."""
+    from django.db import transaction
+
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
+    membership = GroupMembership.objects.filter(group=group, user=request.user).first()
+    if membership and membership.status == 'APPROVED':
+        messages.info(request, 'You are already a member of this group.')
+        return redirect('alumni_groups:group_detail', slug=slug)
+    if membership and membership.status == 'BLOCKED':
+        messages.error(request, 'This group has restricted your membership. Contact a group administrator.')
+        return redirect('alumni_groups:group_detail', slug=slug)
+
+    questions = list(group.security_questions.order_by('created_at', 'pk')) if group.has_security_questions else []
+    # Misconfigured groups must not silently skip a required verification step.
+    if group.has_security_questions and not questions:
+        messages.error(request, 'Membership questions are enabled but have not been configured. Contact the group administrator.')
+        return redirect('alumni_groups:group_detail', slug=slug)
+
+    remaining_questions = _unanswered_membership_questions(group, membership) if membership and membership.status == 'PENDING' else []
+    if membership and membership.status == 'PENDING' and not remaining_questions:
+        messages.info(request, 'Your join request is already pending review.')
+        return redirect('alumni_groups:group_detail', slug=slug)
+
+    if request.method == 'POST':
+        answers = {}
+        errors = {}
+        if group.has_security_questions:
+            for question in questions:
+                answer = (request.POST.get(f'question_{question.pk}') or '').strip()
+                if len(answer) > 2000:
+                    errors[question.pk] = 'Answers must be 2,000 characters or fewer.'
+                elif question.is_required and not answer:
+                    errors[question.pk] = 'Please answer this required membership question.'
+                elif answer:
+                    answers[question.pk] = answer
+        if errors:
+            messages.error(request, 'Please review your membership question answers.')
+            return render(request, 'alumni_groups/join_group_form.html', {
+                'group': group, 'questions': questions, 'answer_errors': errors,
+                'submitted_answers': {q.pk: (request.POST.get(f'question_{q.pk}') or '') for q in questions},
+                'existing_pending': bool(membership and membership.status == 'PENDING'),
+            }, status=200)
+        with transaction.atomic():
+            locked = GroupMembership.objects.select_for_update().filter(group=group, user=request.user).first()
+            if locked and locked.status == 'BLOCKED':
+                return HttpResponseForbidden('You cannot join this group.')
+            if locked and locked.status == 'APPROVED':
+                return redirect('alumni_groups:group_detail', slug=slug)
+            status = 'PENDING' if group.requires_approval or group.has_security_questions else 'APPROVED'
+            if locked and locked.status == 'PENDING':
+                membership = locked
+            elif locked and locked.status == 'REJECTED':
+                locked.status = status
+                locked.is_active = True
+                locked.save(update_fields=['status', 'is_active', 'last_active_at'])
+                membership = locked
+            else:
+                membership = GroupMembership.objects.create(group=group, user=request.user, status=status)
+            if group.has_security_questions:
+                for question in questions:
+                    if question.pk in answers:
+                        SecurityQuestionAnswer.objects.update_or_create(
+                            membership=membership, question=question,
+                            defaults={'answer': answers[question.pk], 'is_correct': None,
+                                      'reviewed_at': None, 'reviewed_by': None}
+                        )
+            GroupActivity.objects.create(
+                group=group, user=request.user, activity_type='JOIN',
+                description=f'{request.user.get_full_name() or request.user.username} requested to join the group'
+            )
+        messages.success(request, 'Membership answers submitted for review.' if status == 'PENDING'
+                         else 'You have joined the group successfully.')
+        return redirect('alumni_groups:group_detail', slug=slug)
+
+    return render(request, 'alumni_groups/join_group_form.html', {
+        'group': group, 'questions': questions,
+        'existing_pending': bool(membership and membership.status == 'PENDING'),
+    })
+
 
 @login_required
 def get_leave_group(request, slug):
@@ -875,52 +935,9 @@ def manage_security_questions(request, slug):
 
 @login_required
 def join_group_with_questions(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
-    
-    # Check if user is already a member
-    if GroupMembership.objects.filter(group=group, user=request.user).exists():
-        messages.warning(request, 'You are already a member of this group.')
-        return redirect('alumni_groups:group_detail', slug=slug)
-    
-    if request.method == 'POST':
-        # Create membership
-        membership = GroupMembership.objects.create(
-            group=group,
-            user=request.user,
-            status='PENDING'
-        )
-        
-        # Save answers to security questions
-        questions = group.security_questions.all()
-        for question in questions:
-            answer = request.POST.get(f'question_{question.id}')
-            if answer:
-                SecurityQuestionAnswer.objects.create(
-                    question=question,
-                    membership=membership,
-                    answer=answer
-                )
-            elif question.is_required:
-                membership.delete()
-                messages.error(request, f'Please answer the required question: {question.question}')
-                return redirect('alumni_groups:join_group_with_questions', slug=slug)
-        
-        # Record activity
-        GroupActivity.objects.create(
-            group=group,
-            user=request.user,
-            activity_type='JOIN',
-            description=f'{request.user.get_full_name()} requested to join the group'
-        )
-        
-        messages.success(request, 'Your request to join has been submitted and is pending approval.')
-        return redirect('alumni_groups:group_detail', slug=slug)
-    
-    questions = group.security_questions.all()
-    return render(request, 'alumni_groups/join_group_form.html', {
-        'group': group,
-        'questions': questions
-    })
+    """Legacy route now uses exactly the same guarded membership flow."""
+    return join_group(request, slug)
+
 
 @login_required
 def review_membership_answers(request, slug, membership_id):
@@ -945,6 +962,9 @@ def review_membership_answers(request, slug, membership_id):
             
             # Update membership status
             if action == 'approve':
+                if group.has_security_questions and (not group.security_questions.exists() or _unanswered_required_questions(group, membership)):
+                    messages.error(request, 'Required membership answers are missing; ask the member to complete them before approval.')
+                    return redirect('alumni_groups:review_membership_answers', slug=group.slug, membership_id=membership.pk)
                 membership.status = 'APPROVED'
                 messages.success(request, f'{membership.user.get_full_name()} has been approved to join the group.')
             else:
@@ -1018,6 +1038,11 @@ def update_member_status(request, membership_id):
             if GroupMembership.objects.filter(group=membership.group, role='ADMIN', status='APPROVED').count() <= 1:
                 return JsonResponse({'status': 'error', 'message': 'The group must retain an administrator.'}, status=400)
         if action == 'approve':
+            if membership.group.has_security_questions:
+                if not membership.group.security_questions.exists():
+                    return JsonResponse({'status': 'error', 'message': 'Configure membership questions before approving requests.'}, status=400)
+                if _unanswered_required_questions(membership.group, membership):
+                    return JsonResponse({'status': 'error', 'message': 'Required membership answers are missing. Ask the member to complete their questions first.'}, status=400)
             membership.status, membership.role = 'APPROVED', 'MEMBER'
         elif action == 'reject':
             membership.status = 'REJECTED'
@@ -1053,11 +1078,14 @@ def get_security_answers(request, membership_id):
         membership=membership
     ).select_related('question')
     
+    answer_rows = list(answers)
+    missing = _unanswered_required_questions(membership.group, membership)
     return JsonResponse({
-        'answers': [
-            f"Q: {answer.question.question}\nA: {answer.answer}"
-            for answer in answers
-        ]
+        'answers': [f"Q: {item.question.question}\nA: {item.answer}" for item in answer_rows],
+        'message': ('This member joined before completing the required membership questions. '
+                    'Ask them to open the group and complete the questions before approval.')
+                   if missing else ('No membership answers were submitted.' if not answer_rows else ''),
+        'missing_required': bool(missing),
     })
 
 @login_required

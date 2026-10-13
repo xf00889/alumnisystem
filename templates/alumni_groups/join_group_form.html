@@ -30,19 +30,25 @@
                 <div class="card-body">
                     <div class="alert alert-info">
                         <p class="mb-0">
-                            Please answer the following questions to submit your join request.
+                            Please complete the membership questions below before your request can be reviewed.
                             <br>
                             <strong>Note:</strong> After submission, your request will be reviewed by the group administrators.
                             You will be notified once your request has been approved or declined.
                         </p>
                     </div>
 
+                    {% if existing_pending %}
+                    <div class="alert alert-warning" role="status">Your earlier request has missing required answers. Complete them here to continue the review.</div>
+                    {% endif %}
+                    {% if not questions %}
+                    <div class="alert alert-info">Confirm that you want to join this group.</div>
+                    {% endif %}
                     <form method="post" class="join-form">
                         {% csrf_token %}
                         
                         {% for question in questions %}
                             <div class="question-box">
-                                <label class="question-label">
+                                <label class="question-label" for="question-{{ question.pk }}">
                                     {{ question.question }}
                                     {% if question.is_required %}
                                         <span class="badge bg-danger required-badge">Required</span>
@@ -51,12 +57,15 @@
                                     {% endif %}
                                 </label>
                                 <textarea 
+                                    id="question-{{ question.pk }}"
                                     name="question_{{ question.id }}" 
                                     class="answer-textarea" 
                                     rows="3"
+                                    maxlength="2000"
                                     {% if question.is_required %}required{% endif %}
                                     placeholder="Your answer..."
-                                ></textarea>
+                                >{% if submitted_answers %}{% for key, answer in submitted_answers.items %}{% if key == question.pk %}{{ answer }}{% endif %}{% endfor %}{% endif %}</textarea>
+                                {% for key, error in answer_errors.items %}{% if key == question.pk %}<p class="text-danger small" role="alert">{{ error }}</p>{% endif %}{% endfor %}
                             </div>
                         {% endfor %}
 
@@ -65,7 +74,7 @@
                                 <i class="fas fa-times"></i> Cancel
                             </a>
                             <button type="submit" class="btn btn-primary">
-                                <i class="fas fa-paper-plane"></i> Submit Join Request
+                                <i class="fas fa-paper-plane"></i> {% if existing_pending %}Submit missing answers{% else %}Submit Join Request{% endif %}
                             </button>
                         </div>
                     </form>

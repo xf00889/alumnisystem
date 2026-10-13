@@ -687,7 +687,7 @@
     </style>
     {% include 'components/auth_public_head.html' %}
 </head>
-<body class="auth-public">
+<body class="auth-public auth-public--login">
     {% include 'components/university_header.html' %}
     <div class="auth-container">
         <!-- Header -->
@@ -696,18 +696,24 @@
                 <div class="logo-glow"></div>
                 <img src="{% static 'images/alumni_logo.png' %}" alt="NORSU Alumni Logo" class="logo">
             </div>
-            <h1 class="auth-title">NORSU alumni, connected.</h1>
+            <p class="auth-brand-eyebrow">Office of Alumni Affairs · Member access</p>
+            <h1 class="auth-title">Stay connected to NORSU.</h1>
             <p class="auth-subtitle">Access your profile, community, tracer studies, and opportunities through one alumni network.</p>
         </div>
 
         <!-- Card -->
         <div class="auth-card">
+            <div class="auth-form-intro" aria-live="polite">
+                <p class="auth-form-eyebrow">NORSU Alumni Network</p>
+                <h2 id="authFormHeading">Welcome back</h2>
+                <p id="authFormDescription">Sign in to reconnect with your alumni community.</p>
+            </div>
             <!-- Tabs -->
-            <div class="auth-tabs">
-                <button class="auth-tab active" onclick="switchTab('login')" id="loginTab">
+            <div class="auth-tabs" role="tablist" aria-label="Account access">
+                <button type="button" role="tab" aria-selected="true" aria-controls="loginForm" class="auth-tab active" onclick="switchTab('login')" id="loginTab">
                     Login
                 </button>
-                <button class="auth-tab" onclick="switchTab('signup')" id="signupTab">
+                <button type="button" role="tab" aria-selected="false" aria-controls="signupForm" class="auth-tab" onclick="switchTab('signup')" id="signupTab">
                     Create Account
                 </button>
             </div>
@@ -918,6 +924,13 @@
         function switchTab(tab) {
             document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
             document.getElementById(tab + 'Tab').classList.add('active');
+            document.querySelectorAll('.auth-tab').forEach(t => t.setAttribute('aria-selected', String(t.id === tab + 'Tab')));
+            const heading = document.getElementById('authFormHeading');
+            const description = document.getElementById('authFormDescription');
+            if (heading) heading.textContent = tab === 'signup' ? 'Create your alumni account' : 'Welcome back';
+            if (description) description.textContent = tab === 'signup'
+                ? 'Use your details to begin registration and verify your email.'
+                : 'Sign in to reconnect with your alumni community.';
             
             document.querySelectorAll('.form-container').forEach(f => f.classList.remove('active'));
             document.getElementById(tab + 'Form').classList.add('active');

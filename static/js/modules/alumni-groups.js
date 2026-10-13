@@ -50,48 +50,55 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
 
-    // Handle member actions (approve, reject, remove, promote, reinstate)
+    // Confirm member actions using the same-page Bootstrap modal (never native confirm).
+    const memberActionModalEl = document.getElementById('groupMemberActionModal');
+    const memberActionModal = memberActionModalEl ? bootstrap.Modal.getOrCreateInstance(memberActionModalEl) : null;
+    const memberActionTitle = document.getElementById('groupMemberActionTitle');
+    const memberActionDescription = document.getElementById('groupMemberActionDescription');
+    const memberActionError = document.getElementById('groupMemberActionError');
+    const memberActionConfirm = document.getElementById('groupMemberActionConfirm');
+    let pendingMemberAction = null;
+
     document.querySelectorAll('.member-action').forEach(button => {
-        button.addEventListener('click', async function() {
-            const action = this.dataset.action;
-            const membershipId = this.dataset.membershipId;
-            
-            if (!confirm(`Are you sure you want to ${action} this member?`)) {
-                return;
-            }
-
-            try {
-                const response = await fetch(`/groups/api/member/${membershipId}/status/`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'X-CSRFToken': csrfToken
-                    },
-                    body: JSON.stringify({ action })
-                });
-
-                // Check if response is JSON
-                const contentType = response.headers.get('content-type');
-                if (!contentType || !contentType.includes('application/json')) {
-                    const text = await response.text();
-                    console.error('Non-JSON response received:', text);
-                    throw new Error(`Server returned ${response.status}: ${response.statusText}. This might be a server error or permission issue.`);
-                }
-
-                const data = await response.json();
-                
-                if (!response.ok) {
-                    throw new Error(data.message || data.error || 'Failed to update member status');
-                }
-
-                // Show success message and reload page
-                alert(data.message || 'Member status updated successfully');
-                window.location.reload();
-            } catch (error) {
-                console.error('Error updating member status:', error);
-                alert(error.message || 'Failed to update member status');
-            }
+        button.addEventListener('click', function () {
+            pendingMemberAction = { action: this.dataset.action, membershipId: this.dataset.membershipId };
+            const memberName = this.closest('.member-grid-item')?.querySelector('.member-grid-name')?.textContent?.trim() || 'this member';
+            const labels = {
+                approve: 'Approve member', reject: 'Reject join request', remove: 'Remove member',
+                promote: 'Make group administrator', demote: 'Change to member',
+                make_moderator: 'Assign moderator role', reinstate: 'Reinstate member'
+            };
+            memberActionTitle.textContent = labels[pendingMemberAction.action] || 'Confirm member action';
+            memberActionDescription.textContent = `Apply “${labels[pendingMemberAction.action] || pendingMemberAction.action}” to ${memberName}?`;
+            memberActionError.hidden = true;
+            memberActionError.textContent = '';
+            memberActionConfirm.disabled = false;
+            memberActionConfirm.textContent = 'Confirm action';
+            memberActionConfirm.className = 'btn ' + (['remove', 'reject'].includes(pendingMemberAction.action) ? 'btn-danger' : 'btn-primary');
+            memberActionModal?.show();
         });
+    });
+
+    memberActionConfirm?.addEventListener('click', async function () {
+        if (!pendingMemberAction) return;
+        this.disabled = true;
+        this.textContent = 'Saving...';
+        try {
+            const response = await fetch(`/groups/api/member/${pendingMemberAction.membershipId}/status/`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ action: pendingMemberAction.action }),
+            });
+            const payload = await response.json().catch(() => ({}));
+            if (!response.ok) throw new Error(payload.message || payload.error || 'Unable to update this member.');
+            memberActionModal.hide();
+            window.location.reload();
+        } catch (error) {
+            memberActionError.textContent = error.message || 'Unable to update this member.';
+            memberActionError.hidden = false;
+            this.disabled = false;
+            this.textContent = 'Try again';
+        }
     });
 
     // Handle viewing security answers
@@ -109,6 +116,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 const container = document.getElementById('securityAnswersContent');
                 container.replaceChildren();
+                if (!(data.answers || []).length) {
+                    const notice = document.createElement('p');
+                    notice.className = 'alert alert-warning mb-0';
+                    notice.textContent = data.message || 'No membership question answers were submitted.';
+                    container.appendChild(notice);
+                }
+                if (data.missing_required && (data.answers || []).length) {
+                    const notice = document.createElement('p');
+                    notice.className = 'alert alert-warning';
+                    notice.textContent = data.message || 'Some required membership answers are still missing.';
+                    container.appendChild(notice);
+                }
                 (data.answers || []).forEach(answer => {
                     const row = document.createElement('div');
                     row.className = 'answer-item';
@@ -132,7 +151,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Handle post approval/rejection
     document.querySelectorAll('.approve-post, .reject-post').forEach(button => {
         button.addEventListener('click', async function() {
-            if (!confirm('Are you sure you want to ' + this.dataset.action + ' this post?')) {
+            if (!await window.NORSUGroupConfirm('Do you want to ' + this.dataset.action + ' this group post?', this.dataset.action === 'reject')) {
                 return;
             }
 
