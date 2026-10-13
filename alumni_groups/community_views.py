@@ -11,6 +11,7 @@ from django.urls import reverse
 from django.utils import timezone
 from django.views.decorators.http import require_POST
 from .forms import GroupEventForm
+from core.models.notifications import Notification
 from .models import (
     AlumniGroup, GroupMembership, Post, PostBookmark, PostReport,
     GroupPoll, GroupPollOption, GroupPollVote, GroupEvent, GroupEventRSVP,
@@ -109,34 +110,64 @@ def report_post(request, post_id):
 @login_required
 @require_POST
 def review_report(request, report_id):
-    report = get_object_or_404(PostReport.objects.select_related('post__group'), pk=report_id)
-    if not group_admin(report.post.group, request.user):
-        return HttpResponseForbidden('Group administrators only.')
-    action = request.POST.get('action')
-    if action not in ('dismiss', 'resolve', 'remove_post'):
-        return HttpResponseBadRequest('Invalid action.')
+    # Lock the report so two simultaneous admin requests cannot send duplicate notices.
+    with transaction.atomic():
+        report = get_object_or_404(
+            PostReport.objects.select_for_update().select_related('post__group', 'reporter'),
+            pk=report_id
+        )
+        if not group_admin(report.post.group, request.user):
+            return HttpResponseForbidden('Group administrators only.')
+        if report.status != 'OPEN':
+            messages.info(request, 'This report has already been reviewed.')
+            return redirect(f"{management_page(report.post.group)}?tab=settings")
 
-    resolution_note = (request.POST.get('resolution_note') or '').strip()
-    if action == 'dismiss' and len(resolution_note) < 3:
-        return HttpResponseBadRequest('Please provide a short reason for rejecting the report.')
+        action = request.POST.get('action')
+        if action not in ('dismiss', 'resolve', 'remove_post'):
+            return HttpResponseBadRequest('Invalid action.')
+        resolution_note = (request.POST.get('resolution_note') or '').strip()
+        if action == 'dismiss' and len(resolution_note) < 3:
+            return HttpResponseBadRequest('Please provide a short reason for rejecting the report.')
 
-    report.status = 'DISMISSED' if action == 'dismiss' else 'RESOLVED'
-    if action == 'remove_post':
-        report.post.status = 'REJECTED'
-        report.post.approved_by = request.user
-        report.post.approved_at = timezone.now()
-        report.post.save(update_fields=['status', 'approved_by', 'approved_at'])
-    report.reviewed_by = request.user
-    report.reviewed_at = timezone.now()
-    report.resolution_note = resolution_note[:500]
-    report.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'resolution_note'])
+        report.status = 'DISMISSED' if action == 'dismiss' else 'RESOLVED'
+        if action == 'remove_post':
+            report.post.status = 'REJECTED'
+            report.post.approved_by = request.user
+            report.post.approved_at = timezone.now()
+            report.post.save(update_fields=['status', 'approved_by', 'approved_at'])
+        report.reviewed_by = request.user
+        report.reviewed_at = timezone.now()
+        report.resolution_note = resolution_note[:500]
+        report.save(update_fields=['status', 'reviewed_by', 'reviewed_at', 'resolution_note'])
+
+        # These notifications appear in the standard bell dropdown and Notifications page.
+        if action == 'dismiss':
+            title = 'Your group post report was rejected'
+            message = f'Your report in {report.post.group.name} was reviewed and rejected.'
+            if resolution_note:
+                message += f' Reason: {resolution_note[:300]}'
+        elif action == 'remove_post':
+            title = 'Your group post report was approved'
+            message = f'Your report in {report.post.group.name} was approved. The reported post was removed from the group feed.'
+        else:
+            title = 'Your group post report was approved'
+            message = f'Your report in {report.post.group.name} was approved and marked resolved.'
+
+        Notification.objects.create(
+            recipient=report.reporter,
+            sender=request.user,
+            notification_type='system',
+            title=title,
+            message=message,
+            action_url=reverse('core:all_notifications'),
+        )
 
     if action == 'dismiss':
-        messages.success(request, 'Report rejected and logged.')
+        messages.success(request, 'Report rejected; the reporter has been notified.')
     elif action == 'remove_post':
-        messages.success(request, 'Report approved. The reported post was removed from the feed.')
+        messages.success(request, 'Report approved and post removed; the reporter has been notified.')
     else:
-        messages.success(request, 'Report approved and marked as resolved.')
+        messages.success(request, 'Report approved; the reporter has been notified.')
     return redirect(f"{management_page(report.post.group)}?tab=settings")
 
 
