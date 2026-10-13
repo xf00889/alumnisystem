@@ -28,14 +28,39 @@
     });
   }
 
+  // Mobile Safari may leave 100dvh unchanged when its on-screen keyboard
+  // appears. Track the actual visible viewport so the composer stays visible.
+  function syncMobileViewport() {
+    if (!mobile.matches) {
+      document.documentElement.style.removeProperty('--norsu-chat-visual-height');
+      return;
+    }
+    const visibleHeight = window.visualViewport?.height || window.innerHeight;
+    if (visibleHeight > 0) {
+      document.documentElement.style.setProperty('--norsu-chat-visual-height', `${Math.round(visibleHeight)}px`);
+    }
+  }
+
+  function scrollChatToLatest() {
+    const scroller = detail.querySelector('#messagesContainer, #messages-container');
+    if (!scroller) return;
+    scroller.scrollTop = getComputedStyle(scroller).flexDirection === 'column-reverse'
+      ? 0 : scroller.scrollHeight;
+  }
+
+  syncMobileViewport();
+  window.addEventListener('resize', syncMobileViewport, { passive: true });
+  window.visualViewport?.addEventListener('resize', syncMobileViewport, { passive: true });
+  mobile.addEventListener?.('change', syncMobileViewport);
+
   function showChat() {
     if (!mobile.matches) return;
+    syncMobileViewport();
     workspace.classList.add('is-chat-open');
     // Compatibility with the existing HTMX handlers; CSS keeps this within the workspace.
     document.body.classList.add('mobile-conversation-active');
     back.focus({ preventScroll: true });
-    const scroller = detail.querySelector('#messagesContainer, #messages-container');
-    if (scroller) scroller.scrollTop = scroller.scrollHeight;
+    requestAnimationFrame(scrollChatToLatest);
   }
 
   function showInbox() {
@@ -101,10 +126,7 @@
         script.replaceWith(active);
       });
       if (window.htmx) window.htmx.process(detail);
-      const scroller = detail.querySelector('#messagesContainer, #messages-container');
-      if (scroller) {
-        scroller.scrollTop = getComputedStyle(scroller).flexDirection === 'column-reverse' ? 0 : scroller.scrollHeight;
-      }
+      requestAnimationFrame(scrollChatToLatest);
     } catch (error) {
       if (request.signal.aborted || sequence !== requestSequence) return;
       detail.replaceChildren();

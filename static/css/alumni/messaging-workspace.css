@@ -390,3 +390,84 @@ body.alumni-portal .alumni-messaging-workspace .messaging-loading-state {
     height: calc(100dvh - var(--alumni-mobile-topbar-height, 60px)) !important;
   }
 }
+
+/* Dedicated iOS/Android chat viewport: the composer is a permanent row at the
+   bottom of the chat, while messages are the ONLY scrollable region. This also
+   overrides legacy inline styles carried in HTMX detail partials. */
+@media (max-width: 767.98px) {
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace {
+    min-height: 0 !important;
+    overflow: hidden !important;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace .messaging-grid {
+    min-height: 0 !important;
+    flex: 1 1 0 !important;
+    overflow: hidden !important;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace.is-chat-open .messaging-grid > .messaging-detail-pane {
+    flex: 1 1 0 !important;
+    min-height: 0 !important;
+    height: 100% !important;
+    max-height: 100% !important;
+    overflow: hidden !important;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail {
+    min-height: 0 !important;
+    flex: 1 1 0 !important;
+    overflow: hidden !important;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail > :is(.chat-container,.conversation-content) {
+    display: grid !important;
+    grid-template-rows: auto minmax(0, 1fr) auto !important;
+    grid-template-columns: minmax(0, 1fr);
+    height: 100% !important;
+    max-height: 100% !important;
+    min-height: 0 !important;
+    overflow: hidden !important;
+    position: relative !important;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail :is(.chat-header,.conversation-content > .card-header) {
+    grid-row: 1;
+    min-height: 0;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail :is(#messagesContainer,#messages-container) {
+    grid-row: 2;
+    min-height: 0 !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow-y: auto !important;
+    overflow-x: hidden !important;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    z-index: 0;
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail :is(.message-form,.conversation-content > .card-footer,.conversation-read-only-notice) {
+    grid-row: 3;
+    min-height: 0 !important;
+    flex: none !important;
+    position: relative !important;
+    bottom: auto !important;
+    z-index: 2;
+    margin: 0 !important;
+    background: #fffdfa !important;
+    box-shadow: 0 -3px 12px rgba(16,28,53,.055);
+  }
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail :is(.message-form,.conversation-content > .card-footer) {
+    padding: .65rem max(.7rem, env(safe-area-inset-right)) max(.65rem, env(safe-area-inset-bottom)) max(.7rem, env(safe-area-inset-left)) !important;
+  }
+  /* Keep media previews within their own message bubbles and their scroller. */
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-messaging-workspace #conversation-detail :is(.message-bubble,.message-content,.message-attachment) {
+    max-width: 100%;
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+}
+
+/* Track the visual (keyboard-adjusted) viewport on mobile Safari. */
+@media (max-width: 767.98px) {
+  html.fe-page--connections-conversations-list-html body.alumni-portal .alumni-main:has(.alumni-messaging-workspace) {
+    height: calc(var(--norsu-chat-visual-height, 100dvh) - var(--alumni-mobile-topbar-height, 60px)) !important;
+    min-height: 0 !important;
+  }
+}
