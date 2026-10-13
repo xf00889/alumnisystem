@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="{% static 'css/alumni/mentorship.css' %}">
 {% endif %}
 <link rel="stylesheet" href="{% static 'css/alumni/mentor-dashboard.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/mentorship-request-actions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -21,6 +22,7 @@
 {% endif %}
 
 <div class="container-fluid px-3 px-lg-4 py-4 mentor-workspace">
+  <form hidden id="mentorship-csrf-token">{% csrf_token %}</form>
   
   <!-- Dashboard Header -->
   <div class="bg-primary text-white p-4 rounded-bottom shadow-sm mb-4">
@@ -170,17 +172,17 @@
         <div class="card-body p-0">
           <ul class="list-group list-group-flush">
             {% for request in pending_requests %}
-            <li class="list-group-item py-3">
+            <li class="list-group-item py-3" data-mentorship-request-row>
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <h6 class="mb-1 fw-semibold">{{ request.mentee.get_full_name }}</h6>
                 <small class="text-muted">{{ request.created_at|timesince }} ago</small>
               </div>
               <p class="mb-2 text-muted small">{{ request.message|truncatewords:30 }}</p>
               <div class="d-flex gap-2">
-                <button class="btn btn-sm btn-success" onclick="updateRequestStatus({{ request.id }}, 'APPROVED')">
+                <button type="button" class="btn btn-sm btn-success" data-mentorship-status-action data-mentorship-status="APPROVED" data-mentorship-status-url="{% url 'mentorship:update_request_status' request.id %}">
                   <i class="fas fa-check me-1"></i> Accept
                 </button>
-                <button class="btn btn-sm btn-outline-danger" onclick="updateRequestStatus({{ request.id }}, 'REJECTED')">
+                <button type="button" class="btn btn-sm btn-outline-danger" data-mentorship-status-action data-mentorship-status="REJECTED" data-mentorship-status-url="{% url 'mentorship:update_request_status' request.id %}">
                   <i class="fas fa-times me-1"></i> Decline
                 </button>
               </div>
@@ -307,7 +309,7 @@
         <div class="card-body p-0">
           <ul class="list-group list-group-flush">
             {% for progress in recent_progress %}
-            <li class="list-group-item py-3">
+            <li class="list-group-item py-3" data-mentorship-request-row>
               <div class="d-flex justify-content-between align-items-start mb-2">
                 <div>
                   <h6 class="mb-1 fw-semibold">{{ progress.mentorship.mentee.get_full_name }}</h6>
@@ -629,31 +631,6 @@ function toggleAvailability() {
   });
 }
 
-// Update Request Status
-function updateRequestStatus(requestId, status) {
-  if (!confirm(`Are you sure you want to ${status.toLowerCase()} this request?`)) {
-    return;
-  }
-  
-  fetch(`/mentorship/requests/${requestId}/update_status/`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'X-CSRFToken': csrftoken
-    },
-    body: JSON.stringify({ status: status })
-  })
-  .then(response => response.json())
-  .then(data => {
-    ToastUtils.showSuccess(data.message);
-    setTimeout(() => location.reload(), 1000);
-  })
-  .catch(error => {
-    console.error('Error:', error);
-    showToast('Failed to update request status', 'danger');
-  });
-}
-
 // Modal Helper Functions
 function setMentorshipId(mentorshipId) {
   document.getElementById('meetingMentorshipId').value = mentorshipId;
@@ -855,4 +832,5 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 </script>
+<script src="{% static 'js/alumni/mentorship-request-actions.js' %}" defer></script>
 {% endblock %}

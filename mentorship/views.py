@@ -6,6 +6,7 @@ from django.contrib.auth.decorators import login_required
 from django.views.decorators.http import require_POST
 from django.contrib import messages
 from django.db.models import Q, Case, When, IntegerField
+from django.db import transaction
 from django.utils import timezone
 from accounts.models import Mentor, MentorshipRequest
 from .models import MentorshipMeeting, MentorshipMessage, MentorshipProgress, TimelineMilestone
@@ -64,81 +65,58 @@ def requests_list(request):
 @login_required
 @require_POST
 def update_request_status(request, request_id):
+    """Accept/reject a PENDING request for the signed-in mentor only.
+
+    This endpoint expects form data and always returns JSON for handled cases.
+    Other transitions (completion, pause, etc.) have separate workflows.
     """
-    Update the status of a mentorship request
-    """
-    try:
-        print(f"update_request_status called with request_id={request_id}")
-        print(f"Request POST data: {request.POST}")
-        print(f"Request user: {request.user}")
-        
-        mentorship_request = get_object_or_404(MentorshipRequest, id=request_id)
-        print(f"Found mentorship request: {mentorship_request.id}, mentor: {mentorship_request.mentor.user}")
-        
-        # Check if user is the mentor
-        if mentorship_request.mentor.user != request.user:
-            print("User is not the mentor")
-            return JsonResponse(
-                {"detail": "Only the mentor can update the status."},
-                status=403
-            )
-        
-        new_status = request.POST.get('status')
-        print(f"New status from POST: {new_status}")
-        print(f"Valid status choices: {dict(MentorshipRequest.STATUS_CHOICES)}")
-        
-        if not new_status or new_status not in dict(MentorshipRequest.STATUS_CHOICES):
-            print(f"Invalid status: {new_status}")
-            return JsonResponse(
-                {"detail": f"Invalid status provided. Valid choices are: {list(dict(MentorshipRequest.STATUS_CHOICES).keys())}"},
-                status=400
-            )
-        
-        mentorship_request.status = new_status
-        mentorship_request.save()
-        print(f"Status updated successfully to {new_status}")
-        
-        # Send notification to mentee
-        mentor_name = mentorship_request.mentor.user.get_full_name()
-        if new_status == 'APPROVED':
-            notify.send(
-                sender=request.user,
-                recipient=mentorship_request.mentee,
-                verb='accepted your mentorship request',
-                description=f'{mentor_name} has accepted your mentorship request. You can now start your mentorship journey!',
-                action_object=mentorship_request,
-                level='success'
-            )
-        elif new_status == 'REJECTED':
-            notify.send(
-                sender=request.user,
-                recipient=mentorship_request.mentee,
-                verb='declined your mentorship request',
-                description=f'{mentor_name} has declined your mentorship request. You can explore other mentors.',
-                action_object=mentorship_request,
-                level='warning'
-            )
-        elif new_status == 'COMPLETED':
-            notify.send(
-                sender=request.user,
-                recipient=mentorship_request.mentee,
-                verb='marked your mentorship as completed',
-                description=f'{mentor_name} has marked your mentorship as completed. Congratulations on completing your mentorship!',
-                action_object=mentorship_request,
-                level='success'
-            )
-        
-        return JsonResponse({
-            "message": f"Request {new_status.lower()} successfully",
-            "status": new_status
-        })
-        
-    except Exception as e:
-        print(f"Exception in update_request_status: {e}")
-        return JsonResponse(
-            {"detail": f"Failed to update request status: {str(e)}"},
-            status=500
+    decision = request.POST.get('status')
+    if decision not in {'APPROVED', 'REJECTED'}:
+        return JsonResponse({'detail': 'Choose Accept or Reject.'}, status=400)
+
+    with transaction.atomic():
+        mentorship_request = (
+            MentorshipRequest.objects.select_for_update()
+            .select_related('mentor__user', 'mentee')
+            .filter(pk=request_id)
+            .first()
         )
+        if mentorship_request is None:
+            return JsonResponse({'detail': 'Mentorship request not found.'}, status=404)
+        if mentorship_request.mentor.user_id != request.user.pk:
+            return JsonResponse({'detail': 'Only the assigned mentor can review this request.'}, status=403)
+        if mentorship_request.status != 'PENDING':
+            return JsonResponse({'detail': 'This request has already been reviewed. Refresh the page.'}, status=409)
+
+        mentorship_request.status = decision
+        mentorship_request.save(update_fields=['status', 'updated_at'])
+
+    # Notification delivery must not undo an otherwise valid status update.
+    try:
+        mentor_name = mentorship_request.mentor.user.get_full_name() or mentorship_request.mentor.user.username
+        if decision == 'APPROVED':
+            verb = 'accepted your mentorship request'
+            description = f'{mentor_name} has accepted your mentorship request. You can now start your mentorship journey!'
+            level = 'success'
+        else:
+            verb = 'declined your mentorship request'
+            description = f'{mentor_name} has declined your mentorship request. You can explore other mentors.'
+            level = 'warning'
+        notify.send(
+            sender=request.user,
+            recipient=mentorship_request.mentee,
+            verb=verb,
+            description=description,
+            action_object=mentorship_request,
+            level=level,
+        )
+    except Exception:
+        logger.exception('Mentorship request %s updated but notification delivery failed', request_id)
+
+    return JsonResponse({
+        'message': f'Mentorship request {"accepted" if decision == "APPROVED" else "declined"}.',
+        'status': decision,
+    })
 
 @login_required
 def mentee_dashboard(request):

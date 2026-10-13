@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="{% static 'css/alumni/mentorship.css' %}">
 {% endif %}
 <link rel="stylesheet" href="{% static 'css/alumni/mentorship-experience.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/mentorship-request-actions.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -37,7 +38,7 @@
             {% csrf_token %}
             {% if mentorship_requests %}
                 {% for request in mentorship_requests %}
-                    <div class="request-item">
+                    <div class="request-item" data-mentorship-request-row>
                         <img src="{% if request.mentor.user == user %}{{ request.mentee.profile.avatar|safe_avatar_url }}{% else %}{{ request.mentor.user.profile.avatar|safe_avatar_url }}{% endif %}" 
                              alt="Profile" class="request-avatar">
                         
@@ -67,10 +68,10 @@
 
                         <div class="action-buttons">
                             {% if request.status == 'PENDING' and request.mentor.user == user %}
-                                <button class="btn btn-success" onclick="updateRequestStatus({{ request.id }}, 'APPROVED')">
+                                <button type="button" class="btn btn-success" data-mentorship-status-action data-mentorship-status="APPROVED" data-mentorship-status-url="{% url 'mentorship:update_request_status' request.id %}">
                                     <i class="fas fa-check"></i> Accept
                                 </button>
-                                <button class="btn btn-danger" onclick="updateRequestStatus({{ request.id }}, 'REJECTED')">
+                                <button type="button" class="btn btn-danger" data-mentorship-status-action data-mentorship-status="REJECTED" data-mentorship-status-url="{% url 'mentorship:update_request_status' request.id %}">
                                     <i class="fas fa-times"></i> Reject
                                 </button>
                             {% elif request.status == 'APPROVED' %}
@@ -103,97 +104,24 @@
 {% endblock %}
 
 {% block page_specific_js %}
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="{% static 'js/alumni/mentorship-request-actions.js' %}" defer></script>
 <script>
-// Test function availability
-console.log('Script loading...');
-console.log('Document ready state:', document.readyState);
-
-// Define functions in global scope
-async function updateRequestStatus(requestId, status) {
-    console.log('updateRequestStatus called with:', requestId, status);
-    
-    // Simple confirmation first
-    if (confirm(`Are you sure you want to ${status.toLowerCase()} this request?`)) {
-        try {
-            const csrfToken = window.NORSUAlumni?.csrf?.getToken() ||
-                document.querySelector('[name="csrfmiddlewaretoken"]')?.value;
-            if (!csrfToken) {
-                alert('Your security token is unavailable. Refresh the page and try again.');
-                return;
-            }
-            
-            // Create form data
-            const formData = new FormData();
-            formData.append('status', status);
-            formData.append('csrfmiddlewaretoken', csrfToken);
-            
-            const response = await fetch(`/mentorship/request/${requestId}/update-status/`, {
-                method: 'POST',
-                body: formData
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-                alert(`Request ${status.toLowerCase()} successfully!`);
-                location.reload();
-            } else {
-                const errorData = await response.json();
-                alert(`Error: ${errorData.detail || 'Failed to update request status'}`);
-            }
-        } catch (error) {
-            console.error('Error updating request status:', error);
-            alert('Error updating request status. Please try again.');
-        }
-    }
-}
-
+// The request list also supports mentee cancellation; status decisions are
+// handled separately by the shared mentor-only approval/rejection script.
 function cancelRequest(requestId) {
-    console.log('cancelRequest called with:', requestId);
-    
-    if (confirm('Are you sure you want to cancel this mentorship request?')) {
-        // Create form and submit
-        const form = document.createElement('form');
-        form.method = 'POST';
-        form.action = `/mentorship/api/requests/${requestId}/`;
-        
-        // Add CSRF token
-        const csrfToken = document.querySelector('[name=csrfmiddlewaretoken]').value;
-        const csrfInput = document.createElement('input');
-        csrfInput.type = 'hidden';
-        csrfInput.name = 'csrfmiddlewaretoken';
-        csrfInput.value = csrfToken;
-        form.appendChild(csrfInput);
-        
-        // Add method override for DELETE
-        const methodInput = document.createElement('input');
-        methodInput.type = 'hidden';
-        methodInput.name = '_method';
-        methodInput.value = 'DELETE';
-        form.appendChild(methodInput);
-        
-        document.body.appendChild(form);
-        form.submit();
+    if (!window.confirm('Cancel your pending mentorship request?')) return;
+    const token = document.querySelector('[name="csrfmiddlewaretoken"]')?.value;
+    if (!token) { window.alert('Your session token is unavailable. Refresh the page.'); return; }
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = `/mentorship/api/requests/${requestId}/`;
+    for (const [name, value] of [['csrfmiddlewaretoken', token], ['_method', 'DELETE']]) {
+        const input = document.createElement('input');
+        input.type = 'hidden'; input.name = name; input.value = value;
+        form.appendChild(input);
     }
-}
-
-// Test function availability
-console.log('updateRequestStatus function available:', typeof updateRequestStatus);
-console.log('cancelRequest function available:', typeof cancelRequest);
-
-// Make functions globally available
-window.updateRequestStatus = updateRequestStatus;
-window.cancelRequest = cancelRequest;
-
-console.log('Functions made globally available');
-console.log('updateRequestStatus in window:', typeof window.updateRequestStatus);
-console.log('cancelRequest in window:', typeof window.cancelRequest);
-
-// Test immediate availability
-if (typeof updateRequestStatus === 'function') {
-    console.log('✅ updateRequestStatus is available');
-} else {
-    console.log('❌ updateRequestStatus is NOT available');
+    document.body.appendChild(form);
+    form.submit();
 }
 </script>
 {% endblock %}
