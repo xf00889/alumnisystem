@@ -2,6 +2,7 @@ import html
 import logging
 import io
 import re
+from core.access_rules import is_administration_account
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.db.models import Q, Count, F
@@ -649,6 +650,7 @@ def alumni_detail(request, pk):
             'career_path': career_path,
             'work_experience': work_experience,
             'achievements': achievements,
+            'admin_view_only': is_administration_account(request.user),
             'is_owner': is_owner,
             'is_admin': is_admin_user,
             'can_view_private_profile': can_view_private_profile

@@ -202,7 +202,7 @@
                          <i class="fas fa-user"></i> View Profile
                      </a>
                      
-                     {% if user.is_authenticated and user != alumni.user %}
+                     {% if not can_view_alumni_details and user.is_authenticated and user != alumni.user %}
                          {% if alumni.user.is_active %}
                              {% load connections_tags %}
                              {% get_connection_status user alumni.user as connection_status %}
@@ -215,7 +215,7 @@
                                      <i class="fas fa-clock"></i> Pending
                                  </button>
                              {% elif connection_status == 'connected' %}
-                                 <a href="{% url 'connections:conversations_list' %}?with={{ alumni.user_id }}" class="btn-connect">
+                                 <a href="{% url 'connections:conversations_list' %}" class="btn-connect">
                                      <i class="fas fa-comments"></i> Message
                                  </a>
                              {% endif %}

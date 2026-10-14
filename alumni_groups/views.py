@@ -1,3 +1,5 @@
+from core.models import Notification
+from core.access_rules import is_administration_account
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
@@ -5,6 +7,7 @@ from django.views.generic import ListView, DetailView, CreateView, UpdateView, D
 from django.views import View
 from django.urls import reverse_lazy
 from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
+from django.db import transaction
 from django.db.models import Q, Count, Avg, Prefetch
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied
@@ -43,14 +46,15 @@ def calculate_distance(lat1, lon1, lat2, lon2):
 
     return distance
 
-class GroupListView(LoginRequiredMixin, ListView):
+class GroupDirectoryBaseView(LoginRequiredMixin, ListView):
     model = AlumniGroup
     template_name = 'alumni_groups/group_list.html'
     context_object_name = 'groups'
     paginate_by = 12
 
     def get_queryset(self):
-        queryset = AlumniGroup.objects.filter(is_active=True)
+        queryset = AlumniGroup.objects.all() if is_administration_account(self.request.user) else AlumniGroup.objects.filter(is_active=True)
+        queryset = queryset.select_related('created_by').prefetch_related('memberships__user')
         
         # Apply filters
         filters = {}
@@ -107,6 +111,8 @@ class GroupListView(LoginRequiredMixin, ListView):
         
         # Sort options
         sort = self.request.GET.get('sort', '-created_at')
+        if sort not in {'-created_at', 'created_at', '-name', 'name', '-updated_at', 'updated_at', 'members', 'activity'}:
+            sort = '-created_at'
         if sort == 'members':
             queryset = queryset.annotate(
                 member_count=Count('memberships')
@@ -122,26 +128,28 @@ class GroupListView(LoginRequiredMixin, ListView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['total_groups'] = AlumniGroup.objects.count()
-        context['my_groups'] = AlumniGroup.objects.filter(
+        context['is_administration_directory'] = is_administration_account(self.request.user)
+        accessible_groups = AlumniGroup.objects.all() if context['is_administration_directory'] else AlumniGroup.objects.filter(is_active=True)
+        context['total_groups'] = accessible_groups.count()
+        context['my_groups'] = accessible_groups.filter(
             memberships__user=self.request.user,
             memberships__status='APPROVED'
         )
         
         # Get recent activities - using a subquery-free approach
-        recent_activities = GroupActivity.objects.select_related(
-            'group', 'user'
-        ).order_by('-created_at')
+        recent_activities = GroupActivity.objects.filter(
+            group__in=accessible_groups
+        ).select_related('group', 'user').order_by('-created_at')
         context['recent_activities'] = list(recent_activities)[:10]
         
         # Get available filters
-        context['courses'] = AlumniGroup.objects.values_list(
+        context['courses'] = accessible_groups.values_list(
             'course', flat=True
         ).distinct()
-        context['campuses'] = AlumniGroup.objects.values_list(
+        context['campuses'] = accessible_groups.values_list(
             'campus', flat=True
         ).distinct()
-        context['years'] = AlumniGroup.objects.values_list(
+        context['years'] = accessible_groups.values_list(
             'batch_start_year', flat=True
         ).distinct().order_by('batch_start_year')
         
@@ -151,7 +159,54 @@ class GroupListView(LoginRequiredMixin, ListView):
         ).values_list('group_id', flat=True)
         context['user_memberships'] = set(user_memberships)
         
+        # This is an administration summary, not a member group feed.
+        for group in context['groups']:
+            group.directory_member_count = sum(
+                m.status == 'APPROVED' and m.is_active for m in group.memberships.all()
+            )
+            admins = [m.user.get_full_name() or m.user.username
+                      for m in group.memberships.all()
+                      if m.role == 'ADMIN' and m.status == 'APPROVED']
+            group.directory_admin_names = ', '.join(admins) or (
+                group.created_by.get_full_name() or group.created_by.username
+                if group.created_by else 'Not assigned'
+            )
         return context
+
+class GroupListView(GroupDirectoryBaseView):
+    """Alumni-only directory entry point. Administrators use a dedicated page."""
+    template_name = 'alumni_groups/group_list.html'
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and is_administration_account(request.user):
+            return redirect('alumni_groups:admin_group_directory')
+        return super().dispatch(request, *args, **kwargs)
+
+
+class AdminGroupDirectoryView(UserPassesTestMixin, GroupDirectoryBaseView):
+    """Staff directory, isolated from group joining and member feed templates."""
+    template_name = 'alumni_groups/admin/group_directory.html'
+    raise_exception = True
+
+    def test_func(self):
+        return is_administration_account(self.request.user)
+
+    def get_queryset(self):
+        groups = super().get_queryset()
+        state = self.request.GET.get('state', '')
+        if state == 'active':
+            groups = groups.filter(is_active=True)
+        elif state == 'disabled':
+            groups = groups.filter(is_active=False)
+        return groups
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        params = self.request.GET.copy()
+        params.pop('page', None)
+        context['filters_query'] = params.urlencode()
+        return context
+
 
 def get_approved_group_feed_posts(group, user, feed_sort='newest'):
     """One permission-neutral queryset preparation path for the page and AJAX refresh.
@@ -185,7 +240,7 @@ def get_approved_group_feed_posts(group, user, feed_sort='newest'):
 @login_required
 def group_feed_snapshot(request, slug):
     """Safe, read-only HTML fragment of the latest visible posts for a group member."""
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     if not GroupMembership.objects.filter(
         group=group, user=request.user, status='APPROVED', is_active=True
     ).exists():
@@ -204,8 +259,67 @@ def group_feed_snapshot(request, slug):
     return response
 
 
+
+@login_required
+@require_POST
+def set_group_availability(request, slug):
+    """Admin-only status transition; preserves memberships/posts and sends one bell notification."""
+    if not is_administration_account(request.user):
+        return HttpResponseForbidden('Administration permission is required.')
+    action = request.POST.get('action')
+    if action not in ('disable', 'enable'):
+        return JsonResponse({'error': 'Invalid status action.'}, status=400)
+    reason = (request.POST.get('reason') or '').strip()
+    if action == 'disable' and not 10 <= len(reason) <= 500:
+        return JsonResponse({'error': 'Provide a reason of 10–500 characters.'}, status=400)
+
+    with transaction.atomic():
+        group = get_object_or_404(AlumniGroup.objects.select_for_update(), slug=slug)
+        new_active = action == 'enable'
+        if group.is_active == new_active:
+            messages.info(request, 'This group already has that status.')
+            return redirect('alumni_groups:admin_group_directory')
+        group.is_active = new_active
+        if new_active:
+            group.disabled_reason = ''
+            group.disabled_by = None
+            group.disabled_at = None
+        else:
+            group.disabled_reason = reason
+            group.disabled_by = request.user
+            group.disabled_at = timezone.now()
+        group.save(update_fields=['is_active', 'disabled_reason', 'disabled_by', 'disabled_at', 'updated_at'])
+
+        recipient_ids = list(GroupMembership.objects.filter(
+            group=group, status='APPROVED', is_active=True, user__is_active=True
+        ).values_list('user_id', flat=True).distinct())
+        title = f'Group {"restored" if new_active else "disabled"}: {group.name}'
+        notice = (
+            f'The group "{group.name}" is available again.' if new_active
+            else f'The group "{group.name}" has been disabled. Reason: {reason}'
+        )
+        from django.urls import reverse
+        Notification.objects.bulk_create([
+            Notification(recipient_id=uid, sender=request.user, notification_type='system',
+                         title=title[:255], message=notice,
+                         action_url=reverse('alumni_groups:group_list'))
+            for uid in recipient_ids
+        ], batch_size=250)
+
+    messages.success(request, 'Group re-enabled.' if new_active else 'Group disabled and members notified.')
+    return redirect('alumni_groups:admin_group_directory')
+
 class GroupDetailView(LoginRequiredMixin, DetailView):
     model = AlumniGroup
+
+    def dispatch(self, request, *args, **kwargs):
+        if request.user.is_authenticated and is_administration_account(request.user):
+            return redirect('alumni_groups:admin_group_directory')
+        return super().dispatch(request, *args, **kwargs)
+
+    def get_queryset(self):
+        return super().get_queryset().filter(is_active=True)
+
     template_name = 'alumni_groups/group_detail.html'
     context_object_name = 'group'
 
@@ -585,6 +699,8 @@ def _unanswered_membership_questions(group, membership):
 @login_required
 def join_group(request, slug):
     """Require an explicit POST; enforce current group questions on the server."""
+    if is_administration_account(request.user):
+        return HttpResponseForbidden('Administrators manage groups but cannot join as alumni members.')
     from django.db import transaction
 
     group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
@@ -666,7 +782,7 @@ def join_group(request, slug):
 
 @login_required
 def get_leave_group(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(GroupMembership, group=group, user=request.user)
     
     if membership.role == 'ADMIN' and group.memberships.filter(role='ADMIN').count() == 1:
@@ -677,7 +793,7 @@ def get_leave_group(request, slug):
 
 @login_required
 def leave_group(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(GroupMembership, group=group, user=request.user)
     
     if request.method == 'GET':
@@ -707,7 +823,7 @@ def leave_group(request, slug):
 
 @login_required
 def manage_members(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     
     # Check if user has permission to manage the group
     membership = GroupMembership.objects.filter(
@@ -773,7 +889,7 @@ def manage_members(request, slug):
 
 @login_required
 def update_group_settings(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(
         GroupMembership,
         group=group,
@@ -840,7 +956,7 @@ def nearby_groups_api(request):
 
 @login_required
 def group_analytics_api(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(
         GroupMembership,
         group=group,
@@ -897,7 +1013,7 @@ def group_map_view(request):
 
 @login_required
 def manage_security_questions(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     
     # Check if user is admin
     if not group.memberships.filter(user=request.user, role='ADMIN').exists():
@@ -936,12 +1052,14 @@ def manage_security_questions(request, slug):
 @login_required
 def join_group_with_questions(request, slug):
     """Legacy route now uses exactly the same guarded membership flow."""
+    if is_administration_account(request.user):
+        return HttpResponseForbidden('Administrators manage groups but cannot join as alumni members.')
     return join_group(request, slug)
 
 
 @login_required
 def review_membership_answers(request, slug, membership_id):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(GroupMembership, id=membership_id, group=group)
     
     # Check if user is admin or moderator
@@ -984,7 +1102,7 @@ def review_membership_answers(request, slug, membership_id):
 
 @login_required
 def send_message(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(GroupMembership, user=request.user, group=group, status='APPROVED')
     
     if request.method == 'POST':
@@ -1000,7 +1118,7 @@ def send_message(request, slug):
 
 @login_required
 def get_messages(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = get_object_or_404(GroupMembership, user=request.user, group=group, status='APPROVED')
     
     messages = group.messages.order_by('created_at')[:50]  # Get last 50 messages in chronological order
@@ -1022,7 +1140,7 @@ def update_member_status(request, membership_id):
     if action not in valid:
         return JsonResponse({'status': 'error', 'message': 'Invalid member action.'}, status=400)
     with transaction.atomic():
-        membership = get_object_or_404(GroupMembership.objects.select_for_update().select_related('group', 'user'), pk=membership_id)
+        membership = get_object_or_404(GroupMembership.objects.select_for_update().select_related('group', 'user'), pk=membership_id, group__is_active=True)
         actor = GroupMembership.objects.filter(group=membership.group, user=request.user, status='APPROVED', is_active=True).first()
         if not (request.user.is_staff or (actor and actor.role == 'ADMIN')):
             return JsonResponse({'status': 'error', 'message': 'Group administrator required.'}, status=403)
@@ -1062,7 +1180,7 @@ def update_member_status(request, membership_id):
 
 @login_required
 def get_security_answers(request, membership_id):
-    membership = get_object_or_404(GroupMembership, id=membership_id)
+    membership = get_object_or_404(GroupMembership, id=membership_id, group__is_active=True)
     
     # Check permissions
     user_membership = GroupMembership.objects.filter(
@@ -1091,7 +1209,7 @@ def get_security_answers(request, membership_id):
 @login_required
 def remove_member(request, group_slug, member_id):
     if request.method == 'POST':
-        group = get_object_or_404(AlumniGroup, slug=group_slug)
+        group = get_object_or_404(AlumniGroup, slug=group_slug, is_active=True)
         membership_to_remove = get_object_or_404(GroupMembership, id=member_id, group=group)
         
         # Check if user has permission to manage the group
@@ -1136,7 +1254,7 @@ def remove_member(request, group_slug, member_id):
 
 @login_required
 def group_detail(request, slug):
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = group.memberships.filter(user=request.user).first()
     
     # Redirect users with pending membership to waiting approval page
@@ -1168,7 +1286,7 @@ def create_post(request, slug):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    group = get_object_or_404(AlumniGroup, slug=slug)
+    group = get_object_or_404(AlumniGroup, slug=slug, is_active=True)
     membership = group.memberships.filter(user=request.user, status='APPROVED').first()
     
     if not membership:
@@ -1219,7 +1337,7 @@ def approve_post(request, post_id):
     if request.method != 'POST':
         return JsonResponse({'error': 'Method not allowed'}, status=405)
     
-    post = get_object_or_404(Post, id=post_id)
+    post = get_object_or_404(Post, id=post_id, group__is_active=True)
     membership = post.group.memberships.filter(user=request.user).first()
     
     if not (request.user.is_staff or (membership and membership.role == 'ADMIN')):
@@ -1247,7 +1365,7 @@ def approve_post(request, post_id):
 
 @login_required
 def like_post(request, post_id):
-    post = get_object_or_404(Post, id=post_id, status='APPROVED')
+    post = get_object_or_404(Post, id=post_id, status='APPROVED', group__is_active=True)
     membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
     
     if request.method == 'POST':
@@ -1264,7 +1382,7 @@ def like_post(request, post_id):
 
 @login_required
 def add_comment(request, post_id):
-    post = get_object_or_404(Post, id=post_id, status='APPROVED')
+    post = get_object_or_404(Post, id=post_id, status='APPROVED', group__is_active=True)
     membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
     
     if request.method == 'POST':
@@ -1288,7 +1406,7 @@ def add_comment(request, post_id):
 
 @login_required
 def get_post_comments(request, post_id):
-    post = get_object_or_404(Post, id=post_id, status='APPROVED')
+    post = get_object_or_404(Post, id=post_id, status='APPROVED', group__is_active=True)
     membership = get_object_or_404(GroupMembership, group=post.group, user=request.user, status='APPROVED')
     
     comments = post.comments.filter(parent__isnull=True).select_related('author').prefetch_related('replies__author').order_by('created_at')

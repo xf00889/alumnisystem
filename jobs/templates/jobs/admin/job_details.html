@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+{% load static %}
+{% block title %}Job Information | NORSU Alumni{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">{% endblock %}
+{% block content %}
+<div class="container-fluid staff-group-directory">
+    <header class="admin-page-header admin-page-header--action-row">
+        <div class="admin-page-header__content">
+            <p class="admin-page-header__eyebrow">ADMINISTRATION / CAREER SERVICES / JOB INFORMATION</p>
+            <h1 class="admin-page-header__title">{{ job.job_title }}</h1>
+            <p class="admin-page-header__subtitle">{{ job.company_name }} · {{ job.location }}</p>
+        </div>
+        <div class="admin-page-header__actions"><a href="{% url 'jobs:admin_job_board' %}" class="btn btn-outline-secondary">Back to Job Board</a></div>
+    </header>
+    <section class="staff-directory-filters" aria-label="Job status and metadata">
+        <div><strong>Status</strong><p>{% if job.is_active %}Active{% else %}Inactive{% endif %}</p></div>
+        <div><strong>Source</strong><p>{{ job.get_source_type_display }}</p></div>
+        <div><strong>Job type</strong><p>{{ job.get_job_type_display }}</p></div>
+        <div><strong>Applications</strong><p>{{ applications_count }}</p></div>
+        <div><strong>Posted</strong><p>{{ job.posted_date|date:'M d, Y' }}</p></div>
+    </section>
+    <section class="staff-directory-filters" aria-labelledby="adminJobDescription"><div style="width:100%"><h2 id="adminJobDescription" class="h5">Job description</h2><div>{{ job.job_description|linebreaks }}</div>{% if job.requirements %}<h3 class="h6">Requirements</h3><div>{{ job.requirements|linebreaks }}</div>{% endif %}</div></section>
+    <div class="d-flex flex-wrap gap-2"><a href="{% url 'jobs:edit_job' job.slug %}" class="btn btn-primary">Edit job</a><a href="{% url 'jobs:manage_applications' job.slug %}" class="btn btn-outline-primary">Manage applications</a></div>
+</div>
+{% endblock %}

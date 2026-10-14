@@ -1,10 +1,13 @@
 from django.urls import path
 from . import views
 from . import views_scraper
+from . import admin_directory_views
 
 app_name = 'jobs'
 
 urlpatterns = [
+    path('administration/board/', admin_directory_views.admin_job_board, name='admin_job_board'),
+    path('administration/job/<slug:slug>/', admin_directory_views.admin_job_details, name='admin_job_details'),
     path('', views.job_list, name='job_list'),
     path('careers/', views.careers, name='careers'),
     path('job/<int:job_id>/details/', views.get_job_details, name='get_job_details'),

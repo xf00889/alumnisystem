@@ -8,6 +8,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script>document.documentElement.classList.add("fe-page--alumni-groups-group-list-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/alumni-groups.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/admin-group-directory.css' %}">
 {% if use_alumni_layout %}
 <link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/community.css' %}">
@@ -25,7 +26,7 @@
     <div class="directory-header{% if not use_alumni_layout %} admin-page-header{% endif %}">
         {% if not use_alumni_layout %}<p class="admin-page-header__eyebrow">ADMINISTRATION / ALUMNI MANAGEMENT</p>{% endif %}
         <h1 class="admin-page-header__title directory-title">Alumni Groups</h1>
-        <p class="directory-subtitle">Connect with fellow alumni and join groups based on your interests and background</p>
+        <p class="directory-subtitle">{% if is_administration_directory %}Review and manage alumni groups, membership status, and availability{% else %}Connect with fellow alumni and join groups based on your interests and background{% endif %}</p>
             </div>
     
     <!-- View Toggle Section -->
@@ -138,10 +139,13 @@
             </div>
 
             <div class="group-content">
+                {% if is_administration_directory and not group.is_active %}
+                <span class="badge bg-danger mb-2">Disabled</span>
+                {% endif %}
                 <h3 class="group-title">
-                    <a href="{% url 'alumni_groups:group_detail' group.slug %}">
-                        {{ group.name }}
-                    </a>
+                    {% if is_administration_directory %}{{ group.name }}{% else %}
+                    <a href="{% url 'alumni_groups:group_detail' group.slug %}">{{ group.name }}</a>
+                    {% endif %}
                 </h3>
                 <p class="group-preview">
                     {{ group.description|truncatewords:15 }}
@@ -170,20 +174,20 @@
                             </div>
 
             <div class="group-actions">
-                <button class="btn btn-primary view-details-btn" 
-                        data-group-id="{{ group.pk }}">
-                    <i class="fas fa-eye me-1"></i>
-                    View Details
-                </button>
-                                {% if group.id not in user_memberships %}
-                <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" 
-                   class="btn btn-secondary">
-                                    <i class="fas fa-user-plus"></i>
-                                    Join
-                                </a>
-                                {% endif %}
-                            </div>
-                        </div>
+                {% if is_administration_directory %}
+                    {% include 'alumni_groups/partials/admin_group_actions.html' %}
+                {% else %}
+                    <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="btn btn-primary">
+                        <i class="fas fa-eye me-1"></i>View Details
+                    </a>
+                    {% if group.id not in user_memberships and group.is_active %}
+                    <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" class="btn btn-secondary">
+                        <i class="fas fa-user-plus"></i>Join
+                    </a>
+                    {% endif %}
+                {% endif %}
+            </div>
+        </div>
         {% endfor %}
                 </div>
 
@@ -241,17 +245,19 @@
                     </td>
                     <td>
                         <div class="table-actions">
-                            <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="table-action-btn view-details-btn" data-group-id="{{ group.pk }}">
-                                <i class="fas fa-eye"></i>
-                                <span>View Details</span>
-                            </a>
-                            {% if group.id not in user_memberships %}
-                            <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" class="table-action-btn">
-                                <i class="fas fa-user-plus"></i>
-                                <span>Join</span>
-                            </a>
-                        {% endif %}
-                    </div>
+                            {% if is_administration_directory %}
+                                {% include 'alumni_groups/partials/admin_group_actions.html' %}
+                            {% else %}
+                                <a href="{% url 'alumni_groups:group_detail' group.slug %}" class="table-action-btn">
+                                    <i class="fas fa-eye"></i><span>View Details</span>
+                                </a>
+                                {% if group.id not in user_memberships and group.is_active %}
+                                <a href="{% if group.has_security_questions %}{% url 'alumni_groups:join_group_with_questions' group.slug %}{% else %}{% url 'alumni_groups:join_group' group.slug %}{% endif %}" class="table-action-btn">
+                                    <i class="fas fa-user-plus"></i><span>Join</span>
+                                </a>
+                                {% endif %}
+                            {% endif %}
+                        </div>
                     </td>
                 </tr>
                     {% endfor %}
@@ -329,6 +335,10 @@
     </div>
             {% endif %}
     </div>
+
+{% if is_administration_directory %}
+{% include 'alumni_groups/partials/admin_group_modals.html' %}
+{% endif %}
 
 <script>
 class GroupsTable {
@@ -891,30 +901,44 @@ class GroupsTable {
 document.addEventListener('DOMContentLoaded', () => {
     new GroupsTable();
     
-    // Handle view details button clicks
-    document.addEventListener('click', (e) => {
-        if (e.target.closest('.view-details-btn')) {
-            const button = e.target.closest('.view-details-btn');
-            const groupId = button.dataset.groupId;
-            
-            // If it's already a link, let it navigate naturally
-            if (button.tagName === 'A') {
-                return;
-            }
-            
-            if (groupId) {
-                // Find the group slug from the card
-                const groupCard = button.closest('.group-card');
-                const groupLink = groupCard.querySelector('.group-title a');
-                if (groupLink) {
-                    window.location.href = groupLink.href;
-                } else {
-                    // Fallback to group detail URL
-                    window.location.href = `/groups/${groupId}/`;
-                }
-            }
-        }
-    });
+    // Admin detail buttons open the same-page summary modal; regular links navigate normally.
+    if (document.getElementById('adminGroupSummaryModal')) {
+        const modal = document.getElementById('adminGroupSummaryModal');
+        modal.addEventListener('show.bs.modal', function(event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) return;
+            const labels = {
+                name: 'adminGroupSummaryName', batch: 'adminGroupSummaryBatch',
+                admin: 'adminGroupSummaryAdmin', count: 'adminGroupSummaryMembers',
+                type: 'adminGroupSummaryType', created: 'adminGroupSummaryCreated',
+                status: 'adminGroupSummaryStatus', reason: 'adminGroupSummaryReason'
+            };
+            Object.entries(labels).forEach(([key, id]) => {
+                const el = document.getElementById(id);
+                if (el) el.textContent = trigger.dataset[key] || 'Not specified';
+            });
+        });
+    }
+    const statusModal = document.getElementById('adminGroupStatusModal');
+    if (statusModal) {
+        statusModal.addEventListener('show.bs.modal', function(event) {
+            const trigger = event.relatedTarget;
+            if (!trigger) return;
+            const action = trigger.dataset.statusAction || 'disable';
+            const form = document.getElementById('adminGroupStatusForm');
+            const note = document.getElementById('adminGroupStatusReason');
+            const title = document.getElementById('adminGroupStatusTitle');
+            const submit = document.getElementById('adminGroupStatusSubmit');
+            form.action = trigger.dataset.statusUrl || '';
+            form.querySelector('[name=action]').value = action;
+            note.value = '';
+            note.required = action === 'disable';
+            note.closest('.mb-3').hidden = action !== 'disable';
+            title.textContent = (action === 'disable' ? 'Disable ' : 'Re-enable ') + (trigger.dataset.groupName || 'group') + '?';
+            submit.textContent = action === 'disable' ? 'Disable group' : 'Re-enable group';
+            submit.className = 'btn ' + (action === 'disable' ? 'btn-danger' : 'btn-primary');
+        });
+    }
 });
 
 function handleExport() {

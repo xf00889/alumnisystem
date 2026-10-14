@@ -488,17 +488,14 @@
                             <i class="fas fa-user"></i>
                             Personal Info
                         </div>
-                        {% if empty_sections.personal %}
-                        <p class="text-muted mb-0">No additional personal information provided</p>
-                        {% else %}
                         <div class="info-grid">
                             <div class="info-item">
                                 <span class="info-label">Gender</span>
-                                <span class="info-value">{{ alumni.get_gender_display }}</span>
+                                <span class="info-value">{{ alumni.get_gender_display|default:profile.get_gender_display|default:'Not provided' }}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">DOB</span>
-                                <span class="info-value">{{ alumni.date_of_birth|date:"M d, Y" }}</span>
+                                <span class="info-value">{% if alumni.date_of_birth %}{{ alumni.date_of_birth|date:"M d, Y" }}{% elif profile.birth_date %}{{ profile.birth_date|date:"M d, Y" }}{% else %}Not provided{% endif %}</span>
                             </div>
                             <div class="info-item">
                                 <span class="info-label">Email</span>
@@ -535,7 +532,6 @@
                             </div>
                             {% endif %}
                         </div>
-                        {% endif %}
                     </div>
                 </div>
 
@@ -569,6 +565,25 @@
                             </div>
                         </div>
                         {% endif %}
+                    </div>
+                </div>
+                <div class="col-12">
+                    <div class="content-section">
+                        <div class="section-header"><i class="fas fa-id-card"></i> Alumni Profile Details</div>
+                        <div class="info-grid">
+                            <div class="info-item"><span class="info-label">First Name</span><span class="info-value">{{ alumni.user.first_name|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Middle Name</span><span class="info-value">{{ profile.middle_name|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Last Name</span><span class="info-value">{{ alumni.user.last_name|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Maiden Name</span><span class="info-value">{{ profile.maiden_name|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Birth Place</span><span class="info-value">{{ profile.birth_place|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Civil Status</span><span class="info-value">{{ profile.get_civil_status_display|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Landline</span><span class="info-value">{{ profile.landline_number|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Education Level</span><span class="info-value">{{ profile.get_education_level_display|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Employer Sector</span><span class="info-value">{{ profile.get_employer_sector_display|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Employment Address</span><span class="info-value">{{ profile.employment_address|default:'Not provided' }}</span></div>
+                            <div class="info-item"><span class="info-label">Workplace Reference</span><span class="info-value">{{ profile.workplace_reference_name|default:'Not provided' }}{% if profile.workplace_reference_position %} — {{ profile.workplace_reference_position }}{% endif %}{% if profile.workplace_reference_contact %} ({{ profile.workplace_reference_contact }}){% endif %}</span></div>
+                            <div class="info-item"><span class="info-label">Emergency Contact</span><span class="info-value">{{ profile.emergency_contact_name|default:'Not provided' }}{% if profile.emergency_contact_relationship %} — {{ profile.emergency_contact_relationship }}{% endif %}{% if profile.emergency_contact_number %} ({{ profile.emergency_contact_number }}){% endif %}</span></div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -819,26 +834,6 @@
         <!-- More Tab -->
         <div class="tab-pane fade" id="additional" role="tabpanel" aria-labelledby="additional-tab">
             <div class="row g-3">
-                {% if profile %}
-                <div class="col-12">
-                    <div class="content-section">
-                        <div class="section-header"><i class="fas fa-id-card"></i> Extended Alumni Profile</div>
-                        <p class="text-muted small mb-3">Administrative details from the alumnus's profile record. Handle private contact details confidentially.</p>
-                        <div class="info-grid">
-                            <div class="info-item"><span class="info-label">Middle Name</span><span class="info-value">{{ profile.middle_name|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Maiden Name</span><span class="info-value">{{ profile.maiden_name|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Birth Place</span><span class="info-value">{{ profile.birth_place|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Civil Status</span><span class="info-value">{{ profile.get_civil_status_display|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Landline</span><span class="info-value">{{ profile.landline_number|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Education Level</span><span class="info-value">{{ profile.get_education_level_display|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Employer Sector</span><span class="info-value">{{ profile.get_employer_sector_display|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Employment Address</span><span class="info-value">{{ profile.employment_address|default:'Not provided' }}</span></div>
-                            <div class="info-item"><span class="info-label">Workplace Reference</span><span class="info-value">{{ profile.workplace_reference_name|default:'Not provided' }}{% if profile.workplace_reference_position %} — {{ profile.workplace_reference_position }}{% endif %}{% if profile.workplace_reference_contact %} ({{ profile.workplace_reference_contact }}){% endif %}</span></div>
-                            <div class="info-item"><span class="info-label">Emergency Contact</span><span class="info-value">{{ profile.emergency_contact_name|default:'Not provided' }}{% if profile.emergency_contact_relationship %} — {{ profile.emergency_contact_relationship }}{% endif %}{% if profile.emergency_contact_number %} ({{ profile.emergency_contact_number }}){% endif %}</span></div>
-                        </div>
-                    </div>
-                </div>
-                {% endif %}
                 {% if alumni.bio or alumni.achievements %}
                 <div class="col-12">
                     <div class="content-section">

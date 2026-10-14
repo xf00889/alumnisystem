@@ -5,12 +5,14 @@ app_name = 'alumni_groups'
 
 urlpatterns = [
     # Group List and Creation
+    path('administration/directory/', views.AdminGroupDirectoryView.as_view(), name='admin_group_directory'),
     path('', views.GroupListView.as_view(), name='group_list'),
     path('create/', views.GroupCreateView.as_view(), name='group_create'),
     path('create-progressive/', views.GroupCreateProgressiveView.as_view(), name='group_create_progressive'),
     path('create-phase1/', views.GroupCreatePhase1View.as_view(), name='group_create_phase1'),
     path('create-phase2/', views.GroupCreatePhase2View.as_view(), name='group_create_phase2'),
     path('map/', views.group_map_view, name='group_map'),
+    path('<slug:slug>/administration/availability/', views.set_group_availability, name='set_group_availability'),
     
     # Group Detail and Management
     path('<slug:slug>/', views.GroupDetailView.as_view(), name='group_detail'),

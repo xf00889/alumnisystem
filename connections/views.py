@@ -1,3 +1,4 @@
+from core.access_rules import is_administration_account
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -47,6 +48,8 @@ def test_search_api(request):
         # Filter connected users by search query
         filtered_users = []
         for user in connected_users:
+            if is_administration_account(user):
+                continue
             if (query.lower() in user.first_name.lower() or
                 query.lower() in user.last_name.lower() or
                 query.lower() in user.get_full_name().lower() or
@@ -87,6 +90,8 @@ def test_inline_interface(request):
 def send_connection_request(request, user_id):
     """Send a connection request to another user"""
     receiver = get_object_or_404(User, id=user_id)
+    if is_administration_account(request.user) or is_administration_account(receiver):
+        return JsonResponse({'success': False, 'message': 'Administration accounts cannot create alumni connections.'}, status=403)
 
     # Block requests to unregistered/inactive users (e.g. imported alumni who haven't signed up)
     if not receiver.is_active:
@@ -189,6 +194,8 @@ def connection_requests(request):
 @require_http_methods(["POST"])
 def accept_connection_request(request, connection_id):
     """Accept a connection request"""
+    if is_administration_account(request.user):
+        return JsonResponse({'success': False, 'message': 'Administration accounts cannot accept alumni connections.'}, status=403)
     try:
         connection = Connection.objects.get(
             id=connection_id,
@@ -334,9 +341,13 @@ def mark_chat_activity_read(user, action_url):
 @login_required
 def direct_messages(request, user_id=None):
     """View direct messages with a connected user"""
+    if is_administration_account(request.user):
+        return HttpResponseForbidden('Administration accounts cannot use alumni messaging.')
     if user_id:
         other_user = get_object_or_404(User, id=user_id)
-        
+        if is_administration_account(other_user):
+            return HttpResponseForbidden('Administration accounts cannot receive alumni messages.')
+
         # Only connected users may start new conversations or send new messages.
         # Former connections may read existing shared history, never create new history.
         can_send = Connection.are_connected(request.user, other_user)
@@ -426,6 +437,8 @@ def direct_messages(request, user_id=None):
             if not recipient_id.isdecimal():
                 return redirect('connections:conversations_list')
             recipient = get_object_or_404(User, pk=int(recipient_id))
+            if is_administration_account(recipient):
+                return HttpResponseForbidden('Administration accounts cannot receive alumni messages.')
             if recipient.pk == request.user.pk or not Connection.are_connected(request.user, recipient):
                 return HttpResponseForbidden('A direct conversation requires an active connection.')
             DirectConversation.get_or_create_conversation(request.user, recipient)
@@ -477,7 +490,9 @@ def direct_messages(request, user_id=None):
 def send_message(request, user_id):
     """Handle sending messages via HTMX"""
     other_user = get_object_or_404(User, id=user_id)
-    
+    if is_administration_account(request.user) or is_administration_account(other_user):
+        return JsonResponse({'success': False, 'message': 'Administration accounts cannot send alumni messages.'}, status=403)
+
     # Check if users are connected. Former contacts already have a read-only
     # notice in the conversation, so their rejected send need not produce a toast.
     if not Connection.are_connected(request.user, other_user):
@@ -615,6 +630,8 @@ def connection_status(request, user_id):
 @require_http_methods(["POST"])
 def create_group_chat(request):
     """Create a new group chat"""
+    if is_administration_account(request.user):
+        return JsonResponse({'success': False, 'error': 'Administration accounts cannot send messages.'}, status=403)
     try:
         data = json.loads(request.body)
         group_name = data.get('group_name', '').strip()
@@ -632,6 +649,8 @@ def create_group_chat(request):
         for user_id in participant_ids:
             try:
                 user = User.objects.get(id=user_id)
+                if is_administration_account(user):
+                    return JsonResponse({'success': False, 'error': 'Cannot add an administration account to a chat.'}, status=403)
                 # Check if creator is connected to this user
                 if not Connection.are_connected(request.user, user):
                     return JsonResponse({
@@ -703,6 +722,8 @@ def group_chat_detail(request, conversation_id):
 @rate_limit_messages(max_messages=20, time_window=60)
 def send_group_message(request, conversation_id):
     """Send a message to a group chat"""
+    if is_administration_account(request.user):
+        return JsonResponse({'success': False, 'error': 'Administration accounts cannot send messages.'}, status=403)
     conversation = get_object_or_404(DirectConversation, id=conversation_id)
 
     # Check if user is a participant
@@ -923,6 +944,8 @@ def search_group_members(request, conversation_id):
         # Prepare user data
         users_data = []
         for user in users:
+            if is_administration_account(user):
+                continue
             # Safely get profile information
             profile = getattr(user, 'profile', None)
             alumni = getattr(user, 'alumni', None)
@@ -1019,6 +1042,9 @@ def add_group_members(request, conversation_id):
                 'success': False,
                 'error': 'No valid users found to add'
             }, status=404)
+
+        if any(is_administration_account(user) for user in users_to_add):
+            return JsonResponse({'success': False, 'error': 'Administration accounts cannot join alumni chats.'}, status=403)
 
         # Check if any users are already participants
         current_participant_ids = set(conversation.participants.values_list('id', flat=True))

@@ -60,7 +60,7 @@ def notify_mentions(group, actor, content, post=None):
 @login_required
 @require_POST
 def toggle_bookmark(request, post_id):
-    post = get_object_or_404(Post, pk=post_id, status='APPROVED')
+    post = get_object_or_404(Post, pk=post_id, status='APPROVED', group__is_active=True)
     if not approved_member(post.group, request.user):
         return HttpResponseForbidden('Approved membership required.')
     bookmark, created = PostBookmark.objects.get_or_create(post=post, user=request.user)
@@ -73,7 +73,7 @@ def toggle_bookmark(request, post_id):
 @login_required
 @require_POST
 def report_post(request, post_id):
-    post = get_object_or_404(Post, pk=post_id, status='APPROVED')
+    post = get_object_or_404(Post, pk=post_id, status='APPROVED', group__is_active=True)
     if not approved_member(post.group, request.user):
         return HttpResponseForbidden('Approved membership required.')
 
@@ -174,7 +174,7 @@ def review_report(request, report_id):
 @login_required
 @require_POST
 def pin_post(request, post_id):
-    post = get_object_or_404(Post, pk=post_id, status='APPROVED')
+    post = get_object_or_404(Post, pk=post_id, status='APPROVED', group__is_active=True)
     if not group_admin(post.group, request.user):
         return HttpResponseForbidden('Group administrators only.')
     post.is_pinned = not post.is_pinned
@@ -205,7 +205,7 @@ def create_poll(request, slug):
 @login_required
 @require_POST
 def vote_poll(request, poll_id):
-    poll = get_object_or_404(GroupPoll.objects.select_related('group'), pk=poll_id)
+    poll = get_object_or_404(GroupPoll.objects.select_related('group'), pk=poll_id, group__is_active=True)
     if not approved_member(poll.group, request.user):
         return HttpResponseForbidden('Approved membership required.')
     if poll.closes_at and poll.closes_at <= timezone.now():
@@ -241,7 +241,7 @@ def create_group_event(request, slug):
 @login_required
 @require_POST
 def rsvp_event(request, event_id):
-    event = get_object_or_404(GroupEvent.objects.select_related('group'), pk=event_id, is_active=True)
+    event = get_object_or_404(GroupEvent.objects.select_related('group'), pk=event_id, is_active=True, group__is_active=True)
     if not approved_member(event.group, request.user):
         return HttpResponseForbidden('Approved membership required.')
     response = request.POST.get('response')
@@ -280,7 +280,7 @@ def create_discussion(request, slug):
 @login_required
 @require_POST
 def reply_discussion(request, discussion_id):
-    discussion = get_object_or_404(GroupDiscussion.objects.select_related('group'), pk=discussion_id)
+    discussion = get_object_or_404(GroupDiscussion.objects.select_related('group'), pk=discussion_id, group__is_active=True)
     if not approved_member(discussion.group, request.user):
         return HttpResponseForbidden('Approved membership required.')
     if discussion.is_locked:
@@ -302,7 +302,7 @@ def reply_discussion(request, discussion_id):
 @login_required
 @require_POST
 def moderate_discussion(request, discussion_id):
-    discussion = get_object_or_404(GroupDiscussion.objects.select_related('group'), pk=discussion_id)
+    discussion = get_object_or_404(GroupDiscussion.objects.select_related('group'), pk=discussion_id, group__is_active=True)
     if not moderator(discussion.group, request.user):
         return HttpResponseForbidden('Moderators only.')
     action = request.POST.get('action')

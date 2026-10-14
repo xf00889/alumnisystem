@@ -51,6 +51,12 @@ class AlumniGroup(models.Model):
     
     # Group Settings
     is_active = models.BooleanField(default=True)
+    disabled_reason = models.TextField(blank=True)
+    disabled_at = models.DateTimeField(null=True, blank=True)
+    disabled_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
+        related_name='disabled_alumni_groups'
+    )
     requires_approval = models.BooleanField(default=False)
     has_security_questions = models.BooleanField(default=False)
     require_post_approval = models.BooleanField(default=True)

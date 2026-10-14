@@ -1,0 +1,17 @@
+<button type="button" class="btn btn-primary admin-group-summary-trigger"
+        data-bs-toggle="modal" data-bs-target="#adminGroupSummaryModal"
+        data-name="{{ group.name }}" data-batch="{% if group.batch_start_year %}{{ group.batch_start_year }}–{{ group.batch_end_year|default:group.batch_start_year }}{% else %}All batches{% endif %}"
+        data-admin="{{ group.directory_admin_names }}" data-count="{{ group.directory_member_count }}"
+        data-type="{{ group.get_group_type_display }}" data-created="{{ group.created_at|date:'M d, Y' }}"
+        data-status="{% if group.is_active %}Active{% else %}Disabled{% endif %}"
+        data-reason="{{ group.disabled_reason|default:'None' }}">
+    <i class="fas fa-circle-info me-1" aria-hidden="true"></i> View Details
+</button>
+<button type="button" class="btn {% if group.is_active %}btn-outline-danger{% else %}btn-outline-success{% endif %}"
+        data-bs-toggle="modal" data-bs-target="#adminGroupStatusModal"
+        data-status-action="{% if group.is_active %}disable{% else %}enable{% endif %}"
+        data-group-name="{{ group.name }}"
+        data-status-url="{% url 'alumni_groups:set_group_availability' group.slug %}">
+    <i class="fas {% if group.is_active %}fa-ban{% else %}fa-rotate-left{% endif %} me-1" aria-hidden="true"></i>
+    {% if group.is_active %}Disable{% else %}Enable{% endif %}
+</button>

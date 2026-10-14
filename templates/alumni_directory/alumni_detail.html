@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="{% static 'css/alumni/directory.css' %}">
 {% endif %}
 <link rel="stylesheet" href="{% static 'css/alumni/alumni-detail-refresh.css' %}">
+{% if not use_alumni_layout %}<link rel="stylesheet" href="{% static 'css/alumni/admin-alumni-profile.css' %}">{% endif %}
 {% endblock %}
 
 {% block content %}
@@ -368,6 +369,8 @@
             </div>
             {% endif %}
 
+            <!-- Connection requests and messages are alumni-only, never administration actions. -->
+            {% if not admin_view_only %}
             <!-- Contact buttons -->
             <div class="dashboard-card contact-card">
                 <h3 class="section-title"><i class="fas fa-user-plus me-2"></i>Connect &amp; message</h3>
@@ -391,7 +394,7 @@
                         </a>
                     {% endif %}
                     
-                    {% if user.is_authenticated and user != alumni.user %}
+                    {% if not admin_view_only and user.is_authenticated and user != alumni.user %}
                         <!-- Connection Button -->
                         {% load connections_tags %}
                         {% get_connection_status user alumni.user as connection_status %}
@@ -466,6 +469,8 @@
                     {% endif %}
                 </div>
             </div>
+            {% endif %}
+
 
             {% if not can_view_private_profile %}
             <section class="dashboard-card alumni-detail-resources" aria-labelledby="alumni-resources-title">

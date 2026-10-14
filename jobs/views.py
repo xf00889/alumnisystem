@@ -4,7 +4,7 @@ from django.core.paginator import Paginator
 from django.core.cache import cache
 from django.contrib import messages
 from django.db.models import Q, Count
-from django.http import JsonResponse, HttpResponse
+from django.http import JsonResponse, HttpResponse, HttpResponseForbidden
 from django.template.loader import render_to_string
 from django.utils import timezone
 from django.db import transaction
@@ -17,7 +17,6 @@ from .forms import JobPostingForm, JobApplicationForm, RequiredDocumentFormSet, 
 from .scraper_forms import JobScraperForm
 from .scraper_utils import scraper
 from .utils import calculate_job_match_score, get_skill_recommendations
-from .access import job_board_login_required
 from .ai_global_sort import (
     apply_ordered_ids,
     compute_scores_for_job_ids,
@@ -307,9 +306,8 @@ def _get_ai_sort_state(request, is_admin_or_hr_user):
 
     return ai_sort_enabled, ai_profile_version
 
-@job_board_login_required
 def careers(request):
-    """Member-only careers page for job listings"""
+    """Public careers page for job listings"""
     jobs = JobPosting.objects.filter(is_active=True).exclude(slug="").order_by('-posted_date')
     
     # Get filter parameters (for future implementation)
@@ -376,9 +374,12 @@ def careers(request):
     }
     return render(request, 'jobs/careers.html', context)
 
-@job_board_login_required
 def get_job_details(request, job_id):
-    """Get job details as JSON for modal display"""
+    """Member-only job details JSON; admin views use separate staff pages."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'error': 'Sign in to view job details.'}, status=403)
+    if is_hr_or_admin(request.user):
+        return JsonResponse({'success': False, 'error': 'Use the staff Job Board.'}, status=403)
     try:
         job = get_object_or_404(JobPosting, id=job_id, is_active=True)
         
@@ -422,9 +423,12 @@ def get_job_details(request, job_id):
             'error': 'Failed to load job details'
         }, status=500)
 
-@job_board_login_required
 def check_job_application_eligibility(request, job_id):
-    """Check if user can apply for a specific job based on source_type restrictions"""
+    """Check whether an eligible alumni account may submit an application."""
+    if not request.user.is_authenticated:
+        return JsonResponse({'success': False, 'eligible': False, 'message': 'Sign in first.'}, status=403)
+    if is_hr_or_admin(request.user):
+        return JsonResponse({'success': False, 'eligible': False, 'message': 'Staff do not apply through the alumni workflow.'}, status=403)
     try:
         job = get_object_or_404(JobPosting, id=job_id, is_active=True)
         
@@ -452,8 +456,12 @@ def check_job_application_eligibility(request, job_id):
             'message': 'Unable to check application eligibility.'
         }, status=500)
 
-@job_board_login_required
 def job_list(request):
+    # Member-only view: unauthenticated visitors go to the public landing page.
+    if not request.user.is_authenticated:
+        return redirect('core:home')
+    if is_hr_or_admin(request.user):
+        return redirect('jobs:admin_job_board')
     dataset = _build_job_list_dataset(request, include_modal_prompt=True)
     jobs = dataset['jobs_queryset']
     is_admin_or_hr_user = dataset['is_admin_or_hr']
@@ -884,9 +892,12 @@ def clear_all_filters(request):
     return redirect('jobs:job_list')
 
 
-@job_board_login_required
 def job_detail(request, slug):
-    job = get_object_or_404(JobPosting, slug=slug)
+    if not request.user.is_authenticated:
+        return redirect('core:home')
+    if is_hr_or_admin(request.user):
+        return redirect('jobs:admin_job_details', slug=slug)
+    job = get_object_or_404(JobPosting, slug=slug, is_active=True)
     user_application = None
     applicants = None
     ai_match = None
@@ -923,8 +934,6 @@ def job_detail(request, slug):
         'ai_match_state': ai_match_state,
         'source_url': source_url,
         'source_host': source_host,
-        # Jobs are member-only. Staff/HR retain their management shell.
-        'job_detail_page_base': 'base_alumni.html' if not is_hr_or_admin(request.user) else 'base.html',
     }
     return render(request, 'jobs/job_detail.html', context)
 
@@ -1069,6 +1078,9 @@ def delete_job(request, slug):
 
 @login_required
 def apply_for_job(request, slug):
+    # Administrative accounts manage postings; they cannot submit alumni applications.
+    if is_hr_or_admin(request.user):
+        return HttpResponseForbidden('Administrative accounts cannot apply through the alumni job workflow.')
     job = get_object_or_404(JobPosting, slug=slug, is_active=True)
     
     # Check if user has already applied
