@@ -131,7 +131,7 @@
                     <div id="step2-content" class="hidden">
                         <h4 class="mb-4">Configure Your Email Settings</h4>
                         
-                        <form id="email-form">
+                        <form id="email-form" method="post" action="{% url 'core:smtp_quick_setup' %}" autocomplete="off">
                             {% csrf_token %}
                             <input type="hidden" id="provider" name="provider" value="">
                             
@@ -153,6 +153,10 @@
                                 </div>
                             </div>
                             
+                            <div class="form-group">
+                                <label class="form-label" for="smtp-from-name">Sender Display Name</label>
+                                <input id="smtp-from-name" name="from_name" class="form-control" value="NORSU Alumni" maxlength="100">
+                            </div>
                             <!-- SMTP Fields -->
                             <div id="smtp-fields">
                                 <div class="row">
@@ -224,8 +228,8 @@
                                     </div>
                                     <div class="col-md-6">
                                         <div class="form-group">
-                                            <label class="form-label" for="from_name">From Name (Optional)</label>
-                                            <input type="text" class="form-control" id="from_name" name="from_name" 
+                                            <label class="form-label" for="brevo-from-name">Brevo Sender Name (uses the common sender name)</label>
+                                            <input type="text" class="form-control" id="brevo-from-name" 
                                                    placeholder="NORSU Alumni System">
                                         </div>
                                     </div>
@@ -386,7 +390,7 @@ document.addEventListener('DOMContentLoaded', function() {
             brevoFields.classList.add('hidden');
             // Clear Brevo fields
             document.getElementById('api_key').value = '';
-            document.getElementById('from_name').value = '';
+            document.getElementById('smtp-from-name').value ||= 'NORSU Alumni';
             
             // Set SMTP values
             if (config.host) {
@@ -400,73 +404,57 @@ document.addEventListener('DOMContentLoaded', function() {
     function testAndSaveConfiguration() {
         const formData = new FormData(emailForm);
         const submitBtn = emailForm.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-        
-        // Show loading state
-        submitBtn.innerHTML = '<span class="spinner"></span>Testing...';
+        const originalText = submitBtn.textContent;
         submitBtn.disabled = true;
-        emailForm.classList.add('loading');
-        
-        fetch('{% url "core:smtp_quick_setup" %}', {
+        submitBtn.textContent = 'Testing & saving…';
+        fetch(emailForm.action, {
             method: 'POST',
             body: formData,
+            credentials: 'same-origin',
+            redirect: 'follow',
             headers: {
-                'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value,
+                'X-CSRFToken': emailForm.querySelector('[name="csrfmiddlewaretoken"]').value,
                 'X-Requested-With': 'XMLHttpRequest'
             }
         })
-        .then(response => {
-            if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                if (response.status === 403) throw new Error('403: authorization or CSRF failure. Reload the page and check Gunicorn CSRF logs.');
+                throw new Error(`Unexpected HTTP ${response.status}. See browser Network and Gunicorn logs.`);
             }
-            const contentType = response.headers.get('content-type');
-            if (contentType && contentType.includes('application/json')) {
-                return response.json();
-            } else {
-                throw new Error('Response is not JSON');
-            }
+            const data = await response.json();
+            if (!response.ok && !data.message) data.message = `HTTP ${response.status}`;
+            return data;
         })
         .then(data => {
             showStep(3);
             displayTestResult(data);
         })
         .catch(error => {
-            console.error('Error:', error);
-            displayTestResult({
-                success: false,
-                message: 'An error occurred while testing the configuration.',
-                details: error.message
-            });
+            showStep(3);
+            displayTestResult({success: false, message: 'Unable to complete SMTP setup.', details: error.message});
         })
         .finally(() => {
-            // Reset button state
-            submitBtn.innerHTML = originalText;
+            submitBtn.textContent = originalText;
             submitBtn.disabled = false;
-            emailForm.classList.remove('loading');
         });
     }
-    
+
     function displayTestResult(data) {
         const resultDiv = document.getElementById('test-result');
         resultDiv.classList.remove('hidden', 'test-success', 'test-error');
-        
-        if (data.success) {
-            resultDiv.classList.add('test-success');
-            resultDiv.innerHTML = `
-                <h5><i class="fas fa-check-circle me-2"></i>Configuration Saved Successfully!</h5>
-                <p>${data.message}</p>
-                <p><strong>Configuration Name:</strong> ${data.config_name}</p>
-                <p><strong>Status:</strong> ${data.is_active ? 'Active' : 'Inactive'}</p>
-            `;
-        } else {
-            resultDiv.classList.add('test-error');
-            resultDiv.innerHTML = `
-                <h5><i class="fas fa-exclamation-triangle me-2"></i>Configuration Failed</h5>
-                <p>${data.message}</p>
-                ${data.details ? `<p><strong>Details:</strong> ${data.details}</p>` : ''}
-            `;
-        }
+        resultDiv.classList.add(data.success ? 'test-success' : 'test-error');
+        resultDiv.replaceChildren();
+        const heading = document.createElement('h5');
+        heading.textContent = data.success ? 'Configuration saved and verified' : (data.saved ? 'Saved, but not verified' : 'Configuration could not be saved');
+        const detail = document.createElement('p');
+        detail.textContent = data.message || 'Unknown result';
+        const reason = document.createElement('p');
+        reason.textContent = data.details || '';
+        resultDiv.append(heading, detail, reason);
     }
+
 });
 </script>
 {% endblock %}

@@ -9,7 +9,6 @@ from django.core import signing
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.core.files.base import ContentFile
 from django.core.files.storage import default_storage
-from django.core.mail import send_mail
 from django.conf import settings
 from django.db import transaction
 from django.urls import reverse
@@ -122,12 +121,17 @@ def email_guest_recovery_link(donation, request):
     email = donation.donor_email
     def send():
         try:
-            send_mail(
-                'Resume your NORSU donation',
-                f'Your payment has NOT been collected yet. To continue your donation of PHP {donation.amount} '
-                f'to {donation.campaign.name}, open this private link within 30 days: {link}\n'
-                'Do not share this link. If you did not start this donation, ignore this email.',
-                getattr(settings, 'DEFAULT_FROM_EMAIL', None), [email], fail_silently=False)
+            from core.email_utils import send_email_with_provider
+            send_email_with_provider(
+                subject='Resume your NORSU donation',
+                message=(
+                    f'Your payment has NOT been collected yet. To continue your donation of PHP {donation.amount} '
+                    f'to {donation.campaign.name}, open this private link within 30 days: {link}\n'
+                    'Do not share this link. If you did not start this donation, ignore this email.'
+                ),
+                recipient_list=[email],
+                fail_silently=False,
+            )
         except Exception:
             logger.exception('Could not email donation recovery link for donation %s', donation.pk)
     transaction.on_commit(send)

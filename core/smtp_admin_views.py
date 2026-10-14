@@ -41,125 +41,95 @@ def smtp_configuration_list(request):
     
     return render(request, 'smtp_configuration_list.html', context)
 
-@user_passes_test(is_admin)
-def smtp_configuration_create(request):
-    """Create new SMTP configuration"""
-    if request.method == 'POST':
-        try:
-            config = SMTPConfig(
-                name=request.POST.get('name'),
-                host=request.POST.get('host'),
-                port=int(request.POST.get('port', 587)),
-                use_tls=request.POST.get('use_tls') == 'on',
-                use_ssl=request.POST.get('use_ssl') == 'on',
-                username=request.POST.get('username'),
-                password=request.POST.get('password'),
-                from_email=request.POST.get('from_email'),
-                from_name=request.POST.get('from_name', ''),
-                is_active=request.POST.get('is_active') == 'on'
-            )
-            
-            config.full_clean()
-            config.save()
-            
-            # Clear SMTP cache to ensure new settings are loaded
-            from .smtp_settings import clear_smtp_cache
-            clear_smtp_cache()
-            
-            messages.success(request, f'SMTP configuration "{config.name}" created successfully!')
-            return redirect('core:smtp_configuration_list')
-            
-        except ValidationError as e:
-            for field, errors in e.message_dict.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-        except Exception as e:
-            messages.error(request, f'Error creating configuration: {str(e)}')
-    
-    # Predefined configurations
-    predefined_configs = {
-        'gmail': {
-            'name': 'Gmail',
-            'host': 'smtp.gmail.com',
-            'port': 587,
-            'use_tls': True,
-            'use_ssl': False,
-            'help_text': 'Use your Gmail address and an App Password (not your regular password)'
-        },
-        'outlook': {
-            'name': 'Outlook/Hotmail',
-            'host': 'smtp-mail.outlook.com',
-            'port': 587,
-            'use_tls': True,
-            'use_ssl': False,
-            'help_text': 'Use your Outlook/Hotmail email address and password'
-        },
-        'yahoo': {
-            'name': 'Yahoo Mail',
-            'host': 'smtp.mail.yahoo.com',
-            'port': 587,
-            'use_tls': True,
-            'use_ssl': False,
-            'help_text': 'Use your Yahoo email address and an App Password'
-        },
-        'custom': {
-            'name': 'Custom SMTP',
-            'host': '',
-            'port': 587,
-            'use_tls': True,
-            'use_ssl': False,
-            'help_text': 'Enter your custom SMTP server details'
-        }
+from .forms.smtp_configuration import SMTPConfigurationForm
+
+
+def _smtp_form_context(request, form, config=None):
+    """Retain submitted values on validation errors without exposing credentials."""
+    data = {}
+    fields = ('name', 'host', 'port', 'username', 'from_email', 'from_name')
+    for field in fields:
+        data[field] = request.POST.get(field, '') if request.method == 'POST' else (getattr(config, field, '') if config else '')
+    if request.method == 'GET' and not config:
+        data.update({'port': 587, 'from_name': 'NORSU Alumni'})
+    return {
+        'config': config,
+        'form_data': data,
+        'use_tls_checked': (request.POST.get('use_tls') == 'on' if request.method == 'POST' else (config.use_tls if config else True)),
+        'use_ssl_checked': (request.POST.get('use_ssl') == 'on' if request.method == 'POST' else (config.use_ssl if config else False)),
+        'is_active_checked': (request.POST.get('is_active') == 'on' if request.method == 'POST' else (config.is_active if config else False)),
+        'form_errors': form.errors if request.method == 'POST' else None,
+        'show_configuration_form': (request.method == 'POST' or bool(config)),
     }
-    
-    context = {
-        'page_title': 'Create SMTP Configuration',
-        'predefined_configs': predefined_configs
-    }
-    
-    return render(request, 'smtp_configuration_form.html', context)
+
+
+def _save_smtp_form(request, form, config=None):
+    if not form.is_valid():
+        return None, form
+
+    candidate = form.save(commit=False)
+    if config is None:
+        candidate.is_verified = False
+        candidate.is_active = False
+    else:
+        sensitive_fields = {'host', 'port', 'use_tls', 'use_ssl', 'username', 'password', 'from_email'}
+        if any(name in form.changed_data for name in sensitive_fields):
+            candidate.is_verified = False
+            candidate.is_active = False
+            candidate.test_result = 'Configuration changed; re-test before activation.'
+        elif candidate.is_active and not candidate.is_verified:
+            candidate.is_active = False
+    candidate.full_clean()
+    candidate.save()
+    from .smtp_settings import clear_smtp_cache
+    clear_smtp_cache()
+    return candidate, form
+
 
 @user_passes_test(is_admin)
-def smtp_configuration_edit(request, config_id):
-    """Edit existing SMTP configuration"""
-    config = get_object_or_404(SMTPConfig, id=config_id)
-    
+@require_http_methods(['GET', 'POST'])
+def smtp_configuration_create(request):
     if request.method == 'POST':
+        form = SMTPConfigurationForm(request.POST)
         try:
-            config.name = request.POST.get('name')
-            config.host = request.POST.get('host')
-            config.port = int(request.POST.get('port', 587))
-            config.use_tls = request.POST.get('use_tls') == 'on'
-            config.use_ssl = request.POST.get('use_ssl') == 'on'
-            config.username = request.POST.get('username')
-            config.password = request.POST.get('password')
-            config.from_email = request.POST.get('from_email')
-            config.from_name = request.POST.get('from_name', '')
-            config.is_active = request.POST.get('is_active') == 'on'
-            
-            config.full_clean()
-            config.save()
-            
-            # Clear SMTP cache to ensure updated settings are loaded
-            from .smtp_settings import clear_smtp_cache
-            clear_smtp_cache()
-            
-            messages.success(request, f'SMTP configuration "{config.name}" updated successfully!')
-            return redirect('core:smtp_configuration_list')
-            
-        except ValidationError as e:
-            for field, errors in e.message_dict.items():
-                for error in errors:
-                    messages.error(request, f'{field}: {error}')
-        except Exception as e:
-            messages.error(request, f'Error updating configuration: {str(e)}')
-    
-    context = {
-        'config': config,
-        'page_title': f'Edit {config.name}'
-    }
-    
+            config, form = _save_smtp_form(request, form)
+            if config is not None:
+                messages.success(request, 'SMTP configuration saved. Use Test, then Activate after verification.')
+                return redirect('core:smtp_configuration_list')
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        except Exception:
+            logger.exception('SMTP configuration create failed')
+            form.add_error(None, 'Unable to save the configuration. Check the server logs.')
+    else:
+        form = SMTPConfigurationForm()
+    context = _smtp_form_context(request, form)
+    context['page_title'] = 'Create SMTP Configuration'
     return render(request, 'smtp_configuration_form.html', context)
+
+
+@user_passes_test(is_admin)
+@require_http_methods(['GET', 'POST'])
+def smtp_configuration_edit(request, config_id):
+    config = get_object_or_404(SMTPConfig, pk=config_id)
+    if request.method == 'POST':
+        form = SMTPConfigurationForm(request.POST, instance=config)
+        try:
+            saved, form = _save_smtp_form(request, form, config)
+            if saved is not None:
+                messages.success(request, 'SMTP configuration updated. Re-test before activation if connection settings changed.')
+                return redirect('core:smtp_configuration_list')
+        except ValidationError as exc:
+            form.add_error(None, exc)
+        except Exception:
+            logger.exception('SMTP configuration edit failed: id=%s', config_id)
+            form.add_error(None, 'Unable to save the configuration. Check the server logs.')
+    else:
+        form = SMTPConfigurationForm(instance=config)
+    context = _smtp_form_context(request, form, config)
+    context['page_title'] = 'Edit SMTP Configuration'
+    return render(request, 'smtp_configuration_form.html', context)
+
 
 @user_passes_test(is_admin)
 @require_POST
@@ -248,37 +218,43 @@ def smtp_configuration_delete(request, config_id):
             messages.error(request, error_message)
             return redirect('core:smtp_configuration_list')
 
+def _select_email_provider(provider_type):
+    from .models.email_provider import EmailProvider
+    provider = EmailProvider.objects.filter(provider_type=provider_type).first()
+    if provider is None:
+        provider = EmailProvider(provider_type=provider_type, is_active=True)
+    else:
+        provider.is_active = True
+    provider.save()
+
+
 @user_passes_test(is_admin)
 @require_POST
 def smtp_configuration_activate(request, config_id):
-    """Activate SMTP configuration"""
-    config = get_object_or_404(SMTPConfig, id=config_id)
-    
-    try:
-        # Deactivate all other configurations
-        SMTPConfig.objects.filter(is_active=True).update(is_active=False)
-        
-        # Activate this configuration
+    config = get_object_or_404(SMTPConfig, pk=config_id)
+    if not config.is_verified:
+        messages.error(request, 'Test and verify this SMTP configuration before activating it.')
+        return redirect('core:smtp_configuration_list')
+    from django.db import transaction
+    with transaction.atomic():
+        SMTPConfig.objects.filter(is_active=True).exclude(pk=config.pk).update(is_active=False)
         SMTPConfig.objects.filter(pk=config.pk).update(is_active=True)
-        
-        # Clear SMTP cache to ensure new active settings are loaded
-        from .smtp_settings import clear_smtp_cache
-        clear_smtp_cache()
-        
-        messages.success(request, f'SMTP configuration "{config.name}" activated successfully!')
-    except Exception as e:
-        messages.error(request, f'Error activating configuration: {str(e)}')
-    
+        _select_email_provider('smtp')
+    from .smtp_settings import clear_smtp_cache
+    clear_smtp_cache()
+    messages.success(request, 'SMTP configuration activated as the system email provider.')
     return redirect('core:smtp_configuration_list')
 
+
 @user_passes_test(is_admin)
+@require_http_methods(['GET', 'POST'])
 def smtp_quick_setup(request):
     """Quick setup wizard for common email providers"""
     if request.method == 'POST':
         provider = request.POST.get('provider')
         email = request.POST.get('from_email') or request.POST.get('email')  # Support both field names
         password = request.POST.get('password')
-        from_name = request.POST.get('from_name', 'NORSU Alumni')
+        from_name = (request.POST.get('from_name') or 'NORSU Alumni').strip()
         
         # Provider configurations
         provider_configs = {
@@ -323,7 +299,7 @@ def smtp_quick_setup(request):
                     api_url='https://api.brevo.com/v3/smtp/email',
                     from_email=email,
                     from_name=from_name,
-                    is_active=True
+                    is_active=False
                 )
                 
                 config.full_clean()
@@ -331,7 +307,16 @@ def smtp_quick_setup(request):
                 
                 # Test the configuration
                 success, message = config.test_connection()
-                
+                if success:
+                    from django.db import transaction
+                    with transaction.atomic():
+                        BrevoConfig.objects.filter(is_active=True).exclude(pk=config.pk).update(is_active=False)
+                        BrevoConfig.objects.filter(pk=config.pk).update(is_active=True)
+                        _select_email_provider('brevo')
+                    from .brevo_email import clear_brevo_cache
+                    clear_brevo_cache()
+                config.is_active = bool(success)
+
                 # Check if this is an AJAX request
                 if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
                     if success:
@@ -381,87 +366,75 @@ def smtp_quick_setup(request):
                 else:
                     messages.error(request, f'Error creating Brevo configuration: {str(e)}')
                 
-        elif provider in provider_configs:
+        elif provider in provider_configs or provider == 'custom':
             try:
-                config_data = provider_configs[provider]
-                # Get username from form or use email as username
-                username = request.POST.get('username') or email
-                
-                # Debug logging
-                logger.info(f"Quick setup form data - Provider: {provider}, Email: {email}, Username: {username}")
-                
+                from django.db import transaction
+                raw_password = (request.POST.get('password') or '').strip()
+                if not raw_password:
+                    raise ValueError('An SMTP app password is required.')
+                config_data = provider_configs.get(provider)
+                if provider == 'custom':
+                    config_data = {
+                        'name': request.POST.get('name', 'Custom SMTP'),
+                        'host': (request.POST.get('host') or '').strip(),
+                        'port': int(request.POST.get('port') or 587),
+                        'use_tls': request.POST.get('encryption', 'tls') == 'tls',
+                        'use_ssl': request.POST.get('encryption', 'tls') == 'ssl',
+                    }
+                email = (email or '').strip()
+                username = (request.POST.get('username') or email).strip()
                 config = SMTPConfig(
-                    name=config_data['name'],
+                    name=(request.POST.get('name') or config_data['name']).strip(),
                     host=config_data['host'],
                     port=config_data['port'],
                     use_tls=config_data['use_tls'],
                     use_ssl=config_data['use_ssl'],
                     username=username,
-                    password=password,
+                    password=raw_password,
                     from_email=email,
-                    from_name=from_name,
-                    is_active=True
+                    from_name=(from_name or '').strip() or 'NORSU Alumni',
+                    is_active=False,
+                    is_verified=False,
                 )
-                
                 config.full_clean()
-                # Save the configuration directly to avoid datetime field issues
                 config.save()
-                
-                # Clear SMTP cache to ensure new settings are loaded
                 from .smtp_settings import clear_smtp_cache
                 clear_smtp_cache()
-                
-                # Test the configuration
-                success, message = config.test_connection()
-                
-                # Check if this is an AJAX request
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
-                    if success:
-                        return JsonResponse({
-                            'success': True,
-                            'message': f'SMTP configuration created and tested successfully! {message}',
-                            'config_name': config.name,
-                            'is_active': config.is_active
-                        })
-                    else:
-                        return JsonResponse({
-                            'success': False,
-                            'message': f'Configuration created but test failed: {message}',
-                            'details': 'Please check your email credentials and try again.'
-                        })
+
+                # Test actual SMTP authentication; unsuccessful tests leave a saved inactive record.
+                success, test_message = config.test_connection(send_test_email=False)
+                if success:
+                    with transaction.atomic():
+                        SMTPConfig.objects.filter(pk=config.pk).update(is_verified=True)
+                        SMTPConfig.objects.filter(is_active=True).exclude(pk=config.pk).update(is_active=False)
+                        SMTPConfig.objects.filter(pk=config.pk).update(is_active=True)
+                        _select_email_provider('smtp')
+                    clear_smtp_cache()
+                result = {
+                    'success': success,
+                    'saved': True,
+                    'verified': success,
+                    'message': 'SMTP configuration saved and verified.' if success else 'SMTP configuration saved, but connection verification failed. It was NOT activated.',
+                    'details': test_message,
+                    'config_name': config.name,
+                    'is_active': success,
+                }
+                if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                    return JsonResponse(result)
+                if success:
+                    messages.success(request, result['message'])
                 else:
-                    # Regular form submission
-                    if success:
-                        messages.success(request, f'SMTP configuration created and tested successfully! {message}')
-                    else:
-                        messages.warning(request, f'Configuration created but test failed: {message}')
-                    
-                    return redirect('core:smtp_configuration_list')
-                
-            except ValidationError as e:
-                error_messages = []
-                for field, errors in e.message_dict.items():
-                    for error in errors:
-                        error_messages.append(f'{field}: {error}')
-                
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'Validation failed',
-                        'details': '; '.join(error_messages)
-                    })
-                else:
-                    for error in error_messages:
-                        messages.error(request, error)
-            except Exception as e:
-                if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
-                    return JsonResponse({
-                        'success': False,
-                        'message': 'Error creating configuration',
-                        'details': str(e)
-                    })
-                else:
-                    messages.error(request, f'Error creating configuration: {str(e)}')
+                    messages.warning(request, result['message'])
+                return redirect('core:smtp_configuration_list')
+            except (ValidationError, ValueError) as exc:
+                logger.info('SMTP quick setup validation failed: %s', type(exc).__name__)
+                result = {'success': False, 'saved': False, 'message': 'Please correct the SMTP configuration fields.', 'details': str(exc)}
+            except Exception:
+                logger.exception('SMTP quick setup failed')
+                result = {'success': False, 'saved': False, 'message': 'Unable to save SMTP settings. Check server logs.'}
+            if request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+                return JsonResponse(result, status=400)
+            messages.error(request, result['message'])
         else:
             if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.content_type == 'application/json':
                 return JsonResponse({
@@ -585,7 +558,7 @@ def brevo_configuration_edit(request, config_id):
     if request.method == 'POST':
         try:
             config.name = request.POST.get('name')
-            config.api_key = request.POST.get('api_key')
+            config.api_key = request.POST.get('api_key') or config.api_key
             config.api_url = request.POST.get('api_url', 'https://api.brevo.com/v3/smtp/email')
             config.from_email = request.POST.get('from_email')
             config.from_name = request.POST.get('from_name', '')

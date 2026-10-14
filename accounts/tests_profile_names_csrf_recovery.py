@@ -51,6 +51,7 @@ class ProfileAndRecoveryRegressionTests(TestCase):
     @patch('accounts.alumni_password_views.send_email_with_provider', return_value=True)
     def test_password_recovery_post_accepts_normal_same_origin_csrf(self, sender):
         browser=Client(enforce_csrf_checks=True)
+        browser.force_login(self.user)
         url=reverse('accounts:password_recovery_request')
         response=browser.get(url)
         self.assertEqual(response.status_code,200)

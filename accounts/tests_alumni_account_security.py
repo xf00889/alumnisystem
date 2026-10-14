@@ -78,12 +78,30 @@ class AlumniAccountSecurityTests(TestCase):
         self.assertEqual(send.call_args.kwargs['recipient_list'], [self.user.email])
 
     @patch('accounts.alumni_password_views.send_email_with_provider', return_value=True)
-    def test_unknown_email_has_same_response_and_no_email(self, send):
-        response = self.client.post(reverse('accounts:password_recovery_request'), {
-            'email': 'not-registered@example.org',
-        })
-        self.assertRedirects(response, reverse('accounts:password_recovery_requested'))
+    def test_anonymous_user_cannot_request_authenticated_password_link(self, send):
+        url = reverse('accounts:password_recovery_request')
+        response = self.client.post(url, {'email': self.user.email})
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response['Location'])
         send.assert_not_called()
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('login', response['Location'])
+
+    def test_signed_in_recovery_form_uses_alumni_navigation_and_locked_email(self):
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('accounts:password_recovery_request'))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, 'readonly')
+        self.assertContains(response, self.user.email)
+        self.assertContains(response, 'Alumni Network')
+
+    def test_sent_page_requires_login(self):
+        response = self.client.get(reverse('accounts:password_recovery_requested'))
+        self.assertEqual(response.status_code, 302)
+        self.client.force_login(self.user)
+        response = self.client.get(reverse('accounts:password_recovery_requested'))
+        self.assertEqual(response.status_code, 200)
 
     def test_signed_link_can_change_password_but_does_not_sign_in(self):
         uidb64 = urlsafe_base64_encode(force_bytes(self.user.pk))

@@ -201,6 +201,11 @@ def send_email_with_provider(subject, message, recipient_list, from_email=None, 
         provider_type: Specific provider to use ('smtp' or 'brevo'), if None uses active provider
         require_delivery: When True, a console preview cannot be counted as delivered
     """
+    # Presentation is independent of Brevo/SMTP: preserve the original
+    # plain-text body for accessibility, previews, and non-HTML clients.
+    from .email_branding import brand_transactional_email
+    html_message = brand_transactional_email(subject, message, html_message)
+
     try:
         # Determine which provider to use
         if provider_type is None:

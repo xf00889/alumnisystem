@@ -81,8 +81,7 @@ def send_email_with_brevo(subject, message, recipient_list, from_email=None, fro
         if from_email is None:
             from_email = brevo_settings.get('from_email')
         
-        if from_name is None:
-            from_name = brevo_settings.get('from_name', 'NORSU Alumni System')
+        from_name = (from_name or brevo_settings.get('from_name') or 'NORSU Alumni').strip()
         
         # Prepare headers
         headers = {

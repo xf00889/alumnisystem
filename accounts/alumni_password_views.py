@@ -7,6 +7,7 @@ import logging
 
 from django.conf import settings
 from django.contrib.auth import get_user_model, views as auth_views
+from django.contrib.auth.decorators import login_required
 from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import render, redirect
 from django.urls import reverse, reverse_lazy
@@ -45,20 +46,23 @@ def notify_password_changed(user):
         logger.exception('Password-change security notice could not be sent')
 
 
+@login_required
 @never_cache
 @sensitive_post_parameters('email')
-@ratelimit(key='ip', rate='5/h', method='POST', block=True)
+@ratelimit(key='ip', rate='5/h', method='POST', block=False)
 @require_http_methods(['GET', 'POST'])
 def request_password_link(request):
-    """Send a short-lived Django token only to the account's recorded email.
+    """Self-service email link for an already authenticated account only.
 
-    Identical response for known/unknown emails prevents enumeration.
+    Public forgotten-password requests are handled separately by allauth.
+    A soft throttle returns the same confirmation without sending any email.
     """
     if request.method == 'POST':
-        supplied_email = (request.POST.get('email') or '').strip().lower()
-        # Signed-in users may not request a link for a different user.
-        if request.user.is_authenticated:
-            supplied_email = (request.user.email or '').strip().lower()
+        if getattr(request, 'limited', False):
+            logger.warning('Authenticated password-link request rate-limited')
+            return redirect('accounts:password_recovery_requested')
+        # Never trust a user-supplied address for an authenticated recovery request.
+        supplied_email = (request.user.email or '').strip().lower()
         if supplied_email and len(supplied_email) <= 254:
             if not RateLimiter.is_rate_limited(supplied_email, 'password_link_request', max_attempts=3, window_minutes=60):
                 # Record unknown identities too; don't signal whether an account exists.
@@ -89,11 +93,12 @@ def request_password_link(request):
         # No account enumeration, regardless of success or failure.
         return redirect('accounts:password_recovery_requested')
     return render(request, 'accounts/password_recovery_request.html', {
-        'recovery_email': request.user.email if request.user.is_authenticated else '',
-        'email_locked': request.user.is_authenticated,
+        'recovery_email': request.user.email,
+        'email_locked': True,
     })
 
 
+@login_required
 @never_cache
 @require_http_methods(['GET'])
 def password_link_requested(request):

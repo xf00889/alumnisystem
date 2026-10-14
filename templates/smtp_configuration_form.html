@@ -31,7 +31,7 @@
     </div>
     
     <!-- Provider Selection -->
-    <div class="dashboard-card" id="provider-selection">
+    <div class="dashboard-card{% if show_configuration_form %} hidden{% endif %}" id="provider-selection">
         <h3><i class="fas fa-envelope"></i> Choose Your Email Provider</h3>
         <p class="text-muted mb-3">Select your email provider for automatic configuration:</p>
         
@@ -84,8 +84,16 @@
     </div>
     
     <!-- Configuration Form -->
-    <div class="dashboard-card hidden" id="configuration-form">
-        <form method="post" id="smtp-form">
+    <div class="dashboard-card{% if not show_configuration_form %} hidden{% endif %}" id="configuration-form">
+        {% if form_errors %}
+        <div class="alert alert-danger" role="alert">
+            <strong>Unable to save configuration.</strong>
+            {% for field, errors in form_errors.items %}
+                {% for error in errors %}<div>{{ field }}: {{ error }}</div>{% endfor %}
+            {% endfor %}
+        </div>
+        {% endif %}
+        <form method="post" id="smtp-form" autocomplete="off">
             {% csrf_token %}
             
             <!-- Basic Information -->
@@ -95,21 +103,21 @@
                 <div class="form-group">
                     <label class="form-label" for="name">Configuration Name</label>
                     <input type="text" class="form-control" id="name" name="name" 
-                           value="{% if config %}{{ config.name }}{% endif %}" required>
+                           value="{{ form_data.name|default:'' }}" required>
                     <div class="help-text">A descriptive name for this SMTP configuration</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="from_email">Your Email Address</label>
                     <input type="email" class="form-control" id="from_email" name="from_email" 
-                           value="{% if config %}{{ config.from_email }}{% endif %}" required>
+                           value="{{ form_data.from_email|default:'' }}" required>
                     <div class="help-text">The email address that will appear as sender</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="from_name">Sender Name (Optional)</label>
                     <input type="text" class="form-control" id="from_name" name="from_name" 
-                           value="{% if config %}{{ config.from_name }}{% else %}NORSU Alumni{% endif %}">
+                           value="{{ form_data.from_name|default:'NORSU Alumni' }}">
                     <div class="help-text">The name that will appear as sender (e.g., "NORSU Alumni")</div>
                 </div>
             </div>
@@ -121,29 +129,29 @@
                 <div class="form-group">
                     <label class="form-label" for="host">SMTP Server</label>
                     <input type="text" class="form-control" id="host" name="host" 
-                           value="{% if config %}{{ config.host }}{% endif %}" required>
+                           value="{{ form_data.host|default:'' }}" required>
                     <div class="help-text">Automatically filled based on your provider selection</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="port">Port</label>
                     <input type="number" class="form-control" id="port" name="port" 
-                           value="{% if config %}{{ config.port }}{% else %}587{% endif %}" required>
+                           value="{{ form_data.port|default:587 }}" required>
                     <div class="help-text">Usually 587 for TLS, 465 for SSL</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="username">Username/Email</label>
                     <input type="text" class="form-control" id="username" name="username" 
-                           value="{% if config %}{{ config.username }}{% endif %}" required>
+                           value="{{ form_data.username|default:'' }}" required>
                     <div class="help-text">Usually the same as your email address</div>
                 </div>
 
                 <div class="form-group">
                     <label class="form-label" for="password">Password/App Password</label>
                     <input type="password" class="form-control" id="password" name="password" 
-                           value="{% if config %}{{ config.password }}{% endif %}" required>
-                    <div class="help-text" id="password-help">Use App Password for Gmail/Yahoo</div>
+                           value="" {% if not config %}required{% endif %} autocomplete="new-password">
+                    <div class="help-text" id="password-help">Use a Gmail App Password (not your account password). Leave blank on edit to retain the existing credential.</div>
                 </div>
             </div>
             
@@ -153,7 +161,7 @@
                 
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="use_tls" name="use_tls" 
-                           {% if config and config.use_tls %}checked{% else %}checked{% endif %}>
+                           {% if use_tls_checked %}checked{% endif %}>
                     <label class="form-check-label" for="use_tls">
                         Use TLS (Transport Layer Security)
                     </label>
@@ -162,7 +170,7 @@
 
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="use_ssl" name="use_ssl" 
-                           {% if config and config.use_ssl %}checked{% endif %}>
+                           {% if use_ssl_checked %}checked{% endif %}>
                     <label class="form-check-label" for="use_ssl">
                         Use SSL (Secure Sockets Layer)
                     </label>
@@ -171,12 +179,12 @@
 
                 <div class="form-check">
                     <input type="checkbox" class="form-check-input" id="is_active" name="is_active" 
-                           {% if not config or config.is_active %}checked{% endif %}>
+                           {% if is_active_checked %}checked{% endif %}>
                     <label class="form-check-label" for="is_active">
-                        Make this configuration active
+                        Request activation (requires a successful SMTP test)
                     </label>
                 </div>
-                <div class="help-text">Only one configuration can be active at a time</div>
+                <div class="help-text">Save first, then use Test and Activate from Email Configurations. Existing Brevo delivery stays active until you switch.</div>
             </div>
 
             <div class="form-actions">
