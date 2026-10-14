@@ -36,18 +36,22 @@ class EmployabilityReportTests(TestCase):
                                      course='Sample Program', graduation_year=2024,
                                      gender='M',province='Negros Oriental',city='Dumaguete',address='Test')
 
+    def get_over_https(self, url, params=None):
+        """Match production TLS while testing the actual view response."""
+        return self.client.get(url, data=params, secure=True)
+
     def test_anonymous_cannot_view(self):
-        result = self.client.get(reverse('surveys:employability_report'))
+        result = self.get_over_https(reverse('surveys:employability_report'))
         self.assertEqual(result.status_code, 302)
 
     def test_non_staff_cannot_view(self):
         self.client.force_login(self.visitor)
-        result = self.client.get(reverse('surveys:employability_report'))
+        result = self.get_over_https(reverse('surveys:employability_report'))
         self.assertEqual(result.status_code, 404)
 
     def test_counts_multiple_jobs_once_in_earliest_quarter(self):
         self.client.force_login(self.admin)
-        result = self.client.get(reverse('surveys:employability_report'),
+        result = self.get_over_https(reverse('surveys:employability_report'),
                                  {'cohort_year':2024,'report_year':2026,'as_of':'2026-09-30'})
         self.assertEqual(result.status_code, 200)
         self.assertEqual(result.context['graduates'], 3)
@@ -59,7 +63,7 @@ class EmployabilityReportTests(TestCase):
     @override_settings(USE_TZ=False, TIME_ZONE='Asia/Manila')
     def test_employability_loads_with_project_naive_datetime_setting(self):
         self.client.force_login(self.admin)
-        response = self.client.get(reverse('surveys:employability_report'), {
+        response = self.get_over_https(reverse('surveys:employability_report'), {
             'cohort_year': 2024, 'report_year': 2026, 'as_of': '2026-09-30',
         })
         self.assertEqual(response.status_code, 200)
@@ -70,20 +74,20 @@ class EmployabilityReportTests(TestCase):
         params={'cohort_year':2024,'report_year':2026,'as_of':'2026-09-30'}
         for filetype,extension in [('csv','csv'),('excel','xlsx'),('pdf','pdf')]:
             with self.subTest(filetype=filetype):
-                response=self.client.get(reverse('surveys:employability_report'), {**params,'format':filetype})
+                response=self.get_over_https(reverse('surveys:employability_report'), {**params,'format':filetype})
                 self.assertEqual(response.status_code, 200)
                 self.assertIn('annual_2026',response['Content-Disposition'])
                 self.assertIn(extension,response['Content-Disposition'])
-        csv_result=self.client.get(reverse('surveys:employability_report'), {**params,'format':'csv'})
+        csv_result=self.get_over_https(reverse('surveys:employability_report'), {**params,'format':'csv'})
         self.assertIn(b'UNIVERSITY TOTAL',csv_result.content)
         self.assertNotIn(b'first@example.com',csv_result.content)
 
     def test_invalid_future_asof_rejected(self):
         self.client.force_login(self.admin)
-        self.assertEqual(self.client.get(reverse('surveys:employability_report'),
+        self.assertEqual(self.get_over_https(reverse('surveys:employability_report'),
                                          {'as_of':'2999-01-01'}).status_code, 400)
 
     def test_public_forgot_password_is_not_login_required(self):
-        response=self.client.get(reverse('account_reset_password'))
+        response=self.get_over_https(reverse('account_reset_password'))
         self.assertEqual(response.status_code,200)
         self.assertContains(response,'email',status_code=200)

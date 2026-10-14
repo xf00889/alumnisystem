@@ -2,6 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from django.test import SimpleTestCase
+from django.templatetags.static import static
 from PIL import Image
 
 from core.recaptcha_widgets import DatabaseReCaptchaV3
@@ -100,7 +101,7 @@ class LazyReCaptchaV3WidgetTest(SimpleTestCase):
         self.assertIn('class="norsu-recaptcha-v3"', html)
         self.assertIn('data-recaptcha-action="feedback"', html)
         self.assertIn('data-sitekey="test-site-key"', html)
-        self.assertIn('js/lazy-recaptcha-v3.js', html)
+        self.assertIn(static('js/lazy-recaptcha-v3.js'), html)
         self.assertNotIn('google.com/recaptcha/api.js', html)
         self.assertNotIn('class="g-recaptcha"', html)
 
