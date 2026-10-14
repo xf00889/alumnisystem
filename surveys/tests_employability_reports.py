@@ -56,6 +56,15 @@ class EmployabilityReportTests(TestCase):
         self.assertEqual(result.context['not_recorded'], 1)
         self.assertContains(result, 'Main campus subtotal')
 
+    @override_settings(USE_TZ=False, TIME_ZONE='Asia/Manila')
+    def test_employability_loads_with_project_naive_datetime_setting(self):
+        self.client.force_login(self.admin)
+        response = self.client.get(reverse('surveys:employability_report'), {
+            'cohort_year': 2024, 'report_year': 2026, 'as_of': '2026-09-30',
+        })
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.context['total_hired'], 2)
+
     def test_exports_period_explicit_and_safe(self):
         self.client.force_login(self.admin)
         params={'cohort_year':2024,'report_year':2026,'as_of':'2026-09-30'}

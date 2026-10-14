@@ -110,5 +110,5 @@ class LazyReCaptchaV3WidgetTest(SimpleTestCase):
         ).read_text(encoding='utf-8')
 
         self.assertIn('HTMLFormElement.prototype.submit.call(form);', script)
-        self.assertIn('Security verification could not load.', script)
+        self.assertIn('Security verification unavailable', script)
         self.assertIn('this.reportError(field);', script)

@@ -8,13 +8,14 @@ are exposed by this aggregate report.
 """
 import csv
 from collections import defaultdict
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 from io import BytesIO
 
+from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.http import Http404, HttpResponse
 from django.shortcuts import render
-from django.utils import timezone
 from django.views.decorators.http import require_GET
 
 from alumni_directory.models import Alumni
@@ -91,7 +92,9 @@ def _aggregate(cohort, hires, campus_names, college_names):
 
 
 def _report_data(params):
-    today = timezone.localdate()
+    # USE_TZ=False makes timezone.now() naive and timezone.localdate() raises.
+    # Use the configured university timezone independently of the host OS zone.
+    today = datetime.now(ZoneInfo(settings.TIME_ZONE)).date()
     cohort_year = _int_param(params, 'cohort_year', today.year - 1)
     report_year = _int_param(params, 'report_year', params.get('year') or today.year)
     raw_as_of = params.get('as_of') or today.isoformat()

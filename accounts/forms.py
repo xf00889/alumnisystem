@@ -20,7 +20,7 @@ from django.conf import settings
 from django.utils import timezone
 from core.recaptcha_fields import DatabaseReCaptchaField
 from core.recaptcha_widgets import DatabaseReCaptchaV3
-from core.recaptcha_utils import is_recaptcha_enabled
+from core.recaptcha_utils import is_recaptcha_enabled, get_recaptcha_config
 
 class CustomLoginForm(LoginForm):
     """Custom login form with reCAPTCHA protection"""
@@ -1612,6 +1612,31 @@ class MentorApplicationForm(forms.ModelForm):
 
 
 # Enhanced Password Reset Forms
+# Recovery forms deliberately verify server-side. Other legacy forms retain their
+# existing CAPTCHA field behavior until independently audited.
+class PasswordRecoveryCaptchaField(forms.CharField):
+    """Require one valid v3 response for each password-recovery submission."""
+
+    def __init__(self, *args, **kwargs):
+        kwargs.setdefault('label', 'Security Verification')
+        kwargs.setdefault('required', True)
+        kwargs.setdefault('widget', DatabaseReCaptchaV3(
+            action='password_reset',
+            attrs={'data-error-callback': 'onRecaptchaError'},
+        ))
+        super().__init__(*args, **kwargs)
+
+    def clean(self, value):
+        token = super().clean(value)
+        config = get_recaptcha_config()
+        if not config or not config.enabled or config.version != 'v3':
+            raise forms.ValidationError('Security verification is not configured for reCAPTCHA v3. Please contact Alumni Affairs.')
+        result = config.verify_token(token)
+        if not result.get('success') or result.get('action') != 'password_reset':
+            raise forms.ValidationError('Security verification failed or expired. Please try again.')
+        return token
+
+
 
 class PasswordResetEmailForm(forms.Form):
     """Form for requesting password reset email"""
@@ -1632,16 +1657,7 @@ class PasswordResetEmailForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         try:
             if is_recaptcha_enabled():
-                self.fields['captcha'] = DatabaseReCaptchaField(
-                    widget=DatabaseReCaptchaV3(
-                        attrs={
-                            'data-callback': 'onRecaptchaSuccess',
-                            'data-expired-callback': 'onRecaptchaExpired',
-                            'data-error-callback': 'onRecaptchaError',
-                        }
-                    ),
-                    label='Security Verification'
-                )
+                self.fields['captcha'] = PasswordRecoveryCaptchaField()
         except Exception as e:
             # If reCAPTCHA configuration fails, continue without it
             import logging
@@ -1688,16 +1704,7 @@ class PasswordResetOTPForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         try:
             if is_recaptcha_enabled():
-                self.fields['captcha'] = DatabaseReCaptchaField(
-                    widget=DatabaseReCaptchaV3(
-                        attrs={
-                            'data-callback': 'onRecaptchaSuccess',
-                            'data-expired-callback': 'onRecaptchaExpired',
-                            'data-error-callback': 'onRecaptchaError',
-                        }
-                    ),
-                    label='Security Verification'
-                )
+                self.fields['captcha'] = PasswordRecoveryCaptchaField()
         except Exception as e:
             # If reCAPTCHA configuration fails, continue without it
             import logging
@@ -1746,16 +1753,7 @@ class PasswordResetNewPasswordForm(forms.Form):
         # Add reCAPTCHA field if enabled in database
         try:
             if is_recaptcha_enabled():
-                self.fields['captcha'] = DatabaseReCaptchaField(
-                    widget=DatabaseReCaptchaV3(
-                        attrs={
-                            'data-callback': 'onRecaptchaSuccess',
-                            'data-expired-callback': 'onRecaptchaExpired',
-                            'data-error-callback': 'onRecaptchaError',
-                        }
-                    ),
-                    label='Security Verification'
-                )
+                self.fields['captcha'] = PasswordRecoveryCaptchaField()
         except Exception as e:
             # If reCAPTCHA configuration fails, continue without it
             import logging
