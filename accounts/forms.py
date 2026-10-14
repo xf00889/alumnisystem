@@ -583,7 +583,6 @@ class PostRegistrationForm(forms.Form):
     course_graduated = forms.ChoiceField(
         choices=ALL_PROGRAM_CHOICES,  # Use all choices for validation
         required=True,
-        error_messages={'required': 'Please select your course/program.'},
         widget=forms.Select(attrs={
             'class': 'form-control',
         }),
@@ -720,75 +719,75 @@ class PostRegistrationForm(forms.Form):
         return year
 
     def clean(self):
-        """Attach academic-selection errors to their fields, not the form's grid.
-
-        Missing dropdown selections are normally caught by required field
-        validation.  Keep a helpful message on the matching field rather than
-        raising a form-wide ValidationError, which would render as an unrelated
-        grid cell above First Name in the post-registration template.
-        """
         cleaned_data = super().clean()
         campus = cleaned_data.get('campus')
         course = cleaned_data.get('course_graduated')
         college = cleaned_data.get('college')
 
-        if not campus and 'campus' not in self.errors:
-            self.add_error('campus', 'Please select your campus.')
-        if not course and 'course_graduated' not in self.errors:
-            self.add_error('course_graduated', 'Please select your course/program.')
-        # No cross-field validation should run until both prerequisites exist.
-        if not campus or not course:
-            return cleaned_data
+        # Validate that campus and course are selected
+        if not campus:
+            raise forms.ValidationError("Please select your campus.")
 
-        # Keep the existing server-side college derivation for compatibility
-        # with earlier accounts where college was optional.
-        if not college and course != 'OTHER':
+        if not course:
+            raise forms.ValidationError("Please select your course/program.")
+
+        # Auto-derive college from course if not submitted (disabled select doesn't submit)
+        if not college and course and course != 'OTHER':
             college = self.COURSE_COLLEGE_MAPPING.get(course, '')
             cleaned_data['college'] = college
+
+        # Final fallback
         if not college:
             college = 'CAS'
             cleaned_data['college'] = college
 
+        # Validate campus-college-course combination for non-OTHER courses
         if campus and college and course and course != 'OTHER':
+            # Get available programs for this campus and college
             campus_programs = self.PROGRAMS_BY_CAMPUS.get(campus)
+            
             if campus_programs and campus_programs != 'ALL':
-                from alumni_directory.models import Alumni
-                college_dict = dict(Alumni.COLLEGE_CHOICES)
-                college_name = college_dict.get(college, college)
+                # Campus has specific program restrictions
                 if college not in campus_programs:
-                    self.add_error(
-                        'college',
-                        f'{college_name} is not available at the selected campus. '
-                        'Please select a different college or campus.'
+                    from alumni_directory.models import Alumni
+                    college_dict = dict(Alumni.COLLEGE_CHOICES)
+                    college_name = college_dict.get(college, college)
+                    raise forms.ValidationError(
+                        f"{college_name} is not available at the selected campus. "
+                        f"Please select a different college or campus."
                     )
-                    return cleaned_data
-                available_courses = [item[0] for item in campus_programs.get(college, [])]
+                
+                # Check if course is available for this campus-college combination
+                available_courses = [course_code for course_code, _ in campus_programs.get(college, [])]
                 if course not in available_courses:
-                    self.add_error(
-                        'course_graduated',
+                    from alumni_directory.models import Alumni
+                    college_dict = dict(Alumni.COLLEGE_CHOICES)
+                    college_name = college_dict.get(college, college)
+                    raise forms.ValidationError(
                         f"The course '{course}' is not available in {college_name} at the selected campus. "
-                        'Please select a different course.'
+                        f"Please select a different course."
                     )
-                    return cleaned_data
             else:
+                # Campus allows all programs - use fallback validation
                 expected_college = self.COURSE_COLLEGE_MAPPING.get(course)
                 if expected_college and college != expected_college:
                     from alumni_directory.models import Alumni
                     college_dict = dict(Alumni.COLLEGE_CHOICES)
-                    expected_name = college_dict.get(expected_college, expected_college)
-                    selected_name = college_dict.get(college, college)
-                    self.add_error(
-                        'college',
-                        f"Invalid combination: The course '{course}' does not belong to {selected_name}. "
-                        f'This course belongs to {expected_name}. '
-                        'Please select the correct college first, then choose your course.'
-                    )
-                    return cleaned_data
+                    expected_college_name = college_dict.get(expected_college, expected_college)
+                    selected_college_name = college_dict.get(college, college)
 
+                    raise forms.ValidationError(
+                        f"Invalid combination: The course '{course}' does not belong to {selected_college_name}. "
+                        f"This course belongs to {expected_college_name}. "
+                        f"Please select the correct college first, then choose your course from the available options."
+                    )
+
+        # Validate major_other field if major is "OTHER"
         major = cleaned_data.get('major')
         major_other = cleaned_data.get('major_other')
+        
         if major == 'OTHER' and not major_other:
-            self.add_error('major_other', "Please specify your major when selecting 'Other'.")
+            raise forms.ValidationError("Please specify your major when selecting 'Other'.")
 
         return cleaned_data
 
@@ -1073,8 +1072,13 @@ class ProfileUpdateForm(forms.ModelForm):
             'avatar',
             'bio',
             'birth_date',
+            'birth_place',
             'gender',
+            'civil_status',
+            'middle_name',
+            'maiden_name',
             'phone_number',
+            'landline_number',
             'address',
             'city',
             'state',
@@ -1083,40 +1087,68 @@ class ProfileUpdateForm(forms.ModelForm):
             'linkedin_profile',
             'facebook_profile',
             'twitter_profile',
+            'education_level',
             'current_position',
             'current_employer',
+            'employer_sector',
             'industry',
             'employment_status',
+            'employment_address',
+            'workplace_reference_name',
+            'workplace_reference_position',
+            'workplace_reference_contact',
+            'emergency_contact_name',
+            'emergency_contact_relationship',
+            'emergency_contact_number',
             'salary_range',
             'is_public'
         ]
         widgets = {
             'birth_date': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'birth_place': forms.TextInput(attrs={'placeholder': 'e.g. Dumaguete City, Negros Oriental', 'class': 'form-control'}),
             'bio': forms.Textarea(attrs={'rows': 4, 'class': 'form-control'}),
             'gender': forms.Select(attrs={'class': 'form-select'}),
+            'civil_status': forms.Select(attrs={'class': 'form-select'}),
+            'middle_name': forms.TextInput(attrs={'placeholder': 'Your middle name', 'class': 'form-control'}),
+            'maiden_name': forms.TextInput(attrs={'placeholder': 'Maiden last name (if applicable)', 'class': 'form-control'}),
             'phone_number': forms.TextInput(attrs={
                 'placeholder': '09171234567 or +639171234567',
                 'class': 'form-control',
                 'inputmode': 'tel',
                 'autocomplete': 'tel',
             }),
+            'landline_number': forms.TextInput(attrs={'placeholder': 'e.g. (035) 422-6002', 'class': 'form-control', 'autocomplete': 'tel'}),
             'address': forms.Textarea(attrs={'rows': 2, 'placeholder': 'e.g. 123 Rizal Street, Barangay Poblacion', 'class': 'form-control'}),
             'city': forms.TextInput(attrs={'placeholder': 'e.g. Bayawan City', 'class': 'form-control'}),
             'state': forms.TextInput(attrs={'placeholder': 'e.g. Negros Oriental', 'class': 'form-control'}),
             'postal_code': forms.TextInput(attrs={'placeholder': 'e.g. 6221', 'class': 'form-control'}),
             'linkedin_profile': forms.URLInput(attrs={'placeholder': 'https://linkedin.com/in/yourprofile', 'class': 'form-control'}),
             'facebook_profile': forms.URLInput(attrs={'placeholder': 'https://facebook.com/yourprofile', 'class': 'form-control'}),
+            'education_level': forms.Select(attrs={'class': 'form-select'}),
             'twitter_profile': forms.URLInput(attrs={'placeholder': 'https://twitter.com/yourprofile', 'class': 'form-control'}),
             'current_position': forms.TextInput(attrs={'placeholder': 'e.g. Software Engineer', 'class': 'form-control'}),
             'current_employer': forms.TextInput(attrs={'placeholder': 'e.g. Tech Company Inc.', 'class': 'form-control'}),
+            'employer_sector': forms.Select(attrs={'class': 'form-select'}),
             'industry': forms.TextInput(attrs={'placeholder': 'e.g. Information Technology', 'class': 'form-control'}),
             'employment_status': forms.Select(attrs={'class': 'form-select'}),
+            'employment_address': forms.TextInput(attrs={'placeholder': 'Office or company address', 'class': 'form-control'}),
+            'workplace_reference_name': forms.TextInput(attrs={'placeholder': 'Reference person from workplace', 'class': 'form-control'}),
+            'workplace_reference_position': forms.TextInput(attrs={'placeholder': 'Position or role of the reference person', 'class': 'form-control'}),
+            'workplace_reference_contact': forms.TextInput(attrs={'placeholder': 'Reference contact number', 'class': 'form-control', 'autocomplete': 'tel'}),
+            'emergency_contact_name': forms.TextInput(attrs={'placeholder': 'Person to notify in case of emergency', 'class': 'form-control'}),
+            'emergency_contact_relationship': forms.TextInput(attrs={'placeholder': 'Relationship to you', 'class': 'form-control'}),
+            'emergency_contact_number': forms.TextInput(attrs={'placeholder': 'Emergency contact number', 'class': 'form-control', 'autocomplete': 'tel'}),
             'salary_range': forms.Select(attrs={'class': 'form-select'}),
             'is_public': forms.CheckboxInput(attrs={'class': 'form-check-input'}),
         }
         labels = {
             'gender': 'Gender',
-            'phone_number': 'Phone Number',
+            'birth_place': 'Birth Place',
+            'civil_status': 'Civil Status',
+            'middle_name': 'Middle Name',
+            'maiden_name': 'Maiden Name',
+            'phone_number': 'Mobile Number',
+            'landline_number': 'Landline Number',
             'address': 'Address',
             'city': 'City',
             'state': 'Province',
@@ -1125,15 +1157,29 @@ class ProfileUpdateForm(forms.ModelForm):
             'linkedin_profile': 'LinkedIn Profile',
             'facebook_profile': 'Facebook Profile', 
             'twitter_profile': 'Twitter Profile',
-            'current_position': 'Current Position',
-            'current_employer': 'Current Employer',
+            'education_level': 'Education Level',
+            'current_position': 'Present Occupation / Position',
+            'current_employer': 'Company / Agency',
+            'employer_sector': 'Employer Sector',
             'industry': 'Industry',
             'employment_status': 'Employment Status',
+            'employment_address': 'Employment Address',
+            'workplace_reference_name': 'Workplace Reference Person',
+            'workplace_reference_position': 'Reference Person Position',
+            'workplace_reference_contact': 'Reference Person Contact Number',
+            'emergency_contact_name': 'Emergency Contact Person',
+            'emergency_contact_relationship': 'Emergency Contact Relationship',
+            'emergency_contact_number': 'Emergency Contact Number',
             'salary_range': 'Salary Range',
         }
         help_texts = {
             'gender': 'Select your gender (optional)',
+            'birth_place': 'Your place of birth (optional)',
+            'civil_status': 'Select your civil status (optional)',
+            'middle_name': 'Your middle name (optional)',
+            'maiden_name': 'Your maiden last name (optional)',
             'phone_number': 'Your mobile number (e.g. 09171234567 or +639171234567)',
+            'landline_number': 'Your landline number (optional)',
             'address': 'Your full address (optional)',
             'city': 'Your city (optional)',
             'state': 'Your state or province (optional)',
@@ -1142,9 +1188,17 @@ class ProfileUpdateForm(forms.ModelForm):
             'linkedin_profile': 'Your LinkedIn profile URL (optional)',
             'facebook_profile': 'Your Facebook profile URL (optional)',
             'twitter_profile': 'Your Twitter profile URL (optional)',
+            'education_level': 'Select the level connected to your NORSU graduation record.',
             'salary_range': 'This information will be kept private and used for statistical purposes only.',
             'employment_status': 'Select your current employment status',
+            'employment_address': 'Your company or agency address (optional)',
             'industry': 'Enter the industry you currently work in',
+            'workplace_reference_name': 'Name of a person who can verify your employment (optional)',
+            'workplace_reference_position': 'Position or role of your workplace reference (optional)',
+            'workplace_reference_contact': 'Contact number of your workplace reference (optional)',
+            'emergency_contact_name': 'Who should be contacted in case of emergency? (optional)',
+            'emergency_contact_relationship': 'Relationship of the emergency contact to you (optional)',
+            'emergency_contact_number': 'Contact number for emergencies (optional)',
         }
         error_messages = {
             'phone_number': {

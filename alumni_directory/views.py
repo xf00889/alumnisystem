@@ -78,7 +78,7 @@ def apply_selective_export_filters(request, base_queryset=None):
     Returns tuple: (filtered_queryset, filename, has_selective_filters)
     """
     if base_queryset is None:
-        export_queryset = Alumni.objects.select_related('user').all()
+        export_queryset = Alumni.objects.select_related('user', 'user__profile').all()
     else:
         export_queryset = base_queryset
     
@@ -332,7 +332,7 @@ def alumni_list(request):
         provinces_count = provinces.count()
         
         # Base queryset with efficient loading
-        queryset = Alumni.objects.select_related('user').all()
+        queryset = Alumni.objects.select_related('user', 'user__profile').all()
         initial_count = queryset.count()
         
         logger.debug(
@@ -865,7 +865,7 @@ def tabular_alumni_list(request):
     """
     try:
         # Base queryset with efficient loading
-        queryset = Alumni.objects.select_related('user').all()
+        queryset = Alumni.objects.select_related('user', 'user__profile').all()
         
         # Apply filters
         search_query = request.GET.get('search', '').strip()
@@ -893,8 +893,10 @@ def tabular_alumni_list(request):
         if college:
             queryset = queryset.filter(college__in=college)
             
-        # Export to CSV if requested
+        # Personal bulk exports require administrative access.
         if request.GET.get('format') == 'csv':
+            if not is_admin(request.user):
+                raise PermissionDenied('Only alumni administrators can export directory records.')
             # Apply selective export filters
             export_queryset, filename, has_selective_filters = apply_selective_export_filters(request)
 
@@ -907,7 +909,7 @@ def tabular_alumni_list(request):
             response['Content-Disposition'] = f'attachment; filename="{filename}"'
 
             writer = csv.writer(response)
-            writer.writerow(['ID', 'Full Name', 'College', 'Year', 'Course', 'Present Occupation', 'Company', 'Employment Address'])
+            writer.writerow(['ID', 'Full Name', 'College', 'Year', 'Course', 'Present Occupation', 'Company', 'Employment Address', 'Education Level', 'Employer Sector'])
 
             for alumni in export_queryset:
                 # Get current experience for occupation and company
@@ -923,7 +925,9 @@ def tabular_alumni_list(request):
                     alumni.course,
                     current_exp.position if current_exp else alumni.job_title,
                     current_exp.company if current_exp else alumni.current_company,
-                    current_exp.location if current_exp else f"{alumni.city}, {alumni.province}"
+                    current_exp.location if current_exp else f"{alumni.city}, {alumni.province}",
+                    alumni.user.profile.get_education_level_display() if hasattr(alumni.user, 'profile') and alumni.user.profile.education_level else '',
+                    alumni.user.profile.get_employer_sector_display() if hasattr(alumni.user, 'profile') and alumni.user.profile.employer_sector else '',
                 ])
 
             return response
@@ -946,6 +950,7 @@ def tabular_alumni_list(request):
             'selected_year': grad_year[0] if grad_year else None,
             'selected_course': course[0] if course else None,
             'selected_college': college[0] if college else None,
+            'can_export_alumni': is_admin(request.user),
         }
         
         return render(request, 'alumni_directory/tabular_alumni_list.html', context)
@@ -979,7 +984,7 @@ def alumni_management(request):
                     messages.error(request, f'Error importing registrar CSV file: {exc}')
 
         # Base queryset with efficient loading
-        queryset = Alumni.objects.select_related('user').all()
+        queryset = Alumni.objects.select_related('user', 'user__profile').all()
         
         # Apply filters
         search_query = request.GET.get('search', '').strip()
@@ -1037,9 +1042,9 @@ def alumni_management(request):
 
             # Define field configuration for exports
             field_names = ['id', 'full_name', 'campus_display', 'college_display', 'graduation_year', 'course', 
-                          'job_title', 'current_company', 'employment_address']
+                          'job_title', 'current_company', 'employment_address', 'education_level', 'employer_sector']
             field_labels = ['ID', 'Full Name', 'Campus', 'College', 'Year', 'Course', 
-                           'Present Occupation', 'Name of Company', 'Employment Address']
+                           'Present Occupation', 'Name of Company', 'Employment Address', 'Education Level', 'Employer Sector']
 
             if export_format == 'excel':
                 from core.export_utils import ExportMixin, LogoHeaderService
@@ -1104,7 +1109,9 @@ def alumni_management(request):
                         alumni.course or 'Not specified',
                         current_exp.position if current_exp else (alumni.job_title or 'Unemployed'),
                         current_exp.company if current_exp else (alumni.current_company or 'Unemployed'),
-                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified")
+                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified"),
+                        alumni.user.profile.get_education_level_display() if hasattr(alumni.user, 'profile') and alumni.user.profile.education_level else '',
+                        alumni.user.profile.get_employer_sector_display() if hasattr(alumni.user, 'profile') and alumni.user.profile.employer_sector else ''
                     ]
                     
                     for col, value in enumerate(row_data, 1):
@@ -1122,7 +1129,9 @@ def alumni_management(request):
                     'F': 20,  # Course
                     'G': 25,  # Present Occupation
                     'H': 22,  # Company
-                    'I': 20   # Location
+                    'I': 20,  # Location
+                    'J': 18,  # Education level
+                    'K': 18   # Employer sector
                 }
                 
                 for col_letter, width in column_widths.items():
@@ -1283,7 +1292,9 @@ def alumni_management(request):
                         alumni.course or 'Not specified',
                         current_exp.position if current_exp else (alumni.job_title or 'Unemployed'),
                         current_exp.company if current_exp else (alumni.current_company or 'Unemployed'),
-                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified")
+                        current_exp.location if current_exp else (f"{alumni.city}, {alumni.province}" if alumni.city and alumni.province else "Not specified"),
+                        alumni.user.profile.get_education_level_display() if hasattr(alumni.user, 'profile') and alumni.user.profile.education_level else '',
+                        alumni.user.profile.get_employer_sector_display() if hasattr(alumni.user, 'profile') and alumni.user.profile.employer_sector else ''
                     ]
                     
                     row = [Paragraph(html.escape(str(val)), data_cell_style) for val in row_data]
@@ -1292,7 +1303,7 @@ def alumni_management(request):
                 # Calculate column widths - optimized for better fit
                 # ID, Full Name, Campus, College, Year, Course, Present Occupation, Company, Location
                 available_width = pagesize[0] - 30
-                col_widths = [0.05, 0.13, 0.11, 0.09, 0.04, 0.13, 0.16, 0.15, 0.14]
+                col_widths = [0.045, 0.11, 0.09, 0.075, 0.045, 0.11, 0.13, 0.13, 0.105, 0.08, 0.08]
                 final_col_widths = [w * available_width for w in col_widths]
                 
                 # Create table

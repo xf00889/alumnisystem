@@ -53,14 +53,13 @@
         <!-- Search and Filter Section -->
         <div class="search-filter-section">
             <div class="row">
-                <div class="col-md-6 connections-search-column">
-                    <div class="input-group">
-                        <span class="input-group-text"><i class="fas fa-search"></i></span>
+                <div class="col-md-6">
+                    <div class="alumni-search-control alumni-search-control--connections">
+                        <i class="fas fa-search alumni-search-control__icon" aria-hidden="true"></i>
                         <input type="text" class="form-control" id="searchConnections" placeholder="Search connections by name or job title...">
                     </div>
                 </div>
-                <div class="col-md-6 connections-sort-column">
-                    <label class="visually-hidden" for="sortConnections">Sort connections</label>
+                <div class="col-md-6">
                     <select class="form-select" id="sortConnections">
                         <option value="name">Sort by Name</option>
                         <option value="recent">Recently Connected</option>
@@ -81,8 +80,8 @@
                     <div class="card h-100">
                         <div class="card-body">
                             <div class="d-flex align-items-center mb-3">
-                                {% if other_user.profile.avatar %}
-                                    <img src="{{ other_user.profile.avatar.url }}" 
+                                {% if other_user.profile.profile_picture %}
+                                    <img src="{{ other_user.profile.profile_picture.url }}" 
                                          alt="{{ other_user.get_full_name }}" 
                                          class="connection-avatar me-3">
                                 {% else %}
@@ -112,29 +111,26 @@
                                 Connected {{ connection.accepted_at|timesince }} ago
                             </div>
                                     
-                            <!-- All three actions remain available on the card, with compact icon controls. -->
-                            <div class="connection-actions connection-actions--icons" role="group" aria-label="Actions for {{ other_user.get_full_name|default:other_user.username }}">
-                                <a href="{% url 'connections:conversations_list' %}?with={{ other_user.pk }}"
-                                   class="btn btn-primary connection-icon-action"
-                                   title="Send message"
-                                   aria-label="Message {{ other_user.get_full_name|default:other_user.username }}">
+                            <!-- Action Buttons -->
+                            <div class="connection-actions connection-actions--compact" aria-label="Connection actions">
+                                <a href="{% url 'connections:direct_messages' other_user.id %}" 
+                                   class="btn btn-primary btn-sm connection-action-button"
+                                   aria-label="Message {{ other_user.get_full_name|default:other_user.username }}"
+                                   title="Message">
                                     <i class="fas fa-comment" aria-hidden="true"></i>
                                 </a>
                                 {% if other_user.alumni %}
-                                <a class="btn btn-outline-secondary connection-icon-action" href="{% url 'alumni_directory:alumni_detail' other_user.alumni.id %}"
-                                   title="View profile" aria-label="View profile for {{ other_user.get_full_name|default:other_user.username }}">
+                                <a href="{% url 'alumni_directory:alumni_detail' other_user.alumni.id %}"
+                                   class="btn btn-outline-secondary btn-sm connection-action-button"
+                                   aria-label="View profile of {{ other_user.get_full_name|default:other_user.username }}"
+                                   title="View profile">
                                     <i class="fas fa-user" aria-hidden="true"></i>
                                 </a>
-                                {% else %}
-                                <button class="btn btn-outline-secondary connection-icon-action" type="button" disabled
-                                        title="Alumni profile unavailable" aria-label="Alumni profile unavailable">
-                                    <i class="fas fa-user" aria-hidden="true"></i>
-                                </button>
                                 {% endif %}
-                                <button class="btn btn-outline-danger connection-icon-action remove-connection-trigger" type="button"
-                                        data-user-id="{{ other_user.pk }}"
-                                        data-user-name="{{ other_user.get_full_name|default:other_user.username }}"
-                                        title="Remove connection" aria-label="Remove connection with {{ other_user.get_full_name|default:other_user.username }}">
+                                <button type="button" class="btn btn-outline-danger btn-sm connection-action-button"
+                                        onclick="removeConnection({{ other_user.id }}, '{{ other_user.get_full_name|default:other_user.username }}')"
+                                        aria-label="Remove {{ other_user.get_full_name|default:other_user.username }} from connections"
+                                        title="Remove connection">
                                     <i class="fas fa-user-times" aria-hidden="true"></i>
                                 </button>
                             </div>
@@ -197,11 +193,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Use data attributes instead of injecting an alumnus's name into inline JavaScript.
-    document.querySelectorAll('.remove-connection-trigger').forEach(button => {
-        button.addEventListener('click', () => removeConnection(button.dataset.userId, button.dataset.userName));
-    });
-
     // Sort functionality
     if (sortSelect) {
         sortSelect.addEventListener('change', function() {
@@ -252,7 +243,7 @@ document.addEventListener('DOMContentLoaded', function() {
             connectionsGrid.style.display = 'none';
         } else {
             noResults.style.display = 'none';
-            connectionsGrid.style.display = ''; // Preserve Bootstrap's .row flex layout after filtering.
+            connectionsGrid.style.display = 'block';
         }
     }
 });

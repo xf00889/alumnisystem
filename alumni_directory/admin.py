@@ -1,14 +1,16 @@
 from django.contrib import admin
+from django.urls import reverse
+from django.utils.html import format_html
 from .models import Alumni, GraduateRegistry
 
 # Register your models here.
 
 @admin.register(Alumni)
 class AlumniAdmin(admin.ModelAdmin):
-    list_display = ('full_name', 'email', 'college', 'course', 'graduation_year', 'employment_status', 'mentorship_status', 'is_verified', 'is_featured')
+    list_display = ('full_name', 'email', 'college', 'course', 'graduation_year', 'employment_status', 'mentorship_status', 'is_verified', 'is_featured', 'profile_editor_link')
     list_filter = ('graduation_year', 'college', 'campus', 'employment_status', 'mentorship_status', 'is_verified', 'is_featured')
     search_fields = ('user__first_name', 'user__last_name', 'user__email', 'course')
-    readonly_fields = ('created_at', 'updated_at')
+    readonly_fields = ('created_at', 'updated_at', 'profile_editor_link')
     actions = ['feature_alumni', 'unfeature_alumni']
     
     fieldsets = (
@@ -36,10 +38,22 @@ class AlumniAdmin(admin.ModelAdmin):
         ('Mentorship', {
             'fields': ('mentorship_status',)
         }),
+        ('Extended alumni profile', {'fields': ('profile_editor_link',), 'description': 'Additional alumni fields are stored in the associated Profile record to avoid duplicate data.'}),
         ('Metadata', {
             'fields': ('is_verified', 'is_featured', 'created_at', 'updated_at')
         }),
     )
+
+    @admin.display(description='Extended profile')
+    def profile_editor_link(self, obj):
+        if not obj or not obj.pk:
+            return 'Save this alumni record first.'
+        try:
+            profile = obj.user.profile
+        except (AttributeError,):
+            return 'No associated profile'
+        return format_html('<a href="{}">Edit extended profile</a>',
+                           reverse('admin:accounts_profile_change', args=[profile.pk]))
 
     def full_name(self, obj):
         return obj.user.get_full_name()

@@ -95,37 +95,9 @@ class CustomUserAdmin(UserAdmin):
 @admin.register(Profile)
 class ProfileAdmin(admin.ModelAdmin):
     form = ProfileAdminForm
-    list_display = ('user', 'phone_number', 'birth_date', 'country', 'is_hr', 'is_alumni_coordinator')
-    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'phone_number')
-    list_filter = ('is_hr', 'is_alumni_coordinator', 'is_public', 'created_at')
-    
-    fieldsets = (
-        ('User Information', {
-            'fields': ('user',)
-        }),
-        ('Personal Information', {
-            'fields': ('avatar', 'bio', 'birth_date', 'gender')
-        }),
-        ('Professional Information', {
-            'fields': ('current_position', 'current_employer', 'industry', 'employment_status', 'salary_range')
-        }),
-        ('Contact Information (Legacy)', {
-            'fields': ('phone_number', 'address', 'city', 'state', 'country', 'postal_code'),
-            'classes': ('collapse',)
-        }),
-        ('Social Media (Legacy)', {
-            'fields': ('linkedin_profile', 'facebook_profile', 'twitter_profile'),
-            'classes': ('collapse',)
-        }),
-        ('Permissions & Roles', {
-            'fields': ('is_hr', 'is_alumni_coordinator', 'is_public'),
-            'description': 'is_alumni_coordinator: Grants admin access but blocks system configuration'
-        }),
-        ('Metadata', {
-            'fields': ('has_completed_registration', 'created_at', 'updated_at'),
-            'classes': ('collapse',)
-        }),
-    )
+    list_display = ('user', 'education_level', 'employer_sector', 'employment_status', 'country', 'is_hr', 'is_alumni_coordinator')
+    search_fields = ('user__email', 'user__first_name', 'user__last_name', 'phone_number', 'current_employer')
+    list_filter = ('education_level', 'employer_sector', 'employment_status', 'is_hr', 'is_alumni_coordinator', 'is_public', 'created_at')
     
     readonly_fields = ('created_at', 'updated_at')
     
@@ -149,38 +121,37 @@ class ProfileAdmin(admin.ModelAdmin):
         )
     remove_alumni_coordinator.short_description = "Remove Alumni Coordinator role"
     inlines = [EducationInline, ExperienceInline, SkillInline, DocumentInline]
-    readonly_fields = ('created_at', 'updated_at')
     
     fieldsets = (
-        ('User Information', {
-            'fields': ('user', 'avatar', 'bio')
-        }),
-        ('Contact Information', {
-            'fields': ('phone_number', 'country', 'city', 'address')
-        }),
-        ('Personal Information', {
-            'fields': ('birth_date', 'gender')
-        }),
-        ('Professional Information', {
-            'fields': (
-                'current_position',
-                'current_employer',
-                'industry',
-                'employment_status',
-                'salary_range'
-            )
-        }),
-        ('Permissions', {
-            'fields': ('is_hr',),
-            'description': 'HR users can post jobs and manage job applications.'
-        }),
-        ('Settings', {
-            'fields': ('is_public', 'has_completed_registration')
-        }),
-        ('Timestamps', {
-            'fields': ('created_at', 'updated_at'),
-            'classes': ('collapse',),
-        }),
+        ('Account', {'fields': ('user', 'avatar', 'bio', 'has_completed_registration')}),
+        ('Personal information', {'fields': (
+            'birth_date', 'birth_place', 'gender', 'civil_status',
+            'middle_name', 'maiden_name',
+        )}),
+        ('Contact information', {'fields': (
+            'phone_number', 'landline_number', 'address', 'city', 'state',
+            'country', 'postal_code',
+        ), 'classes': ('collapse',)}),
+        ('Academic and professional information', {'fields': (
+            'education_level', 'current_position', 'current_employer',
+            'employer_sector', 'employment_status', 'industry',
+            'employment_address', 'salary_range',
+        )}),
+        ('Workplace reference (restricted contact data)', {'fields': (
+            'workplace_reference_name', 'workplace_reference_position',
+            'workplace_reference_contact',
+        ), 'classes': ('collapse',)}),
+        ('Emergency contact (restricted contact data)', {'fields': (
+            'emergency_contact_name', 'emergency_contact_relationship',
+            'emergency_contact_number',
+        ), 'classes': ('collapse',)}),
+        ('Social links', {'fields': (
+            'linkedin_profile', 'facebook_profile', 'twitter_profile',
+        ), 'classes': ('collapse',)}),
+        ('Permissions and roles', {'fields': (
+            'is_hr', 'is_alumni_coordinator', 'is_public',
+        ), 'description': 'Role switches preserve existing HR and alumni coordinator permissions.'}),
+        ('Audit timestamps', {'fields': ('created_at', 'updated_at'), 'classes': ('collapse',)}),
     )
 
 @admin.register(Education)

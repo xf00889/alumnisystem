@@ -96,6 +96,10 @@ def admin_dashboard(request):
     # Alumni Statistics
     total_alumni = Alumni.objects.count()
     verified_alumni = Alumni.objects.filter(is_verified=True).count()
+    from accounts.models import Profile
+    alumni_profiles = Profile.objects.filter(user__alumni__isnull=False)
+    alumni_education_level_recorded = alumni_profiles.exclude(education_level='').count()
+    alumni_employer_sector_recorded = alumni_profiles.exclude(employer_sector='').count()
     
     # Donation Statistics
     total_donations = Donation.objects.filter(status='completed').aggregate(
@@ -170,6 +174,8 @@ def admin_dashboard(request):
         # Alumni stats
         'total_alumni': total_alumni,
         'verified_alumni': verified_alumni,
+        'alumni_education_level_recorded': alumni_education_level_recorded,
+        'alumni_employer_sector_recorded': alumni_employer_sector_recorded,
         
         # Donation stats
         'total_donations': total_donations,
@@ -306,6 +312,19 @@ def dashboard_analytics_api(request):
             'count': count
         })
     
+    # Non-identifying profile completeness breakdowns for admin reports.
+    # Do not expose emergency contacts or workplace references in analytics APIs.
+    from accounts.models import Profile
+    alumni_profiles = Profile.objects.filter(user__alumni__isnull=False)
+    alumni_by_education_level = list(
+        alumni_profiles.exclude(education_level='').values('education_level')
+        .annotate(count=Count('pk')).order_by('-count')
+    )
+    alumni_by_employer_sector = list(
+        alumni_profiles.exclude(employer_sector='').values('employer_sector')
+        .annotate(count=Count('pk')).order_by('-count')
+    )
+
     # Alumni by graduation year
     alumni_by_year = Alumni.objects.values('graduation_year').annotate(
         count=Count('id')
@@ -329,6 +348,8 @@ def dashboard_analytics_api(request):
         'event_rsvps': rsvp_data,
         'job_applications': application_data,
         'alumni_by_year': list(alumni_by_year),
+        'alumni_by_education_level': alumni_by_education_level,
+        'alumni_by_employer_sector': alumni_by_employer_sector,
         'top_campaigns': campaign_data
     })
 
@@ -390,7 +411,7 @@ def export_alumni(request, format_type='csv'):
         messages.error(request, _('You do not have permission to access this page.'))
         return redirect('core:home')
     
-    queryset = Alumni.objects.select_related('user').all()
+    queryset = Alumni.objects.select_related('user', 'user__profile').all()
     export_config = ModelExporter.get_alumni_export_config()
     
     return export_queryset(queryset, format_type, 'alumni', export_config)
@@ -1010,7 +1031,7 @@ def bulk_export_process(request):
 
                             # Get the appropriate queryset and config based on model
                             if model_name == 'alumni':
-                                queryset = Alumni.objects.select_related('user').all()
+                                queryset = Alumni.objects.select_related('user', 'user__profile').all()
                                 export_config = ModelExporter.get_alumni_export_config()
                             elif model_name == 'users':
                                 queryset = User.objects.all()

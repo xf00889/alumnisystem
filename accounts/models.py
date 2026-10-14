@@ -71,17 +71,47 @@ class Profile(models.Model):
         ('PREFER_NOT', 'Prefer not to say'),
     ]
 
+    CIVIL_STATUS_CHOICES = [
+        ('SINGLE', 'Single'),
+        ('MARRIED', 'Married'),
+        ('WIDOWED', 'Widowed'),
+        ('SEPARATED', 'Separated'),
+        ('OTHER', 'Other'),
+    ]
+
+    EDUCATION_LEVEL_CHOICES = [
+        ('HS', 'High School'),
+        ('COLLEGE', 'College'),
+        ('GRADUATE', 'Graduate School'),
+        ('OTHER', 'Other'),
+    ]
+
+    EMPLOYER_SECTOR_CHOICES = [
+        ('PRIVATE', 'Private'),
+        ('GOVERNMENT', 'Government'),
+        ('NON_PROFIT', 'Non-profit'),
+        ('SELF', 'Self-employed'),
+        ('OTHER', 'Other'),
+    ]
+
     # Basic Information
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     avatar = models.ImageField(upload_to='avatars/', null=True, blank=True)
     bio = models.TextField(max_length=500, blank=True)
     birth_date = models.DateField(null=True, blank=True)
+    birth_place = models.CharField(max_length=255, blank=True)
     gender = models.CharField(max_length=1, choices=GENDER_CHOICES, blank=True)
+    civil_status = models.CharField(max_length=20, choices=CIVIL_STATUS_CHOICES, blank=True)
+    middle_name = models.CharField(max_length=150, blank=True)
+    maiden_name = models.CharField(max_length=150, blank=True)
 
     # Professional Information
     current_position = models.CharField(max_length=200, blank=True)
     current_employer = models.CharField(max_length=200, blank=True)
+    employer_sector = models.CharField(max_length=20, choices=EMPLOYER_SECTOR_CHOICES, blank=True)
     industry = models.CharField(max_length=200, blank=True)
+    education_level = models.CharField(max_length=20, choices=EDUCATION_LEVEL_CHOICES, blank=True)
+    employment_address = models.CharField(max_length=255, blank=True)
     employment_status = models.CharField(
         max_length=20,
         choices=EMPLOYMENT_STATUS_CHOICES,
@@ -97,6 +127,7 @@ class Profile(models.Model):
     # Legacy fields - maintained for backward compatibility
     # These will be deprecated in future versions
     phone_number = PhoneNumberField(blank=True)
+    landline_number = models.CharField(max_length=30, blank=True)
     address = models.CharField(max_length=255, blank=True)
     city = models.CharField(max_length=100, blank=True)
     state = models.CharField(max_length=100, blank=True)
@@ -105,6 +136,12 @@ class Profile(models.Model):
     linkedin_profile = models.URLField(max_length=255, blank=True)
     facebook_profile = models.URLField(max_length=255, blank=True)
     twitter_profile = models.URLField(max_length=255, blank=True)
+    workplace_reference_name = models.CharField(max_length=150, blank=True)
+    workplace_reference_position = models.CharField(max_length=150, blank=True)
+    workplace_reference_contact = models.CharField(max_length=50, blank=True)
+    emergency_contact_name = models.CharField(max_length=150, blank=True)
+    emergency_contact_relationship = models.CharField(max_length=100, blank=True)
+    emergency_contact_number = models.CharField(max_length=50, blank=True)
 
     # Metadata
     is_public = models.BooleanField(default=True)
