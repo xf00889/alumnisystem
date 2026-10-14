@@ -907,8 +907,14 @@ def tabular_alumni_list(request):
                 export_queryset = queryset
                 filename = f"alumni_directory_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
 
+            from core.report_periods import parse_report_period, export_download_name
+            try:
+                period = parse_report_period(request.GET)
+            except ValueError as exc:
+                return HttpResponse(str(exc), status=400, content_type='text/plain')
+            export_queryset = period.filter_queryset(export_queryset, 'created_at')
             response = HttpResponse(content_type='text/csv')
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response['Content-Disposition'] = f'attachment; filename="{export_download_name("alumni-directory", period, "csv")}"' 
 
             writer = csv.writer(response)
             writer.writerow(['ID', 'Full Name', 'College', 'Year', 'Course', 'Present Occupation', 'Company', 'Employment Address', 'Education Level', 'Employer Sector'])
@@ -1041,6 +1047,14 @@ def alumni_management(request):
             if not has_selective_filters:
                 export_queryset = queryset
                 filename = f"alumni_management_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+            from core.report_periods import parse_report_period, export_download_name
+            try:
+                period = parse_report_period(request.GET)
+            except ValueError as exc:
+                return HttpResponse(str(exc), status=400, content_type='text/plain')
+            export_queryset = period.filter_queryset(export_queryset, 'created_at')
+            filename = export_download_name('alumni-management', period, 'xlsx').removesuffix('.xlsx')
 
             # Define field configuration for exports
             field_names = ['id', 'full_name', 'campus_display', 'college_display', 'graduation_year', 'course', 

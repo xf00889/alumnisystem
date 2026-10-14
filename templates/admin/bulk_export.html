@@ -6,6 +6,7 @@
 {% block extra_css %}
 <script>document.documentElement.classList.add("fe-page--admin-bulk-export-html");</script>
 <link rel="stylesheet" href="{% static 'css/modules/admin.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin/reporting-workflow.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -43,6 +44,8 @@
                 </div>
             </div>
             
+            {% include 'admin/components/report_period_fields.html' %}
+
             <div class="export-actions">
                 <button class="btn btn-primary" id="export-btn" disabled>
                     <i class="fas fa-download me-1"></i>Export Selected Data
@@ -208,6 +211,7 @@
 {% endblock %}
 
 {% block page_specific_js %}
+<script defer src="{% static 'js/admin/report-period-fields.js' %}"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const exportCards = document.querySelectorAll('.export-card');
@@ -215,7 +219,6 @@ document.addEventListener('DOMContentLoaded', function() {
     const selectionSummary = document.getElementById('selection-summary');
     const selectedModelsList = document.getElementById('selected-models-list');
     const formatInputs = document.querySelectorAll('input[name="format_type"]');
-    
     let selectedModels = [];
     
     // Handle card selection
@@ -272,6 +275,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Prepare form data
         const formData = new FormData();
         formData.append('format_type', selectedFormat);
+        document.querySelectorAll('#report-period-fields input:not(:disabled), #report-period-fields select:not(:disabled)').forEach(input => {
+            formData.append(input.name, input.value);
+        });
         selectedModels.forEach(model => {
             formData.append('models', model);
         });
@@ -288,7 +294,8 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!response.ok) {
                 // Try to get error message from response
                 return response.text().then(text => {
-                    throw new Error(`Export failed: ${response.status} ${response.statusText}`);
+                    try { throw new Error(JSON.parse(text).error || 'Export failed'); }
+                    catch (parseError) { throw parseError.message === 'Export failed' ? new Error(`Export failed: ${response.status}`) : parseError; }
                 });
             }
             // Check if response is actually a zip file
@@ -296,9 +303,11 @@ document.addEventListener('DOMContentLoaded', function() {
             if (!contentType || !contentType.includes('application/zip')) {
                 throw new Error('Invalid response format. Expected a ZIP file.');
             }
-            return response.blob();
+            const cd = response.headers.get('Content-Disposition') || '';
+            const filename = /filename="?([^";]+)"?/i.exec(cd);
+            return response.blob().then(blob => ({blob, filename: filename ? filename[1] : 'norsu-bulk-export.zip'}));
         })
-        .then(blob => {
+        .then(({blob, filename}) => {
             // Verify blob has content
             if (!blob || blob.size === 0) {
                 throw new Error('Export file is empty');
@@ -309,7 +318,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `bulk_export_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.zip`;
+            a.download = filename;
             document.body.appendChild(a);
             a.click();
             

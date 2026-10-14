@@ -50,7 +50,7 @@ urlpatterns = [
     path('accounts/google/login/', google_views.oauth2_login, name='google_login'),
     path('accounts/google/login/callback/', google_views.oauth2_callback, name='google_callback'),
     # Custom password reset views (must be before allauth.urls to override)
-    path('accounts/password/reset/', alumni_password_views.request_password_link, name='account_reset_password'),
+    path('accounts/password/reset/', security_views.password_reset_email, name='account_reset_password'),
     path('accounts/password/reset/key/<uidb36>-<key>/', security_views.password_reset_email, name='account_reset_password_from_key'),
     # Guard privileged staff against allauth's alternate email-management endpoint.
     path('accounts/email/', staff_profile_views.account_email_management_gateway, name='account_email'),

@@ -7,6 +7,7 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.http import JsonResponse, HttpResponse
 from django.core.paginator import Paginator
 from django.db.models import Q, Count
+from core.report_periods import parse_report_period, export_download_name, ReportPeriod, legacy_date_window
 from django.conf import settings
 from django.utils import timezone
 from django.views.decorators.http import require_POST
@@ -281,6 +282,16 @@ def log_export(request):
         search_query = request.GET.get('search', '').strip()
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')
+        try:
+            period = (
+                parse_report_period(request.GET) if request.GET.get('period')
+                else legacy_date_window(date_from, date_to)
+            )
+        except ValueError as exc:
+            return HttpResponse(str(exc), status=400, content_type='text/plain')
+        if request.GET.get('period'):
+            date_from = period.start.isoformat() if period.start else ''
+            date_to = period.end.isoformat() if period.end else ''
         app_filter = request.GET.get('app', '')
         
         # Parse logs with same filters
@@ -313,7 +324,7 @@ def log_export(request):
         
         # Create CSV response
         response = HttpResponse(content_type='text/csv')
-        filename = f"logs_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = export_download_name('system-logs', period, 'csv')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         writer = csv.writer(response)
@@ -742,6 +753,16 @@ def audit_log_export(request):
         search_query = request.GET.get('search', '').strip()
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')
+        try:
+            period = (
+                parse_report_period(request.GET) if request.GET.get('period')
+                else legacy_date_window(date_from, date_to)
+            )
+        except ValueError as exc:
+            return HttpResponse(str(exc), status=400, content_type='text/plain')
+        if request.GET.get('period'):
+            date_from = period.start.isoformat() if period.start else ''
+            date_to = period.end.isoformat() if period.end else ''
         
         # Get filtered audit logs
         audit_logs = AuditLog.objects.select_related('user', 'content_type').all()
@@ -775,7 +796,7 @@ def audit_log_export(request):
         
         # Create CSV response
         response = HttpResponse(content_type='text/csv')
-        filename = f"audit_logs_export_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = export_download_name('audit-logs', period, 'csv')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         writer = csv.writer(response)
@@ -1403,6 +1424,16 @@ def export_operations(request):
         operation_type_filter = request.GET.get('operation_type', '')
         date_from = request.GET.get('date_from', '')
         date_to = request.GET.get('date_to', '')
+        try:
+            period = (
+                parse_report_period(request.GET) if request.GET.get('period')
+                else legacy_date_window(date_from, date_to)
+            )
+        except ValueError as exc:
+            return HttpResponse(str(exc), status=400, content_type='text/plain')
+        if request.GET.get('period'):
+            date_from = period.start.isoformat() if period.start else ''
+            date_to = period.end.isoformat() if period.end else ''
         
         # Start with all operations
         operations = LogOperationHistory.objects.all()
@@ -1433,7 +1464,7 @@ def export_operations(request):
         
         # Create CSV response
         response = HttpResponse(content_type='text/csv')
-        filename = f"operation_history_{timezone.now().strftime('%Y%m%d_%H%M%S')}.csv"
+        filename = export_download_name('operation-history', period, 'csv')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         writer = csv.writer(response)

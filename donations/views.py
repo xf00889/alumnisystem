@@ -1,3 +1,4 @@
+from core.report_periods import ReportPeriod, parse_report_period, export_download_name, legacy_date_window
 from django.views.decorators.csrf import ensure_csrf_cookie
 from django.shortcuts import render, get_object_or_404, redirect
 from django.contrib import messages
@@ -1409,9 +1410,18 @@ def export_donations(request):
         except ValueError:
             pass
 
+    try:
+        period = parse_report_period(request.GET) if request.GET.get('period') else (
+            legacy_date_window(date_from, date_to)
+        )
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
+    if request.GET.get('period'):
+        donations = period.filter_queryset(donations, 'created_at')
+
     # Create CSV response
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="donations_export_{timezone.now().strftime("%Y%m%d_%H%M%S")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="{export_download_name("donations", period, "csv")}"'
 
     writer = csv.writer(response)
     writer.writerow([
@@ -1691,15 +1701,26 @@ def export_fraud_alerts(request):
     if days not in (7, 30, 90):
         days = 30
 
+    try:
+        period = parse_report_period(request.GET) if request.GET.get('period') else None
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
+    if period is None:
+        # This export defaults to a rolling window, never label it all-time.
+        period = ReportPeriod(timezone.localdate() - timedelta(days=days), timezone.localdate(),
+                              f'rolling-{days}-days_as-of-{timezone.localdate()}', f'Last {days} days', 'rolling')
     response = HttpResponse(content_type='text/csv; charset=utf-8')
-    response['Content-Disposition'] = 'attachment; filename="donation_fraud_alerts.csv"'
+    response['Content-Disposition'] = f'attachment; filename="{export_download_name("donation-fraud-alerts", period, "csv")}"' 
     response['Cache-Control'] = 'private, no-store'
     writer = csv.writer(response)
     writer.writerow(['Created', 'Donation ID', 'Campaign', 'Type', 'Severity',
                      'Status', 'Description', 'Reviewed By', 'Reviewed At', 'Review Notes'])
-    rows = FraudAlert.objects.filter(
-        created_at__gte=timezone.now() - timedelta(days=days)
-    ).select_related('donation__campaign', 'reviewed_by').order_by('-created_at')
+    rows = FraudAlert.objects.all()
+    if request.GET.get('period'):
+        rows = period.filter_queryset(rows, 'created_at')
+    else:
+        rows = rows.filter(created_at__gte=timezone.now() - timedelta(days=days))
+    rows = rows.select_related('donation__campaign', 'reviewed_by').order_by('-created_at')
     # Avoid spreadsheet formula injection from donor-provided text.
     def safe(value):
         value = str(value or '')

@@ -30,6 +30,7 @@ from alumni_directory.models import Alumni
 # Import export utilities
 from .export_utils import export_queryset, ModelExporter
 from .export_utils import ExportMixin
+from .report_periods import parse_report_period, export_download_name
 
 # Import permission helper
 from .decorators import is_admin_user
@@ -404,6 +405,24 @@ def alumni_by_college_api(request):
         }, status=500)
 
 # Export Views
+
+# Date fields are explicit: never use graduation year as alumni registration date,
+# or assume an event was created on its scheduled start date.
+EXPORT_DATE_FIELDS = {
+    'alumni': 'created_at', 'users': 'date_joined', 'jobs': 'posted_date',
+    'mentorships': 'created_at', 'events': 'start_date', 'donations': 'created_at',
+    'announcements': 'date_posted', 'feedback': 'created_at', 'surveys': 'created_at',
+}
+
+
+def _period_export(request, queryset, format_type, subject, export_config):
+    try:
+        period = parse_report_period(request.GET)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
+    return export_queryset(period.filter_queryset(queryset, EXPORT_DATE_FIELDS[subject]),
+                           format_type, subject, export_config, period=period)
+
 @login_required
 def export_alumni(request, format_type='csv'):
     """Export alumni data in specified format"""
@@ -414,7 +433,7 @@ def export_alumni(request, format_type='csv'):
     queryset = Alumni.objects.select_related('user', 'user__profile').all()
     export_config = ModelExporter.get_alumni_export_config()
     
-    return export_queryset(queryset, format_type, 'alumni', export_config)
+    return _period_export(request, queryset, format_type, 'alumni', export_config)
 
 @login_required
 def export_jobs(request, format_type='csv'):
@@ -426,7 +445,7 @@ def export_jobs(request, format_type='csv'):
     queryset = JobPosting.objects.all()
     export_config = ModelExporter.get_job_export_config()
     
-    return export_queryset(queryset, format_type, 'jobs', export_config)
+    return _period_export(request, queryset, format_type, 'jobs', export_config)
 
 @login_required
 def export_mentorships(request, format_type='csv'):
@@ -438,7 +457,7 @@ def export_mentorships(request, format_type='csv'):
     queryset = MentorshipRequest.objects.select_related('mentor__user', 'mentee').all()
     export_config = ModelExporter.get_mentorship_export_config()
     
-    return export_queryset(queryset, format_type, 'mentorships', export_config)
+    return _period_export(request, queryset, format_type, 'mentorships', export_config)
 
 @login_required
 def export_events(request, format_type='csv'):
@@ -450,7 +469,7 @@ def export_events(request, format_type='csv'):
     queryset = Event.objects.all()
     export_config = ModelExporter.get_event_export_config()
     
-    return export_queryset(queryset, format_type, 'events', export_config)
+    return _period_export(request, queryset, format_type, 'events', export_config)
 
 @login_required
 def export_donations(request, format_type='csv'):
@@ -462,7 +481,7 @@ def export_donations(request, format_type='csv'):
     queryset = Donation.objects.select_related('donor', 'campaign').all()
     export_config = ModelExporter.get_donation_export_config()
     
-    return export_queryset(queryset, format_type, 'donations', export_config)
+    return _period_export(request, queryset, format_type, 'donations', export_config)
 
 @login_required
 def export_users(request, format_type='csv'):
@@ -474,7 +493,7 @@ def export_users(request, format_type='csv'):
     queryset = User.objects.all()
     export_config = ModelExporter.get_user_export_config()
     
-    return export_queryset(queryset, format_type, 'users', export_config)
+    return _period_export(request, queryset, format_type, 'users', export_config)
 
 @login_required
 def export_announcements(request, format_type='csv'):
@@ -486,7 +505,7 @@ def export_announcements(request, format_type='csv'):
     queryset = Announcement.objects.select_related('category').all()
     export_config = ModelExporter.get_announcement_export_config()
     
-    return export_queryset(queryset, format_type, 'announcements', export_config)
+    return _period_export(request, queryset, format_type, 'announcements', export_config)
 
 @login_required
 def export_feedback(request, format_type='csv'):
@@ -498,7 +517,7 @@ def export_feedback(request, format_type='csv'):
     queryset = Feedback.objects.select_related('user').all()
     export_config = ModelExporter.get_feedback_export_config()
     
-    return export_queryset(queryset, format_type, 'feedback', export_config)
+    return _period_export(request, queryset, format_type, 'feedback', export_config)
 
 @login_required
 def export_surveys(request, format_type='csv'):
@@ -521,7 +540,7 @@ def export_surveys(request, format_type='csv'):
         }
     )
     
-    return export_queryset(queryset, format_type, 'surveys', export_config)
+    return _period_export(request, queryset, format_type, 'surveys', export_config)
 
 @login_required
 def export_tracer_study(request, format_type='excel'):
@@ -972,6 +991,14 @@ def bulk_export_process(request):
     if request.method == 'POST':
         selected_models = request.POST.getlist('models')
         format_type = request.POST.get('format_type', 'csv')
+        if format_type not in ('csv', 'excel', 'pdf', 'zip'):
+            return JsonResponse({'error': 'Unsupported export format.'}, status=400)
+        try:
+            period = parse_report_period(request.POST)
+        except ValueError as exc:
+            return JsonResponse({'error': str(exc)}, status=400)
+        if format_type == 'zip' and selected_models != ['tracer_study']:
+            return JsonResponse({'error': 'Filled-form ZIP is available only for Tracer Study.'}, status=400)
         if selected_models == ['tracer_study'] and format_type == 'zip':
             survey = _tracer_study_survey()
             if not survey:
@@ -1024,7 +1051,7 @@ def bulk_export_process(request):
                                     continue
                                 response = tracer_study.tracer_study_report_export(request, survey.id, format_type)
                                 ext = 'xlsx' if format_type == 'excel' else format_type
-                                filename = f"tracer_study_{datetime.now().strftime('%Y%m%d_%H%M%S')}.{ext}"
+                                filename = export_download_name('tracer-study', period, ext)
                                 zip_file.writestr(filename, response.content)
                                 exported_count += 1
                                 continue
@@ -1068,6 +1095,9 @@ def bulk_export_process(request):
                                 )
                                 continue
                             
+                            # Apply identical inclusive local-calendar window to every selected dataset.
+                            queryset = period.filter_queryset(queryset, EXPORT_DATE_FIELDS[model_name])
+
                             # Generate the export
                             if format_type == 'csv':
                                 response = ExportMixin().export_csv(
@@ -1076,7 +1106,7 @@ def bulk_export_process(request):
                                     export_config.get('field_names'),
                                     export_config.get('field_labels')
                                 )
-                                filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+                                filename = export_download_name(model_name, period, 'csv')
                             elif format_type == 'excel':
                                 response = ExportMixin().export_excel(
                                     queryset, 
@@ -1085,7 +1115,7 @@ def bulk_export_process(request):
                                     export_config.get('field_labels'),
                                     export_config.get('sheet_name', 'Data')
                                 )
-                                filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+                                filename = export_download_name(model_name, period, 'xlsx')
                             elif format_type == 'pdf':
                                 response = ExportMixin().export_pdf(
                                     queryset, 
@@ -1094,7 +1124,7 @@ def bulk_export_process(request):
                                     export_config.get('field_labels'),
                                     export_config.get('sheet_name', 'Data Export')
                                 )
-                                filename = f"{model_name}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+                                filename = export_download_name(model_name, period, 'pdf')
                             else:
                                 logger.warning(
                                     f"Unknown format in bulk export: {format_type}",
@@ -1166,7 +1196,7 @@ This zip file contains exported data from the following models:
 
 {f"Failed exports: {', '.join(failed_models)}" if failed_models else ""}
 
-Each file is named with the model name and timestamp for easy identification.
+Each file is named with the data type and reporting period for easy identification.
 """
                     zip_file.writestr('README.txt', readme_content)
             
@@ -1194,7 +1224,7 @@ Each file is named with the model name and timestamp for easy identification.
             
             # Create response
             response = HttpResponse(zip_content, content_type='application/zip')
-            response['Content-Disposition'] = f'attachment; filename="bulk_export_{datetime.now().strftime("%Y%m%d_%H%M%S")}.zip"'
+            response['Content-Disposition'] = f'attachment; filename="{export_download_name("bulk-export", period, "zip")}"'
             
             return response
             

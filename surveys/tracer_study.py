@@ -45,6 +45,7 @@ from django.views.decorators.http import require_http_methods
 from django.views.generic import View
 
 from alumni_directory.models import Alumni
+from core.report_periods import parse_report_period, ReportPeriod, export_download_name, legacy_date_window
 from core.rate_limiters import (
     PUBLIC_FORM_HONEYPOT_FIELD,
     public_form_honeypot_triggered,
@@ -2153,8 +2154,15 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     if format_type == "xlsx":
         format_type = "excel"
 
-    start_date = _parse_date_str(request.GET.get("start_date"))
-    end_date = _parse_date_str(request.GET.get("end_date"))
+    period_source = request.POST if request.method == 'POST' else request.GET
+    try:
+        if period_source.get('period'):
+            period = parse_report_period(period_source)
+        else:
+            period = legacy_date_window(period_source.get('start_date'), period_source.get('end_date'))
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
+    start_date, end_date = period.start, period.end
     campus = request.GET.get("campus", "").strip() or None
     college = request.GET.get("college", "").strip() or None
     program = request.GET.get("program", "").strip() or None
@@ -2165,12 +2173,13 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         report_type = "full"
 
     if format_type == "zip":
-        return _tracer_study_forms_zip_response(
+        response = _tracer_study_forms_zip_response(
             survey, start_date=start_date, end_date=end_date,
             campus=campus, college=college, program=program,
             year_from=year_from, year_to=year_to,
         )
-
+        response["Content-Disposition"] = f'attachment; filename="{export_download_name("tracer-study-filled-forms", period, "zip")}"'
+        return response
     rows = _filtered_alumni_response_rows(
         survey, start_date=start_date, end_date=end_date,
         campus=campus, college=college, program=program,
@@ -2205,7 +2214,7 @@ def tracer_study_report_export(request, survey_id, format_type=None):
 
     if format_type == "csv":
         response = HttpResponse(content_type="text/csv")
-        response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.csv"'
+        response["Content-Disposition"] = f'attachment; filename="{export_download_name("tracer-study-response-status", period, "csv")}"'
         writer = csv.writer(response)
         writer.writerow(["Tracer Study Response Status"])
         for label, value in metadata_rows:
@@ -2230,7 +2239,7 @@ def tracer_study_report_export(request, survey_id, format_type=None):
         from xml.sax.saxutils import escape
 
         response = HttpResponse(content_type="application/pdf")
-        response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.pdf"'
+        response["Content-Disposition"] = f'attachment; filename="{export_download_name("tracer-study-response-status", period, "pdf")}"'
         doc = SimpleDocTemplate(response, pagesize=landscape(A4), topMargin=90)
         styles = getSampleStyleSheet()
         story = [
@@ -2475,6 +2484,6 @@ def tracer_study_report_export(request, survey_id, format_type=None):
     response = HttpResponse(
         content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     )
-    response["Content-Disposition"] = 'attachment; filename="tracer-study-response-status.xlsx"'
+    response["Content-Disposition"] = f'attachment; filename="{export_download_name("tracer-study-response-status", period, "xlsx")}"'
     wb.save(response)
     return response

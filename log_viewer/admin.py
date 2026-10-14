@@ -15,8 +15,7 @@ from .models import (
 import csv
 import os
 from decimal import Decimal
-
-
+from core.report_periods import parse_report_period, export_download_name
 @admin.register(AuditLog)
 class AuditLogAdmin(admin.ModelAdmin):
     """
@@ -477,9 +476,14 @@ class LogOperationHistoryAdmin(admin.ModelAdmin):
     
     def export_to_csv(self, request, queryset):
         """Export operation history to CSV"""
-        response = HttpResponse(content_type='text/csv')
-        response['Content-Disposition'] = 'attachment; filename="log_operation_history.csv"'
-        
+        try:
+            period = parse_report_period(request.POST if request.method == 'POST' else request.GET)
+        except ValueError as error:
+            return HttpResponse(str(error), status=400, content_type='text/plain')
+        # Preserve Django Admin's selected queryset and optionally narrow it by date.
+        queryset = period.filter_queryset(queryset, 'started_at')
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = f'attachment; filename="{export_download_name("log-operation-history", period, "csv")}"'
         writer = csv.writer(response)
         writer.writerow([
             'Started At', 'Completed At', 'Operation Type', 'Status',

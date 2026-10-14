@@ -20,6 +20,7 @@ from functools import wraps
 import json
 import logging
 
+from core.report_periods import parse_report_period, export_download_name
 from alumni_directory.models import Alumni
 from donations.models import Donation, Campaign
 from accounts.models import Mentor
@@ -1345,9 +1346,17 @@ class ReportDetailView(DetailView):
             )
             raise Exception(f"Error initializing report data: {str(e)}")
         
+        # Date-range exports inject a temporary parameter on the in-memory Report;
+        # they never update the saved report definition or its schedule.
+        export_period = None
+        if (report.parameters or {}).get('_requested_export_period'):
+            export_period = parse_report_period(report.parameters['_requested_export_period'])
+
         if report.report_type == 'employment':
             # Employment trends report
             employment_records = EmploymentRecord.objects.all()
+            if export_period:
+                employment_records = export_period.filter_queryset(employment_records, 'start_date')
             
             # Apply filters from parameters
             if 'industry' in report.parameters and report.parameters['industry']:
@@ -1409,6 +1418,8 @@ class ReportDetailView(DetailView):
         elif report.report_type == 'geographic':
             # Geographic distribution report
             alumni_locations = Alumni.objects.all()
+            if export_period:
+                alumni_locations = export_period.filter_queryset(alumni_locations, 'created_at')
             
             # Apply filters
             if 'country' in report.parameters and report.parameters['country']:
@@ -1472,6 +1483,8 @@ class ReportDetailView(DetailView):
         elif report.report_type == 'achievements':
             # Alumni achievements report
             achievements = Achievement.objects.all()
+            if export_period:
+                achievements = export_period.filter_queryset(achievements, 'achievement_date')
             
             # Apply filters
             if 'achievement_type' in report.parameters and report.parameters['achievement_type']:
@@ -1560,6 +1573,8 @@ class ReportDetailView(DetailView):
                     responses = EmployerResponse.objects.filter(
                         survey=scoped_survey
                     )
+                    if export_period:
+                        responses = export_period.filter_queryset(responses, 'submitted_at')
                     answer_model = EmployerResponseAnswer
                     text_answers = answer_model.objects.filter(
                         response__in=responses,
@@ -1590,14 +1605,12 @@ class ReportDetailView(DetailView):
 
                     if data['survey_context']['is_tracer']:
                         responses = _filtered_alumni_responses(scoped_survey)
-                        expected_respondents = eligible_alumni_queryset(
-                            scoped_survey
-                        ).count()
+                        expected_respondents = eligible_alumni_queryset(scoped_survey).count()
                     else:
-                        responses = SurveyResponse.objects.filter(
-                            survey=scoped_survey
-                        )
+                        responses = SurveyResponse.objects.filter(survey=scoped_survey)
                         expected_respondents = Alumni.objects.count()
+                    if export_period:
+                        responses = export_period.filter_queryset(responses, 'submitted_at')
 
                     answer_model = ResponseAnswer
                     response_count = responses.values('alumni_id').distinct().count()
@@ -1653,6 +1666,8 @@ class ReportDetailView(DetailView):
             else:
                 surveys = Survey.objects.all()
                 survey_responses = SurveyResponse.objects.all()
+                if export_period:
+                    survey_responses = export_period.filter_queryset(survey_responses, 'submitted_at')
                 total_alumni = Alumni.objects.count()
                 response_counts = survey_responses.values('survey').annotate(
                     count=Count('alumni', distinct=True)
@@ -1681,7 +1696,7 @@ class ReportDetailView(DetailView):
                 rating_averages = []
                 for question in SurveyQuestion.objects.filter(question_type='rating'):
                     average = ResponseAnswer.objects.filter(
-                        question=question,
+                        question=question, response__in=survey_responses,
                         rating_value__isnull=False,
                     ).aggregate(avg=Avg('rating_value'))['avg']
                     if average is not None:
@@ -1691,7 +1706,7 @@ class ReportDetailView(DetailView):
                             'average': round(average, 2),
                         })
                 text_answers = ResponseAnswer.objects.filter(
-                    text_answer__isnull=False
+                    response__in=survey_responses, text_answer__isnull=False
                 ).exclude(text_answer='').select_related(
                     'question', 'response__alumni__user', 'response__survey'
                 ).order_by('-response__submitted_at')
@@ -1732,6 +1747,8 @@ class ReportDetailView(DetailView):
         elif report.report_type == 'donations':
             # Donations report
             donations = Donation.objects.filter(status='completed')
+            if export_period:
+                donations = export_period.filter_queryset(donations, 'donation_date')
             
             # Apply filters
             if 'campaign' in report.parameters and report.parameters['campaign']:
@@ -1815,6 +1832,8 @@ class ReportDetailView(DetailView):
         elif report.report_type == 'mentors':
             # Mentors report
             mentors = Mentor.objects.filter(is_active=True)
+            if export_period:
+                mentors = export_period.filter_queryset(mentors, 'created_at')
             
             # Availability distribution
             availability_counts = mentors.values('availability_status').annotate(
@@ -1866,6 +1885,8 @@ class ReportDetailView(DetailView):
         elif report.report_type == 'groups':
             # Groups report
             groups = AlumniGroup.objects.filter(is_active=True)
+            if export_period:
+                groups = export_period.filter_queryset(groups, 'created_at')
             
             # Group type distribution
             type_counts = groups.values('group_type').annotate(
@@ -1981,8 +2002,13 @@ def survey_export_responses(request, pk):
     from django.utils.text import slugify
     from core.export_utils import LogoHeaderService
     
+    from core.report_periods import parse_report_period, export_download_name
+    try:
+        period = parse_report_period(request.GET)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
     survey = get_object_or_404(Survey, pk=pk)
-    
+
     # Create workbook
     wb = Workbook()
     ws = wb.active
@@ -2020,6 +2046,7 @@ def survey_export_responses(request, pk):
     responses = survey.responses.select_related('alumni__user').prefetch_related(
         'answers', 'answers__question', 'answers__selected_option'
     ).order_by('-submitted_at')
+    responses = period.filter_queryset(responses, 'submitted_at')
     
     # Define data style
     data_alignment = Alignment(horizontal='left', vertical='top', wrap_text=True)
@@ -2104,7 +2131,7 @@ def survey_export_responses(request, pk):
     http_response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    http_response['Content-Disposition'] = f'attachment; filename="{slugify(survey.title)}_responses.xlsx"'
+    http_response['Content-Disposition'] = f'attachment; filename="{export_download_name(slugify(survey.title) + "-responses", period, "xlsx")}"'
     
     # Save workbook to response
     wb.save(http_response)
@@ -2142,7 +2169,18 @@ def report_export_pdf(request, pk):
     from core.export_utils import LogoHeaderService
     
     report = get_object_or_404(Report, pk=pk)
-    
+    try:
+        period = parse_report_period(request.GET)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
+    if period.start:
+        if report.report_type == 'custom':
+            return HttpResponse('Custom report has no date-scoped data.', status=400, content_type='text/plain')
+        report.parameters = {**(report.parameters or {}), '_requested_export_period': {
+            'period': 'custom', 'start_date': period.start.isoformat(),
+            'end_date': period.end.isoformat(),
+        }}
+
     # Log PDF export start
     logger.info(
         f"PDF export started: Report ID={report.id}, Type={report.report_type}",
@@ -2166,7 +2204,7 @@ def report_export_pdf(request, pk):
         
         # Create PDF response
         response = HttpResponse(content_type='application/pdf')
-        filename = f"{report.title.replace(' ', '_')}_{timezone.now().strftime('%Y%m%d_%H%M%S')}.pdf"
+        filename = export_download_name(report.title, period, 'pdf')
         response['Content-Disposition'] = f'attachment; filename="{filename}"'
         
         page_size = landscape(A4) if report.report_type == 'feedback' else A4

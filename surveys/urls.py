@@ -2,7 +2,7 @@ from django.urls import path
 from django.views.generic.base import RedirectView
 from . import views
 from . import tracer_study
-
+from . import employability_reports
 app_name = 'surveys'
 
 urlpatterns = [
@@ -12,6 +12,7 @@ urlpatterns = [
     path('tracer-study/', tracer_study.tracer_study_alumni, name='tracer_study_alumni'),
     path('tracer-study/employer/', tracer_study.tracer_study_employer, name='tracer_study_employer'),
     path('tracer-study/reports/', tracer_study.tracer_study_reports, name='tracer_study_reports'),
+    path('tracer-study/employability/', employability_reports.employability_report, name='employability_report'),
     path('tracer-study/reports/<int:survey_id>/toggle-visibility/', tracer_study.tracer_study_toggle_visibility, name='tracer_study_toggle_visibility'),
     path('tracer-study/report/<int:survey_id>/', tracer_study.tracer_study_report, name='tracer_study_report'),
     path('tracer-study/response/<int:response_id>/filled-form/', tracer_study.tracer_study_filled_alumni_response_legacy, name='tracer_study_filled_alumni_response_legacy'),

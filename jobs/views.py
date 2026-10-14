@@ -1292,13 +1292,18 @@ def export_applicants(request, job_id):
     from core.export_utils import LogoHeaderService
     
     job = get_object_or_404(JobPosting, id=job_id)
-    applicants = job.applications.all().select_related('applicant')
+    from core.report_periods import parse_report_period, export_download_name
+    try:
+        period = parse_report_period(request.GET)
+    except ValueError as exc:
+        return HttpResponse(str(exc), status=400, content_type='text/plain')
+    applicants = period.filter_queryset(job.applications.all().select_related('applicant'), 'application_date')
     
     # Create a workbook and add a worksheet
     response = HttpResponse(
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
     )
-    response['Content-Disposition'] = f'attachment; filename=Applicants-{job.slug}-{timezone.now().strftime("%Y%m%d")}.xlsx'
+    response['Content-Disposition'] = f'attachment; filename="{export_download_name("applicants-" + job.slug, period, "xlsx")}"'
     
     workbook = Workbook()
     worksheet = workbook.active

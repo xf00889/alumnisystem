@@ -1109,17 +1109,19 @@ class ModelExporter:
             'sheet_name': 'Surveys'
         }
 
-def get_export_filename(model_name, format_type):
-    """Generate standardized export filename"""
-    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-    return f"{model_name}_{timestamp}"
+def get_export_filename(model_name, format_type, period=None):
+    """Calendar period is explicit, including all-time default."""
+    from core.report_periods import ReportPeriod, export_download_name
+    extension = {'excel': 'xlsx', 'csv': 'csv', 'pdf': 'pdf'}.get(format_type, format_type)
+    return export_download_name(model_name, period or ReportPeriod(None, None, 'all-time', 'All dates'), extension).removesuffix('.' + extension)
 
-def export_queryset(queryset, format_type, model_name, export_config=None):
+
+def export_queryset(queryset, format_type, model_name, export_config=None, period=None):
     """Main export function that handles different formats"""
     if export_config is None:
         export_config = {}
     
-    filename = get_export_filename(model_name, format_type)
+    filename = get_export_filename(model_name, format_type, period)
     
     if format_type == 'csv':
         return ExportMixin().export_csv(
