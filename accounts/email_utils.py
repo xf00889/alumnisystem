@@ -16,7 +16,7 @@ def render_verification_email(user, verification_code):
         Rendered HTML content
     """
     context = {
-        'user_first_name': user.first_name,
+        'user_first_name': (user.first_name or '').strip() or 'Alumni member',
         'user_email': user.email,
         'verification_code': verification_code,
     }
@@ -48,7 +48,7 @@ def render_resend_verification_email(user, verification_code):
         Rendered HTML content
     """
     context = {
-        'user_first_name': user.first_name,
+        'user_first_name': (user.first_name or '').strip() or 'Alumni member',
         'user_email': user.email,
         'verification_code': verification_code,
     }
@@ -68,7 +68,7 @@ def render_password_reset_email(user, verification_code):
         Rendered HTML content
     """
     context = {
-        'user_first_name': user.first_name,
+        'user_first_name': (user.first_name or '').strip() or 'Alumni member',
         'user_email': user.email,
         'verification_code': verification_code,
     }
