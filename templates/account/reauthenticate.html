@@ -1,0 +1,16 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Confirm your account{% endblock %}
+{% block heading %}Confirm your password{% endblock %}
+{% block introduction %}To make changes to your security settings, re-enter your account password.{% endblock %}
+{% block mfa_content %}
+<form method="post" class="mfa-form">
+    {% csrf_token %}
+    {% if form.non_field_errors %}<div class="mfa-error" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for error in field.errors %}<p class="mfa-error" role="alert">{{ error }}</p>{% endfor %}
+    {% endfor %}
+    <button type="submit" class="mfa-button">Confirm and continue</button>
+</form>
+{% endblock %}

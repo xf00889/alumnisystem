@@ -77,6 +77,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'allauth',
     'allauth.account',
+    'allauth.mfa',  # Authenticator-app 2FA + single-use recovery codes
     'allauth.socialaccount',
     'allauth.socialaccount.providers.google',
     'taggit',
@@ -240,10 +241,6 @@ else:
 
 MEDIA_URL = config('MEDIA_URL', default='/media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# Private attachment storage must not be mapped by Nginx / Apache or Django MEDIA_URL.
-PRIVATE_MESSAGE_UPLOAD_ROOT = config(
-    'PRIVATE_MESSAGE_UPLOAD_ROOT', default=str(BASE_DIR / 'private_message_uploads')
-)
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -298,6 +295,12 @@ ACCOUNT_FORMS = {
 }
 
 # Custom account adapter for login redirection
+MFA_ADAPTER = 'accounts.mfa_adapter.NorsuMFAAdapter'
+MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes']
+MFA_TOTP_ISSUER = 'NORSU Alumni Network'
+MFA_RECOVERY_CODE_COUNT = 10
+# Optional stable key separate from SECRET_KEY; never change without re-encrypting MFA seeds.
+MFA_ENCRYPTION_KEY = config('MFA_ENCRYPTION_KEY', default='')
 ACCOUNT_ADAPTER = 'accounts.adapters.CustomAccountAdapter'
 SOCIALACCOUNT_ADAPTER = 'accounts.adapters.CustomSocialAccountAdapter'
 
@@ -860,8 +863,3 @@ LOCATION_GEOCODER_CONTACT_EMAIL = config('LOCATION_GEOCODER_CONTACT_EMAIL', defa
 # in the provider dashboard. They are intentionally rendered only on staff pages.
 LOCATION_CARTO_BASEMAP_KEY = config('LOCATION_CARTO_BASEMAP_KEY', default='').strip()
 LOCATION_MAPTILER_BASEMAP_KEY = config('LOCATION_MAPTILER_BASEMAP_KEY', default='').strip()
-
-# Optional read-only Facebook Page image feed for the public landing page.
-# Access token is server-side only and never exposed in templates or JavaScript.
-FACEBOOK_PAGE_ID = os.environ.get('FACEBOOK_PAGE_ID', '')
-FACEBOOK_PAGE_ACCESS_TOKEN = os.environ.get('FACEBOOK_PAGE_ACCESS_TOKEN', '')

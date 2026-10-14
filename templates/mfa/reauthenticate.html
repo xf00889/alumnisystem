@@ -1,0 +1,13 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Reconfirm your identity{% endblock %}
+{% block heading %}Confirm your identity{% endblock %}
+{% block introduction %}For sensitive changes, enter a current authenticator or recovery code.{% endblock %}
+{% block mfa_content %}
+<form method="post" class="mfa-form">{% csrf_token %}
+{{ form.non_field_errors }}
+<label for="id_code">Authenticator or recovery code</label>
+<input id="id_code" type="text" name="code" autocomplete="one-time-code" required autofocus>
+{% for error in form.code.errors %}<p role="alert" class="mfa-error">{{ error }}</p>{% endfor %}
+<button type="submit" class="mfa-button">Continue</button>
+</form>
+{% endblock %}

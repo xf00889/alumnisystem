@@ -1,0 +1,12 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Recovery codes{% endblock %}
+{% block heading %}Save your recovery codes{% endblock %}
+{% block introduction %}Store these codes somewhere private and offline. Each code can only be used once if you lose access to your authenticator app.{% endblock %}
+{% block mfa_content %}
+<p class="mfa-hint">{{ unused_codes|length }} of {{ total_count }} recovery codes remaining.</p>
+<div class="mfa-recovery-codes">{% for code in unused_codes %}<code>{{ code }}</code>{% empty %}<p>No unused recovery codes.</p>{% endfor %}</div>
+<div class="mfa-actions">
+<a href="{% url 'mfa_download_recovery_codes' %}" class="mfa-button">Download recovery codes</a>
+<a href="{% url 'mfa_generate_recovery_codes' %}" class="mfa-button mfa-button--secondary">Generate new codes</a>
+</div>
+{% endblock %}

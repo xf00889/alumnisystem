@@ -1,0 +1,16 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Verify your identity{% endblock %}
+{% block heading %}One more step{% endblock %}
+{% block introduction %}Enter the current six-digit code from your authenticator app, or use a recovery code.{% endblock %}
+{% block mfa_content %}
+<form method="post" class="mfa-form" autocomplete="off">
+{% csrf_token %}
+{% if form.non_field_errors %}<div role="alert" class="mfa-error">{{ form.non_field_errors }}</div>{% endif %}
+<label for="id_code">Authenticator or recovery code</label>
+<input id="id_code" type="text" name="code" required autofocus autocomplete="one-time-code" inputmode="text" aria-describedby="mfa-code-help">
+{% for error in form.code.errors %}<p class="mfa-error" role="alert">{{ error }}</p>{% endfor %}
+<p id="mfa-code-help" class="mfa-hint">Recovery codes are single-use and should be kept offline.</p>
+<button class="mfa-button" type="submit">Verify and sign in</button>
+</form>
+<p class="mfa-support"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+{% endblock %}

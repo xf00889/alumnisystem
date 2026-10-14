@@ -55,13 +55,29 @@
                             {% endif %}
                         </div>
                         
+                        <!-- Authenticator app + recovery codes: real allauth MFA status -->
+                        <div class="security-item security-item--mfa">
+                            <div class="security-info">
+                                <h5><i class="fas fa-mobile-alt me-2" aria-hidden="true"></i>Two-factor authentication</h5>
+                                <p>{% if two_factor_enabled %}Authenticator protection enabled. Sign-in requires your verification code.{% else %}Add a second sign-in step using your authenticator app.{% endif %}</p>
+                                <a class="btn btn-sm btn-outline-primary mt-2" href="{% url 'mfa_index' %}">
+                                    {% if two_factor_enabled %}Manage 2FA and recovery codes{% else %}Set up two-factor authentication{% endif %}
+                                </a>
+                            </div>
+                            {% if two_factor_enabled %}
+                                <span class="security-status status-secure">Enabled</span>
+                            {% else %}
+                                <span class="security-status status-warning">Not enabled</span>
+                            {% endif %}
+                        </div>
+
                         <!-- Password Security -->
                         <div class="security-item">
                             <div class="security-info">
                                 <h5>Password Security</h5>
                                 <p>Last changed: {{ user.last_login|date:"M d, Y"|default:"Never" }}</p>
                             </div>
-                            <span class="security-status status-secure">Strong</span>
+                            <span class="security-status">Protected</span>
                         </div>
                         
                         <!-- Login History -->
@@ -92,7 +108,7 @@
                                 </div>
                                 <div class="activity-info">
                                     <h6>Successful Login</h6>
-                                    <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }} • IP: 192.168.1.1</p>
+                                    <p>{{ user.last_login|date:"M d, Y H:i"|default:"Never" }}</p>
                                 </div>
                             </div>
                             
@@ -102,7 +118,7 @@
                                 </div>
                                 <div class="activity-info">
                                     <h6>Password Changed</h6>
-                                    <p>Dec 15, 2024 14:30 • IP: 192.168.1.1</p>
+                                    <p>Check your password settings for the latest status.</p>
                                 </div>
                             </div>
                             
@@ -112,7 +128,7 @@
                                 </div>
                                 <div class="activity-info">
                                     <h6>Account Created</h6>
-                                    <p>{{ user.date_joined|date:"M d, Y H:i" }} • IP: 192.168.1.1</p>
+                                    <p>{{ user.date_joined|date:"M d, Y H:i" }}</p>
                                 </div>
                             </div>
                         </div>

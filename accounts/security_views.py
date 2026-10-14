@@ -358,6 +358,14 @@ def verify_email(request):
                 try:
                     user.is_active = True
                     user.save()
+
+                    # Synchronize successful NORSU email-code verification with
+                    # allauth's email status so authenticator setup can proceed.
+                    from allauth.account.models import EmailAddress
+                    EmailAddress.objects.update_or_create(
+                        user=user, email=user.email,
+                        defaults={'verified': True, 'primary': True},
+                    )
                     
                     # Log successful verification
                     logger.info(f"Email verification successful for {user.email} (IP: {request.META.get('REMOTE_ADDR')})")
@@ -367,7 +375,18 @@ def verify_email(request):
                         ip_address=request.META.get('REMOTE_ADDR')
                     )
                     
-                    # Auto-login the user with secure session
+                    # Never auto-login a previously enrolled account via a
+                    # verification/re-activation link. Route it through allauth
+                    # so the MFA stage is enforced on the next sign-in.
+                    from allauth.mfa.utils import is_mfa_enabled
+                    if is_mfa_enabled(user):
+                        request.session.pop('pending_verification_user_id', None)
+                        request.session.pop('inactive_account_email', None)
+                        messages.success(request, 'Email verified. Sign in with your password and authenticator code.')
+                        return redirect('account_login')
+
+                    # First-time signup (no authenticator enrolled yet): retain
+                    # the existing verified-registration flow.
                     login(request, user, backend='accounts.backends.CustomModelBackend')
                     request.session.pop('pending_verification_user_id', None)
                     request.session.pop('inactive_account_email', None)
@@ -1207,4 +1226,6 @@ class SecurityDashboardView(TemplateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['user'] = self.request.user
+        from allauth.mfa.utils import is_mfa_enabled
+        context['two_factor_enabled'] = is_mfa_enabled(self.request.user)
         return context

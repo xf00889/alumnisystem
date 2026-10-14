@@ -1,0 +1,15 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Set up authenticator{% endblock %}
+{% block heading %}Set up an authenticator{% endblock %}
+{% block introduction %}Scan the QR code using Google Authenticator, Microsoft Authenticator, 1Password or another TOTP app, then enter the six-digit code to confirm.{% endblock %}
+{% block mfa_content %}
+<div class="mfa-qr"><img src="{{ totp_svg_data_uri }}" alt="Authenticator setup QR code; do not share" width="210" height="210"></div>
+<details class="mfa-secret"><summary>Can't scan? Show setup key</summary><code>{{ form.secret }}</code><p>Keep this key private. Anyone with the key can generate sign-in codes.</p></details>
+<form method="post" class="mfa-form">{% csrf_token %}
+{% if form.non_field_errors %}<div role="alert" class="mfa-error">{{ form.non_field_errors }}</div>{% endif %}
+<label for="id_code">Six-digit authenticator code</label>
+<input type="text" id="id_code" name="code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" autocomplete="one-time-code" required autofocus>
+{% for error in form.code.errors %}<p class="mfa-error" role="alert">{{ error }}</p>{% endfor %}
+<button class="mfa-button" type="submit">Verify and enable 2FA</button>
+</form>
+{% endblock %}

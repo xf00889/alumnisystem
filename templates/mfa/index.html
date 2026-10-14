@@ -1,0 +1,15 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Two-factor authentication{% endblock %}
+{% block heading %}Two-factor authentication{% endblock %}
+{% block introduction %}Protect your account with an authenticator app and backup recovery codes.{% endblock %}
+{% block mfa_content %}
+<div class="mfa-status">{% if is_mfa_enabled %}<strong>Authenticator enabled</strong><span>Additional verification is required when you sign in.</span>{% else %}<strong>Authenticator not set up</strong><span>Set it up to require a second factor when signing in.</span>{% endif %}</div>
+<div class="mfa-actions">
+{% if is_mfa_enabled %}
+<a class="mfa-button" href="{% url 'mfa_view_recovery_codes' %}">View recovery codes</a>
+<a class="mfa-button mfa-button--secondary" href="{% url 'mfa_deactivate_totp' %}">Turn off two-factor authentication</a>
+{% else %}
+<a class="mfa-button" href="{% url 'mfa_activate_totp' %}">Set up authenticator app</a>
+{% endif %}
+</div>
+{% endblock %}
