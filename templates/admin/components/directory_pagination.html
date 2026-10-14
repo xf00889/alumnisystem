@@ -1,0 +1,33 @@
+{% if page_obj %}
+<div class="staff-directory-pagination-shell">
+    <p class="staff-directory-pagination-info">
+        {% if page_obj.paginator.count %}
+            Showing <strong>{{ page_obj.start_index }}–{{ page_obj.end_index }}</strong> of
+            <strong>{{ page_obj.paginator.count }}</strong> {{ item_label }}
+        {% else %}
+            No {{ item_label }} found
+        {% endif %}
+    </p>
+    {% if page_obj.has_other_pages %}
+    <nav aria-label="{{ item_label|capfirst }} pagination" class="staff-directory-pagination">
+        <a class="staff-page-link staff-page-link--direction{% if not page_obj.has_previous %} is-disabled{% endif %}"
+           {% if page_obj.has_previous %}href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ page_obj.previous_page_number }}"{% else %}aria-disabled="true" tabindex="-1"{% endif %}
+           aria-label="Previous page"><i class="fas fa-chevron-left" aria-hidden="true"></i><span>Previous</span></a>
+        <span class="staff-page-numbers">
+        {% for num in page_numbers %}
+            {% if num == ellipsis %}
+                <span class="staff-page-ellipsis" aria-hidden="true">…</span>
+            {% elif num == page_obj.number %}
+                <span class="staff-page-link is-current" aria-current="page" aria-label="Page {{ num }}, current page">{{ num }}</span>
+            {% else %}
+                <a class="staff-page-link" href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ num }}" aria-label="Page {{ num }}">{{ num }}</a>
+            {% endif %}
+        {% endfor %}
+        </span>
+        <a class="staff-page-link staff-page-link--direction{% if not page_obj.has_next %} is-disabled{% endif %}"
+           {% if page_obj.has_next %}href="?{% if filters_query %}{{ filters_query }}&amp;{% endif %}page={{ page_obj.next_page_number }}"{% else %}aria-disabled="true" tabindex="-1"{% endif %}
+           aria-label="Next page"><span>Next</span><i class="fas fa-chevron-right" aria-hidden="true"></i></a>
+    </nav>
+    {% endif %}
+</div>
+{% endif %}

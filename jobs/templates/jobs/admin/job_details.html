@@ -1,25 +1,111 @@
 {% extends 'base.html' %}
 {% load static %}
 {% block title %}Job Information | NORSU Alumni{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin/staff-job-details.css' %}">
+{% endblock %}
 {% block content %}
-<div class="container-fluid staff-group-directory">
+<div class="container-fluid staff-group-directory staff-job-details">
     <header class="admin-page-header admin-page-header--action-row">
         <div class="admin-page-header__content">
             <p class="admin-page-header__eyebrow">ADMINISTRATION / CAREER SERVICES / JOB INFORMATION</p>
             <h1 class="admin-page-header__title">{{ job.job_title }}</h1>
-            <p class="admin-page-header__subtitle">{{ job.company_name }} · {{ job.location }}</p>
+            <p class="admin-page-header__subtitle"><i class="fas fa-building me-1" aria-hidden="true"></i> {{ job.company_name }} <span aria-hidden="true">·</span> <i class="fas fa-location-dot me-1" aria-hidden="true"></i> {{ job.location }}</p>
         </div>
-        <div class="admin-page-header__actions"><a href="{% url 'jobs:admin_job_board' %}" class="btn btn-outline-secondary">Back to Job Board</a></div>
+        <div class="admin-page-header__actions">
+            <a href="{% url 'jobs:admin_job_board' %}" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1" aria-hidden="true"></i> Back to Job Board</a>
+        </div>
     </header>
-    <section class="staff-directory-filters" aria-label="Job status and metadata">
-        <div><strong>Status</strong><p>{% if job.is_active %}Active{% else %}Inactive{% endif %}</p></div>
-        <div><strong>Source</strong><p>{{ job.get_source_type_display }}</p></div>
-        <div><strong>Job type</strong><p>{{ job.get_job_type_display }}</p></div>
-        <div><strong>Applications</strong><p>{{ applications_count }}</p></div>
-        <div><strong>Posted</strong><p>{{ job.posted_date|date:'M d, Y' }}</p></div>
+
+    <div class="staff-job-toolbar" aria-label="Staff job management actions">
+        <div class="staff-job-toolbar__status">
+            {% if job.is_active %}<span class="staff-status staff-status--active"><i class="fas fa-circle-check me-1" aria-hidden="true"></i> Active posting</span>
+            {% else %}<span class="staff-status staff-status--inactive"><i class="fas fa-circle-minus me-1" aria-hidden="true"></i> Inactive posting</span>{% endif %}
+            {% if job.is_featured %}<span class="staff-status staff-status--featured"><i class="fas fa-star me-1" aria-hidden="true"></i> Featured</span>{% endif %}
+        </div>
+        <div class="staff-job-toolbar__buttons">
+            <a href="{% url 'jobs:edit_job' job.slug %}" class="btn btn-primary"><i class="fas fa-pen me-1" aria-hidden="true"></i> Edit Job</a>
+            <a href="{% url 'jobs:manage_applications' job.slug %}" class="btn btn-outline-secondary"><i class="fas fa-users me-1" aria-hidden="true"></i> Manage Applications{% if applications_count %} <span class="staff-job-button-count">{{ applications_count }}</span>{% endif %}</a>
+        </div>
+    </div>
+
+    <section class="staff-job-summary" aria-label="Job summary">
+        <div class="staff-job-summary__item">
+            <span class="staff-job-summary__icon"><i class="fas fa-sitemap" aria-hidden="true"></i></span>
+            <span class="staff-job-summary__label">Job type</span>
+            <strong>{{ job.get_job_type_display }}</strong>
+        </div>
+        <div class="staff-job-summary__item">
+            <span class="staff-job-summary__icon"><i class="fas fa-globe" aria-hidden="true"></i></span>
+            <span class="staff-job-summary__label">Source</span>
+            <strong>{{ job.get_source_type_display }}</strong>
+        </div>
+        <div class="staff-job-summary__item">
+            <span class="staff-job-summary__icon"><i class="fas fa-file-lines" aria-hidden="true"></i></span>
+            <span class="staff-job-summary__label">Applications</span>
+            <strong>{{ applications_count }}</strong>
+        </div>
+        <div class="staff-job-summary__item">
+            <span class="staff-job-summary__icon"><i class="far fa-calendar" aria-hidden="true"></i></span>
+            <span class="staff-job-summary__label">Posted</span>
+            <strong>{{ job.posted_date|date:'M d, Y' }}</strong>
+        </div>
     </section>
-    <section class="staff-directory-filters" aria-labelledby="adminJobDescription"><div style="width:100%"><h2 id="adminJobDescription" class="h5">Job description</h2><div>{{ job.job_description|linebreaks }}</div>{% if job.requirements %}<h3 class="h6">Requirements</h3><div>{{ job.requirements|linebreaks }}</div>{% endif %}</div></section>
-    <div class="d-flex flex-wrap gap-2"><a href="{% url 'jobs:edit_job' job.slug %}" class="btn btn-primary">Edit job</a><a href="{% url 'jobs:manage_applications' job.slug %}" class="btn btn-outline-primary">Manage applications</a></div>
+
+    <div class="staff-job-content-grid">
+        <div class="staff-job-content-primary">
+            <section class="staff-job-panel" aria-labelledby="adminJobDescription">
+                <div class="staff-job-panel__header"><i class="fas fa-align-left" aria-hidden="true"></i><h2 id="adminJobDescription">Job description</h2></div>
+                <div class="staff-job-panel__body staff-job-prose">
+                    {% if job.job_description %}{{ job.job_description|urlize|linebreaks }}{% else %}<p class="staff-job-empty">No description has been provided for this job.</p>{% endif %}
+                </div>
+            </section>
+            {% if job.responsibilities %}
+            <section class="staff-job-panel" aria-labelledby="adminJobResponsibilities">
+                <div class="staff-job-panel__header"><i class="fas fa-list-check" aria-hidden="true"></i><h2 id="adminJobResponsibilities">Responsibilities</h2></div>
+                <div class="staff-job-panel__body staff-job-prose">{{ job.responsibilities|linebreaks }}</div>
+            </section>
+            {% endif %}
+            {% if job.requirements or job.education_requirements or job.skills_required %}
+            <section class="staff-job-panel" aria-labelledby="adminJobRequirements">
+                <div class="staff-job-panel__header"><i class="fas fa-clipboard-check" aria-hidden="true"></i><h2 id="adminJobRequirements">Requirements &amp; qualifications</h2></div>
+                <div class="staff-job-panel__body staff-job-prose">
+                    {% if job.requirements %}{{ job.requirements|linebreaks }}{% endif %}
+                    {% if job.education_requirements %}<h3>Education</h3>{{ job.education_requirements|linebreaks }}{% endif %}
+                    {% if job.skills_required %}<h3>Skills required</h3>{{ job.skills_required|linebreaks }}{% endif %}
+                </div>
+            </section>
+            {% endif %}
+            {% if job.benefits %}
+            <section class="staff-job-panel" aria-labelledby="adminJobBenefits">
+                <div class="staff-job-panel__header"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i><h2 id="adminJobBenefits">Benefits</h2></div>
+                <div class="staff-job-panel__body staff-job-prose">{{ job.benefits|linebreaks }}</div>
+            </section>
+            {% endif %}
+        </div>
+        <aside class="staff-job-sidebar" aria-label="Job information">
+            <section class="staff-job-panel" aria-labelledby="adminJobAtAGlance">
+                <div class="staff-job-panel__header"><i class="fas fa-circle-info" aria-hidden="true"></i><h2 id="adminJobAtAGlance">At a glance</h2></div>
+                <dl class="staff-job-facts">
+                    <div><dt>Organization</dt><dd>{{ job.company_name }}</dd></div>
+                    <div><dt>Location</dt><dd>{{ job.location }}</dd></div>
+                    <div><dt>Experience level</dt><dd>{{ job.get_experience_level_display }}</dd></div>
+                    <div><dt>Category</dt><dd>{{ job.get_category_display }}</dd></div>
+                    {% if job.salary_range %}<div><dt>Salary range</dt><dd>{{ job.salary_range }}</dd></div>{% endif %}
+                    <div><dt>Job source</dt><dd>{{ job.get_source_display }}</dd></div>
+                    <div><dt>Last updated</dt><dd>{{ job.updated_at|date:'M d, Y' }}</dd></div>
+                    <div><dt>Application method</dt><dd>{% if job.accepts_internal_applications %}Internal applications{% else %}External / informational{% endif %}</dd></div>
+                </dl>
+                {% if job.application_link %}
+                <div class="staff-job-source-link">
+                    <a class="btn btn-outline-secondary" href="{{ job.application_link }}" target="_blank" rel="noopener noreferrer"><i class="fas fa-arrow-up-right-from-square me-1" aria-hidden="true"></i> Open external posting</a>
+                    <small>Opens the listed source in a new tab.</small>
+                </div>
+                {% endif %}
+            </section>
+        </aside>
+    </div>
 </div>
 {% endblock %}

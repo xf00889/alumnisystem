@@ -1,27 +1,88 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static admin_directory_pagination %}
 {% block title %}Admin Job Board | NORSU Alumni{% endblock %}
-{% block extra_css %}<link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">{% endblock %}
+{% block extra_css %}
+{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">
+{% endblock %}
 {% block content %}
-<div class="container-fluid staff-group-directory">
+<div class="container-fluid staff-group-directory staff-group-directory--jobs">
     <header class="admin-page-header admin-page-header--action-row">
         <div class="admin-page-header__content">
             <p class="admin-page-header__eyebrow">ADMINISTRATION / CAREER SERVICES</p>
-            <h1 class="admin-page-header__title">Job Board — Administration</h1>
-            <p class="admin-page-header__subtitle">Review published, inactive and externally sourced vacancies without member application controls.</p>
+            <h1 class="admin-page-header__title">Job Board</h1>
+            <p class="admin-page-header__subtitle">Monitor opportunities, review posting status and manage published vacancies.</p>
         </div>
-        <div class="admin-page-header__actions"><a class="btn btn-primary" href="{% url 'jobs:manage_jobs' %}">Manage Jobs</a></div>
+        <div class="admin-page-header__actions">
+            <a class="btn btn-outline-secondary" href="{% url 'jobs:manage_jobs' %}"><i class="fas fa-gear me-1" aria-hidden="true"></i> Manage Jobs</a>
+        </div>
     </header>
-    <form class="staff-directory-filters" method="get" role="search">
-        <div class="staff-directory-field staff-directory-field--search"><label for="adminJobQuery">Search jobs</label><input id="adminJobQuery" class="form-control" name="q" type="search" value="{{ query }}" placeholder="Title, company or location"></div>
-        <div class="staff-directory-field"><label for="adminJobState">Availability</label><select id="adminJobState" class="form-select" name="state"><option value="">All jobs</option><option value="active" {% if current_state == 'active' %}selected{% endif %}>Active</option><option value="inactive" {% if current_state == 'inactive' %}selected{% endif %}>Inactive</option></select></div>
-        <div class="staff-directory-field"><label for="adminJobSource">Source</label><select id="adminJobSource" class="form-select" name="source_type"><option value="">All sources</option>{% for code, label in source_types %}<option value="{{ code }}" {% if current_source == code %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></div>
-        <div class="staff-directory-actions"><button class="btn btn-primary" type="submit">Filter</button><a class="btn btn-outline-secondary" href="{% url 'jobs:admin_job_board' %}">Reset</a></div>
+
+    <form class="staff-directory-filters" method="get" role="search" aria-label="Filter job postings">
+        <div class="staff-directory-field staff-directory-field--search">
+            <label for="adminJobQuery">Search jobs</label>
+            <input id="adminJobQuery" class="form-control" name="q" type="search" value="{{ query }}" placeholder="Title, company or location">
+        </div>
+        <div class="staff-directory-field">
+            <label for="adminJobState">Availability</label>
+            <select id="adminJobState" class="form-select" name="state">
+                <option value="">All statuses</option>
+                <option value="active" {% if current_state == 'active' %}selected{% endif %}>Active</option>
+                <option value="inactive" {% if current_state == 'inactive' %}selected{% endif %}>Inactive</option>
+            </select>
+        </div>
+        <div class="staff-directory-field">
+            <label for="adminJobSource">Source</label>
+            <select id="adminJobSource" class="form-select" name="source_type">
+                <option value="">All sources</option>
+                {% for code, label in source_types %}
+                    <option value="{{ code }}" {% if current_source == code %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="staff-directory-actions">
+            <button class="btn btn-primary" type="submit"><i class="fas fa-filter me-1" aria-hidden="true"></i> Filter</button>
+            <a class="btn btn-outline-secondary" href="{% url 'jobs:admin_job_board' %}">Clear</a>
+        </div>
     </form>
-    <div class="staff-directory-table-wrap"><table class="table staff-directory-table"><thead><tr><th scope="col">Title / Company</th><th scope="col">Location</th><th scope="col">Type</th><th scope="col">Status</th><th scope="col">Posted</th><th scope="col">Actions</th></tr></thead>
-        <tbody>{% for job in jobs %}
-            <tr><td><strong>{{ job.job_title }}</strong><div class="staff-directory-muted">{{ job.company_name }}</div></td><td>{{ job.location }}</td><td>{{ job.get_job_type_display }}<div class="staff-directory-muted">{{ job.get_source_type_display }}</div></td><td>{% if job.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-secondary">Inactive</span>{% endif %}</td><td>{{ job.posted_date|date:'M d, Y' }}</td><td class="staff-directory-row-actions"><a class="btn btn-primary btn-sm" href="{% url 'jobs:admin_job_details' job.slug %}">View details</a><a class="btn btn-outline-secondary btn-sm" href="{% url 'jobs:edit_job' job.slug %}">Edit</a></td></tr>
-        {% empty %}<tr><td class="staff-directory-empty" colspan="6">No job postings match your filters.</td></tr>{% endfor %}</tbody></table></div>
-    {% if jobs.has_other_pages %}<nav aria-label="Job board pages" class="staff-directory-pagination">{% if jobs.has_previous %}<a href="?page={{ jobs.previous_page_number }}&amp;{{ filters_query }}">Previous</a>{% endif %}<span>Page {{ jobs.number }} of {{ jobs.paginator.num_pages }}</span>{% if jobs.has_next %}<a href="?page={{ jobs.next_page_number }}&amp;{{ filters_query }}">Next</a>{% endif %}</nav>{% endif %}
+
+    <section class="staff-directory-results" aria-label="Job listings">
+        <div class="staff-directory-results-heading">
+            <div>
+                <h2>Job postings</h2>
+                <p>Review each listing or open the existing edit workflow.</p>
+            </div>
+            <span class="staff-results-count">{{ jobs.paginator.count }} job{{ jobs.paginator.count|pluralize }}</span>
+        </div>
+        <div class="staff-directory-table-wrap" role="region" tabindex="0" aria-label="Job postings table, scroll horizontally on narrow screens">
+            <table class="table staff-directory-table">
+                <thead><tr>
+                    <th scope="col">Title / Company</th><th scope="col">Location</th><th scope="col">Type / Source</th>
+                    <th scope="col">Status</th><th scope="col">Posted</th><th scope="col">Actions</th>
+                </tr></thead>
+                <tbody>
+                {% for job in jobs %}
+                <tr>
+                    <td class="staff-directory-name-cell">
+                        <strong>{{ job.job_title }}</strong>
+                        <div class="staff-directory-muted">{{ job.company_name }}</div>
+                    </td>
+                    <td>{{ job.location }}</td>
+                    <td>{{ job.get_job_type_display }}<div class="staff-directory-muted">{{ job.get_source_type_display }}</div></td>
+                    <td>{% if job.is_active %}<span class="staff-status staff-status--active">Active</span>{% else %}<span class="staff-status staff-status--inactive">Inactive</span>{% endif %}</td>
+                    <td class="staff-directory-date">{{ job.posted_date|date:'M d, Y' }}</td>
+                    <td class="staff-directory-row-actions">
+                        <a class="btn btn-primary btn-sm" href="{% url 'jobs:admin_job_details' job.slug %}" aria-label="View details for {{ job.job_title }}"><i class="fas fa-eye me-1" aria-hidden="true"></i> Details</a>
+                        <a class="btn btn-outline-secondary btn-sm" href="{% url 'jobs:edit_job' job.slug %}" aria-label="Edit {{ job.job_title }}"><i class="fas fa-pen me-1" aria-hidden="true"></i> Edit</a>
+                    </td>
+                </tr>
+                {% empty %}
+                <tr><td class="staff-directory-empty" colspan="6"><i class="far fa-folder-open" aria-hidden="true"></i><strong>No matching job postings</strong><span>Adjust your filters or clear your search to see all jobs.</span><a class="btn btn-outline-secondary btn-sm" href="{% url 'jobs:admin_job_board' %}">Clear filters</a></td></tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% admin_directory_pagination jobs filters_query 'jobs' %}
+    </section>
 </div>
 {% endblock %}

@@ -1,75 +1,62 @@
 {% extends 'base.html' %}
-{% load static %}
+{% load static admin_directory_pagination %}
 {% block title %}Admin Group Directory | NORSU Alumni{% endblock %}
 {% block extra_css %}
+{{ block.super }}
 <link rel="stylesheet" href="{% static 'css/alumni/admin-group-directory.css' %}">
 <link rel="stylesheet" href="{% static 'css/admin/group-directory.css' %}">
 {% endblock %}
 {% block content %}
-<div class="container-fluid staff-group-directory">
+<div class="container-fluid staff-group-directory staff-group-directory--groups">
     <header class="admin-page-header admin-page-header--action-row">
         <div class="admin-page-header__content">
             <p class="admin-page-header__eyebrow">ADMINISTRATION / ALUMNI MANAGEMENT</p>
             <h1 class="admin-page-header__title">Group Administration</h1>
-            <p class="admin-page-header__subtitle">Manage group availability, review membership counts and inspect group ownership.</p>
+            <p class="admin-page-header__subtitle">Review group ownership, membership and availability from one administration workspace.</p>
         </div>
         <div class="admin-page-header__actions">
-            <a class="btn btn-primary" href="{% url 'alumni_groups:group_create_progressive' %}"><i class="fas fa-plus me-1" aria-hidden="true"></i> Create Group</a>
+            <a class="btn btn-outline-secondary" href="{% url 'alumni_groups:group_create_progressive' %}"><i class="fas fa-plus me-1" aria-hidden="true"></i> Create Group</a>
         </div>
     </header>
-    <form class="staff-directory-filters" method="get" role="search">
-        <div class="staff-directory-field staff-directory-field--search">
-            <label for="adminGroupSearch">Search groups</label>
-            <input id="adminGroupSearch" class="form-control" type="search" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Name or description">
-        </div>
-        <div class="staff-directory-field">
-            <label for="adminGroupType">Group type</label>
-            <select id="adminGroupType" class="form-select" name="type">
-                <option value="">All types</option>
-                <option value="AUTO" {% if request.GET.type == 'AUTO' %}selected{% endif %}>Automatic</option>
-                <option value="MANUAL" {% if request.GET.type == 'MANUAL' %}selected{% endif %}>Manual</option>
-                <option value="HYBRID" {% if request.GET.type == 'HYBRID' %}selected{% endif %}>Hybrid</option>
-            </select>
-        </div>
-        <div class="staff-directory-field">
-            <label for="adminGroupState">Availability</label>
-            <select id="adminGroupState" class="form-select" name="state">
-                <option value="">All statuses</option>
-                <option value="active" {% if request.GET.state == 'active' %}selected{% endif %}>Active</option>
-                <option value="disabled" {% if request.GET.state == 'disabled' %}selected{% endif %}>Disabled</option>
-            </select>
-        </div>
-        <div class="staff-directory-actions">
-            <button type="submit" class="btn btn-primary">Filter</button>
-            <a href="{% url 'alumni_groups:admin_group_directory' %}" class="btn btn-outline-secondary">Reset</a>
-        </div>
+    <form class="staff-directory-filters" method="get" role="search" aria-label="Filter alumni groups">
+        <div class="staff-directory-field staff-directory-field--search"><label for="adminGroupSearch">Search groups</label><input id="adminGroupSearch" class="form-control" type="search" name="search" value="{{ request.GET.search|default:'' }}" placeholder="Name or description"></div>
+        <div class="staff-directory-field"><label for="adminGroupType">Group type</label><select id="adminGroupType" class="form-select" name="type">
+            <option value="">All types</option>
+            <option value="AUTO" {% if request.GET.type == 'AUTO' %}selected{% endif %}>Automatic</option>
+            <option value="MANUAL" {% if request.GET.type == 'MANUAL' %}selected{% endif %}>Manual</option>
+            <option value="HYBRID" {% if request.GET.type == 'HYBRID' %}selected{% endif %}>Hybrid</option>
+        </select></div>
+        <div class="staff-directory-field"><label for="adminGroupState">Availability</label><select id="adminGroupState" class="form-select" name="state">
+            <option value="">All statuses</option>
+            <option value="active" {% if request.GET.state == 'active' %}selected{% endif %}>Active</option>
+            <option value="disabled" {% if request.GET.state == 'disabled' %}selected{% endif %}>Disabled</option>
+        </select></div>
+        <div class="staff-directory-actions"><button type="submit" class="btn btn-primary"><i class="fas fa-filter me-1" aria-hidden="true"></i> Filter</button><a href="{% url 'alumni_groups:admin_group_directory' %}" class="btn btn-outline-secondary">Clear</a></div>
     </form>
-    <div class="staff-directory-table-wrap">
-        <table class="table staff-directory-table">
-            <thead><tr><th scope="col">Group</th><th scope="col">Batch / Type</th><th scope="col">Administrator</th><th scope="col">Members</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
+    <section class="staff-directory-results" aria-label="Group listings">
+        <div class="staff-directory-results-heading">
+            <div><h2>Alumni groups</h2><p>Administrator summaries only. Member discussions and joining remain on alumni pages.</p></div>
+            <span class="staff-results-count">{{ page_obj.paginator.count }} group{{ page_obj.paginator.count|pluralize }}</span>
+        </div>
+        <div class="staff-directory-table-wrap" role="region" tabindex="0" aria-label="Group directory table, scroll horizontally on narrow screens">
+            <table class="table staff-directory-table"><thead><tr><th scope="col">Group</th><th scope="col">Batch / Type</th><th scope="col">Administrator</th><th scope="col">Members</th><th scope="col">Status</th><th scope="col">Actions</th></tr></thead>
             <tbody>
             {% for group in groups %}
                 <tr>
-                    <td><strong>{{ group.name }}</strong><div class="staff-directory-muted">{{ group.description|truncatewords:15 }}</div></td>
+                    <td class="staff-directory-name-cell"><strong>{{ group.name }}</strong><div class="staff-directory-muted">{{ group.description|truncatewords:15 }}</div></td>
                     <td>{% if group.batch_start_year %}{{ group.batch_start_year }}–{{ group.batch_end_year|default:group.batch_start_year }}{% else %}All batches{% endif %}<div class="staff-directory-muted">{{ group.get_group_type_display }}</div></td>
                     <td>{{ group.directory_admin_names }}</td>
                     <td>{{ group.directory_member_count }}</td>
-                    <td>{% if group.is_active %}<span class="badge text-bg-success">Active</span>{% else %}<span class="badge text-bg-danger">Disabled</span>{% endif %}</td>
+                    <td>{% if group.is_active %}<span class="staff-status staff-status--active">Active</span>{% else %}<span class="staff-status staff-status--inactive">Disabled</span>{% endif %}</td>
                     <td class="staff-directory-row-actions">{% include 'alumni_groups/partials/admin_group_actions.html' %}</td>
                 </tr>
             {% empty %}
-                <tr><td colspan="6" class="staff-directory-empty">No groups match your filters.</td></tr>
+                <tr><td colspan="6" class="staff-directory-empty"><i class="far fa-folder-open" aria-hidden="true"></i><strong>No matching groups</strong><span>Try different filters or clear your search.</span><a class="btn btn-outline-secondary btn-sm" href="{% url 'alumni_groups:admin_group_directory' %}">Clear filters</a></td></tr>
             {% endfor %}
-            </tbody>
-        </table>
-    </div>
-    {% if is_paginated %}
-    <nav aria-label="Group directory pages" class="staff-directory-pagination">
-        {% if page_obj.has_previous %}<a href="?page={{ page_obj.previous_page_number }}&amp;{{ filters_query }}">Previous</a>{% endif %}
-        <span>Page {{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
-        {% if page_obj.has_next %}<a href="?page={{ page_obj.next_page_number }}&amp;{{ filters_query }}">Next</a>{% endif %}
-    </nav>
-    {% endif %}
+            </tbody></table>
+        </div>
+        {% admin_directory_pagination page_obj filters_query 'groups' %}
+    </section>
 </div>
 {% include 'alumni_groups/partials/admin_group_modals.html' %}
 {% endblock %}

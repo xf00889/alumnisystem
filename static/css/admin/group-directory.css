@@ -1,16 +1,124 @@
-.staff-group-directory {max-width:1600px;margin:0 auto;padding:1rem 1.2rem 2rem;}
-.staff-directory-filters {display:flex;align-items:end;flex-wrap:wrap;gap:.75rem;padding:1rem;background:#fff;border:1px solid #e0e5ed;border-radius:12px;margin-bottom:1rem;}
-.staff-directory-field {min-width:170px;flex:1 1 170px;}
-.staff-directory-field--search {flex:2 1 280px;}
-.staff-directory-field label {display:block;font-size:.8rem;font-weight:600;margin-bottom:.32rem;color:#182a4e;}
-.staff-directory-actions {display:flex;gap:.4rem;padding-bottom:.05rem;}
-.staff-directory-table-wrap {overflow-x:auto;background:#fff;border:1px solid #e0e5ed;border-radius:12px;}
-.staff-directory-table {margin-bottom:0;min-width:860px;}
-.staff-directory-table th {background:#2c416e;color:#fff;font-size:.8rem;padding:.9rem;white-space:nowrap;}
-.staff-directory-table td {vertical-align:middle;padding:.8rem .9rem;font-size:.85rem;}
-.staff-directory-muted {color:#607088;font-size:.75rem;margin-top:.15rem;max-width:340px;}
-.staff-directory-row-actions {white-space:nowrap;}
-.staff-directory-row-actions .btn {font-size:.8rem;padding:.45rem .6rem;margin:.12rem;}
-.staff-directory-empty {text-align:center;color:#67758a;padding:2rem!important;}
-.staff-directory-pagination {display:flex;align-items:center;justify-content:center;gap:1rem;padding:1rem;}
-@media(max-width:700px){.staff-group-directory{padding:.7rem}.staff-directory-actions{width:100%;}.staff-directory-actions > *{flex:1;text-align:center;}}
+/* NORSU staff-only Group and Job directories. No alumni/public page selectors. */
+.staff-group-directory {
+    --staff-primary: #2b3e70;
+    --staff-primary-hover: #213259;
+    --staff-secondary: #5b6980;
+    --staff-secondary-border: #bbc7d7;
+    --staff-warm: #fbf8f2;
+    --staff-divider: #e0e5ed;
+    --staff-ink: #182a4c;
+    max-width: 1600px;
+    margin: 0 auto;
+    padding: 1rem 1.2rem 2.2rem;
+    color: var(--staff-ink);
+}
+.staff-group-directory :is(.btn, .form-control, .form-select) {
+    font-size: .85rem;
+}
+.staff-group-directory .btn {
+    display: inline-flex;
+    justify-content: center;
+    align-items: center;
+    gap: .18rem;
+    min-height: 40px;
+    padding: .52rem .87rem;
+    font-weight: 500;
+    border-radius: 8px;
+    text-decoration: none;
+    box-shadow: none !important;
+    transition: background-color .15s ease, border-color .15s ease, color .15s ease;
+}
+.staff-group-directory .btn.btn-sm {min-height: 36px;padding: .4rem .66rem;font-size: .78rem;}
+.staff-group-directory .btn-primary {
+    background: var(--staff-primary);border-color:var(--staff-primary);color:#fff;
+}
+.staff-group-directory .btn-primary:is(:hover,:focus-visible) {
+    background:var(--staff-primary-hover);border-color:var(--staff-primary-hover);color:#fff;
+}
+.staff-group-directory .btn-outline-secondary {
+    color:var(--staff-primary);border-color:var(--staff-secondary-border);background:#fff;
+}
+.staff-group-directory .btn-outline-secondary:is(:hover,:focus-visible) {
+    background:#edf1f7;border-color:#9aa8bf;color:var(--staff-primary);
+}
+.staff-group-directory :is(a, button, input, select):focus-visible {
+    outline:2px solid #cba773;outline-offset:2px;
+}
+.staff-directory-filters {
+    display:grid;
+    grid-template-columns:minmax(220px,1.7fr) repeat(2,minmax(155px,1fr)) auto;
+    align-items:end;
+    gap:.8rem;
+    padding:1.1rem;
+    background:#fff;
+    border:1px solid var(--staff-divider);
+    border-radius:12px;
+    margin-bottom:1rem;
+}
+.staff-directory-field {min-width:0;}
+.staff-directory-field label {display:block;font-size:.8rem;font-weight:600;margin-bottom:.35rem;color:var(--staff-ink);}
+.staff-directory-field :is(.form-control, .form-select) {
+    min-height:42px;border:1px solid #d3dbe7;border-radius:8px;background-color:#fff;
+    color:var(--staff-ink);padding:.5rem .8rem;box-shadow:none;
+}
+.staff-directory-actions {display:flex;align-items:end;gap:.45rem;white-space:nowrap;}
+.staff-directory-results {border:1px solid var(--staff-divider);border-radius:13px;overflow:hidden;background:#fff;}
+.staff-directory-results-heading {
+    padding:1rem 1.15rem;display:flex;align-items:center;justify-content:space-between;
+    gap:.9rem;background:#fff;border-bottom:1px solid var(--staff-divider);
+}
+.staff-directory-results-heading h2 {margin:0 0 .16rem;font-size:1.06rem;line-height:1.4;font-weight:600;color:var(--staff-ink);}
+.staff-directory-results-heading p {margin:0;color:var(--staff-secondary);font-size:.78rem;}
+.staff-results-count {font-size:.78rem;font-weight:600;padding:.35rem .63rem;border:1px solid #e0d6c8;border-radius:20px;background:var(--staff-warm);color:var(--staff-primary);white-space:nowrap;}
+.staff-directory-table-wrap {overflow-x:auto;overscroll-behavior-inline:contain;max-width:100%;background:#fff;}
+.staff-directory-table {min-width:870px;margin:0;width:100%;border-collapse:separate;border-spacing:0;}
+.staff-directory-table thead th {background:#2c416e;color:#fff;font-size:.76rem;letter-spacing:.025em;font-weight:600;white-space:nowrap;padding:.87rem .95rem;vertical-align:middle;border:0;}
+.staff-directory-table tbody td {color:var(--staff-ink);font-size:.83rem;line-height:1.45;vertical-align:middle;padding:.84rem .95rem;border-color:#e5e9f0;}
+.staff-directory-table tbody tr:last-child td {border-bottom:0;}
+.staff-directory-table tbody tr:hover {background:#fafbfe;}
+.staff-directory-name-cell {min-width:230px;max-width:445px;overflow-wrap:anywhere;}
+.staff-directory-name-cell strong {font-size:.86rem;font-weight:600;line-height:1.35;display:block;color:var(--staff-ink);}
+.staff-directory-muted {color:var(--staff-secondary);font-size:.75rem;line-height:1.45;margin-top:.15rem;max-width:430px;overflow-wrap:anywhere;}
+.staff-directory-date {white-space:nowrap;}
+.staff-directory-row-actions {min-width:188px;white-space:nowrap;}
+.staff-directory-row-actions .btn {margin:.1rem .17rem .1rem 0;}
+.staff-status {display:inline-flex;align-items:center;font-size:.72rem;font-weight:600;line-height:1.2;padding:.34rem .53rem;border-radius:6px;white-space:nowrap;}
+.staff-status--active {background:#e5f4ed;color:#146646;border:1px solid #c5e6d4;}
+.staff-status--inactive {background:#eff1f5;color:#586678;border:1px solid #dfe3e9;}
+.staff-status--featured {background:#fbf1df;color:#826126;border:1px solid #ead6b2;}
+.staff-directory-empty {text-align:center !important;padding:2.5rem 1rem!important;color:var(--staff-secondary)!important;}
+.staff-directory-empty > * {display:block;margin-inline:auto;}
+.staff-directory-empty i {font-size:1.7rem;color:#8694aa;margin-bottom:.7rem;}
+.staff-directory-empty strong {font-size:1rem;color:var(--staff-ink);margin-bottom:.2rem;}
+.staff-directory-empty span {font-size:.82rem;margin-bottom:.8rem;}
+.staff-directory-empty .btn {width:max-content;}
+.staff-directory-pagination-shell {padding:.84rem 1.1rem;border-top:1px solid var(--staff-divider);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.65rem;}
+.staff-directory-pagination-info {font-size:.77rem;color:var(--staff-secondary);margin:0;}
+.staff-directory-pagination {display:flex;align-items:center;justify-content:flex-end;gap:.33rem;flex-wrap:wrap;}
+.staff-page-numbers {display:flex;align-items:center;gap:.28rem;}
+.staff-page-link {display:inline-flex;align-items:center;justify-content:center;gap:.42rem;min-width:34px;min-height:34px;padding:.38rem .52rem;border:1px solid #d5dce7;border-radius:7px;text-decoration:none;color:var(--staff-primary);font-size:.78rem;font-weight:600;background:#fff;}
+.staff-page-link:not(.is-disabled):not(.is-current):hover {background:#edf1f7;border-color:#aab8ca;color:var(--staff-primary);}
+.staff-page-link.is-current {background:var(--staff-primary);border-color:var(--staff-primary);color:#fff;}
+.staff-page-link.is-disabled {color:#a0aab9;background:#f7f8fa;pointer-events:none;cursor:default;}
+.staff-page-link:focus-visible {outline:2px solid #cba773;outline-offset:2px;}
+.staff-page-ellipsis {font-size:.85rem;color:#738197;padding:0 .18rem;}
+/* The two staff pages share controls; leave existing modal behavior unchanged. */
+@media(max-width:1100px) {
+    .staff-directory-filters {grid-template-columns:repeat(2,minmax(0,1fr));}
+    .staff-directory-field--search {grid-column:1/-1;}
+    .staff-directory-actions {justify-content:flex-start;}
+}
+@media(max-width:700px) {
+    .staff-group-directory {padding:.7rem .65rem 1.5rem;}
+    .staff-directory-filters {grid-template-columns:1fr;gap:.65rem;padding:.85rem;}
+    .staff-directory-field--search {grid-column:auto;}
+    .staff-directory-actions {width:100%;}
+    .staff-directory-actions > * {flex:1;}
+    .staff-directory-results-heading {padding:.85rem;align-items:flex-start;}
+    .staff-directory-results-heading p {max-width:38ch;}
+    .staff-directory-table thead th {padding:.7rem;}
+    .staff-directory-table tbody td {padding:.7rem;}
+    .staff-directory-pagination-shell {padding:.8rem;justify-content:center;}
+    .staff-directory-pagination-info {width:100%;text-align:center;}
+}
+@media(prefers-reduced-motion:reduce) {.staff-group-directory .btn {transition:none;}}

@@ -27,7 +27,7 @@ def admin_job_board(request):
     params = request.GET.copy()
     params.pop('page', None)
     return render(request, 'jobs/admin/job_board.html', {
-        'jobs': Paginator(jobs.order_by('-posted_date'), 20).get_page(request.GET.get('page')),
+        'jobs': Paginator(jobs.order_by('-posted_date', '-pk'), 20).get_page(request.GET.get('page')),
         'query': query,
         'current_state': state,
         'current_source': source,
