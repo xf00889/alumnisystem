@@ -1,14 +1,15 @@
-"""Staff-only, cohort-based employability report (recorded hires, not census totals).
+"""Staff-only employability statistics from submitted NORSU alumni tracer answers.
 
-Counts an alumnus once, in the quarter of their earliest *recorded* hire
-within the chosen report year and before the snapshot date. The denominator is
-registered alumni profiles in the chosen graduating cohort; absent records do
-not establish unemployment. No survey answers or personally identifying rows
-are exposed by this aggregate report.
+Quarterly hires require an actual current-job start date provided by the alumnus.
+Submission date is never substituted for employment date.  Missing dates remain
+unknown; alumni who never answered a tracer survey do not enter the respondent
+denominator. Academic campus/college come from the related Alumni record, with
+an explicit tracer-campus answer used when it maps unambiguously.
 """
 import csv
+import json
 from collections import defaultdict
-from datetime import date, datetime
+from datetime import date, datetime, timedelta, time
 from zoneinfo import ZoneInfo
 from io import BytesIO
 
@@ -20,7 +21,8 @@ from django.views.decorators.http import require_GET
 
 from alumni_directory.models import Alumni
 from core.report_periods import export_download_name, parse_report_period
-from .models import EmploymentRecord
+from .models import SurveyResponse
+from .tracer_metadata import ALUMNI_TITLE
 from .tracer_study import _can_view_tracer_reports
 
 
@@ -34,11 +36,51 @@ def _int_param(params, key, default, low=1900, high=2200):
     return value
 
 
-def _aggregate(cohort, hires, campus_names, college_names):
-    """Pure aggregate; earliest hire per alumnus ensures no double count."""
+# Historical questionnaire campus options differ from alumni model codes.
+# Do not guess which Bais campus was attended: use the verified profile for it.
+TRACER_CAMPUS_CODES = {
+    'main campus i': 'MAIN', 'main campus ii': 'MAIN',
+    'bayawan-sta. catalina campus': 'BSC', 'siaton campus': 'SIATON',
+    'guihulngan campus': 'GUI', 'mabinay campus': 'MAB',
+    'pamplona campus': 'PAM',
+}
+
+
+def _answer_map(response):
+    """Extract canonical questionnaire keys without using free-text guessing."""
+    result = {}
+    for answer in response.answers.all():
+        question = answer.question
+        try:
+            meta = json.loads(question.help_text or '{}')
+        except (TypeError, ValueError):
+            continue
+        key = meta.get('key')
+        if key not in ('p2_year', 'p2_campus', 'p3_employed', 'p3_current_job_start'):
+            continue
+        if answer.selected_option_id:
+            result[key] = answer.selected_option.option_text.strip()
+        elif answer.text_answer:
+            result[key] = answer.text_answer.strip()
+    return result
+
+
+def _parse_job_start(raw, as_of):
+    try:
+        value = date.fromisoformat(raw)
+    except (ValueError, TypeError):
+        return None
+    return value if value <= as_of else None
+
+
+def _aggregate(cohort, hires, campus_names, college_names, employed_ids=None, undated_ids=None):
+    """Aggregate unique tracer respondents; dated starts count in one quarter."""
     members = {}
-    groups = defaultdict(lambda: {'graduates': 0, 'hires': [0, 0, 0, 0]})
+    groups = defaultdict(lambda: {'graduates': 0, 'hires': [0, 0, 0, 0],
+                                  'employed': 0, 'undated': 0})
     for pk, campus, college in cohort:
+        if pk in members:
+            continue
         group = (campus, college if campus == 'MAIN' else '')
         members[pk] = group
         groups[group]['graduates'] += 1
@@ -46,28 +88,40 @@ def _aggregate(cohort, hires, campus_names, college_names):
     for alumni_id, started in hires:
         if alumni_id in members and (alumni_id not in first_hires or started < first_hires[alumni_id]):
             first_hires[alumni_id] = started
+    if employed_ids is None:  # Preserve the pure helper's original calling convention.
+        employed_ids = set(first_hires)
+    employed_ids = set(employed_ids) & members.keys()
+    undated_ids = set(undated_ids or ()) & employed_ids
+    for alumni_id in employed_ids:
+        groups[members[alumni_id]]['employed'] += 1
+    for alumni_id in undated_ids:
+        groups[members[alumni_id]]['undated'] += 1
     for alumni_id, started in first_hires.items():
         groups[members[alumni_id]]['hires'][(started.month - 1) // 3] += 1
     rows = []
     for (campus, college), counts in sorted(groups.items(), key=lambda x: (x[0][0] != 'MAIN', x[0][0], x[0][1])):
-        graduates = counts['graduates']
+        population = counts['graduates']
         quarters = counts['hires']
         rows.append({
             'campus': campus, 'college': college,
             'name': college_names.get(college, college or 'Unspecified') if campus == 'MAIN' else campus_names.get(campus, campus or 'Unspecified'),
-            'graduates': graduates, 'hires': quarters,
-            'rates': [round(100 * count / graduates, 2) if graduates else 0 for count in quarters],
-            'total_hired': sum(quarters),
-            'rate': round(100 * sum(quarters) / graduates, 2) if graduates else 0,
+            'graduates': population, 'hires': quarters,
+            'rates': [round(100 * count / population, 2) if population else 0 for count in quarters],
+            'total_hired': sum(quarters), 'employed': counts['employed'], 'undated': counts['undated'],
+            'rate': round(100 * counts['employed'] / population, 2) if population else 0,
         })
     def subtotal(group_rows, label):
         people = sum(row['graduates'] for row in group_rows)
         quarters = [sum(row['hires'][i] for row in group_rows) for i in range(4)]
-        total = sum(quarters)
-        return {'name': label, 'graduates': people, 'hires': quarters,
-                'rates': [round(100 * v / people, 2) if people else 0 for v in quarters],
-                'total_hired': total, 'rate': round(100 * total / people, 2) if people else 0,
-                'subtotal': True}
+        employed = sum(row['employed'] for row in group_rows)
+        return {
+            'name': label, 'graduates': people, 'hires': quarters,
+            'rates': [round(100 * n / people, 2) if people else 0 for n in quarters],
+            'total_hired': sum(quarters), 'employed': employed,
+            'undated': sum(row['undated'] for row in group_rows),
+            'rate': round(100 * employed / people, 2) if people else 0,
+            'subtotal': True,
+        }
     mains = [row for row in rows if row['campus'] == 'MAIN']
     externals = [row for row in rows if row['campus'] != 'MAIN']
     display_rows = []
@@ -77,23 +131,22 @@ def _aggregate(cohort, hires, campus_names, college_names):
     if externals:
         display_rows.extend(externals)
         display_rows.append(subtotal(externals, 'External campuses subtotal'))
-    grads = len(members)
+    respondent_count = len(members)
     quarter_totals = [sum(row['hires'][i] for row in rows) for i in range(4)]
-    total_hired = sum(quarter_totals)
+    employed_total = len(employed_ids)
     for row in display_rows:
-        row['university_share'] = round(100 * row['total_hired'] / grads, 2) if grads else 0
+        row['university_share'] = round(100 * row['employed'] / respondent_count, 2) if respondent_count else 0
     return {
-        'rows': rows, 'display_rows': display_rows, 'graduates': grads, 'quarter_totals': quarter_totals,
-        'total_hired': total_hired,
-        'not_recorded': grads - total_hired,
-        'rate': round(100 * total_hired / grads, 2) if grads else 0,
-        'total_rates': [round(100 * n / grads, 2) if grads else 0 for n in quarter_totals],
+        'rows': rows, 'display_rows': display_rows, 'graduates': respondent_count,
+        'quarter_totals': quarter_totals, 'total_hired': sum(quarter_totals),
+        'employed': employed_total, 'undated': len(undated_ids),
+        'not_recorded': respondent_count - sum(quarter_totals),
+        'rate': round(100 * employed_total / respondent_count, 2) if respondent_count else 0,
+        'total_rates': [round(100 * n / respondent_count, 2) if respondent_count else 0 for n in quarter_totals],
     }
 
 
 def _report_data(params):
-    # USE_TZ=False makes timezone.now() naive and timezone.localdate() raises.
-    # Use the configured university timezone independently of the host OS zone.
     today = datetime.now(ZoneInfo(settings.TIME_ZONE)).date()
     cohort_year = _int_param(params, 'cohort_year', today.year - 1)
     report_year = _int_param(params, 'report_year', params.get('year') or today.year)
@@ -116,26 +169,56 @@ def _report_data(params):
     valid_campuses = dict(Alumni.CAMPUS_CHOICES)
     if campus_filter and campus_filter not in valid_campuses:
         raise ValueError('Choose a valid campus.')
-    cohort_query = Alumni.objects.filter(graduation_year=cohort_year)
-    if campus_filter:
-        cohort_query = cohort_query.filter(campus=campus_filter)
-    cohort = list(cohort_query.values_list('id', 'campus', 'college'))
-    hire_end = min(as_of, period.end, date(report_year, 12, 31))
-    hires = []
-    if hire_end >= period.start and cohort:
-        hires = list(EmploymentRecord.objects.filter(
-            alumni_id__in=[row[0] for row in cohort],
-            start_date__gte=period.start, start_date__lte=hire_end,
-        ).values_list('alumni_id', 'start_date'))
-    result = _aggregate(cohort, hires, valid_campuses, dict(Alumni.COLLEGE_CHOICES))
+
+    # Only submitted alumni tracer questionnaires count. The latest response
+    # as of the snapshot date wins when an alumnus answered multiple cycles.
+    cutoff = datetime.combine(as_of + timedelta(days=1), time.min)
+    response_query = (SurveyResponse.objects.filter(
+        survey__title=ALUMNI_TITLE, submitted_at__lt=cutoff,
+    ).select_related('alumni').prefetch_related('answers__question', 'answers__selected_option')
+     .order_by('alumni_id', '-submitted_at', '-pk'))
+    seen, cohort, hires, employed_ids, undated_ids = set(), [], [], set(), set()
+    for response in response_query:
+        if response.alumni_id in seen:
+            continue
+        seen.add(response.alumni_id)
+        alumni = response.alumni
+        answers = _answer_map(response)
+        year = alumni.graduation_year
+        try:
+            year = int(answers.get('p2_year') or year)
+        except (ValueError, TypeError):
+            pass
+        if year != cohort_year:
+            continue
+        campus = TRACER_CAMPUS_CODES.get((answers.get('p2_campus') or '').casefold(), alumni.campus)
+        if campus_filter and campus != campus_filter:
+            continue
+        cohort.append((response.alumni_id, campus, alumni.college))
+        if (answers.get('p3_employed') or '').strip().casefold() != 'yes':
+            continue
+        employed_ids.add(response.alumni_id)
+        raw_start = answers.get('p3_current_job_start')
+        started = _parse_job_start(raw_start, as_of) if raw_start else None
+        if started is None:
+            undated_ids.add(response.alumni_id)
+        elif period.start <= started <= min(as_of, period.end):
+            hires.append((response.alumni_id, started))
+
+    result = _aggregate(cohort, hires, valid_campuses, dict(Alumni.COLLEGE_CHOICES),
+                        employed_ids=employed_ids, undated_ids=undated_ids)
     result.update({
         'cohort_year': cohort_year, 'report_year': report_year, 'as_of': as_of,
         'campus_filter': campus_filter, 'campus_choices': Alumni.CAMPUS_CHOICES,
-        'generation_date': today, 'period':period, 'period_kind':period.kind,
-        'methodology': ('Counts registered alumni profiles only, not the complete official graduate registry. '
-                        'A recorded hire is the earliest employment start date within the selected timeframe. '
-                        'Each person counts once in the selected window; employment outside it and entries without start dates '
-                        'are not included. Missing hire records must not be interpreted as unemployment.'),
+        'generation_date': today, 'period': period, 'period_kind': period.kind,
+        'methodology': (
+            'Source: submitted NORSU alumni tracer-study questionnaire responses, latest response per alumnus '
+            'received on or before the as-of date. The cohort denominator is respondents, not the official '
+            'graduate registry. Employment rate uses the answer to "Are you presently employed?". '
+            'Quarterly counts require an explicit current-job start date, and only starts in the selected '
+            'timeframe are counted. Missing or invalid dates are reported as undated, never assigned to '
+            'the response-submission quarter. Campus may come from the tracer answer; college comes from '
+            'the linked alumni record. These are self-reported responses, not independently verified hires.'),
     })
     return result
 
@@ -145,24 +228,26 @@ def _table_rows(report):
         values = [row['name'], row['graduates']]
         for n, rate in zip(row['hires'], row['rates']):
             values += [n, f'{rate:.2f}%']
-        yield values + [row['total_hired'], f"{row['rate']:.2f}%", f"{row['university_share']:.2f}%"]
+        yield values + [row['employed'], row['undated'],
+                        f"{row['rate']:.2f}%", f"{row['university_share']:.2f}%"]
     totals = ['UNIVERSITY TOTAL', report['graduates']]
     for n, rate in zip(report['quarter_totals'], report['total_rates']):
         totals += [n, f'{rate:.2f}%']
-    yield totals + [report['total_hired'], f"{report['rate']:.2f}%", f"{report['rate']:.2f}%"]
+    yield totals + [report['employed'], report['undated'],
+                    f"{report['rate']:.2f}%", f"{report['rate']:.2f}%"]
 
 
 def _export_report(report, format_name):
     period = report['period']
     base = f"employability_cohort-{report['cohort_year']}_as-of-{report['as_of'].isoformat()}"
-    columns = ['Campus / College', 'Registered graduates'] + [name for q in range(1, 5) for name in (f'Hired Q{q}', f'Q{q} rate')] + ['Total hired', 'Group rate', 'Share of cohort']
+    columns = ['Campus / College', 'Tracer respondents'] + [name for q in range(1, 5) for name in (f'Hired Q{q}', f'Q{q} rate')] + ['Reported employed', 'Undated employed', 'Group rate', 'Share of respondents']
     rows = list(_table_rows(report))
     if format_name == 'csv':
         response = HttpResponse(content_type='text/csv; charset=utf-8')
         response['Content-Disposition'] = f'attachment; filename="{export_download_name(base, period, "csv")}"'
         writer = csv.writer(response)
-        writer.writerow(['NORSU OFFICE OF ALUMNI AFFAIRS — GRADUATE EMPLOYABILITY REPORT'])
-        writer.writerow(['Graduating cohort', report['cohort_year'], 'Hires in year', report['report_year'], 'Period', period.label, 'As of', report['as_of']])
+        writer.writerow(['NORSU OFFICE OF ALUMNI AFFAIRS - TRACER-RESPONSE EMPLOYABILITY REPORT'])
+        writer.writerow(['Graduating cohort', report['cohort_year'], 'Current job starts in year', report['report_year'], 'Period', period.label, 'As of', report['as_of']])
         writer.writerow([report['methodology']])
         writer.writerow(columns)
         writer.writerows(rows)
@@ -182,9 +267,9 @@ def _export_report(report, format_name):
         for values in rows:
             sheet.append(values)
         sheet.freeze_panes = 'C6'
-        sheet.auto_filter.ref = f'A5:M{sheet.max_row}'
+        sheet.auto_filter.ref = f'A5:N{sheet.max_row}'
         sheet.column_dimensions['A'].width = 44
-        for letter in 'BCDEFGHIJKLM':
+        for letter in 'BCDEFGHIJKLMN':
             sheet.column_dimensions[letter].width = 18
         for row in (1, 2):
             sheet.cell(row=row, column=1).font = Font(bold=True, color='172541', size=13)
@@ -219,14 +304,14 @@ def _export_report(report, format_name):
         if header_path.is_file():
             elements.append(Image(str(header_path), width=670, height=63))
         elements += [Paragraph('NEGROS ORIENTAL STATE UNIVERSITY', heading),
-                    Paragraph('Office of Alumni Affairs — Graduate Employability Report', styles['Heading3']),
+                    Paragraph('Office of Alumni Affairs - Tracer-response Employability Report', styles['Heading3']),
                     Paragraph(f"Graduating cohort {report['cohort_year']} | Reporting window {period.label} | As of {report['as_of']}", styles['Normal']),
                     Spacer(1, 12)]
         white_style = ParagraphStyle('norsu-col-header', parent=styles['Normal'], textColor=colors.white, fontSize=7)
         data = [[Paragraph(str(cell), white_style) for cell in columns]]
         for record in rows:
             data.append([Paragraph(str(cell), styles['Normal']) for cell in record])
-        tbl = Table(data, colWidths=[161, 72] + [42, 42] * 4 + [61, 56, 61], repeatRows=1, hAlign='CENTER')
+        tbl = Table(data, colWidths=[154, 70] + [39, 39] * 4 + [58, 50, 55, 57], repeatRows=1, hAlign='CENTER')
         tbl.setStyle(TableStyle([
             ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#172541')),
             ('TEXTCOLOR', (0,0), (-1,0), colors.whitesmoke),
