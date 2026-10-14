@@ -1,438 +1,373 @@
 {% extends 'base.html' %}
-{% load static %}
-{% load jobs_extras %}
+{% load static jobs_extras %}
 
 {% block title %}Manage Applications - {{ job.job_title|format_job_title }}{% endblock %}
 
-{% block extra_css %}
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
-{% endblock %}
-
-
-
 {% block content %}
-<script>document.documentElement.classList.add("fe-page--app-jobs-jobs-manage-applications-html");</script>
+<script>document.documentElement.classList.add('fe-page--app-jobs-jobs-manage-applications-html');</script>
 <link rel="stylesheet" href="{% static 'css/modules/jobs-app.css' %}">
+<link rel="stylesheet" href="{% static 'css/admin/job-applications.css' %}">
 
-<div class="container py-4">
-    <div class="row">
-        <!-- Header - Consistent with other pages -->
-        <div class="col-12">
-            <div class="directory-header admin-page-header">
-                <p class="admin-page-header__eyebrow">ADMINISTRATION / CAREER SERVICES</p>
-                <h1 class="directory-title admin-page-header__title">
-                    <i class="fas fa-users me-2"></i>
-                    Applications for {{ job.job_title|format_job_title }}
-                </h1>
-                <p class="directory-subtitle admin-page-header__subtitle">
-                    {{ job.applications.count }} total application{{ job.applications.count|pluralize }} • {{ job.company_name }}
-                </p>
+<div class="staff-applications-page container-fluid" aria-labelledby="applications-page-title">
+    <header class="staff-applications-hero">
+        <div class="staff-applications-hero__content">
+            <div class="staff-applications-hero__icon" aria-hidden="true"><i class="fas fa-users"></i></div>
+            <div class="staff-applications-hero__copy">
+                <p class="staff-applications-hero__eyebrow">ADMINISTRATION / CAREER SERVICES</p>
+                <h1 id="applications-page-title">Applications for {{ job.job_title|format_job_title }}</h1>
+                <p class="staff-applications-hero__subtitle">{{ job.applications.count }} total application{{ job.applications.count|pluralize }} <span aria-hidden="true">&middot;</span> {{ job.company_name }}</p>
             </div>
         </div>
+        <a href="{% url 'jobs:admin_job_board' %}" class="staff-applications-hero__back">
+            <i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Job Board
+        </a>
+    </header>
 
-        <!-- Application Stats -->
-        <div class="col-12 mb-4">
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="card card-stats card-pending text-white">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h5 class="card-title mb-1">Pending Review</h5>
-                                    <h2 class="mb-0">{{ stats.pending }}</h2>
-                                </div>
-                                <div class="ms-3">
-                                    <i class="fas fa-clock fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card card-stats card-shortlisted text-white">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h5 class="card-title mb-1">Shortlisted</h5>
-                                    <h2 class="mb-0">{{ stats.shortlisted }}</h2>
-                                </div>
-                                <div class="ms-3">
-                                    <i class="fas fa-user-check fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card card-stats card-interviewed text-white">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h5 class="card-title mb-1">Interviewed</h5>
-                                    <h2 class="mb-0">{{ stats.interviewed }}</h2>
-                                </div>
-                                <div class="ms-3">
-                                    <i class="fas fa-comments fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="card card-stats card-accepted text-white">
-                        <div class="card-body">
-                            <div class="d-flex align-items-center">
-                                <div class="flex-grow-1">
-                                    <h5 class="card-title mb-1">Accepted</h5>
-                                    <h2 class="mb-0">{{ stats.accepted }}</h2>
-                                </div>
-                                <div class="ms-3">
-                                    <i class="fas fa-check-circle fa-2x"></i>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+    <section class="staff-applications-stats" aria-label="Application status overview">
+        <div class="staff-applications-stat staff-applications-stat--pending">
+            <span class="staff-applications-stat__icon" aria-hidden="true"><i class="far fa-clock"></i></span>
+            <div class="staff-applications-stat__content">
+                <h2>Pending Review</h2>
+                <div class="staff-applications-stat__number">{{ stats.pending }}</div>
+                <p>applications</p>
             </div>
         </div>
+        <div class="staff-applications-stat staff-applications-stat--shortlisted">
+            <span class="staff-applications-stat__icon" aria-hidden="true"><i class="fas fa-user-check"></i></span>
+            <div class="staff-applications-stat__content">
+                <h2>Shortlisted</h2>
+                <div class="staff-applications-stat__number">{{ stats.shortlisted }}</div>
+                <p>applications</p>
+            </div>
+        </div>
+        <div class="staff-applications-stat staff-applications-stat--interviewed">
+            <span class="staff-applications-stat__icon" aria-hidden="true"><i class="far fa-comments"></i></span>
+            <div class="staff-applications-stat__content">
+                <h2>Interviewed</h2>
+                <div class="staff-applications-stat__number">{{ stats.interviewed }}</div>
+                <p>applications</p>
+            </div>
+        </div>
+        <div class="staff-applications-stat staff-applications-stat--accepted">
+            <span class="staff-applications-stat__icon" aria-hidden="true"><i class="far fa-check-circle"></i></span>
+            <div class="staff-applications-stat__content">
+                <h2>Accepted</h2>
+                <div class="staff-applications-stat__number">{{ stats.accepted }}</div>
+                <p>applications</p>
+            </div>
+        </div>
+    </section>
 
-        <!-- Applications List -->
-        <div class="col-12">
-            <div class="card">
-                <div class="card-header">
-                    <div class="row align-items-center">
-                        <div class="col">
-                            <h3 class="card-title h5 mb-0">Applications</h3>
-                        </div>
-                        <div class="col-auto">
-                            <div class="btn-group">
-                                <button type="button" class="btn btn-sm btn-outline-primary dropdown-toggle" data-bs-toggle="dropdown">
-                                    Filter by Status
-                                </button>
-                                <ul class="dropdown-menu">
-                                    <li><a class="dropdown-item {% if not status %}active{% endif %}" href="?">All</a></li>
-                                    {% for status_code, status_label in status_choices %}
-                                    <li>
-                                        <a class="dropdown-item {% if status == status_code %}active{% endif %}" 
-                                           href="?status={{ status_code }}">
-                                            {{ status_label }}
-                                        </a>
-                                    </li>
-                                    {% endfor %}
-                                </ul>
-                            </div>
-                        </div>
-                    </div>
+    <section class="staff-applications-panel" aria-labelledby="applications-list-heading">
+        <div class="staff-applications-panel__heading">
+            <div class="staff-applications-panel__title">
+                <span class="staff-applications-panel__icon" aria-hidden="true"><i class="fas fa-file-alt"></i></span>
+                <div>
+                    <h2 id="applications-list-heading">Applications</h2>
+                    <p>Review applicants and manage their application statuses.</p>
                 </div>
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover align-middle">
-                            <thead>
-                                <tr>
-                                    <th>Applicant</th>
-                                    <th>Status</th>
-                                    <th>Applied Date</th>
-                                    <th>Documents</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {% for application in applications %}
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            {% if application.applicant.profile.avatar %}
-                                            <img src="{{ application.applicant.profile.avatar.url }}" 
-                                                 class="rounded-circle me-2" width="32" height="32">
-                                            {% else %}
-                                            <i class="fas fa-user-circle fa-2x me-2 text-secondary"></i>
-                                            {% endif %}
-                                            <div>
-                                                <div class="fw-bold">{{ application.applicant.get_full_name }}</div>
-                                                <div class="small text-muted">{{ application.applicant.email }}</div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <select class="form-select form-select-sm status-select" 
-                                                data-application-id="{{ application.id }}"
-                                                style="width: 150px;">
-                                            {% for status_code, status_label in status_choices %}
-                                            <option value="{{ status_code }}" 
-                                                    {% if application.status == status_code %}selected{% endif %}>
-                                                {{ status_label }}
-                                            </option>
-                                            {% endfor %}
-                                        </select>
-                                    </td>
-                                    <td>{{ application.application_date|date:"M d, Y" }}</td>
-                                    <td>
-                                        <div class="btn-group">
-                                            {% if application.resume %}
-                                            <a href="{{ application.resume.url }}" class="btn btn-sm btn-outline-primary"
-                                               target="_blank" rel="noopener noreferrer" title="View Resume">
-                                                <i class="fas fa-file-alt"></i>
-                                            </a>
-                                            {% else %}<span class="small text-muted">No resume attached</span>{% endif %}
-                                            {% if application.additional_documents %}
-                                            <a href="{{ application.additional_documents.url }}" 
-                                               class="btn btn-sm btn-outline-info" target="_blank" rel="noopener noreferrer" 
-                                               title="View Additional Documents">
-                                                <i class="fas fa-file-archive"></i>
-                                            </a>
-                                            {% endif %}
-                                        </div>
-                                    </td>
-                                    <td>
-                                        <div class="btn-group">
-                                            <button type="button" class="btn btn-sm btn-outline-primary"
-                                                    onclick="viewApplication('{{ application.id }}')"
-                                                    title="View Details">
-                                                <i class="fas fa-eye"></i>
-                                            </button>
-                                            <button type="button" class="btn btn-sm btn-outline-info"
-                                                    onclick="addNote('{{ application.id }}')"
-                                                    title="Add Note">
-                                                <i class="fas fa-comment"></i>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                                {% empty %}
-                                <tr>
-                                    <td colspan="5" class="text-center py-4">
-                                        <p class="text-muted mb-0">No applications found.</p>
-                                    </td>
-                                </tr>
+            </div>
+            <div class="dropdown">
+                <button type="button" class="btn staff-applications-filter dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Filter applications by status">
+                    <i class="fas fa-filter" aria-hidden="true"></i>
+                    {% if status %}{% for code, label in status_choices %}{% if status == code %}{{ label }}{% endif %}{% endfor %}{% else %}Filter by Status{% endif %}
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item{% if not status %} active{% endif %}" href="?">All applications</a></li>
+                    {% for code, label in status_choices %}
+                    <li><a class="dropdown-item{% if status == code %} active{% endif %}" href="?status={{ code|urlencode }}">{{ label }}</a></li>
+                    {% endfor %}
+                </ul>
+            </div>
+        </div>
+        <div id="applicationActionFeedback" class="staff-applications-feedback" role="status" aria-live="polite" hidden></div>
+
+        <div class="staff-applications-table-wrap table-responsive">
+            <table class="table staff-applications-table align-middle">
+                <thead>
+                    <tr>
+                        <th scope="col">Applicant</th>
+                        <th scope="col">Status</th>
+                        <th scope="col">Applied Date</th>
+                        <th scope="col">Documents</th>
+                        <th scope="col">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for application in applications %}
+                    <tr>
+                        <td>
+                            <div class="staff-applicant">
+                                {% if application.applicant.profile.avatar %}
+                                <img src="{{ application.applicant.profile.avatar.url }}" alt="" class="staff-applicant__avatar" loading="lazy">
+                                {% else %}
+                                <span class="staff-applicant__avatar staff-applicant__avatar--placeholder" aria-hidden="true"><i class="fas fa-user"></i></span>
+                                {% endif %}
+                                <div class="staff-applicant__identity">
+                                    <strong>{{ application.applicant.get_full_name|default:application.applicant.username }}</strong>
+                                    <small>{{ application.applicant.email }}</small>
+                                </div>
+                            </div>
+                        </td>
+                        <td>
+                            <label class="visually-hidden" for="application-status-{{ application.id }}">Application status for {{ application.applicant.get_full_name|default:application.applicant.username }}</label>
+                            <select id="application-status-{{ application.id }}" class="form-select form-select-sm status-select"
+                                    data-application-id="{{ application.id }}"
+                                    data-update-url="{% url 'jobs:update_application_status' application.id %}"
+                                    data-original-value="{{ application.status }}">
+                                {% for code, label in status_choices %}
+                                <option value="{{ code }}"{% if application.status == code %} selected{% endif %}>{{ label }}</option>
                                 {% endfor %}
-                            </tbody>
-                        </table>
-                    </div>
+                            </select>
+                        </td>
+                        <td class="staff-applications-date">{{ application.application_date|date:'M d, Y' }}</td>
+                        <td>
+                            <div class="staff-applications-action-group" aria-label="Applicant documents">
+                                {% if application.resume %}
+                                <a href="{{ application.resume.url }}" class="btn staff-applications-action staff-applications-action--secondary" target="_blank" rel="noopener noreferrer" title="View resume" aria-label="View resume for {{ application.applicant.get_full_name|default:application.applicant.username }}"><i class="far fa-file-alt" aria-hidden="true"></i></a>
+                                {% else %}
+                                <span class="staff-applications-no-document">No resume</span>
+                                {% endif %}
+                                {% if application.additional_documents %}
+                                <a href="{{ application.additional_documents.url }}" class="btn staff-applications-action staff-applications-action--secondary" target="_blank" rel="noopener noreferrer" title="Additional documents" aria-label="View additional documents for {{ application.applicant.get_full_name|default:application.applicant.username }}"><i class="fas fa-folder-open" aria-hidden="true"></i></a>
+                                {% endif %}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="staff-applications-action-group" aria-label="Application actions">
+                                <button type="button" class="btn staff-applications-action staff-applications-action--primary" data-view-application="{{ application.id }}" data-details-url="{% url 'jobs:application_details' application.id %}" title="View application" aria-label="View application for {{ application.applicant.get_full_name|default:application.applicant.username }}"><i class="far fa-eye" aria-hidden="true"></i></button>
+                                <button type="button" class="btn staff-applications-action staff-applications-action--secondary" data-add-note="{{ application.id }}" title="Add note" aria-label="Add note for {{ application.applicant.get_full_name|default:application.applicant.username }}"><i class="far fa-comment-dots" aria-hidden="true"></i></button>
+                            </div>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="5">
+                            <div class="staff-applications-empty">
+                                <span class="staff-applications-empty__icon" aria-hidden="true"><i class="far fa-file-alt"></i></span>
+                                <h3>No applications found</h3>
+                                {% if status %}
+                                <p>No applications match the selected status. Try viewing all applications.</p>
+                                <a href="?" class="btn staff-applications-empty__button"><i class="fas fa-filter" aria-hidden="true"></i> Clear filter</a>
+                                {% else %}
+                                <p>Applications for this job will appear here once alumni begin applying.</p>
+                                <a href="{% url 'jobs:admin_job_board' %}" class="btn staff-applications-empty__button"><i class="fas fa-arrow-left" aria-hidden="true"></i> Back to Job Board</a>
+                                {% endif %}
+                            </div>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
 
-                    {% if applications.has_other_pages %}
-                    <nav aria-label="Page navigation" class="mt-4">
-                        <ul class="pagination justify-content-center">
-                            {% if applications.has_previous %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ applications.previous_page_number }}{% if status %}&status={{ status }}{% endif %}">
-                                    Previous
-                                </a>
-                            </li>
-                            {% endif %}
+        {% if applications.has_other_pages %}
+        <nav class="staff-applications-pagination" aria-label="Application pages">
+            <span class="staff-applications-pagination__count">Page {{ applications.number }} of {{ applications.paginator.num_pages }}</span>
+            <ul class="pagination mb-0">
+                <li class="page-item{% if not applications.has_previous %} disabled{% endif %}">
+                    {% if applications.has_previous %}<a class="page-link" href="?page={{ applications.previous_page_number }}{% if status %}&amp;status={{ status|urlencode }}{% endif %}"><i class="fas fa-chevron-left" aria-hidden="true"></i> Previous</a>{% else %}<span class="page-link" aria-disabled="true">Previous</span>{% endif %}
+                </li>
+                {% for num in applications.paginator.page_range %}
+                    {% if num == applications.number %}<li class="page-item active"><span class="page-link" aria-current="page">{{ num }}</span></li>
+                    {% else %}<li class="page-item"><a class="page-link" href="?page={{ num }}{% if status %}&amp;status={{ status|urlencode }}{% endif %}">{{ num }}</a></li>{% endif %}
+                {% endfor %}
+                <li class="page-item{% if not applications.has_next %} disabled{% endif %}">
+                    {% if applications.has_next %}<a class="page-link" href="?page={{ applications.next_page_number }}{% if status %}&amp;status={{ status|urlencode }}{% endif %}">Next <i class="fas fa-chevron-right" aria-hidden="true"></i></a>{% else %}<span class="page-link" aria-disabled="true">Next</span>{% endif %}
+                </li>
+            </ul>
+        </nav>
+        {% endif %}
+    </section>
+</div>
 
-                            {% for num in applications.paginator.page_range %}
-                            <li class="page-item {% if applications.number == num %}active{% endif %}">
-                                <a class="page-link" href="?page={{ num }}{% if status %}&status={{ status }}{% endif %}">
-                                    {{ num }}
-                                </a>
-                            </li>
-                            {% endfor %}
-
-                            {% if applications.has_next %}
-                            <li class="page-item">
-                                <a class="page-link" href="?page={{ applications.next_page_number }}{% if status %}&status={{ status }}{% endif %}">
-                                    Next
-                                </a>
-                            </li>
-                            {% endif %}
-                        </ul>
-                    </nav>
-                    {% endif %}
+<!-- Existing application review workflows remain on this page. -->
+<div class="modal fade" id="applicationModal" tabindex="-1" aria-labelledby="applicationModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg modal-dialog-scrollable">
+        <div class="modal-content staff-applications-modal">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="applicationModalLabel">Application Details</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="applicationDetails">Loading application details…</div>
+        </div>
+    </div>
+</div>
+<div class="modal fade" id="noteModal" tabindex="-1" aria-labelledby="noteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content staff-applications-modal">
+            <div class="modal-header">
+                <h2 class="modal-title fs-5" id="noteModalLabel">Add Application Note</h2>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="noteForm" method="post">
+                {% csrf_token %}
+                <div class="modal-body">
+                    <label for="note" class="form-label">Note</label>
+                    <textarea class="form-control" id="note" name="note" rows="4" maxlength="2000" placeholder="Add an internal note about this applicant" required></textarea>
+                    <p class="form-text">Only authorized career-services staff should have access to application notes.</p>
                 </div>
-            </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="saveNoteButton">Save Note</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<!-- Application Details Modal -->
-<div class="modal fade" id="applicationModal" tabindex="-1">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Application Details</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body" id="applicationDetails">
-                Loading...
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Add Note Modal -->
-<div class="modal fade" id="noteModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title">Add Note</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <div class="modal-body">
-                <form id="noteForm" method="POST">
-                    {% csrf_token %}
-                    <div class="mb-3">
-                        <label for="note" class="form-label">Note</label>
-                        <textarea class="form-control" id="note" name="note" rows="3" required></textarea>
-                    </div>
-                    <div class="text-end">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Note</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-</div>
-
-{% block extra_js %}
 <script>
-// Show email modal
-function showEmailModal(applicantName, applicantEmail, jobTitle) {
-    document.getElementById('emailTo').value = applicantEmail;
-    document.getElementById('emailSubject').value = `Re: Application for ${jobTitle}`;
-    
-    const emailModal = new bootstrap.Modal(document.getElementById('emailModal'));
-    emailModal.show();
-}
+(function () {
+    'use strict';
+    const csrfToken = '{{ csrf_token }}';
+    let currentApplicationId = null;
+    let currentDetailsUrl = null;
+    let noteApplicationId = null;
 
-// Handle email form submission
-document.addEventListener('DOMContentLoaded', function() {
-    const emailForm = document.getElementById('emailForm');
-    if (emailForm) {
-        emailForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const formData = new FormData(this);
-            
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    subject: formData.get('subject'),
-                    message: formData.get('message')
-                })
-            })
-            .then(response => response.json())
-            .then(data => {
-                if (data.success) {
-                    // Close the modal
-                    bootstrap.Modal.getInstance(document.getElementById('emailModal')).hide();
-                    // Show success message
-                    alert('Email sent successfully!');
-                    // Refresh application details
-                    viewApplication(currentApplicationId);
-                } else {
-                    alert('Error sending email: ' + data.error);
-                }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert('Error sending email. Please try again.');
-            });
-        });
+    const feedback = document.getElementById('applicationActionFeedback');
+    const reviewModalElement = document.getElementById('applicationModal');
+    const noteModalElement = document.getElementById('noteModal');
+    const noteForm = document.getElementById('noteForm');
+    const noteInput = document.getElementById('note');
+    const saveNoteButton = document.getElementById('saveNoteButton');
+
+    function announce(message, isError) {
+        feedback.textContent = message;
+        feedback.hidden = false;
+        feedback.classList.toggle('is-error', Boolean(isError));
     }
-});
 
-// Update application status
-document.querySelectorAll('.status-select').forEach(select => {
-    select.addEventListener('change', function() {
-        const applicationId = this.dataset.applicationId;
-        const status = this.value;
-        
-        fetch(`/jobs/application/${applicationId}/update-status/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({ status })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                // Show success message
-                alert('Status updated successfully');
-            } else {
-                // Show error message
-                alert('Error updating status');
-                // Reset select to previous value
-                this.value = this.dataset.originalValue;
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error updating status');
-            this.value = this.dataset.originalValue;
-        });
+    async function readJson(response) {
+        let payload;
+        try { payload = await response.json(); }
+        catch (_) { throw new Error('The server returned an unexpected response.'); }
+        if (!response.ok || payload.success === false) {
+            throw new Error(payload.error || 'The request could not be completed.');
+        }
+        return payload;
+    }
+
+    async function loadApplication(applicationId, detailsUrl) {
+        currentApplicationId = applicationId;
+        currentDetailsUrl = detailsUrl;
+        const body = document.getElementById('applicationDetails');
+        body.textContent = 'Loading application details…';
+        bootstrap.Modal.getOrCreateInstance(reviewModalElement).show();
+        try {
+            const response = await fetch(detailsUrl, {headers: {'X-Requested-With': 'XMLHttpRequest'}});
+            const data = await readJson(response);
+            // The HTML is rendered by Django's existing staff-only application-details view.
+            body.innerHTML = data.html;
+            // The existing details partial includes an email modal. Keep it outside the
+            // details dialog so Bootstrap never has to open two nested modals.
+            const emailModal = body.querySelector('#emailModal');
+            const olderEmailModal = document.body.querySelector(':scope > #emailModal');
+            if (olderEmailModal) olderEmailModal.remove();
+            if (emailModal) document.body.appendChild(emailModal);
+        } catch (error) {
+            body.textContent = error.message || 'Unable to load application details.';
+        }
+    }
+
+    document.querySelectorAll('[data-view-application]').forEach(button => {
+        button.addEventListener('click', () => loadApplication(button.dataset.viewApplication, button.dataset.detailsUrl));
     });
-});
 
-let currentApplicationId = null;
+    // Delegation also supports status controls inside dynamically loaded details.
+    document.addEventListener('change', async function (event) {
+        const select = event.target.closest('.status-select');
+        if (!select) return;
+        const previous = select.dataset.originalValue || select.value;
+        const url = select.dataset.updateUrl || `/jobs/application/${encodeURIComponent(select.dataset.applicationId)}/update-status/`;
+        select.disabled = true;
+        try {
+            const response = await fetch(url, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest'},
+                body:JSON.stringify({status:select.value}),
+            });
+            await readJson(response);
+            select.dataset.originalValue = select.value;
+            announce('Application status updated.', false);
+        } catch (error) {
+            select.value = previous;
+            announce(error.message || 'Unable to update application status.', true);
+        } finally {
+            select.disabled = false;
+        }
+    });
 
-// View application details
-function viewApplication(applicationId) {
-    currentApplicationId = applicationId;
-    const modal = new bootstrap.Modal(document.getElementById('applicationModal'));
-    const detailsContainer = document.getElementById('applicationDetails');
-    
-    // Load application details
-    fetch(`/jobs/application/${applicationId}/details/`)
-        .then(response => response.json())
-        .then(data => {
-            detailsContainer.innerHTML = data.html;
-            modal.show();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            detailsContainer.innerHTML = 'Error loading application details.';
-        });
-}
+    function openNoteDialog(applicationId) {
+        noteApplicationId = applicationId;
+        noteForm.reset();
+        bootstrap.Modal.getOrCreateInstance(noteModalElement).show();
+    }
+    document.querySelectorAll('[data-add-note]').forEach(button => {
+        button.addEventListener('click', () => openNoteDialog(button.dataset.addNote));
+    });
 
-// Add note to application
-function addNote(applicationId) {
-    const modal = new bootstrap.Modal(document.getElementById('noteModal'));
-    const form = document.getElementById('noteForm');
-    
-    form.onsubmit = function(e) {
-        e.preventDefault();
-        
-        fetch(`/jobs/application/${applicationId}/add-note/`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-CSRFToken': '{{ csrf_token }}'
-            },
-            body: JSON.stringify({
-                note: document.getElementById('note').value
-            })
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                modal.hide();
-                // Refresh the application details if modal is open
-                if (currentApplicationId === applicationId) {
-                    viewApplication(applicationId);
-                } else {
-                    // Otherwise reload the page
-                    location.reload();
-                }
-            } else {
-                alert('Error adding note');
-            }
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            alert('Error adding note');
-        });
+    // Preserve the buttons exposed by the existing application_details.html partial.
+    window.viewApplication = function (id) {
+        return loadApplication(id, `/jobs/application/${encodeURIComponent(id)}/details/`);
     };
-    
-    modal.show();
-}
+    window.addNote = openNoteDialog;
+    window.showEmailModal = function (_name, email, title) {
+        const modalEl = document.getElementById('emailModal');
+        if (!modalEl) { announce('Email composer is unavailable.', true); return; }
+        const emailTo = modalEl.querySelector('#emailTo');
+        const emailSubject = modalEl.querySelector('#emailSubject');
+        if (emailTo) emailTo.value = email;
+        if (emailSubject) emailSubject.value = `Re: Application for ${title}`;
+        // Existing application-modal implementations allow the email modal to open
+        // after the detail modal is hidden. Restore the detail when email closes.
+        bootstrap.Modal.getOrCreateInstance(reviewModalElement).hide();
+        bootstrap.Modal.getOrCreateInstance(modalEl).show();
+    };
+    document.addEventListener('submit', async function (event) {
+        if (event.target.id !== 'emailForm') return;
+        event.preventDefault();
+        const form = event.target;
+        const data = new FormData(form);
+        const submitButton = form.querySelector('[type="submit"]');
+        if (submitButton) submitButton.disabled = true;
+        try {
+            const response = await fetch(form.action, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest'},
+                body:JSON.stringify({subject:data.get('subject'),message:data.get('message')})
+            });
+            await readJson(response);
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('emailModal')).hide();
+            announce('Email sent to the applicant.', false);
+        } catch (error) {
+            announce(error.message || 'Unable to send email.', true);
+        } finally {
+            if (submitButton) submitButton.disabled = false;
+        }
+    });
+
+    noteForm.addEventListener('submit', async function (event) {
+        event.preventDefault();
+        if (!noteApplicationId || !noteInput.value.trim()) return;
+        saveNoteButton.disabled = true;
+        try {
+            const response = await fetch(`/jobs/application/${encodeURIComponent(noteApplicationId)}/add-note/`, {
+                method:'POST',
+                headers:{'Content-Type':'application/json','X-CSRFToken':csrfToken,'X-Requested-With':'XMLHttpRequest'},
+                body:JSON.stringify({note:noteInput.value.trim()})
+            });
+            await readJson(response);
+            bootstrap.Modal.getOrCreateInstance(noteModalElement).hide();
+            announce('Note saved to the application.', false);
+            if (reviewModalElement.classList.contains('show') && currentApplicationId === noteApplicationId && currentDetailsUrl) {
+                await loadApplication(currentApplicationId, currentDetailsUrl);
+            }
+        } catch (error) {
+            announce(error.message || 'Unable to add a note.', true);
+        } finally {
+            saveNoteButton.disabled = false;
+        }
+    });
+})();
 </script>
-{% endblock %}
 {% endblock %}
