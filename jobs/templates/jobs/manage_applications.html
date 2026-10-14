@@ -169,13 +169,15 @@
                                     <td>{{ application.application_date|date:"M d, Y" }}</td>
                                     <td>
                                         <div class="btn-group">
-                                            <a href="{{ application.resume.url }}" class="btn btn-sm btn-outline-primary" 
-                                               target="_blank" title="View Resume">
+                                            {% if application.resume %}
+                                            <a href="{{ application.resume.url }}" class="btn btn-sm btn-outline-primary"
+                                               target="_blank" rel="noopener noreferrer" title="View Resume">
                                                 <i class="fas fa-file-alt"></i>
                                             </a>
+                                            {% else %}<span class="small text-muted">No resume attached</span>{% endif %}
                                             {% if application.additional_documents %}
                                             <a href="{{ application.additional_documents.url }}" 
-                                               class="btn btn-sm btn-outline-info" target="_blank" 
+                                               class="btn btn-sm btn-outline-info" target="_blank" rel="noopener noreferrer" 
                                                title="View Additional Documents">
                                                 <i class="fas fa-file-archive"></i>
                                             </a>
@@ -341,7 +343,7 @@ document.querySelectorAll('.status-select').forEach(select => {
         const applicationId = this.dataset.applicationId;
         const status = this.value;
         
-        fetch(`/jobs/applications/${applicationId}/update-status/`, {
+        fetch(`/jobs/application/${applicationId}/update-status/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -378,7 +380,7 @@ function viewApplication(applicationId) {
     const detailsContainer = document.getElementById('applicationDetails');
     
     // Load application details
-    fetch(`/jobs/applications/${applicationId}/details/`)
+    fetch(`/jobs/application/${applicationId}/details/`)
         .then(response => response.json())
         .then(data => {
             detailsContainer.innerHTML = data.html;
@@ -398,7 +400,7 @@ function addNote(applicationId) {
     form.onsubmit = function(e) {
         e.preventDefault();
         
-        fetch(`/jobs/applications/${applicationId}/add-note/`, {
+        fetch(`/jobs/application/${applicationId}/add-note/`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

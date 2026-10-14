@@ -18,6 +18,7 @@ urlpatterns = [
 
     path('application/<int:application_id>/details/', views.application_details, name='application_details'),
     path('application/<int:application_id>/update-status/', views.update_application_status, name='update_application_status'),
+    path('application/<int:application_id>/add-note/', views.add_application_note, name='add_application_note'),
     path('application/<int:application_id>/send-email/', views.send_application_email, name='send_application_email'),
     path('export/<int:job_id>/applicants/', views.export_applicants, name='export_applicants'),
     
