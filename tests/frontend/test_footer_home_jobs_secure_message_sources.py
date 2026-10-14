@@ -21,8 +21,12 @@ class PageAndAttachmentRegressions(unittest.TestCase):
         self.assertIn("components/footer_authenticated.html", source('templates/base_alumni.html'))
         compact = source('templates/components/footer_authenticated.html')
         self.assertIn('Office of Alumni Affairs', compact)
-        self.assertIn('page.get_absolute_url', compact)
+        self.assertNotIn('page.get_absolute_url', compact)
+        self.assertNotIn('authenticated-footer-legal', compact)
         self.assertNotIn('contact-info', compact)
+        footer_css = source('static/css/alumni/authenticated-footer.css')
+        self.assertIn('white-space: nowrap', footer_css)
+        self.assertIn('.authenticated-footer-institution { display: none; }', footer_css)
 
     def test_public_home_cms_and_sections_not_removed(self):
         home = source('templates/home.html')
