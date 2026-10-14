@@ -1,0 +1,25 @@
+{% extends alumni_page_base|default:'base_alumni.html' %}
+{% load static %}
+{% block title %}{% block mfa_title %}Account security{% endblock %} · NORSU Alumni{% endblock %}
+{% block extra_css %}{{ block.super }}
+<link rel="stylesheet" href="{% static 'css/auth-mfa.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/security-account.css' %}">
+{% endblock %}
+{% block content %}
+<div class="mfa-authenticated-page">
+  <div class="mfa-shell" id="mfa-management" role="region" aria-label="Account security settings">
+    <section class="mfa-card" aria-labelledby="mfa-title">
+      <div class="mfa-head">
+        <p class="mfa-eyebrow">NORSU Alumni Network · Account security</p>
+        <h1 id="mfa-title">{% block heading %}Protect your account{% endblock %}</h1>
+        <p class="mfa-lead">{% block introduction %}Manage your account's second sign-in step.{% endblock %}</p>
+      </div>
+      {% if messages %}
+      <div role="status">{% for message in messages %}<p class="mfa-notice">{{ message }}</p>{% endfor %}</div>
+      {% endif %}
+      {% block mfa_content %}{% endblock %}
+    </section>
+    <p class="mfa-back"><a href="{% url 'accounts:security_dashboard' %}">← Security Dashboard</a></p>
+  </div>
+</div>
+{% endblock %}

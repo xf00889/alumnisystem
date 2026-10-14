@@ -6,6 +6,7 @@ from django.http import HttpResponseRedirect, Http404
 from django.contrib.sitemaps.views import sitemap
 from django.views.generic.base import RedirectView
 from accounts import security_views
+from accounts import alumni_password_views
 from accounts import staff_profile_views
 from accounts import google_views
 from core.sitemaps import StaticPageSitemap, EventSitemap
@@ -49,7 +50,7 @@ urlpatterns = [
     path('accounts/google/login/', google_views.oauth2_login, name='google_login'),
     path('accounts/google/login/callback/', google_views.oauth2_callback, name='google_callback'),
     # Custom password reset views (must be before allauth.urls to override)
-    path('accounts/password/reset/', security_views.password_reset_email, name='account_reset_password'),
+    path('accounts/password/reset/', alumni_password_views.request_password_link, name='account_reset_password'),
     path('accounts/password/reset/key/<uidb36>-<key>/', security_views.password_reset_email, name='account_reset_password_from_key'),
     # Guard privileged staff against allauth's alternate email-management endpoint.
     path('accounts/email/', staff_profile_views.account_email_management_gateway, name='account_email'),

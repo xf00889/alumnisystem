@@ -2,6 +2,7 @@ from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from . import views
 from . import security_views
+from . import alumni_password_views
 from . import staff_profile_views
 
 app_name = 'accounts'
@@ -62,6 +63,10 @@ urlpatterns = [
     path('security/verify-code/', security_views.verify_code, name='verify_code'),
     path('security/password-reset/', security_views.enhanced_password_reset, name='enhanced_password_reset'),
     path('security/change-password/', security_views.change_password, name='change_password'),
+    path('security/password-recovery/', alumni_password_views.request_password_link, name='password_recovery_request'),
+    path('security/password-recovery/sent/', alumni_password_views.password_link_requested, name='password_recovery_requested'),
+    path('security/password-recovery/complete/', alumni_password_views.password_recovery_complete, name='password_recovery_complete'),
+    path('security/password-recovery/<uidb64>/<token>/', alumni_password_views.PasswordRecoveryConfirmView.as_view(), name='password_recovery_confirm'),
     path('security/check-email/', security_views.check_email_availability, name='check_email_availability'),
     path('security/dashboard/', security_views.SecurityDashboardView.as_view(), name='security_dashboard'),
     

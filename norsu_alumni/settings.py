@@ -319,6 +319,8 @@ GOOGLE_OAUTH_CLIENT_SECRET = config('GOOGLE_OAUTH_CLIENT_SECRET', default='')
 ACCOUNT_EMAIL_CONFIRMATION_ANONYMOUS_REDIRECT_URL = 'account_login'
 ACCOUNT_EMAIL_CONFIRMATION_AUTHENTICATED_REDIRECT_URL = 'home'
 ACCOUNT_PASSWORD_RESET_TIMEOUT = 259200  # 3 days in seconds
+# Django signed recovery links used by the alumni Security Dashboard expire after one hour.
+PASSWORD_RESET_TIMEOUT = 3600
 
 # Enhanced Security Settings
 ACCOUNT_LOGIN_ATTEMPTS_LIMIT = 5

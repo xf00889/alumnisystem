@@ -1189,16 +1189,22 @@ def change_password(request):
     from .staff_account_forms import StaffPasswordChangeForm
     from .staff_profile_views import has_staff_workspace
 
+    is_staff = has_staff_workspace(request.user)
+    if not is_staff and not request.user.has_usable_password():
+        messages.info(request, 'Confirm your account email to set a password first.')
+        return redirect('accounts:password_recovery_request')
     form = StaffPasswordChangeForm(request.user, request.POST or None)
     if request.method == 'POST' and form.is_valid():
         user = form.save()
         update_session_auth_hash(request, user)
         SecurityAuditLogger.log_event('password_change_success', user=user,
                                       ip_address=request.META.get('REMOTE_ADDR'))
+        from .alumni_password_views import notify_password_changed
+        notify_password_changed(user)
         messages.success(request, 'Password changed successfully.')
-        return redirect('accounts:staff_profile' if has_staff_workspace(user)
-                        else 'accounts:profile_detail')
-    return render(request, 'accounts/change_password.html', {'form': form})
+        return redirect('accounts:staff_profile' if is_staff else 'accounts:security_dashboard')
+    return render(request, 'accounts/change_password.html' if is_staff
+                  else 'accounts/alumni_change_password.html', {'form': form})
 
 
 def check_email_availability(request):
@@ -1228,4 +1234,8 @@ class SecurityDashboardView(TemplateView):
         context['user'] = self.request.user
         from allauth.mfa.utils import is_mfa_enabled
         context['two_factor_enabled'] = is_mfa_enabled(self.request.user)
+        from allauth.account.models import EmailAddress
+        context['email_verified'] = EmailAddress.objects.filter(
+            user=self.request.user, email__iexact=self.request.user.email, verified=True,
+        ).exists()
         return context

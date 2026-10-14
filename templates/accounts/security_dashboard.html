@@ -39,7 +39,7 @@
                                 <h5>Account Status</h5>
                                 <p>Your account security status</p>
                             </div>
-                            <span class="security-status status-secure">Secure</span>
+                            <span class="security-status status-secure">Active</span>
                         </div>
                         
                         <!-- Email Verification -->
@@ -48,7 +48,7 @@
                                 <h5>Email Verification</h5>
                                 <p>Email: {{ user.email }}</p>
                             </div>
-                            {% if user.is_active %}
+                            {% if email_verified %}
                                 <span class="security-status status-secure">Verified</span>
                             {% else %}
                                 <span class="security-status status-warning">Pending</span>
@@ -75,9 +75,20 @@
                         <div class="security-item">
                             <div class="security-info">
                                 <h5>Password Security</h5>
-                                <p>Last changed: {{ user.last_login|date:"M d, Y"|default:"Never" }}</p>
+                                {% if user.has_usable_password %}
+                                    <p>Change your password using your current password or a secure email link.</p>
+                                    <div class="security-actions">
+                                        <a class="btn btn-sm btn-primary" href="{% url 'accounts:change_password' %}">Change password</a>
+                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:password_recovery_request' %}">Forgot current password?</a>
+                                    </div>
+                                {% else %}
+                                    <p>You currently sign in using a connected provider, without a local password.</p>
+                                    <div class="security-actions">
+                                        <a class="btn btn-sm btn-outline-primary" href="{% url 'accounts:password_recovery_request' %}">Set a password via email verification</a>
+                                    </div>
+                                {% endif %}
                             </div>
-                            <span class="security-status">Protected</span>
+                            <span class="security-status {% if user.has_usable_password %}status-secure{% else %}status-warning{% endif %}">{% if user.has_usable_password %}Enabled{% else %}Not set{% endif %}</span>
                         </div>
                         
                         <!-- Login History -->
@@ -117,8 +128,8 @@
                                     <i class="fas fa-key"></i>
                                 </div>
                                 <div class="activity-info">
-                                    <h6>Password Changed</h6>
-                                    <p>Check your password settings for the latest status.</p>
+                                    <h6>Password settings</h6>
+                                    <p>Use the secure password-change controls in the Security Overview.</p>
                                 </div>
                             </div>
                             
