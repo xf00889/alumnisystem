@@ -19,6 +19,7 @@
 {% if use_alumni_layout %}
 <link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/profile.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/profile-name-order.css' %}">
 {% endif %}
 {% endblock %}
 
@@ -160,6 +161,19 @@
                                 <i class="fas fa-user"></i> Personal Information
                             </h5>
                         </div>
+                <section class="alumni-profile-readonly-names" aria-labelledby="alumni-registered-name-heading">
+                    <h6 id="alumni-registered-name-heading">Registered Name</h6>
+                    <div class="alumni-profile-readonly-grid">
+                        <div class="alumni-profile-readonly-field"><span>First Name</span><strong>{{ profile.user.first_name|default:"Not provided" }}</strong></div>
+                        {% if is_own_profile %}
+                        <div class="alumni-profile-readonly-field"><span>Middle Name</span><strong>{{ profile.middle_name|default:"Not provided" }}</strong></div>
+                        {% endif %}
+                        <div class="alumni-profile-readonly-field"><span>Last Name</span><strong>{{ profile.user.last_name|default:"Not provided" }}</strong></div>
+                        {% if is_own_profile %}
+                        <div class="alumni-profile-readonly-field"><span>Maiden Name (if applicable)</span><strong>{{ profile.maiden_name|default:"Not provided" }}</strong></div>
+                        {% endif %}
+                    </div>
+                </section>
                 <div class="info-list">
                 <div class="row g-3">
                     <div class="col-md-6">
@@ -274,28 +288,6 @@
                                 <div class="d-flex align-items-center">
                                     <i class="fas fa-map-marker-alt text-primary me-2"></i>
                                     <span>{{ alumni.get_campus_display }}</span>
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if is_own_profile %}
-                        <div class="col-md-6">
-                            <div class="info-item">
-                                <label class="text-muted small mb-1">Middle Name</label>
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-id-card text-primary me-2"></i>
-                                    {% if profile.middle_name %}<span>{{ profile.middle_name }}</span>{% else %}<span class="text-muted">Not provided</span>{% endif %}
-                                </div>
-                            </div>
-                        </div>
-                        {% endif %}
-                        {% if is_own_profile %}
-                        <div class="col-md-6">
-                            <div class="info-item">
-                                <label class="text-muted small mb-1">Maiden Name</label>
-                                <div class="d-flex align-items-center">
-                                    <i class="fas fa-id-badge text-primary me-2"></i>
-                                    {% if profile.maiden_name %}<span>{{ profile.maiden_name }}</span>{% else %}<span class="text-muted">Not provided</span>{% endif %}
                                 </div>
                             </div>
                         </div>

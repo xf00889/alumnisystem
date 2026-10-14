@@ -20,6 +20,7 @@
 <link rel="stylesheet" href="{% static 'css/alumni/page-foundation.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/profile.css' %}">
 <link rel="stylesheet" href="{% static 'css/alumni/profile-editor.css' %}">
+<link rel="stylesheet" href="{% static 'css/alumni/profile-name-order.css' %}">
 {% endif %}
 {% endblock %}
 
@@ -122,9 +123,18 @@
                                         </div>
                                     </div>
 
-                                    {{ user_form|crispy }}
+                                    <fieldset class="alumni-profile-name-group" aria-labelledby="profile-name-title">
+                                        <legend id="profile-name-title">Name</legend>
+                                        <p class="alumni-profile-name-hint">Use your registered name. Middle and maiden names are optional.</p>
+                                        <div class="alumni-profile-name-grid">
+                                            <div class="alumni-profile-name-field">{{ user_form.first_name|as_crispy_field }}</div>
+                                            <div class="alumni-profile-name-field">{{ profile_form.middle_name|as_crispy_field }}</div>
+                                            <div class="alumni-profile-name-field">{{ user_form.last_name|as_crispy_field }}</div>
+                                            <div class="alumni-profile-name-field alumni-profile-name-field--maiden">{{ profile_form.maiden_name|as_crispy_field }}</div>
+                                        </div>
+                                    </fieldset>
                                     {% for field in profile_form %}
-                                        {% if field.name != 'avatar' %}
+                                        {% if field.name != 'avatar' and field.name != 'middle_name' and field.name != 'maiden_name' %}
                                             {{ field|as_crispy_field }}
                                         {% endif %}
                                     {% endfor %}
