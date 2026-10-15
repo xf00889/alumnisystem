@@ -77,7 +77,15 @@ class PrivateAttachmentAccessTests(CompletedPortalSetupMixin, TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(b''.join(response.streaming_content), b'%PDF-1.4\n%%EOF')
         self.assertIn('attachment;', response['Content-Disposition'])
-        self.assertEqual(response['Cache-Control'], 'private, no-store, max-age=0')
+        # Middleware may append stronger cache-prevention directives.
+        directives = {
+            directive.strip().lower()
+            for directive in response['Cache-Control'].split(',')
+        }
+        for required in ('private', 'no-store', 'max-age=0'):
+            with self.subTest(cache_directive=required):
+                self.assertIn(required, directives)
+        self.assertNotIn('public', directives)
         self.assertNotIn('connections/messages/', self.url)
 
     def test_message_removed_from_conversation_revokes_access(self):
