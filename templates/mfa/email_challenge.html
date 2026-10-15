@@ -1,0 +1,20 @@
+{% extends 'mfa/base.html' %}
+{% block title %}Email sign-in verification{% endblock %}
+{% block heading %}Check your email{% endblock %}
+{% block introduction %}Enter the six-digit sign-in code sent to {{ masked_email }}. Valid for 10 minutes.{% endblock %}
+{% block mfa_content %}
+{% if notice %}<p class="mfa-error" role="status">{{ notice }}</p>{% endif %}
+<form method="post" class="mfa-form" autocomplete="off">
+    {% csrf_token %}
+    <label for="id_email_code">Email verification code</label>
+    <input type="text" id="id_email_code" name="code" inputmode="numeric" maxlength="6"
+           pattern="[0-9]{6}" autocomplete="one-time-code" required autofocus>
+    <button class="mfa-button" type="submit" name="action" value="verify">Verify and sign in</button>
+</form>
+<form method="post" class="mfa-form mfa-resend-form">
+    {% csrf_token %}
+    <button type="submit" name="action" value="resend" class="mfa-button mfa-button--secondary">Resend code</button>
+</form>
+{% if has_totp %}<p class="mfa-support"><a href="{% url 'mfa_authenticate' %}">Use authenticator app instead</a></p>{% endif %}
+<p class="mfa-support"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+{% endblock %}

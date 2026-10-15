@@ -686,3 +686,14 @@ def save_user_profile(sender, instance, **kwargs):
                 'signal': 'save_user_profile'
             }
         )
+
+
+class EmailLoginMFASettings(models.Model):
+    """Explicit opt-in, separate from signup verification and authenticator MFA."""
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='email_login_mfa')
+    enabled = models.BooleanField(default=False)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = 'Email sign-in verification settings'
+        verbose_name_plural = 'Email sign-in verification settings'

@@ -379,7 +379,8 @@ def verify_email(request):
                     # verification/re-activation link. Route it through allauth
                     # so the MFA stage is enforced on the next sign-in.
                     from allauth.mfa.utils import is_mfa_enabled
-                    if is_mfa_enabled(user):
+                    from accounts.email_login_mfa import email_enabled
+                    if is_mfa_enabled(user) or email_enabled(user):
                         request.session.pop('pending_verification_user_id', None)
                         request.session.pop('inactive_account_email', None)
                         messages.success(request, 'Email verified. Sign in with your password and authenticator code.')
@@ -1238,4 +1239,9 @@ class SecurityDashboardView(TemplateView):
         context['email_verified'] = EmailAddress.objects.filter(
             user=self.request.user, email__iexact=self.request.user.email, verified=True,
         ).exists()
+        from accounts.email_login_mfa import email_enabled
+        context['email_mfa_enabled'] = email_enabled(self.request.user)
+        context['email_mfa_can_enable'] = (
+            context['email_verified'] and getattr(settings, 'EMAIL_LOGIN_MFA_ROLLOUT', False)
+        )
         return context

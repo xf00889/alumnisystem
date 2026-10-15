@@ -19,6 +19,19 @@ class CustomAccountAdapter(DefaultAccountAdapter):
     Redirects staff/superusers to admin dashboard, regular users to home.
     """
     
+    def get_login_stages(self):
+        from django.conf import settings
+        custom = 'accounts.email_login_mfa.EmailOrAuthenticatorStage'
+        stages = [
+            custom if path == 'allauth.mfa.stages.AuthenticateStage' else path
+            for path in super().get_login_stages()
+        ]
+        # Fail closed: email-only opt-in must still run a challenge even if an
+        # administrator disables the package's built-in MFA login-stage flag.
+        if getattr(settings, 'EMAIL_LOGIN_MFA_ROLLOUT', False) and custom not in stages:
+            stages.append(custom)
+        return stages
+
     def get_login_redirect_url(self, request):
         """
         Returns the default URL to redirect to after logging in.

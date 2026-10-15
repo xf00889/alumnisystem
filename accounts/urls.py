@@ -4,6 +4,7 @@ from . import views
 from . import security_views
 from . import alumni_password_views
 from . import staff_profile_views
+from . import email_login_mfa
 
 app_name = 'accounts'
 urlpatterns = [
@@ -58,6 +59,10 @@ urlpatterns = [
     path('mentor-application-status/', views.mentor_application_status, name='mentor_application_status'),
     path('review/mentor-application/<int:application_id>/', views.review_mentor_application, name='review_mentor_application'),
     
+    # Optional email-code login challenge and signed-in settings.
+    path('security/email-sign-in/', email_login_mfa.email_login_mfa_settings, name='email_login_mfa_settings'),
+    path('security/email-challenge/', email_login_mfa.email_login_challenge, name='login_email_challenge'),
+
     # Security endpoints
     path('security/send-verification-code/', security_views.send_verification_code, name='send_verification_code'),
     path('security/verify-code/', security_views.verify_code, name='verify_code'),

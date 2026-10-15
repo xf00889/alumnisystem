@@ -15,12 +15,9 @@
 {% endblock %}
 
 {% block content %}
+{% if use_alumni_layout %}{% include 'alumni/components/breadcrumbs.html' with area='Security Dashboard' %}{% endif %}
 <div class="security-dashboard">
     <div class="container">
-        {# Authenticated alumni breadcrumb, following the tracer-study notice. #}
-        {% if use_alumni_layout %}
-        {% include 'alumni/components/breadcrumbs.html' with area='Security Dashboard' within_page_shell=True %}
-        {% endif %}
         <!-- Dashboard Header (Matching Other Pages) -->
         <div class="dashboard-header">
             <h2><i class="fas fa-shield-alt"></i>Security Dashboard</h2>
@@ -76,7 +73,23 @@
                         </div>
 
                         <!-- Password Security -->
-                        <div class="security-item security-item--password">
+                        <div class="security-item security-item--email-mfa">
+                            <div class="security-info">
+                                <h5><i class="fas fa-envelope me-2" aria-hidden="true"></i>Email sign-in verification</h5>
+                                <p>When enabled, send a one-time code to your verified account email before login completes. This is weaker than an authenticator app and depends on your email account's security.</p>
+                                {% if email_mfa_can_enable %}
+                                <form action="{% url 'accounts:email_login_mfa_settings' %}" method="post" class="security-actions">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm {% if email_mfa_enabled %}btn-outline-primary{% else %}btn-primary{% endif %}" name="action" value="{% if email_mfa_enabled %}disable{% else %}enable{% endif %}">
+                                        {% if email_mfa_enabled %}Turn off email verification{% else %}Enable email verification{% endif %}
+                                    </button>
+                                </form>
+                                {% else %}<p class="small">Verify your registered email before enabling this method.</p>{% endif %}
+                            </div>
+                            <span class="security-status {% if email_mfa_enabled %}status-secure{% else %}status-warning{% endif %}">{% if email_mfa_enabled %}Enabled{% else %}Off{% endif %}</span>
+                        </div>
+
+                        <div class="security-item">
                             <div class="security-info">
                                 <h5>Password Security</h5>
                                 {% if user.has_usable_password %}

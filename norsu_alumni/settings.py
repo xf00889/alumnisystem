@@ -241,6 +241,11 @@ else:
 
 MEDIA_URL = config('MEDIA_URL', default='/media/')
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# Keep chat attachments outside public MEDIA_ROOT and /static/. Use an absolute,
+# persistent path shared by every Gunicorn worker, backed up with production data.
+PRIVATE_MESSAGE_UPLOAD_ROOT = Path(config(
+    'PRIVATE_MESSAGE_UPLOAD_ROOT', default=str(BASE_DIR.parent / 'norsu-private-messages')
+)).resolve()
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
@@ -298,6 +303,8 @@ ACCOUNT_FORMS = {
 MFA_ADAPTER = 'accounts.mfa_adapter.NorsuMFAAdapter'
 MFA_SUPPORTED_TYPES = ['totp', 'recovery_codes']
 MFA_TOTP_ISSUER = 'NORSU Alumni Network'
+# Disabled until provider delivery and staged login tests are verified.
+EMAIL_LOGIN_MFA_ROLLOUT = config('EMAIL_LOGIN_MFA_ROLLOUT', default=False, cast=bool)
 MFA_RECOVERY_CODE_COUNT = 10
 # Optional stable key separate from SECRET_KEY; never change without re-encrypting MFA seeds.
 MFA_ENCRYPTION_KEY = config('MFA_ENCRYPTION_KEY', default='')

@@ -9,10 +9,11 @@ from django.db.models import Q
 from django.core.paginator import Paginator
 from django.views.decorators.csrf import csrf_exempt
 from django.urls import reverse
-from django.core.exceptions import ValidationError
+from django.core.exceptions import ValidationError, SuspiciousFileOperation
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from django.utils.http import content_disposition_header
+from django.core.files.storage import default_storage
 from django_ratelimit.decorators import ratelimit
 import mimetypes
 import json
@@ -374,6 +375,11 @@ def direct_messages(request, user_id=None):
                 messages.error(request, 'Reconnect before sending messages.')
                 return redirect('connections:conversations_list')
         
+        # Full-page direct links enter the unified inbox, preserving HTMX detail
+        # requests for the existing messaging workspace and former contact history.
+        if request.method == 'GET' and not request.headers.get('HX-Request') and not request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+            return redirect(reverse('connections:conversations_list') + f'?with={other_user.pk}')
+
         # Get messages (ordered newest first for column-reverse display)
         messages_list = DirectMessage.objects.filter(
             conversation=conversation
@@ -417,13 +423,17 @@ def direct_messages(request, user_id=None):
         context = {
             'conversation': conversation,
             'other_user': other_user,
-            'messages': messages_list,
+            # Never put chat records in Django's reserved 'messages' context:
+            # base templates treat it as flash messages and display toast storms.
+            'chat_messages': messages_list,
             'form': form,
             'can_send': can_send,
         }
         
         # Check if this is an HTMX request
         if request.headers.get('HX-Request'):
+            # The fragment expects 'messages'; it has no shared layout or toasts.
+            context['messages'] = messages_list
             return render(request, 'connections/partials/conversation_detail.html', context)
         
         return render(request, 'connections/direct_messages.html', context)
@@ -1298,8 +1308,16 @@ def download_message_attachment(request, token):
 
     try:
         attachment = message.attachment.open('rb')
-    except (FileNotFoundError, OSError, ValueError):
-        raise Http404('Attachment not found')
+    except (FileNotFoundError, OSError, ValueError, SuspiciousFileOperation):
+        # Historic files may still be under MEDIA_ROOT after the switch to
+        # authorized private storage. Never serve the legacy public URL.
+        legacy_name = message.attachment.name
+        if not legacy_name.startswith('connections/messages/') or '..' in legacy_name.split('/'):
+            raise Http404('Attachment not found')
+        try:
+            attachment = default_storage.open(legacy_name, 'rb')
+        except (FileNotFoundError, OSError, ValueError, SuspiciousFileOperation):
+            raise Http404('Attachment not found')
 
     safe_name = message.attachment_label
     content_type = mimetypes.guess_type(safe_name)[0] or 'application/octet-stream'

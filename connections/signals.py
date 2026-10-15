@@ -16,7 +16,7 @@ def notify_message_recipients(sender, instance, created, **kwargs):
         url = reverse("connections:conversations_list") + f"?open_group={conversation.pk}"
         title = f"New message in {conversation.group_name or 'group chat'}"
     else:
-        url = reverse("connections:direct_messages", args=[instance.sender_id])
+        url = reverse("connections:conversations_list") + f"?with={instance.sender_id}"
         title = "New message"
 
     name = instance.sender.get_full_name() or instance.sender.username

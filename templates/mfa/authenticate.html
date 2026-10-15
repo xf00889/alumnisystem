@@ -1,4 +1,5 @@
 {% extends 'mfa/base.html' %}
+{% load email_login_mfa %}
 {% block title %}Verify your identity{% endblock %}
 {% block heading %}One more step{% endblock %}
 {% block introduction %}Enter the current six-digit code from your authenticator app, or use a recovery code.{% endblock %}
@@ -12,5 +13,7 @@
 <p id="mfa-code-help" class="mfa-hint">Recovery codes are single-use and should be kept offline.</p>
 <button class="mfa-button" type="submit">Verify and sign in</button>
 </form>
+{% can_try_email_login as email_available %}
+{% if email_available %}<p class="mfa-support"><a href="{% url 'accounts:login_email_challenge' %}">Try another way: email verification code</a></p>{% endif %}
 <p class="mfa-support"><a href="{% url 'account_login' %}">Back to sign in</a></p>
 {% endblock %}

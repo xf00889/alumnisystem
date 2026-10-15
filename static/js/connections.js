@@ -210,7 +210,7 @@ function updateConnectionButton(userId, status) {
                 button.innerHTML = '<i class="fas fa-comments me-1"></i>Message';
                 button.disabled = false;
                 // Convert to link for messaging
-                const messageUrl = `/connections/messages/${userId}/`;
+                const messageUrl = `/connections/messages/?with=${encodeURIComponent(userId)}`;
                 button.onclick = () => window.location.href = messageUrl;
                 break;
         }
