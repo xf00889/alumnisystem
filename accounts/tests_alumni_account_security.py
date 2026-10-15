@@ -7,16 +7,20 @@ from unittest.mock import patch
 
 from django.contrib.auth import get_user_model
 from django.core.cache import cache
-from django.test import TestCase, Client, override_settings
+from django.test import TestCase
 from django.urls import reverse
 from django.utils.encoding import force_bytes
 from django.utils.http import urlsafe_base64_encode
 from django.contrib.auth.tokens import default_token_generator
 
+from core.testing_clients import CompletedPortalSetupMixin, HTTPSClient
+
 from allauth.account.models import EmailAddress
 
 
-class AlumniAccountSecurityTests(TestCase):
+class AlumniAccountSecurityTests(CompletedPortalSetupMixin, TestCase):
+    client_class = HTTPSClient
+
     def setUp(self):
         cache.clear()
         User = get_user_model()
@@ -109,7 +113,7 @@ class AlumniAccountSecurityTests(TestCase):
         url = reverse('accounts:password_recovery_confirm', kwargs={
             'uidb64': uidb64, 'token': token,
         })
-        anon = Client()
+        anon = HTTPSClient()
         response = anon.get(url)
         self.assertEqual(response.status_code, 302)
         self.assertIn('set-password', response['Location'])
