@@ -88,6 +88,15 @@ class SecurityNavigationSourceTests(SimpleTestCase):
         self.assertIn('Enable email verification', template)
         self.assertIn('Manage 2FA and recovery codes', template)
 
+    def test_security_dashboard_uses_shared_feature_page_width(self):
+        security_css = self.source('static/css/alumni/security.css')
+        foundation_css = self.source('static/css/alumni/page-foundation.css')
+        self.assertIn('width:min(calc(100% - 3rem),1280px);max-width:1280px;', foundation_css)
+        self.assertIn('width: min(calc(100% - 3rem), 1280px);', security_css)
+        self.assertIn('max-width: 1280px;', security_css)
+        self.assertIn('width: min(calc(100% - 1.5rem), 1280px);', security_css)
+        self.assertNotIn('max-width: 1160px', security_css)
+
     def test_groups_filter_styles_do_not_override_alumni_account_dropdown(self):
         css = self.source('static/css/modules/alumni-groups.css')
         # Use plain CSS string assertions as a cross-platform regression test;
