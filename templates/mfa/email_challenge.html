@@ -1,20 +1,48 @@
 {% extends 'mfa/base.html' %}
 {% block title %}Email sign-in verification{% endblock %}
+{% block mfa_card_class %} mfa-card--email{% endblock %}
+{% block mfa_eyebrow %}Sign-in security · Step 2 of 2{% endblock %}
 {% block heading %}Check your email{% endblock %}
-{% block introduction %}Enter the six-digit sign-in code sent to {{ masked_email }}. Valid for 10 minutes.{% endblock %}
+{% block introduction %}We sent a six-digit sign-in code to <strong>{{ masked_email }}</strong>. Enter the code below to finish signing in.{% endblock %}
 {% block mfa_content %}
-{% if notice %}<p class="mfa-error" role="status">{{ notice }}</p>{% endif %}
-<form method="post" class="mfa-form" autocomplete="off">
+<div class="mfa-email-body">
+  {% if notice %}
+  <div class="mfa-email-notice" role="status">{{ notice }}</div>
+  {% endif %}
+
+  <div class="mfa-email-meta" aria-label="Verification code information">
+    <span>Six-digit security code</span>
+    <span>Valid for 10 minutes</span>
+  </div>
+
+  <form method="post" class="mfa-email-verify-form">
     {% csrf_token %}
-    <label for="id_email_code">Email verification code</label>
-    <input type="text" id="id_email_code" name="code" inputmode="numeric" maxlength="6"
-           pattern="[0-9]{6}" autocomplete="one-time-code" required autofocus>
-    <button class="mfa-button" type="submit" name="action" value="verify">Verify and sign in</button>
-</form>
-<form method="post" class="mfa-form mfa-resend-form">
-    {% csrf_token %}
-    <button type="submit" name="action" value="resend" class="mfa-button mfa-button--secondary">Resend code</button>
-</form>
-{% if has_totp %}<p class="mfa-support"><a href="{% url 'mfa_authenticate' %}">Use authenticator app instead</a></p>{% endif %}
-<p class="mfa-support"><a href="{% url 'account_login' %}">Back to sign in</a></p>
+    <div class="mfa-email-field">
+      <label for="id_email_code">Verification code</label>
+      <input type="text" id="id_email_code" name="code" inputmode="numeric" minlength="6" maxlength="6"
+             pattern="[0-9]{6}" autocomplete="one-time-code" enterkeyhint="done"
+             aria-describedby="email-code-help" required autofocus>
+      <p id="email-code-help" class="mfa-email-helper">You can paste the code from your email. Sign-in will only continue when you select Verify.</p>
+    </div>
+    <button class="mfa-button mfa-email-primary" type="submit" name="action" value="verify">
+      Verify and sign in <span aria-hidden="true">→</span>
+    </button>
+  </form>
+
+  <section class="mfa-email-resend" aria-label="Request a new verification code">
+    <div class="mfa-email-resend-copy">
+      <h2>Didn't receive the code?</h2>
+      <p>Check your spam folder, or request a new code.</p>
+    </div>
+    <form method="post" class="mfa-email-resend-form">
+      {% csrf_token %}
+      <button type="submit" name="action" value="resend" class="mfa-button mfa-button--secondary mfa-email-secondary">Resend code</button>
+    </form>
+  </section>
+
+  <nav class="mfa-email-alternatives" aria-label="Other sign-in options">
+    {% if has_totp %}<a href="{% url 'mfa_authenticate' %}">Use authenticator app instead</a>{% endif %}
+    <a href="{% url 'account_login' %}">Back to sign in</a>
+  </nav>
+</div>
 {% endblock %}
