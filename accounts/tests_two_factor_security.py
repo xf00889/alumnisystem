@@ -1,4 +1,6 @@
 """Integration tests; run with `python manage.py test accounts.tests_two_factor_security`."""
+from core.testing_clients import HTTPSClient
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -9,6 +11,7 @@ from allauth.mfa.models import Authenticator
 
 
 class AlumniTwoFactorLoginTests(TestCase):
+    client_class = HTTPSClient
     def setUp(self):
         self.email = 'mfaalumni@example.org'
         self.password = 'AnExamplePassword!9305'

@@ -1,4 +1,6 @@
 """Integration tests requiring Django and the project test database."""
+from core.testing_clients import HTTPSClient
+
 import io
 import tempfile
 from pathlib import Path
@@ -38,6 +40,7 @@ class AttachmentValidationTests(TestCase):
 
 
 class PrivateAttachmentAccessTests(TestCase):
+    client_class = HTTPSClient
     def setUp(self):
         self.directory = tempfile.TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)

@@ -3,6 +3,8 @@
 The inbox must select the requested person only if the users are connected,
 and may create an empty direct conversation without an initial message.
 """
+from core.testing_clients import HTTPSClient
+
 from django.contrib.auth import get_user_model
 from django.test import TestCase
 from django.urls import reverse
@@ -12,6 +14,7 @@ from .models import Connection, DirectConversation, DirectMessage
 
 
 class ProfileMessagingEntryTests(TestCase):
+    client_class = HTTPSClient
     @classmethod
     def setUpTestData(cls):
         SetupState.get_setup_state().mark_complete()
