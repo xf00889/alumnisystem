@@ -77,7 +77,8 @@ class AlumniAccountSecurityTests(CompletedPortalSetupMixin, TestCase):
         response = self.client.post(reverse('accounts:password_recovery_request'), {
             'email': 'not-the-account@example.org',
         })
-        self.assertRedirects(response, reverse('accounts:password_recovery_requested'))
+        self.assertRedirects(response, reverse('accounts:password_recovery_requested'), fetch_redirect_response=False)
+        self.assertEqual(self.client.get(reverse('accounts:password_recovery_requested'), secure=True).status_code, 200)
         self.assertEqual(send.call_count, 1)
         self.assertEqual(send.call_args.kwargs['recipient_list'], [self.user.email])
 
@@ -123,7 +124,8 @@ class AlumniAccountSecurityTests(CompletedPortalSetupMixin, TestCase):
             'new_password1': 'NewCredential!456',
             'new_password2': 'NewCredential!456',
         })
-        self.assertRedirects(response, reverse('accounts:password_recovery_complete'))
+        self.assertRedirects(response, reverse('accounts:password_recovery_complete'), fetch_redirect_response=False)
+        self.assertEqual(anon.get(reverse('accounts:password_recovery_complete'), secure=True).status_code, 200)
         self.user.refresh_from_db()
         self.assertTrue(self.user.check_password('NewCredential!456'))
         self.assertNotIn('_auth_user_id', anon.session)
@@ -139,7 +141,8 @@ class AlumniAccountSecurityTests(CompletedPortalSetupMixin, TestCase):
         r = self.client.get(reverse('accounts:security_dashboard'))
         self.assertContains(r, 'Set a password via email verification')
         r = self.client.get(reverse('accounts:change_password'))
-        self.assertRedirects(r, reverse('accounts:password_recovery_request'))
+        self.assertRedirects(r, reverse('accounts:password_recovery_request'), fetch_redirect_response=False)
+        self.assertEqual(self.client.get(reverse('accounts:password_recovery_request'), secure=True).status_code, 200)
         r = self.client.post(reverse('accounts:password_recovery_request'), {'email': self.user.email})
         self.assertEqual(r.status_code, 302)
         self.assertEqual(send.call_count, 1)

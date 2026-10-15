@@ -58,3 +58,41 @@ class SecurityNavigationSourceTests(SimpleTestCase):
         self.assertIn("body.auth-mfa-page > .mfa-shell", css)
         self.assertIn("justify-content:center", css)
         self.assertIn("@media(max-width:540px)", css)
+
+    def test_security_dashboard_breadcrumb_uses_feature_page_spacing(self):
+        template = self.source('templates/accounts/security_dashboard.html')
+        css = self.source('static/css/alumni/security.css')
+        container_start = template.index('<div class="security-dashboard">')
+        breadcrumb = template.index("'alumni/components/breadcrumbs.html'")
+        self.assertGreater(breadcrumb, container_start)
+        self.assertIn('within_page_shell=True', template)
+        self.assertIn('.security-dashboard > .container > .alumni-journey', css)
+        self.assertIn('padding: 1.05rem 0 .85rem', css)
+
+
+    def test_compact_security_dashboard_has_scoped_profile_like_layout(self):
+        template = self.source('templates/accounts/security_dashboard.html')
+        css = self.source('static/css/alumni/security.css')
+        self.assertIn('class="dashboard-header security-hero"', template)
+        self.assertIn('class="row g-3 align-items-start"', template)
+        self.assertIn('class="col-lg-7"', template)
+        self.assertIn('class="col-lg-5"', template)
+        self.assertIn('class="security-item__main"', template)
+        self.assertIn('security-checklist', template)
+        self.assertIn('{% if use_alumni_layout %}', template)
+        self.assertIn("{% static 'css/alumni/security.css' %}", template)
+        self.assertIn("{% static 'css/modules/accounts.css' %}", template)
+        self.assertIn('body.alumni-portal .alumni-main[data-feature="accounts"] .security-dashboard', css)
+        self.assertIn('display: flex; flex-direction: row; align-items: flex-start;', css)
+        self.assertIn('@media (max-width: 575.98px)', css)
+        self.assertIn('Enable email verification', template)
+        self.assertIn('Manage 2FA and recovery codes', template)
+
+    def test_groups_filter_styles_do_not_override_alumni_account_dropdown(self):
+        css = self.source('static/css/modules/alumni-groups.css')
+        # Use plain CSS string assertions as a cross-platform regression test;
+        # navigation/dropdown CSS must remain the source of truth for account menus.
+        self.assertIn('.filter-dropdown > .dropdown-menu', css)
+        self.assertIn('.filter-dropdown .dropdown-item', css)
+        self.assertNotIn('html.fe-page--alumni-groups-group-list-html .dropdown-menu{', css)
+        self.assertNotIn('html.fe-page--alumni-groups-group-list-html .dropdown-item{', css)
