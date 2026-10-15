@@ -23,7 +23,8 @@
             <section class="scraper-card" aria-labelledby="scraper-form-title">
                 <h2 id="scraper-form-title"><i class="fas fa-search" aria-hidden="true"></i> Run New Scrape</h2>
                 
-                <p class="scraper-description">Set your search criteria and choose the sources to check. Results are saved as drafts until you publish them.</p>
+                <p class="scraper-description">Set your search criteria and choose the sources to check. Individual jobs are saved as drafts until published.</p>
+                <p class="scraper-peso-note"><strong>Negros Oriental PESO:</strong> monitors the public PEIS <em>top vacancy categories</em> for the provincial office. These are aggregated counts, not individual local employer postings. They are saved for admin review and cannot be published automatically.</p>
 
                 <form method="post" id="jobScraperForm" aria-describedby="scraper-form-hint">
                     <p class="scraper-form-hint" id="scraper-form-hint">Scraping may take a minute or longer, depending on the selected sites.</p>
@@ -103,12 +104,12 @@
                     <li>Enter a job keyword and location</li>
                     <li>Select which job sites to scrape</li>
                     <li>Click "Run Scraper" and wait</li>
-                    <li>Review scraped results below</li>
-                    <li>Click "Publish" to add jobs to the job board</li>
+                    <li>Review scraped jobs and PESO vacancy-category leads below</li>
+                    <li>Publish only verified individual job advertisements. PESO counts are review-only.</li>
                 </ol>
                 <hr>
                 <p class="scraper-guidance__note">
-                    <strong>Note:</strong> Scraped jobs are saved as records. 
+                    <strong>Note:</strong> Scraped job listings and PESO category leads are saved separately within scrape records. 
                     Use the "Publish" button to convert them into visible job postings.
                 </p>
             </aside>
@@ -119,7 +120,7 @@
     <div class="row">
         <div class="col-12">
             <section class="scraper-card" aria-labelledby="scraper-recent-title">
-                <h2 id="scraper-recent-title"><i class="fas fa-database" aria-hidden="true"></i> Recent Scrapes</h2>
+                <h2 id="scraper-recent-title"><i class="fas fa-database" aria-hidden="true"></i> Recent Scrapes &amp; PESO Leads</h2>
                 
                 {% if recent_scrapes %}
                 <div class="table-responsive">
@@ -129,7 +130,7 @@
                                 <th>Keyword</th>
                                 <th>Location</th>
                                 <th>Source</th>
-                                <th>Jobs Found</th>
+                                <th>Jobs / Leads</th>
                                 <th>Scraped At</th>
                                 <th>Actions</th>
                             </tr>
@@ -144,15 +145,15 @@
                                         {{ scrape.get_source_display }}
                                     </span>
                                 </td>
-                                <td>{{ scrape.total_found }}</td>
+                                <td>{% if scrape.is_peso_vacancy_lead %}{{ scrape.vacancy_leads|length }} categories (review-only){% else %}{{ scrape.total_found }} jobs{% endif %}</td>
                                 <td>{{ scrape.scraped_at|date:"M d, Y g:i A" }}</td>
                                 <td>
                                     <div class="d-flex gap-2">
-                                        <a href="{% url 'jobs:publish_scraped_job' scrape.pk %}" 
+                                        {% if not scrape.is_peso_vacancy_lead %}<a href="{% url 'jobs:publish_scraped_job' scrape.pk %}" 
                                            class="btn-publish"
                                            onclick="return confirm('Publish {{ scrape.total_found }} job(s) to the job board?')">
                                             <i class="fas fa-upload"></i> Publish
-                                        </a>
+                                        </a>{% else %}<span class="badge-source">Review only</span>{% endif %}
                                         <a href="{% url 'jobs:delete_scraped_job' scrape.pk %}" 
                                            class="btn-delete"
                                            onclick="return confirm('Delete this scrape record?')">
@@ -161,6 +162,16 @@
                                     </div>
                                 </td>
                             </tr>
+                            {% if scrape.is_peso_vacancy_lead %}
+                            <tr class="scraper-peso-detail-row"><td colspan="6">
+                                <div class="scraper-peso-leads"><strong>Provincial PESO vacancy categories</strong>
+                                    <p>Counts identify vacancies listed under the Negros Oriental Provincial PESO office, not guaranteed Negros Oriental work locations. Confirm employer, location, deadlines and eligibility with PESO.</p>
+                                    <ul>{% for lead in scrape.vacancy_leads %}
+                                        <li><a href="{{ lead.source_url }}" target="_blank" rel="noopener noreferrer">{{ lead.title }}</a> — {{ lead.vacancy_count }} office-recorded vacancies</li>
+                                    {% endfor %}</ul>
+                                </div>
+                            </td></tr>
+                            {% endif %}
                             {% endfor %}
                         </tbody>
                     </table>

@@ -148,6 +148,12 @@ def publish_scraped_job(scraped_job: ScrapedJob, posted_by: User) -> dict:
     """
     summary = {"published": 0, "skipped": 0, "errors": 0}
     source_key = scraped_job.source
+    if source_key == "PESO_NEGROS_ORIENTAL":
+        # PEIS publishes anonymous, office-level vacancy totals, not actual
+        # jobs. Block conversion even if manipulated JSON contains "jobs".
+        logger.info("PEIS vacancy leads require verified employer details before publishing")
+        summary["skipped"] = len(scraped_job.vacancy_leads)
+        return summary
 
     jobs_data = scraped_job.jobs_data
     if not jobs_data:

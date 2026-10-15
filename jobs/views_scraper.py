@@ -9,7 +9,7 @@ from django.contrib import messages
 from django.db import transaction
 
 from .models import ScrapedJob
-from .botasaurus_scrapers.orchestrator import SCRAPERS, scrape_all_sites
+from .botasaurus_scrapers.orchestrator import SCRAPERS, DEFAULT_SOURCES, scrape_all_sites
 from .admin_scraper_utils import publish_scraped_job
 
 logger = logging.getLogger(__name__)
@@ -59,7 +59,7 @@ def scraper_dashboard(request):
         )
         sources = django_forms.MultipleChoiceField(
             choices=[(k, v[0]) for k, v in SCRAPERS.items()],
-            initial=list(SCRAPERS.keys()),
+            initial=DEFAULT_SOURCES,
             widget=django_forms.CheckboxSelectMultiple(attrs={
                 "class": "form-check-input",
             }),
@@ -90,10 +90,13 @@ def scraper_dashboard(request):
 
             saved = 0
             total_jobs = 0
+            total_leads = 0
             for result in results:
-                if not result.get("jobs"):
-                    continue
                 src = result.get("source", "OTHER")
+                if not result.get("jobs") and not result.get("vacancy_leads") and not (
+                    src == "PESO_NEGROS_ORIENTAL" and result.get("success")
+                ):
+                    continue
                 # Deactivate previous entries for same search + source
                 ScrapedJob.objects.filter(
                     search_keyword=keyword,
@@ -112,11 +115,13 @@ def scraper_dashboard(request):
                 )
                 saved += 1
                 total_jobs += result.get("total_found", 0)
+                total_leads += result.get("lead_count", 0)
 
             messages.success(
                 request,
-                f"Done! Saved {saved} scrape record(s) with {total_jobs} total job(s). "
-                "Use 'Publish' to make them visible to users.",
+                f"Done! Saved {saved} scrape record(s), {total_jobs} individual job(s), "
+                f"and {total_leads} PESO vacancy lead(s). "
+                "PESO office totals are for review only and cannot be published as jobs.",
             )
             return redirect("jobs:scraper_dashboard")
     else:
@@ -144,6 +149,10 @@ def publish_scraped_job_view(request, pk):
         scraped_job = ScrapedJob.objects.get(pk=pk, scraped_by=request.user)
     except ScrapedJob.DoesNotExist:
         messages.error(request, "Scraped job record not found.")
+        return redirect("jobs:scraper_dashboard")
+
+    if scraped_job.is_peso_vacancy_lead:
+        messages.warning(request, "PESO occupation counts are leads, not individual job ads. Check the official source before creating a verified job manually.")
         return redirect("jobs:scraper_dashboard")
 
     summary = publish_scraped_job(scraped_job, posted_by=request.user)

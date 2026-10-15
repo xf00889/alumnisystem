@@ -13,7 +13,7 @@ import logging
 from django.contrib.auth import get_user_model
 from django.core.management.base import BaseCommand, CommandError
 
-from jobs.botasaurus_scrapers.orchestrator import SCRAPERS, aggregate_jobs, scrape_all_sites
+from jobs.botasaurus_scrapers.orchestrator import SCRAPERS, DEFAULT_SOURCES, aggregate_jobs, scrape_all_sites
 
 logger = logging.getLogger(__name__)
 User = get_user_model()
@@ -40,7 +40,7 @@ class Command(BaseCommand):
             nargs="+",
             choices=list(SCRAPERS.keys()),
             default=None,
-            help="Limit scraping to specific sources. Defaults to all 10 sites.",
+            help="Limit scraping to specific sources. Defaults to individual-job sources only; PESO monitor is opt-in.",
         )
         parser.add_argument(
             "--save",
@@ -114,7 +114,7 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.MIGRATE_HEADING(
                 f"\nScraping '{keyword}' in '{location}' "
-                f"from {len(sources or SCRAPERS)} site(s) with {workers} worker(s)...\n"
+                f"from {len(sources if sources is not None else DEFAULT_SOURCES)} site(s) with {workers} worker(s)...\n"
             )
         )
 
@@ -128,6 +128,12 @@ class Command(BaseCommand):
             count = result.get("total_found", 0)
             total_jobs += count
 
+            if src == "PESO_NEGROS_ORIENTAL":
+                self.stdout.write(
+                    self.style.SUCCESS(f"  → {display_name:<30} {result.get('lead_count', 0)} vacancy category lead(s) (not publishable)")
+                    if result.get("success") else self.style.WARNING(f"  ✗ {display_name:<30} unavailable")
+                )
+                continue
             if result.get("success"):
                 self.stdout.write(
                     self.style.SUCCESS(f"  ✓ {display_name:<30} {count} job(s)")
@@ -146,9 +152,14 @@ class Command(BaseCommand):
 
             saved = 0
             for result in results:
-                if not result.get("jobs"):
-                    continue
                 src = result.get("source", "OTHER")
+                if not result.get("jobs") and not result.get("vacancy_leads") and not (
+                    src == "PESO_NEGROS_ORIENTAL" and result.get("success")
+                ):
+                    continue
+                ScrapedJob.objects.filter(
+                    search_keyword=keyword, search_location=location, source=src, scraped_by=user,
+                ).update(is_active=False)
                 ScrapedJob.objects.create(
                     search_keyword=keyword,
                     search_location=location,

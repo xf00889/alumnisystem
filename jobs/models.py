@@ -191,6 +191,7 @@ class ScrapedJob(models.Model):
         ('INDEED', 'Indeed Philippines'),
         ('KALIBRR', 'Kalibrr'),
         ('PHILJOBNET', 'PhilJobNet (DOLE)'),
+        ('PESO_NEGROS_ORIENTAL', 'Negros Oriental PESO (vacancy leads)'),
         ('ONLINEJOBS', 'OnlineJobs.ph'),
         ('JORA', 'Jora Philippines'),
         ('MYNIMO', 'Mynimo'),
@@ -226,6 +227,15 @@ class ScrapedJob(models.Model):
             return self.scraped_data.get('jobs', [])
         return []
     
+    @property
+    def vacancy_leads(self):
+        data = self.scraped_data
+        return data.get('vacancy_leads', []) if isinstance(data, dict) else []
+
+    @property
+    def is_peso_vacancy_lead(self):
+        return self.source == 'PESO_NEGROS_ORIENTAL'
+
     @property
     def jobs_count(self):
         """Return the number of jobs in the scraped data"""
