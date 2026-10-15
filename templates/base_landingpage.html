@@ -17,6 +17,8 @@
     <link rel="apple-touch-icon" href="{% static 'images/alumni_logo.png' %}">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://cdnjs.cloudflare.com" crossorigin>
     {% if request.resolver_match.url_name == 'home' and site_config.hero_background_image %}
     <link rel="preload" href="{{ site_config.hero_background_image.url }}" as="image" fetchpriority="high">
     {% else %}
@@ -29,22 +31,32 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    {% if request.resolver_match.url_name == 'home' %}
+    <!-- Only the anonymous homepage uses this prebuilt, ordered stylesheet.
+         It preserves the exact original local CSS cascade while reducing
+         public-homepage stylesheet requests. Rebuild when sources change. -->
+    {% else %}
     <!-- Unified Footer CSS -->
     <link rel="stylesheet" href="{% versioned_static 'css/footer.css' %}">
     <link rel="stylesheet" href="{% versioned_static 'css/public_tracer_studies.css' %}">
-    
-    <!-- Notyf CSS for Toast Notifications -->
+    {% endif %}
+
+    <!-- Notyf styles and notification behavior remain available on public pages. -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+    {% if request.resolver_match.url_name != 'home' %}
     <link rel="stylesheet" href="{% static 'css/toast-notifications.css' %}">
-    
     <link rel="stylesheet" href="{% static 'css/modules/layout-public.css' %}">
-    <!-- University Header CSS -->
     <link rel="stylesheet" href="{% static 'css/university_header.css' %}">
+    {% endif %}
     {% block extra_css %}{% endblock %}
     {% block extra_head %}{% endblock %}
+    {% if request.resolver_match.url_name == 'home' %}
+    <link rel="stylesheet" href="{% versioned_static 'css/public-home-bundle.css' %}">
+    {% else %}
     <link rel="stylesheet" href="{% static 'css/public_redesign.css' %}">
     <link rel="stylesheet" href="{% static 'css/landing-performance.css' %}">
     <link rel="stylesheet" href="{% versioned_static 'css/public_typography.css' %}">
+    {% endif %}
     {% block page_final_css %}{% endblock page_final_css %}
 </head>
 <body class="public-landing">
@@ -150,8 +162,10 @@
     <!-- Footer -->
     {% include 'components/footer.html' with is_landing=True %}
 
-    <!-- Bootstrap 5 JS -->
+    <!-- Homepage uses its own accessible navbar/gallery controllers. -->
+    {% if request.resolver_match.url_name != 'home' %}
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    {% endif %}
 
     <!-- Notyf JS for Toast Notifications -->
     <script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
